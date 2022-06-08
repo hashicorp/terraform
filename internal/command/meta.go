@@ -732,3 +732,35 @@ func (m *Meta) applyStateArguments(args *arguments.State) {
 	m.stateOutPath = args.StateOutPath
 	m.backupPath = args.BackupPath
 }
+
+// checkRequiredVersion loads the config and check if the
+// core version requirements are satisfied.
+func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("Error getting pwd: %s", err))
+		return diags
+	}
+
+	config, configDiags := loader.LoadConfig(pwd)
+	if configDiags.HasErrors() {
+		diags = diags.Append(configDiags)
+		return diags
+	}
+
+	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	if versionDiags.HasErrors() {
+		diags = diags.Append(versionDiags)
+		return diags
+	}
+
+	return nil
+}

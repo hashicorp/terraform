@@ -18,9 +18,8 @@ import (
 
 func TestApply_destroy(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -123,9 +122,8 @@ func TestApply_destroy(t *testing.T) {
 
 func TestApply_destroyApproveNo(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Create some existing state
@@ -192,9 +190,8 @@ func TestApply_destroyApproveNo(t *testing.T) {
 
 func TestApply_destroyApproveYes(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Create some existing state
@@ -264,9 +261,8 @@ func TestApply_destroyApproveYes(t *testing.T) {
 
 func TestApply_destroyLockedState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -288,7 +284,7 @@ func TestApply_destroyLockedState(t *testing.T) {
 	})
 	statePath := testStateFile(t, originalState)
 
-	unlock, err := testLockState(testDataDir, statePath)
+	unlock, err := testLockState(t, testDataDir, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -323,9 +319,8 @@ func TestApply_destroyLockedState(t *testing.T) {
 
 func TestApply_destroyPlan(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	planPath := testPlanFileNoop(t)
@@ -356,9 +351,8 @@ func TestApply_destroyPlan(t *testing.T) {
 
 func TestApply_destroyPath(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()
@@ -391,9 +385,8 @@ func TestApply_destroyPath(t *testing.T) {
 // dependencies.
 func TestApply_destroyTargetedDependencies(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -526,9 +519,8 @@ func TestApply_destroyTargetedDependencies(t *testing.T) {
 // leaf node, expecting the other resources to remain.
 func TestApply_destroyTargeted(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-destroy-targeted"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {

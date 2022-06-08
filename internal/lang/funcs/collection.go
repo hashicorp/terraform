@@ -311,8 +311,8 @@ var LookupFunc = function.New(&function.Spec{
 			return defaultVal.WithMarks(markses...), nil
 		}
 
-		return cty.UnknownVal(cty.DynamicPseudoType).WithMarks(markses...), fmt.Errorf(
-			"lookup failed to find '%s'", lookupKey)
+		return cty.UnknownVal(cty.DynamicPseudoType), fmt.Errorf(
+			"lookup failed to find key %s", redactIfSensitive(lookupKey, keyMarks))
 	},
 })
 
@@ -525,6 +525,10 @@ var SumFunc = function.New(&function.Spec{
 
 		s := arg[0]
 		if s.IsNull() {
+			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
+		}
+		s, err = convert.Convert(s, cty.Number)
+		if err != nil {
 			return cty.NilVal, function.NewArgErrorf(0, "argument must be list, set, or tuple of number values")
 		}
 		for _, v := range arg[1:] {

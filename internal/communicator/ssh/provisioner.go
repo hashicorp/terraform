@@ -62,6 +62,12 @@ type connectionInfo struct {
 	Timeout        string
 	TimeoutVal     time.Duration
 
+	ProxyScheme       string
+	ProxyHost         string
+	ProxyPort         uint16
+	ProxyUserName     string
+	ProxyUserPassword string
+
 	BastionUser        string
 	BastionPassword    string
 	BastionPrivateKey  string
@@ -112,6 +118,18 @@ func decodeConnInfo(v cty.Value) (*connectionInfo, error) {
 			connInfo.TargetPlatform = v.AsString()
 		case "timeout":
 			connInfo.Timeout = v.AsString()
+		case "proxy_scheme":
+			connInfo.ProxyScheme = v.AsString()
+		case "proxy_host":
+			connInfo.ProxyHost = v.AsString()
+		case "proxy_port":
+			if err := gocty.FromCtyValue(v, &connInfo.ProxyPort); err != nil {
+				return nil, err
+			}
+		case "proxy_user_name":
+			connInfo.ProxyUserName = v.AsString()
+		case "proxy_user_password":
+			connInfo.ProxyUserPassword = v.AsString()
 		case "bastion_user":
 			connInfo.BastionUser = v.AsString()
 		case "bastion_password":
@@ -254,7 +272,18 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 		return nil, err
 	}
 
-	connectFunc := ConnectFunc("tcp", host)
+	var p *proxyInfo
+
+	if connInfo.ProxyHost != "" {
+		p = newProxyInfo(
+			fmt.Sprintf("%s:%d", connInfo.ProxyHost, connInfo.ProxyPort),
+			connInfo.ProxyScheme,
+			connInfo.ProxyUserName,
+			connInfo.ProxyUserPassword,
+		)
+	}
+
+	connectFunc := ConnectFunc("tcp", host, p)
 
 	var bastionConf *ssh.ClientConfig
 	if connInfo.BastionHost != "" {
@@ -273,7 +302,7 @@ func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 			return nil, err
 		}
 
-		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host)
+		connectFunc = BastionConnectFunc("tcp", bastionHost, bastionConf, "tcp", host, p)
 	}
 
 	config := &sshConfig{

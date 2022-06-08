@@ -22,7 +22,7 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "1.0"
+const FormatVersion = "1.1"
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
@@ -33,17 +33,26 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift   []resourceChange  `json:"resource_drift,omitempty"`
-	ResourceChanges []resourceChange  `json:"resource_changes,omitempty"`
-	OutputChanges   map[string]change `json:"output_changes,omitempty"`
-	PriorState      json.RawMessage   `json:"prior_state,omitempty"`
-	Config          json.RawMessage   `json:"configuration,omitempty"`
+	ResourceDrift      []resourceChange  `json:"resource_drift,omitempty"`
+	ResourceChanges    []resourceChange  `json:"resource_changes,omitempty"`
+	OutputChanges      map[string]change `json:"output_changes,omitempty"`
+	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
+	Config             json.RawMessage   `json:"configuration,omitempty"`
+	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
+	Conditions         []conditionResult `json:"condition_results,omitempty"`
 }
 
 func newPlan() *plan {
 	return &plan{
 		FormatVersion: FormatVersion,
 	}
+}
+
+// resourceAttr contains the address and attribute of an external for the
+// RelevantAttributes in the plan.
+type resourceAttr struct {
+	Resource string          `json:"resource"`
+	Attr     json.RawMessage `json:"attribute"`
 }
 
 // Change is the representation of a proposed change for an object.
@@ -97,6 +106,7 @@ type change struct {
 
 type output struct {
 	Sensitive bool            `json:"sensitive"`
+	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
@@ -118,7 +128,7 @@ func Marshal(
 	output := newPlan()
 	output.TerraformVersion = version.String()
 
-	err := output.marshalPlanVariables(p.VariableValues, schemas)
+	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshalPlanVariables: %s", err)
 	}
@@ -151,6 +161,10 @@ func Marshal(
 		}
 	}
 
+	if err := output.marshalRelevantAttrs(p); err != nil {
+		return nil, fmt.Errorf("error marshaling relevant attributes for external changes: %s", err)
+	}
+
 	// output.ResourceChanges
 	if p.Changes != nil {
 		output.ResourceChanges, err = output.marshalResourceChanges(p.Changes.Resources, schemas)
@@ -163,6 +177,12 @@ func Marshal(
 	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
+	}
+
+	// output.Conditions
+	err = output.marshalConditionResults(p.Conditions)
+	if err != nil {
+		return nil, fmt.Errorf("error in marshaling condition results: %s", err)
 	}
 
 	// output.PriorState
@@ -183,11 +203,7 @@ func Marshal(
 	return ret, err
 }
 
-func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas *terraform.Schemas) error {
-	if len(vars) == 0 {
-		return nil
-	}
-
+func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
 	p.Variables = make(variables, len(vars))
 
 	for k, v := range vars {
@@ -203,6 +219,41 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, schemas 
 			Value: valJSON,
 		}
 	}
+
+	// In Terraform v1.1 and earlier we had some confusion about which subsystem
+	// of Terraform was the one responsible for substituting in default values
+	// for unset module variables, with root module variables being handled in
+	// three different places while child module variables were only handled
+	// during the Terraform Core graph walk.
+	//
+	// For Terraform v1.2 and later we rationalized that by having the Terraform
+	// Core graph walk always be responsible for selecting defaults regardless
+	// of root vs. child module, but unfortunately our earlier accidental
+	// misbehavior bled out into the public interface by making the defaults
+	// show up in the "vars" map to this function. Those are now correctly
+	// omitted (so that the plan file only records the variables _actually_
+	// set by the caller) but consumers of the JSON plan format may be depending
+	// on our old behavior and so we'll fake it here just in time so that
+	// outside consumers won't see a behavior change.
+	for name, decl := range decls {
+		if _, ok := p.Variables[name]; ok {
+			continue
+		}
+		if val := decl.Default; val != cty.NilVal {
+			valJSON, err := ctyjson.Marshal(val, val.Type())
+			if err != nil {
+				return err
+			}
+			p.Variables[name] = &variable{
+				Value: valJSON,
+			}
+		}
+	}
+
+	if len(p.Variables) == 0 {
+		p.Variables = nil // omit this property if there are no variables to describe
+	}
+
 	return nil
 }
 
@@ -342,6 +393,8 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "replace_because_tainted"
 		case plans.ResourceInstanceReplaceByRequest:
 			r.ActionReason = "replace_by_request"
+		case plans.ResourceInstanceReplaceByTriggers:
+			r.ActionReason = "replace_by_triggers"
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 			r.ActionReason = "delete_because_no_resource_config"
 		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
@@ -352,6 +405,10 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "delete_because_each_key"
 		case plans.ResourceInstanceDeleteBecauseNoModule:
 			r.ActionReason = "delete_because_no_module"
+		case plans.ResourceInstanceReadBecauseConfigUnknown:
+			r.ActionReason = "read_because_config_unknown"
+		case plans.ResourceInstanceReadBecauseDependencyPending:
+			r.ActionReason = "read_because_dependency_pending"
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}
@@ -433,6 +490,27 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 	return nil
 }
 
+func (p *plan) marshalConditionResults(conditions plans.Conditions) error {
+	for addr, c := range conditions {
+		cr := conditionResult{
+			checkAddress: addr,
+			Address:      c.Address.String(),
+			Type:         c.Type.String(),
+			ErrorMessage: c.ErrorMessage,
+		}
+		if c.Result.IsKnown() {
+			cr.Result = c.Result.True()
+		} else {
+			cr.Unknown = true
+		}
+		p.Conditions = append(p.Conditions, cr)
+	}
+	sort.Slice(p.Conditions, func(i, j int) bool {
+		return p.Conditions[i].checkAddress < p.Conditions[j].checkAddress
+	})
+	return nil
+}
+
 func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
@@ -448,6 +526,19 @@ func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.S
 	}
 	p.PlannedValues.Outputs = outputs
 
+	return nil
+}
+
+func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
+	for _, ra := range plan.RelevantAttributes {
+		addr := ra.Resource.String()
+		path, err := encodePath(ra.Attr)
+		if err != nil {
+			return err
+		}
+
+		p.RelevantAttributes = append(p.RelevantAttributes, resourceAttr{addr, path})
+	}
 	return nil
 }
 
@@ -566,7 +657,7 @@ func unknownAsBool(val cty.Value) cty.Value {
 			// Omit all of the "false"s for known values for more compact
 			// serialization
 			if !vAsBool.RawEquals(cty.False) {
-				vals[k.AsString()] = unknownAsBool(v)
+				vals[k.AsString()] = vAsBool
 			}
 		}
 		// The above transform may have changed the types of some of the
@@ -624,26 +715,7 @@ func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	jsonPaths := make([]json.RawMessage, 0, len(pathList))
 
 	for _, path := range pathList {
-		steps := make([]json.RawMessage, 0, len(path))
-		for _, step := range path {
-			switch s := step.(type) {
-			case cty.IndexStep:
-				key, err := ctyjson.Marshal(s.Key, s.Key.Type())
-				if err != nil {
-					return nil, fmt.Errorf("Failed to marshal index step key %#v: %s", s.Key, err)
-				}
-				steps = append(steps, key)
-			case cty.GetAttrStep:
-				name, err := json.Marshal(s.Name)
-				if err != nil {
-					return nil, fmt.Errorf("Failed to marshal get attr step name %#v: %s", s.Name, err)
-				}
-				steps = append(steps, name)
-			default:
-				return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
-			}
-		}
-		jsonPath, err := json.Marshal(steps)
+		jsonPath, err := encodePath(path)
 		if err != nil {
 			return nil, err
 		}
@@ -651,4 +723,27 @@ func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	}
 
 	return json.Marshal(jsonPaths)
+}
+
+func encodePath(path cty.Path) (json.RawMessage, error) {
+	steps := make([]json.RawMessage, 0, len(path))
+	for _, step := range path {
+		switch s := step.(type) {
+		case cty.IndexStep:
+			key, err := ctyjson.Marshal(s.Key, s.Key.Type())
+			if err != nil {
+				return nil, fmt.Errorf("Failed to marshal index step key %#v: %s", s.Key, err)
+			}
+			steps = append(steps, key)
+		case cty.GetAttrStep:
+			name, err := json.Marshal(s.Name)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to marshal get attr step name %#v: %s", s.Name, err)
+			}
+			steps = append(steps, name)
+		default:
+			return nil, fmt.Errorf("Unsupported path step %#v (%t)", step, step)
+		}
+	}
+	return json.Marshal(steps)
 }

@@ -46,6 +46,11 @@ func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	name := block.Labels[0]
 	nameDiags := checkProviderNameNormalized(name, block.DefRange)
 	diags = append(diags, nameDiags...)
+	if nameDiags.HasErrors() {
+		// If the name is invalid then we mustn't produce a result because
+		// downstreams could try to use it as a provider type and then crash.
+		return nil, diags
+	}
 
 	provider := &Provider{
 		Name:      name,

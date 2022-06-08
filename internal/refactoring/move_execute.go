@@ -31,6 +31,10 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 		Blocked: make(map[addrs.UniqueKey]MoveBlocked),
 	}
 
+	if len(stmts) == 0 {
+		return ret
+	}
+
 	// The methodology here is to construct a small graph of all of the move
 	// statements where the edges represent where a particular statement
 	// is either chained from or nested inside the effect of another statement.
@@ -39,12 +43,17 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 	g := buildMoveStatementGraph(stmts)
 
-	// If there are any cycles in the graph then we'll not take any action
-	// at all. The separate validation step should detect this and return
-	// an error.
-	if len(g.Cycles()) != 0 {
+	// If the graph is not valid the we will not take any action at all. The
+	// separate validation step should detect this and return an error.
+	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
+		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
 		return ret
 	}
+
+	// The graph must be reduced in order for ReverseDepthFirstWalk to work
+	// correctly, since it is built from following edges and can skip over
+	// dependencies if there is a direct edge to a transitive dependency.
+	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := make(dag.Set, len(stmts))
@@ -88,16 +97,13 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 		for _, ms := range state.Modules {
 			modAddr := ms.Addr
-			if !stmt.From.SelectsModule(modAddr) {
-				continue
-			}
 
-			// We now know that the current module is relevant but what
-			// we'll do with it depends on the object kind.
+			// We don't yet know that the current module is relevant, and
+			// we determine that differently for each the object kind.
 			switch kind := stmt.ObjectKind(); kind {
 			case addrs.MoveEndpointModule:
 				// For a module endpoint we just try the module address
-				// directly.
+				// directly, and execute the moves if it matches.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
 					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
 
@@ -125,8 +131,15 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 					continue
 				}
 			case addrs.MoveEndpointResource:
-				// For a resource endpoint we need to search each of the
-				// resources and resource instances in the module.
+				// For a resource endpoint we require an exact containing
+				// module match, because by definition a matching resource
+				// cannot be nested any deeper than that.
+				if !stmt.From.SelectsModule(modAddr) {
+					continue
+				}
+
+				// We then need to search each of the resources and resource
+				// instances in the module.
 				for _, rs := range ms.Resources {
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
@@ -238,11 +251,31 @@ func statementDependsOn(a, b *MoveStatement) bool {
 	//
 	// Since we are only interested in checking if A depends on B, we only need
 	// to check the 4 possibilities above which result in B being executed
-	// first.
-	return a.From.NestedWithin(b.To) ||
-		a.To.NestedWithin(b.To) ||
-		b.From.NestedWithin(a.From) ||
-		b.To.NestedWithin(a.From)
+	// first. If we're there's no dependency at all we can return immediately.
+	if !(a.From.NestedWithin(b.To) || a.To.NestedWithin(b.To) ||
+		b.From.NestedWithin(a.From) || b.To.NestedWithin(a.From)) {
+		return false
+	}
+
+	// If a nested move has a dependency, we need to rule out the possibility
+	// that this is a move inside a module only changing indexes. If an
+	// ancestor module is only changing the index of a nested module, any
+	// nested move statements are going to match both the From and To address
+	// when the base name is not changing, causing a cycle in the order of
+	// operations.
+
+	// if A is not declared in an ancestor module, then we can't be nested
+	// within a module index change.
+	if len(a.To.Module()) >= len(b.To.Module()) {
+		return true
+	}
+	// We only want the nested move statement to depend on the outer module
+	// move, so we only test this in the reverse direction.
+	if a.From.IsModuleReIndex(a.To) {
+		return false
+	}
+
+	return true
 }
 
 // MoveResults describes the outcome of an ApplyMoves call.

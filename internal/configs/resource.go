@@ -6,8 +6,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	hcljson "github.com/hashicorp/hcl/v2/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Resource represents a "resource" or "data" block in a module or file.
@@ -22,7 +25,12 @@ type Resource struct {
 	ProviderConfigRef *ProviderConfigRef
 	Provider          addrs.Provider
 
+	Preconditions  []*CheckRule
+	Postconditions []*CheckRule
+
 	DependsOn []hcl.Traversal
+
+	TriggersReplacement []hcl.Expression
 
 	// Managed is populated only for Mode = addrs.ManagedResourceMode,
 	// containing the additional fields that apply to managed resources.
@@ -81,7 +89,13 @@ func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
 	}
 }
 
-func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+// HasCustomConditions returns true if and only if the resource has at least
+// one author-specified custom condition.
+func (r *Resource) HasCustomConditions() bool {
+	return len(r.Postconditions) != 0 || len(r.Preconditions) != 0
+}
+
+func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.ManagedResourceMode,
@@ -174,6 +188,13 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 				r.Managed.PreventDestroySet = true
 			}
 
+			if attr, exists := lcContent.Attributes["replace_triggered_by"]; exists {
+				exprs, hclDiags := decodeReplaceTriggeredBy(attr.Expr)
+				diags = diags.Extend(hclDiags)
+
+				r.TriggersReplacement = append(r.TriggersReplacement, exprs...)
+			}
+
 			if attr, exists := lcContent.Attributes["ignore_changes"]; exists {
 
 				// ignore_changes can either be a list of relative traversals
@@ -234,7 +255,28 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 					}
 
 				}
+			}
 
+			for _, block := range lcContent.Blocks {
+				switch block.Type {
+				case "precondition", "postcondition":
+					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					diags = append(diags, moreDiags...)
+
+					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
+					diags = append(diags, moreDiags...)
+
+					switch block.Type {
+					case "precondition":
+						r.Preconditions = append(r.Preconditions, cr)
+					case "postcondition":
+						r.Postconditions = append(r.Postconditions, cr)
+					}
+				default:
+					// The cases above should be exhaustive for all block types
+					// defined in the lifecycle schema, so this shouldn't happen.
+					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
+				}
 			}
 
 		case "connection":
@@ -307,7 +349,7 @@ func decodeResourceBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	return r, diags
 }
 
-func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
+func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.DataResourceMode,
@@ -368,6 +410,7 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 	}
 
 	var seenEscapeBlock *hcl.Block
+	var seenLifecycle *hcl.Block
 	for _, block := range content.Blocks {
 		switch block.Type {
 
@@ -391,26 +434,177 @@ func decodeDataBlock(block *hcl.Block) (*Resource, hcl.Diagnostics) {
 			// will see a blend of both.
 			r.Config = hcl.MergeBodies([]hcl.Body{r.Config, block.Body})
 
-		// The rest of these are just here to reserve block type names for future use.
 		case "lifecycle":
-			diags = append(diags, &hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Unsupported lifecycle block",
-				Detail:   "Data resources do not have lifecycle settings, so a lifecycle block is not allowed.",
-				Subject:  &block.DefRange,
-			})
+			if seenLifecycle != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Duplicate lifecycle block",
+					Detail:   fmt.Sprintf("This resource already has a lifecycle block at %s.", seenLifecycle.DefRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+				continue
+			}
+			seenLifecycle = block
+
+			lcContent, lcDiags := block.Body.Content(resourceLifecycleBlockSchema)
+			diags = append(diags, lcDiags...)
+
+			// All of the attributes defined for resource lifecycle are for
+			// managed resources only, so we can emit a common error message
+			// for any given attributes that HCL accepted.
+			for name, attr := range lcContent.Attributes {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid data resource lifecycle argument",
+					Detail:   fmt.Sprintf("The lifecycle argument %q is defined only for managed resources (\"resource\" blocks), and is not valid for data resources.", name),
+					Subject:  attr.NameRange.Ptr(),
+				})
+			}
+
+			for _, block := range lcContent.Blocks {
+				switch block.Type {
+				case "precondition", "postcondition":
+					cr, moreDiags := decodeCheckRuleBlock(block, override)
+					diags = append(diags, moreDiags...)
+
+					moreDiags = cr.validateSelfReferences(block.Type, r.Addr())
+					diags = append(diags, moreDiags...)
+
+					switch block.Type {
+					case "precondition":
+						r.Preconditions = append(r.Preconditions, cr)
+					case "postcondition":
+						r.Postconditions = append(r.Postconditions, cr)
+					}
+				default:
+					// The cases above should be exhaustive for all block types
+					// defined in the lifecycle schema, so this shouldn't happen.
+					panic(fmt.Sprintf("unexpected lifecycle sub-block type %q", block.Type))
+				}
+			}
 
 		default:
+			// Any other block types are ones we're reserving for future use,
+			// but don't have any defined meaning today.
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in data block",
 				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
-				Subject:  &block.TypeRange,
+				Subject:  block.TypeRange.Ptr(),
 			})
 		}
 	}
 
 	return r, diags
+}
+
+// decodeReplaceTriggeredBy decodes and does basic validation of the
+// replace_triggered_by expressions, ensuring they only contains references to
+// a single resource, and the only extra variables are count.index or each.key.
+func decodeReplaceTriggeredBy(expr hcl.Expression) ([]hcl.Expression, hcl.Diagnostics) {
+	// Since we are manually parsing the replace_triggered_by argument, we
+	// need to specially handle json configs, in which case the values will
+	// be json strings rather than hcl. To simplify parsing however we will
+	// decode the individual list elements, rather than the entire expression.
+	isJSON := hcljson.IsJSONExpression(expr)
+
+	exprs, diags := hcl.ExprList(expr)
+
+	for i, expr := range exprs {
+		if isJSON {
+			// We can abuse the hcl json api and rely on the fact that calling
+			// Value on a json expression with no EvalContext will return the
+			// raw string. We can then parse that as normal hcl syntax, and
+			// continue with the decoding.
+			v, ds := expr.Value(nil)
+			diags = diags.Extend(ds)
+			if diags.HasErrors() {
+				continue
+			}
+
+			expr, ds = hclsyntax.ParseExpression([]byte(v.AsString()), "", expr.Range().Start)
+			diags = diags.Extend(ds)
+			if diags.HasErrors() {
+				continue
+			}
+			// make sure to swap out the expression we're returning too
+			exprs[i] = expr
+		}
+
+		refs, refDiags := lang.ReferencesInExpr(expr)
+		for _, diag := range refDiags {
+			severity := hcl.DiagError
+			if diag.Severity() == tfdiags.Warning {
+				severity = hcl.DiagWarning
+			}
+
+			desc := diag.Description()
+
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: severity,
+				Summary:  desc.Summary,
+				Detail:   desc.Detail,
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		resourceCount := 0
+		for _, ref := range refs {
+			switch sub := ref.Subject.(type) {
+			case addrs.Resource, addrs.ResourceInstance:
+				resourceCount++
+
+			case addrs.ForEachAttr:
+				if sub.Name != "key" {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid each reference in replace_triggered_by expression",
+						Detail:   "Only each.key may be used in replace_triggered_by.",
+						Subject:  expr.Range().Ptr(),
+					})
+				}
+			case addrs.CountAttr:
+				if sub.Name != "index" {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid count reference in replace_triggered_by expression",
+						Detail:   "Only count.index may be used in replace_triggered_by.",
+						Subject:  expr.Range().Ptr(),
+					})
+				}
+			default:
+				// everything else should be simple traversals
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid reference in replace_triggered_by expression",
+					Detail:   "Only resources, count.index, and each.key may be used in replace_triggered_by.",
+					Subject:  expr.Range().Ptr(),
+				})
+			}
+		}
+
+		switch {
+		case resourceCount == 0:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid replace_triggered_by expression",
+				Detail:   "Missing resource reference in replace_triggered_by expression.",
+				Subject:  expr.Range().Ptr(),
+			})
+		case resourceCount > 1:
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid replace_triggered_by expression",
+				Detail:   "Multiple resource references in replace_triggered_by expression.",
+				Subject:  expr.Range().Ptr(),
+			})
+		}
+	}
+	return exprs, diags
 }
 
 type ProviderConfigRef struct {
@@ -551,13 +745,17 @@ var resourceBlockSchema = &hcl.BodySchema{
 var dataBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
-		{Type: "lifecycle"}, // reserved for future use
-		{Type: "locals"},    // reserved for future use
-		{Type: "_"},         // meta-argument escaping block
+		{Type: "lifecycle"},
+		{Type: "locals"}, // reserved for future use
+		{Type: "_"},      // meta-argument escaping block
 	},
 }
 
 var resourceLifecycleBlockSchema = &hcl.BodySchema{
+	// We tell HCL that these elements are all valid for both "resource"
+	// and "data" lifecycle blocks, but the rules are actually more restrictive
+	// than that. We deal with that after decoding so that we can return
+	// more specific error messages than HCL would typically return itself.
 	Attributes: []hcl.AttributeSchema{
 		{
 			Name: "create_before_destroy",
@@ -568,5 +766,12 @@ var resourceLifecycleBlockSchema = &hcl.BodySchema{
 		{
 			Name: "ignore_changes",
 		},
+		{
+			Name: "replace_triggered_by",
+		},
+	},
+	Blocks: []hcl.BlockHeaderSchema{
+		{Type: "precondition"},
+		{Type: "postcondition"},
 	},
 }

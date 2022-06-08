@@ -1,6 +1,8 @@
 package states
 
 import (
+	"sort"
+
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -108,13 +110,25 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		return nil, err
 	}
 
+	// Dependencies are collected and merged in an unordered format (using map
+	// keys as a set), then later changed to a slice (in random ordering) to be
+	// stored in state as an array. To avoid pointless thrashing of state in
+	// refresh-only runs, we can either override comparison of dependency lists
+	// (more desirable, but tricky for Reasons) or just sort when encoding.
+	// Encoding of instances can happen concurrently, so we must copy the
+	// dependencies to avoid mutating what may be a shared array of values.
+	dependencies := make([]addrs.ConfigResource, len(o.Dependencies))
+	copy(dependencies, o.Dependencies)
+
+	sort.Slice(dependencies, func(i, j int) bool { return dependencies[i].String() < dependencies[j].String() })
+
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
 		AttrsJSON:           src,
 		AttrSensitivePaths:  pvm,
 		Private:             o.Private,
 		Status:              o.Status,
-		Dependencies:        o.Dependencies,
+		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
 	}, nil
 }

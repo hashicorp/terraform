@@ -9,6 +9,7 @@
         "outputs": {
             "test": {
                 "sensitive": false,
+                "type": "string",
                 "value": "bar"
             }
         },
@@ -73,6 +74,7 @@
             "outputs": {
                 "test": {
                     "sensitive": false,
+                    "type": "string",
                     "value": "bar"
                 }
             },
@@ -96,6 +98,12 @@
         }
     },
     "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
         "root_module": {
             "outputs": {
                 "test": {

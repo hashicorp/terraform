@@ -135,12 +135,41 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_MSI_ENDPOINT", ""),
 			},
 
+			// OIDC auth specific fields
+			"use_oidc": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_OIDC", false),
+				Description: "Allow OIDC to be used for authentication",
+			},
+
+			"oidc_request_url": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL"}, ""),
+				Description: "The URL for the OIDC provider from which to request an ID token",
+			},
+
+			"oidc_request_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"}, ""),
+				Description: "The bearer token for the request to the OIDC provider",
+			},
+
 			// Feature Flags
 			"use_azuread_auth": {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
+			},
+			"use_microsoft_graph": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Deprecated:  "This field now defaults to `true` and will be removed in v1.3 of Terraform Core due to the deprecation of ADAL by Microsoft.",
+				Description: "Should Terraform obtain an MSAL auth token and use Microsoft Graph rather than Azure Active Directory?",
+				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_MSGRAPH", true),
 			},
 		},
 	}
@@ -175,12 +204,16 @@ type BackendConfig struct {
 	MetadataHost                  string
 	Environment                   string
 	MsiEndpoint                   string
+	OIDCRequestURL                string
+	OIDCRequestToken              string
 	ResourceGroupName             string
 	SasToken                      string
 	SubscriptionID                string
 	TenantID                      string
 	UseMsi                        bool
+	UseOIDC                       bool
 	UseAzureADAuthentication      bool
+	UseMicrosoftGraph             bool
 }
 
 func (b *Backend) configure(ctx context.Context) error {
@@ -205,13 +238,17 @@ func (b *Backend) configure(ctx context.Context) error {
 		MetadataHost:                  data.Get("metadata_host").(string),
 		Environment:                   data.Get("environment").(string),
 		MsiEndpoint:                   data.Get("msi_endpoint").(string),
+		OIDCRequestURL:                data.Get("oidc_request_url").(string),
+		OIDCRequestToken:              data.Get("oidc_request_token").(string),
 		ResourceGroupName:             data.Get("resource_group_name").(string),
 		SasToken:                      data.Get("sas_token").(string),
 		StorageAccountName:            data.Get("storage_account_name").(string),
 		SubscriptionID:                data.Get("subscription_id").(string),
 		TenantID:                      data.Get("tenant_id").(string),
 		UseMsi:                        data.Get("use_msi").(bool),
+		UseOIDC:                       data.Get("use_oidc").(bool),
 		UseAzureADAuthentication:      data.Get("use_azuread_auth").(bool),
+		UseMicrosoftGraph:             data.Get("use_microsoft_graph").(bool),
 	}
 
 	armClient, err := buildArmClient(context.TODO(), config)

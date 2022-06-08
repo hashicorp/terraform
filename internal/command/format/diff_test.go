@@ -73,6 +73,34 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
     }
 `,
 		},
+		"creation (object with quoted keys)": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.EmptyObject),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"object": cty.ObjectVal(map[string]cty.Value{
+					"unquoted":   cty.StringVal("value"),
+					"quoted:key": cty.StringVal("some-value"),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"object": {Type: cty.Object(map[string]cty.Type{
+						"unquoted":   cty.String,
+						"quoted:key": cty.String,
+					}), Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + object = {
+          + "quoted:key" = "some-value"
+          + unquoted     = "value"
+        }
+    }
+`,
+		},
 		"deletion": {
 			Action: plans.Delete,
 			Mode:   addrs.ManagedResourceMode,
@@ -156,6 +184,35 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
+    }
+`,
+		},
+		"update with quoted key": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.StringVal("i-02ae66f368e8518a9"),
+				"saml:aud": cty.StringVal("https://example.com/saml"),
+				"zeta":     cty.StringVal("alpha"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":       cty.StringVal("i-02ae66f368e8518a9"),
+				"saml:aud": cty.StringVal("https://saml.example.com"),
+				"zeta":     cty.StringVal("alpha"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":       {Type: cty.String, Optional: true, Computed: true},
+					"saml:aud": {Type: cty.String, Optional: true},
+					"zeta":     {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+        id         = "i-02ae66f368e8518a9"
+      ~ "saml:aud" = "https://example.com/saml" -> "https://saml.example.com"
+        # (1 unchanged attribute hidden)
     }
 `,
 		},
@@ -354,9 +411,9 @@ new line
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + conn_info = {
-        + password = (sensitive value)
-        + user     = "not-secret"
-      }
+          + password = (sensitive value)
+          + user     = "not-secret"
+        }
       + id        = (known after apply)
       + password  = (sensitive value)
     }
@@ -477,6 +534,70 @@ new line
     }
 `,
 		},
+		"read during apply because of unknown configuration": {
+			Action:       plans.Read,
+			ActionReason: plans.ResourceInstanceReadBecauseConfigUnknown,
+			Mode:         addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+  # (config refers to values not yet known)
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
+		"read during apply because of pending changes to upstream dependency": {
+			Action:       plans.Read,
+			ActionReason: plans.ResourceInstanceReadBecauseDependencyPending,
+			Mode:         addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+  # (depends on a resource or a module with changes pending)
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
+		"read during apply for unspecified reason": {
+			Action: plans.Read,
+			Mode:   addrs.DataResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("name"),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {Type: cty.String, Optional: true},
+				},
+			},
+			ExpectedOutput: `  # data.test_instance.example will be read during apply
+ <= data "test_instance" "example" {
+        name = "name"
+    }
+`,
+		},
 		"show all identifying attributes even if unchanged": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
@@ -594,6 +715,37 @@ func TestResourceChange_JSON(t *testing.T) {
           ~ {
               + bbb = "new_value"
               - ccc = 5 -> null
+                # (1 unchanged element hidden)
+            }
+        )
+    }
+`,
+		},
+		"in-place update of object with quoted keys": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"json_field": cty.StringVal(`{"aaa": "value", "c:c": "old_value"}`),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":         cty.UnknownVal(cty.String),
+				"json_field": cty.StringVal(`{"aaa": "value", "b:bb": "new_value"}`),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id":         {Type: cty.String, Optional: true, Computed: true},
+					"json_field": {Type: cty.String, Optional: true},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
+      ~ json_field = jsonencode(
+          ~ {
+              + "b:bb" = "new_value"
+              - "c:c"  = "old_value" -> null
                 # (1 unchanged element hidden)
             }
         )
@@ -1124,6 +1276,92 @@ func TestResourceChange_JSON(t *testing.T) {
               + "something",
             ]
         )
+    }
+`,
+		},
+	}
+	runTestCases(t, testCases)
+}
+
+func TestResourceChange_listObject(t *testing.T) {
+	testCases := map[string]testCase{
+		// https://github.com/hashicorp/terraform/issues/30641
+		"updating non-identifying attribute": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("i-02ae66f368e8518a9"),
+				"accounts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("1"),
+						"name":   cty.StringVal("production"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("2"),
+						"name":   cty.StringVal("staging"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("3"),
+						"name":   cty.StringVal("disaster-recovery"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+				}),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.UnknownVal(cty.String),
+				"accounts": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("1"),
+						"name":   cty.StringVal("production"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("2"),
+						"name":   cty.StringVal("staging"),
+						"status": cty.StringVal("EXPLODED"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"id":     cty.StringVal("3"),
+						"name":   cty.StringVal("disaster-recovery"),
+						"status": cty.StringVal("ACTIVE"),
+					}),
+				}),
+			}),
+			Schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Optional: true, Computed: true},
+					"accounts": {
+						Type: cty.List(cty.Object(map[string]cty.Type{
+							"id":     cty.String,
+							"name":   cty.String,
+							"status": cty.String,
+						})),
+					},
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ accounts = [
+            {
+                id     = "1"
+                name   = "production"
+                status = "ACTIVE"
+            },
+          ~ {
+                id     = "2"
+                name   = "staging"
+              ~ status = "ACTIVE" -> "EXPLODED"
+            },
+            {
+                id     = "3"
+                name   = "disaster-recovery"
+                status = "ACTIVE"
+            },
+        ]
+      ~ id       = "i-02ae66f368e8518a9" -> (known after apply)
     }
 `,
 		},
@@ -1941,6 +2179,7 @@ func TestResourceChange_map(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
 					"new-key": cty.StringVal("new-element"),
+					"be:ep":   cty.StringVal("boop"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -1955,6 +2194,7 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + map_field = {
+          + "be:ep"   = "boop"
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
@@ -1974,6 +2214,7 @@ func TestResourceChange_map(t *testing.T) {
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
 					"new-key": cty.StringVal("new-element"),
+					"be:ep":   cty.StringVal("boop"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -1988,6 +2229,7 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
+          + "be:ep"   = "boop"
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
@@ -2009,9 +2251,10 @@ func TestResourceChange_map(t *testing.T) {
 				"id":  cty.UnknownVal(cty.String),
 				"ami": cty.StringVal("ami-STATIC"),
 				"map_field": cty.MapVal(map[string]cty.Value{
-					"a": cty.StringVal("aaaa"),
-					"b": cty.StringVal("bbbb"),
-					"c": cty.StringVal("cccc"),
+					"a":   cty.StringVal("aaaa"),
+					"b":   cty.StringVal("bbbb"),
+					"b:b": cty.StringVal("bbbb"),
+					"c":   cty.StringVal("cccc"),
 				}),
 			}),
 			Schema: &configschema.Block{
@@ -2026,7 +2269,8 @@ func TestResourceChange_map(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ map_field = {
-          + "b" = "bbbb"
+          + "b"   = "bbbb"
+          + "b:b" = "bbbb"
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
@@ -2764,6 +3008,55 @@ func TestResourceChange_nestedList(t *testing.T) {
 
 func TestResourceChange_nestedSet(t *testing.T) {
 	testCases := map[string]testCase{
+		"creation from null - sensitive set": {
+			Action: plans.Create,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.NullVal(cty.Object(map[string]cty.Type{
+				"id":  cty.String,
+				"ami": cty.String,
+				"disks": cty.Set(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.Set(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			})),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be created
+  + resource "test_instance" "example" {
+      + ami   = "ami-AFTER"
+      + disks = (sensitive value)
+      + id    = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
 		"in-place update - creation": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
@@ -2800,14 +3093,112 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           + {
-            + mount_point = "/var/diska"
-          },
+              + mount_point = "/var/diska"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
       + root_block_device {
           + volume_type = "gp2"
         }
+    }
+`,
+		},
+		"in-place update - creation - sensitive set": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"mount_point": cty.String,
+					"size":        cty.String,
+				})),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.NullVal(cty.String),
+					}),
+				}),
+				"root_block_device": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"volume_type": cty.StringVal("gp2"),
+					}),
+				}),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      # Warning: this attribute value will be marked as sensitive and will not
+      # display in UI output after applying this change.
+      ~ disks = (sensitive value)
+        id    = "i-02ae66f368e8518a9"
+
+      + root_block_device {
+          + volume_type = "gp2"
+        }
+    }
+`,
+		},
+		"in-place update - marking set sensitive": {
+			Action: plans.Update,
+			Mode:   addrs.ManagedResourceMode,
+			Before: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-BEFORE"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			After: cty.ObjectVal(map[string]cty.Value{
+				"id":  cty.StringVal("i-02ae66f368e8518a9"),
+				"ami": cty.StringVal("ami-AFTER"),
+				"disks": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diska"),
+						"size":        cty.StringVal("50GB"),
+					}),
+				}),
+				"root_block_device": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"volume_type": cty.String,
+				})),
+			}),
+			AfterValMarks: []cty.PathValueMarks{
+				{
+					Path:  cty.Path{cty.GetAttrStep{Name: "disks"}},
+					Marks: cty.NewValueMarks(marks.Sensitive),
+				},
+			},
+			RequiredReplace: cty.NewPathSet(),
+			Schema:          testSchema(configschema.NestingSet),
+			ExpectedOutput: `  # test_instance.example will be updated in-place
+  ~ resource "test_instance" "example" {
+      ~ ami   = "ami-BEFORE" -> "ami-AFTER"
+      # Warning: this attribute value will be marked as sensitive and will not
+      # display in UI output after applying this change. The value is unchanged.
+      ~ disks = (sensitive value)
+        id    = "i-02ae66f368e8518a9"
     }
 `,
 		},
@@ -2821,6 +3212,10 @@ func TestResourceChange_nestedSet(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"mount_point": cty.StringVal("/var/diska"),
 						"size":        cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("100GB"),
 					}),
 				}),
 				"root_block_device": cty.SetVal([]cty.Value{
@@ -2838,6 +3233,10 @@ func TestResourceChange_nestedSet(t *testing.T) {
 						"mount_point": cty.StringVal("/var/diska"),
 						"size":        cty.StringVal("50GB"),
 					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"mount_point": cty.StringVal("/var/diskb"),
+						"size":        cty.StringVal("100GB"),
+					}),
 				}),
 				"root_block_device": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -2853,12 +3252,13 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           + {
-            + mount_point = "/var/diska"
-            + size        = "50GB"
-          },
+              + mount_point = "/var/diska"
+              + size        = "50GB"
+            },
           - {
-            - mount_point = "/var/diska" -> null
-          },
+              - mount_point = "/var/diska" -> null
+            },
+            # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2916,13 +3316,13 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           - { # forces replacement
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
           + { # forces replacement
-            + mount_point = "/var/diskb"
-            + size        = "50GB"
-          },
+              + mount_point = "/var/diskb"
+              + size        = "50GB"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -2973,9 +3373,9 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           - {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -3062,9 +3462,9 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       + disks = [
           + {
-            + mount_point = "/var/diska"
-            + size        = "50GB"
-          },
+              + mount_point = "/var/diska"
+              + size        = "50GB"
+            },
         ]
         id    = "i-02ae66f368e8518a9"
 
@@ -3118,9 +3518,9 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
           - {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         ] -> (known after apply)
         id    = "i-02ae66f368e8518a9"
 
@@ -3170,8 +3570,8 @@ func TestResourceChange_nestedMap(t *testing.T) {
       + ami   = "ami-AFTER"
       + disks = {
           + "disk_a" = {
-            + mount_point = "/var/diska"
-          },
+              + mount_point = "/var/diska"
+            },
         }
       + id    = "i-02ae66f368e8518a9"
 
@@ -3217,8 +3617,8 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           + "disk_a" = {
-            + mount_point = "/var/diska"
-          },
+              + mount_point = "/var/diska"
+            },
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -3270,9 +3670,9 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           ~ "disk_a" = {
-            + size        = "50GB"
-              # (1 unchanged attribute hidden)
-          },
+              + size        = "50GB"
+                # (1 unchanged attribute hidden)
+            },
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -3333,10 +3733,10 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           + "disk_2" = {
-            + mount_point = "/var/disk2"
-            + size        = "50GB"
-          },
-          # (1 unchanged element hidden)
+              + mount_point = "/var/disk2"
+              + size        = "50GB"
+            },
+            # (1 unchanged element hidden)
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -3400,9 +3800,9 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           ~ "disk_a" = { # forces replacement
-            ~ size        = "50GB" -> "100GB"
-              # (1 unchanged attribute hidden)
-          },
+              ~ size        = "50GB" -> "100GB"
+                # (1 unchanged attribute hidden)
+            },
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -3451,9 +3851,9 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           - "disk_a" = {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -3504,9 +3904,9 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           - "disk_a" = {
-            - mount_point = "/var/diska" -> null
-            - size        = "50GB" -> null
-          },
+              - mount_point = "/var/diska" -> null
+              - size        = "50GB" -> null
+            },
         } -> (known after apply)
         id    = "i-02ae66f368e8518a9"
 
@@ -3563,9 +3963,9 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           + "disk_a" = {
-            + mount_point = (sensitive)
-            + size        = "50GB"
-          },
+              + mount_point = (sensitive)
+              + size        = "50GB"
+            },
         }
         id    = "i-02ae66f368e8518a9"
 
@@ -4733,9 +5133,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ conn_info = { # forces replacement
-        ~ password = (sensitive value)
-          # (1 unchanged attribute hidden)
-      }
+          ~ password = (sensitive value)
+            # (1 unchanged attribute hidden)
+        }
         id        = "i-02ae66f368e8518a9"
     }
 `,
@@ -4848,10 +5248,6 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			case !beforeVal.IsKnown():
 				beforeVal = cty.UnknownVal(ty) // allow mistyped unknowns
 			}
-			before, err := plans.NewDynamicValue(beforeVal, ty)
-			if err != nil {
-				t.Fatal(err)
-			}
 
 			afterVal := tc.After
 			switch { // Some fixups to make the test cases a little easier to write
@@ -4859,10 +5255,6 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				afterVal = cty.NullVal(ty) // allow mistyped nulls
 			case !afterVal.IsKnown():
 				afterVal = cty.UnknownVal(ty) // allow mistyped unknowns
-			}
-			after, err := plans.NewDynamicValue(afterVal, ty)
-			if err != nil {
-				t.Fatal(err)
 			}
 
 			addr := addrs.Resource{
@@ -4878,7 +5270,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				prevRunAddr = addr
 			}
 
-			change := &plans.ResourceInstanceChangeSrc{
+			change := &plans.ResourceInstanceChange{
 				Addr:        addr,
 				PrevRunAddr: prevRunAddr,
 				DeposedKey:  tc.DeposedKey,
@@ -4886,12 +5278,10 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
-				ChangeSrc: plans.ChangeSrc{
-					Action:         tc.Action,
-					Before:         before,
-					After:          after,
-					BeforeValMarks: tc.BeforeValMarks,
-					AfterValMarks:  tc.AfterValMarks,
+				Change: plans.Change{
+					Action: tc.Action,
+					Before: beforeVal.MarkWithPaths(tc.BeforeValMarks),
+					After:  afterVal.MarkWithPaths(tc.AfterValMarks),
 				},
 				ActionReason:    tc.ActionReason,
 				RequiredReplace: tc.RequiredReplace,

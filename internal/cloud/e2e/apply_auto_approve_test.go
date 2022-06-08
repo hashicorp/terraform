@@ -1,31 +1,21 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
 	"context"
-	"io/ioutil"
-	"log"
-	"os"
 	"testing"
 
-	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/e2e"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func Test_terraform_apply_autoApprove(t *testing.T) {
 	t.Parallel()
+	skipIfMissingEnvVar(t)
 	skipWithoutRemoteTerraformVersion(t)
 
 	ctx := context.Background()
 
-	cases := map[string]struct {
-		operations  []operationSets
-		validations func(t *testing.T, orgName string)
-	}{
+	cases := testCases{
 		"workspace manual apply, terraform apply without auto-approve, expect prompt": {
 			operations: []operationSets{
 				{
@@ -54,7 +44,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -94,7 +84,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -132,7 +122,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -170,7 +160,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -183,75 +173,6 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 			},
 		},
 	}
-	for name, tc := range cases {
-		log.Println("Test: ", name)
 
-		organization, cleanup := createOrganization(t)
-		defer cleanup()
-		exp, err := expect.NewConsole(expect.WithStdout(os.Stdout), expect.WithDefaultTimeout(expectConsoleTimeout))
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer exp.Close()
-
-		tmpDir, err := ioutil.TempDir("", "terraform-test")
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer os.RemoveAll(tmpDir)
-
-		tf := e2e.NewBinary(terraformBin, tmpDir)
-		tf.AddEnv("TF_LOG=info")
-		tf.AddEnv(cliConfigFileEnv)
-		defer tf.Close()
-
-		for _, op := range tc.operations {
-			op.prep(t, organization.Name, tf.WorkDir())
-			for _, tfCmd := range op.commands {
-				cmd := tf.Cmd(tfCmd.command...)
-				cmd.Stdin = exp.Tty()
-				cmd.Stdout = exp.Tty()
-				cmd.Stderr = exp.Tty()
-
-				err = cmd.Start()
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if tfCmd.expectedCmdOutput != "" {
-					_, err := exp.ExpectString(tfCmd.expectedCmdOutput)
-					if err != nil {
-						t.Fatal(err)
-					}
-				}
-
-				lenInput := len(tfCmd.userInput)
-				lenInputOutput := len(tfCmd.postInputOutput)
-				if lenInput > 0 {
-					for i := 0; i < lenInput; i++ {
-						input := tfCmd.userInput[i]
-						exp.SendLine(input)
-						// use the index to find the corresponding
-						// output that matches the input.
-						if lenInputOutput-1 >= i {
-							output := tfCmd.postInputOutput[i]
-							_, err := exp.ExpectString(output)
-							if err != nil {
-								t.Fatal(err)
-							}
-						}
-					}
-				}
-
-				err = cmd.Wait()
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
-		}
-
-		if tc.validations != nil {
-			tc.validations(t, organization.Name)
-		}
-	}
+	testRunner(t, cases, 1)
 }

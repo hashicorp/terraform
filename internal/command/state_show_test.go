@@ -147,8 +147,7 @@ func TestStateShow_multi(t *testing.T) {
 }
 
 func TestStateShow_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)

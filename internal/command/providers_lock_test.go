@@ -15,9 +15,8 @@ func TestProvidersLock(t *testing.T) {
 	t.Run("noop", func(t *testing.T) {
 		// in the most basic case, running providers lock in a directory with no configuration at all should succeed.
 		// create an empty working directory
-		td := tempDir(t)
+		td := t.TempDir()
 		os.MkdirAll(td, 0755)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		ui := new(cli.MockUi)
@@ -34,9 +33,8 @@ func TestProvidersLock(t *testing.T) {
 
 	// This test depends on the -fs-mirror argument, so we always know what results to expect
 	t.Run("basic", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("providers-lock/basic"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		// Our fixture dir has a generic os_arch dir, which we need to customize

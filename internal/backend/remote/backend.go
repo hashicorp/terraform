@@ -256,24 +256,25 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	// Retrieve the token for this host as configured in the credentials
-	// section of the CLI Config File.
-	token, err := b.token()
-	if err != nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			strings.ToUpper(err.Error()[:1])+err.Error()[1:],
-			"", // no description is needed here, the error is clear
-			cty.Path{cty.GetAttrStep{Name: "hostname"}},
-		))
-		return diags
+	// Get the token from the config.
+	var token string
+	if val := obj.GetAttr("token"); !val.IsNull() {
+		token = val.AsString()
 	}
 
-	// Get the token from the config if no token was configured for this
-	// host in credentials section of the CLI Config File.
+	// Retrieve the token for this host as configured in the credentials
+	// section of the CLI Config File if no token was configured for this
+	// host in the config.
 	if token == "" {
-		if val := obj.GetAttr("token"); !val.IsNull() {
-			token = val.AsString()
+		token, err = b.token()
+		if err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				strings.ToUpper(err.Error()[:1])+err.Error()[1:],
+				"", // no description is needed here, the error is clear
+				cty.Path{cty.GetAttrStep{Name: "hostname"}},
+			))
+			return diags
 		}
 	}
 
@@ -321,7 +322,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Check if the organization exists by reading its entitlements.
-	entitlements, err := b.client.Organizations.Entitlements(context.Background(), b.organization)
+	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
@@ -527,12 +528,12 @@ func (b *Remote) Workspaces() ([]string, error) {
 
 // workspaces returns a filtered list of remote workspace names.
 func (b *Remote) workspaces() ([]string, error) {
-	options := tfe.WorkspaceListOptions{}
+	options := &tfe.WorkspaceListOptions{}
 	switch {
 	case b.workspace != "":
-		options.Search = tfe.String(b.workspace)
+		options.Search = b.workspace
 	case b.prefix != "":
-		options.Search = tfe.String(b.prefix)
+		options.Search = b.prefix
 	}
 
 	// Create a slice to contain all the names.
@@ -567,6 +568,17 @@ func (b *Remote) workspaces() ([]string, error) {
 	sort.StringSlice(names).Sort()
 
 	return names, nil
+}
+
+// WorkspaceNamePattern provides an appropriate workspace renaming pattern for backend migration
+// purposes (handled outside of this package), based on previous usage of this backend with the
+// 'prefix' workspace functionality. As of this writing, see meta_backend.migrate.go
+func (b *Remote) WorkspaceNamePattern() string {
+	if b.prefix != "" {
+		return b.prefix + "*"
+	}
+
+	return ""
 }
 
 // DeleteWorkspace implements backend.Enhanced.
@@ -662,19 +674,14 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	return &remote.State{Client: client}, nil
 }
 
-// Operation implements backend.Enhanced.
-func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
-	// Get the remote workspace name.
-	name := op.Workspace
-	switch {
-	case op.Workspace == backend.DefaultStateName:
-		name = b.workspace
-	case b.prefix != "" && !strings.HasPrefix(op.Workspace, b.prefix):
-		name = b.prefix + op.Workspace
-	}
+func isLocalExecutionMode(execMode string) bool {
+	return execMode == "local"
+}
 
+func (b *Remote) fetchWorkspace(ctx context.Context, organization string, name string) (*tfe.Workspace, error) {
+	remoteWorkspaceName := b.getRemoteWorkspaceName(name)
 	// Retrieve the workspace for this operation.
-	w, err := b.client.Workspaces.Read(ctx, b.organization, name)
+	w, err := b.client.Workspaces.Read(ctx, b.organization, remoteWorkspaceName)
 	if err != nil {
 		switch err {
 		case context.Canceled:
@@ -684,15 +691,27 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 				"workspace %s not found\n\n"+
 					"The configured \"remote\" backend returns '404 Not Found' errors for resources\n"+
 					"that do not exist, as well as for resources that a user doesn't have access\n"+
-					"to. If the resource does exist, please check the rights for the used token.",
+					"to. If the resource does exist, please check the rights for the used token",
 				name,
 			)
 		default:
-			return nil, fmt.Errorf(
-				"The configured \"remote\" backend encountered an unexpected error:\n\n%s",
+			err := fmt.Errorf(
+				"the configured \"remote\" backend encountered an unexpected error:\n\n%s",
 				err,
 			)
+			return nil, err
 		}
+	}
+
+	return w, nil
+}
+
+// Operation implements backend.Enhanced.
+func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend.RunningOperation, error) {
+	w, err := b.fetchWorkspace(ctx, b.organization, op.Workspace)
+
+	if err != nil {
+		return nil, err
 	}
 
 	// Terraform remote version conflicts are not a concern for operations. We
@@ -707,7 +726,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
-	if b.forceLocal || !w.Operations {
+	if b.forceLocal || isLocalExecutionMode(w.ExecutionMode) {
 		// Record that we're forced to run operations locally to allow the
 		// command package UI to operate correctly
 		b.forceLocal = true
@@ -891,7 +910,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// If the workspace has remote operations disabled, the remote Terraform
 	// version is effectively meaningless, so we'll skip version verification.
-	if !workspace.Operations {
+	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
@@ -920,9 +939,9 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 		// are aware of are:
 		//
 		// - 0.14.0 is guaranteed to be compatible with versions up to but not
-		//   including 1.2.0
-		v120 := version.Must(version.NewSemver("1.2.0"))
-		if tfversion.SemVer.LessThan(v120) && remoteVersion.LessThan(v120) {
+		//   including 1.3.0
+		v130 := version.Must(version.NewSemver("1.3.0"))
+		if tfversion.SemVer.LessThan(v130) && remoteVersion.LessThan(v130) {
 			return diags
 		}
 		// - Any new Terraform state version will require at least minor patch

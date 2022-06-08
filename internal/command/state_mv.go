@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -40,6 +41,48 @@ func (c *StateMvCommand) Run(args []string) int {
 	if len(args) != 2 {
 		c.Ui.Error("Exactly two arguments expected.\n")
 		return cli.RunResultHelp
+	}
+
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// If backup or backup-out options are set
+	// and the state option is not set, make sure
+	// the backend is local
+	backupOptionSetWithoutStateOption := c.backupPath != "-" && c.statePath == ""
+	backupOutOptionSetWithoutStateOption := backupPathOut != "-" && c.statePath == ""
+
+	var setLegacyLocalBackendOptions []string
+	if backupOptionSetWithoutStateOption {
+		setLegacyLocalBackendOptions = append(setLegacyLocalBackendOptions, "-backup")
+	}
+	if backupOutOptionSetWithoutStateOption {
+		setLegacyLocalBackendOptions = append(setLegacyLocalBackendOptions, "-backup-out")
+	}
+
+	if len(setLegacyLocalBackendOptions) > 0 {
+		currentBackend, diags := c.backendFromConfig(&BackendOpts{})
+		if diags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+
+		// If currentBackend is nil and diags didn't have errors,
+		// this means we have an implicit local backend
+		_, isLocalBackend := currentBackend.(backend.Local)
+		if currentBackend != nil && !isLocalBackend {
+			diags = diags.Append(
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Invalid command line options: %s", strings.Join(setLegacyLocalBackendOptions[:], ", ")),
+					"Command line options -backup and -backup-out are legacy options that operate on a local state file only. You must specify a local state file with the -state option or switch to the local backend.",
+				),
+			)
+			c.showDiagnostics(diags)
+			return 1
+		}
 	}
 
 	// Read the from state
@@ -138,6 +181,8 @@ func (c *StateMvCommand) Run(args []string) int {
 			msgInvalidSource,
 			fmt.Sprintf("Cannot move %s: does not match anything in the current state.", sourceAddr),
 		))
+		c.showDiagnostics(diags)
+		return 1
 	}
 	for _, rawAddrFrom := range sourceAddrs {
 		switch addrFrom := rawAddrFrom.(type) {

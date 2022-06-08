@@ -21,10 +21,10 @@ import (
 type graphWalkOpts struct {
 	InputState *states.State
 	Changes    *plans.Changes
+	Conditions plans.Conditions
 	Config     *configs.Config
 
-	RootVariableValues InputValues
-	MoveResults        refactoring.MoveResults
+	MoveResults refactoring.MoveResults
 }
 
 func (c *Context) walk(graph *Graph, operation walkOperation, opts *graphWalkOpts) (*ContextGraphWalker, tfdiags.Diagnostics) {
@@ -92,22 +92,28 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		// afterwards.
 		changes = plans.NewChanges()
 	}
+	conditions := opts.Conditions
+	if conditions == nil {
+		// This fallback conditions object is in place for the same reason as
+		// the changes object above: to avoid crashes for non-plan walks.
+		conditions = plans.NewConditions()
+	}
 
 	if opts.Config == nil {
 		panic("Context.graphWalker call without Config")
 	}
 
 	return &ContextGraphWalker{
-		Context:            c,
-		State:              state,
-		Config:             opts.Config,
-		RefreshState:       refreshState,
-		PrevRunState:       prevRunState,
-		Changes:            changes.SyncWrapper(),
-		InstanceExpander:   instances.NewExpander(),
-		MoveResults:        opts.MoveResults,
-		Operation:          operation,
-		StopContext:        c.runContext,
-		RootVariableValues: opts.RootVariableValues,
+		Context:          c,
+		State:            state,
+		Config:           opts.Config,
+		RefreshState:     refreshState,
+		PrevRunState:     prevRunState,
+		Changes:          changes.SyncWrapper(),
+		Conditions:       conditions.SyncWrapper(),
+		InstanceExpander: instances.NewExpander(),
+		MoveResults:      opts.MoveResults,
+		Operation:        operation,
+		StopContext:      c.runContext,
 	}
 }

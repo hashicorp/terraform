@@ -1,6 +1,3 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
@@ -10,19 +7,22 @@ import (
 	"testing"
 	"time"
 
+	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/go-uuid"
+	goversion "github.com/hashicorp/go-version"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
 const (
-	expectConsoleTimeout = 15 * time.Second
+	// We need to give the console enough time to hear back.
+	// 1 minute was too short in some cases, so this gives it ample time.
+	expectConsoleTimeout = 3 * time.Minute
 )
 
 type tfCommand struct {
 	command           []string
 	expectedCmdOutput string
-	expectedErr       string
 	expectError       bool
 	userInput         []string
 	postInputOutput   []string
@@ -36,6 +36,16 @@ type operationSets struct {
 type testCases map[string]struct {
 	operations  []operationSets
 	validations func(t *testing.T, orgName string)
+}
+
+func defaultOpts() []expect.ConsoleOpt {
+	opts := []expect.ConsoleOpt{
+		expect.WithDefaultTimeout(expectConsoleTimeout),
+	}
+	if verboseMode {
+		opts = append(opts, expect.WithStdout(os.Stdout))
+	}
+	return opts
 }
 
 func createOrganization(t *testing.T) (*tfe.Organization, func()) {
@@ -93,7 +103,7 @@ func randomString(t *testing.T) string {
 }
 
 func terraformConfigLocalBackend() string {
-	return fmt.Sprintf(`
+	return `
 terraform {
   backend "local" {
   }
@@ -102,7 +112,7 @@ terraform {
 output "val" {
   value = "${terraform.workspace}"
 }
-`)
+`
 }
 
 func terraformConfigRemoteBackendName(org, name string) string {
@@ -181,6 +191,51 @@ output "val" {
 `, tfeHostname, org, name)
 }
 
+func terraformConfigCloudBackendOmitOrg(workspaceName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+
+	workspaces {
+	  name = "%s"
+	}
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, workspaceName)
+}
+
+func terraformConfigCloudBackendOmitWorkspaces(orgName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+	organization = "%s"
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, orgName)
+}
+
+func terraformConfigCloudBackendOmitConfig() string {
+	return `
+terraform {
+  cloud {}
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`
+}
+
 func writeMainTF(t *testing.T, block string, dir string) {
 	f, err := os.Create(fmt.Sprintf("%s/main.tf", dir))
 	if err != nil {
@@ -193,10 +248,17 @@ func writeMainTF(t *testing.T, block string, dir string) {
 	f.Close()
 }
 
-// Ensure that TFC/E has a particular terraform version.
+// The e2e tests rely on the fact that the terraform version in TFC/E is able to
+// run the `cloud` configuration block, which is available in 1.1 and will
+// continue to be available in later versions. So this function checks that
+// there is a version that is >= 1.1.
 func skipWithoutRemoteTerraformVersion(t *testing.T) {
-	version := tfversion.String()
-	opts := tfe.AdminTerraformVersionsListOptions{
+	version := tfversion.Version
+	baseVersion, err := goversion.NewVersion(version)
+	if err != nil {
+		t.Fatalf(fmt.Sprintf("Error instantiating go-version for %s", version))
+	}
+	opts := &tfe.AdminTerraformVersionsListOptions{
 		ListOptions: tfe.ListOptions{
 			PageNumber: 1,
 			PageSize:   100,
@@ -213,7 +275,12 @@ findTfVersion:
 			t.Fatalf("Could not retrieve list of terraform versions: %v", err)
 		}
 		for _, item := range tfVersionList.Items {
-			if item.Version == version {
+			availableVersion, err := goversion.NewVersion(item.Version)
+			if err != nil {
+				t.Logf("Error instantiating go-version for %s", item.Version)
+				continue
+			}
+			if availableVersion.Core().GreaterThanOrEqual(baseVersion.Core()) {
 				hasVersion = true
 				break findTfVersion
 			}
@@ -229,6 +296,6 @@ findTfVersion:
 	}
 
 	if !hasVersion {
-		t.Skip(fmt.Sprintf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version))
+		t.Skipf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version)
 	}
 }

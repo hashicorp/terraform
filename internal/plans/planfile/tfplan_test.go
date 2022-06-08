@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -20,6 +21,32 @@ func TestTFPlanRoundTrip(t *testing.T) {
 	plan := &plans.Plan{
 		VariableValues: map[string]plans.DynamicValue{
 			"foo": mustNewDynamicValueStr("foo value"),
+		},
+		Conditions: plans.Conditions{
+			"test_thing.woot[0].preconditions[0]": &plans.ConditionResult{
+				Address: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				Result:       cty.False,
+				Type:         addrs.ResourcePrecondition,
+				ErrorMessage: "Invalid thing: too much woot.",
+			},
+			"test_thing.woot[0].postconditions[0]": &plans.ConditionResult{
+				Address: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				Result: cty.UnknownVal(cty.Bool),
+				Type:   addrs.ResourcePostcondition,
+			},
+			"output.bar.preconditions[0]": &plans.ConditionResult{
+				Address: addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+				Result:  cty.True,
+				Type:    addrs.OutputPrecondition,
+			},
 		},
 		Changes: &plans.Changes{
 			Outputs: []*plans.OutputChangeSrc{
@@ -156,6 +183,16 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						},
 					},
 				},
+			},
+		},
+		RelevantAttributes: []globalref.ResourceAttr{
+			{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				Attr: cty.GetAttrPath("boop").Index(cty.NumberIntVal(1)),
 			},
 		},
 		TargetAddrs: []addrs.Targetable{

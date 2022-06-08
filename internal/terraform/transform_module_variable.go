@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -94,13 +93,6 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 		var expr hcl.Expression
 		if attr := content.Attributes[v.Name]; attr != nil {
 			expr = attr.Expr
-		} else {
-			// No expression provided for this variable, so we'll make a
-			// synthetic one using the variable's default value.
-			expr = &hclsyntax.LiteralValueExpr{
-				Val:      v.Default,
-				SrcRange: v.DeclRange, // This is not exact, but close enough
-			}
 		}
 
 		// Add a plannable node, as the variable may expand

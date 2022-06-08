@@ -1,6 +1,8 @@
 package initwd
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -75,7 +77,7 @@ func NewModuleInstaller(modsDir string, reg *registry.Client) *ModuleInstaller {
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks ModuleInstallHooks) (*earlyconfig.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir string, upgrade bool, hooks ModuleInstallHooks) (*earlyconfig.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 
 	rootMod, diags := earlyconfig.LoadModule(rootDir)
@@ -94,13 +96,13 @@ func (i *ModuleInstaller) InstallModules(rootDir string, upgrade bool, hooks Mod
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
-	cfg, instDiags := i.installDescendentModules(rootMod, rootDir, manifest, upgrade, hooks, fetcher)
+	cfg, instDiags := i.installDescendentModules(ctx, rootMod, rootDir, manifest, upgrade, hooks, fetcher)
 	diags = append(diags, instDiags...)
 
 	return cfg, diags
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*earlyconfig.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod *tfconfig.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*earlyconfig.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if hooks == nil {
@@ -209,13 +211,13 @@ func (i *ModuleInstaller) installDescendentModules(rootMod *tfconfig.Module, roo
 
 			case addrs.ModuleSourceRegistry:
 				log.Printf("[TRACE] ModuleInstaller: %s is a registry module at %s", key, addr.String())
-				mod, v, mDiags := i.installRegistryModule(req, key, instPath, addr, manifest, hooks, fetcher)
+				mod, v, mDiags := i.installRegistryModule(ctx, req, key, instPath, addr, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
 				return mod, v, diags
 
 			case addrs.ModuleSourceRemote:
 				log.Printf("[TRACE] ModuleInstaller: %s address %q will be handled by go-getter", key, addr.String())
-				mod, mDiags := i.installGoGetterModule(req, key, instPath, manifest, hooks, fetcher)
+				mod, mDiags := i.installGoGetterModule(ctx, req, key, instPath, manifest, hooks, fetcher)
 				diags = append(diags, mDiags...)
 				return mod, nil, diags
 
@@ -301,7 +303,7 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 	return mod, diags
 }
 
-func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyconfig.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	hostname := addr.PackageAddr.Host
@@ -324,13 +326,19 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	} else {
 		var err error
 		log.Printf("[DEBUG] %s listing available versions of %s at %s", key, addr, hostname)
-		resp, err = reg.ModuleVersions(regsrcAddr)
+		resp, err = reg.ModuleVersions(ctx, regsrcAddr)
 		if err != nil {
 			if registry.IsModuleNotFound(err) {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Module not found",
 					fmt.Sprintf("Module %q (from %s:%d) cannot be found in the module registry at %s.", req.Name, req.CallPos.Filename, req.CallPos.Line, hostname),
+				))
+			} else if errors.Is(err, context.Canceled) {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Module installation was interrupted",
+					fmt.Sprintf("Received interrupt signal while retrieving available versions for module %q.", req.Name),
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
@@ -423,7 +431,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	// first check the cache for the download URL
 	moduleAddr := moduleVersion{module: packageAddr, version: latestMatch.String()}
 	if _, exists := i.registryPackageSources[moduleAddr]; !exists {
-		realAddrRaw, err := reg.ModuleLocation(regsrcAddr, latestMatch.String())
+		realAddrRaw, err := reg.ModuleLocation(ctx, regsrcAddr, latestMatch.String())
 		if err != nil {
 			log.Printf("[ERROR] %s from %s %s: %s", key, addr, latestMatch, err)
 			diags = diags.Append(tfdiags.Sourceless(
@@ -463,7 +471,15 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 
 	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.PackageAddr)
 
-	err := fetcher.FetchPackage(instPath, dlAddr.PackageAddr.String())
+	err := fetcher.FetchPackage(ctx, instPath, dlAddr.PackageAddr.String())
+	if errors.Is(err, context.Canceled) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Module download was interrupted",
+			fmt.Sprintf("Interrupt signal received when downloading module %s.", addr),
+		))
+		return nil, nil, diags
+	}
 	if err != nil {
 		// Errors returned by go-getter have very inconsistent quality as
 		// end-user error messages, but for now we're accepting that because
@@ -519,7 +535,7 @@ func (i *ModuleInstaller) installRegistryModule(req *earlyconfig.ModuleRequest, 
 	return mod, latestMatch, diags
 }
 
-func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *earlyconfig.ModuleRequest, key string, instPath string, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Report up to the caller that we're about to start downloading.
@@ -531,12 +547,12 @@ func (i *ModuleInstaller) installGoGetterModule(req *earlyconfig.ModuleRequest, 
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid version constraint",
-			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it has a non Registry URL.", req.Name, req.CallPos.Filename, req.CallPos.Line),
+			fmt.Sprintf("Cannot apply a version constraint to module %q (at %s:%d) because it doesn't come from a module registry.", req.Name, req.CallPos.Filename, req.CallPos.Line),
 		))
 		return nil, diags
 	}
 
-	err := fetcher.FetchPackage(instPath, packageAddr.String())
+	err := fetcher.FetchPackage(ctx, instPath, packageAddr.String())
 	if err != nil {
 		// go-getter generates a poor error for an invalid relative path, so
 		// we'll detect that case and generate a better one.

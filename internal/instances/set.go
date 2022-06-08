@@ -47,5 +47,5 @@ func (s Set) HasResource(want addrs.AbsResource) bool {
 // then the result is the full expansion of all combinations of all of their
 // declared instance keys.
 func (s Set) InstancesForModule(modAddr addrs.Module) []addrs.ModuleInstance {
-	return s.exp.ExpandModule(modAddr)
+	return s.exp.expandModule(modAddr, true)
 }

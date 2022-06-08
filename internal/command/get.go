@@ -33,9 +33,9 @@ func (c *GetCommand) Run(args []string) int {
 
 	path = c.normalizePath(path)
 
-	diags := getModules(&c.Meta, path, update)
+	abort, diags := getModules(&c.Meta, path, update)
 	c.showDiagnostics(diags)
-	if diags.HasErrors() {
+	if abort || diags.HasErrors() {
 		return 1
 	}
 
@@ -73,7 +73,7 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(m *Meta, path string, upgrade bool) tfdiags.Diagnostics {
+func getModules(m *Meta, path string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
 	hooks := uiModuleInstallHooks{
 		Ui:             m.Ui,
 		ShowLocalPaths: true,

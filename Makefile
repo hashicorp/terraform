@@ -1,5 +1,20 @@
 WEBSITE_REPO=github.com/hashicorp/terraform-website
 VERSION?="0.3.44"
+PWD=$$(pwd)
+DOCKER_IMAGE="hashicorp/terraform-website:full"
+DOCKER_IMAGE_LOCAL="hashicorp-terraform-website-local"
+DOCKER_RUN_FLAGS=--interactive \
+	--rm \
+	--tty \
+	--workdir "/website" \
+	--volume "$(shell pwd):/website/ext/terraform" \
+	--volume "$(shell pwd)/website:/website/preview" \
+	--publish "3000:3000" \
+	-e "IS_CONTENT_PREVIEW=true" \
+	-e "PREVIEW_FROM_REPO=terraform" \
+	-e "NAV_DATA_DIRNAME=./preview/data" \
+	-e "CONTENT_DIRNAME=./preview/docs" \
+	-e "CURRENT_GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)"
 
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
@@ -26,30 +41,26 @@ staticcheck:
 exhaustive:
 	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
 
+# Default: run this if working on the website locally to run in watch mode.
 website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
-	@echo "==> Starting core website in Docker..."
-	@docker run \
-		--interactive \
-		--rm \
-		--tty \
-		--publish "4567:4567" \
-		--publish "35729:35729" \
-		--volume "$(shell pwd)/website:/website" \
-		--volume "$(shell pwd):/ext/terraform" \
-		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
-		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
-		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
-		--workdir /terraform-website \
-		hashicorp/middleman-hashicorp:${VERSION}
+	@echo "==> Downloading latest Docker image..."
+	@docker pull ${DOCKER_IMAGE}
+	@echo "==> Starting website in Docker..."
+	@docker run ${DOCKER_RUN_FLAGS} ${DOCKER_IMAGE} npm start
+
+website/local:
+	@echo "==> Starting website in Docker..."
+	@docker run ${DOCKER_RUN_FLAGS} ${DOCKER_IMAGE_LOCAL} npm start
+
+.PHONY: website/build-local
+website/build-local:
+	@echo "==> Building local Docker image"
+	@docker build https://github.com/hashicorp/terraform-website.git\#master \
+		-t $(DOCKER_IMAGE_LOCAL)
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test staticcheck
+.PHONY: fmtcheck generate protobuf website website-test staticcheck website/local website/build-local

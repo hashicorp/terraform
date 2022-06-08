@@ -111,19 +111,30 @@ type MockEvalContext struct {
 	PathCalled bool
 	PathPath   addrs.ModuleInstance
 
-	SetModuleCallArgumentsCalled bool
-	SetModuleCallArgumentsModule addrs.ModuleCallInstance
-	SetModuleCallArgumentsValues map[string]cty.Value
+	SetRootModuleArgumentCalled bool
+	SetRootModuleArgumentAddr   addrs.InputVariable
+	SetRootModuleArgumentValue  cty.Value
+	SetRootModuleArgumentFunc   func(addr addrs.InputVariable, v cty.Value)
+
+	SetModuleCallArgumentCalled     bool
+	SetModuleCallArgumentModuleCall addrs.ModuleCallInstance
+	SetModuleCallArgumentVariable   addrs.InputVariable
+	SetModuleCallArgumentValue      cty.Value
+	SetModuleCallArgumentFunc       func(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value)
 
 	GetVariableValueCalled bool
 	GetVariableValueAddr   addrs.AbsInputVariableInstance
 	GetVariableValueValue  cty.Value
+	GetVariableValueFunc   func(addr addrs.AbsInputVariableInstance) cty.Value // supersedes GetVariableValueValue
 
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
 
 	StateCalled bool
 	StateState  *states.SyncState
+
+	ConditionsCalled     bool
+	ConditionsConditions *plans.ConditionsSync
 
 	RefreshStateCalled bool
 	RefreshStateState  *states.SyncState
@@ -250,6 +261,10 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 	return c.EvaluateExprResult, c.EvaluateExprDiags
 }
 
+func (c *MockEvalContext) EvaluateReplaceTriggeredBy(hcl.Expression, instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
+	return nil, false, nil
+}
+
 // installSimpleEval is a helper to install a simple mock implementation of
 // both EvaluateBlock and EvaluateExpr into the receiver.
 //
@@ -321,15 +336,31 @@ func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	return c.PathPath
 }
 
-func (c *MockEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, values map[string]cty.Value) {
-	c.SetModuleCallArgumentsCalled = true
-	c.SetModuleCallArgumentsModule = n
-	c.SetModuleCallArgumentsValues = values
+func (c *MockEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
+	c.SetRootModuleArgumentCalled = true
+	c.SetRootModuleArgumentAddr = addr
+	c.SetRootModuleArgumentValue = v
+	if c.SetRootModuleArgumentFunc != nil {
+		c.SetRootModuleArgumentFunc(addr, v)
+	}
+}
+
+func (c *MockEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
+	c.SetModuleCallArgumentCalled = true
+	c.SetModuleCallArgumentModuleCall = callAddr
+	c.SetModuleCallArgumentVariable = varAddr
+	c.SetModuleCallArgumentValue = v
+	if c.SetModuleCallArgumentFunc != nil {
+		c.SetModuleCallArgumentFunc(callAddr, varAddr, v)
+	}
 }
 
 func (c *MockEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
 	c.GetVariableValueCalled = true
 	c.GetVariableValueAddr = addr
+	if c.GetVariableValueFunc != nil {
+		return c.GetVariableValueFunc(addr)
+	}
 	return c.GetVariableValueValue
 }
 
@@ -341,6 +372,11 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) Conditions() *plans.ConditionsSync {
+	c.ConditionsCalled = true
+	return c.ConditionsConditions
 }
 
 func (c *MockEvalContext) RefreshState() *states.SyncState {

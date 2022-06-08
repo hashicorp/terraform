@@ -1,0 +1,188 @@
+{
+  "format_version": "1.1",
+  "terraform_version": "1.2.0-dev",
+  "variables": {
+    "ami": {
+      "value": "ami-test"
+    },
+    "id_minimum_length": {
+      "value": 10
+    }
+  },
+  "planned_values": {
+    "outputs": {
+      "foo_id": {
+        "sensitive": false
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.bar",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "bar",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "ami-boop"
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "test_instance.foo",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "foo",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "ami-test"
+          },
+          "sensitive_values": {}
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "test_instance.bar",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "bar",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "ami-boop"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "test_instance.foo",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "foo",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "ami-test"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    }
+  ],
+  "output_changes": {
+    "foo_id": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after_unknown": true,
+      "before_sensitive": false,
+      "after_sensitive": false
+    }
+  },
+  "configuration": {
+    "provider_config": {
+      "test": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test"
+      }
+    },
+    "root_module": {
+      "outputs": {
+        "foo_id": {
+          "expression": {
+            "references": [
+              "test_instance.foo.id",
+              "test_instance.foo"
+            ]
+          }
+        }
+      },
+      "resources": [
+        {
+          "address": "test_instance.bar",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "bar",
+          "provider_config_key": "test",
+          "expressions": {
+            "ami": {
+              "constant_value": "ami-boop"
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "test_instance.foo",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "foo",
+          "provider_config_key": "test",
+          "expressions": {
+            "ami": {
+              "references": [
+                "var.ami"
+              ]
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "variables": {
+        "ami": {
+          "default": "ami-test"
+        },
+        "id_minimum_length": {
+          "default": 10
+        }
+      }
+    }
+  },
+  "relevant_attributes": [
+    {
+      "resource": "test_instance.foo",
+      "attribute": [
+        "id"
+      ]
+    }
+  ],
+  "condition_results": [
+    {
+      "address": "output.foo_id",
+      "condition_type": "OutputPrecondition",
+      "result": true,
+      "unknown": false
+    },
+    {
+      "address": "test_instance.bar",
+      "condition_type": "ResourcePostcondition",
+      "result": false,
+      "unknown": true
+    },
+    {
+      "address": "test_instance.foo",
+      "condition_type": "ResourcePrecondition",
+      "result": true,
+      "unknown": false
+    }
+  ]
+}

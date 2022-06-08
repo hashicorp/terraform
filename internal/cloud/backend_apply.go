@@ -100,7 +100,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
 
-	if mustConfirm {
+	if mustConfirm && b.input {
 		opts := &terraform.InputOpts{Id: "approve"}
 
 		if op.PlanMode == plans.DestroyMode {
@@ -117,6 +117,8 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		if err != nil && err != errRunApproved {
 			return r, err
 		}
+	} else if mustConfirm && !b.input {
+		return r, errApplyNeedsUIConfirmation
 	} else {
 		// If we don't need to ask for confirmation, insert a blank
 		// line to separate the ouputs.

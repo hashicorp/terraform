@@ -26,9 +26,16 @@ type OrphanResourceInstanceTransformer struct {
 	// Config is the root node in the configuration tree. We'll look up
 	// the appropriate note in this tree using the path in each node.
 	Config *configs.Config
+
+	// Do not apply this transformer
+	skip bool
 }
 
 func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	if t.State == nil {
 		// If the entire state is nil, there can't be any orphans
 		return nil

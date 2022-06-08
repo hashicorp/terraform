@@ -79,6 +79,9 @@ func realMain() int {
 	log.Printf(
 		"[INFO] Terraform version: %s %s",
 		Version, VersionPrerelease)
+	for _, depMod := range version.InterestingDependencies() {
+		log.Printf("[DEBUG] using %s %s", depMod.Path, depMod.Version)
+	}
 	log.Printf("[INFO] Go runtime version: %s", runtime.Version())
 	log.Printf("[INFO] CLI args: %#v", os.Args)
 

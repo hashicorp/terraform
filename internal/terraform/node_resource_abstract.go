@@ -143,12 +143,17 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
 
+		for _, expr := range c.TriggersReplacement {
+			refs, _ = lang.ReferencesInExpr(expr)
+			result = append(result, refs...)
+		}
+
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
 			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+			result = append(result, refs...)
 		}
 
-		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
 				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
@@ -172,6 +177,20 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				result = append(result, refs...)
 			}
 		}
+
+		for _, check := range c.Preconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			result = append(result, refs...)
+		}
+		for _, check := range c.Postconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			result = append(result, refs...)
+		}
+
 		return result
 	}
 
@@ -375,10 +394,6 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	}
 	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
-		// Note that we don't have any channel to return warnings here. We'll
-		// accept that for now since warnings during a schema upgrade would
-		// be pretty weird anyway, since this operation is supposed to seem
-		// invisible to the user.
 		return nil, diags
 	}
 

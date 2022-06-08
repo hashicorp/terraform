@@ -10,7 +10,6 @@ import (
 	"github.com/agext/levenshtein"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -248,7 +247,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// This is important because otherwise the validation walk will tend to be
 	// overly strict, requiring expressions throughout the configuration to
 	// be complicated to accommodate all possible inputs, whereas returning
-	// known here allows for simpler patterns like using input values as
+	// unknown here allows for simpler patterns like using input values as
 	// guards to broadly enable/disable resources, avoid processing things
 	// that are disabled, etc. Terraform's static validation leans towards
 	// being liberal in what it accepts because the subsequent plan walk has
@@ -267,28 +266,27 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.UnknownVal(config.Type), diags
 	}
 
+	// d.Evaluator.VariableValues should always contain valid "final values"
+	// for variables, which is to say that they have already had type
+	// conversions, validations, and default value handling applied to them.
+	// Those are the responsibility of the graph notes representing the
+	// variable declarations. Therefore here we just trust that we already
+	// have a correct value.
+
 	val, isSet := vals[addr.Name]
-	switch {
-	case !isSet:
-		// The config loader will ensure there is a default if the value is not
-		// set at all.
-		val = config.Default
-
-	case val.IsNull() && !config.Nullable && config.Default != cty.NilVal:
-		// If nullable=false a null value will use the configured default.
-		val = config.Default
-	}
-
-	var err error
-	val, err = convert.Convert(val, config.ConstraintType)
-	if err != nil {
-		// We should never get here because this problem should've been caught
-		// during earlier validation, but we'll do something reasonable anyway.
+	if !isSet {
+		// We should not be able to get here without having a valid value
+		// for every variable, so this always indicates a bug in either
+		// the graph builder (not including all the needed nodes) or in
+		// the graph nodes representing variables.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Incorrect variable type`,
-			Detail:   fmt.Sprintf(`The resolved value of variable %q is not appropriate: %s.`, addr.Name, err),
-			Subject:  &config.DeclRange,
+			Summary:  `Reference to unresolved input variable`,
+			Detail: fmt.Sprintf(
+				`The final value for %s is missing in Terraform's evaluation context. This is a bug in Terraform; please report it!`,
+				addr.Absolute(d.ModulePath),
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		val = cty.UnknownVal(config.Type)
 	}
@@ -654,6 +652,24 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		return cty.DynamicVal, diags
 	}
 
+	// Build the provider address from configuration, since we may not have
+	// state available in all cases.
+	// We need to build an abs provider address, but we can use a default
+	// instance since we're only interested in the schema.
+	schema := d.getResourceSchema(addr, config.Provider)
+	if schema == nil {
+		// This shouldn't happen, since validation before we get here should've
+		// taken care of it, but we'll show a reasonable error message anyway.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing resource type schema`,
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, config.Provider),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+	ty := schema.ImpliedType()
+
 	rs := d.Evaluator.State.Resource(addr.Absolute(d.ModulePath))
 
 	if rs == nil {
@@ -675,7 +691,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// (since a planned destroy cannot yet remove root outputs), we
 				// need to return a dynamic value here to allow evaluation to
 				// continue.
-				log.Printf("[ERROR] unknown instance %q referenced during plan", addr.Absolute(d.ModulePath))
+				log.Printf("[ERROR] unknown instance %q referenced during %s", addr.Absolute(d.ModulePath), d.Operation)
 				return cty.DynamicVal, diags
 			}
 
@@ -686,22 +702,6 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 			return cty.DynamicVal, diags
 		}
 	}
-
-	providerAddr := rs.ProviderConfig
-
-	schema := d.getResourceSchema(addr, providerAddr)
-	if schema == nil {
-		// This shouldn't happen, since validation before we get here should've
-		// taken care of it, but we'll show a reasonable error message anyway.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Missing resource type schema`,
-			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, providerAddr),
-			Subject:  rng.ToHCL().Ptr(),
-		})
-		return cty.DynamicVal, diags
-	}
-	ty := schema.ImpliedType()
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
@@ -792,6 +792,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = val
 	}
 
+	// ret should be populated with a valid value in all cases below
 	var ret cty.Value
 
 	switch {
@@ -862,33 +863,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		ret = val
 	}
 
-	// since the plan was not yet created during validate, the values we
-	// collected here may not correspond with configuration, so they must be
-	// unknown.
-	if d.Operation == walkValidate {
-		// While we know the type here and it would be nice to validate whether
-		// indexes are valid or not, because tuples and objects have fixed
-		// numbers of elements we can't simply return an unknown value of the
-		// same type since we have not expanded any instances during
-		// validation.
-		//
-		// In order to validate the expression a little precisely, we'll create
-		// an unknown map or list here to get more type information.
-		switch {
-		case config.Count != nil:
-			ret = cty.UnknownVal(cty.List(ty))
-		case config.ForEach != nil:
-			ret = cty.UnknownVal(cty.Map(ty))
-		default:
-			ret = cty.UnknownVal(ty)
-		}
-	}
-
 	return ret, diags
 }
 
-func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.AbsProviderConfig) *configschema.Block {
-	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr.Provider, addr.Mode, addr.Type)
+func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAddr addrs.Provider) *configschema.Block {
+	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerAddr, addr.Mode, addr.Type)
 	if err != nil {
 		// We have plently other codepaths that will detect and report
 		// schema lookup errors before we'd reach this point, so we'll just

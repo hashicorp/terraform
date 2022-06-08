@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -34,13 +35,14 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule, flagLockfile string
-	var flagBackend, flagGet, flagUpgrade bool
+	var flagBackend, flagCloud, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
+	cmdFlags.BoolVar(&flagCloud, "cloud", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
@@ -56,6 +58,19 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	backendFlagSet := arguments.FlagIsSet(cmdFlags, "backend")
+	cloudFlagSet := arguments.FlagIsSet(cmdFlags, "cloud")
+
+	switch {
+	case backendFlagSet && cloudFlagSet:
+		c.Ui.Error("The -backend and -cloud options are aliases of one another and mutually-exclusive in their use")
+		return 1
+	case backendFlagSet:
+		flagCloud = flagBackend
+	case cloudFlagSet:
+		flagBackend = flagCloud
 	}
 
 	if c.migrateState && c.reconfigure {
@@ -115,9 +130,9 @@ func (c *InitCommand) Run(args []string) int {
 			ShowLocalPaths: false, // since they are in a weird location for init
 		}
 
-		initDiags := c.initDirFromModule(path, src, hooks)
-		diags = diags.Append(initDiags)
-		if initDiags.HasErrors() {
+		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(path, src, hooks)
+		diags = diags.Append(initDirFromModuleDiags)
+		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -174,9 +189,9 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if flagGet {
-		modsOutput, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
+		modsOutput, modsAbort, modsDiags := c.getModules(path, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
-		if modsDiags.HasErrors() {
+		if modsAbort || modsDiags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
 		}
@@ -212,8 +227,8 @@ func (c *InitCommand) Run(args []string) int {
 	var back backend.Backend
 
 	switch {
-	case config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module)
+	case flagCloud && config.Module.CloudConfig != nil:
+		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
 		diags = diags.Append(backendDiags)
 		if backendDiags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -326,10 +341,10 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	if len(earlyRoot.ModuleCalls) == 0 {
 		// Nothing to do
-		return false, nil
+		return false, false, nil
 	}
 
 	if upgrade {
@@ -342,8 +357,13 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		Ui:             c.Ui,
 		ShowLocalPaths: true,
 	}
-	instDiags := c.installModules(path, upgrade, hooks)
-	diags = diags.Append(instDiags)
+
+	installAbort, installDiags := c.installModules(path, upgrade, hooks)
+	diags = diags.Append(installDiags)
+
+	// At this point, installModules may have generated error diags or been
+	// aborted by SIGINT. In any case we continue and the manifest as best
+	// we can.
 
 	// Since module installer has modified the module manifest on disk, we need
 	// to refresh the cache of it in the loader.
@@ -358,11 +378,20 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 		}
 	}
 
-	return true, diags
+	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(root *configs.Module) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+
+	if len(extraConfig.AllItems()) != 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid command-line option",
+			"The -backend-config=... command line option is only for state backends, and is not applicable to Terraform Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
+		))
+		return nil, true, diags
+	}
 
 	backendConfig := root.CloudConfig.ToBackendConfig()
 
@@ -978,6 +1007,7 @@ func (c *InitCommand) AutocompleteArgs() complete.Predictor {
 func (c *InitCommand) AutocompleteFlags() complete.Flags {
 	return complete.Flags{
 		"-backend":        completePredictBoolean,
+		"-cloud":          completePredictBoolean,
 		"-backend-config": complete.PredictFiles("*.tfvars"), // can also be key=value, but we can't "predict" that
 		"-force-copy":     complete.PredictNothing,
 		"-from-module":    completePredictModuleSource,
@@ -1012,17 +1042,22 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend initialization for this configuration
-                          and use the previously initialized backend instead.
+  -backend=false          Disable backend or Terraform Cloud initialization
+                          for this configuration and use what was previously
+                          initialized instead.
 
-  -backend-config=path    This can be either a path to an HCL file with key/value
+                          aliases: -cloud=false
+
+  -backend-config=path    Configuration to be merged with what is in the
+                          configuration file's 'backend' block. This can be
+                          either a path to an HCL file with key/value
                           assignments (same format as terraform.tfvars) or a
-                          'key=value' format. This is merged with what is in the
-                          configuration file. This can be specified multiple
+                          'key=value' format, and can be specified multiple
                           times. The backend type must be in the configuration
                           itself.
 
-  -force-copy             Suppress prompts about copying state data. This is
+  -force-copy             Suppress prompts about copying state data when
+                          initializating a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
                           prompts.
 
@@ -1031,9 +1066,9 @@ Options:
 
   -get=false              Disable downloading modules for this configuration.
 
-  -input=false            Disable prompting for missing backend configuration
-                          values. This will result in an error if the backend
-                          configuration is not fully specified.
+  -input=false            Disable interactive prompts. Note that some actions may
+                          require interactive prompts and will error if input is
+                          disabled.
 
   -lock=false             Don't hold a state lock during backend migration.
                           This is dangerous if others might concurrently run
@@ -1048,10 +1083,10 @@ Options:
                           automatic installation of plugins. This flag can be used
                           multiple times.
 
-  -reconfigure            Reconfigure the backend, ignoring any saved
+  -reconfigure            Reconfigure a backend, ignoring any saved
                           configuration.
 
-  -migrate-state          Reconfigure the backend, and attempt to migrate any
+  -migrate-state          Reconfigure a backend, and attempt to migrate any
                           existing state.
 
   -upgrade                Install the latest module and provider versions
@@ -1062,8 +1097,12 @@ Options:
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
 
-  -ignore-remote-version  A rare option used for the remote backend only. See
-                          the remote backend documentation for more information.
+  -ignore-remote-version  A rare option used for Terraform Cloud and the remote backend
+                          only. Set this to ignore checking that the local and remote
+                          Terraform versions use compatible state representations, making
+                          an operation proceed even when there is a potential mismatch.
+                          See the documentation on configuring Terraform with
+                          Terraform Cloud for more information.
 
 `
 	return strings.TrimSpace(helpText)

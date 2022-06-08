@@ -1241,7 +1241,7 @@ func TestRemote_planOtherError(t *testing.T) {
 	}
 
 	if !strings.Contains(err.Error(),
-		"The configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
+		"the configured \"remote\" backend encountered an unexpected error:\n\nI'm a little teacup") {
 		t.Fatalf("expected error message, got: %s", err.Error())
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -405,7 +406,7 @@ func TestContext2Plan_moduleExpand(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -1175,7 +1176,7 @@ func TestContext2Plan_moduleProviderVar(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -1786,6 +1787,9 @@ func TestContext2Plan_computedDataResource(t *testing.T) {
 		}),
 		rc.After,
 	)
+	if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseConfigUnknown; got != want {
+		t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
+	}
 }
 
 func TestContext2Plan_computedInFunction(t *testing.T) {
@@ -1985,6 +1989,10 @@ func TestContext2Plan_dataResourceBecomesComputed(t *testing.T) {
 	rc, err := rcs.Decode(ty)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseConfigUnknown; got != want {
+		t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
 	}
 
 	// foo should now be unknown
@@ -2242,7 +2250,7 @@ func TestContext2Plan_countModuleStatic(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -2295,7 +2303,7 @@ func TestContext2Plan_countModuleStaticGrandchild(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -3938,7 +3946,7 @@ func TestContext2Plan_taintDestroyInterpolatedCountRace(t *testing.T) {
 			},
 		})
 
-		plan, diags := ctx.Plan(m, state.DeepCopy(), DefaultPlanOpts)
+		plan, diags := ctx.Plan(m, state.DeepCopy(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 		if diags.HasErrors() {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
@@ -5481,7 +5489,7 @@ func TestContext2Plan_variableSensitivity(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
 	}
@@ -5544,6 +5552,7 @@ func TestContext2Plan_variableSensitivityModule(t *testing.T) {
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
+			"sensitive_var": {Value: cty.NilVal},
 			"another_var": &InputValue{
 				Value:      cty.StringVal("boop"),
 				SourceType: ValueFromCaller,
@@ -6252,7 +6261,13 @@ data "test_data_source" "d" {
 	}
 }
 
-func TestContext2Plan_dataReferencesResource(t *testing.T) {
+func TestContext2Plan_dataReferencesResourceDirectly(t *testing.T) {
+	// When a data resource refers to a managed resource _directly_, any
+	// pending change for the managed resource will cause the data resource
+	// to be deferred to the apply step.
+	// See also TestContext2Plan_dataReferencesResourceIndirectly for the
+	// other case, where the reference is indirect.
+
 	p := testProvider("test")
 
 	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
@@ -6294,8 +6309,94 @@ data "test_data_source" "e" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
+
+	rc := plan.Changes.ResourceInstance(addrs.Resource{
+		Mode: addrs.DataResourceMode,
+		Type: "test_data_source",
+		Name: "d",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance))
+	if rc != nil {
+		if got, want := rc.ActionReason, plans.ResourceInstanceReadBecauseDependencyPending; got != want {
+			t.Errorf("wrong ActionReason\ngot:  %s\nwant: %s", got, want)
+		}
+	} else {
+		t.Error("no change for test_data_source.e")
+	}
+}
+
+func TestContext2Plan_dataReferencesResourceIndirectly(t *testing.T) {
+	// When a data resource refers to a managed resource indirectly, pending
+	// changes for the managed resource _do not_ cause the data resource to
+	// be deferred to apply. This is a pragmatic special case added for
+	// backward compatibility with the old situation where we would _always_
+	// eagerly read data resources with known configurations, regardless of
+	// the plans for their dependencies.
+	// This test creates an indirection through a local value, but the same
+	// principle would apply for both input variable and output value
+	// indirection.
+	//
+	// See also TestContext2Plan_dataReferencesResourceDirectly for the
+	// other case, where the reference is direct.
+	// This special exception doesn't apply for a data resource that has
+	// custom conditions; see
+	// TestContext2Plan_dataResourceChecksManagedResourceChange for that
+	// situation.
+
+	p := testProvider("test")
+	var applyCount int64
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		atomic.AddInt64(&applyCount, 1)
+		resp.NewState = req.PlannedState
+		return resp
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		if atomic.LoadInt64(&applyCount) == 0 {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("data source read before managed resource apply"))
+		} else {
+			resp.State = req.Config
+		}
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+	x = "value"
+}
+
+resource "test_resource" "a" {
+	value = local.x
+}
+
+locals {
+	y = test_resource.a.value
+}
+
+// test_resource.a.value would ideally cause a pending change for
+// test_resource.a to defer this to the apply step, but we intentionally don't
+// do that when it's indirect (through a local value, here) as a concession
+// to backward compatibility.
+data "test_data_source" "d" {
+	foo = local.y
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatalf("successful plan; want an error")
+	}
+
+	if got, want := diags.Err().Error(), "data source read before managed resource apply"; !strings.Contains(got, want) {
+		t.Errorf("Missing expected error message\ngot: %s\nwant substring: %s", got, want)
+	}
 }
 
 func TestContext2Plan_skipRefresh(t *testing.T) {
@@ -6657,7 +6758,7 @@ resource "test_resource" "foo" {
 			},
 		)
 	})
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

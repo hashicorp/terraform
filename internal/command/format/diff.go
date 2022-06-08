@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -45,7 +46,7 @@ const (
 // If "color" is non-nil, it will be used to color the result. Otherwise,
 // no color codes will be included.
 func ResourceChange(
-	change *plans.ResourceInstanceChangeSrc,
+	change *plans.ResourceInstanceChange,
 	schema *configschema.Block,
 	color *colorstring.Colorize,
 	language DiffLanguage,
@@ -70,7 +71,13 @@ func ResourceChange(
 	case plans.Create:
 		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be created"), dispAddr))
 	case plans.Read:
-		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply\n  # (config refers to values not yet known)"), dispAddr))
+		buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be read during apply"), dispAddr))
+		switch change.ActionReason {
+		case plans.ResourceInstanceReadBecauseConfigUnknown:
+			buf.WriteString("\n  # (config refers to values not yet known)")
+		case plans.ResourceInstanceReadBecauseDependencyPending:
+			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		}
 	case plans.Update:
 		switch language {
 		case DiffLanguageProposedChange:
@@ -86,6 +93,8 @@ func ResourceChange(
 			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] is tainted, so must be [bold][red]replaced"), dispAddr))
 		case plans.ResourceInstanceReplaceByRequest:
 			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]replaced[reset], as requested"), dispAddr))
+		case plans.ResourceInstanceReplaceByTriggers:
+			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] will be [bold][red]replaced[reset] due to changes in replace_triggered_by"), dispAddr))
 		default:
 			buf.WriteString(fmt.Sprintf(color.Color("[bold]  # %s[reset] must be [bold][red]replaced"), dispAddr))
 		}
@@ -107,6 +116,11 @@ func ResourceChange(
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Resource.Resource))
 		case plans.ResourceInstanceDeleteBecauseNoModule:
+			// FIXME: Ideally we'd truncate addr.Module to reflect the earliest
+			// step that doesn't exist, so it's clearer which call this refers
+			// to, but we don't have enough information out here in the UI layer
+			// to decide that; only the "expander" in Terraform Core knows
+			// which module instance keys are actually declared.
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Module))
 		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
 			// We have some different variations of this one
@@ -158,7 +172,7 @@ func ResourceChange(
 		))
 	case addrs.DataResourceMode:
 		buf.WriteString(fmt.Sprintf(
-			"data %q %q ",
+			"data %q %q",
 			addr.Resource.Resource.Type,
 			addr.Resource.Resource.Name,
 		))
@@ -182,24 +196,7 @@ func ResourceChange(
 	// structures.
 	path := make(cty.Path, 0, 3)
 
-	changeV, err := change.Decode(schema.ImpliedType())
-	if err != nil {
-		// Should never happen in here, since we've already been through
-		// loads of layers of encode/decode of the planned changes before now.
-		panic(fmt.Sprintf("failed to decode plan for %s while rendering diff: %s", addr, err))
-	}
-
-	// We currently have an opt-out that permits the legacy SDK to return values
-	// that defy our usual conventions around handling of nesting blocks. To
-	// avoid the rendering code from needing to handle all of these, we'll
-	// normalize first.
-	// (Ideally we'd do this as part of the SDK opt-out implementation in core,
-	// but we've added it here for now to reduce risk of unexpected impacts
-	// on other code in core.)
-	changeV.Change.Before = objchange.NormalizeObjectFromLegacySDK(changeV.Change.Before, schema)
-	changeV.Change.After = objchange.NormalizeObjectFromLegacySDK(changeV.Change.After, schema)
-
-	result := p.writeBlockBodyDiff(schema, changeV.Before, changeV.After, 6, path)
+	result := p.writeBlockBodyDiff(schema, change.Before, change.After, 6, path)
 	if result.bodyWritten {
 		buf.WriteString("\n")
 		buf.WriteString(strings.Repeat(" ", 4))
@@ -332,6 +329,7 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 	blankBeforeBlocks := false
 
 	attrNames := make([]string, 0, len(attrsS))
+	displayAttrNames := make(map[string]string, len(attrsS))
 	attrNameLen := 0
 	for name := range attrsS {
 		oldVal := ctyGetAttrMaybeNull(old, name)
@@ -345,8 +343,9 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		}
 
 		attrNames = append(attrNames, name)
-		if len(name) > attrNameLen {
-			attrNameLen = len(name)
+		displayAttrNames[name] = displayAttributeName(name)
+		if len(displayAttrNames[name]) > attrNameLen {
+			attrNameLen = len(displayAttrNames[name])
 		}
 	}
 	sort.Strings(attrNames)
@@ -360,7 +359,7 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 		newVal := ctyGetAttrMaybeNull(new, name)
 
 		result.bodyWritten = true
-		skipped := p.writeAttrDiff(name, attrS, oldVal, newVal, attrNameLen, indent, path)
+		skipped := p.writeAttrDiff(displayAttrNames[name], attrS, oldVal, newVal, attrNameLen, indent, path)
 		if skipped {
 			result.skippedAttributes++
 		}
@@ -446,6 +445,7 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool) {
 
 	p.buf.WriteString("\n")
+	p.writeSensitivityWarning(old, new, indent, action, false)
 	p.buf.WriteString(strings.Repeat(" ", indent))
 	p.writeActionSymbol(action)
 
@@ -454,6 +454,14 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	p.buf.WriteString(p.color.Color("[reset]"))
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
 
+	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
+		p.buf.WriteString(" = (sensitive value)")
+		if p.pathForcesNewResource(path) {
+			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
+		}
+		return
+	}
+
 	result := &blockBodyDiffResult{}
 	switch objS.Nesting {
 	case configschema.NestingSingle:
@@ -461,10 +469,10 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
-		p.writeAttrsDiff(objS.Attributes, old, new, indent+2, path, result)
-		p.writeSkippedAttr(result.skippedAttributes, indent+4)
+		p.writeAttrsDiff(objS.Attributes, old, new, indent+4, path, result)
+		p.writeSkippedAttr(result.skippedAttributes, indent+6)
 		p.buf.WriteString("\n")
-		p.buf.WriteString(strings.Repeat(" ", indent))
+		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 
 	case configschema.NestingList:
@@ -569,6 +577,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 
 		p.buf.WriteString(" = [")
 
+		var unchanged int
+
 		for it := all.ElementIterator(); it.Next(); {
 			_, val := it.Element()
 			var action plans.Action
@@ -598,23 +608,29 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				newValue = val
 			}
 
+			if action == plans.NoOp {
+				unchanged++
+				continue
+			}
+
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+4))
 			p.writeActionSymbol(action)
 			p.buf.WriteString("{")
 
-			if action != plans.NoOp && (p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1])) {
+			if p.pathForcesNewResource(path) || p.pathForcesNewResource(path[:len(path)-1]) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
 
 			path := append(path, cty.IndexStep{Key: val})
-			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
+			p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
 
 			p.buf.WriteString("\n")
-			p.buf.WriteString(strings.Repeat(" ", indent+4))
+			p.buf.WriteString(strings.Repeat(" ", indent+6))
 			p.buf.WriteString("},")
 		}
 		p.buf.WriteString("\n")
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("]")
 
@@ -682,15 +698,15 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 				}
 
 				path := append(path, cty.IndexStep{Key: cty.StringVal(k)})
-				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+6, path, result)
-				p.writeSkippedAttr(result.skippedAttributes, indent+8)
+				p.writeAttrsDiff(objS.Attributes, oldValue, newValue, indent+8, path, result)
+				p.writeSkippedAttr(result.skippedAttributes, indent+10)
 				p.buf.WriteString("\n")
-				p.buf.WriteString(strings.Repeat(" ", indent+4))
+				p.buf.WriteString(strings.Repeat(" ", indent+6))
 				p.buf.WriteString("},\n")
 			}
 		}
 
-		p.writeSkippedElems(unchanged, indent+4)
+		p.writeSkippedElems(unchanged, indent+6)
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
 		if !new.IsKnown() {
@@ -1114,23 +1130,26 @@ func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, in
 
 		atys := ty.AttributeTypes()
 		attrNames := make([]string, 0, len(atys))
+		displayAttrNames := make(map[string]string, len(atys))
 		nameLen := 0
 		for attrName := range atys {
 			attrNames = append(attrNames, attrName)
-			if len(attrName) > nameLen {
-				nameLen = len(attrName)
+			displayAttrNames[attrName] = displayAttributeName(attrName)
+			if len(displayAttrNames[attrName]) > nameLen {
+				nameLen = len(displayAttrNames[attrName])
 			}
 		}
 		sort.Strings(attrNames)
 
 		for _, attrName := range attrNames {
 			val := val.GetAttr(attrName)
+			displayAttrName := displayAttrNames[attrName]
 
 			p.buf.WriteString("\n")
 			p.buf.WriteString(strings.Repeat(" ", indent+2))
 			p.writeActionSymbol(action)
-			p.buf.WriteString(attrName)
-			p.buf.WriteString(strings.Repeat(" ", nameLen-len(attrName)))
+			p.buf.WriteString(displayAttrName)
+			p.buf.WriteString(strings.Repeat(" ", nameLen-len(displayAttrName)))
 			p.buf.WriteString(" = ")
 			p.writeValue(val, action, indent+4)
 		}
@@ -1519,7 +1538,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
-				p.writeValue(kV, action, indent+4)
+				p.writeValue(cty.StringVal(k), action, indent+4)
 				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
 				p.buf.WriteString(" = ")
 				switch action {
@@ -1567,21 +1586,24 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 			forcesNewResource := p.pathForcesNewResource(path)
 
 			var allKeys []string
+			displayKeys := make(map[string]string)
 			keyLen := 0
 			for it := old.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 			for it := new.ElementIterator(); it.Next(); {
 				k, _ := it.Element()
 				keyStr := k.AsString()
 				allKeys = append(allKeys, keyStr)
-				if len(keyStr) > keyLen {
-					keyLen = len(keyStr)
+				displayKeys[keyStr] = displayAttributeName(keyStr)
+				if len(displayKeys[keyStr]) > keyLen {
+					keyLen = len(displayKeys[keyStr])
 				}
 			}
 
@@ -1607,7 +1629,10 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					action = plans.Update
 				}
 
-				if action == plans.NoOp && !p.verbose {
+				// TODO: If in future we have a schema associated with this
+				// object, we should pass the attribute's schema to
+				// identifyingAttribute here.
+				if action == plans.NoOp && !p.verbose && !identifyingAttribute(k, nil) {
 					suppressedElements++
 					continue
 				}
@@ -1616,8 +1641,8 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 
 				p.buf.WriteString(strings.Repeat(" ", indent+2))
 				p.writeActionSymbol(action)
-				p.buf.WriteString(k)
-				p.buf.WriteString(strings.Repeat(" ", keyLen-len(k)))
+				p.buf.WriteString(displayKeys[k])
+				p.buf.WriteString(strings.Repeat(" ", keyLen-len(displayKeys[k])))
 				p.buf.WriteString(" = ")
 
 				switch action {
@@ -2001,4 +2026,11 @@ func (p *blockBodyDiffPrinter) writeSkippedElems(skipped, indent int) {
 		p.buf.WriteString(fmt.Sprintf(p.color.Color("[dark_gray]# (%d unchanged %s hidden)[reset]"), skipped, noun))
 		p.buf.WriteString("\n")
 	}
+}
+
+func displayAttributeName(name string) string {
+	if !hclsyntax.ValidIdentifier(name) {
+		return fmt.Sprintf("%q", name)
+	}
+	return name
 }

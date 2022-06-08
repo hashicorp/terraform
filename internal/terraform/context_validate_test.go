@@ -1187,32 +1187,6 @@ resource "aws_instance" "foo" {
 	}
 }
 
-// Manually validate using the new PlanGraphBuilder
-func TestContext2Validate_PlanGraphBuilder(t *testing.T) {
-	fixture := contextFixtureApplyVars(t)
-	opts := fixture.ContextOpts()
-	c := testContext2(t, opts)
-
-	graph, diags := ValidateGraphBuilder(&PlanGraphBuilder{
-		Config:  fixture.Config,
-		State:   states.NewState(),
-		Plugins: c.plugins,
-	}).Build(addrs.RootModuleInstance)
-	if diags.HasErrors() {
-		t.Fatalf("errors from PlanGraphBuilder: %s", diags.Err())
-	}
-	defer c.acquireRun("validate-test")()
-	walker, diags := c.walk(graph, walkValidate, &graphWalkOpts{
-		Config: fixture.Config,
-	})
-	if diags.HasErrors() {
-		t.Fatal(diags.Err())
-	}
-	if len(walker.NonFatalDiagnostics) > 0 {
-		t.Fatal(walker.NonFatalDiagnostics.Err())
-	}
-}
-
 func TestContext2Validate_invalidOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -2023,6 +1997,448 @@ resource "test_object" "t" {
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Plan_lookupMismatchedObjectTypes(t *testing.T) {
+	p := new(MockProvider)
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"things": {
+						Type:     cty.List(cty.String),
+						Optional: true,
+					},
+				},
+			},
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "items" {
+  type = list(string)
+  default = []
+}
+
+resource "test_instance" "a" {
+  for_each = length(var.items) > 0 ? { default = {} } : {}
+}
+
+output "out" {
+  // Strictly speaking, this expression is incorrect because the map element
+  // type is a different type from the default value, and the lookup
+  // implementation expects to be able to convert the default to match the
+  // element type.
+  // There are two reasons this works which we need to maintain for
+  // compatibility. First during validation the 'test_instance.a' expression
+  // only returns a dynamic value, preventing any type comparison. Later during
+  // plan and apply 'test_instance.a' is an object and not a map, and the
+  // lookup implementation skips the type comparison when the keys are known
+  // statically.
+  value = lookup(test_instance.a, "default", { id = null })["id"]
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_nonNullableVariableDefaultValidation(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+ module "first" {
+   source = "./mod"
+   input = null
+ }
+ `,
+
+		"mod/main.tf": `
+ variable "input" {
+   type        = string
+   default     = "default"
+   nullable    = false
+
+   // Validation expressions should receive the default with nullable=false and
+   // a null input.
+   validation {
+     condition     = var.input != null
+     error_message = "Input cannot be null!"
+   }
+ }
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_precondition_good(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = length(var.input) > 0
+      error_message = "Input cannot be empty."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_precondition_badCondition(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = length(one(var.input)) == 1
+      error_message = "You can't do that."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_precondition_badErrorMessage(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    precondition {
+      condition     = var.input != "foo"
+      error_message = "This is a bad use of a function: ${one(var.input)}."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_postcondition_good(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = length(self.foo) > 0
+      error_message = "Input cannot be empty."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_postcondition_badCondition(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	// This postcondition's condition expression does not refer to self, which
+	// is unrealistic. This is because at the time of writing the test, self is
+	// always an unknown value of dynamic type during validation. As a result,
+	// validation of conditions which refer to resource arguments is not
+	// possible until plan time. For now we exercise the code by referring to
+	// an input variable.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "input" {
+  type    = string
+  default = "foo"
+}
+
+resource "aws_instance" "test" {
+  foo = var.input
+
+  lifecycle {
+    postcondition {
+      condition     = length(one(var.input)) == 1
+      error_message = "You can't do that."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_postcondition_badErrorMessage(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "test" {
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = self.foo != "foo"
+      error_message = "This is a bad use of a function: ${one("foo")}."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if !diags.HasErrors() {
+		t.Fatalf("succeeded; want error")
+	}
+	if got, want := diags.Err().Error(), "Invalid function argument"; !strings.Contains(got, want) {
+		t.Errorf("unexpected error.\ngot: %s\nshould contain: %q", got, want)
+	}
+}
+
+func TestContext2Validate_precondition_count(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  foos = ["bar", "baz"]
+}
+
+resource "aws_instance" "test" {
+  count = 3
+  foo = local.foos[count.index]
+
+  lifecycle {
+    precondition {
+      condition     = count.index < length(local.foos)
+      error_message = "Insufficient foos."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	diags := ctx.Validate(m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+}
+
+func TestContext2Validate_postcondition_forEach(t *testing.T) {
+	p := testProvider("aws")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"aws_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"foo": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  foos = toset(["bar", "baz", "boop"])
+}
+
+resource "aws_instance" "test" {
+  for_each = local.foos
+  foo = "foo"
+
+  lifecycle {
+    postcondition {
+      condition     = length(each.value) == 3
+      error_message = "Short foo required, not \"${each.key}\"."
+    }
+  }
+}
+ `,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 

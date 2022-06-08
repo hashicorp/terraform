@@ -1,6 +1,7 @@
 package getmodules
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -82,8 +83,9 @@ var goGetterGetters = map[string]getter.Getter{
 var getterHTTPClient = cleanhttp.DefaultClient()
 
 var getterHTTPGetter = &getter.HttpGetter{
-	Client: getterHTTPClient,
-	Netrc:  true,
+	Client:             getterHTTPClient,
+	Netrc:              true,
+	XTerraformGetLimit: 10,
 }
 
 // A reusingGetter is a helper for the module installer that remembers
@@ -119,7 +121,7 @@ type reusingGetter map[string]string
 // end-user-actionable error messages. At this time we do not have any
 // reasonable way to improve these error messages at this layer because
 // the underlying errors are not separately recognizable.
-func (g reusingGetter) getWithGoGetter(instPath, packageAddr string) error {
+func (g reusingGetter) getWithGoGetter(ctx context.Context, instPath, packageAddr string) error {
 	var err error
 
 	if prevDir, exists := g[packageAddr]; exists {
@@ -144,6 +146,7 @@ func (g reusingGetter) getWithGoGetter(instPath, packageAddr string) error {
 			Detectors:     goGetterNoDetectors, // our caller should've already done detection
 			Decompressors: goGetterDecompressors,
 			Getters:       goGetterGetters,
+			Ctx:           ctx,
 		}
 		err = client.Get()
 		if err != nil {

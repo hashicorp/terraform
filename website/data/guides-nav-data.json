@@ -1,0 +1,12 @@
+[
+  { "title": "The Core Terraform Workflow", "href": "/intro/core-workflow" },
+  {
+    "title": "Terraform Integration Program",
+    "href": "/docs/partnerships"
+  },
+  {
+    "title": "Terraform Provider Development Program",
+    "path": "terraform-provider-development-program",
+    "hidden": true
+  }
+]

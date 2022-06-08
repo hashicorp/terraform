@@ -14,9 +14,8 @@ import (
 )
 
 func TestGraph(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -57,9 +56,8 @@ func TestGraph_multipleArgs(t *testing.T) {
 }
 
 func TestGraph_noArgs(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("graph"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -82,9 +80,8 @@ func TestGraph_noArgs(t *testing.T) {
 }
 
 func TestGraph_noConfig(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -104,8 +101,7 @@ func TestGraph_noConfig(t *testing.T) {
 }
 
 func TestGraph_plan(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	plan := &plans.Plan{
 		Changes: plans.NewChanges(),

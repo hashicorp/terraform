@@ -5,9 +5,11 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -31,6 +33,10 @@ type NodePlannableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	// replaceTriggeredBy stores references from replace_triggered_by which
+	// triggered this instance to be replaced.
+	replaceTriggeredBy []*addrs.Reference
 }
 
 var (
@@ -71,31 +77,17 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, readDiags := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// We'll save a snapshot of what we just read from the state into the
-	// prevRunState which will capture the result read in the previous
-	// run, possibly tweaked by any upgrade steps that
-	// readResourceInstanceState might've made.
-	// However, note that we don't have any explicit mechanism for upgrading
-	// data resource results as we do for managed resources, and so the
-	// prevRunState might not conform to the current schema if the
-	// previous run was with a different provider version.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	change, state, planDiags := n.planDataSource(ctx, state)
+	checkRuleSeverity := tfdiags.Error
+	if n.skipPlanChanges {
+		checkRuleSeverity = tfdiags.Warning
+	}
+
+	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -113,6 +105,19 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	diags = diags.Append(n.writeChange(ctx, change, ""))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		addrs.ResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, addr, repeatData,
+		checkRuleSeverity,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
@@ -193,7 +198,24 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
-		change, instancePlanState, planDiags := n.plan(
+
+		// add this instance to n.forceReplace if replacement is triggered by
+		// another change
+		repData := instances.RepetitionData{}
+		switch k := addr.Resource.Key.(type) {
+		case addrs.IntKey:
+			repData.CountIndex = k.Value()
+		case addrs.StringKey:
+			repData.EachKey = k.Value()
+			repData.EachValue = cty.DynamicVal
+		}
+
+		diags = diags.Append(n.replaceTriggered(ctx, repData))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		change, instancePlanState, repeatData, planDiags := n.plan(
 			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
@@ -201,10 +223,33 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
+		// FIXME: here we udpate the change to reflect the reason for
+		// replacement, but we still overload forceReplace to get the correct
+		// change planned.
+		if len(n.replaceTriggeredBy) > 0 {
+			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
+		}
+
 		diags = diags.Append(n.checkPreventDestroy(change))
 		if diags.HasErrors() {
 			return diags
 		}
+
+		// FIXME: it is currently important that we write resource changes to
+		// the plan (n.writeChange) before we write the corresponding state
+		// (n.writeResourceInstanceState).
+		//
+		// This is because the planned resource state will normally have the
+		// status of states.ObjectPlanned, which causes later logic to refer to
+		// the contents of the plan to retrieve the resource data. Because
+		// there is no shared lock between these two data structures, reversing
+		// the order of these writes will cause a brief window of inconsistency
+		// which can lead to a failed safety check.
+		//
+		// Future work should adjust these APIs such that it is impossible to
+		// update these two data structures incorrectly through any objects
+		// reachable via the terraform.EvalContext API.
+		diags = diags.Append(n.writeChange(ctx, change, ""))
 
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
 		if diags.HasErrors() {
@@ -225,8 +270,38 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			}
 		}
 
-		diags = diags.Append(n.writeChange(ctx, change, ""))
+		// Post-conditions might block completion. We intentionally do this
+		// _after_ writing the state/diff because we want to check against
+		// the result of the operation, and to fail on future operations
+		// until the user makes the condition succeed.
+		// (Note that some preconditions will end up being skipped during
+		// planning, because their conditions depend on values not yet known.)
+		checkDiags := evalCheckRules(
+			addrs.ResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, n.ResourceInstanceAddr(), repeatData,
+			tfdiags.Error,
+		)
+		diags = diags.Append(checkDiags)
 	} else {
+		// In refresh-only mode we need to evaluate the for-each expression in
+		// order to supply the value to the pre- and post-condition check
+		// blocks. This has the unfortunate edge case of a refresh-only plan
+		// executing with a for-each map which has the same keys but different
+		// values, which could result in a post-condition check relying on that
+		// value being inaccurate. Unless we decide to store the value of the
+		// for-each expression in state, this is unavoidable.
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+		checkDiags := evalCheckRules(
+			addrs.ResourcePrecondition,
+			n.Config.Preconditions,
+			ctx, addr, repeatData,
+			tfdiags.Warning,
+		)
+		diags = diags.Append(checkDiags)
+
 		// Even if we don't plan changes, we do still need to at least update
 		// the working state to reflect the refresh result. If not, then e.g.
 		// any output values refering to this will not react to the drift.
@@ -235,6 +310,49 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instanceRefreshState, workingState))
 		if diags.HasErrors() {
 			return diags
+		}
+
+		// Here we also evaluate post-conditions after updating the working
+		// state, because we want to check against the result of the refresh.
+		// Unlike in normal planning mode, these checks are still evaluated
+		// even if pre-conditions generated diagnostics, because we have no
+		// planned changes to block.
+		checkDiags = evalCheckRules(
+			addrs.ResourcePostcondition,
+			n.Config.Postconditions,
+			ctx, addr, repeatData,
+			tfdiags.Warning,
+		)
+		diags = diags.Append(checkDiags)
+	}
+
+	return diags
+}
+
+// replaceTriggered checks if this instance needs to be replace due to a change
+// in a replace_triggered_by reference. If replacement is required, the
+// instance address is added to forceReplace
+func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, expr := range n.Config.TriggersReplacement {
+		ref, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			continue
+		}
+
+		if replace {
+			// FIXME: forceReplace accomplishes the same goal, however we may
+			// want to communicate more information about which resource
+			// triggered the replacement in the plan.
+			// Rather than further complicating the plan method with more
+			// options, we can refactor both of these features later.
+			n.forceReplace = append(n.forceReplace, n.Addr)
+			log.Printf("[DEBUG] ReplaceTriggeredBy forcing replacement of %s due to change in %s", n.Addr, ref.DisplayString())
+
+			n.replaceTriggeredBy = append(n.replaceTriggeredBy, ref)
+			break
 		}
 	}
 

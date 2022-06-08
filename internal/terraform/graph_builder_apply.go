@@ -26,6 +26,11 @@ type ApplyGraphBuilder struct {
 	// State is the current state
 	State *states.State
 
+	// RootVariableValues are the root module input variables captured as
+	// part of the plan object, which we must reproduce in the apply step
+	// to get a consistent result.
+	RootVariableValues InputValues
+
 	// Plugins is a library of the plug-in components (providers and
 	// provisioners) available for use.
 	Plugins *contextPlugins
@@ -41,17 +46,13 @@ type ApplyGraphBuilder struct {
 	// The apply step refers to these as part of verifying that the planned
 	// actions remain consistent between plan and apply.
 	ForceReplace []addrs.AbsResourceInstance
-
-	// Validate will do structural validation of the graph.
-	Validate bool
 }
 
 // See GraphBuilder
 func (b *ApplyGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
 	return (&BasicGraphBuilder{
-		Steps:    b.Steps(),
-		Validate: b.Validate,
-		Name:     "ApplyGraphBuilder",
+		Steps: b.Steps(),
+		Name:  "ApplyGraphBuilder",
 	}).Build(path)
 }
 
@@ -88,7 +89,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		},
 
 		// Add dynamic values
-		&RootVariableTransformer{Config: b.Config},
+		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{Config: b.Config, Changes: b.Changes},
@@ -135,10 +136,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
-		&DestroyEdgeTransformer{
-			Config: b.Config,
-			State:  b.State,
-		},
+		&DestroyEdgeTransformer{},
 		&CBDEdgeTransformer{
 			Config: b.Config,
 			State:  b.State,

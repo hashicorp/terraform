@@ -8,10 +8,12 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -57,6 +59,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
+		Conditions:       make(plans.Conditions),
 	}
 
 	switch rawPlan.UiMode {
@@ -87,6 +90,43 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		})
 	}
 
+	for _, rawCR := range rawPlan.ConditionResults {
+		conditionAddr := rawCR.ConditionAddr
+		cr := &plans.ConditionResult{
+			ErrorMessage: rawCR.ErrorMessage,
+		}
+		switch r := rawCR.Result.(type) {
+		case *planproto.ConditionResult_Value:
+			cr.Result = cty.BoolVal(r.Value)
+		case *planproto.ConditionResult_Unknown:
+			cr.Result = cty.UnknownVal(cty.Bool)
+		}
+		var diags tfdiags.Diagnostics
+		switch rawCR.Type {
+		case planproto.ConditionType_OUTPUT_PRECONDITION:
+			cr.Type = addrs.OutputPrecondition
+			cr.Address, diags = addrs.ParseAbsOutputValueStr(rawCR.Addr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+		case planproto.ConditionType_RESOURCE_PRECONDITION:
+			cr.Type = addrs.ResourcePrecondition
+			cr.Address, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+		case planproto.ConditionType_RESOURCE_POSTCONDITION:
+			cr.Type = addrs.ResourcePostcondition
+			cr.Address, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+		default:
+			return nil, fmt.Errorf("condition result %s has unsupported type %s", rawCR.ConditionAddr, rawCR.Type)
+		}
+		plan.Conditions[conditionAddr] = cr
+	}
+
 	for _, rawRC := range rawPlan.ResourceChanges {
 		change, err := resourceChangeFromTfplan(rawRC)
 		if err != nil {
@@ -105,6 +145,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 
 		plan.DriftedResources = append(plan.DriftedResources, change)
+	}
+
+	for _, rawRA := range rawPlan.RelevantAttributes {
+		ra, err := resourceAttrFromTfplan(rawRA)
+		if err != nil {
+			return nil, err
+		}
+		plan.RelevantAttributes = append(plan.RelevantAttributes, ra)
 	}
 
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
@@ -218,6 +266,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
 		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	case planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS:
+		ret.ActionReason = plans.ResourceInstanceReplaceByTriggers
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoResourceConfig
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION:
@@ -228,6 +278,10 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseEachKey
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoModule
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseConfigUnknown
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseDependencyPending
 	default:
 		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
 	}
@@ -349,10 +403,11 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:       map[string]*planproto.DynamicValue{},
-		OutputChanges:   []*planproto.OutputChange{},
-		ResourceChanges: []*planproto.ResourceInstanceChange{},
-		ResourceDrift:   []*planproto.ResourceInstanceChange{},
+		Variables:        map[string]*planproto.DynamicValue{},
+		OutputChanges:    []*planproto.OutputChange{},
+		ConditionResults: []*planproto.ConditionResult{},
+		ResourceChanges:  []*planproto.ResourceInstanceChange{},
+		ResourceDrift:    []*planproto.ResourceInstanceChange{},
 	}
 
 	switch plan.UIMode {
@@ -391,6 +446,35 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		})
 	}
 
+	for addr, cr := range plan.Conditions {
+		pcr := &planproto.ConditionResult{
+			Addr:          cr.Address.String(),
+			ConditionAddr: addr,
+			ErrorMessage:  cr.ErrorMessage,
+		}
+		if cr.Result.IsKnown() {
+			pcr.Result = &planproto.ConditionResult_Value{
+				Value: cr.Result.True(),
+			}
+		} else {
+			pcr.Result = &planproto.ConditionResult_Unknown{
+				Unknown: true,
+			}
+		}
+		switch cr.Type {
+		case addrs.OutputPrecondition:
+			pcr.Type = planproto.ConditionType_OUTPUT_PRECONDITION
+		case addrs.ResourcePrecondition:
+			pcr.Type = planproto.ConditionType_RESOURCE_PRECONDITION
+		case addrs.ResourcePostcondition:
+			pcr.Type = planproto.ConditionType_RESOURCE_POSTCONDITION
+		default:
+			return fmt.Errorf("condition result %s has unsupported type %s", addr, cr.Type)
+		}
+
+		rawPlan.ConditionResults = append(rawPlan.ConditionResults, pcr)
+	}
+
 	for _, rc := range plan.Changes.Resources {
 		rawRC, err := resourceChangeToTfplan(rc)
 		if err != nil {
@@ -405,6 +489,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
+	}
+
+	for _, ra := range plan.RelevantAttributes {
+		rawRA, err := resourceAttrToTfplan(ra)
+		if err != nil {
+			return err
+		}
+		rawPlan.RelevantAttributes = append(rawPlan.RelevantAttributes, rawRA)
 	}
 
 	for _, targetAddr := range plan.TargetAddrs {
@@ -443,6 +535,39 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 
 	return nil
+}
+
+func resourceAttrToTfplan(ra globalref.ResourceAttr) (*planproto.PlanResourceAttr, error) {
+	res := &planproto.PlanResourceAttr{}
+
+	res.Resource = ra.Resource.String()
+	attr, err := pathToTfplan(ra.Attr)
+	if err != nil {
+		return res, err
+	}
+	res.Attr = attr
+	return res, nil
+}
+
+func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceAttr, error) {
+	var res globalref.ResourceAttr
+	if ra.Resource == "" {
+		return res, fmt.Errorf("missing resource address from relevant attribute")
+	}
+
+	instAddr, diags := addrs.ParseAbsResourceInstanceStr(ra.Resource)
+	if diags.HasErrors() {
+		return res, fmt.Errorf("invalid resource instance address %q in relevant attributes: %w", ra.Resource, diags.Err())
+	}
+
+	res.Resource = instAddr
+	path, err := pathFromTfplan(ra.Attr)
+	if err != nil {
+		return res, fmt.Errorf("invalid path in %q relevant attribute: %s", res.Resource, err)
+	}
+
+	res.Attr = path
+	return res, nil
 }
 
 func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
@@ -492,6 +617,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
 	case plans.ResourceInstanceReplaceByRequest:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	case plans.ResourceInstanceReplaceByTriggers:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG
 	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
@@ -502,6 +629,10 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY
 	case plans.ResourceInstanceDeleteBecauseNoModule:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE
+	case plans.ResourceInstanceReadBecauseConfigUnknown:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN
+	case plans.ResourceInstanceReadBecauseDependencyPending:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING
 	default:
 		return nil, fmt.Errorf("resource %s has unsupported action reason %s", change.Addr, change.ActionReason)
 	}

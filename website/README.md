@@ -13,9 +13,13 @@ You can [submit an issue](https://github.com/hashicorp/terraform/issues/new/choo
 
 Click **Edit this page** at the bottom of any Terraform website page to go directly to the associated markdown file in GitHub.
 
+## Modifying Sidebar Navigation
+
+Updates to the sidebar navigation of Terraform docs need to be made in the [`terraform-website`](https://github.com/hashicorp/terraform-website/) repository (preferrably in a PR also updating the submodule commit). You can read more about how to make modifications to the navigation in the [README for `terraform-website`](https://github.com/hashicorp/terraform-website#editing-navigation-sidebars).
+
 ## Previewing Changes
 
-You should preview all of your changes locally before creating a pull request. The build includes content from this repository and the [`terraform-website`](https://github.com/hashicorp/terraform-website/) repository, allowing you to preview the entire Terraform documentation site. If `terraform-website` isn't in your `GOPATH`, the preview command will clone it to your machine.
+You should preview all of your changes locally before creating a pull request. The build includes content from this repository and the [`terraform-website`](https://github.com/hashicorp/terraform-website/) repository, allowing you to preview the entire Terraform documentation site.
 
 **Set Up Local Environment**
 
@@ -32,8 +36,9 @@ You should preview all of your changes locally before creating a pull request. T
 **Launch Site Locally**
 
 1. Navigate into your local `terraform` top-level directory and run `make website`.
-2. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and the site will automatically re-build them.
-3. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
+1. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and Next.js will automatically rebuild them.
+1. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
+cccccckebtefdtliheunihirifuucdchterukkjehlrr
 
 ## Deploying Changes
 
@@ -41,15 +46,11 @@ Merge the PR to main. The changes will appear in the next major Terraform releas
 
 If you need your changes to be deployed sooner, cherry-pick them to:
 
-- the current release branch (e.g. `v1.0`) and push. They will be deployed in the next minor version release (once every two weeks).
-- the `stable-website` branch and push. They will be included in the next site deploy (details below). Note that the release process resets `stable-website` to match the release tag, removing any additional commits. So, we recommend always cherry-picking to the version branch first and then to `stable-website` when needed.
+- the current release branch (e.g. `v1.1`) and push. They will be deployed in the next minor version release (once every two weeks).
+- the `stable-website` branch and push. They will be included in the next site deploy (see below). Note that the release process resets `stable-website` to match the release tag, removing any additional commits. So, we recommend always cherry-picking to the version branch first and then to `stable-website` when needed.
 
-### Backport Tags
-
-Instead of cherry-picking your commits to a specific version branch, you can add the associated backport tag (e.g., "1.1-backport") to your pull request before merging. After you merge, a bot automatically creates a pull request to add your commits to the version branch (linked in your original PR). You must manually merge the auto-generated PR into the version branch.
+Once your PR to `stable-website` is merged, open a PR bumping the submodule commit in [`terraform-website`](https://github.com/hashicorp/terraform-website).
 
 ### Deployment
 
-Our website is redeployed automatically when a user in the HashiCorp GitHub organization merges changes in the `terraform-website` repository.
-
-New commits in this repository don't automatically deploy the [terraform.io](https://www.terraform.io/docs/index.html) site, but an unrelated site deploy will usually happen within a day. If you can't wait that long, you can ask someone in the #proj-terraform-docs channel to do so.
+New commits in `hashicorp/terraform` do not automatically deploy the site. To use the latest upstream content, you'll need to open a PR bumping the submodule commit. If your changes aren't being deployed, it's very likely that you need to open a PR to update the submodule commit.

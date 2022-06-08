@@ -1,7 +1,6 @@
 package e2etest
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -23,16 +22,11 @@ func TestTerraformProvidersMirror(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	outputDir, err := ioutil.TempDir("", "terraform-e2etest-providers-mirror")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(outputDir)
+	outputDir := t.TempDir()
 	t.Logf("creating mirror directory in %s", outputDir)
 
 	fixturePath := filepath.Join("testdata", "terraform-providers-mirror")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("providers", "mirror", "-platform=linux_amd64", "-platform=windows_386", outputDir)
 	if err != nil {

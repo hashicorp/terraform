@@ -351,3 +351,36 @@ func applyFixtureSchema() *terraform.ProviderSchema {
 		},
 	}
 }
+
+func TestApply_applyCanceledAutoApprove(t *testing.T) {
+	b := TestLocal(t)
+
+	TestLocalProvider(t, b, "test", applyFixtureSchema())
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
+	op.AutoApprove = true
+	defer configCleanup()
+	defer func() {
+		output := done(t)
+		if !strings.Contains(output.Stderr(), "execution halted") {
+			t.Fatal("expected 'execution halted', got:\n", output.All())
+		}
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	testHookStopPlanApply = cancel
+	defer func() {
+		testHookStopPlanApply = nil
+	}()
+
+	run, err := b.Operation(ctx, op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected apply operation to fail")
+	}
+
+}

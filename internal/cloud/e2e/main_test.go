@@ -1,9 +1,7 @@
-//go:build e2e
-// +build e2e
-
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -12,7 +10,9 @@ import (
 	"strings"
 	"testing"
 
+	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/internal/e2e"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -22,13 +22,9 @@ var cliConfigFileEnv string
 var tfeClient *tfe.Client
 var tfeHostname string
 var tfeToken string
+var verboseMode bool
 
 func TestMain(m *testing.M) {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	if !accTest() {
-		// if TF_ACC is not set, we want to skip all these tests.
-		return
-	}
 	teardown := setup()
 	code := m.Run()
 	teardown()
@@ -42,7 +38,29 @@ func accTest() bool {
 	return os.Getenv("TF_ACC") != ""
 }
 
+func hasHostname() bool {
+	return os.Getenv("TFE_HOSTNAME") != ""
+}
+
+func hasToken() bool {
+	return os.Getenv("TFE_TOKEN") != ""
+}
+
+func hasRequiredEnvVars() bool {
+	return accTest() && hasHostname() && hasToken()
+}
+
+func skipIfMissingEnvVar(t *testing.T) {
+	if !hasRequiredEnvVars() {
+		t.Skip("Skipping test, required environment variables missing. Use `TF_ACC`, `TFE_HOSTNAME`, `TFE_TOKEN`")
+	}
+}
+
 func setup() func() {
+	tfOutput := flag.Bool("tfoutput", false, "This flag produces the terraform output from tests.")
+	flag.Parse()
+	verboseMode = *tfOutput
+
 	setTfeClient()
 	teardown := setupBinary()
 
@@ -50,43 +68,129 @@ func setup() func() {
 		teardown()
 	}
 }
+func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...string) {
+	for name, tc := range cases {
+		tc := tc // rebind tc into this lexical scope
+		t.Run(name, func(subtest *testing.T) {
+			subtest.Parallel()
+
+			orgNames := []string{}
+			for i := 0; i < orgCount; i++ {
+				organization, cleanup := createOrganization(t)
+				t.Cleanup(cleanup)
+				orgNames = append(orgNames, organization.Name)
+			}
+
+			exp, err := expect.NewConsole(defaultOpts()...)
+			if err != nil {
+				subtest.Fatal(err)
+			}
+			defer exp.Close()
+
+			tmpDir := t.TempDir()
+
+			tf := e2e.NewBinary(t, terraformBin, tmpDir)
+			tfEnvFlags = append(tfEnvFlags, "TF_LOG=INFO")
+			tfEnvFlags = append(tfEnvFlags, cliConfigFileEnv)
+			for _, env := range tfEnvFlags {
+				tf.AddEnv(env)
+			}
+
+			var orgName string
+			for index, op := range tc.operations {
+				switch orgCount {
+				case 0:
+					orgName = ""
+				case 1:
+					orgName = orgNames[0]
+				default:
+					orgName = orgNames[index]
+				}
+
+				op.prep(t, orgName, tf.WorkDir())
+				for _, tfCmd := range op.commands {
+					cmd := tf.Cmd(tfCmd.command...)
+					cmd.Stdin = exp.Tty()
+					cmd.Stdout = exp.Tty()
+					cmd.Stderr = exp.Tty()
+
+					err = cmd.Start()
+					if err != nil {
+						subtest.Fatal(err)
+					}
+
+					if tfCmd.expectedCmdOutput != "" {
+						got, err := exp.ExpectString(tfCmd.expectedCmdOutput)
+						if err != nil {
+							subtest.Fatalf("error while waiting for output\nwant: %s\nerror: %s\noutput\n%s", tfCmd.expectedCmdOutput, err, got)
+						}
+					}
+
+					lenInput := len(tfCmd.userInput)
+					lenInputOutput := len(tfCmd.postInputOutput)
+					if lenInput > 0 {
+						for i := 0; i < lenInput; i++ {
+							input := tfCmd.userInput[i]
+							exp.SendLine(input)
+							// use the index to find the corresponding
+							// output that matches the input.
+							if lenInputOutput-1 >= i {
+								output := tfCmd.postInputOutput[i]
+								_, err := exp.ExpectString(output)
+								if err != nil {
+									subtest.Fatal(err)
+								}
+							}
+						}
+					}
+
+					err = cmd.Wait()
+					if err != nil && !tfCmd.expectError {
+						subtest.Fatal(err)
+					}
+				}
+			}
+
+			if tc.validations != nil {
+				tc.validations(t, orgName)
+			}
+		})
+	}
+}
 
 func setTfeClient() {
-	hostname := os.Getenv("TFE_HOSTNAME")
-	token := os.Getenv("TFE_TOKEN")
-	if hostname == "" {
-		log.Fatal("hostname cannot be empty")
-	}
-	if token == "" {
-		log.Fatal("token cannot be empty")
-	}
-	tfeHostname = hostname
-	tfeToken = token
+	tfeHostname = os.Getenv("TFE_HOSTNAME")
+	tfeToken = os.Getenv("TFE_TOKEN")
 
 	cfg := &tfe.Config{
-		Address: fmt.Sprintf("https://%s", hostname),
-		Token:   token,
+		Address: fmt.Sprintf("https://%s", tfeHostname),
+		Token:   tfeToken,
 	}
 
-	// Create a new TFE client.
-	client, err := tfe.NewClient(cfg)
-	if err != nil {
-		log.Fatal(err)
+	if tfeHostname != "" && tfeToken != "" {
+		// Create a new TFE client.
+		client, err := tfe.NewClient(cfg)
+		if err != nil {
+			fmt.Printf("Could not create new tfe client: %v\n", err)
+			os.Exit(1)
+		}
+		tfeClient = client
 	}
-	tfeClient = client
 }
 
 func setupBinary() func() {
 	log.Println("Setting up terraform binary")
 	tmpTerraformBinaryDir, err := ioutil.TempDir("", "terraform-test")
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not create temp directory: %v\n", err)
+		os.Exit(1)
 	}
 	log.Println(tmpTerraformBinaryDir)
 	currentDir, err := os.Getwd()
 	defer os.Chdir(currentDir)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not change directories: %v\n", err)
+		os.Exit(1)
 	}
 	// Getting top level dir
 	dirPaths := strings.Split(currentDir, "/")
@@ -95,7 +199,8 @@ func setupBinary() func() {
 	topDir := strings.Join(dirPaths[0:topLevel], "/")
 
 	if err := os.Chdir(topDir); err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not change directories: %v\n", err)
+		os.Exit(1)
 	}
 
 	cmd := exec.Command(
@@ -106,7 +211,8 @@ func setupBinary() func() {
 	)
 	err = cmd.Run()
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not run exec command: %v\n", err)
+		os.Exit(1)
 	}
 
 	credFile := fmt.Sprintf("%s/dev.tfrc", tmpTerraformBinaryDir)
@@ -124,11 +230,13 @@ func writeCredRC(file string) {
 	creds := credentialBlock()
 	f, err := os.Create(file)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not create file: %v\n", err)
+		os.Exit(1)
 	}
 	_, err = f.WriteString(creds)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Printf("Could not write credentials: %v\n", err)
+		os.Exit(1)
 	}
 	f.Close()
 }

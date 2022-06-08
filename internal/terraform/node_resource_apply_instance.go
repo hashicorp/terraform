@@ -160,7 +160,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// In this particular call to applyDataSource we include our planned
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
-	state, applyDiags := n.applyDataSource(ctx, change)
+	state, repeatData, applyDiags := n.applyDataSource(ctx, change)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
@@ -174,6 +174,20 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
 	diags = diags.Append(updateStateHook(ctx))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		addrs.ResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, n.ResourceInstanceAddr(),
+		repeatData,
+		tfdiags.Error,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
@@ -238,7 +252,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -246,12 +260,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Compare the diffs
 	diags = diags.Append(n.checkPlannedChange(ctx, diff, diffApply, providerSchema))
-	if diags.HasErrors() {
-		return diags
-	}
-
-	state, readDiags = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
-	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -269,7 +277,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
+	state, repeatData, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
@@ -339,6 +347,19 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		addrs.ResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, n.ResourceInstanceAddr(), repeatData,
+		tfdiags.Error,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 

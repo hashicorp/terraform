@@ -19,11 +19,11 @@ import (
 // nodeExpandOutput is the placeholder for a non-root module output that has
 // not yet had its module path expanded.
 type nodeExpandOutput struct {
-	Addr    addrs.OutputValue
-	Module  addrs.Module
-	Config  *configs.Output
-	Changes []*plans.OutputChangeSrc
-	Destroy bool
+	Addr        addrs.OutputValue
+	Module      addrs.Module
+	Config      *configs.Output
+	Destroy     bool
+	RefreshOnly bool
 }
 
 var (
@@ -51,6 +51,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	}
 
 	expander := ctx.InstanceExpander()
+	changes := ctx.Changes()
 
 	var g Graph
 	for _, module := range expander.ExpandModule(n.Module) {
@@ -58,7 +59,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Find any recorded change for this output
 		var change *plans.OutputChangeSrc
-		for _, c := range n.Changes {
+		parent, call := module.Call()
+		for _, c := range changes.GetOutputChanges(parent, call) {
 			if c.Addr.String() == absAddr.String() {
 				change = c
 				break
@@ -66,9 +68,10 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		}
 
 		o := &NodeApplyableOutput{
-			Addr:   absAddr,
-			Config: n.Config,
-			Change: change,
+			Addr:        absAddr,
+			Config:      n.Config,
+			Change:      change,
+			RefreshOnly: n.RefreshOnly,
 		}
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
@@ -157,6 +160,10 @@ type NodeApplyableOutput struct {
 	Config *configs.Output // Config is the output in the config
 	// If this is being evaluated during apply, we may have a change recorded already
 	Change *plans.OutputChangeSrc
+
+	// Refresh-only mode means that any failing output preconditions are
+	// reported as warnings rather than errors
+	RefreshOnly bool
 }
 
 var (
@@ -237,8 +244,11 @@ func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	refs := make([]*addrs.Reference, 0, l)
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
+	for _, check := range c.Preconditions {
+		checkRefs, _ := lang.ReferencesInExpr(check.Condition)
+		refs = append(refs, checkRefs...)
+	}
 	return refs
-
 }
 
 // GraphNodeReferencer
@@ -267,12 +277,30 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		}
 	}
 
+	checkRuleSeverity := tfdiags.Error
+	if n.RefreshOnly {
+		checkRuleSeverity = tfdiags.Warning
+	}
+	checkDiags := evalCheckRules(
+		addrs.OutputPrecondition,
+		n.Config.Preconditions,
+		ctx, n.Addr, EvalDataForNoInstanceKey,
+		checkRuleSeverity,
+	)
+	diags = diags.Append(checkDiags)
+	if diags.HasErrors() {
+		return diags // failed preconditions prevent further evaluation
+	}
+
 	// If there was no change recorded, or the recorded change was not wholly
 	// known, then we need to re-evaluate the output
 	if !changeRecorded || !val.IsWhollyKnown() {
 		// This has to run before we have a state lock, since evaluation also
 		// reads the state
-		val, diags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+		var evalDiags tfdiags.Diagnostics
+		val, evalDiags = ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+		diags = diags.Append(evalDiags)
+
 		// We'll handle errors below, after we have loaded the module.
 		// Outputs don't have a separate mode for validation, so validate
 		// depends_on expressions here too
