@@ -903,7 +903,6 @@
       {
         "title": "Backends",
         "routes": [
-          { "title": "Overview", "path": "settings/backends" },
           {
             "title": "Backend Configuration",
             "path": "settings/backends/configuration"
