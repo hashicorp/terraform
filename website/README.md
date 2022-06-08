@@ -1,7 +1,6 @@
 # Terraform Documentation
 
-This directory contains the portions of [the Terraform website](https://www.terraform.io/) that pertain to the
-core functionality, excluding providers and the overall configuration.
+This directory contains the portions of [the Terraform website](https://www.terraform.io/) that pertain to the core functionality, excluding providers and the overall configuration.
 
 The files in this directory are intended to be used in conjunction with
 [the `terraform-website` repository](https://github.com/hashicorp/terraform-website), which brings all of the
@@ -33,7 +32,7 @@ You should preview all of your changes locally before creating a pull request. T
 **Launch Site Locally**
 
 1. Navigate into your local `terraform` top-level directory and run `make website`.
-2. Open `http://localhost:4567` in your web browser. While the preview is running, you can edit pages and Middleman will automatically rebuild them.
+2. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and the site will automatically re-build them.
 3. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
 
 ## Deploying Changes
@@ -51,10 +50,6 @@ Instead of cherry-picking your commits to a specific version branch, you can add
 
 ### Deployment
 
-Currently, HashiCorp uses a CircleCI job to deploy the [terraform.io](terraform.io) site. This job can be run manually by many people within HashiCorp, and also runs automatically whenever a user in the HashiCorp GitHub org merges changes to master in the `terraform-website` repository.
+Our website is redeployed automatically when a user in the HashiCorp GitHub organization merges changes in the `terraform-website` repository.
 
-New commits in this repository don't automatically deploy the [terraform.io](https://www.terraform.io/docs/index.html) site, but an unrelated site deploy will usually happen within a day. If you can't wait that long, you can do a manual CircleCI build or ask someone in the #proj-terraform-docs channel to do so:
-
-- Log in to circleci.com, and make sure you're viewing the HashiCorp organization.
-- Go to the terraform-website project's list of workflows.
-- Find the most recent "website-deploy" workflow, and click the "Rerun workflow from start" button (which looks like a refresh button with a numeral "1" inside).
+New commits in this repository don't automatically deploy the [terraform.io](https://www.terraform.io/docs/index.html) site, but an unrelated site deploy will usually happen within a day. If you can't wait that long, you can ask someone in the #proj-terraform-docs channel to do so.
