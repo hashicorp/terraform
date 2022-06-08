@@ -142,6 +142,8 @@ This backend requires the configuration of the AWS Region and S3 state storage. 
 
 ### Credentials and Shared Configuration
 
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both state and plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
 The following configuration is required:
 
 * `region` - (Required) AWS Region of the S3 Bucket and DynamoDB Table (if used). This can also be sourced from the `AWS_DEFAULT_REGION` and `AWS_REGION` environment variables.
@@ -411,7 +413,7 @@ to only a single state object within an S3 bucket is shown below:
 ```
 
 It is also possible to apply fine-grained access control to the DynamoDB
-table used for locking. When Terraform puts the state lock in place during `terraform plan`, it stores the full state file as a document and sets the s3 object key as the partition key for the document. After the state lock is released, Terraform places a digest of the updated state file in DynamoDB. The key is similar to the one for the original state file, but is suffixed with `-md5`. 
+table used for locking. When Terraform puts the state lock in place during `terraform plan`, it stores the full state file as a document and sets the s3 object key as the partition key for the document. After the state lock is released, Terraform places a digest of the updated state file in DynamoDB. The key is similar to the one for the original state file, but is suffixed with `-md5`.
 
 The example below shows a simple IAM policy that allows the backend operations role to perform these operations:
 
