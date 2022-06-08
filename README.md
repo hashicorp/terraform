@@ -20,7 +20,7 @@ The key features of Terraform are:
 
 - **Change Automation**: Complex changesets can be applied to your infrastructure with minimal human interaction. With the previously mentioned execution plan and resource graph, you know exactly what Terraform will change and in what order, avoiding many possible human errors.
 
-For more information, see the [introduction section](https://www.terraform.io/intro) of the Terraform website.
+For more information, refer to the [introduction section](https://www.terraform.io/intro) of the Terraform website.
 
 ## Getting Started & Documentation
 
