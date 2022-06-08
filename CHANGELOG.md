@@ -16,11 +16,11 @@ UPGRADE NOTES:
 
    Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
 
-    This functionality was introduced as an experiment in Terraform 0.14. This release removes the experimental `defaults` function. [GH-31154]
+    This functionality was introduced as an experiment in Terraform 0.14. This release removes the experimental `defaults` function. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
 
 BUG FIXES:
 
-* Made `terraform output` CLI help documentation consistent with web-based documentation [GH-29354]
+* Made `terraform output` CLI help documentation consistent with web-based documentation ([#29354](https://github.com/hashicorp/terraform/issues/29354))
 
 ## Previous Releases
 
