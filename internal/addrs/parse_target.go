@@ -70,8 +70,14 @@ func parseResourceInstanceUnderModule(moduleAddr ModuleInstance, remain hcl.Trav
 	var diags tfdiags.Diagnostics
 
 	mode := ManagedResourceMode
-	if remain.RootName() == "data" {
+	switch remain.RootName() {
+	case "data":
 		mode = DataResourceMode
+		remain = remain[1:]
+	case "resource":
+		// This allows using "resource." as an explicit prefix to escape
+		// any reserved prefixes and force the following to be taken as
+		// a resource type name.
 		remain = remain[1:]
 	}
 
