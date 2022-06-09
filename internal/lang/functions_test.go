@@ -314,6 +314,17 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"endswith": {
+			{
+				`endswith("hello world", "world")`,
+				cty.True,
+			},
+			{
+				`endswith("hello world", "hello")`,
+				cty.False,
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -813,6 +824,17 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("Hello"),
 					cty.StringVal("World"),
 				}),
+			},
+		},
+
+		"startswith": {
+			{
+				`startswith("hello world", "hello")`,
+				cty.True,
+			},
+			{
+				`startswith("hello world", "world")`,
+				cty.False,
 			},
 		},
 
