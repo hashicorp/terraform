@@ -82,7 +82,54 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 	}
 
 	if mod.ProviderRequirements != nil {
+		// Track all known local types too to ensure we don't have duplicated
+		// with different local names.
+		localTypes := map[string]bool{}
+
+		// check for duplicate requirements of the same type
 		for _, req := range mod.ProviderRequirements.RequiredProviders {
+			if localTypes[req.Type.String()] {
+				// find the last declaration to give a better error
+				prevDecl := ""
+				for localName, typ := range localNames {
+					if typ.Equals(req.Type) {
+						prevDecl = localName
+					}
+				}
+
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Duplicate required provider",
+					Detail: fmt.Sprintf(
+						"Provider %s with the local name %q was previously required as %q. A provider can only be required once within required_providers.",
+						req.Type.ForDisplay(), req.Name, prevDecl,
+					),
+					Subject: &req.DeclRange,
+				})
+			} else if req.Type.IsDefault() {
+				// Now check for possible implied duplicates, where a provider
+				// block uses a default namespaced provider, but that provider
+				// was required via a different name.
+				impliedLocalName := req.Type.Type
+				// We have to search through the configs for a match, since the keys contains any aliases.
+				for _, pc := range mod.ProviderConfigs {
+					if pc.Name == impliedLocalName && req.Name != impliedLocalName {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Duplicate required provider",
+							Detail: fmt.Sprintf(
+								"Provider %s with the local name %q was implicitly required via a configuration block as %q. Make sure the provider configuration block name matches the name used in required_providers.",
+								req.Type.ForDisplay(), req.Name, req.Type.Type,
+							),
+							Subject: &req.DeclRange,
+						})
+						break
+					}
+				}
+			}
+
+			localTypes[req.Type.String()] = true
+
 			localNames[req.Name] = req.Type
 			for _, alias := range req.Aliases {
 				addr := addrs.AbsProviderConfig{
