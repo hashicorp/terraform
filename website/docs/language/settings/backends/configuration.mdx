@@ -10,7 +10,7 @@ Terraform uses persisted state data to keep track of the resources it manages. M
 
 This page describes how to configure a backend by adding the [`backend` block](#using-a-backend-block) to your configuration.
 
--> **Note:** In Terraform versions before 1.1.0, HashiCorp classified backends as standard or enhanced. The enhanced label differentiated the [`remote` backend](/language/settings/backends/remote), which could both store state and perform Terraform operations. This classification has been removed. Refer to [Using Terraform Cloud](/cli/cloud) for details about storing state, executing remote operations, and using Terraform Cloud directly from Terraform.
+-> **Note:** In Terraform versions before 1.1.0, we classified backends as standard or enhanced. The enhanced label differentiated the [`remote` backend](/language/settings/backends/remote), which could both store state and perform Terraform operations. This classification has been removed. Refer to [Using Terraform Cloud](/cli/cloud) for details about storing state, executing remote operations, and using Terraform Cloud directly from Terraform.
 
 ## Available Backends
 
@@ -47,13 +47,13 @@ There are some important limitations on backend configuration:
 
 Backends store state in a remote service, which allows multiple people to access it. Accessing remote state generally requires access credentials, since state data contains extremely sensitive information.
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both state and plan files. This can leak sensitive credentials.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. This can leak sensitive credentials.
 
 Terraform writes the backend configuration in plain text in two separate files.
 - The `.terraform/terraform.tfstate` file contains the backend configuration for the current working directory.
 - All plan files capture the information in `.terraform/terraform.tfstate` at the time the plan was created. This helps ensure Terraform is applying the plan to correct set of infrastructure.
 
-Configuration stored in a plan file takes precedence over other configuration. This may cause authentication issues if credentials change between creating and applying plans. For example, this can occur in automated environments where credentials are scoped to the duration of a job.
+When applying a plan that you previously saved to a file, Terraform uses the backend configuration stored in that file instead of the current backend settings. If that configuration contains time-limited credentials, they may expire before you finish applying the plan. Use environment variables to pass credentials when you need to use different values between the plan and apply steps.
 
 ### Backend Types
 
