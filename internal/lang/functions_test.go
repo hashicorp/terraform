@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -960,6 +961,10 @@ func TestFunctions(t *testing.T) {
 				`templatefile("hello.tmpl", {name = "Jodie"})`,
 				cty.StringVal("Hello, Jodie!"),
 			},
+			{
+				`core::templatefile("hello.tmpl", {name = "Namespaced Jodie"})`,
+				cty.StringVal("Hello, Namespaced Jodie!"),
+			},
 		},
 
 		"timeadd": {
@@ -1100,6 +1105,10 @@ func TestFunctions(t *testing.T) {
 				`upper("hello")`,
 				cty.StringVal("HELLO"),
 			},
+			{
+				`core::upper("hello")`,
+				cty.StringVal("HELLO"),
+			},
 		},
 
 		"urlencode": {
@@ -1207,6 +1216,11 @@ func TestFunctions(t *testing.T) {
 			delete(allFunctions, impureFunc)
 		}
 		for f := range scope.Functions() {
+			if strings.Contains(f, "::") {
+				// Only non-namespaced functions are absolutely required to
+				// have at least one test. (Others _may_ have tests.)
+				continue
+			}
 			if _, ok := tests[f]; !ok {
 				t.Errorf("Missing test for function %s\n", f)
 			}
