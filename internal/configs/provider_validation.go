@@ -106,7 +106,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 					),
 					Subject: &req.DeclRange,
 				})
-			} else if req.Type.IsDefault() {
+			} else if addrs.IsDefaultProvider(req.Type) {
 				// Now check for possible implied duplicates, where a provider
 				// block uses a default namespaced provider, but that provider
 				// was required via a different name.
@@ -345,7 +345,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		if !(localName || configAlias || emptyConfig) {
 
 			// we still allow default configs, so switch to a warning if the incoming provider is a default
-			if providerAddr.Provider.IsDefault() {
+			if addrs.IsDefaultProvider(providerAddr.Provider) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Reference to undefined provider",
