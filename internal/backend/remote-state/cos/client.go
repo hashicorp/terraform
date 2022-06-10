@@ -123,6 +123,11 @@ func (c *remoteClient) Unlock(check string) error {
 		return c.lockError(err)
 	}
 
+	err = c.cosUnlock(c.bucket, c.lockFile)
+	if err != nil {
+		return c.lockError(err)
+	}
+
 	return nil
 }
 
@@ -362,6 +367,16 @@ func (c *remoteClient) cosUnlock(bucket, cosFile string) error {
 
 	var err error
 	for i := 0; i < 30; i++ {
+		tagExists, err := c.CheckTag(lockTagKey, lockTagValue)
+
+		if err != nil {
+			return err
+		}
+
+		if !tagExists {
+			return nil
+		}
+
 		err = c.DeleteTag(lockTagKey, lockTagValue)
 		if err == nil {
 			return nil
@@ -370,6 +385,30 @@ func (c *remoteClient) cosUnlock(bucket, cosFile string) error {
 	}
 
 	return err
+}
+
+// CheckTag checks if tag key:value exists
+func (c *remoteClient) CheckTag(key, value string) (exists bool, err error) {
+	request := tag.NewDescribeTagsRequest()
+	request.TagKey = &key
+	request.TagValue = &value
+
+	response, err := c.tagClient.DescribeTags(request)
+	log.Printf("[DEBUG] create tag %s:%s: error: %v", key, value, err)
+	if err != nil {
+		return
+	}
+
+	if len(response.Response.Tags) == 0 {
+		return
+	}
+
+	tagKey := response.Response.Tags[0].TagKey
+	tagValue := response.Response.Tags[0].TagValue
+
+	exists = key == *tagKey && value == *tagValue
+
+	return
 }
 
 // CreateTag create tag by key and value
