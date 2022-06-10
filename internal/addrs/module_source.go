@@ -3,10 +3,9 @@ package addrs
 import (
 	"fmt"
 	"path"
-	"regexp"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	tfaddr "github.com/hashicorp/terraform-registry-address"
 	"github.com/hashicorp/terraform/internal/getmodules"
 )
 
@@ -197,30 +196,11 @@ func (s ModuleSourceLocal) ForDisplay() string {
 // combination of a ModuleSourceRegistry and a module version number into
 // a concrete ModuleSourceRemote that Terraform will then download and
 // install.
-type ModuleSourceRegistry struct {
-	// PackageAddr is the registry package that the target module belongs to.
-	// The module installer must translate this into a ModuleSourceRemote
-	// using the registry API and then take that underlying address's
-	// PackageAddr in order to find the actual package location.
-	PackageAddr ModuleRegistryPackage
-
-	// If Subdir is non-empty then it represents a sub-directory within the
-	// remote package that the registry address eventually resolves to.
-	// This will ultimately become the suffix of the Subdir of the
-	// ModuleSourceRemote that the registry address translates to.
-	//
-	// Subdir uses a normalized forward-slash-based path syntax within the
-	// virtual filesystem represented by the final package. It will never
-	// include `../` or `./` sequences.
-	Subdir string
-}
+type ModuleSourceRegistry tfaddr.Module
 
 // DefaultModuleRegistryHost is the hostname used for registry-based module
 // source addresses that do not have an explicit hostname.
-const DefaultModuleRegistryHost = svchost.Hostname("registry.terraform.io")
-
-var moduleRegistryNamePattern = regexp.MustCompile("^[0-9A-Za-z](?:[0-9A-Za-z-_]{0,62}[0-9A-Za-z])?$")
-var moduleRegistryTargetSystemPattern = regexp.MustCompile("^[0-9a-z]{1,64}$")
+const DefaultModuleRegistryHost = tfaddr.DefaultModuleRegistryHost
 
 // ParseModuleSourceRegistry is a variant of ParseModuleSource which only
 // accepts module registry addresses, and will reject any other address type.
@@ -237,147 +217,30 @@ func ParseModuleSourceRegistry(raw string) (ModuleSource, error) {
 		return ModuleSourceRegistry{}, fmt.Errorf("can't use local directory %q as a module registry address", raw)
 	}
 
-	ret, err := parseModuleSourceRegistry(raw)
+	src, err := tfaddr.ParseModuleSource(raw)
 	if err != nil {
-		// This is to make sure we return a nil ModuleSource, rather than
-		// a non-nil ModuleSource containing a zero-value ModuleSourceRegistry.
 		return nil, err
 	}
-	return ret, nil
-}
-
-func parseModuleSourceRegistry(raw string) (ModuleSourceRegistry, error) {
-	var err error
-
-	var subDir string
-	raw, subDir = getmodules.SplitPackageSubdir(raw)
-	if strings.HasPrefix(subDir, "../") {
-		return ModuleSourceRegistry{}, fmt.Errorf("subdirectory path %q leads outside of the module package", subDir)
-	}
-
-	parts := strings.Split(raw, "/")
-	// A valid registry address has either three or four parts, because the
-	// leading hostname part is optional.
-	if len(parts) != 3 && len(parts) != 4 {
-		return ModuleSourceRegistry{}, fmt.Errorf("a module registry source address must have either three or four slash-separated components")
-	}
-
-	host := DefaultModuleRegistryHost
-	if len(parts) == 4 {
-		host, err = svchost.ForComparison(parts[0])
-		if err != nil {
-			// The svchost library doesn't produce very good error messages to
-			// return to an end-user, so we'll use some custom ones here.
-			switch {
-			case strings.Contains(parts[0], "--"):
-				// Looks like possibly punycode, which we don't allow here
-				// to ensure that source addresses are written readably.
-				return ModuleSourceRegistry{}, fmt.Errorf("invalid module registry hostname %q; internationalized domain names must be given as direct unicode characters, not in punycode", parts[0])
-			default:
-				return ModuleSourceRegistry{}, fmt.Errorf("invalid module registry hostname %q", parts[0])
-			}
-		}
-		if !strings.Contains(host.String(), ".") {
-			return ModuleSourceRegistry{}, fmt.Errorf("invalid module registry hostname: must contain at least one dot")
-		}
-		// Discard the hostname prefix now that we've processed it
-		parts = parts[1:]
-	}
-
-	ret := ModuleSourceRegistry{
-		PackageAddr: ModuleRegistryPackage{
-			Host: host,
-		},
-
-		Subdir: subDir,
-	}
-
-	if host == svchost.Hostname("github.com") || host == svchost.Hostname("bitbucket.org") {
-		return ret, fmt.Errorf("can't use %q as a module registry host, because it's reserved for installing directly from version control repositories", host)
-	}
-
-	if ret.PackageAddr.Namespace, err = parseModuleRegistryName(parts[0]); err != nil {
-		if strings.Contains(parts[0], ".") {
-			// Seems like the user omitted one of the latter components in
-			// an address with an explicit hostname.
-			return ret, fmt.Errorf("source address must have three more components after the hostname: the namespace, the name, and the target system")
-		}
-		return ret, fmt.Errorf("invalid namespace %q: %s", parts[0], err)
-	}
-	if ret.PackageAddr.Name, err = parseModuleRegistryName(parts[1]); err != nil {
-		return ret, fmt.Errorf("invalid module name %q: %s", parts[1], err)
-	}
-	if ret.PackageAddr.TargetSystem, err = parseModuleRegistryTargetSystem(parts[2]); err != nil {
-		if strings.Contains(parts[2], "?") {
-			// The user was trying to include a query string, probably?
-			return ret, fmt.Errorf("module registry addresses may not include a query string portion")
-		}
-		return ret, fmt.Errorf("invalid target system %q: %s", parts[2], err)
-	}
-
-	return ret, nil
-}
-
-// parseModuleRegistryName validates and normalizes a string in either the
-// "namespace" or "name" position of a module registry source address.
-func parseModuleRegistryName(given string) (string, error) {
-	// Similar to the names in provider source addresses, we defined these
-	// to be compatible with what filesystems and typical remote systems
-	// like GitHub allow in names. Unfortunately we didn't end up defining
-	// these exactly equivalently: provider names can only use dashes as
-	// punctuation, whereas module names can use underscores. So here we're
-	// using some regular expressions from the original module source
-	// implementation, rather than using the IDNA rules as we do in
-	// ParseProviderPart.
-
-	if !moduleRegistryNamePattern.MatchString(given) {
-		return "", fmt.Errorf("must be between one and 64 characters, including ASCII letters, digits, dashes, and underscores, where dashes and underscores may not be the prefix or suffix")
-	}
-
-	// We also skip normalizing the name to lowercase, because we historically
-	// didn't do that and so existing module registries might be doing
-	// case-sensitive matching.
-	return given, nil
-}
-
-// parseModuleRegistryTargetSystem validates and normalizes a string in the
-// "target system" position of a module registry source address. This is
-// what we historically called "provider" but never actually enforced as
-// being a provider address, and now _cannot_ be a provider address because
-// provider addresses have three slash-separated components of their own.
-func parseModuleRegistryTargetSystem(given string) (string, error) {
-	// Similar to the names in provider source addresses, we defined these
-	// to be compatible with what filesystems and typical remote systems
-	// like GitHub allow in names. Unfortunately we didn't end up defining
-	// these exactly equivalently: provider names can't use dashes or
-	// underscores. So here we're using some regular expressions from the
-	// original module source implementation, rather than using the IDNA rules
-	// as we do in ParseProviderPart.
-
-	if !moduleRegistryTargetSystemPattern.MatchString(given) {
-		return "", fmt.Errorf("must be between one and 64 ASCII letters or digits")
-	}
-
-	// We also skip normalizing the name to lowercase, because we historically
-	// didn't do that and so existing module registries might be doing
-	// case-sensitive matching.
-	return given, nil
+	return ModuleSourceRegistry{
+		Package: src.Package,
+		Subdir:  src.Subdir,
+	}, nil
 }
 
 func (s ModuleSourceRegistry) moduleSource() {}
 
 func (s ModuleSourceRegistry) String() string {
 	if s.Subdir != "" {
-		return s.PackageAddr.String() + "//" + s.Subdir
+		return s.Package.String() + "//" + s.Subdir
 	}
-	return s.PackageAddr.String()
+	return s.Package.String()
 }
 
 func (s ModuleSourceRegistry) ForDisplay() string {
 	if s.Subdir != "" {
-		return s.PackageAddr.ForDisplay() + "//" + s.Subdir
+		return s.Package.ForDisplay() + "//" + s.Subdir
 	}
-	return s.PackageAddr.ForDisplay()
+	return s.Package.ForDisplay()
 }
 
 // ModuleSourceRemote is a ModuleSource representing a remote location from
@@ -387,9 +250,9 @@ func (s ModuleSourceRegistry) ForDisplay() string {
 // means that it's selecting a sub-directory of the given package to use as
 // the entry point into the package.
 type ModuleSourceRemote struct {
-	// PackageAddr is the address of the remote package that the requested
+	// Package is the address of the remote package that the requested
 	// module belongs to.
-	PackageAddr ModulePackage
+	Package ModulePackage
 
 	// If Subdir is non-empty then it represents a sub-directory within the
 	// remote package which will serve as the entry-point for the package.
@@ -445,8 +308,8 @@ func parseModuleSourceRemote(raw string) (ModuleSourceRemote, error) {
 	}
 
 	return ModuleSourceRemote{
-		PackageAddr: ModulePackage(norm),
-		Subdir:      subDir,
+		Package: ModulePackage(norm),
+		Subdir:  subDir,
 	}, nil
 }
 
@@ -454,9 +317,9 @@ func (s ModuleSourceRemote) moduleSource() {}
 
 func (s ModuleSourceRemote) String() string {
 	if s.Subdir != "" {
-		return s.PackageAddr.String() + "//" + s.Subdir
+		return s.Package.String() + "//" + s.Subdir
 	}
-	return s.PackageAddr.String()
+	return s.Package.String()
 }
 
 func (s ModuleSourceRemote) ForDisplay() string {

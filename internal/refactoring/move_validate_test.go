@@ -702,5 +702,5 @@ func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) Mov
 }
 
 var fakeExternalModuleSource = addrs.ModuleSourceRemote{
-	PackageAddr: addrs.ModulePackage("fake-external:///"),
+	Package: addrs.ModulePackage("fake-external:///"),
 }
