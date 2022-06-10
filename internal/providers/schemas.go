@@ -25,6 +25,7 @@ type Schemas struct {
 	ProviderMeta  *configschema.Block
 	ResourceTypes map[string]*configschema.Block
 	DataSources   map[string]*configschema.Block
+	Functions     map[string]FunctionDecl
 
 	ResourceTypeSchemaVersions map[string]uint64
 }

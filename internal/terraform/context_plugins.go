@@ -5,6 +5,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -103,6 +105,7 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (*ProviderSchema, 
 		Provider:      resp.Provider.Block,
 		ResourceTypes: make(map[string]*configschema.Block),
 		DataSources:   make(map[string]*configschema.Block),
+		Functions:     make(map[string]providers.FunctionDecl),
 
 		ResourceTypeSchemaVersions: make(map[string]uint64),
 	}
@@ -134,6 +137,34 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (*ProviderSchema, 
 			// for validity anyway in case we start using them in future.
 			return nil, fmt.Errorf("provider %s has invalid negative schema version for data resource type %q, which is a bug in the provider", addr, t)
 		}
+	}
+
+	for n, f := range resp.Functions {
+		if !hclsyntax.ValidIdentifier(n) {
+			return nil, fmt.Errorf("provider %s declares function with invalid name %q", addr, n)
+		}
+		// We'll also do some enforcement of parameter names, even though they
+		// are only for docs/UI for now, to leave room for us to potentially
+		// use them for other purposes later.
+		seenParams := make(map[string]int, len(f.Parameters))
+		for i, p := range f.Parameters {
+			if !hclsyntax.ValidIdentifier(p.Name) {
+				return nil, fmt.Errorf("provider %s function %q declares invalid name %q for parameter %d", addr, n, p.Name, i)
+			}
+			if prevIdx, exists := seenParams[p.Name]; exists {
+				return nil, fmt.Errorf("provider %s function %q reuses name %q for both parameters %d and %d", addr, n, p.Name, prevIdx, i)
+			}
+			seenParams[p.Name] = i
+		}
+		if p := f.VariadicParameter; p != nil {
+			if !hclsyntax.ValidIdentifier(p.Name) {
+				return nil, fmt.Errorf("provider %s function %q declares invalid name %q for its variadic parameter", addr, n, p.Name)
+			}
+			if prevIdx, exists := seenParams[p.Name]; exists {
+				return nil, fmt.Errorf("provider %s function %q reuses name %q for both parameter %d and its variadic parameter", addr, n, p.Name, prevIdx)
+			}
+		}
+		s.Functions[n] = f
 	}
 
 	if resp.ProviderMeta.Block != nil {
@@ -176,6 +207,23 @@ func (cp *contextPlugins) ResourceTypeSchema(providerAddr addrs.Provider, resour
 
 	schema, version := providerSchema.SchemaForResourceType(resourceMode, resourceType)
 	return schema, version, nil
+}
+
+// ProviderFunctionDecls is a helper wrapper around ProviderSchema which first
+// reads the schema of the given provider and then returns all of the
+// functions it declares, if any.
+//
+// ProviderFunctionDecl will return an error if the provider schema lookup
+// fails, but will return an empty set of functions if a successful response
+// returns no functions, or if the provider is using an older protocol version
+// which has no support for provider-contributed functions.
+func (cp *contextPlugins) ProviderFunctionDecls(providerAddr addrs.Provider) (map[string]providers.FunctionDecl, error) {
+	providerSchema, err := cp.ProviderSchema(providerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return providerSchema.Functions, nil
 }
 
 // ProvisionerSchema uses a temporary instance of the provisioner with the

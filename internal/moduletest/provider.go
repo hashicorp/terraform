@@ -497,6 +497,13 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 	return res
 }
 
+func (p *Provider) CallFunction(req providers.CallFunctionRequest) providers.CallFunctionResponse {
+	// This provider has no functions at all.
+	var res providers.CallFunctionResponse
+	res.Diagnostics = res.Diagnostics.Append(fmt.Errorf("unsupported function %q", req.FunctionName))
+	return res
+}
+
 // Stop is called when the provider should halt any in-flight actions.
 func (p *Provider) Stop() error {
 	// This provider doesn't do anything that can be cancelled.

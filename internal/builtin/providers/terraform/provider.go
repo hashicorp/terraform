@@ -134,6 +134,12 @@ func (p *Provider) ValidateResourceConfig(providers.ValidateResourceConfigReques
 	return res
 }
 
+// CallFunction would call a function contributed by this provider, but this
+// provider has no functions and so this function just panics.
+func (p *Provider) CallFunction(providers.CallFunctionRequest) providers.CallFunctionResponse {
+	panic("unimplemented - terraform.io/builtin/terraform provider has no functions")
+}
+
 // Close is a noop for this provider, since it's run in-process.
 func (p *Provider) Close() error {
 	return nil
