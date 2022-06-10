@@ -24,7 +24,7 @@ require (
 	github.com/dylanmei/winrmtest v0.0.0-20210303004826-fbc9ae56efb6
 	github.com/go-test/deep v1.0.3
 	github.com/golang/mock v1.6.0
-	github.com/google/go-cmp v0.5.6
+	github.com/google/go-cmp v0.5.8
 	github.com/google/uuid v1.2.0
 	github.com/gophercloud/gophercloud v0.10.1-0.20200424014253-c3bfe50899e5
 	github.com/gophercloud/utils v0.0.0-20200423144003-7c72efc7435d
@@ -46,6 +46,7 @@ require (
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
+	github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
 	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/joyent/triton-go v0.0.0-20180313100802-d8f9c0314926
@@ -177,7 +178,6 @@ require (
 	golang.org/x/exp/typeparams v0.0.0-20220218215828-6cf2b201936e // indirect
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/time v0.0.0-20220224211638-0e9765cccd65 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210602131652-f16073e35f0c // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
