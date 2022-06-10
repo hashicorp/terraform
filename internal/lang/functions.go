@@ -31,7 +31,7 @@ func (s *Scope) Functions() map[string]function.Function {
 		// later if the functionality seems to be something domain-agnostic
 		// that would be useful to all applications using cty functions.
 
-		s.funcs = map[string]function.Function{
+		coreFuncs := map[string]function.Function{
 			"abs":              stdlib.AbsoluteFunc,
 			"abspath":          funcs.AbsPathFunc,
 			"alltrue":          funcs.AllTrueFunc,
@@ -145,23 +145,33 @@ func (s *Scope) Functions() map[string]function.Function {
 			"zipmap":           stdlib.ZipmapFunc,
 		}
 
-		s.funcs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
+		coreFuncs["templatefile"] = funcs.MakeTemplateFileFunc(s.BaseDir, func() map[string]function.Function {
 			// The templatefile function prevents recursive calls to itself
-			// by copying this map and overwriting the "templatefile" entry.
+			// by copying this map and overwriting the "templatefile" and
+			// "core:templatefile" entries.
 			return s.funcs
 		})
 
 		if s.ConsoleMode {
 			// The type function is only available in terraform console.
-			s.funcs["type"] = funcs.TypeFunc
+			coreFuncs["type"] = funcs.TypeFunc
 		}
 
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
 			for _, name := range impureFunctions {
-				s.funcs[name] = function.Unpredictable(s.funcs[name])
+				coreFuncs[name] = function.Unpredictable(coreFuncs[name])
 			}
+		}
+
+		// All of the built-in functions are also available under the "core::"
+		// namespace, to distinguish from the "provider::" and "module::"
+		// namespaces that can serve as external extension points.
+		s.funcs = make(map[string]function.Function, len(coreFuncs)*2)
+		for name, fn := range coreFuncs {
+			s.funcs[name] = fn
+			s.funcs["core::"+name] = fn
 		}
 	}
 	s.funcsLock.Unlock()
