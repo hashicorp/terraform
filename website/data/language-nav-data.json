@@ -1214,5 +1214,8 @@
         "path": "configuration-0-11/environment-variables"
       }
     ]
-  }
+  },
+  { "divider": true },
+  { "title": "Terraform Internals", "href": "/internals" },
+  { "divider": true }
 ]
