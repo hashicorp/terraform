@@ -410,7 +410,7 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 	var diags tfdiags.Diagnostics
 
 	var excluded []addrs.AbsResourceInstance
-	for _, result := range moveResults.Changes {
+	for _, result := range moveResults.Changes.Values() {
 		fromMatchesTarget := false
 		toMatchesTarget := false
 		for _, targetAddr := range targets {
@@ -522,7 +522,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 	diags = diags.Append(moveValidateDiags) // might just contain warnings
 
-	if len(moveResults.Blocked) > 0 && !diags.HasErrors() {
+	if moveResults.Blocked.Len() > 0 && !diags.HasErrors() {
 		// If we had blocked moves and we're not going to be returning errors
 		// then we'll report the blockers as a warning. We do this only in the
 		// absense of errors because invalid move statements might well be
@@ -592,7 +592,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if newState.ManagedResourcesEqual(oldState) && len(moves.Changes) == 0 {
+	if newState.ManagedResourcesEqual(oldState) && moves.Changes.Len() == 0 {
 		// Nothing to do, because we only detect and report drift for managed
 		// resource instances.
 		return nil, diags
@@ -624,7 +624,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				// Previous run address defaults to the current address, but
 				// can differ if the resource moved before refreshing
 				prevRunAddr := addr
-				if move, ok := moves.Changes[addr.UniqueKey()]; ok {
+				if move, ok := moves.Changes.GetOk(addr); ok {
 					prevRunAddr = move.From
 				}
 
@@ -749,13 +749,13 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 }
 
 func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic {
-	if len(results.Blocked) < 1 {
+	if results.Blocked.Len() < 1 {
 		// Caller should check first
 		panic("request to render blocked moves warning without any blocked moves")
 	}
 
 	var itemsBuf bytes.Buffer
-	for _, blocked := range results.Blocked {
+	for _, blocked := range results.Blocked.Values() {
 		fmt.Fprintf(&itemsBuf, "\n  - %s could not move to %s", blocked.Actual, blocked.Wanted)
 	}
 
