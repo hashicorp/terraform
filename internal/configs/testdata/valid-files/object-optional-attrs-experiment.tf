@@ -1,9 +1,3 @@
-terraform {
-  experiments = [
-    module_variable_optional_attrs, # WARNING: Experimental feature "module_variable_optional_attrs" is active
-  ]
-}
-
 variable "a" {
   type = object({
     foo = optional(string)
