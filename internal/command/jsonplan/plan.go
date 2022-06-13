@@ -442,7 +442,8 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		var before, after []byte
-		afterUnknown := cty.False
+		var afterUnknown cty.Value
+
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -455,8 +456,18 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 				if err != nil {
 					return err
 				}
+				afterUnknown = cty.False
 			} else {
-				afterUnknown = cty.True
+				filteredAfter := omitUnknowns(changeV.After)
+				if filteredAfter.IsNull() {
+					after = nil
+				} else {
+					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
+					if err != nil {
+						return err
+					}
+				}
+				afterUnknown = unknownAsBool(changeV.After)
 			}
 		}
 
