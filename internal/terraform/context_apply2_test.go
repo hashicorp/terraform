@@ -1042,11 +1042,38 @@ output "out" {
 	state, diags := ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 
-	// TODO: extend this to ensure the otherProvider is always properly
-	// configured during the destroy plan
+	otherProvider.ConfigureProviderCalled = false
+	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		// check that our config is complete, even during a destroy plan
+		expected := cty.ObjectVal(map[string]cty.Value{
+			"local":  cty.ListVal([]cty.Value{cty.StringVal("first-ok"), cty.StringVal("second-ok")}),
+			"output": cty.ListVal([]cty.Value{cty.StringVal("first-ok"), cty.StringVal("second-ok")}),
+			"var": cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("first"),
+				"b": cty.StringVal("second"),
+			}),
+		})
+
+		if !req.Config.RawEquals(expected) {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf(
+				`incorrect provider config:
+expected: %#v
+got:      %#v`,
+				expected, req.Config))
+		}
+
+		return resp
+	}
 
 	opts.Mode = plans.DestroyMode
+	// skip refresh so that we don't configure the provider before the destroy plan
+	opts.SkipRefresh = true
+
 	// destroy only a single instance not included in the moved statements
 	_, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
+
+	if !otherProvider.ConfigureProviderCalled {
+		t.Fatal("failed to configure provider during destroy plan")
+	}
 }
