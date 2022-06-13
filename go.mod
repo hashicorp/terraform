@@ -83,13 +83,13 @@ require (
 	github.com/zclconf/go-cty-yaml v1.0.2
 	go.etcd.io/etcd v0.5.0-alpha.5.0.20210428180535-15715dcf1ace
 	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3
+	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b
 	golang.org/x/text v0.3.7
-	golang.org/x/tools v0.1.11-0.20220316014157-77aa08bb151a
+	golang.org/x/tools v0.1.11
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/grpc v1.36.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
@@ -206,4 +206,4 @@ replace github.com/golang/mock v1.5.0 => github.com/golang/mock v1.4.4
 // replacement that includes a fix for CVE-2020-26160.
 replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt v3.2.1+incompatible
 
-go 1.17
+go 1.18
