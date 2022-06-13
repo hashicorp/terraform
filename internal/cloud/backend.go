@@ -626,6 +626,10 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 
 		// This is optionally set during Terraform Enterprise runs.
 		runID: os.Getenv("TFE_RUN_ID"),
+		stateUpload: stateUpload{
+			ctx:      b.ContextOpts,
+			services: b.services,
+		},
 	}
 
 	return &remote.State{Client: client}, nil
