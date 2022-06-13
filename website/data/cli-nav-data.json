@@ -429,59 +429,6 @@
     ]
   },
   {
-    "title": "Internals",
-    "routes": [
-      {
-        "title": "Overview",
-        "href": "/internals"
-      },
-      {
-        "title": "Credentials Helpers",
-        "href": "/internals/credentials-helpers"
-      },
-      {
-        "title": "Debugging Terraform",
-        "href": "/internals/debugging"
-      },
-      {
-        "title": "Module Registry Protocol",
-        "href": "/internals/module-registry-protocol"
-      },
-      {
-        "title": "Provider Network Mirror Protocol",
-        "href": "/internals/provider-network-mirror-protocol"
-      },
-      {
-        "title": "Provider Registry Protocol",
-        "href": "/internals/provider-registry-protocol"
-      },
-      {
-        "title": "Resource Graph",
-        "href": "/internals/graph"
-      },
-      {
-        "title": "Resource Lifecycle",
-        "href": "/internals/lifecycle"
-      },
-      {
-        "title": "Login Protocol",
-        "href": "/internals/login-protocol"
-      },
-      {
-        "title": "JSON Output Format",
-        "href": "/internals/json-format"
-      },
-      {
-        "title": "Remote Service Discovery",
-        "href": "/internals/remote-service-discovery"
-      },
-      {
-        "title": "Provider Metadata",
-        "href": "/internals/provider-meta"
-      }
-    ]
-  },
-  {
     "title": "Installation",
     "hidden": true,
     "routes": [
@@ -494,5 +441,8 @@
         "path": "install/yum"
       }
     ]
-  }
+  },
+  { "divider": true },
+  { "title": "Terraform Internals", "href": "/internals" },
+  { "divider": true }
 ]

@@ -1,4 +1,5 @@
 [
+  { "heading": "Terraform Internals" },
   {
     "title": "Credentials Helpers",
     "path": "credentials-helpers"
@@ -52,5 +53,10 @@
     "title": "Archiving",
     "path": "archiving",
     "hidden": true
-  }
+  },
+  { "divider": true },
+  { "title": "Terraform CLI", "href": "/cli" },
+  { "divider": true },
+  { "title": "Configuration Language", "href": "/language" },
+  { "divider": true }
 ]
