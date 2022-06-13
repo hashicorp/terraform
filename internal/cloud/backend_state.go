@@ -31,7 +31,7 @@ type remoteClient struct {
 }
 
 type stateUpload struct {
-	ctx        *terraform.ContextOpts
+	ctxOpts    *terraform.ContextOpts
 	services   *disco.Disco
 	hasErrored bool
 }
@@ -78,7 +78,7 @@ func (r *remoteClient) Put(state []byte) error {
 		return fmt.Errorf("error reading state: %s", err)
 	}
 
-	schemas, err := getSchemas(r.stateUpload.ctx, r.stateUpload.services, stateFile.State)
+	schemas, err := getSchemas(r.stateUpload.ctxOpts, r.stateUpload.services, stateFile.State)
 
 	if err != nil {
 		r.stateUpload.hasErrored = true
@@ -117,11 +117,15 @@ func (r *remoteClient) Put(state []byte) error {
 	return nil
 }
 
-func getSchemas(ctx *terraform.ContextOpts, services *disco.Disco, state *states.State) (*terraform.Schemas, error) {
+func getSchemas(ctxOpts *terraform.ContextOpts, services *disco.Disco, state *states.State) (*terraform.Schemas, error) {
 	var schemas *terraform.Schemas // to get our schemas we need a *terraform.Context, a *configs.Config and *states.State
 
+	if ctxOpts == nil {
+		ctxOpts = new(terraform.ContextOpts)
+	}
+
 	// Get our context
-	tfCtx, ctxDiags := terraform.NewContext(ctx)
+	tfCtx, ctxDiags := terraform.NewContext(ctxOpts)
 	if ctxDiags.HasErrors() {
 		return schemas, fmt.Errorf("error uploading state to Terraform Cloud: %w", ctxDiags.Err())
 	}
