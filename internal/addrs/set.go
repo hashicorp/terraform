@@ -7,10 +7,10 @@ package addrs
 // by ranging over the map values, but making direct modifications could
 // potentially make the set data invalid or inconsistent, leading to undefined
 // behavior elsewhere.
-type Set[T UniqueKeyer] map[UniqueKey]UniqueKeyer
+type Set[T UniqueKeyer] map[UniqueKey]T
 
 // Has returns true if and only if the set includes the given address.
-func (s Set[T]) Has(addr UniqueKeyer) bool {
+func (s Set[T]) Has(addr T) bool {
 	_, exists := s[addr.UniqueKey()]
 	return exists
 }
@@ -18,13 +18,13 @@ func (s Set[T]) Has(addr UniqueKeyer) bool {
 // Add inserts the given address into the set, if not already present. If
 // an equivalent address is already in the set, this replaces that address
 // with the new value.
-func (s Set[T]) Add(addr UniqueKeyer) {
+func (s Set[T]) Add(addr T) {
 	s[addr.UniqueKey()] = addr
 }
 
 // Remove deletes the given address from the set, if present. If not present,
 // this is a no-op.
-func (s Set[T]) Remove(addr UniqueKeyer) {
+func (s Set[T]) Remove(addr T) {
 	delete(s, addr.UniqueKey())
 }
 

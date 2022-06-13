@@ -44,8 +44,8 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 		Other     addrs.AbsMoveable
 		StmtRange tfdiags.SourceRange
 	}
-	stmtFrom := map[addrs.UniqueKey]AbsMoveEndpoint{}
-	stmtTo := map[addrs.UniqueKey]AbsMoveEndpoint{}
+	stmtFrom := addrs.MakeMap[addrs.AbsMoveable, AbsMoveEndpoint]()
+	stmtTo := addrs.MakeMap[addrs.AbsMoveable, AbsMoveEndpoint]()
 
 	for _, stmt := range stmts {
 		// Earlier code that constructs MoveStatement values should ensure that
@@ -89,10 +89,8 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 
 			absFrom := stmt.From.InModuleInstance(modInst)
 			absTo := stmt.To.InModuleInstance(modInst)
-			fromKey := absFrom.UniqueKey()
-			toKey := absTo.UniqueKey()
 
-			if fromKey == toKey {
+			if addrs.Equivalent(absFrom, absTo) {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Redundant move statement",
@@ -149,8 +147,8 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 			}
 
 			// There can only be one destination for each source address.
-			if existing, exists := stmtFrom[fromKey]; exists {
-				if existing.Other.UniqueKey() != toKey {
+			if existing, exists := stmtFrom.GetOk(absFrom); exists {
+				if !addrs.Equivalent(existing.Other, absTo) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Ambiguous move statements",
@@ -163,15 +161,15 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					})
 				}
 			} else {
-				stmtFrom[fromKey] = AbsMoveEndpoint{
+				stmtFrom.Put(absFrom, AbsMoveEndpoint{
 					Other:     absTo,
 					StmtRange: stmt.DeclRange,
-				}
+				})
 			}
 
 			// There can only be one source for each destination address.
-			if existing, exists := stmtTo[toKey]; exists {
-				if existing.Other.UniqueKey() != fromKey {
+			if existing, exists := stmtTo.GetOk(absTo); exists {
+				if !addrs.Equivalent(existing.Other, absFrom) {
 					diags = diags.Append(&hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Ambiguous move statements",
@@ -184,10 +182,10 @@ func ValidateMoves(stmts []MoveStatement, rootCfg *configs.Config, declaredInsts
 					})
 				}
 			} else {
-				stmtTo[toKey] = AbsMoveEndpoint{
+				stmtTo.Put(absTo, AbsMoveEndpoint{
 					Other:     absFrom,
 					StmtRange: stmt.DeclRange,
-				}
+				})
 			}
 
 			// Resource types must match.
