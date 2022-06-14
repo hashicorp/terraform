@@ -39,11 +39,25 @@ func (c Check) String() string {
 // Checkable is an interface implemented by all address types that can contain
 // condition blocks.
 type Checkable interface {
+	UniqueKeyer
+
 	checkableSigil()
 
 	// Check returns the address of an individual check rule of a specified
 	// type and index within this checkable container.
 	Check(CheckType, int) Check
+
+	// ConfigCheckable returns the address of the configuration construct that
+	// this Checkable belongs to.
+	//
+	// Checkable objects can potentially be dynamically declared during a
+	// plan operation using constructs like resource for_each, and so
+	// ConfigCheckable gives us a way to talk about the static containers
+	// those dynamic objects belong to, in case we wish to group together
+	// dynamic checkable objects into their static checkable for reporting
+	// purposes.
+	ConfigCheckable() ConfigCheckable
+
 	String() string
 }
 
@@ -51,12 +65,6 @@ var (
 	_ Checkable = AbsResourceInstance{}
 	_ Checkable = AbsOutputValue{}
 )
-
-type checkable struct {
-}
-
-func (c checkable) checkableSigil() {
-}
 
 // CheckType describes the category of check.
 //go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
@@ -84,3 +92,24 @@ func (c CheckType) Description() string {
 		return "Condition"
 	}
 }
+
+// ConfigCheckable is an interfaces implemented by address types that represent
+// configuration constructs that can have Checkable addresses associated with
+// them.
+//
+// This address type therefore in a sense represents a container for zero or
+// more checkable objects all declared by the same configuration construct,
+// so that we can talk about these groups of checkable objects before we're
+// ready to decide how many checkable objects belong to each one.
+type ConfigCheckable interface {
+	UniqueKeyer
+
+	configCheckableSigil()
+
+	String() string
+}
+
+var (
+	_ ConfigCheckable = ConfigResource{}
+	_ ConfigCheckable = ConfigOutputValue{}
+)
