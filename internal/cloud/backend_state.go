@@ -121,7 +121,7 @@ func getSchemas(ctxOpts *terraform.ContextOpts, services *disco.Disco, state *st
 	var schemas *terraform.Schemas // to get our schemas we need a *terraform.Context, a *configs.Config and *states.State
 
 	if ctxOpts == nil {
-		ctxOpts = new(terraform.ContextOpts)
+		panic("An unexpected error occurred when uploading state to Terraform Cloud") // This should be unlikely to happen because Cloud.ContextOps gets assign the value of opts.ContextOpts early in the process when preparing backend and running CLIInit()
 	}
 
 	// Get our context
