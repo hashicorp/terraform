@@ -16,6 +16,7 @@ BUG FIXES:
 
 * Missing check for error diagnostics in GetProviderSchema could result in panic [GH-31184]
 * Module registries returning X-Terraform-Get locations with no URL would error with "no getter available for X-Terraform-Get source protocol" [GH-31237]
+* backend/cos: `tencentcloud-terraform-lock` tag was not removed in all cases [GH-31223]
 
 ## 1.2.2 (June 01, 2022)
 
