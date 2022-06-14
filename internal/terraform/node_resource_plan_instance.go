@@ -391,6 +391,14 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 		return false
 	}
 
+	// Because we need to sort the deps to compare equality, make shallow
+	// copies to prevent concurrently modifying the array values on
+	// dependencies shared between expanded instances.
+	copyA, copyB := make([]addrs.ConfigResource, len(a)), make([]addrs.ConfigResource, len(b))
+	copy(copyA, a)
+	copy(copyB, b)
+	a, b = copyA, copyB
+
 	less := func(s []addrs.ConfigResource) func(i, j int) bool {
 		return func(i, j int) bool {
 			return s[i].String() < s[j].String()
