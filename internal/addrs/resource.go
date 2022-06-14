@@ -210,7 +210,6 @@ func (r AbsResource) UniqueKey() UniqueKey {
 // AbsResourceInstance is an absolute address for a resource instance under a
 // given module path.
 type AbsResourceInstance struct {
-	checkable
 	targetable
 	Module   ModuleInstance
 	Resource ResourceInstance
@@ -238,6 +237,15 @@ func (r AbsResourceInstance) ContainingResource() AbsResource {
 	return AbsResource{
 		Module:   r.Module,
 		Resource: r.Resource.ContainingResource(),
+	}
+}
+
+// ConfigResource returns the address of the configuration block that declared
+// this instance.
+func (r AbsResourceInstance) ConfigResource() ConfigResource {
+	return ConfigResource{
+		Module:   r.Module.Module(),
+		Resource: r.Resource.Resource,
 	}
 }
 
@@ -322,6 +330,14 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+// AbsResourceInstance is a Checkable
+func (r AbsResourceInstance) checkableSigil() {}
+
+func (r AbsResourceInstance) ConfigCheckable() ConfigCheckable {
+	// The ConfigCheckable for an AbsResourceInstance is its ConfigResource.
+	return r.ConfigResource()
+}
+
 type absResourceInstanceKey string
 
 func (r AbsResourceInstance) UniqueKey() UniqueKey {
@@ -393,9 +409,21 @@ func (r ConfigResource) Equal(o ConfigResource) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
 
-func (r ConfigResource) configMoveableSigil() {
-	// AbsResource is moveable
+func (r ConfigResource) UniqueKey() UniqueKey {
+	return configResourceKey(r.String())
 }
+
+func (r ConfigResource) configMoveableSigil() {
+	// ConfigResource is moveable
+}
+
+func (r ConfigResource) configCheckableSigil() {
+	// ConfigResource represents a configuration object that declares checkable objects
+}
+
+type configResourceKey string
+
+func (k configResourceKey) uniqueKeySigil() {}
 
 // ResourceMode defines which lifecycle applies to a given resource. Each
 // resource lifecycle has a slightly different address format.
