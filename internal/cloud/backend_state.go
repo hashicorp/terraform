@@ -127,7 +127,7 @@ func getSchemas(ctxOpts *terraform.ContextOpts, services *disco.Disco, state *st
 	// Get our context
 	tfCtx, ctxDiags := terraform.NewContext(ctxOpts)
 	if ctxDiags.HasErrors() {
-		return schemas, fmt.Errorf("error uploading state to Terraform Cloud: %w", ctxDiags.Err())
+		return schemas, fmt.Errorf("error creating terraform context: %w", ctxDiags.Err())
 	}
 
 	// Get our config
@@ -141,17 +141,17 @@ func getSchemas(ctxOpts *terraform.ContextOpts, services *disco.Disco, state *st
 		Services:   services,
 	})
 	if err != nil {
-		return schemas, fmt.Errorf("error uploading state to Terraform Cloud: %w", err)
+		return schemas, fmt.Errorf("error creating a new loader for configuration: %w", err)
 	}
 
 	config, configDiags := loader.LoadConfig(configDir)
 	if configDiags.HasErrors() {
-		return schemas, fmt.Errorf("error uploading state to Terraform Cloud: %w", errors.New(configDiags.Error()))
+		return schemas, fmt.Errorf("error loading config for terraform modules: %w", errors.New(configDiags.Error()))
 	}
 
 	schemas, schemaDiags := tfCtx.Schemas(config, state)
 	if schemaDiags.HasErrors() {
-		return schemas, fmt.Errorf("error uploading state to Terraform Cloud: %w", schemaDiags.Err())
+		return schemas, fmt.Errorf("error getting schemas: %w", schemaDiags.Err())
 	}
 	return schemas, nil
 }
