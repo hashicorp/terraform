@@ -32,6 +32,15 @@ func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {
 	}
 }
 
+// InModule converts the receiver into a config address within the given
+// module.
+func (v OutputValue) InModule(m Module) ConfigOutputValue {
+	return ConfigOutputValue{
+		Module:      m,
+		OutputValue: v,
+	}
+}
+
 // AbsOutputValue is the absolute address of an output value within a module instance.
 //
 // This represents an output globally within the namespace of a particular
