@@ -1,3 +1,5 @@
+## 1.2.4 (Unreleased)
+
 ## 1.2.3 (June 15, 2022)
 
 UPGRADE NOTES:
