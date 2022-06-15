@@ -118,7 +118,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 							Severity: hcl.DiagWarning,
 							Summary:  "Duplicate required provider",
 							Detail: fmt.Sprintf(
-								"Provider %s with the local name %q was implicitly required via a configuration block as %q. Make sure the provider configuration block name matches the name used in required_providers.",
+								"Provider %s with the local name %q was implicitly required via a configuration block as %q. The provider configuration block name must match the name used in required_providers.",
 								req.Type.ForDisplay(), req.Name, req.Type.Type,
 							),
 							Subject: &req.DeclRange,
@@ -141,6 +141,44 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			}
 		}
 	}
+
+	checkImpliedProviderNames := func(resourceConfigs map[string]*Resource) {
+		// Now that we have all the provider configs and requirements validated,
+		// check for any resources which use an implied localname which doesn't
+		// match that of required_providers
+		for _, r := range resourceConfigs {
+			// We're looking for resources with no specific provider reference
+			if r.ProviderConfigRef != nil {
+				continue
+			}
+
+			localName := r.Addr().ImpliedProvider()
+			if _, ok := localNames[localName]; ok {
+				// OK, this was listed directly in the required_providers
+				continue
+			}
+
+			defAddr := addrs.ImpliedProviderForUnqualifiedType(localName)
+
+			// Now make sure we don't have the same provider required under a
+			// different name.
+			for prevLocalName, addr := range localNames {
+				if addr.Equals(defAddr) {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Duplicate required provider",
+						Detail: fmt.Sprintf(
+							"Provider %q was implicitly required via resource %q, but listed in required_providers as %q. Either the local name in required_providers must match the resource name, or the %q provider must be assigned within the resource block.",
+							defAddr, r.Addr(), prevLocalName, prevLocalName,
+						),
+						Subject: &r.DeclRange,
+					})
+				}
+			}
+		}
+	}
+	checkImpliedProviderNames(mod.ManagedResources)
+	checkImpliedProviderNames(mod.DataResources)
 
 	// collect providers passed from the parent
 	if parentCall != nil {

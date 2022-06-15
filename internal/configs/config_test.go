@@ -160,7 +160,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 
 func TestConfigProviderRequirementsDuplicate(t *testing.T) {
 	_, diags := testNestedModuleConfigFromDir(t, "testdata/duplicate-local-name")
-	assertDiagnosticCount(t, diags, 2)
+	assertDiagnosticCount(t, diags, 3)
 	assertDiagnosticSummary(t, diags, "Duplicate required provider")
 }
 

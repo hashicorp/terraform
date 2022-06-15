@@ -9,8 +9,15 @@ terraform {
     other = {
       source = "hashicorp/default"
     }
+
+    wrong-name = {
+      source = "hashicorp/foo"
+    }
   }
 }
 
 provider "default" {
+}
+
+resource "foo_resource" {
 }
