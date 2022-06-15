@@ -1,5 +1,9 @@
 ## 1.2.4 (Unreleased)
 
+ENHANCEMENTS:
+
+* Improved validation of required_providers to prevent single providers from being required with multiple names [GH-31218]
+
 ## 1.2.3 (June 15, 2022)
 
 UPGRADE NOTES:
