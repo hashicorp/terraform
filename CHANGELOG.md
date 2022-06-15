@@ -1,4 +1,4 @@
-## 1.2.3 (Unreleased)
+## 1.2.3 (June 15, 2022)
 
 UPGRADE NOTES:
 
@@ -14,10 +14,10 @@ UPGRADE NOTES:
 
 BUG FIXES:
 
-* Missing check for error diagnostics in GetProviderSchema could result in panic [GH-31184]
-* Module registries returning X-Terraform-Get locations with no URL would error with "no getter available for X-Terraform-Get source protocol" [GH-31237]
-* Fix crash from concurrent operation on shared set of resource instance dependencies [GH-31246]
-* backend/cos: `tencentcloud-terraform-lock` tag was not removed in all cases [GH-31223]
+* Missing check for error diagnostics in GetProviderSchema could result in panic ([#31184](https://github.com/hashicorp/terraform/issues/31184))
+* Module registries returning X-Terraform-Get locations with no URL would error with "no getter available for X-Terraform-Get source protocol" ([#31237](https://github.com/hashicorp/terraform/issues/31237))
+* Fix crash from concurrent operation on shared set of resource instance dependencies ([#31246](https://github.com/hashicorp/terraform/issues/31246))
+* backend/cos: `tencentcloud-terraform-lock` tag was not removed in all cases ([#31223](https://github.com/hashicorp/terraform/issues/31223))
 
 ## 1.2.2 (June 01, 2022)
 
