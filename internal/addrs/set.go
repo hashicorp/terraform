@@ -9,6 +9,14 @@ package addrs
 // behavior elsewhere.
 type Set[T UniqueKeyer] map[UniqueKey]T
 
+func MakeSet[T UniqueKeyer](elems ...T) Set[T] {
+	ret := Set[T](make(map[UniqueKey]T, len(elems)))
+	for _, elem := range elems {
+		ret.Add(elem)
+	}
+	return ret
+}
+
 // Has returns true if and only if the set includes the given address.
 func (s Set[T]) Has(addr T) bool {
 	_, exists := s[addr.UniqueKey()]
