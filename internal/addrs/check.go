@@ -21,20 +21,44 @@ type Check struct {
 	Index     int
 }
 
+func NewCheck(container Checkable, typ CheckType, index int) Check {
+	return Check{
+		Container: container,
+		Type:      typ,
+		Index:     index,
+	}
+}
+
 func (c Check) String() string {
 	container := c.Container.String()
 	switch c.Type {
 	case ResourcePrecondition:
-		return fmt.Sprintf("%s.preconditions[%d]", container, c.Index)
+		return fmt.Sprintf("%s.precondition[%d]", container, c.Index)
 	case ResourcePostcondition:
-		return fmt.Sprintf("%s.postconditions[%d]", container, c.Index)
+		return fmt.Sprintf("%s.postcondition[%d]", container, c.Index)
 	case OutputPrecondition:
-		return fmt.Sprintf("%s.preconditions[%d]", container, c.Index)
+		return fmt.Sprintf("%s.precondition[%d]", container, c.Index)
 	default:
 		// This should not happen
-		return fmt.Sprintf("%s.conditions[%d]", container, c.Index)
+		return fmt.Sprintf("%s.condition[%d]", container, c.Index)
 	}
 }
+
+func (c Check) UniqueKey() UniqueKey {
+	return checkKey{
+		ContainerKey: c.Container.UniqueKey(),
+		Type:         c.Type,
+		Index:        c.Index,
+	}
+}
+
+type checkKey struct {
+	ContainerKey UniqueKey
+	Type         CheckType
+	Index        int
+}
+
+func (k checkKey) uniqueKeySigil() {}
 
 // Checkable is an interface implemented by all address types that can contain
 // condition blocks.
