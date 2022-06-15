@@ -261,6 +261,10 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 	}
 }
 
+func (v *Variable) Addr() addrs.InputVariable {
+	return addrs.InputVariable{Name: v.Name}
+}
+
 // Required returns true if this variable is required to be set by the caller,
 // or false if there is a default value that will be used when it isn't set.
 func (v *Variable) Required() bool {
@@ -464,6 +468,10 @@ func decodeOutputBlock(block *hcl.Block, override bool) (*Output, hcl.Diagnostic
 	}
 
 	return o, diags
+}
+
+func (o *Output) Addr() addrs.OutputValue {
+	return addrs.OutputValue{Name: o.Name}
 }
 
 // Local represents a single entry from a "locals" block in a module or file.
