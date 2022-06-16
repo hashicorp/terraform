@@ -233,7 +233,7 @@ local.instance_id (expand)
   aws_instance.web (expand)
 openstack_floating_ip.random (expand)
   provider["registry.terraform.io/hashicorp/openstack"]
-output.instance_id
+output.instance_id (expand)
   local.instance_id (expand)
 provider["registry.terraform.io/hashicorp/aws"]
   openstack_floating_ip.random (expand)
@@ -243,7 +243,7 @@ provider["registry.terraform.io/hashicorp/openstack"]
 provider["registry.terraform.io/hashicorp/openstack"] (close)
   openstack_floating_ip.random (expand)
 root
-  output.instance_id
+  output.instance_id (expand)
   provider["registry.terraform.io/hashicorp/aws"] (close)
   provider["registry.terraform.io/hashicorp/openstack"] (close)
 var.foo
