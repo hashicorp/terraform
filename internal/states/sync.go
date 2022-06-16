@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -455,6 +456,24 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 		// that only the root module is allowed to be empty.
 		s.maybePruneModule(moduleAddr)
 	}
+}
+
+// DiscardCheckResults discards any previously-recorded check results, with
+// the intent of preventing any references to them after they have become
+// stale due to starting (but possibly not completing) an update.
+func (s *SyncState) DiscardCheckResults() {
+	s.lock.Lock()
+	s.state.CheckResults = nil
+	s.lock.Unlock()
+}
+
+// RecordCheckResults replaces any check results already recorded in the state
+// with a new set taken from the given check state object.
+func (s *SyncState) RecordCheckResults(checkState *checks.State) {
+	newResults := NewCheckResults(checkState)
+	s.lock.Lock()
+	s.state.CheckResults = newResults
+	s.lock.Unlock()
 }
 
 // Lock acquires an explicit lock on the state, allowing direct read and write

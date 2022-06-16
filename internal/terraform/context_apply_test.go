@@ -2639,6 +2639,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	// The state should now be _totally_ empty, with just an empty root module
 	// (since that always exists) and no resources at all.
 	want = states.NewState()
+	want.CheckResults = &states.CheckResults{}
 	if !cmp.Equal(state, want) {
 		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
 	}

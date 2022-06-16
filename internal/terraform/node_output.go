@@ -53,9 +53,22 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	expander := ctx.InstanceExpander()
 	changes := ctx.Changes()
 
+	// If this is an output value that participates in custom condition checks
+	// (i.e. it has preconditions or postconditions) then the check state
+	// wants to know the addresses of the checkable objects so that it can
+	// treat them as unknown status if we encounter an error before actually
+	// visiting the checks.
+	var checkableAddrs addrs.Set[addrs.Checkable]
+	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
+		checkableAddrs = addrs.MakeSet[addrs.Checkable]()
+	}
+
 	var g Graph
 	for _, module := range expander.ExpandModule(n.Module) {
 		absAddr := n.Addr.Absolute(module)
+		if checkableAddrs != nil {
+			checkableAddrs.Add(absAddr)
+		}
 
 		// Find any recorded change for this output
 		var change *plans.OutputChangeSrc
@@ -82,6 +95,12 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
+
+	if checkableAddrs != nil {
+		checkState := ctx.Checks()
+		checkState.ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)
+	}
+
 	return &g, nil
 }
 

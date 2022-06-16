@@ -1,6 +1,12 @@
 package addrs
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 // Check is the address of a check rule within a checkable object.
 //
@@ -137,3 +143,68 @@ var (
 	_ ConfigCheckable = ConfigResource{}
 	_ ConfigCheckable = ConfigOutputValue{}
 )
+
+// ParseCheckableStr attempts to parse the given string as a Checkable address.
+//
+// This should be the opposite of Checkable.String for any Checkable address
+// type.
+//
+// We do not typically expect users to write out checkable addresses as input,
+// but we use them as part of some of our wire formats for persisting check
+// results between runs.
+func ParseCheckableStr(src string) (Checkable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(src), "", hcl.InitialPos)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	path, remain, diags := parseModuleInstancePrefix(traversal)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	if remain.IsRelative() {
+		// (relative means that there's either nothing left or what's next isn't an identifier)
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid checkable address",
+			Detail:   "Module path must be followed by either a resource instance address or an output value address.",
+			Subject:  remain.SourceRange().Ptr(),
+		})
+		return nil, diags
+	}
+
+	switch remain.RootName() {
+	case "output":
+		if len(remain) != 2 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Output address must have only one attribute part after the keyword 'output', giving the name of the output value.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		if step, ok := remain[1].(hcl.TraverseAttr); !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Output address must have only one attribute part after the keyword 'output', giving the name of the output value.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		} else {
+			return OutputValue{Name: step.Name}.Absolute(path), diags
+		}
+	default:
+		riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+		diags = diags.Append(moreDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		return riAddr, diags
+	}
+}

@@ -9,6 +9,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -180,9 +181,9 @@ func Marshal(
 	}
 
 	// output.Conditions
-	err = output.marshalConditionResults(p.Conditions)
+	err = output.marshalCheckResults(p.Checks)
 	if err != nil {
-		return nil, fmt.Errorf("error in marshaling condition results: %s", err)
+		return nil, fmt.Errorf("error in marshaling check results: %s", err)
 	}
 
 	// output.PriorState
@@ -501,21 +502,30 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 	return nil
 }
 
-func (p *plan) marshalConditionResults(conditions plans.Conditions) error {
-	for addr, c := range conditions {
+func (p *plan) marshalCheckResults(results *states.CheckResults) error {
+	if results == nil {
+		return nil
+	}
+	for _, result := range results.Results {
 		cr := conditionResult{
-			checkAddress: addr,
-			Address:      c.Address.String(),
-			Type:         c.Type.String(),
-			ErrorMessage: c.ErrorMessage,
+			checkAddress: result.CheckAddr.String(),
+			Address:      result.CheckAddr.Container.String(),
+			Type:         result.CheckAddr.Type.String(),
+			ErrorMessage: result.ErrorMessage,
 		}
-		if c.Result.IsKnown() {
-			cr.Result = c.Result.True()
-		} else {
+		switch result.Status {
+		case checks.StatusPass:
+			cr.Result = true
+		case checks.StatusFail:
+			cr.Result = false
+		case checks.StatusError:
+			cr.Result = false
+		case checks.StatusUnknown:
 			cr.Unknown = true
 		}
 		p.Conditions = append(p.Conditions, cr)
 	}
+
 	sort.Slice(p.Conditions, func(i, j int) bool {
 		return p.Conditions[i].checkAddress < p.Conditions[j].checkAddress
 	})

@@ -8,6 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -59,7 +60,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
-		Conditions:       make(plans.Conditions),
+		Checks:           &states.CheckResults{},
 	}
 
 	switch rawPlan.UiMode {
@@ -90,41 +91,48 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		})
 	}
 
-	for _, rawCR := range rawPlan.ConditionResults {
-		conditionAddr := rawCR.ConditionAddr
-		cr := &plans.ConditionResult{
-			ErrorMessage: rawCR.ErrorMessage,
-		}
-		switch r := rawCR.Result.(type) {
-		case *planproto.ConditionResult_Value:
-			cr.Result = cty.BoolVal(r.Value)
-		case *planproto.ConditionResult_Unknown:
-			cr.Result = cty.UnknownVal(cty.Bool)
+	for _, rawCR := range rawPlan.CheckResults {
+		cr := &states.CheckResult{}
+		switch rawCR.Status {
+		case planproto.CheckStatus_UNKNOWN:
+			cr.Status = checks.StatusUnknown
+		case planproto.CheckStatus_PASS:
+			cr.Status = checks.StatusPass
+		case planproto.CheckStatus_FAIL:
+			cr.Status = checks.StatusFail
+		case planproto.CheckStatus_ERROR:
+			cr.Status = checks.StatusError
+		default:
+			return nil, fmt.Errorf("check for %s as unsupported status %#v", rawCR.Addr, rawCR.Status)
 		}
 		var diags tfdiags.Diagnostics
+		var checkType addrs.CheckType
+		var objectAddr addrs.Checkable
 		switch rawCR.Type {
-		case planproto.ConditionType_OUTPUT_PRECONDITION:
-			cr.Type = addrs.OutputPrecondition
-			cr.Address, diags = addrs.ParseAbsOutputValueStr(rawCR.Addr)
+		case planproto.CheckType_OUTPUT_PRECONDITION:
+			checkType = addrs.OutputPrecondition
+			objectAddr, diags = addrs.ParseAbsOutputValueStr(rawCR.Addr)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-		case planproto.ConditionType_RESOURCE_PRECONDITION:
-			cr.Type = addrs.ResourcePrecondition
-			cr.Address, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
+		case planproto.CheckType_RESOURCE_PRECONDITION:
+			checkType = addrs.ResourcePrecondition
+			objectAddr, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
-		case planproto.ConditionType_RESOURCE_POSTCONDITION:
-			cr.Type = addrs.ResourcePostcondition
-			cr.Address, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
+		case planproto.CheckType_RESOURCE_POSTCONDITION:
+			checkType = addrs.ResourcePostcondition
+			objectAddr, diags = addrs.ParseAbsResourceInstanceStr(rawCR.Addr)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
 		default:
-			return nil, fmt.Errorf("condition result %s has unsupported type %s", rawCR.ConditionAddr, rawCR.Type)
+			return nil, fmt.Errorf("check for %s has unsupported type %s", rawCR.Addr, rawCR.Type)
 		}
-		plan.Conditions[conditionAddr] = cr
+		cr.CheckAddr = addrs.NewCheck(objectAddr, checkType, int(rawCR.Index))
+		cr.ErrorMessage = rawCR.ErrorMessage
+		plan.Checks.Results = append(plan.Checks.Results, cr)
 	}
 
 	for _, rawRC := range rawPlan.ResourceChanges {
@@ -403,11 +411,11 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Version:          tfplanFormatVersion,
 		TerraformVersion: version.String(),
 
-		Variables:        map[string]*planproto.DynamicValue{},
-		OutputChanges:    []*planproto.OutputChange{},
-		ConditionResults: []*planproto.ConditionResult{},
-		ResourceChanges:  []*planproto.ResourceInstanceChange{},
-		ResourceDrift:    []*planproto.ResourceInstanceChange{},
+		Variables:       map[string]*planproto.DynamicValue{},
+		OutputChanges:   []*planproto.OutputChange{},
+		CheckResults:    []*planproto.CheckResult{},
+		ResourceChanges: []*planproto.ResourceInstanceChange{},
+		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
 
 	switch plan.UIMode {
@@ -446,33 +454,38 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		})
 	}
 
-	for addr, cr := range plan.Conditions {
-		pcr := &planproto.ConditionResult{
-			Addr:          cr.Address.String(),
-			ConditionAddr: addr,
-			ErrorMessage:  cr.ErrorMessage,
-		}
-		if cr.Result.IsKnown() {
-			pcr.Result = &planproto.ConditionResult_Value{
-				Value: cr.Result.True(),
+	if plan.Checks != nil {
+		for _, cr := range plan.Checks.Results {
+			pcr := &planproto.CheckResult{
+				Addr:         cr.CheckAddr.Container.String(),
+				Index:        int64(cr.CheckAddr.Index),
+				ErrorMessage: cr.ErrorMessage,
 			}
-		} else {
-			pcr.Result = &planproto.ConditionResult_Unknown{
-				Unknown: true,
+			switch cr.Status {
+			case checks.StatusUnknown:
+				pcr.Status = planproto.CheckStatus_UNKNOWN
+			case checks.StatusPass:
+				pcr.Status = planproto.CheckStatus_PASS
+			case checks.StatusFail:
+				pcr.Status = planproto.CheckStatus_FAIL
+			case checks.StatusError:
+				pcr.Status = planproto.CheckStatus_ERROR
+			default:
+				return fmt.Errorf("condition result %s has unsupported status %s", cr.CheckAddr, cr.Status)
 			}
-		}
-		switch cr.Type {
-		case addrs.OutputPrecondition:
-			pcr.Type = planproto.ConditionType_OUTPUT_PRECONDITION
-		case addrs.ResourcePrecondition:
-			pcr.Type = planproto.ConditionType_RESOURCE_PRECONDITION
-		case addrs.ResourcePostcondition:
-			pcr.Type = planproto.ConditionType_RESOURCE_POSTCONDITION
-		default:
-			return fmt.Errorf("condition result %s has unsupported type %s", addr, cr.Type)
-		}
+			switch cr.CheckAddr.Type {
+			case addrs.OutputPrecondition:
+				pcr.Type = planproto.CheckType_OUTPUT_PRECONDITION
+			case addrs.ResourcePrecondition:
+				pcr.Type = planproto.CheckType_RESOURCE_PRECONDITION
+			case addrs.ResourcePostcondition:
+				pcr.Type = planproto.CheckType_RESOURCE_POSTCONDITION
+			default:
+				return fmt.Errorf("condition result %s has unsupported type %s", cr.CheckAddr, cr.CheckAddr.Type)
+			}
 
-		rawPlan.ConditionResults = append(rawPlan.ConditionResults, pcr)
+			rawPlan.CheckResults = append(rawPlan.CheckResults, pcr)
+		}
 	}
 
 	for _, rc := range plan.Changes.Resources {

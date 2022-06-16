@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
@@ -16,6 +17,7 @@ func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
 	ctx.RefreshStateState = states.NewState().SyncWrapper()
+	ctx.ChecksState = checks.NewState(nil)
 
 	config := &configs.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
@@ -64,6 +66,7 @@ func TestNodeApplyableOutputExecute_noState(t *testing.T) {
 func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
+	ctx.ChecksState = checks.NewState(nil)
 
 	config := &configs.Output{
 		Name: "map-output",
@@ -94,6 +97,7 @@ func TestNodeApplyableOutputExecute_invalidDependsOn(t *testing.T) {
 func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
+	ctx.ChecksState = checks.NewState(nil)
 
 	config := &configs.Output{Name: "map-output"}
 	addr := addrs.OutputValue{Name: config.Name}.Absolute(addrs.RootModuleInstance)
@@ -115,6 +119,7 @@ func TestNodeApplyableOutputExecute_sensitiveValueNotOutput(t *testing.T) {
 func TestNodeApplyableOutputExecute_sensitiveValueAndOutput(t *testing.T) {
 	ctx := new(MockEvalContext)
 	ctx.StateState = states.NewState().SyncWrapper()
+	ctx.ChecksState = checks.NewState(nil)
 
 	config := &configs.Output{
 		Name:      "map-output",

@@ -3,6 +3,8 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -21,8 +23,14 @@ import (
 type graphWalkOpts struct {
 	InputState *states.State
 	Changes    *plans.Changes
-	Conditions plans.Conditions
 	Config     *configs.Config
+
+	// KnownCheckableObjects is a set of objects that we know ahead of time
+	// ought to have checks run against them during this graph walk.
+	// Use this to propagate the decision about which objects are checkable
+	// from the plan phase into the apply phase, so that the apply phase
+	// doesn't need to recalcuate it.
+	KnownCheckableObjects addrs.Set[addrs.Checkable]
 
 	MoveResults refactoring.MoveResults
 }
@@ -78,9 +86,19 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		refreshState = inputState.DeepCopy().SyncWrapper()
 		prevRunState = inputState.DeepCopy().SyncWrapper()
 
+		// For both of our new states we'll discard the previous run's
+		// check results, since we can still refer to them from the
+		// prevRunState object if we need to.
+		state.DiscardCheckResults()
+		refreshState.DiscardCheckResults()
+
 	default:
 		state = inputState.DeepCopy().SyncWrapper()
 		// Only plan-like walks use refreshState and prevRunState
+
+		// Discard the input state's check results, because we should create
+		// a new set as a result of the graph walk.
+		state.DiscardCheckResults()
 	}
 
 	changes := opts.Changes
@@ -92,16 +110,13 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		// afterwards.
 		changes = plans.NewChanges()
 	}
-	conditions := opts.Conditions
-	if conditions == nil {
-		// This fallback conditions object is in place for the same reason as
-		// the changes object above: to avoid crashes for non-plan walks.
-		conditions = plans.NewConditions()
-	}
 
 	if opts.Config == nil {
 		panic("Context.graphWalker call without Config")
 	}
+
+	checkState := checks.NewState(opts.Config)
+	checkState.ReportRestoredCheckableObjects(opts.KnownCheckableObjects)
 
 	return &ContextGraphWalker{
 		Context:          c,
@@ -110,7 +125,7 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		RefreshState:     refreshState,
 		PrevRunState:     prevRunState,
 		Changes:          changes.SyncWrapper(),
-		Conditions:       conditions.SyncWrapper(),
+		Checks:           checkState,
 		InstanceExpander: instances.NewExpander(),
 		MoveResults:      opts.MoveResults,
 		Operation:        operation,
