@@ -2,6 +2,7 @@ package checks
 
 import (
 	"fmt"
+	"sort"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -109,54 +110,26 @@ func (c *State) AllConfigAddrs() addrs.Set[addrs.ConfigCheckable] {
 	return c.statuses.Keys()
 }
 
-// AllObjectAddrs returns all of the addresses of individual checkable objects
-// that were registered as part of the Terraform Core operation that this
-// object is describing.
+// ObjectAddrs returns the addresses of individual checkable objects belonging
+// to the configuration object with the given address.
 //
-// If the corresponding Terraform Core operation returned an error or was
-// using targeting to exclude some objects from the graph then this may not
-// include declared objects for all of the expected configuration objects.
-func (c *State) AllObjectAddrs() addrs.Set[addrs.Checkable] {
+// This will panic if the given address isn't a known configuration object
+// that has checks.
+func (c *State) ObjectAddrs(configAddr addrs.ConfigCheckable) addrs.Set[addrs.Checkable] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	st, ok := c.statuses.GetOk(configAddr)
+	if !ok {
+		panic(fmt.Sprintf("unknown configuration object %s", configAddr))
+	}
 
 	ret := addrs.MakeSet[addrs.Checkable]()
-	for _, st := range c.statuses.Elems {
-		for _, elem := range st.Value.objects.Elems {
-			ret.Add(elem.Key)
-		}
+	for _, elem := range st.objects.Elems {
+		ret.Add(elem.Key)
 	}
 	return ret
-}
 
-// OverallCheckStatus returns a summarization of all of the check results
-// across the entire configuration as a single unified status.
-//
-// This is a reasonable approximation for deciding an overall result for an
-// automated testing scenario.
-func (c *State) OverallCheckStatus() Status {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	errorCount := 0
-	failCount := 0
-	unknownCount := 0
-
-	for _, elem := range c.statuses.Elems {
-		aggrStatus := c.aggregateCheckStatus(elem.Key)
-		switch aggrStatus {
-		case StatusPass:
-			// ok
-		case StatusFail:
-			failCount++
-		case StatusError:
-			errorCount++
-		default:
-			unknownCount++
-		}
-	}
-
-	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
 }
 
 // AggregateCheckStatus returns a summarization of all of the check results
@@ -168,13 +141,6 @@ func (c *State) AggregateCheckStatus(addr addrs.ConfigCheckable) Status {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	return c.aggregateCheckStatus(addr)
-}
-
-// aggregateCheckStatus is the main implementation of the public
-// AggregateCheckStatus, which assumes that the caller has already acquired
-// the mutex before calling.
-func (c *State) aggregateCheckStatus(addr addrs.ConfigCheckable) Status {
 	st, ok := c.statuses.GetOk(addr)
 	if !ok {
 		panic(fmt.Sprintf("request for status of unknown configuration object %s", addr))
@@ -183,6 +149,9 @@ func (c *State) aggregateCheckStatus(addr addrs.ConfigCheckable) Status {
 	if st.objects.Elems == nil {
 		// If we don't even know how many objects we have for this
 		// configuration construct then that summarizes as unknown.
+		// (Note: this is different than Elems being a non-nil empty map,
+		// which means that we know there are zero objects and therefore
+		// the aggregate result will be pass to pass below.)
 		return StatusUnknown
 	}
 
@@ -255,45 +224,49 @@ func (c *State) ObjectCheckStatus(addr addrs.Checkable) Status {
 	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
 }
 
-// AllCheckStatuses returns a flat map of all of the statuses of all of the
-// checks associated with all of the objects know to the reciever.
+// ObjectFailureMessages returns the zero or more failure messages reported
+// for the object with the given address.
 //
-// If the corresponding Terraform Core operation returned an error or was
-// using targeting to exclude some objects from the graph then this may not
-// include declared objects for all of the expected configuration objects.
-func (c *State) AllCheckStatuses() addrs.Map[addrs.Check, Status] {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// Failure messages are recorded only for checks whose status is StatusFail,
+// but since this aggregates together the results of all of the checks
+// on the given object it's possible for there to be a mixture of failures
+// and errors at the same time, which would aggregate as StatusError in
+// ObjectCheckStatus's result because errors are defined as "stronger"
+// than failures.
+func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
+	var ret []string
 
-	ret := addrs.MakeMap[addrs.Check, Status]()
+	configAddr := addr.ConfigCheckable()
 
-	for _, configElem := range c.statuses.Elems {
-		for _, objectElem := range configElem.Value.objects.Elems {
-			objectAddr := objectElem.Key
-			for checkType, checks := range objectElem.Value {
-				for idx, status := range checks {
-					checkAddr := addrs.Check{
-						Container: objectAddr,
-						Type:      checkType,
-						Index:     idx,
-					}
-					ret.Put(checkAddr, status)
+	st, ok := c.statuses.GetOk(configAddr)
+	if !ok {
+		panic(fmt.Sprintf("request for status of unknown object %s", addr))
+	}
+	if st.objects.Elems == nil {
+		panic(fmt.Sprintf("request for status of %s before establishing the checkable objects for %s", addr, configAddr))
+	}
+	checksByType, ok := st.objects.GetOk(addr)
+	if !ok {
+		panic(fmt.Sprintf("request for status of unknown object %s", addr))
+	}
+
+	for checkType, checks := range checksByType {
+		for i, status := range checks {
+			if status == StatusFail {
+				checkAddr := addrs.NewCheck(addr, checkType, i)
+				msg := c.failureMsgs.Get(checkAddr)
+				if msg != "" {
+					ret = append(ret, msg)
 				}
 			}
 		}
 	}
 
-	return ret
-}
+	// We always return the messages in a lexical sort order just so that
+	// it'll be consistent between runs if we still have the same problems.
+	sort.Strings(ret)
 
-// CheckFailureMessage gets the failure message associated with the given
-// check, if any.
-//
-// Only failed checks (StatusFail) can have error messages. The result is the
-// empty string if the given check either didn't fail or failed without an
-// error message.
-func (c *State) CheckFailureMessage(addr addrs.Check) string {
-	return c.failureMsgs.Get(addr)
+	return ret
 }
 
 func summarizeCheckStatuses(errorCount, failCount, unknownCount int) Status {

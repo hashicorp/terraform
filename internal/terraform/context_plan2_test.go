@@ -2912,22 +2912,14 @@ resource "test_resource" "a" {
 		}
 
 		addr := mustResourceInstanceAddr("data.test_data_source.a")
-		wantCheckTypes := []addrs.CheckType{
-			addrs.ResourcePrecondition,
-			addrs.ResourcePostcondition,
-		}
-		for _, ty := range wantCheckTypes {
-			checkAddr := addr.Check(ty, 0)
-			if gotResult := plan.Checks.GetCheckResult(checkAddr); gotResult == nil {
-				t.Errorf("no condition result for %s", checkAddr)
-			} else {
-				wantResult := &states.CheckResult{
-					CheckAddr: checkAddr,
-					Status:    checks.StatusPass,
-				}
-				if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
-					t.Errorf("wrong condition result for %s\n%s", checkAddr, diff)
-				}
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
+		} else {
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusPass,
+			}
+			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
+				t.Errorf("wrong check result for %s\n%s", addr, diff)
 			}
 		}
 	})
@@ -3034,17 +3026,17 @@ resource "test_resource" "a" {
 			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
 		}
 		addr := mustResourceInstanceAddr("data.test_data_source.a")
-		checkAddr := addr.Check(addrs.ResourcePostcondition, 0)
-		if gotResult := plan.Checks.GetCheckResult(checkAddr); gotResult == nil {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
 		} else {
-			wantResult := &states.CheckResult{
-				CheckAddr:    checkAddr,
-				Status:       checks.StatusFail,
-				ErrorMessage: "Results cannot be empty.",
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusFail,
+				FailureMessages: []string{
+					"Results cannot be empty.",
+				},
 			}
 			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
-				t.Errorf("wrong condition result\n%s", diff)
+				t.Errorf("wrong check result\n%s", diff)
 			}
 		}
 	})
@@ -3129,16 +3121,14 @@ output "a" {
 		if got, want := outputPlan.Action, plans.Create; got != want {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
-		checkAddr := addr.Check(addrs.OutputPrecondition, 0)
-		if gotResult := plan.Checks.GetCheckResult(checkAddr); gotResult == nil {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
 		} else {
-			wantResult := &states.CheckResult{
-				CheckAddr: checkAddr,
-				Status:    checks.StatusPass,
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusPass,
 			}
 			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
-				t.Errorf("wrong condition result\n%s", diff)
+				t.Errorf("wrong check result\n%s", diff)
 			}
 		}
 	})
@@ -3189,14 +3179,12 @@ output "a" {
 		if got, want := outputPlan.Action, plans.Create; got != want {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
-		checkAddr := addr.Check(addrs.OutputPrecondition, 0)
-		if gotResult := plan.Checks.GetCheckResult(checkAddr); gotResult == nil {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no condition result for %s", addr)
 		} else {
-			wantResult := &states.CheckResult{
-				CheckAddr:    checkAddr,
-				Status:       checks.StatusFail,
-				ErrorMessage: "Wrong boop.",
+			wantResult := &states.CheckResultObject{
+				Status:          checks.StatusFail,
+				FailureMessages: []string{"Wrong boop."},
 			}
 			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
 				t.Errorf("wrong condition result\n%s", diff)

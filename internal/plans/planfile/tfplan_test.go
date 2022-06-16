@@ -8,6 +8,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -171,19 +172,31 @@ func TestTFPlanRoundTrip(t *testing.T) {
 			},
 		},
 		Checks: &states.CheckResults{
-			Results: []*states.CheckResult{
-				{
-					CheckAddr: addrs.NewCheck(
-						addrs.Resource{
-							Mode: addrs.ManagedResourceMode,
-							Type: "test_thing",
-							Name: "woot",
-						}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
-						addrs.ResourcePostcondition,
-						0,
-					),
-				},
-			},
+			ConfigResults: addrs.MakeMap(
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_thing",
+									Name: "woot",
+								}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"Oh no!"},
+								},
+							),
+						),
+					},
+				),
+			),
 		},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{
