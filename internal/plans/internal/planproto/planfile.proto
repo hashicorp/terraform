@@ -46,10 +46,10 @@ message Plan {
 
     // An unordered set of check results for the entire configuration.
     //
-    // This set should cover the full set of checks we expect to resolve but
-    // some of them may have unknown results if they cannot be decided until
-    // apply time.
-    repeated CheckResult check_results = 19;
+    // Each element represents a single static configuration object that has
+    // checks, and each of those may have zero or more dynamic objects that
+    // the checks were applied to nested within.
+    repeated CheckResults check_results = 19;
 
     // An unordered set of target addresses to include when applying. If no
     // target addresses are present, the plan applies to the whole
@@ -217,39 +217,32 @@ message OutputChange {
     bool sensitive = 3;
 }
 
-// CheckType defines the type of check block used to generate a check result.
-enum CheckType {
-	INVALID                = 0;
-	RESOURCE_PRECONDITION  = 1;
-	RESOURCE_POSTCONDITION = 2;
-	OUTPUT_PRECONDITION    = 3;
-}
+message CheckResults {
+    // Status describes the status of a particular checkable object at the
+    // completion of the plan.
+    enum Status {
+        UNKNOWN = 0;
+        PASS    = 1;
+        FAIL    = 2;
+        ERROR   = 3;
+    }
 
-// CheckStatus describes the status of a particular check at the completion of the plan.
-enum CheckStatus {
-	UNKNOWN                = 0;
-    PASS                   = 1;
-    FAIL                   = 2;
-    ERROR                  = 3;
-}
+    message ObjectResult {
+        string object_addr = 1;
+        Status status = 2;
+        repeated string failure_messages = 3;
+    }
 
-message CheckResult {
-    // Address of the object containing the condition.
-    string addr = 1;
+    // Address of the configuration object that declared the checks.
+    string config_addr = 1;
 
-    // Type of the condition block.
-    CheckType type = 2;
+    // The aggregate status of the entire configuration object, based on
+    // the statuses of its zero or more checkable objects.
+    Status status = 2;
 
-    // Index of the condition block within the object and the CheckType.
-    // Indices are not consistent between runs if the configuration has
-    // changed, so indices are not correlatable between runs.
-    int64 index = 3;
-
-    // The status of the check at the completion of the planning step.
-    CheckStatus status = 4;
-
-    // Optional custom error message for a failing condition.
-    string error_message = 5;
+    // The results for individual objects that were declared by the
+    // configuration object named in config_addr.
+    repeated ObjectResult objects = 3;
 }
 
 // DynamicValue represents a value whose type is not decided until runtime,
