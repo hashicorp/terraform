@@ -394,6 +394,14 @@ func initCommands(
 		},
 	}
 
+	if ExperimentsAllowed() {
+		Commands["checks"] = func() (cli.Command, error) {
+			return &command.ChecksCommand{
+				Meta: meta,
+			}, nil
+		}
+	}
+
 	PrimaryCommands = []string{
 		"init",
 		"validate",
@@ -403,9 +411,9 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             struct{}{},
-		"internal-plugin": struct{}{},
-		"push":            struct{}{},
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
 	}
 
 }
