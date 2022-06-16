@@ -1,5 +1,7 @@
 package arguments
 
+import "os"
+
 // View represents the global command-line arguments which configure the view.
 type View struct {
 	// NoColor is used to disable the use of terminal color codes in all
@@ -17,6 +19,12 @@ type View struct {
 // found, they will be removed from the slice.
 func ParseView(args []string) (*View, []string) {
 	common := &View{}
+
+	// Disable colors if output is redirected or piped.
+	o, _ := os.Stdout.Stat()
+	if (o.Mode() & os.ModeCharDevice) != os.ModeCharDevice {
+		common.NoColor = true
+	}
 
 	// Keep track of the length of the returned slice. When we find an
 	// argument we support, i will not be incremented.
