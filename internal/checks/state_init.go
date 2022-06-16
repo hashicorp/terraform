@@ -7,6 +7,12 @@ import (
 
 func initialStatuses(cfg *configs.Config) addrs.Map[addrs.ConfigCheckable, *configCheckableState] {
 	ret := addrs.MakeMap[addrs.ConfigCheckable, *configCheckableState]()
+	if cfg == nil {
+		// This should not happen in normal use, but can arise in some
+		// unit tests that are not working with a full configuration and
+		// don't care about checks.
+		return ret
+	}
 
 	collectInitialStatuses(ret, cfg)
 

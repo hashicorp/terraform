@@ -320,6 +320,19 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	state := ctx.State().Lock()
 	defer ctx.State().Unlock()
 
+	// If this is a resource that participates in custom condition checks
+	// (i.e. it has preconditions or postconditions) then the check state
+	// wants to know the addresses of the checkable objects so that it can
+	// treat them as unknown status if we encounter an error before actually
+	// visiting the checks.
+	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
+		checkableAddrs := addrs.MakeSet[addrs.Checkable]()
+		for _, addr := range instanceAddrs {
+			checkableAddrs.Add(addr)
+		}
+		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, checkableAddrs)
+	}
+
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		// check if this node is being imported first

@@ -15,12 +15,24 @@ import (
 // otherwise be treated as a read-only snapshot of the status of checks
 // at a particular moment.
 //
+// The checks State tracks a few different concepts:
+//   - configuration objects: items in the configuration which statically
+//     declare some checks associated with zero or more checkable objects.
+//   - checkable objects: dynamically-determined objects that are each
+//     associated with one configuration object.
+//   - checks: a single check that is declared as part of a configuration
+//     object and then resolved once for each of its associated checkable
+//     objects.
+//   - check statuses: the current state of a particular check associated
+//     with a particular checkable object.
+//
 // This container type is concurrency-safe for both reads and writes through
 // its various methods.
 type State struct {
 	mu sync.Mutex
 
-	statuses addrs.Map[addrs.ConfigCheckable, *configCheckableState]
+	statuses    addrs.Map[addrs.ConfigCheckable, *configCheckableState]
+	failureMsgs addrs.Map[addrs.Check, string]
 }
 
 // configCheckableState is an internal part of type State that represents
@@ -272,6 +284,16 @@ func (c *State) AllCheckStatuses() addrs.Map[addrs.Check, Status] {
 	}
 
 	return ret
+}
+
+// CheckFailureMessage gets the failure message associated with the given
+// check, if any.
+//
+// Only failed checks (StatusFail) can have error messages. The result is the
+// empty string if the given check either didn't fail or failed without an
+// error message.
+func (c *State) CheckFailureMessage(addr addrs.Check) string {
+	return c.failureMsgs.Get(addr)
 }
 
 func summarizeCheckStatuses(errorCount, failCount, unknownCount int) Status {
