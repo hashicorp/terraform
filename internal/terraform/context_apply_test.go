@@ -18,6 +18,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -28,8 +31,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -7024,6 +7025,12 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// (which depends on the targeted resource) from state. That version of this
 	// test did not match actual terraform behavior: the output remains in
 	// state.
+	//
+	// The reason it remains in the state is that we prune out the root module
+	// output values from the destroy graph as part of pruning out the "update"
+	// nodes for the resources, because otherwise the root module output values
+	// force the resources to stay in the graph and can therefore cause
+	// unwanted dependency cycles.
 	//
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to

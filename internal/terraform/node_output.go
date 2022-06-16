@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -13,7 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandOutput is the placeholder for a non-root module output that has
@@ -59,8 +60,14 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Find any recorded change for this output
 		var change *plans.OutputChangeSrc
-		parent, call := module.Call()
-		for _, c := range changes.GetOutputChanges(parent, call) {
+		var outputChanges []*plans.OutputChangeSrc
+		if module.IsRoot() {
+			outputChanges = changes.GetRootOutputChanges()
+		} else {
+			parent, call := module.Call()
+			outputChanges = changes.GetOutputChanges(parent, call)
+		}
+		for _, c := range outputChanges {
 			if c.Addr.String() == absAddr.String() {
 				change = c
 				break

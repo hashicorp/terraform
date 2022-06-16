@@ -5,7 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -288,6 +293,151 @@ test_object.B (destroy)
 
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
+func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
+	// This is a kinda-weird test case covering the very narrow situation
+	// where a root module output value depends on a resource, where we
+	// need to make sure that the output value doesn't block pruning of
+	// the resource from the graph. This special case exists because although
+	// root module objects are "expanders", they in practice always expand
+	// to exactly one instance and so don't have the usual requirement of
+	// needing to stick around in order to support downstream expanders
+	// when there are e.g. nested expanding modules.
+
+	// In order to keep this test focused on the pruneUnusedNodesTransformer
+	// as much as possible we're using a minimal graph construction here which
+	// is just enough to get the nodes we need, but this does mean that this
+	// test might be invalidated by future changes to the apply graph builder,
+	// and so if something seems off here it might help to compare the
+	// following with the real apply graph transformer and verify whether
+	// this smaller construction is still realistic enough to be a valid test.
+	// It might be valid to change or remove this test to "make it work", as
+	// long as you verify that there is still _something_ upholding the
+	// invariant that a root module output value should not block a resource
+	// node from being pruned from the graph.
+
+	concreteResource := func(a *NodeAbstractResource) dag.Vertex {
+		return &nodeExpandApplyableResource{
+			NodeAbstractResource: a,
+		}
+	}
+
+	concreteResourceInstance := func(a *NodeAbstractResourceInstance) dag.Vertex {
+		return &NodeApplyableResourceInstance{
+			NodeAbstractResourceInstance: a,
+		}
+	}
+
+	resourceInstAddr := mustResourceInstanceAddr("test.a")
+	providerCfgAddr := addrs.AbsProviderConfig{
+		Module:   addrs.RootModule,
+		Provider: addrs.MustParseProviderSourceString("foo/test"),
+	}
+	emptyObjDynamicVal, err := plans.NewDynamicValue(cty.EmptyObjectVal, cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nullObjDynamicVal, err := plans.NewDynamicValue(cty.NullVal(cty.EmptyObject), cty.EmptyObject)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	config := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "test" "a" {
+			}
+
+			output "test" {
+				value = test.a.foo
+			}
+		`,
+	})
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			resourceInstAddr,
+			&states.ResourceInstanceObjectSrc{
+				Status:    states.ObjectReady,
+				AttrsJSON: []byte(`{}`),
+			},
+			providerCfgAddr,
+		)
+	})
+	changes := plans.NewChanges()
+	changes.SyncWrapper().AppendResourceInstanceChange(&plans.ResourceInstanceChangeSrc{
+		Addr:         resourceInstAddr,
+		PrevRunAddr:  resourceInstAddr,
+		ProviderAddr: providerCfgAddr,
+		ChangeSrc: plans.ChangeSrc{
+			Action: plans.Delete,
+			Before: emptyObjDynamicVal,
+			After:  nullObjDynamicVal,
+		},
+	})
+
+	builder := &BasicGraphBuilder{
+		Steps: []GraphTransformer{
+			&ConfigTransformer{
+				Concrete: concreteResource,
+				Config:   config,
+			},
+			&OutputTransformer{
+				Config:  config,
+				Changes: changes,
+			},
+			&DiffTransformer{
+				Concrete: concreteResourceInstance,
+				State:    state,
+				Changes:  changes,
+			},
+			&ReferenceTransformer{},
+			&AttachDependenciesTransformer{},
+			&pruneUnusedNodesTransformer{},
+			&CloseRootModuleTransformer{},
+		},
+	}
+	graph, diags := builder.Build(addrs.RootModuleInstance)
+	assertNoDiagnostics(t, diags)
+
+	// At this point, thanks to pruneUnusedNodesTransformer, we should still
+	// have the node for the output value, but the "test.a (expand)" node
+	// should've been pruned in recognition of the fact that we're performing
+	// a destroy and therefore we only need the "test.a (destroy)" node.
+
+	nodesByName := make(map[string]dag.Vertex)
+	nodesByResourceExpand := make(map[string]dag.Vertex)
+	for _, n := range graph.Vertices() {
+		name := dag.VertexName(n)
+		if _, exists := nodesByName[name]; exists {
+			t.Fatalf("multiple nodes have name %q", name)
+		}
+		nodesByName[name] = n
+
+		if exp, ok := n.(*nodeExpandApplyableResource); ok {
+			addr := exp.Addr
+			if _, exists := nodesByResourceExpand[addr.String()]; exists {
+				t.Fatalf("multiple nodes are expanders for %s", addr)
+			}
+			nodesByResourceExpand[addr.String()] = exp
+		}
+	}
+
+	// NOTE: The following is sensitive to the current name string formats we
+	// use for these particular node types. These names are not contractual
+	// so if this breaks in future it is fine to update these names to the new
+	// names as long as you verify first that the new names correspond to
+	// the same meaning as what we're assuming below.
+	if _, exists := nodesByName["test.a (destroy)"]; !exists {
+		t.Errorf("missing destroy node for resource instance test.a")
+	}
+	if _, exists := nodesByName["output.test (expand)"]; !exists {
+		t.Errorf("missing expand for output value 'test'")
+	}
+
+	// We _must not_ have any node that expands a resource.
+	if len(nodesByResourceExpand) != 0 {
+		t.Errorf("resource expand nodes remain the graph after transform; should've been pruned\n%s", spew.Sdump(nodesByResourceExpand))
 	}
 }
 
