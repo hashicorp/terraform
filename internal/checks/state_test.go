@@ -117,10 +117,6 @@ func TestChecksHappyPath(t *testing.T) {
 
 	// Everything should start with status unknown.
 
-	if got, want := checks.OverallCheckStatus(), StatusUnknown; got != want {
-		t.Errorf("incorrect initial overall check status %s; want %s", got, want)
-	}
-
 	{
 		wantConfigAddrs := addrs.MakeSet[addrs.ConfigCheckable](
 			resourceA,
@@ -178,13 +174,8 @@ func TestChecksHappyPath(t *testing.T) {
 
 	/////////////////////////////////////////////////////////////////////////
 
-	// This "section" is simulating what a check reporting UI might do in
-	// order to analyze the checks after the Terraform operation completes.
-	// Since we reported that everything passed above, we should be able to
-	// see that when we query the object in various ways.
-	if got, want := checks.OverallCheckStatus(), StatusPass; got != want {
-		t.Errorf("incorrect final overall check status %s; want %s", got, want)
-	}
+	// This "section" is simulating what we might do to report the results
+	// of the checks after a run completes.
 
 	{
 		configCount := 0
@@ -200,7 +191,7 @@ func TestChecksHappyPath(t *testing.T) {
 	}
 
 	{
-		wantObjAddrs := addrs.MakeSet[addrs.Checkable](
+		objAddrs := addrs.MakeSet[addrs.Checkable](
 			resourceInstA,
 			rootOutputInst,
 			resourceInstB,
@@ -208,34 +199,10 @@ func TestChecksHappyPath(t *testing.T) {
 			resourceInstC1,
 			childOutputInst,
 		)
-		gotObjAddrs := checks.AllObjectAddrs()
-		if diff := cmp.Diff(wantObjAddrs, gotObjAddrs); diff != "" {
-			t.Errorf("wrong object addresses\n%s", diff)
-		}
-		for _, addr := range gotObjAddrs {
+		for _, addr := range objAddrs {
 			if got, want := checks.ObjectCheckStatus(addr), StatusPass; got != want {
 				t.Errorf("incorrect final check status for object %s: %s, but want %s", addr, got, want)
 			}
-		}
-	}
-
-	{
-		wantStatuses := addrs.MakeMap(
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstA, addrs.ResourcePrecondition, 0), StatusPass),
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstA, addrs.ResourcePrecondition, 1), StatusPass),
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstA, addrs.ResourcePostcondition, 0), StatusPass),
-
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstB, addrs.ResourcePrecondition, 0), StatusPass),
-
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstC0, addrs.ResourcePostcondition, 0), StatusPass),
-			addrs.MakeMapElem(addrs.NewCheck(resourceInstC1, addrs.ResourcePostcondition, 0), StatusPass),
-
-			addrs.MakeMapElem(addrs.NewCheck(rootOutputInst, addrs.OutputPrecondition, 0), StatusPass),
-			addrs.MakeMapElem(addrs.NewCheck(childOutputInst, addrs.OutputPrecondition, 0), StatusPass),
-		)
-		gotStatuses := checks.AllCheckStatuses()
-		if diff := cmp.Diff(wantStatuses, gotStatuses); diff != "" {
-			t.Errorf("wrong check statuses\n%s", diff)
 		}
 	}
 }
