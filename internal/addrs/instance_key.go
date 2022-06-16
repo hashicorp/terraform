@@ -2,6 +2,8 @@ package addrs
 
 import (
 	"fmt"
+	"strings"
+	"unicode"
 
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -72,9 +74,10 @@ func (k StringKey) instanceKeySigil() {
 }
 
 func (k StringKey) String() string {
-	// FIXME: This isn't _quite_ right because Go's quoted string syntax is
-	// slightly different than HCL's, but we'll accept it for now.
-	return fmt.Sprintf("[%q]", string(k))
+	// We use HCL's quoting syntax here so that we can in principle parse
+	// an address constructed by this package as if it were an HCL
+	// traversal, even if the string contains HCL's own metacharacters.
+	return fmt.Sprintf("[%s]", toHCLQuotedString(string(k)))
 }
 
 func (k StringKey) Value() cty.Value {
@@ -133,3 +136,56 @@ const (
 	IntKeyType    InstanceKeyType = 'I'
 	StringKeyType InstanceKeyType = 'S'
 )
+
+// toHCLQuotedString is a helper which formats the given string in a way that
+// HCL's expression parser would treat as a quoted string template.
+//
+// This includes:
+//   - Adding quote marks at the start and the end.
+//   - Using backslash escapes as needed for characters that cannot be represented directly.
+//   - Escaping anything that would be treated as a template interpolation or control sequence.
+func toHCLQuotedString(s string) string {
+	// This is an adaptation of a similar function inside the hclwrite package,
+	// inlined here because hclwrite's version generates HCL tokens but we
+	// only need normal strings.
+	if len(s) == 0 {
+		return `""`
+	}
+	var buf strings.Builder
+	buf.WriteByte('"')
+	for i, r := range s {
+		switch r {
+		case '\n':
+			buf.WriteString(`\n`)
+		case '\r':
+			buf.WriteString(`\r`)
+		case '\t':
+			buf.WriteString(`\t`)
+		case '"':
+			buf.WriteString(`\"`)
+		case '\\':
+			buf.WriteString(`\\`)
+		case '$', '%':
+			buf.WriteRune(r)
+			remain := s[i+1:]
+			if len(remain) > 0 && remain[0] == '{' {
+				// Double up our template introducer symbol to escape it.
+				buf.WriteRune(r)
+			}
+		default:
+			if !unicode.IsPrint(r) {
+				var fmted string
+				if r < 65536 {
+					fmted = fmt.Sprintf("\\u%04x", r)
+				} else {
+					fmted = fmt.Sprintf("\\U%08x", r)
+				}
+				buf.WriteString(fmted)
+			} else {
+				buf.WriteRune(r)
+			}
+		}
+	}
+	buf.WriteByte('"')
+	return buf.String()
+}
