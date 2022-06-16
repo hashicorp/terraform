@@ -116,6 +116,23 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	return nil
 }
 
+// RootOutputValues returns planned changes for all outputs of the root module.
+func (c *Changes) RootOutputValues() []*OutputChangeSrc {
+	var res []*OutputChangeSrc
+
+	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
+		res = append(res, oc)
+
+	}
+
+	return res
+}
+
 // OutputValues returns planned changes for all outputs for all module
 // instances that reside in the parent path.  Returns nil if no changes are
 // planned.
