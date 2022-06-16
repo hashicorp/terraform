@@ -11,7 +11,7 @@ description: >-
 
 State is a necessary requirement for Terraform to function. It is often
 asked if it is possible for Terraform to work without state, or for Terraform
-to not use state and just inspect cloud resources on every run. This page
+to not use state and just inspect real world resources on every run. This page
 will help explain why Terraform state is required.
 
 As you'll see from the reasons below, state is required. And in the scenarios
@@ -22,9 +22,9 @@ shifting massive amounts of complexity from one place (state) to another place
 ## Mapping to the Real World
 
 Terraform requires some sort of database to map Terraform config to the real
-world. When you have a resource `resource "aws_instance" "foo"` in your
-configuration, Terraform uses this map to know that instance `i-abcd1234`
-is represented by that resource.
+world. For example, when you have a resource `resource "aws_instance" "foo"` in your
+configuration, Terraform uses this mapping to know that the resource `resource "aws_instance" "foo"`
+represents a real world object with the instance ID `i-abcd1234` on a remote system.
 
 For some providers like AWS, Terraform could theoretically use something like
 AWS tags. Early prototypes of Terraform actually had no state files and used
@@ -35,16 +35,12 @@ support tags.
 Therefore, for mapping configuration to resources in the real world,
 Terraform uses its own state structure.
 
-Terraform expects that each remote object is bound to only one resource
-instance, which is normally guaranteed by Terraform being responsible for
-creating the objects and recording their identities in the state. If you
-instead import objects that were created outside of Terraform, you'll need
-to check yourself that each distinct object is imported to only one resource
-instance.
-
-If one remote object is bound to two or more resource instances then Terraform
-may take unexpected actions against those objects, because the mapping from
-configuration to the remote object state has become ambiguous.
+Terraform expects that each remote object is bound to only one resource instance in the configuration.
+If a remote object is bound to multiple resource instances, the mapping from configuration to the remote
+object in the state becomes ambiguous, and Terraform may behave unexpectedly. Terraform can guarantee 
+a one-to-one mapping when it creates objects and records their identities in the state. 
+When importing objects created outside of Terraform, you must make sure that each distinct object 
+is imported to only one resource instance.
 
 ## Metadata
 
@@ -53,8 +49,8 @@ also track metadata such as resource dependencies.
 
 Terraform typically uses the configuration to determine dependency order.
 However, when you delete a resource from a Terraform configuration, Terraform
-must know how to delete that resource. Terraform can see that a mapping exists
-for a resource not in your configuration and plan to destroy. However, since
+must know how to delete that resource from the remote system. Terraform can see that a mapping exists
+in the state file for a resource not in your configuration and plan to destroy. However, since
 the configuration no longer exists, the order cannot be determined from the
 configuration alone.
 
@@ -67,7 +63,7 @@ One way to avoid this would be for Terraform to know a required ordering
 between resource types. For example, Terraform could know that servers must be
 deleted before the subnets they are a part of. The complexity for this approach
 quickly explodes, however: in addition to Terraform having to understand the
-ordering semantics of every resource for every cloud, Terraform must also
+ordering semantics of every resource for every _provider_, Terraform must also
 understand the ordering _across providers_.
 
 Terraform also stores other metadata for similar reasons, such as a pointer
