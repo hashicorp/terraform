@@ -59,8 +59,14 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		// Find any recorded change for this output
 		var change *plans.OutputChangeSrc
-		parent, call := module.Call()
-		for _, c := range changes.GetOutputChanges(parent, call) {
+		var outputChanges []*plans.OutputChangeSrc
+		if module.IsRoot() {
+			outputChanges = changes.GetRootOutputChanges()
+		} else {
+			parent, call := module.Call()
+			outputChanges = changes.GetOutputChanges(parent, call)
+		}
+		for _, c := range outputChanges {
 			if c.Addr.String() == absAddr.String() {
 				change = c
 				break
