@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -66,7 +67,7 @@ type BuiltinEvalContext struct {
 	ProvisionerLock       *sync.Mutex
 	ChangesValue          *plans.ChangesSync
 	StateValue            *states.SyncState
-	ConditionsValue       *plans.ConditionsSync
+	ChecksValue           *checks.State
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
@@ -482,8 +483,8 @@ func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
 }
 
-func (ctx *BuiltinEvalContext) Conditions() *plans.ConditionsSync {
-	return ctx.ConditionsValue
+func (ctx *BuiltinEvalContext) Checks() *checks.State {
+	return ctx.ChecksValue
 }
 
 func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {
