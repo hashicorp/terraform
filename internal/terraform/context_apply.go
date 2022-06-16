@@ -35,10 +35,18 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		Config:     config,
 		InputState: workingState,
 		Changes:    plan.Changes,
-		Conditions: plan.Conditions,
+
+		// We need to propagate the results of deciding which objects will
+		// have checks from the plan phase, since we won't re-run the
+		// instance expansion logic during the apply phase.
+		KnownCheckableObjects: plan.Checks.AllCheckedObjects(),
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
+
+	// After the walk is finished, we capture a simplified snapshot of the
+	// check result data as part of the new state.
+	walker.State.RecordCheckResults(walker.Checks)
 
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
