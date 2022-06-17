@@ -566,8 +566,9 @@ func omitUnknowns(val cty.Value) cty.Value {
 			newVal := omitUnknowns(v)
 			if newVal != cty.NilVal {
 				vals = append(vals, newVal)
-			} else if newVal == cty.NilVal && ty.IsListType() {
-				// list length may be significant, so we will turn unknowns into nulls
+			} else if newVal == cty.NilVal {
+				// element order is how we correlate unknownness, so we must
+				// replace unknowns with nulls
 				vals = append(vals, cty.NullVal(v.Type()))
 			}
 		}
