@@ -111,21 +111,6 @@ func NewCheckResults(source *checks.State) *CheckResults {
 	return ret
 }
 
-// AllCheckedObjects returns a set of all of the objects that have at least
-// one check in the set of results.
-func (r *CheckResults) AllCheckedObjects() addrs.Set[addrs.Checkable] {
-	if r == nil || len(r.ConfigResults.Elems) == 0 {
-		return nil
-	}
-	ret := addrs.MakeSet[addrs.Checkable]()
-	for _, configElem := range r.ConfigResults.Elems {
-		for _, objElem := range configElem.Value.ObjectResults.Elems {
-			ret.Add(objElem.Key)
-		}
-	}
-	return ret
-}
-
 // GetObjectResult looks up the result for a single object, or nil if there
 // is no such object.
 //
@@ -179,4 +164,19 @@ func (r *CheckResults) DeepCopy() *CheckResults {
 	}
 
 	return ret
+}
+
+// ObjectAddrsKnown determines whether the set of objects recorded in this
+// aggregate is accurate (true) or if it's incomplete as a result of the
+// run being interrupted before instance expansion.
+func (r *CheckResultAggregate) ObjectAddrsKnown() bool {
+	if r.ObjectResults.Len() != 0 {
+		// If there are any object results at all then we definitely know.
+		return true
+	}
+
+	// If we don't have any object addresses then we distinguish a known
+	// empty set of objects from an unknown set of objects by the aggregate
+	// status being unknown.
+	return r.Status != checks.StatusUnknown
 }
