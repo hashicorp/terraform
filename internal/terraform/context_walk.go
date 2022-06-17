@@ -3,7 +3,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -25,12 +24,13 @@ type graphWalkOpts struct {
 	Changes    *plans.Changes
 	Config     *configs.Config
 
-	// KnownCheckableObjects is a set of objects that we know ahead of time
-	// ought to have checks run against them during this graph walk.
-	// Use this to propagate the decision about which objects are checkable
-	// from the plan phase into the apply phase, so that the apply phase
-	// doesn't need to recalcuate it.
-	KnownCheckableObjects addrs.Set[addrs.Checkable]
+	// PlanTimeCheckResults should be populated during the apply phase with
+	// the snapshot of check results that was generated during the plan step.
+	//
+	// This then propagates the decisions about which checkable objects exist
+	// from the plan phase into the apply phase without having to re-compute
+	// the module and resource expansion.
+	PlanTimeCheckResults *states.CheckResults
 
 	MoveResults refactoring.MoveResults
 }
@@ -116,7 +116,17 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 	}
 
 	checkState := checks.NewState(opts.Config)
-	checkState.ReportRestoredCheckableObjects(opts.KnownCheckableObjects)
+	if opts.PlanTimeCheckResults != nil {
+		// We'll re-report all of the same objects we determined during the
+		// plan phase so that we can repeat the checks during the apply
+		// phase to finalize them.
+		for _, configElem := range opts.PlanTimeCheckResults.ConfigResults.Elems {
+			if configElem.Value.ObjectAddrsKnown() {
+				configAddr := configElem.Key
+				checkState.ReportCheckableObjects(configAddr, configElem.Value.ObjectResults.Keys())
+			}
+		}
+	}
 
 	return &ContextGraphWalker{
 		Context:          c,
