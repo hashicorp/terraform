@@ -1,31 +1,43 @@
 ## 1.3.0 (Unreleased)
 
-UPGRADE NOTES:
+NEW FEATURES:
 
-* Module variable type constraints now support an `optional()` modifier for object attribute types. Optional attributes may be omitted from the variable value, and will be replaced by a default value (or `null` if no default is specified). For example:
+* **Optional attributes for object type constraints:** When declaring an input variable whose type constraint includes an object type, you can now declare individual attributes as optional, and specify a default value to use if the caller doesn't set it. For example:
 
     ```terraform
     variable "with_optional_attribute" {
       type = object({
         a = string                # a required attribute
         b = optional(string)      # an optional attribute
-        c = optional(number, 127) # an optional attribute with default value
+        c = optional(number, 127) # an optional attribute with a default value
       })
     }
     ```
 
-   Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
+    Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
 
-    This functionality was introduced as an experiment in Terraform 0.14. This release removes the experimental `defaults` function. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
+UPGRADE NOTES:
 
-* `terraform show -json`: Output changes now include more detail about the unknownness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
+* `terraform show -json`: Output changes now include more detail about the unknown-ness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
 
     Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. [GH-31235]
 
+ENHANCEMENTS:
+
+* config: Optional attributes for object type constraints, as described under new features above. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
+
 BUG FIXES:
 
-* Made `terraform output` CLI help documentation consistent with web-based documentation ([#29354](https://github.com/hashicorp/terraform/issues/29354))
-* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets [GH-31236]
+* Made `terraform output` CLI help documentation consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
+* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. [GH-31236]
+
+EXPERIMENTS:
+
+* This release concludes the `module_variable_optional_attrs` experiment, which started in Terraform v0.14.0. The final design of the optional attributes feature is similar to the experimental form in the previous releases, but with two major differences:
+    * The `optional` function-like modifier for declaring an optional attribute now accepts an optional second argument for specifying a default value to use when the attribute isn't set by the caller. If not specified, the default value is a null value of the appropriate type as before.
+    * The built-in `defaults` function, previously used to meet the use-case of replacing null values with default values, will not graduate to stable and has been removed. Use the second argument of `optional` inline in your type constraint to declare default values instead.
+
+    If you have any experimental modules that were participating in this experiment, you will need to remove the experiment opt-in and adopt the new syntax for declaring default values in order to migrate your existing module to the stablized version of this feature.
 
 ## Previous Releases
 
