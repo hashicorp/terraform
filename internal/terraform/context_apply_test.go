@@ -11978,10 +11978,6 @@ resource "test_resource" "foo" {
 func TestContext2Apply_moduleVariableOptionalAttributes(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type = object({
     required = string
@@ -12054,10 +12050,6 @@ output "out" {
 func TestContext2Apply_moduleVariableOptionalAttributesDefault(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type    = object({
     required = string

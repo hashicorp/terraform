@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // When developing UI for experimental features, you can temporarily disable
@@ -196,51 +195,5 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
-	if !m.ActiveExperiments.Has(experiments.ModuleVariableOptionalAttrs) {
-		for _, v := range m.Variables {
-			if typeConstraintHasOptionalAttrs(v.ConstraintType) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Optional object type attributes are experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding module_variable_optional_attrs to the list of active experiments.",
-					Subject:  v.DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return diags
-}
-
-func typeConstraintHasOptionalAttrs(ty cty.Type) bool {
-	if ty == cty.NilType {
-		// Weird, but we'll just ignore it to avoid crashing.
-		return false
-	}
-
-	switch {
-	case ty.IsPrimitiveType():
-		return false
-	case ty.IsCollectionType():
-		return typeConstraintHasOptionalAttrs(ty.ElementType())
-	case ty.IsObjectType():
-		if len(ty.OptionalAttributes()) != 0 {
-			return true
-		}
-		for _, aty := range ty.AttributeTypes() {
-			if typeConstraintHasOptionalAttrs(aty) {
-				return true
-			}
-		}
-		return false
-	case ty.IsTupleType():
-		for _, ety := range ty.TupleElementTypes() {
-			if typeConstraintHasOptionalAttrs(ety) {
-				return true
-			}
-		}
-		return false
-	default:
-		return false
-	}
 }
