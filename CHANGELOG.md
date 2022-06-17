@@ -4,6 +4,10 @@ ENHANCEMENTS:
 
 * Improved validation of required_providers to prevent single providers from being required with multiple names [GH-31218]
 
+BUG FIXES:
+
+* backend/http: Fixed bug where the HTTP backend would fail to retry acquiring the state lock and ignored the `-lock-timeout` flag. [GH-31256]
+
 ## 1.2.3 (June 15, 2022)
 
 UPGRADE NOTES:
