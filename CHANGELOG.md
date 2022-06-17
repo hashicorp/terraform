@@ -18,9 +18,14 @@ UPGRADE NOTES:
 
     This functionality was introduced as an experiment in Terraform 0.14. This release removes the experimental `defaults` function. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
 
+* `terraform show -json`: Output changes now include more detail about the unknownness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
+
+    Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. [GH-31235]
+
 BUG FIXES:
 
 * Made `terraform output` CLI help documentation consistent with web-based documentation ([#29354](https://github.com/hashicorp/terraform/issues/29354))
+* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets [GH-31236]
 
 ## Previous Releases
 
