@@ -153,10 +153,10 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 	// Stop early if we don't actually have a diff
-	if change == nil || change.Action == plans.NoOp {
+	if change == nil {
 		return diags
 	}
-	if change.Action != plans.Read {
+	if change.Action != plans.Read && change.Action != plans.NoOp {
 		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", change.Action, n.Addr))
 	}
 
@@ -169,9 +169,16 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
-	if diags.HasErrors() {
-		return diags
+	if state != nil {
+		// If n.applyDataSource returned a nil state object with no accompanying
+		// errors then it determined that the given change doesn't require
+		// actually reading the data (e.g. because it was already read during
+		// the plan phase) and so we're only running through here to get the
+		// extra details like precondition/postcondition checks.
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	diags = diags.Append(n.writeChange(ctx, nil, ""))
@@ -217,7 +224,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
-	if diffApply == nil || diffApply.Action == plans.NoOp || diffApply.Action == plans.Delete {
+	if diffApply == nil || diffApply.Action == plans.Delete {
 		return diags
 	}
 	if diffApply.Action == plans.Read {
@@ -273,10 +280,10 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	diffApply = reducePlan(addr, diffApply, false)
 	// reducePlan may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
-	// is handled by NodeDestroyResourceInstance.
-	if diffApply == nil || diffApply.Action == plans.NoOp {
-		return diags
-	}
+	// is handled by NodeDestroyResourceInstance. If so, we'll
+	// still run through most of the logic here because we do still
+	// need to deal with other book-keeping such as marking the
+	// change as "complete", and running the author's postconditions.
 
 	diags = diags.Append(n.preApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
