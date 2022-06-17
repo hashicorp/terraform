@@ -51,43 +51,6 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 	}
 }
 
-// ReportRestoredCheckableObjects is the interface by which Terraform Core
-// should reload all of the checkable object addresses it previously determined
-// during the planning phase in order to re-evaluate their results during
-// the apply phase using updated data.
-//
-// If any of the given objects don't have a corresponding configuration object
-// known to this check state then this function will panic.
-func (c *State) ReportRestoredCheckableObjects(objectAddrs addrs.Set[addrs.Checkable]) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// This is a similar principle as for ReportCheckableObjects except that
-	// we don't do the consistency checks that would normally ensure we only
-	// get one ReportCheckableObjects call per ConfigCheckable.
-
-	for _, objectAddr := range objectAddrs {
-		configAddr := objectAddr.ConfigCheckable()
-		st, ok := c.statuses.GetOk(configAddr)
-		if !ok {
-			panic(fmt.Sprintf("checkable objects report for unknown configuration object %s", configAddr))
-		}
-
-		checks := make(map[addrs.CheckType][]Status, len(st.checkTypes))
-		for checkType, count := range st.checkTypes {
-			// NOTE: This is intentionally a slice of count of the zero value
-			// of Status, which is StatusUnknown to represent that we don't
-			// yet have a report for that particular check.
-			checks[checkType] = make([]Status, count)
-		}
-
-		if st.objects.Elems == nil {
-			st.objects = addrs.MakeMap[addrs.Checkable, map[addrs.CheckType][]Status]()
-		}
-		st.objects.Put(objectAddr, checks)
-	}
-}
-
 // ReportCheckResult is the interface by which Terraform Core should tell the
 // State object the result of a specific check for an object that was
 // previously registered with ReportCheckableObjects.
