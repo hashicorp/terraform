@@ -288,10 +288,6 @@ Terraform applies object attribute defaults top-down in nested variable types. T
 The following example defines a variable for storage buckets that host a website. This variable type uses several optional attributes, including `website`, which is itself an optional `object` type that has optional attributes and defaults.
 
 ```hcl
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "buckets" {
   type = list(object({
     name    = string
