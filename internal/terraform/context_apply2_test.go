@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,14 +9,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Test that the PreApply hook is called with the correct deposed key
@@ -912,6 +915,162 @@ resource "test_resource" "c" {
 			t.Error("test_resource.c should not exist in state, but is")
 		}
 	})
+}
+
+func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
+	// This tests the less common situation where a condition fails due to
+	// a change in a resource other than the one the condition is attached to,
+	// and the condition result is unknown during planning.
+	//
+	// This edge case is a tricky one because it relies on Terraform still
+	// visiting test_resource.b (in the configuration below) to evaluate
+	// its conditions even though there aren't any changes directly planned
+	// for it, so that we can consider whether changes to test_resource.a
+	// have changed the outcome.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			resource "test_resource" "a" {
+				value = var.input
+			}
+
+			resource "test_resource" "b" {
+				value = "beep"
+
+				lifecycle {
+					postcondition {
+						condition     = test_resource.a.output == self.output
+						error_message = "Outputs must match."
+					}
+				}
+			}
+		`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"output": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// Whenever "value" changes, "output" follows it during the apply step,
+		// but is initially unknown during the plan step.
+
+		m := req.ProposedNewState.AsValueMap()
+		priorVal := cty.NullVal(cty.String)
+		if !req.PriorState.IsNull() {
+			priorVal = req.PriorState.GetAttr("value")
+		}
+		if m["output"].IsNull() || !priorVal.RawEquals(m["value"]) {
+			m["output"] = cty.UnknownVal(cty.String)
+		}
+
+		resp.PlannedState = cty.ObjectVal(m)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		m := req.PlannedState.AsValueMap()
+		m["output"] = m["value"]
+		resp.NewState = cty.ObjectVal(m)
+		return resp
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	instA := mustResourceInstanceAddr("test_resource.a")
+	instB := mustResourceInstanceAddr("test_resource.b")
+
+	// Preparation: an initial plan and apply with a correct input variable
+	// should succeed and give us a valid and complete state to use for the
+	// subsequent plan and apply that we'll expect to fail.
+	var prevRunState *states.State
+	{
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("beep"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		planA := plan.Changes.ResourceInstance(instA)
+		if planA == nil || planA.Action != plans.Create {
+			t.Fatalf("incorrect initial plan for instance A\nwant a 'create' change\ngot: %s", spew.Sdump(planA))
+		}
+		planB := plan.Changes.ResourceInstance(instB)
+		if planB == nil || planB.Action != plans.Create {
+			t.Fatalf("incorrect initial plan for instance B\nwant a 'create' change\ngot: %s", spew.Sdump(planB))
+		}
+
+		state, diags := ctx.Apply(plan, m)
+		assertNoErrors(t, diags)
+
+		stateA := state.ResourceInstance(instA)
+		if stateA == nil || stateA.Current == nil || !bytes.Contains(stateA.Current.AttrsJSON, []byte(`"beep"`)) {
+			t.Fatalf("incorrect initial state for instance A\ngot: %s", spew.Sdump(stateA))
+		}
+		stateB := state.ResourceInstance(instB)
+		if stateB == nil || stateB.Current == nil || !bytes.Contains(stateB.Current.AttrsJSON, []byte(`"beep"`)) {
+			t.Fatalf("incorrect initial state for instance B\ngot: %s", spew.Sdump(stateB))
+		}
+		prevRunState = state
+	}
+
+	// Now we'll run another plan and apply with a different value for
+	// var.input that should cause the test_resource.b condition to be unknown
+	// during planning and then fail during apply.
+	{
+		plan, diags := ctx.Plan(m, prevRunState, &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("boop"), // NOTE: This has changed
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		planA := plan.Changes.ResourceInstance(instA)
+		if planA == nil || planA.Action != plans.Update {
+			t.Fatalf("incorrect initial plan for instance A\nwant an 'update' change\ngot: %s", spew.Sdump(planA))
+		}
+		planB := plan.Changes.ResourceInstance(instB)
+		if planB == nil || planB.Action != plans.NoOp {
+			t.Fatalf("incorrect initial plan for instance B\nwant a 'no-op' change\ngot: %s", spew.Sdump(planB))
+		}
+
+		_, diags = ctx.Apply(plan, m)
+		if !diags.HasErrors() {
+			t.Fatal("final apply succeeded, but should've failed with a postcondition error")
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly one diagnostic, but got: %s", diags.Err().Error())
+		}
+		if got, want := diags[0].Description().Summary, "Resource postcondition failed"; got != want {
+			t.Fatalf("wrong diagnostic summary\ngot:  %s\nwant: %s", got, want)
+		}
+	}
 }
 
 // pass an input through some expanded values, and back to a provider to make
