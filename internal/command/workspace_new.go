@@ -151,7 +151,7 @@ func (c *WorkspaceNewCommand) Run(args []string) int {
 	}
 
 	// save the existing state in the new Backend.
-	err = stateMgr.WriteState(stateFile.State)
+	err = stateMgr.WriteState(stateFile.State, nil)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

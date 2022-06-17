@@ -120,7 +120,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 			return baseErr
 		}
 
-		if err := stateMgr.WriteState(states.NewState()); err != nil {
+		if err := stateMgr.WriteState(states.NewState(), nil); err != nil {
 			return nil, unlock(err)
 		}
 		if err := stateMgr.PersistState(); err != nil {

@@ -309,7 +309,7 @@ type failingState struct {
 	*statemgr.Filesystem
 }
 
-func (s failingState) WriteState(state *states.State) error {
+func (s failingState) WriteState(state *states.State, schemas *terraform.Schemas) error {
 	return errors.New("fake failure")
 }
 

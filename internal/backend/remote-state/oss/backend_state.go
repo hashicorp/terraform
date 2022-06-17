@@ -156,7 +156,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := stateMgr.State(); v == nil {
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState(), nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

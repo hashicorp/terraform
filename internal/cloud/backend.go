@@ -628,7 +628,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
-	return &remote.State{Client: client}, nil
+	return &remote.CustomState{Client: client}, nil
 }
 
 // Operation implements backend.Enhanced.

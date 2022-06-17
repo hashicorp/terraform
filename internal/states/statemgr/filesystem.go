@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // Filesystem is a full state manager that uses a file in the local filesystem
@@ -119,7 +120,7 @@ func (s *Filesystem) State() *states.State {
 
 // WriteState is an incorrect implementation of Writer that actually also
 // persists.
-func (s *Filesystem) WriteState(state *states.State) error {
+func (s *Filesystem) WriteState(state *states.State, schemas *terraform.Schemas) error {
 	// TODO: this should use a more robust method of writing state, by first
 	// writing to a temp file on the same filesystem, and renaming the file over
 	// the original.

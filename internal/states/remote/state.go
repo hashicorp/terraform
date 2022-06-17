@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -55,7 +56,7 @@ func (s *State) StateForMigration() *statefile.File {
 }
 
 // statemgr.Writer impl.
-func (s *State) WriteState(state *states.State) error {
+func (s *State) WriteState(state *states.State, schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

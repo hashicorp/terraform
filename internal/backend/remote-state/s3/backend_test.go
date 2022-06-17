@@ -477,7 +477,7 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// Write the first state
 	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(s1)
+	stateMgr.WriteState(s1, nil)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -487,7 +487,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	// states are equal, the state will not Put to the remote
 	client.path = b.path("s2")
 	stateMgr2 := &remote.State{Client: client}
-	stateMgr2.WriteState(s2)
+	stateMgr2.WriteState(s2, nil)
 	if err := stateMgr2.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -500,7 +500,7 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// put a state in an env directory name
 	client.path = b.workspaceKeyPrefix + "/error"
-	stateMgr.WriteState(states.NewState())
+	stateMgr.WriteState(states.NewState(), nil)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -510,7 +510,7 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// add state with the wrong key for an existing env
 	client.path = b.workspaceKeyPrefix + "/s2/notTestState"
-	stateMgr.WriteState(states.NewState())
+	stateMgr.WriteState(states.NewState(), nil)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}
@@ -549,7 +549,7 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// add a state with a key that matches an existing environment dir name
 	client.path = b.workspaceKeyPrefix + "/s2/"
-	stateMgr.WriteState(states.NewState())
+	stateMgr.WriteState(states.NewState(), nil)
 	if err := stateMgr.PersistState(); err != nil {
 		t.Fatal(err)
 	}

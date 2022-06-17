@@ -1,6 +1,9 @@
 package statemgr
 
-import "github.com/hashicorp/terraform/internal/states"
+import (
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
+)
 
 // Transient is a union of the Reader and Writer interfaces, for types that
 // deal with transient snapshots.
@@ -62,5 +65,5 @@ type Writer interface {
 	// The caller must ensure that the given state object is not concurrently
 	// modified while a WriteState call is in progress. WriteState itself
 	// will never modify the given state.
-	WriteState(*states.State) error
+	WriteState(*states.State, *terraform.Schemas) error
 }
