@@ -36,10 +36,10 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		InputState: workingState,
 		Changes:    plan.Changes,
 
-		// We need to propagate the results of deciding which objects will
-		// have checks from the plan phase, since we won't re-run the
-		// instance expansion logic during the apply phase.
-		KnownCheckableObjects: plan.Checks.AllCheckedObjects(),
+		// We need to propagate the check results from the plan phase,
+		// because that will tell us which checkable objects we're expecting
+		// to see updated results from during the apply step.
+		PlanTimeCheckResults: plan.Checks,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
