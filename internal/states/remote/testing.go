@@ -77,6 +77,9 @@ func TestRemoteLocks(t *testing.T, a, b Client) {
 		lockerA.Unlock(lockIDA)
 		t.Fatal("client B obtained lock while held by client A")
 	}
+	if _, ok := err.(*statemgr.LockError); !ok {
+		t.Errorf("expected a LockError, but was %t: %s", err, err)
+	}
 
 	if err := lockerA.Unlock(lockIDA); err != nil {
 		t.Fatal("error unlocking client A", err)
