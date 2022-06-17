@@ -153,8 +153,11 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 	// Stop early if we don't actually have a diff
-	if change == nil {
+	if change == nil || change.Action == plans.NoOp {
 		return diags
+	}
+	if change.Action != plans.Read {
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", change.Action, n.Addr))
 	}
 
 	// In this particular call to applyDataSource we include our planned
@@ -214,8 +217,11 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We don't want to do any destroys
 	// (these are handled by NodeDestroyResourceInstance instead)
-	if diffApply == nil || diffApply.Action == plans.Delete {
+	if diffApply == nil || diffApply.Action == plans.NoOp || diffApply.Action == plans.Delete {
 		return diags
+	}
+	if diffApply.Action == plans.Read {
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", diffApply.Action, n.Addr))
 	}
 
 	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
