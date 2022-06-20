@@ -52,9 +52,20 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
+// import 1 of count instances in the configuration
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "aws" {
+  foo = "bar"
+}
+
+resource "aws_instance" "foo" {
+  count = 2
+}
+`})
+
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
@@ -796,6 +807,9 @@ module "b" {
   for_each = local.xs
   source   = "./b"
   y = module.a[each.key].y
+}
+
+resource "test_resource" "test" {
 }
 `,
 		"a/main.tf": `
