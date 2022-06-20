@@ -19,7 +19,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -524,17 +523,11 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 	if b.WorkspaceMapping.Strategy() == WorkspaceNameStrategy {
 		return backend.ErrWorkspacesNotSupported
 	}
-
 	// Configure the remote workspace name.
-	client := &remoteClient{
-		client:       b.client,
-		organization: b.organization,
-		workspace: &tfe.Workspace{
-			Name: name,
-		},
-	}
-
-	return client.Delete()
+	customState := &CustomState{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+		Name: name,
+	}}
+	return customState.Delete()
 }
 
 // StateMgr implements backend.Enhanced.
@@ -619,16 +612,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	client := &remoteClient{
-		client:       b.client,
-		organization: b.organization,
-		workspace:    workspace,
-
-		// This is optionally set during Terraform Enterprise runs.
-		runID: os.Getenv("TFE_RUN_ID"),
-	}
-
-	return &remote.State{Client: client}, nil
+	return &CustomState{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
 }
 
 // Operation implements backend.Enhanced.

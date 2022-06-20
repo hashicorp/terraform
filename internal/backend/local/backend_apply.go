@@ -198,7 +198,23 @@ func (b *Local) opApply(
 
 	// Store the final state
 	runningOp.State = applyState
-	err := statemgr.WriteAndPersist(opState, applyState)
+
+	err := opState.WriteState(applyState)
+	if err != nil {
+		// Export the state file from the state manager and assign the new
+		// state. This is needed to preserve the existing serial and lineage.
+		stateFile := statemgr.Export(opState)
+		if stateFile == nil {
+			stateFile = &statefile.File{}
+		}
+		stateFile.State = applyState
+
+		diags = diags.Append(b.backupStateForError(stateFile, err, op.View))
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
+	err = opState.PersistState()
 	if err != nil {
 		// Export the state file from the state manager and assign the new
 		// state. This is needed to preserve the existing serial and lineage.
