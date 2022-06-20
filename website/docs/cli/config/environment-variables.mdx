@@ -194,3 +194,9 @@ This is useful for key rotation, permanent decryption, and switching between sta
 variable to the old configuration, then cause a change in state.
 
 For more details please see [Client-Side Remote State Encryption](/docs/language/state/encryption.html).
+
+## Terraform Cloud CLI Integration
+
+The CLI integration with Terraform Cloud lets you use Terraform Cloud and Terraform Enterprise on the command line. The integration requires including a `cloud` block in your Terraform configuration. You can define its arguments directly in your configuration file or supply them through environment variables, which can be useful for non-interactive workflows like Continuous Integration (CI).
+
+Refer to [Terraform Cloud Settings](/cli/cloud/settings#environment-variables) for a full list of `cloud` block environment variables.

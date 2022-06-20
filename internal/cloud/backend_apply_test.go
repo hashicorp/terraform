@@ -655,7 +655,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
@@ -664,7 +664,7 @@ func TestCloud_applyApprovedExternally(t *testing.T) {
 		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
 	}
 
-	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, nil)
 	if err != nil {
 		t.Fatalf("unexpected error listing runs: %v", err)
 	}
@@ -729,7 +729,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 	wl, err := b.client.Workspaces.List(
 		ctx,
 		b.organization,
-		tfe.WorkspaceListOptions{},
+		nil,
 	)
 	if err != nil {
 		t.Fatalf("unexpected error listing workspaces: %v", err)
@@ -738,7 +738,7 @@ func TestCloud_applyDiscardedExternally(t *testing.T) {
 		t.Fatalf("expected 1 workspace, got %d workspaces", len(wl.Items))
 	}
 
-	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, tfe.RunListOptions{})
+	rl, err := b.client.Runs.List(ctx, wl.Items[0].ID, nil)
 	if err != nil {
 		t.Fatalf("unexpected error listing runs: %v", err)
 	}

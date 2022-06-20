@@ -25,8 +25,7 @@ func TestInitProviders(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "template-provider")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -59,8 +58,7 @@ func TestInitProvidersInternal(t *testing.T) {
 	// provider is internal to the core terraform binary.
 
 	fixturePath := filepath.Join("testdata", "terraform-provider")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -99,8 +97,7 @@ func TestInitProvidersVendored(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "vendored-provider")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -143,14 +140,13 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 	// the test fixture.)
 
 	fixturePath := filepath.Join("testdata", "local-only-provider")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 	// If you run this test on a workstation with a plugin-cache directory
 	// configured, it will leave a bad directory behind and terraform init will
 	// not work until you remove it.
 	//
 	// To avoid this, we will  "zero out" any existing cli config file.
 	tf.AddEnv("TF_CLI_CONFIG_FILE=\"\"")
-	defer tf.Close()
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -194,8 +190,7 @@ func TestInitProvidersCustomMethod(t *testing.T) {
 	for _, configFile := range []string{"cliconfig.tfrc", "cliconfig.tfrc.json"} {
 		t.Run(configFile, func(t *testing.T) {
 			fixturePath := filepath.Join("testdata", "custom-provider-install-method")
-			tf := e2e.NewBinary(terraformBin, fixturePath)
-			defer tf.Close()
+			tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 			// Our fixture dir has a generic os_arch dir, which we need to customize
 			// to the actual OS/arch where this test is running in order to get the
@@ -240,8 +235,7 @@ func TestInitProviders_pluginCache(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "plugin-cache")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
@@ -297,8 +291,7 @@ func TestInit_fromModule(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "empty")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	cmd := tf.Cmd("init", "-from-module=hashicorp/vault/aws")
 	cmd.Stdin = nil
@@ -331,8 +324,7 @@ func TestInitProviderNotFound(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "provider-not-found")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	t.Run("registry provider not found", func(t *testing.T) {
 		_, stderr, err := tf.Run("init", "-no-color")
@@ -402,8 +394,7 @@ func TestInitProviderWarnings(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "provider-warnings")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, _, err := tf.Run("init")
 	if err == nil {

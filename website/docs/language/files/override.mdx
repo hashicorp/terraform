@@ -150,3 +150,11 @@ In both the `required_version` and `required_providers` settings, each override
 constraint entirely replaces the constraints for the same component in the
 original block. If both the base block and the override block both set
 `required_version` then the constraints in the base block are entirely ignored.
+
+The presence of a block defining a backend (either `cloud` or `backend`) in an override
+file always takes precedence over a block defining a backend in the original configuration.
+That is, if a `cloud` block is set within the original configuration and a `backend` block is
+set in the override file, Terraform will use the `backend` block specified in the override file upon merging.
+Similarly, if a `backend` block is set within the original configuration and a `cloud` block
+is set in the override file, Terraform will use the `cloud` block specified in the override
+file upon merging.

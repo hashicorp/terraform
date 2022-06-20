@@ -133,6 +133,9 @@ type MockEvalContext struct {
 	StateCalled bool
 	StateState  *states.SyncState
 
+	ConditionsCalled     bool
+	ConditionsConditions *plans.ConditionsSync
+
 	RefreshStateCalled bool
 	RefreshStateState  *states.SyncState
 
@@ -258,6 +261,10 @@ func (c *MockEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, s
 	return c.EvaluateExprResult, c.EvaluateExprDiags
 }
 
+func (c *MockEvalContext) EvaluateReplaceTriggeredBy(hcl.Expression, instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
+	return nil, false, nil
+}
+
 // installSimpleEval is a helper to install a simple mock implementation of
 // both EvaluateBlock and EvaluateExpr into the receiver.
 //
@@ -365,6 +372,11 @@ func (c *MockEvalContext) Changes() *plans.ChangesSync {
 func (c *MockEvalContext) State() *states.SyncState {
 	c.StateCalled = true
 	return c.StateState
+}
+
+func (c *MockEvalContext) Conditions() *plans.ConditionsSync {
+	c.ConditionsCalled = true
+	return c.ConditionsConditions
 }
 
 func (c *MockEvalContext) RefreshState() *states.SyncState {

@@ -2,8 +2,6 @@ package providercache
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,12 +13,7 @@ import (
 )
 
 func TestInstallPackage(t *testing.T) {
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
-	tmpDirPath, err = filepath.EvalSymlinks(tmpDirPath)
+	tmpDirPath, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,12 +67,7 @@ func TestInstallPackage(t *testing.T) {
 
 func TestLinkFromOtherCache(t *testing.T) {
 	srcDirPath := "testdata/cachedir"
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
-	tmpDirPath, err = filepath.EvalSymlinks(tmpDirPath)
+	tmpDirPath, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

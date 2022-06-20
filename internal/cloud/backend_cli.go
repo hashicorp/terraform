@@ -16,6 +16,7 @@ func (b *Cloud) CLIInit(opts *backend.CLIOpts) error {
 	b.CLIColor = opts.CLIColor
 	b.ContextOpts = opts.ContextOpts
 	b.runningInAutomation = opts.RunningInAutomation
+	b.input = opts.Input
 
 	return nil
 }

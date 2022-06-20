@@ -2340,7 +2340,7 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -5723,7 +5723,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 		t.Logf("Step 2 plan: %s", legacyDiffComparisonString(plan.Changes))
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -5793,7 +5793,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -5937,7 +5937,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -7889,7 +7889,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -7964,7 +7964,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8041,7 +8041,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8304,7 +8304,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -8860,7 +8860,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8919,7 +8919,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -9440,7 +9440,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9791,7 +9791,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -11978,14 +11978,19 @@ resource "test_resource" "foo" {
 func TestContext2Apply_moduleVariableOptionalAttributes(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type = object({
-	required = string
-	optional = optional(string)
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+    nested   = optional(
+      map(object({
+        a = optional(string, "foo")
+        b = optional(number, 5)
+      })), {
+        "boop": {}
+      }
+    )
   })
 }
 
@@ -12023,6 +12028,69 @@ output "out" {
 		// Because "optional" was marked as optional, it got silently filled
 		// in as a null value of string type rather than returning an error.
 		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" was marked as optional with a default value,
+		// and since it was omitted should be filled in with that default.
+		"default": cty.True,
+
+		// Nested is a complex structure which has fully described defaults,
+		// so again it should be filled with the default structure.
+		"nested": cty.MapVal(map[string]cty.Value{
+			"boop": cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.NumberIntVal(5),
+			}),
+		}),
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestContext2Apply_moduleVariableOptionalAttributesDefault(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type    = object({
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+  })
+  default = {
+    required = "boop"
+  }
+}
+
+output "out" {
+  value = var.in
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ObjectVal(map[string]cty.Value{
+		"required": cty.StringVal("boop"),
+
+		// "optional" is not present in the variable default, so it is filled
+		// with null.
+		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" is not present in the variable default, so its
+		// value is replaced with the type's specified default.
+		"default": cty.True,
 	})
 	if !want.RawEquals(got) {
 		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)

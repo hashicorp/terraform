@@ -1,18 +1,16 @@
 package marks
 
 import (
-	"strings"
-
 	"github.com/zclconf/go-cty/cty"
 )
 
 // valueMarks allow creating strictly typed values for use as cty.Value marks.
-// The variable name for new values should be the title-cased format of the
-// value to better match the GoString output for debugging.
+// Each distinct mark value must be a constant in this package whose value
+// is a valueMark whose underlying string matches the name of the variable.
 type valueMark string
 
 func (m valueMark) GoString() string {
-	return "marks." + strings.Title(string(m))
+	return "marks." + string(m)
 }
 
 // Has returns true if and only if the cty.Value has the given mark.
@@ -36,9 +34,9 @@ func Contains(val cty.Value, mark valueMark) bool {
 
 // Sensitive indicates that this value is marked as sensitive in the context of
 // Terraform.
-var Sensitive = valueMark("sensitive")
+const Sensitive = valueMark("Sensitive")
 
 // TypeType is used to indicate that the value contains a representation of
 // another value's type. This is part of the implementation of the console-only
 // `type` function.
-var TypeType = valueMark("typeType")
+const TypeType = valueMark("TypeType")

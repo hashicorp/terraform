@@ -34,6 +34,16 @@ func TestTo(t *testing.T) {
 			``,
 		},
 		{
+			// This test case represents evaluating the expression tostring(null)
+			// from HCL, since null in HCL is cty.NullVal(cty.DynamicPseudoType).
+			// The result in that case should still be null, but a null specifically
+			// of type string.
+			cty.NullVal(cty.DynamicPseudoType),
+			cty.String,
+			cty.NullVal(cty.String),
+			``,
+		},
+		{
 			cty.StringVal("a").Mark("boop"),
 			cty.String,
 			cty.StringVal("a").Mark("boop"),

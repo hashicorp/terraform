@@ -1,0 +1,13 @@
+{
+  "name": "terraform-docs-preview",
+  "private": "true",
+  "scripts": {
+    "build": "./scripts/website-build.sh"
+  },
+  "devDependencies": {
+    "next": "^12.1.0"
+  },
+  "engines": {
+    "npm": ">=7.0.0"
+  }
+}

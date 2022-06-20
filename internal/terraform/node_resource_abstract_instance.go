@@ -652,9 +652,9 @@ func (n *NodeAbstractResourceInstance) plan(
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
-		checkResourcePrecondition,
+		addrs.ResourcePrecondition,
 		n.Config.Preconditions,
-		ctx, nil, keyData,
+		ctx, n.Addr, keyData,
 		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
@@ -1477,7 +1477,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentState *states.ResourceInstanceObject, checkRuleSeverity tfdiags.Severity) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
@@ -1500,24 +1500,18 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy)
-	if currentState != nil {
-		priorVal = currentState.Value
-	}
 
 	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
-		checkResourcePrecondition,
+		addrs.ResourcePrecondition,
 		n.Config.Preconditions,
-		ctx, nil, keyData,
+		ctx, n.Addr, keyData,
 		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-			return h.PostApply(n.Addr, states.CurrentGen, priorVal, diags.Err())
-		}))
 		return nil, nil, keyData, diags // failed preconditions prevent further evaluation
 	}
 
@@ -1529,20 +1523,25 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	}
 
 	unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
-	// We drop marks on the values used here as the result is only
-	// temporarily used for validation.
-	unmarkedPriorVal, _ := priorVal.UnmarkDeep()
 
 	configKnown := configVal.IsWhollyKnown()
+	depsPending := n.dependenciesHavePendingChanges(ctx)
 	// If our configuration contains any unknown values, or we depend on any
 	// unknown values then we must defer the read to the apply phase by
 	// producing a "Read" change for this resource, and a placeholder value for
 	// it in the state.
-	if n.forcePlanReadData(ctx) || !configKnown {
-		if configKnown {
-			log.Printf("[TRACE] planDataSource: %s configuration is fully known, but we're forcing a read plan to be created", n.Addr)
-		} else {
+	if depsPending || !configKnown {
+		var reason plans.ResourceInstanceChangeActionReason
+		switch {
+		case !configKnown:
 			log.Printf("[TRACE] planDataSource: %s configuration not fully known yet, so deferring to apply phase", n.Addr)
+			reason = plans.ResourceInstanceReadBecauseConfigUnknown
+		case depsPending:
+			// NOTE: depsPending can be true at the same time as configKnown
+			// is false; configKnown takes precedence because it's more
+			// specific.
+			log.Printf("[TRACE] planDataSource: %s configuration is fully known, at least one dependency has changes pending", n.Addr)
+			reason = plans.ResourceInstanceReadBecauseDependencyPending
 		}
 
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
@@ -1559,6 +1558,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 				Before: priorVal,
 				After:  proposedNewVal,
 			},
+			ActionReason: reason,
 		}
 
 		plannedNewState := &states.ResourceInstanceObject{
@@ -1581,28 +1581,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 		return nil, nil, keyData, diags
 	}
 
-	// if we have a prior value, we can check for any irregularities in the response
-	if !priorVal.IsNull() {
-		// While we don't propose planned changes for data sources, we can
-		// generate a proposed value for comparison to ensure the data source
-		// is returning a result following the rules of the provider contract.
-		proposedVal := objchange.ProposedNew(schema, unmarkedPriorVal, unmarkedConfigVal)
-		if errs := objchange.AssertObjectCompatible(schema, proposedVal, newVal); len(errs) > 0 {
-			// Resources have the LegacyTypeSystem field to signal when they are
-			// using an SDK which may not produce precise values. While data
-			// sources are read-only, they can still return a value which is not
-			// compatible with the config+schema. Since we can't detect the legacy
-			// type system, we can only warn about this for now.
-			var buf strings.Builder
-			fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s.",
-				n.ResolvedProvider, n.Addr)
-			for _, err := range errs {
-				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
-			}
-			log.Print(buf.String())
-		}
-	}
-
 	plannedNewState := &states.ResourceInstanceObject{
 		Value:  newVal,
 		Status: states.ObjectReady,
@@ -1611,10 +1589,11 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, currentSt
 	return nil, plannedNewState, keyData, diags
 }
 
-// forcePlanReadData determines if we need to override the usual behavior of
-// immediately reading from the data source where possible, instead forcing us
-// to generate a plan.
-func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
+// dependenciesHavePendingChanges determines whether any managed resource the
+// receiver depends on has a change pending in the plan, in which case we'd
+// need to override the usual behavior of immediately reading from the data
+// source where possible, and instead defer the read until the apply step.
+func (n *NodeAbstractResourceInstance) dependenciesHavePendingChanges(ctx EvalContext) bool {
 	nModInst := n.Addr.Module
 	nMod := nModInst.Module()
 
@@ -1622,7 +1601,20 @@ func (n *NodeAbstractResourceInstance) forcePlanReadData(ctx EvalContext) bool {
 	// changes, since they won't show up as changes in the
 	// configuration.
 	changes := ctx.Changes()
-	for _, d := range n.dependsOn {
+
+	depsToUse := n.dependsOn
+
+	if n.Addr.Resource.Resource.Mode == addrs.DataResourceMode {
+		if n.Config.HasCustomConditions() {
+			// For a data resource with custom conditions we need to look at
+			// the full set of resource dependencies -- both direct and
+			// indirect -- because an upstream update might be what's needed
+			// in order to make a condition pass.
+			depsToUse = n.Dependencies
+		}
+	}
+
+	for _, d := range depsToUse {
 		if d.Resource.Mode == addrs.DataResourceMode {
 			// Data sources have no external side effects, so they pose a need
 			// to delay this read. If they do have a change planned, it must be
@@ -1688,9 +1680,9 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	keyData = EvalDataForInstanceKey(n.Addr.Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
-		checkResourcePrecondition,
+		addrs.ResourcePrecondition,
 		n.Config.Preconditions,
-		ctx, nil, keyData,
+		ctx, n.Addr, keyData,
 		tfdiags.Error,
 	)
 	diags = diags.Append(checkDiags)
@@ -2024,9 +2016,25 @@ func (n *NodeAbstractResourceInstance) apply(
 	}
 
 	if !configVal.IsWhollyKnown() {
-		diags = diags.Append(fmt.Errorf(
-			"configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)",
-			n.Addr,
+		// We don't have a pretty format function for a path, but since this is
+		// such a rare error, we can just drop the raw GoString values in here
+		// to make sure we have something to debug with.
+		var unknownPaths []string
+		cty.Transform(configVal, func(p cty.Path, v cty.Value) (cty.Value, error) {
+			if !v.IsKnown() {
+				unknownPaths = append(unknownPaths, fmt.Sprintf("%#v", p))
+			}
+			return v, nil
+		})
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Configuration contains unknown value",
+			fmt.Sprintf("configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)\n"+
+				"The following paths in the resource configuration are unknown:\n%s",
+				n.Addr,
+				strings.Join(unknownPaths, "\n"),
+			),
 		))
 		return nil, keyData, diags
 	}

@@ -1,8 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
-	"os"
 	"strings"
 	"testing"
 
@@ -18,11 +16,7 @@ func TestVersionCommand_implements(t *testing.T) {
 }
 
 func TestVersion(t *testing.T) {
-	td, err := ioutil.TempDir("", "terraform-test-version")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(td)
+	td := t.TempDir()
 	defer testChdir(t, td)()
 
 	// We'll create a fixed dependency lock file in our working directory
@@ -116,11 +110,7 @@ func TestVersion_outdated(t *testing.T) {
 }
 
 func TestVersion_json(t *testing.T) {
-	td, err := ioutil.TempDir("", "terraform-test-version")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(td)
+	td := t.TempDir()
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()

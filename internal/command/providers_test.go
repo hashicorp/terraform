@@ -75,9 +75,8 @@ func TestProviders_noConfigs(t *testing.T) {
 }
 
 func TestProviders_modules(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("providers/modules"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// first run init with mock provider sources to install the module

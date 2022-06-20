@@ -70,7 +70,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{})
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, nil)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -126,8 +126,8 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("app"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "app",
 				})
 				if err != nil {
 					t.Fatal(err)
@@ -189,7 +189,7 @@ func Test_migrate_tfc_to_tfc_single_workspace(t *testing.T) {
 			validations: func(t *testing.T, orgName string) {
 				// We created the workspace, so it will be there. We could not complete the state migration,
 				// though, so the workspace should be empty.
-				ws, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "new-workspace", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				ws, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "new-workspace", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -348,8 +348,8 @@ func Test_migrate_tfc_to_tfc_multiple_workspace(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				wsList, err := tfeClient.Workspaces.List(ctx, orgName, tfe.WorkspaceListOptions{
-					Tags: tfe.String("billing"),
+				wsList, err := tfeClient.Workspaces.List(ctx, orgName, &tfe.WorkspaceListOptions{
+					Tags: "billing",
 				})
 				if err != nil {
 					t.Fatal(err)

@@ -170,9 +170,8 @@ func TestStateMv_backupAndBackupOutOptionsWithNonLocalBackend(t *testing.T) {
 	})
 
 	t.Run("backup option specified", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		backupPath := filepath.Join(td, "backup")
@@ -219,9 +218,8 @@ on a local state file only. You must specify a local state file with the
 	})
 
 	t.Run("backup-out option specified", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		backupOutPath := filepath.Join(td, "backup-out")
@@ -268,9 +266,8 @@ on a local state file only. You must specify a local state file with the
 	})
 
 	t.Run("backup and backup-out options specified", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		backupPath := filepath.Join(td, "backup")
@@ -319,9 +316,8 @@ on a local state file only. You must specify a local state file with the
 	})
 
 	t.Run("backup option specified with state option", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		statePath := testStateFile(t, state)
@@ -360,9 +356,8 @@ on a local state file only. You must specify a local state file with the
 	})
 
 	t.Run("backup-out option specified with state option", func(t *testing.T) {
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-backend-http"), td)
-		defer os.RemoveAll(td)
 		defer testChdir(t, td)()
 
 		statePath := testStateFile(t, state)
@@ -852,9 +847,8 @@ match.
 
 // don't modify backend state is we supply a -state flag
 func TestStateMv_explicitWithBackend(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	backupPath := filepath.Join(td, "backup")
@@ -1140,8 +1134,7 @@ func TestStateMv_stateOutExisting(t *testing.T) {
 }
 
 func TestStateMv_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -1467,9 +1460,8 @@ func TestStateMv_toNewModule(t *testing.T) {
 }
 
 func TestStateMv_withinBackend(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	state := states.BuildState(func(s *states.SyncState) {
@@ -1547,9 +1539,8 @@ func TestStateMv_withinBackend(t *testing.T) {
 }
 
 func TestStateMv_fromBackendToLocal(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-unchanged"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	state := states.NewState()
@@ -1710,6 +1701,83 @@ func TestStateMvInvalidSourceAddress(t *testing.T) {
 	code := c.Run(args)
 	if code != 1 {
 		t.Fatalf("expected error code 1, got:\n%d", code)
+	}
+}
+
+func TestStateMv_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	defer testChdir(t, td)()
+
+	state := states.BuildState(func(s *states.SyncState) {
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "foo",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON: []byte(`{"id":"bar","foo":"value","bar":"value"}`),
+				Status:    states.ObjectReady,
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+		s.SetResourceInstanceCurrent(
+			addrs.Resource{
+				Mode: addrs.ManagedResourceMode,
+				Type: "test_instance",
+				Name: "baz",
+			}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+			&states.ResourceInstanceObjectSrc{
+				AttrsJSON:    []byte(`{"id":"foo","foo":"value","bar":"value"}`),
+				Status:       states.ObjectReady,
+				Dependencies: []addrs.ConfigResource{mustResourceAddr("test_instance.foo")},
+			},
+			addrs.AbsProviderConfig{
+				Provider: addrs.NewDefaultProvider("test"),
+				Module:   addrs.RootModule,
+			},
+		)
+	})
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &StateMvCommand{
+		StateMeta{
+			Meta: Meta{
+				testingOverrides: metaOverridesForProvider(p),
+				Ui:               ui,
+				View:             view,
+			},
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.foo",
+		"test_instance.bar",
+	}
+
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// State is unchanged
+	testStateOutput(t, statePath, testStateMvOutputOriginal)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }
 

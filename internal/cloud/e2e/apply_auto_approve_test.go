@@ -44,7 +44,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -84,7 +84,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -122,7 +122,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -160,7 +160,7 @@ func Test_terraform_apply_autoApprove(t *testing.T) {
 				},
 			},
 			validations: func(t *testing.T, orgName string) {
-				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: "current_run"})
+				workspace, err := tfeClient.Workspaces.ReadWithOptions(ctx, orgName, "app", &tfe.WorkspaceReadOptions{Include: []tfe.WSIncludeOpt{tfe.WSCurrentRun}})
 				if err != nil {
 					t.Fatal(err)
 				}

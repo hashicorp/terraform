@@ -191,6 +191,26 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Type:     cty.String,
 			Optional: true,
 		},
+		"proxy_scheme": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_host": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_port": {
+			Type:     cty.Number,
+			Optional: true,
+		},
+		"proxy_user_name": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_user_password": {
+			Type:     cty.String,
+			Optional: true,
+		},
 		"bastion_host": {
 			Type:     cty.String,
 			Optional: true,

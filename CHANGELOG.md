@@ -1,27 +1,49 @@
-## 1.2.0 (Unreleased)
+## 1.3.0 (Unreleased)
 
 NEW FEATURES:
 
-* `precondition` and `postcondition` check blocks for resources, data sources, and module output values: module authors can now document assumptions and assertions about configuration and state values. If these conditions are not met, Terraform will report a custom error message to the user and halt further evaluation.
-* Terraform now supports [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks), a Terraform Cloud integration for executing remote operations, for the post plan stage of a run.
+* **Optional attributes for object type constraints:** When declaring an input variable whose type constraint includes an object type, you can now declare individual attributes as optional, and specify a default value to use if the caller doesn't set it. For example:
+
+    ```terraform
+    variable "with_optional_attribute" {
+      type = object({
+        a = string                # a required attribute
+        b = optional(string)      # an optional attribute
+        c = optional(number, 127) # an optional attribute with a default value
+      })
+    }
+    ```
+
+    Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
+
+UPGRADE NOTES:
+
+* `terraform show -json`: Output changes now include more detail about the unknown-ness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
+
+    Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. [GH-31235]
 
 ENHANCEMENTS:
 
-* The "Invalid for_each argument" error message for unknown maps/sets now includes an additional paragraph to try to help the user notice they can move apply-time values into the map _values_ instead of the map _keys_, and thus avoid the problem without resorting to `-target`. [GH-30327]
-* When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about post-plan [run tasks](https://www.terraform.io/cloud-docs/workspaces/settings/run-tasks). [GH-30141]
-* Error messages for preconditions, postconditions, and custom variable validations are now evaluated as expressions, allowing interpolation of relevant values into the output. [GH-30613]
-* There are some small improvements to the error and warning messages Terraform will emit in the case of invalid provider configuration passing between modules. There are no changes to which situations will produce errors and warnings, but the messages now include additional information intended to clarify what problem Terraform is describing and how to address it. [GH-30639]
+* config: Optional attributes for object type constraints, as described under new features above. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
 
 BUG FIXES:
 
-* Terraform now handles type constraints, nullability, and custom variable validation properly for root module variables. Previously there was an order of operations problem where the nullability and custom variable validation were checked too early, prior to dealing with the type constraints, and thus that logic could potentially "see" an incorrectly-typed value in spite of the type constraint, leading to incorrect errors. [GH-29959]
-* `terraform show -json`: JSON plan output now correctly maps aliased providers to their configurations, and includes the full provider source address alongside the short provider name. [GH-30138]
-* Terraform now prints a warning when adding an attribute to `ignore_changes` that is managed only by the provider (non-optional computed attribute). [GH-30517]
+* Made `terraform output` CLI help documentation consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
+* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. [GH-31236]
+
+EXPERIMENTS:
+
+* This release concludes the `module_variable_optional_attrs` experiment, which started in Terraform v0.14.0. The final design of the optional attributes feature is similar to the experimental form in the previous releases, but with two major differences:
+    * The `optional` function-like modifier for declaring an optional attribute now accepts an optional second argument for specifying a default value to use when the attribute isn't set by the caller. If not specified, the default value is a null value of the appropriate type as before.
+    * The built-in `defaults` function, previously used to meet the use-case of replacing null values with default values, will not graduate to stable and has been removed. Use the second argument of `optional` inline in your type constraint to declare default values instead.
+
+    If you have any experimental modules that were participating in this experiment, you will need to remove the experiment opt-in and adopt the new syntax for declaring default values in order to migrate your existing module to the stablized version of this feature.
 
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
 
+* [v1.2](https://github.com/hashicorp/terraform/blob/v1.2/CHANGELOG.md)
 * [v1.1](https://github.com/hashicorp/terraform/blob/v1.1/CHANGELOG.md)
 * [v1.0](https://github.com/hashicorp/terraform/blob/v1.0/CHANGELOG.md)
 * [v0.15](https://github.com/hashicorp/terraform/blob/v0.15/CHANGELOG.md)

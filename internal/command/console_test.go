@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -22,8 +21,7 @@ import (
 // This file still contains some tests using the stdin-based input.
 
 func TestConsole_basic(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -54,9 +52,8 @@ func TestConsole_basic(t *testing.T) {
 }
 
 func TestConsole_tfvars(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Write a terraform.tvars
@@ -113,9 +110,8 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 	//
 	// This test fixture includes variable "foo" {}, which we are
 	// intentionally not setting here.
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -158,9 +154,8 @@ func TestConsole_unsetRequiredVars(t *testing.T) {
 }
 
 func TestConsole_variables(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("variables"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -201,9 +196,8 @@ func TestConsole_variables(t *testing.T) {
 }
 
 func TestConsole_modules(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("modules"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := applyFixtureProvider()

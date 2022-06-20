@@ -27,9 +27,8 @@ import (
 )
 
 func TestPlan(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
@@ -50,12 +49,11 @@ func TestPlan(t *testing.T) {
 }
 
 func TestPlan_lockedState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
-	unlock, err := testLockState(testDataDir, filepath.Join(td, DefaultStateFilename))
+	unlock, err := testLockState(t, testDataDir, filepath.Join(td, DefaultStateFilename))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,8 +81,7 @@ func TestPlan_lockedState(t *testing.T) {
 }
 
 func TestPlan_plan(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	planPath := testPlanFileNoop(t)
 
@@ -106,9 +103,8 @@ func TestPlan_plan(t *testing.T) {
 }
 
 func TestPlan_destroy(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -160,9 +156,8 @@ func TestPlan_destroy(t *testing.T) {
 }
 
 func TestPlan_noState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
@@ -195,9 +190,8 @@ func TestPlan_noState(t *testing.T) {
 }
 
 func TestPlan_outPath(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	outPath := filepath.Join(td, "test.plan")
@@ -228,9 +222,8 @@ func TestPlan_outPath(t *testing.T) {
 }
 
 func TestPlan_outPathNoChange(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -285,9 +278,8 @@ func TestPlan_outPathNoChange(t *testing.T) {
 // When using "-out" with a backend, the plan should encode the backend config
 func TestPlan_outBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-out-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -386,9 +378,8 @@ func TestPlan_outBackend(t *testing.T) {
 
 func TestPlan_refreshFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
@@ -416,9 +407,8 @@ func TestPlan_refreshFalse(t *testing.T) {
 
 func TestPlan_state(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := testState()
@@ -459,9 +449,8 @@ func TestPlan_state(t *testing.T) {
 
 func TestPlan_stateDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Generate state and move it to the default path
@@ -505,9 +494,8 @@ func TestPlan_validate(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-invalid"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -553,9 +541,8 @@ func TestPlan_validate(t *testing.T) {
 
 func TestPlan_vars(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := planVarsFixtureProvider()
@@ -588,11 +575,55 @@ func TestPlan_vars(t *testing.T) {
 	}
 }
 
+func TestPlan_varsInvalid(t *testing.T) {
+	testCases := []struct {
+		args    []string
+		wantErr string
+	}{
+		{
+			[]string{"-var", "foo"},
+			`The given -var option "foo" is not correctly specified.`,
+		},
+		{
+			[]string{"-var", "foo = bar"},
+			`Variable name "foo " is invalid due to trailing space.`,
+		},
+	}
+
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-vars"), td)
+	defer testChdir(t, td)()
+
+	for _, tc := range testCases {
+		t.Run(strings.Join(tc.args, " "), func(t *testing.T) {
+			p := planVarsFixtureProvider()
+			view, done := testView(t)
+			c := &PlanCommand{
+				Meta: Meta{
+					testingOverrides: metaOverridesForProvider(p),
+					View:             view,
+				},
+			}
+
+			code := c.Run(tc.args)
+			output := done(t)
+			if code != 1 {
+				t.Fatalf("bad: %d\n\n%s", code, output.Stdout())
+			}
+
+			got := output.Stderr()
+			if !strings.Contains(got, tc.wantErr) {
+				t.Fatalf("bad error output, want %q, got:\n%s", tc.wantErr, got)
+			}
+		})
+	}
+}
+
 func TestPlan_varsUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// The plan command will prompt for interactive input of var.foo.
@@ -627,9 +658,8 @@ func TestPlan_varsUnset(t *testing.T) {
 // https://github.com/hashicorp/terraform/issues/26035
 func TestPlan_providerArgumentUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Disable test mode so input would be asked
@@ -691,9 +721,8 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 // between config files and interactive input variables.
 // https://github.com/hashicorp/terraform/issues/28956
 func TestPlan_providerConfigMerge(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-provider-input"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Disable test mode so input would be asked
@@ -781,9 +810,8 @@ func TestPlan_providerConfigMerge(t *testing.T) {
 
 func TestPlan_varFile(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
@@ -823,9 +851,8 @@ func TestPlan_varFile(t *testing.T) {
 
 func TestPlan_varFileDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
@@ -863,9 +890,8 @@ func TestPlan_varFileDefault(t *testing.T) {
 
 func TestPlan_varFileWithDecls(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-vars"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
@@ -898,9 +924,8 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 }
 
 func TestPlan_detailedExitcode(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	t.Run("return 1", func(t *testing.T) {
@@ -937,9 +962,8 @@ func TestPlan_detailedExitcode(t *testing.T) {
 }
 
 func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-emptydiff"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -961,9 +985,8 @@ func TestPlan_detailedExitcode_emptyDiff(t *testing.T) {
 
 func TestPlan_shutdown(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-shutdown"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	cancelled := make(chan struct{})
@@ -1031,9 +1054,8 @@ func TestPlan_shutdown(t *testing.T) {
 }
 
 func TestPlan_init_required(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	view, done := testView(t)
@@ -1058,9 +1080,8 @@ func TestPlan_init_required(t *testing.T) {
 
 // Config with multiple resources, targeting plan of a subset
 func TestPlan_targeted(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("apply-targeted"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -1145,9 +1166,8 @@ func TestPlan_targetFlagsDiags(t *testing.T) {
 }
 
 func TestPlan_replace(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan-replace"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	originalState := states.BuildState(func(s *states.SyncState) {
@@ -1219,9 +1239,8 @@ func TestPlan_replace(t *testing.T) {
 // concurrent calls to PlanResourceChange.
 func TestPlan_parallelism(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("parallelism"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	par := 4
@@ -1302,9 +1321,8 @@ func TestPlan_parallelism(t *testing.T) {
 }
 
 func TestPlan_warnings(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("plan"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	t.Run("full warnings", func(t *testing.T) {

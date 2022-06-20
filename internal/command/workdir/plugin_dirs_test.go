@@ -1,7 +1,6 @@
 package workdir
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -9,11 +8,7 @@ import (
 )
 
 func TestDirForcedPluginDirs(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "terraform-workdir-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
 	dir := NewDir(tmpDir)
 	// We'll use the default convention of a data dir nested inside the

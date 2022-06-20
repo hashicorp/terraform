@@ -41,7 +41,8 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	newObj, valDiags := b.PrepareConfig(obj)
 	diags = diags.Append(valDiags.InConfigBody(c, ""))
 
-	if len(diags) != 0 {
+	// it's valid for a Backend to have warnings (e.g. a Deprecation) as such we should only raise on errors
+	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 

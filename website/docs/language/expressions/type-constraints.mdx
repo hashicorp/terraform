@@ -258,39 +258,128 @@ variable "no_type_constraint" {
 In this case, Terraform will replace `any` with the exact type of the given
 value and thus perform no type conversion whatsoever.
 
-## Experimental: Optional Object Type Attributes
+## Optional Object Type Attributes
 
-From Terraform v0.14 there is _experimental_ support for marking particular
-attributes as optional in an object type constraint.
+-> **Note:** Optional type attributes are supported in Terraform v1.3 and later.
 
-To mark an attribute as optional, use the additional `optional(...)` modifier
-around its type declaration:
+Terraform typically returns an error when it does not receive a value for specified object attributes. When you mark an attribute as optional, Terraform instead inserts a default value for the missing attribute. This allows the receiving module to describe an appropriate fallback behavior.
+
+To mark attributes as optional, use the `optional` modifier in the object type constraint. The following example creates optional attribute `b` and optional attribute with a default value `c`.
 
 ```hcl
 variable "with_optional_attribute" {
   type = object({
-    a = string           # a required attribute
-    b = optional(string) # an optional attribute
+    a = string                # a required attribute
+    b = optional(string)      # an optional attribute
+    c = optional(number, 127) # an optional attribute with default value
   })
 }
 ```
 
-By default, for required attributes, Terraform will return an error if the
-source value has no matching attribute. Marking an attribute as optional
-changes the behavior in that situation: Terraform will instead just silently
-insert `null` as the value of the attribute, allowing the receiving module
-to describe an appropriate fallback behavior.
+The `optional` modifier takes one or two arguments.
+- **Type:** (Required) The first argument
+specifies the type of the attribute.
+- **Default:** (Optional) The second argument defines the default value that Terraform should use if the attribute is not present. This must be compatible with the attribute type. If not specified, Terraform uses a `null` value of the appropriate type as the default.
 
-Because this feature is currently experimental, it requires an explicit
-opt-in on a per-module basis. To use it, write a `terraform` block with the
-`experiments` argument set as follows:
+Terraform applies object attribute defaults top-down in nested variable types. This means that Terraform applies the default value you specify in the `optional` modifier first and then later applies any nested default values to that attribute.
+
+### Example: Nested Structures with Optional Attributes and Defaults
+
+The following example defines a variable for storage buckets that host a website. This variable type uses several optional attributes, including `website`, which is itself an optional `object` type that has optional attributes and defaults.
 
 ```hcl
-terraform {
-  experiments = [module_variable_optional_attrs]
+variable "buckets" {
+  type = list(object({
+    name    = string
+    enabled = optional(bool, true)
+    website = optional(object({
+      index_document = optional(string, "index.html")
+      error_document = optional(string, "error.html")
+      routing_rules  = optional(string)
+    }), {})
+  }))
 }
 ```
 
-Until the experiment is concluded, the behavior of this feature may see
-breaking changes even in minor releases. We recommend using this feature
-only in prerelease versions of modules as long as it remains experimental.
+The following example `terraform.tfvars` file specifies three bucket configurations for `var.buckets`.
+
+- `production` sets the routing rules to add a redirect
+- `archived` uses default configuration, but is disabled
+- `docs` overrides the index and error documents to use text files
+
+The `production` bucket does not specify the index and error documents, and the `archived` bucket omits the website configuration entirely. Terraform will use the default values specified in the `bucket` type constraint.
+
+```hcl
+buckets = [
+  {
+    name = "production"
+    website = {
+      routing_rules = <<-EOT
+      [
+        {
+          "Condition" = { "KeyPrefixEquals": "img/" },
+          "Redirect"  = { "ReplaceKeyPrefixWith": "images/" }
+        }
+      ]
+      EOT
+    }
+  },
+  {
+    name = "archived"
+    enabled = false
+  },
+  {
+    name = "docs"
+    website = {
+      index_document = "index.txt"
+      error_document = "error.txt"
+    }
+  },
+]
+```
+
+This configuration produces the following variable values.
+
+- For the `production` and `docs` buckets, Terraform sets `enabled` to `true`. Terraform also supplies default values for `website`, and then the values specified in `docs` override those defaults.
+- For the `archived` and `docs` buckets, Terraform sets `routing_rules` to a `null` value. When Terraform does not receive optional attributes and there are no specified defaults, Terraform populates those attributes with a `null` value.
+- For the `archived` bucket, Terraform populates the `website` attribute with the default values specified in the `buckets` type constraint.
+
+```hcl
+tolist([
+  {
+    "enabled" = true
+    "name" = "production"
+    "website" = {
+      "error_document" = "error.html"
+      "index_document" = "index.html"
+      "routing_rules" = <<-EOT
+      [
+        {
+          "Condition" = { "KeyPrefixEquals": "img/" },
+          "Redirect"  = { "ReplaceKeyPrefixWith": "images/" }
+        }
+      ]
+
+      EOT
+    }
+  },
+  {
+    "enabled" = false
+    "name" = "archived"
+    "website" = {
+      "error_document" = "error.html"
+      "index_document" = "index.html"
+      "routing_rules" = tostring(null)
+    }
+  },
+  {
+    "enabled" = true
+    "name" = "docs"
+    "website" = {
+      "error_document" = "error.txt"
+      "index_document" = "index.txt"
+      "routing_rules" = tostring(null)
+    }
+  },
+])
+```

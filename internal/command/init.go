@@ -1042,8 +1042,8 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend or Terraform Cloud initialization for
-                          this configuration and use what what was previously
+  -backend=false          Disable backend or Terraform Cloud initialization
+                          for this configuration and use what was previously
                           initialized instead.
 
                           aliases: -cloud=false

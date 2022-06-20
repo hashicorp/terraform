@@ -173,6 +173,13 @@ For ease of consumption by callers, the plan representation includes a partial r
       // - "delete_because_each_key": The corresponding resource uses for_each,
       //   but the instance key doesn't match any of the keys in the
       //   currently-configured for_each value.
+      // - "read_because_config_unknown": For a data resource, Terraform cannot
+      //   read the data during the plan phase because of values in the
+      //   configuration that won't be known until the apply phase.
+      // - "read_because_dependency_pending": For a data resource, Terraform
+      //   cannot read the data during the plan phase because the data
+      //   resource depends on at least one managed resource that also has
+      //   a pending change in the same plan.
       //
       // If there is no special reason to note, Terraform will omit this
       // property altogether.
@@ -217,6 +224,7 @@ The following example illustrates the structure of a `<values-representation>`:
   "outputs": {
     "private_ip": {
       "value": "192.168.3.2",
+      "type": "string",
       "sensitive": false
     }
   },
@@ -306,6 +314,8 @@ The following example illustrates the structure of a `<values-representation>`:
 ```
 
 The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+
+Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
 Only the "current" object for each resource instance is described. "Deposed" objects are not reflected in this structure at all; in plan representations, you can refer to the change representations for further details.
 

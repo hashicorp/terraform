@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -199,7 +200,27 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+	diags = diags.Append(rDiags)
+
+	plan.RelevantAttributes = relevantAttrs
+	diags = diags.Append(c.checkApplyGraph(plan, config))
+
 	return plan, diags
+}
+
+// checkApplyGraph builds the apply graph out of the current plan to
+// check for any errors that may arise once the planned changes are added to
+// the graph. This allows terraform to report errors (mostly cycles) during
+// plan that would otherwise only crop up during apply
+func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
+	if plan.Changes.Empty() {
+		log.Println("[DEBUG] no planned changes, skipping apply graph check")
+		return nil
+	}
+	log.Println("[DEBUG] building apply graph to check for errors")
+	_, _, diags := c.applyGraph(plan, config, true)
+	return diags
 }
 
 var DefaultPlanOpts = &PlanOpts{
@@ -285,6 +306,10 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	// objects that would need to be created.
 	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
+	// We don't populate RelevantResources for a refresh-only plan, because
+	// they never have any planned actions and so no resource can ever be
+	// "relevant" per the intended meaning of that field.
+
 	return plan, diags
 }
 
@@ -357,6 +382,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		destroyPlan.PrevRunState = pendingPlan.PrevRunState
 	}
 
+	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
+	diags = diags.Append(rDiags)
+
+	destroyPlan.RelevantAttributes = relevantAttrs
 	return destroyPlan, diags
 }
 
@@ -381,7 +410,7 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 	var diags tfdiags.Diagnostics
 
 	var excluded []addrs.AbsResourceInstance
-	for _, result := range moveResults.Changes {
+	for _, result := range moveResults.Changes.Values() {
 		fromMatchesTarget := false
 		toMatchesTarget := false
 		for _, targetAddr := range targets {
@@ -471,10 +500,12 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
+	conditions := plans.NewConditions()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
 		Config:      config,
 		InputState:  prevRunState,
 		Changes:     changes,
+		Conditions:  conditions,
 		MoveResults: moveResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
@@ -491,7 +522,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	}
 	diags = diags.Append(moveValidateDiags) // might just contain warnings
 
-	if len(moveResults.Blocked) > 0 && !diags.HasErrors() {
+	if moveResults.Blocked.Len() > 0 && !diags.HasErrors() {
 		// If we had blocked moves and we're not going to be returning errors
 		// then we'll report the blockers as a warning. We do this only in the
 		// absense of errors because invalid move statements might well be
@@ -508,6 +539,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	plan := &plans.Plan{
 		UIMode:           opts.Mode,
 		Changes:          changes,
+		Conditions:       conditions,
 		DriftedResources: driftedResources,
 		PrevRunState:     prevRunState,
 		PriorState:       priorState,
@@ -542,7 +574,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
-		graph, diags := (&DestroyPlanGraphBuilder{
+		graph, diags := DestroyPlanGraphBuilder(&PlanGraphBuilder{
 			Config:             config,
 			State:              prevRunState,
 			RootVariableValues: opts.SetVariables,
@@ -560,7 +592,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	if newState.ManagedResourcesEqual(oldState) && len(moves.Changes) == 0 {
+	if newState.ManagedResourcesEqual(oldState) && moves.Changes.Len() == 0 {
 		// Nothing to do, because we only detect and report drift for managed
 		// resource instances.
 		return nil, diags
@@ -592,7 +624,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				// Previous run address defaults to the current address, but
 				// can differ if the resource moved before refreshing
 				prevRunAddr := addr
-				if move, ok := moves.Changes[addr.UniqueKey()]; ok {
+				if move, ok := moves.Changes.GetOk(addr); ok {
 					prevRunAddr = move.From
 				}
 
@@ -717,13 +749,13 @@ func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.St
 }
 
 func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic {
-	if len(results.Blocked) < 1 {
+	if results.Blocked.Len() < 1 {
 		// Caller should check first
 		panic("request to render blocked moves warning without any blocked moves")
 	}
 
 	var itemsBuf bytes.Buffer
-	for _, blocked := range results.Blocked {
+	for _, blocked := range results.Blocked.Values() {
 		fmt.Fprintf(&itemsBuf, "\n  - %s could not move to %s", blocked.Actual, blocked.Wanted)
 	}
 
@@ -735,4 +767,53 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 			itemsBuf.String(),
 		),
 	)
+}
+
+// referenceAnalyzer returns a globalref.Analyzer object to help with
+// global analysis of references within the configuration that's attached
+// to the receiving context.
+func (c *Context) referenceAnalyzer(config *configs.Config, state *states.State) (*globalref.Analyzer, tfdiags.Diagnostics) {
+	schemas, diags := c.Schemas(config, state)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return globalref.NewAnalyzer(config, schemas.Providers), diags
+}
+
+// relevantResourcesForPlan implements the heuristic we use to populate the
+// RelevantResources field of returned plans.
+func (c *Context) relevantResourceAttrsForPlan(config *configs.Config, plan *plans.Plan) ([]globalref.ResourceAttr, tfdiags.Diagnostics) {
+	azr, diags := c.referenceAnalyzer(config, plan.PriorState)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	var refs []globalref.Reference
+	for _, change := range plan.Changes.Resources {
+		if change.Action == plans.NoOp {
+			continue
+		}
+
+		moreRefs := azr.ReferencesFromResourceInstance(change.Addr)
+		refs = append(refs, moreRefs...)
+	}
+
+	for _, change := range plan.Changes.Outputs {
+		if change.Action == plans.NoOp {
+			continue
+		}
+
+		moreRefs := azr.ReferencesFromOutputValue(change.Addr)
+		refs = append(refs, moreRefs...)
+	}
+
+	var contributors []globalref.ResourceAttr
+
+	for _, ref := range azr.ContributingResourceReferences(refs...) {
+		if res, ok := ref.ResourceAttr(); ok {
+			contributors = append(contributors, res)
+		}
+	}
+
+	return contributors, diags
 }

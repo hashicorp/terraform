@@ -22,8 +22,8 @@ UTF-8 and then percent encoding is applied separately to each UTF-8 byte.
 ## Examples
 
 ```
-> urlencode("Hello World")
-Hello%20World
+> urlencode("Hello World!")
+Hello+World%21
 > urlencode("☃")
 %E2%98%83
 > "http://example.com/search?q=${urlencode("terraform urlencode")}"

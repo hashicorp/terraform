@@ -27,7 +27,7 @@ type remoteClient struct {
 func (r *remoteClient) Get() (*remote.Payload, error) {
 	ctx := context.Background()
 
-	sv, err := r.client.StateVersions.Current(ctx, r.workspace.ID)
+	sv, err := r.client.StateVersions.ReadCurrent(ctx, r.workspace.ID)
 	if err != nil {
 		if err == tfe.ErrResourceNotFound {
 			// If no state exists, then return nil.

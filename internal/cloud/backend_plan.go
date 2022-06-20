@@ -326,7 +326,7 @@ in order to capture the filesystem context the remote workspace expects:
 	// Retrieve the run to get its current status.
 	runID := r.ID
 	r, err = b.client.Runs.ReadWithOptions(stopCtx, runID, &tfe.RunReadOptions{
-		Include: "task_stages",
+		Include: []tfe.RunIncludeOpt{tfe.RunTaskStages},
 	})
 	if err != nil {
 		// This error would be expected for older versions of TFE that do not allow

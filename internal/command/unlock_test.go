@@ -13,9 +13,8 @@ import (
 // Since we can't unlock a local state file, just test that calling unlock
 // doesn't fail.
 func TestUnlock(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Write the legacy state
@@ -66,9 +65,8 @@ func TestUnlock(t *testing.T) {
 // Newly configured backend
 func TestUnlock_inmemBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("backend-inmem-locked"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()
 

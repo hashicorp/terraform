@@ -14,7 +14,7 @@ Use the `depends_on` meta-argument to handle hidden resource or module dependenc
 
 ## Processing and Planning Consequences
 
-The `depends_on` meta-argument instructs Terraform to complete all actions on the the dependency object (including Read actions) before performing actions on the object declaring the dependency. When one the dependency object is an entire module, `depends_on` affects the order in which Terraform processes all of the resources and data sources associated with that module. Refer to [Resource Dependencies](/language/resources/behavior#resource-dependencies) and [Data Resource Dependencies](/language/data-sources#data-resource-dependencies) for more details.
+The `depends_on` meta-argument instructs Terraform to complete all actions on the dependency object (including Read actions) before performing actions on the object declaring the dependency. When the dependency object is an entire module, `depends_on` affects the order in which Terraform processes all of the resources and data sources associated with that module. Refer to [Resource Dependencies](/language/resources/behavior#resource-dependencies) and [Data Resource Dependencies](/language/data-sources#data-resource-dependencies) for more details.
 
 You should use `depends_on` as a last resort because it can cause Terraform to create more conservative plans that replace more resources than necessary. For example, Terraform may treat more values as unknown “(known after apply)” because it is uncertain what changes will occur on the upstream object. This is especially likely when you use `depends_on` for modules.
 

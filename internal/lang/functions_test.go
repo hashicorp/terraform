@@ -291,18 +291,6 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
-		"defaults": {
-			// This function is pretty specialized and so this is mainly
-			// just a test that it is defined at all. See the function's
-			// own unit tests for more interesting test cases.
-			{
-				`defaults({a: 4}, {a: 5})`,
-				cty.ObjectVal(map[string]cty.Value{
-					"a": cty.NumberIntVal(4),
-				}),
-			},
-		},
-
 		"dirname": {
 			{
 				`dirname("testdata/hello.txt")`,

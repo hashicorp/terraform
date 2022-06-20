@@ -119,11 +119,6 @@ func TestCidrNetmask(t *testing.T) {
 			false,
 		},
 		{
-			cty.StringVal("1::/64"),
-			cty.StringVal("ffff:ffff:ffff:ffff::"),
-			false,
-		},
-		{
 			// We inadvertently inherited a pre-Go1.17 standard library quirk
 			// if parsing zero-prefix parts as decimal rather than octal.
 			// Go 1.17 resolved that quirk by making zero-prefix invalid, but
@@ -143,6 +138,11 @@ func TestCidrNetmask(t *testing.T) {
 			cty.StringVal("110.256.0.0/8"),
 			cty.UnknownVal(cty.String),
 			true, // can't have an octet >255
+		},
+		{
+			cty.StringVal("1::/64"),
+			cty.UnknownVal(cty.String),
+			true, // IPv6 is invalid
 		},
 	}
 

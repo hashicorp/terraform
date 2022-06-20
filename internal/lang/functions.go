@@ -56,7 +56,6 @@ func (s *Scope) Functions() map[string]function.Function {
 			"concat":           stdlib.ConcatFunc,
 			"contains":         stdlib.ContainsFunc,
 			"csvdecode":        stdlib.CSVDecodeFunc,
-			"defaults":         s.experimentalFunction(experiments.ModuleVariableOptionalAttrs, funcs.DefaultsFunc),
 			"dirname":          funcs.DirnameFunc,
 			"distinct":         stdlib.DistinctFunc,
 			"element":          stdlib.ElementFunc,
@@ -174,6 +173,8 @@ func (s *Scope) Functions() map[string]function.Function {
 // the recieving scope. If so, it will return the given function verbatim.
 // If not, it will return a placeholder function that just returns an
 // error explaining that the function requires the experiment to be enabled.
+//
+//lint:ignore U1000 Ignore unused function error for now
 func (s *Scope) experimentalFunction(experiment experiments.Experiment, fn function.Function) function.Function {
 	if s.activeExperiments.Has(experiment) {
 		return fn

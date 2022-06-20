@@ -17,6 +17,13 @@ import (
 type Parser struct {
 	fs afero.Afero
 	p  *hclparse.Parser
+
+	// allowExperiments controls whether we will allow modules to opt in to
+	// experimental language features. In main code this will be set only
+	// for alpha releases and some development builds. Test code must decide
+	// for itself whether to enable it so that tests can cover both the
+	// allowed and not-allowed situations.
+	allowExperiments bool
 }
 
 // NewParser creates and returns a new Parser that reads files from the given
@@ -97,4 +104,17 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 		Body:  hcl.EmptyBody(),
 		Bytes: src,
 	})
+}
+
+// AllowLanguageExperiments specifies whether subsequent LoadConfigFile (and
+// similar) calls will allow opting in to experimental language features.
+//
+// If this method is never called for a particular parser, the default behavior
+// is to disallow language experiments.
+//
+// Main code should set this only for alpha or development builds. Test code
+// is responsible for deciding for itself whether and how to call this
+// method.
+func (p *Parser) AllowLanguageExperiments(allowed bool) {
+	p.allowExperiments = allowed
 }

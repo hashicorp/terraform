@@ -87,27 +87,26 @@ func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...strin
 			}
 			defer exp.Close()
 
-			tmpDir, err := ioutil.TempDir("", "terraform-test")
-			if err != nil {
-				subtest.Fatal(err)
-			}
-			defer os.RemoveAll(tmpDir)
+			tmpDir := t.TempDir()
 
-			tf := e2e.NewBinary(terraformBin, tmpDir)
+			tf := e2e.NewBinary(t, terraformBin, tmpDir)
 			tfEnvFlags = append(tfEnvFlags, "TF_LOG=INFO")
 			tfEnvFlags = append(tfEnvFlags, cliConfigFileEnv)
 			for _, env := range tfEnvFlags {
 				tf.AddEnv(env)
 			}
-			defer tf.Close()
 
 			var orgName string
 			for index, op := range tc.operations {
-				if orgCount == 1 {
+				switch orgCount {
+				case 0:
+					orgName = ""
+				case 1:
 					orgName = orgNames[0]
-				} else {
+				default:
 					orgName = orgNames[index]
 				}
+
 				op.prep(t, orgName, tf.WorkDir())
 				for _, tfCmd := range op.commands {
 					cmd := tf.Cmd(tfCmd.command...)

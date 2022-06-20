@@ -43,6 +43,11 @@ func (c *StateMvCommand) Run(args []string) int {
 		return cli.RunResultHelp
 	}
 
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// If backup or backup-out options are set
 	// and the state option is not set, make sure
 	// the backend is local

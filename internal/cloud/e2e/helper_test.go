@@ -191,6 +191,51 @@ output "val" {
 `, tfeHostname, org, name)
 }
 
+func terraformConfigCloudBackendOmitOrg(workspaceName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+
+	workspaces {
+	  name = "%s"
+	}
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, workspaceName)
+}
+
+func terraformConfigCloudBackendOmitWorkspaces(orgName string) string {
+	return fmt.Sprintf(`
+terraform {
+  cloud {
+    hostname = "%s"
+	organization = "%s"
+  }
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`, tfeHostname, orgName)
+}
+
+func terraformConfigCloudBackendOmitConfig() string {
+	return `
+terraform {
+  cloud {}
+}
+
+output "val" {
+  value = "${terraform.workspace}"
+}
+`
+}
+
 func writeMainTF(t *testing.T, block string, dir string) {
 	f, err := os.Create(fmt.Sprintf("%s/main.tf", dir))
 	if err != nil {
@@ -213,7 +258,7 @@ func skipWithoutRemoteTerraformVersion(t *testing.T) {
 	if err != nil {
 		t.Fatalf(fmt.Sprintf("Error instantiating go-version for %s", version))
 	}
-	opts := tfe.AdminTerraformVersionsListOptions{
+	opts := &tfe.AdminTerraformVersionsListOptions{
 		ListOptions: tfe.ListOptions{
 			PageNumber: 1,
 			PageSize:   100,
@@ -251,6 +296,6 @@ findTfVersion:
 	}
 
 	if !hasVersion {
-		t.Skip(fmt.Sprintf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version))
+		t.Skipf("Skipping test because TFC/E does not have current Terraform version to test with (%s)", version)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -13,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/mitchellh/cli"
 )
 
 func TestMetaColorize(t *testing.T) {
@@ -179,9 +181,8 @@ func TestMeta_initStatePaths(t *testing.T) {
 }
 
 func TestMeta_Env(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	m := new(Meta)
@@ -255,9 +256,8 @@ func TestMeta_Workspace_override(t *testing.T) {
 }
 
 func TestMeta_Workspace_invalidSelected(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// this is an invalid workspace name
@@ -292,9 +292,8 @@ func TestMeta_process(t *testing.T) {
 	defer func() { test = true }()
 
 	// Create a temporary directory for our cwd
-	d := tempDir(t)
+	d := t.TempDir()
 	os.MkdirAll(d, 0755)
-	defer os.RemoveAll(d)
 	defer testChdir(t, d)()
 
 	// At one point it was the responsibility of this process function to
@@ -384,5 +383,33 @@ func TestMeta_process(t *testing.T) {
 				test.ExtraCheck(t, m)
 			}
 		})
+	}
+}
+
+func TestCommand_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	meta := Meta{
+		Ui: ui,
+	}
+
+	diags := meta.checkRequiredVersion()
+	if diags == nil {
+		t.Fatalf("diagnostics should contain unmet version constraint, but is nil")
+	}
+
+	meta.showDiagnostics(diags)
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }

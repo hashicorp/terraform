@@ -5,9 +5,11 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 )
@@ -31,6 +33,10 @@ type NodePlannableResourceInstance struct {
 	// it might contain addresses that have nothing to do with the resource
 	// that this node represents, which the node itself must therefore ignore.
 	forceReplace []addrs.AbsResourceInstance
+
+	// replaceTriggeredBy stores references from replace_triggered_by which
+	// triggered this instance to be replaced.
+	replaceTriggeredBy []*addrs.Reference
 }
 
 var (
@@ -71,25 +77,6 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	state, readDiags := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
-	// We'll save a snapshot of what we just read from the state into the
-	// prevRunState which will capture the result read in the previous
-	// run, possibly tweaked by any upgrade steps that
-	// readResourceInstanceState might've made.
-	// However, note that we don't have any explicit mechanism for upgrading
-	// data resource results as we do for managed resources, and so the
-	// prevRunState might not conform to the current schema if the
-	// previous run was with a different provider version.
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, prevRunState))
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
 	if diags.HasErrors() {
 		return diags
@@ -100,7 +87,7 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, state, checkRuleSeverity)
+	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -124,9 +111,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
 	checkDiags := evalCheckRules(
-		checkResourcePostcondition,
+		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
-		ctx, addr.Resource, repeatData,
+		ctx, addr, repeatData,
 		checkRuleSeverity,
 	)
 	diags = diags.Append(checkDiags)
@@ -211,12 +198,36 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Plan the instance, unless we're in the refresh-only mode
 	if !n.skipPlanChanges {
+
+		// add this instance to n.forceReplace if replacement is triggered by
+		// another change
+		repData := instances.RepetitionData{}
+		switch k := addr.Resource.Key.(type) {
+		case addrs.IntKey:
+			repData.CountIndex = k.Value()
+		case addrs.StringKey:
+			repData.EachKey = k.Value()
+			repData.EachValue = cty.DynamicVal
+		}
+
+		diags = diags.Append(n.replaceTriggered(ctx, repData))
+		if diags.HasErrors() {
+			return diags
+		}
+
 		change, instancePlanState, repeatData, planDiags := n.plan(
 			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
+		}
+
+		// FIXME: here we udpate the change to reflect the reason for
+		// replacement, but we still overload forceReplace to get the correct
+		// change planned.
+		if len(n.replaceTriggeredBy) > 0 {
+			change.ActionReason = plans.ResourceInstanceReplaceByTriggers
 		}
 
 		diags = diags.Append(n.checkPreventDestroy(change))
@@ -266,9 +277,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// (Note that some preconditions will end up being skipped during
 		// planning, because their conditions depend on values not yet known.)
 		checkDiags := evalCheckRules(
-			checkResourcePostcondition,
+			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
-			ctx, addr.Resource, repeatData,
+			ctx, n.ResourceInstanceAddr(), repeatData,
 			tfdiags.Error,
 		)
 		diags = diags.Append(checkDiags)
@@ -284,9 +295,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 		checkDiags := evalCheckRules(
-			checkResourcePrecondition,
+			addrs.ResourcePrecondition,
 			n.Config.Preconditions,
-			ctx, nil, repeatData,
+			ctx, addr, repeatData,
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)
@@ -307,12 +318,42 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// even if pre-conditions generated diagnostics, because we have no
 		// planned changes to block.
 		checkDiags = evalCheckRules(
-			checkResourcePostcondition,
+			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
-			ctx, addr.Resource, repeatData,
+			ctx, addr, repeatData,
 			tfdiags.Warning,
 		)
 		diags = diags.Append(checkDiags)
+	}
+
+	return diags
+}
+
+// replaceTriggered checks if this instance needs to be replace due to a change
+// in a replace_triggered_by reference. If replacement is required, the
+// instance address is added to forceReplace
+func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	for _, expr := range n.Config.TriggersReplacement {
+		ref, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)
+		diags = diags.Append(evalDiags)
+		if diags.HasErrors() {
+			continue
+		}
+
+		if replace {
+			// FIXME: forceReplace accomplishes the same goal, however we may
+			// want to communicate more information about which resource
+			// triggered the replacement in the plan.
+			// Rather than further complicating the plan method with more
+			// options, we can refactor both of these features later.
+			n.forceReplace = append(n.forceReplace, n.Addr)
+			log.Printf("[DEBUG] ReplaceTriggeredBy forcing replacement of %s due to change in %s", n.Addr, ref.DisplayString())
+
+			n.replaceTriggeredBy = append(n.replaceTriggeredBy, ref)
+			break
+		}
 	}
 
 	return diags
@@ -349,6 +390,14 @@ func depsEqual(a, b []addrs.ConfigResource) bool {
 	if len(a) != len(b) {
 		return false
 	}
+
+	// Because we need to sort the deps to compare equality, make shallow
+	// copies to prevent concurrently modifying the array values on
+	// dependencies shared between expanded instances.
+	copyA, copyB := make([]addrs.ConfigResource, len(a)), make([]addrs.ConfigResource, len(b))
+	copy(copyA, a)
+	copy(copyB, b)
+	a, b = copyA, copyB
 
 	less := func(s []addrs.ConfigResource) func(i, j int) bool {
 		return func(i, j int) bool {

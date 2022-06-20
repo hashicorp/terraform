@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // When developing UI for experimental features, you can temporarily disable
@@ -27,7 +26,7 @@ var disableExperimentWarnings = ""
 // the experiments are known before we process the result of the module config,
 // and thus we can take into account which experiments are active when deciding
 // how to decode.
-func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
+func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.Diagnostics) {
 	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
 
 	ret := experiments.NewSet()
@@ -85,9 +84,18 @@ func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
 		}
 
 		exps, expDiags := decodeExperimentsAttr(attr)
-		diags = append(diags, expDiags...)
-		if !expDiags.HasErrors() {
-			ret = experiments.SetUnion(ret, exps)
+		if allowed {
+			diags = append(diags, expDiags...)
+			if !expDiags.HasErrors() {
+				ret = experiments.SetUnion(ret, exps)
+			}
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Module uses experimental features",
+				Detail:   "Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
 		}
 	}
 
@@ -145,7 +153,7 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  fmt.Sprintf("Experimental feature %q is active", exp.Keyword()),
-					Detail:   "Experimental features are subject to breaking changes in future minor or patch releases, based on feedback.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+					Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 					Subject:  expr.Range().Ptr(),
 				})
 			}
@@ -196,100 +204,5 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
-	if !m.ActiveExperiments.Has(experiments.ModuleVariableOptionalAttrs) {
-		for _, v := range m.Variables {
-			if typeConstraintHasOptionalAttrs(v.ConstraintType) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Optional object type attributes are experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding module_variable_optional_attrs to the list of active experiments.",
-					Subject:  v.DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
-	if !m.ActiveExperiments.Has(experiments.PreconditionsPostconditions) {
-		for _, r := range m.ManagedResources {
-			for _, c := range r.Preconditions {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Preconditions are experimental",
-					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
-					Subject:  c.DeclRange.Ptr(),
-				})
-			}
-			for _, c := range r.Postconditions {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Postconditions are experimental",
-					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
-					Subject:  c.DeclRange.Ptr(),
-				})
-			}
-		}
-		for _, r := range m.DataResources {
-			for _, c := range r.Preconditions {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Preconditions are experimental",
-					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
-					Subject:  c.DeclRange.Ptr(),
-				})
-			}
-			for _, c := range r.Postconditions {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Postconditions are experimental",
-					Detail:   "The resource preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
-					Subject:  c.DeclRange.Ptr(),
-				})
-			}
-		}
-		for _, o := range m.Outputs {
-			for _, c := range o.Preconditions {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Preconditions are experimental",
-					Detail:   "The output value preconditions feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding preconditions_postconditions to the list of active experiments.",
-					Subject:  c.DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return diags
-}
-
-func typeConstraintHasOptionalAttrs(ty cty.Type) bool {
-	if ty == cty.NilType {
-		// Weird, but we'll just ignore it to avoid crashing.
-		return false
-	}
-
-	switch {
-	case ty.IsPrimitiveType():
-		return false
-	case ty.IsCollectionType():
-		return typeConstraintHasOptionalAttrs(ty.ElementType())
-	case ty.IsObjectType():
-		if len(ty.OptionalAttributes()) != 0 {
-			return true
-		}
-		for _, aty := range ty.AttributeTypes() {
-			if typeConstraintHasOptionalAttrs(aty) {
-				return true
-			}
-		}
-		return false
-	case ty.IsTupleType():
-		for _, ety := range ty.TupleElementTypes() {
-			if typeConstraintHasOptionalAttrs(ety) {
-				return true
-			}
-		}
-		return false
-	default:
-		return false
-	}
 }

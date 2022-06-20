@@ -3,7 +3,6 @@ package cloud
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -15,14 +14,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
-)
-
-var (
-	errApplyDiscarded   = errors.New("Apply discarded.")
-	errDestroyDiscarded = errors.New("Destroy discarded.")
-	errRunApproved      = errors.New("approved using the UI or API")
-	errRunDiscarded     = errors.New("discarded using the UI or API")
-	errRunOverridden    = errors.New("overridden using the UI or API")
 )
 
 var (
@@ -109,7 +100,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			// Skip checking the workspace queue when we are the current run.
 			if w.CurrentRun == nil || w.CurrentRun.ID != r.ID {
 				found := false
-				options := tfe.RunListOptions{}
+				options := &tfe.RunListOptions{}
 			runlist:
 				for {
 					rl, err := b.client.Runs.List(stopCtx, w.ID, options)
@@ -164,10 +155,10 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 				}
 			}
 
-			options := tfe.RunQueueOptions{}
+			options := tfe.ReadRunQueueOptions{}
 		search:
 			for {
-				rq, err := b.client.Organizations.RunQueue(stopCtx, b.organization, options)
+				rq, err := b.client.Organizations.ReadRunQueue(stopCtx, b.organization, options)
 				if err != nil {
 					return r, generalError("Failed to retrieve queue", err)
 				}
@@ -190,7 +181,7 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 			}
 
 			if position > 0 {
-				c, err := b.client.Organizations.Capacity(stopCtx, b.organization)
+				c, err := b.client.Organizations.ReadCapacity(stopCtx, b.organization)
 				if err != nil {
 					return r, generalError("Failed to retrieve capacity", err)
 				}
@@ -388,6 +379,8 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 				if _, err = b.client.PolicyChecks.Override(stopCtx, pc.ID); err != nil {
 					return generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
 				}
+			} else if !b.input {
+				return errPolicyOverrideNeedsUIConfirmation
 			} else {
 				opts := &terraform.InputOpts{
 					Id:          "override",

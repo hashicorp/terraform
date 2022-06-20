@@ -28,9 +28,16 @@ type ConfigTransformer struct {
 	// Mode will only add resources that match the given mode
 	ModeFilter bool
 	Mode       addrs.ResourceMode
+
+	// Do not apply this transformer.
+	skip bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	// If no configuration is available, we don't do anything
 	if t.Config == nil {
 		return nil

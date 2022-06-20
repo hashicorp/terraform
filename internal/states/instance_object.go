@@ -115,7 +115,12 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 	// stored in state as an array. To avoid pointless thrashing of state in
 	// refresh-only runs, we can either override comparison of dependency lists
 	// (more desirable, but tricky for Reasons) or just sort when encoding.
-	sort.Slice(o.Dependencies, func(i, j int) bool { return o.Dependencies[i].String() < o.Dependencies[j].String() })
+	// Encoding of instances can happen concurrently, so we must copy the
+	// dependencies to avoid mutating what may be a shared array of values.
+	dependencies := make([]addrs.ConfigResource, len(o.Dependencies))
+	copy(dependencies, o.Dependencies)
+
+	sort.Slice(dependencies, func(i, j int) bool { return dependencies[i].String() < dependencies[j].String() })
 
 	return &ResourceInstanceObjectSrc{
 		SchemaVersion:       schemaVersion,
@@ -123,7 +128,7 @@ func (o *ResourceInstanceObject) Encode(ty cty.Type, schemaVersion uint64) (*Res
 		AttrSensitivePaths:  pvm,
 		Private:             o.Private,
 		Status:              o.Status,
-		Dependencies:        o.Dependencies,
+		Dependencies:        dependencies,
 		CreateBeforeDestroy: o.CreateBeforeDestroy,
 	}, nil
 }

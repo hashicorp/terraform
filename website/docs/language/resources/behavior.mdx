@@ -89,6 +89,8 @@ cases,
 [the `depends_on` meta-argument](/language/meta-arguments/depends_on)
 can explicitly specify a dependency.
 
+You can also use the [`replace_triggered_by` meta-argument](/language/meta-arguments/lifecycle#replace_triggered_by) to add dependencies between otherwise independent resources. It forces Terraform to replace the parent resource when there is a change to a referenced resource or resource attribute.
+
 ## Local-only Resources
 
 While most resource types correspond to an infrastructure object type that

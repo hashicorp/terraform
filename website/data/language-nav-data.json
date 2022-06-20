@@ -272,16 +272,16 @@
         "path": "expressions/dynamic-blocks"
       },
       {
+        "title": "Custom Condition Checks",
+        "path": "expressions/custom-conditions"
+      },
+      {
         "title": "Type Constraints",
         "path": "expressions/type-constraints"
       },
       {
         "title": "Version Constraints",
         "path": "expressions/version-constraints"
-      },
-      {
-        "title": "Pre and Postconditions",
-        "path": "expressions/preconditions-postconditions"
       }
     ]
   },
@@ -685,10 +685,6 @@
         "routes": [
           { "title": "<code>can</code>", "href": "/language/functions/can" },
           {
-            "title": "<code>defaults</code>",
-            "href": "/language/functions/defaults"
-          },
-          {
             "title": "<code>nonsensitive</code>",
             "href": "/language/functions/nonsensitive"
           },
@@ -777,7 +773,6 @@
       { "title": "concat", "path": "functions/concat", "hidden": true },
       { "title": "contains", "path": "functions/contains", "hidden": true },
       { "title": "csvdecode", "path": "functions/csvdecode", "hidden": true },
-      { "title": "defaults", "path": "functions/defaults", "hidden": true },
       { "title": "dirname", "path": "functions/dirname", "hidden": true },
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },
@@ -908,7 +903,6 @@
       {
         "title": "Backends",
         "routes": [
-          { "title": "Overview", "path": "settings/backends" },
           {
             "title": "Backend Configuration",
             "path": "settings/backends/configuration"
@@ -1097,6 +1091,10 @@
     "routes": [
       { "title": "Overview", "path": "upgrade-guides" },
       {
+        "title": "Upgrading to Terraform v1.2",
+        "path": "upgrade-guides/1-2"
+      },
+      {
         "title": "Upgrading to Terraform v1.1",
         "path": "upgrade-guides/1-1"
       },
@@ -1216,5 +1214,8 @@
         "path": "configuration-0-11/environment-variables"
       }
     ]
-  }
+  },
+  { "divider": true },
+  { "title": "Terraform Internals", "href": "/internals" },
+  { "divider": true }
 ]
