@@ -128,7 +128,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// We also need nodes for any deposed instance objects present in the
 		// state, so we can plan to destroy them. (During plan this will
-		// intentionally skips creating nodes for _current_ objects, since
+		// intentionally skip creating nodes for _current_ objects, since
 		// ConfigTransformer created nodes that will do that during
 		// DynamicExpand.)
 		&StateTransformer{
