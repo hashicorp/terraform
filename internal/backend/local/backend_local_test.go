@@ -19,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -220,7 +221,7 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
-func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
+func (s *stateStorageThatFailsRefresh) WriteState(*states.State, *terraform.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }
 

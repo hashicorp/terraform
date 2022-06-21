@@ -45,7 +45,7 @@ func RefreshAndRead(mgr Storage) (*states.State, error) {
 // is required, call WriteState and PersistState on the state manager directly
 // and handle their errors.
 func WriteAndPersist(mgr Storage, state *states.State) error {
-	err := mgr.WriteState(state)
+	err := mgr.WriteState(state, nil)
 	if err != nil {
 		return err
 	}

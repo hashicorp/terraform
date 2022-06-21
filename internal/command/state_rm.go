@@ -110,7 +110,7 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	if err := stateMgr.WriteState(state); err != nil {
+	if err := stateMgr.WriteState(state, nil); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}

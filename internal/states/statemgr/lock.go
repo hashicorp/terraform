@@ -1,6 +1,9 @@
 package statemgr
 
-import "github.com/hashicorp/terraform/internal/states"
+import (
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
+)
 
 // LockDisabled implements State and Locker but disables state locking.
 // If State doesn't support locking, this is a no-op. This is useful for
@@ -15,8 +18,8 @@ func (s *LockDisabled) State() *states.State {
 	return s.Inner.State()
 }
 
-func (s *LockDisabled) WriteState(v *states.State) error {
-	return s.Inner.WriteState(v)
+func (s *LockDisabled) WriteState(v *states.State, schemas *terraform.Schemas) error {
+	return s.Inner.WriteState(v, schemas)
 }
 
 func (s *LockDisabled) RefreshState() error {

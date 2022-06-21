@@ -138,7 +138,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 
 		// If we have no state, we have to create an empty state
 		if v := s.State(); v == nil {
-			if err := s.WriteState(statespkg.NewState()); err != nil {
+			if err := s.WriteState(statespkg.NewState(), nil); err != nil {
 				return nil, err
 			}
 			if err := s.PersistState(); err != nil {

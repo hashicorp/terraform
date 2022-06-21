@@ -67,5 +67,5 @@ func WritePlannedStateUpdate(mgr Transient, planned *statefile.File) error {
 		}
 	}
 
-	return mgr.WriteState(planned.State)
+	return mgr.WriteState(planned.State, nil)
 }

@@ -251,7 +251,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := state.WriteState(newState); err != nil {
+	if err := state.WriteState(newState, nil); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

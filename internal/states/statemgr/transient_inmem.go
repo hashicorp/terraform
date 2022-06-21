@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // NewTransientInMemory returns a Transient implementation that retains
@@ -32,7 +33,7 @@ func (m *transientInMemory) State() *states.State {
 	return m.current.DeepCopy()
 }
 
-func (m *transientInMemory) WriteState(new *states.State) error {
+func (m *transientInMemory) WriteState(new *states.State, schemas *terraform.Schemas) error {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 

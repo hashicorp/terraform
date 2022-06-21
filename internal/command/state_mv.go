@@ -386,7 +386,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Write the new state
-	if err := stateToMgr.WriteState(stateTo); err != nil {
+	if err := stateToMgr.WriteState(stateTo, nil); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
@@ -397,7 +397,7 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	// Write the old state if it is different
 	if stateTo != stateFrom {
-		if err := stateFromMgr.WriteState(stateFrom); err != nil {
+		if err := stateFromMgr.WriteState(stateFrom, nil); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}

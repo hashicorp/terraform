@@ -78,7 +78,7 @@ func TestRemoteState(t *testing.T) {
 	// force overwriting the remote state
 	newState := statespkg.NewState()
 
-	if err := s.WriteState(newState); err != nil {
+	if err := s.WriteState(newState, nil); err != nil {
 		t.Fatal(err)
 	}
 

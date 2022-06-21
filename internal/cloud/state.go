@@ -19,11 +19,11 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// CustomState implements the State interfaces in the state package to handle
+// State implements the State interfaces in the state package to handle
 // reading and writing the remote state to TFC. This State on its own does no
 // local caching so every persist will go to the remote storage and local
 // writes will go to memory.
-type CustomState struct {
+type State struct {
 	mu sync.Mutex
 
 	// Client Client
@@ -50,11 +50,11 @@ type CustomState struct {
 	lockInfo             *statemgr.LockInfo
 }
 
-var _ statemgr.Full = (*CustomState)(nil)
-var _ statemgr.Migrator = (*CustomState)(nil)
+var _ statemgr.Full = (*State)(nil)
+var _ statemgr.Migrator = (*State)(nil)
 
 // statemgr.Reader impl.
-func (s *CustomState) State() *states.State {
+func (s *State) State() *states.State {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -62,7 +62,7 @@ func (s *CustomState) State() *states.State {
 }
 
 // StateForMigration is part of our implementation of statemgr.Migrator.
-func (s *CustomState) StateForMigration() *statefile.File {
+func (s *State) StateForMigration() *statefile.File {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -70,7 +70,7 @@ func (s *CustomState) StateForMigration() *statefile.File {
 }
 
 // WriteStateForMigration is part of our implementation of statemgr.Migrator.
-func (s *CustomState) WriteStateForMigration(f *statefile.File, force bool) error {
+func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -101,7 +101,7 @@ func (s *CustomState) WriteStateForMigration(f *statefile.File, force bool) erro
 // DisableLocks turns the Lock and Unlock methods into no-ops. This is intended
 // to be called during initialization of a state manager and should not be
 // called after any of the statemgr.Full interface methods have been called.
-func (s *CustomState) DisableLocks() {
+func (s *State) DisableLocks() {
 	s.disableLocks = true
 }
 
@@ -109,14 +109,15 @@ func (s *CustomState) DisableLocks() {
 // or refreshed persistent state snapshot.
 //
 // This is an implementation of statemgr.PersistentMeta.
-func (s *CustomState) StateSnapshotMeta() statemgr.SnapshotMeta {
+func (s *State) StateSnapshotMeta() statemgr.SnapshotMeta {
 	return statemgr.SnapshotMeta{
 		Lineage: s.lineage,
 		Serial:  s.serial,
 	}
 }
 
-func (s *CustomState) WriteState(state *states.State) error {
+// statemgr.Writer impl.
+func (s *State) WriteState(state *states.State, schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -124,28 +125,17 @@ func (s *CustomState) WriteState(state *states.State) error {
 	// a reference to the given object and can potentially go on to mutate
 	// it after we return, but we want the snapshot at this point in time.
 	s.state = state.DeepCopy()
+	s.schemas = schemas
 
 	return nil
 }
 
-// statemgr.Writer impl.
-// func (s *CustomState) WriteState(state *states.State, schemas *terraform.Schemas) error {
-// 	s.mu.Lock()
-// 	defer s.mu.Unlock()
-
-// 	// We create a deep copy of the state here, because the caller also has
-// 	// a reference to the given object and can potentially go on to mutate
-// 	// it after we return, but we want the snapshot at this point in time.
-// 	s.state = state.DeepCopy()
-// 	s.schemas = schemas
-
-// 	return nil
-// }
-
 // statemgr.Persister impl.
-func (s *CustomState) PersistState() error {
+func (s *State) PersistState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	fmt.Printf("Printing schemas: %+v", s.schemas)
 
 	if s.readState != nil {
 		lineageUnchanged := s.readLineage != "" && s.lineage == s.readLineage
@@ -197,7 +187,6 @@ func (s *CustomState) PersistState() error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("jsonState: %+v", string(jsonState))
 		options.ExtState = jsonState
 	}
 
@@ -207,7 +196,7 @@ func (s *CustomState) PersistState() error {
 	if runID != "" {
 		options.Run = &tfe.Run{ID: runID}
 	}
-
+	fmt.Printf("printing options: %+v", options)
 	// Create the new state.
 	_, err = s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
 	if err != nil {
@@ -226,20 +215,8 @@ func (s *CustomState) PersistState() error {
 	return nil
 }
 
-// func getRemoteClient(tfeClient *tfe.Client, org string, ws *tfe.Workspace) *remoteClient {
-// 	return &remoteClient{
-// 		client:       tfeClient,
-// 		organization: org,
-// 		workspace:    ws,
-
-// 		// This is optionally set during Terraform Enterprise runs.
-// 		runID: os.Getenv("TFE_RUN_ID"),
-// 	}
-
-// }
-
 // Lock calls the Client's Lock method if it's implemented.
-func (s *CustomState) Lock(info *statemgr.LockInfo) (string, error) {
+func (s *State) Lock(info *statemgr.LockInfo) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -269,7 +246,7 @@ func (s *CustomState) Lock(info *statemgr.LockInfo) (string, error) {
 }
 
 // statemgr.Refresher impl.
-func (s *CustomState) RefreshState() error {
+func (s *State) RefreshState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.refreshState()
@@ -278,7 +255,7 @@ func (s *CustomState) RefreshState() error {
 // refreshState is the main implementation of RefreshState, but split out so
 // that we can make internal calls to it from methods that are already holding
 // the s.mu lock.
-func (s *CustomState) refreshState() error {
+func (s *State) refreshState() error {
 	ctx := context.Background()
 
 	sv, err := s.tfeClient.StateVersions.ReadCurrent(ctx, s.workspace.ID)
@@ -333,7 +310,7 @@ func (s *CustomState) refreshState() error {
 }
 
 // Unlock calls the Client's Unlock method if it's implemented.
-func (s *CustomState) Unlock(id string) error {
+func (s *State) Unlock(id string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -392,7 +369,7 @@ func (s *CustomState) Unlock(id string) error {
 }
 
 // Delete the remote state.
-func (s *CustomState) Delete() error {
+func (s *State) Delete() error {
 	err := s.tfeClient.Workspaces.Delete(context.Background(), s.organization, s.workspace.Name)
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return fmt.Errorf("error deleting workspace %s: %v", s.workspace.Name, err)
@@ -403,6 +380,6 @@ func (s *CustomState) Delete() error {
 
 // EnableForcePush to allow the remote client to overwrite state
 // by implementing remote.ClientForcePusher
-func (s *CustomState) EnableForcePush() {
+func (s *State) EnableForcePush() {
 	s.forcePush = true
 }

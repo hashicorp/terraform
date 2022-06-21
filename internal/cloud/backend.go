@@ -524,10 +524,10 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 		return backend.ErrWorkspacesNotSupported
 	}
 	// Configure the remote workspace name.
-	customState := &CustomState{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+	State := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
 		Name: name,
 	}}
-	return customState.Delete()
+	return State.Delete()
 }
 
 // StateMgr implements backend.Enhanced.
@@ -612,7 +612,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	return &CustomState{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
+	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
 }
 
 // Operation implements backend.Enhanced.

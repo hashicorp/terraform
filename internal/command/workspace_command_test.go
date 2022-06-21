@@ -249,7 +249,7 @@ func TestWorkspace_createWithState(t *testing.T) {
 		)
 	})
 
-	err := statemgr.NewFilesystem("test.tfstate").WriteState(originalState)
+	err := statemgr.NewFilesystem("test.tfstate").WriteState(originalState, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

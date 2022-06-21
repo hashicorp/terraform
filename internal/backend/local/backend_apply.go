@@ -68,19 +68,19 @@ func (b *Local) opApply(
 	// operation.
 	runningOp.State = lr.InputState
 
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
 		// Perform the plan
 		log.Printf("[INFO] backend/local: apply calling Plan")
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			op.ReportResult(runningOp, diags)
-			return
-		}
-
-		schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			op.ReportResult(runningOp, diags)
@@ -199,7 +199,7 @@ func (b *Local) opApply(
 	// Store the final state
 	runningOp.State = applyState
 
-	err := opState.WriteState(applyState)
+	err := opState.WriteState(applyState, schemas)
 	if err != nil {
 		// Export the state file from the state manager and assign the new
 		// state. This is needed to preserve the existing serial and lineage.

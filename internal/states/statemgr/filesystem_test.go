@@ -38,7 +38,7 @@ func TestFilesystemRace(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			ls.WriteState(current)
+			ls.WriteState(current, nil)
 		}()
 	}
 	wg.Wait()
@@ -123,7 +123,7 @@ func TestFilesystem_writeWhileLocked(t *testing.T) {
 		}
 	}()
 
-	if err := s.WriteState(TestFullInitialState()); err != nil {
+	if err := s.WriteState(TestFullInitialState(), nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -245,7 +245,7 @@ func TestFilesystem_backupAndReadPath(t *testing.T) {
 			false, // not sensitive
 		)
 	})
-	err = ls.WriteState(newState)
+	err = ls.WriteState(newState, nil)
 	if err != nil {
 		t.Fatalf("failed to write new state: %s", err)
 	}

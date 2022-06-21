@@ -127,7 +127,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		//it's listed by States.
 		if v := stateMgr.State(); v == nil {
 			// If we have no state, we have to create an empty state
-			if err := stateMgr.WriteState(states.NewState()); err != nil {
+			if err := stateMgr.WriteState(states.NewState(), nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

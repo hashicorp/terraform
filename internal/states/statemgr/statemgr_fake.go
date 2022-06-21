@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // NewFullFake returns a full state manager that really only supports transient
@@ -53,16 +54,16 @@ func (m *fakeFull) State() *states.State {
 	return m.t.State()
 }
 
-func (m *fakeFull) WriteState(s *states.State) error {
-	return m.t.WriteState(s)
+func (m *fakeFull) WriteState(s *states.State, schemas *terraform.Schemas) error {
+	return m.t.WriteState(s, nil)
 }
 
 func (m *fakeFull) RefreshState() error {
-	return m.t.WriteState(m.fakeP.State())
+	return m.t.WriteState(m.fakeP.State(), nil)
 }
 
 func (m *fakeFull) PersistState() error {
-	return m.fakeP.WriteState(m.t.State())
+	return m.fakeP.WriteState(m.t.State(), nil)
 }
 
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {
@@ -111,7 +112,7 @@ func (m *fakeErrorFull) State() *states.State {
 	return nil
 }
 
-func (m *fakeErrorFull) WriteState(s *states.State) error {
+func (m *fakeErrorFull) WriteState(s *states.State, schemas *terraform.Schemas) error {
 	return errors.New("fake state manager error")
 }
 
