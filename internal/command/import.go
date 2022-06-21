@@ -248,10 +248,18 @@ func (c *ImportCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-
+	// Get schemas, if possible
+	var schemas *terraform.Schemas
+	schemas = nil
+	if config != nil || newState != nil {
+		schemas, diags = getSchemas(&c.Meta, newState, config)
+		if diags.HasErrors() {
+			return 1
+		}
+	}
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := state.WriteState(newState, nil); err != nil {
+	if err := state.WriteState(newState, schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

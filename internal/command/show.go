@@ -110,20 +110,8 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.
 
 	// Get schemas, if possible
 	if config != nil || stateFile != nil {
-		opts, err := c.contextOpts()
-		if err != nil {
-			diags = diags.Append(err)
-			return plan, stateFile, config, schemas, diags
-		}
-		tfCtx, ctxDiags := terraform.NewContext(opts)
-		diags = diags.Append(ctxDiags)
-		if ctxDiags.HasErrors() {
-			return plan, stateFile, config, schemas, diags
-		}
-		var schemaDiags tfdiags.Diagnostics
-		schemas, schemaDiags = tfCtx.Schemas(config, stateFile.State)
-		diags = diags.Append(schemaDiags)
-		if schemaDiags.HasErrors() {
+		schemas, diags = getSchemas(&c.Meta, stateFile.State, config)
+		if diags.HasErrors() {
 			return plan, stateFile, config, schemas, diags
 		}
 	}
