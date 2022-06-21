@@ -31,3 +31,7 @@ func (d diagnosticBase) Source() Source {
 func (d diagnosticBase) FromExpr() *FromExpr {
 	return nil
 }
+
+func (d diagnosticBase) ExtraInfo() interface{} {
+	return nil
+}
