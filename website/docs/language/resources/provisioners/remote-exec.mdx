@@ -48,6 +48,9 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
+* `environment` - (Optional) block of key value pairs representing the
+  environment of the executed command. inherits the current process environment.
+
 * `inline` - This is a list of command strings. They are executed in the order
   they are provided. This cannot be provided with `script` or `scripts`.
 
@@ -82,6 +85,26 @@ resource "aws_instance" "web" {
     inline = [
       "chmod +x /tmp/script.sh",
       "/tmp/script.sh args",
+    ]
+  }
+}
+```
+
+## Environment Argument
+
+You can only use the `environment` argument with the `inline` argument.
+
+```hcl
+resource "aws_instance" "web" {
+  # ...
+
+  provisioner "remote-exec" {
+    environment = {
+      MY_VAR = "My variable value"
+    }
+
+    inline = [
+      "echo \"The value of my var is: $MY_VAR\"",
     ]
   }
 }
