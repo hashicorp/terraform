@@ -385,8 +385,22 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	path, err := ModulePath(args)
+	if err != nil {
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		return 1
+	}
+	// Get schemas, if possible
+	schemas, diags := getSchemas(&c.Meta, stateTo, config)
+	if diags.HasErrors() {
+		return 1
+	}
 	// Write the new state
-	if err := stateToMgr.WriteState(stateTo, nil); err != nil {
+	if err := stateToMgr.WriteState(stateTo, schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
