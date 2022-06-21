@@ -213,9 +213,6 @@ type Meta struct {
 	migrateState     bool
 	compactWarnings  bool
 
-	// Used with the import command to allow import of state when no matching config exists.
-	allowMissingConfig bool
-
 	// Used with commands which write state to allow users to write remote
 	// state even if the remote and local Terraform versions don't match.
 	ignoreRemoteVersion bool
