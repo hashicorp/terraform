@@ -528,15 +528,16 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] fmt [options] [DIR]
+Usage: terraform [global options] fmt [options] [TARGET]
 
 	Rewrites all Terraform configuration files to a canonical format. Both
 	configuration files (.tf) and variables files (.tfvars) are updated.
 	JSON files (.tf.json or .tfvars.json) are not modified.
 
-	If DIR is not specified then the current working directory will be used.
-	If DIR is "-" then content will be read from STDIN. The given content must
-	be in the Terraform language native syntax; JSON is not supported.
+	If TARGET is not specified then the current working directory will be
+	used. If TARGET is a file, only that file will be used. If TARGET is
+	"-" then content will be read from STDIN. The given content must be in
+	the Terraform language native syntax; JSON is not supported.
 
 Options:
 
