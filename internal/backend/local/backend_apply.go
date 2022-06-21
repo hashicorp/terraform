@@ -199,33 +199,15 @@ func (b *Local) opApply(
 	// Store the final state
 	runningOp.State = applyState
 
-	err := opState.WriteState(applyState, schemas)
-	if err != nil {
-		// Export the state file from the state manager and assign the new
-		// state. This is needed to preserve the existing serial and lineage.
-		stateFile := statemgr.Export(opState)
-		if stateFile == nil {
-			stateFile = &statefile.File{}
-		}
-		stateFile.State = applyState
-
-		diags = diags.Append(b.backupStateForError(stateFile, err, op.View))
-		op.ReportResult(runningOp, diags)
+	errWrite := opState.WriteState(applyState, schemas)
+	if errWrite != nil {
+		b.handleStateError(applyState, opState, runningOp, op, diags, errWrite)
 		return
 	}
 
-	err = opState.PersistState()
-	if err != nil {
-		// Export the state file from the state manager and assign the new
-		// state. This is needed to preserve the existing serial and lineage.
-		stateFile := statemgr.Export(opState)
-		if stateFile == nil {
-			stateFile = &statefile.File{}
-		}
-		stateFile.State = applyState
-
-		diags = diags.Append(b.backupStateForError(stateFile, err, op.View))
-		op.ReportResult(runningOp, diags)
+	errPersist := opState.PersistState()
+	if errPersist != nil {
+		b.handleStateError(applyState, opState, runningOp, op, diags, errPersist)
 		return
 	}
 
@@ -238,6 +220,19 @@ func (b *Local) opApply(
 	// here just before we show the summary and next steps. If we encountered
 	// errors then we would've returned early at some other point above.
 	op.View.Diagnostics(diags)
+}
+
+func (b *Local) handleStateError(applyState *states.State, opState statemgr.Full, runningOp *backend.RunningOperation, op *backend.Operation, diags tfdiags.Diagnostics, err error) {
+	// Export the state file from the state manager and assign the new
+	// state. This is needed to preserve the existing serial and lineage.
+	stateFile := statemgr.Export(opState)
+	if stateFile == nil {
+		stateFile = &statefile.File{}
+	}
+	stateFile.State = applyState
+
+	diags = diags.Append(b.backupStateForError(stateFile, err, op.View))
+	op.ReportResult(runningOp, diags)
 }
 
 // backupStateForError is called in a scenario where we're unable to persist the
