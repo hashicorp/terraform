@@ -398,7 +398,6 @@ func (c *StateMvCommand) Run(args []string) int {
 	// Get schemas, if possible
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
 	if diags.HasErrors() {
-		fmt.Println("here3")
 		return 1
 	}
 	// Write the new state
