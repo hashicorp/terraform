@@ -15,6 +15,13 @@ type Diagnostic interface {
 	// available. Returns nil if the diagnostic is not related to an
 	// expression evaluation.
 	FromExpr() *FromExpr
+
+	// ExtraInfo returns the raw extra information value. This is a low-level
+	// API which requires some work on the part of the caller to properly
+	// access associated information, so in most cases it'll be more convienient
+	// to use the package-level ExtraInfo function to try to unpack a particular
+	// specialized interface from this value.
+	ExtraInfo() interface{}
 }
 
 type Severity rune
