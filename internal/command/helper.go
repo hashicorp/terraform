@@ -9,8 +9,8 @@ import (
 
 func getSchemas(c *Meta, state *states.State, config *configs.Config) (*terraform.Schemas, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
 	if config != nil || state != nil {
-		var schemas *terraform.Schemas
 		opts, err := c.contextOpts()
 		if err != nil {
 			diags = diags.Append(err)
@@ -22,12 +22,13 @@ func getSchemas(c *Meta, state *states.State, config *configs.Config) (*terrafor
 			return nil, diags
 		}
 		var schemaDiags tfdiags.Diagnostics
-		schemas, schemaDiags = tfCtx.Schemas(config, state)
+		schemas, schemaDiags := tfCtx.Schemas(config, state)
 		diags = diags.Append(schemaDiags)
 		if schemaDiags.HasErrors() {
 			return nil, diags
 		}
 		return schemas, diags
+
 	}
 	return nil, diags
 }
