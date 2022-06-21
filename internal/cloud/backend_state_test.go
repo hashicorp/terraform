@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"bytes"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -10,49 +11,53 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 )
 
-func TestRemoteClient_impl(t *testing.T) {
+func TestCloudState_impl(t *testing.T) {
 	var _ remote.Client = new(remoteClient)
 }
 
-func TestRemoteClient(t *testing.T) {
-	client := testRemoteClient(t)
-	remote.TestClient(t, client)
+func TestCloudState(t *testing.T) {
+	state := testCloudState(t)
+	TestState(t, state)
 }
 
-func TestRemoteClient_stateLock(t *testing.T) {
-	// b, bCleanup := testBackendWithName(t)
-	// defer bCleanup()
+func TestCloudState_stateLock(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
 
-	// s1, err := b.StateMgr(testBackendSingleWorkspaceName)
-	// if err != nil {
-	// 	t.Fatalf("expected no error, got %v", err)
-	// }
+	s1, err := b.StateMgr(testBackendSingleWorkspaceName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-	// s2, err := b.StateMgr(testBackendSingleWorkspaceName)
-	// if err != nil {
-	// 	t.Fatalf("expected no error, got %v", err)
-	// }
+	s2, err := b.StateMgr(testBackendSingleWorkspaceName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 
-	// remote.TestRemoteLocks(t, s1, s2)
+	TestCloudLocks(t, s1, s2)
 }
 
-func TestRemoteClient_withRunID(t *testing.T) {
+func TestCloudState_withRunID(t *testing.T) {
 	// Set the TFE_RUN_ID environment variable before creating the client!
 	if err := os.Setenv("TFE_RUN_ID", GenerateID("run-")); err != nil {
 		t.Fatalf("error setting env var TFE_RUN_ID: %v", err)
 	}
 
 	// Create a new test client.
-	client := testRemoteClient(t)
+	state := testCloudState(t)
 
 	// Create a new empty state.
 	sf := statefile.New(states.NewState(), "", 0)
 	var buf bytes.Buffer
 	statefile.Write(sf, &buf)
 
-	// Store the new state to verify (this will be done
-	// by the mock that is used) that the run ID is set.
-	if err := client.Put(buf.Bytes()); err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	jsonState, err := ioutil.ReadFile("../command/testdata/show-json-state/sensitive-variables/output.json")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := state.uploadState(state.lineage, state.serial, state.forcePush, buf.Bytes(), jsonState); err != nil {
+		t.Fatalf("put: %s", err)
 	}
 }

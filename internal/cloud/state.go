@@ -172,33 +172,15 @@ func (s *State) PersistState() error {
 		return err
 	}
 
-	ctx := context.Background()
-
-	options := tfe.StateVersionCreateOptions{
-		Lineage: tfe.String(s.lineage),
-		Serial:  tfe.Int64(int64(s.serial)),
-		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(buf.Bytes()))),
-		State:   tfe.String(base64.StdEncoding.EncodeToString(buf.Bytes())),
-		Force:   tfe.Bool(s.forcePush),
-	}
-
+	var jsonState []byte
 	if s.schemas != nil {
-		jsonState, err := jsonstate.Marshal(f, s.schemas)
+		jsonState, err = jsonstate.Marshal(f, s.schemas)
 		if err != nil {
 			return err
 		}
-		options.ExtState = jsonState
 	}
 
-	// If we have a run ID, make sure to add it to the options
-	// so the state will be properly associated with the run.
-	runID := os.Getenv("TFE_RUN_ID")
-	if runID != "" {
-		options.Run = &tfe.Run{ID: runID}
-	}
-	fmt.Printf("printing options: %+v", options)
-	// Create the new state.
-	_, err = s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
+	err = s.uploadState(s.lineage, s.serial, s.forcePush, buf.Bytes(), jsonState)
 	if err != nil {
 		s.stateUploadErr = true
 		return fmt.Errorf("error uploading state: %w", err)
@@ -213,6 +195,30 @@ func (s *State) PersistState() error {
 	s.readLineage = s.lineage
 	s.readSerial = s.serial
 	return nil
+}
+
+func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState []byte) error {
+	ctx := context.Background()
+
+	options := tfe.StateVersionCreateOptions{
+		Lineage:  tfe.String(lineage),
+		Serial:   tfe.Int64(int64(serial)),
+		MD5:      tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+		State:    tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:    tfe.Bool(isForcePush),
+		ExtState: jsonState,
+	}
+
+	// If we have a run ID, make sure to add it to the options
+	// so the state will be properly associated with the run.
+	runID := os.Getenv("TFE_RUN_ID")
+	if runID != "" {
+		options.Run = &tfe.Run{ID: runID}
+	}
+	fmt.Printf("printing options: %+v", options)
+	// Create the new state.
+	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
+	return err
 }
 
 // Lock calls the Client's Lock method if it's implemented.
@@ -256,40 +262,17 @@ func (s *State) RefreshState() error {
 // that we can make internal calls to it from methods that are already holding
 // the s.mu lock.
 func (s *State) refreshState() error {
-	ctx := context.Background()
-
-	sv, err := s.tfeClient.StateVersions.ReadCurrent(ctx, s.workspace.ID)
+	payload, err := s.getStatePayload()
 	if err != nil {
-		if err == tfe.ErrResourceNotFound {
-			// If no state exists, then return nil.
-			s.readState = nil
-			s.lineage = ""
-			s.serial = 0
-			return nil
-		}
-		return fmt.Errorf("error retrieving state: %v", err)
+		return err
 	}
 
-	state, err := s.tfeClient.StateVersions.Download(ctx, sv.DownloadURL)
-
-	if err != nil {
-		return fmt.Errorf("error downloading state: %v", err)
-	}
-
-	// If the state is empty, then return nil.
-	if len(state) == 0 {
+	// no remote state is OK
+	if payload == nil {
 		s.readState = nil
 		s.lineage = ""
 		s.serial = 0
 		return nil
-	}
-
-	// Get the MD5 checksum of the state.
-	sum := md5.Sum(state)
-
-	payload := &remote.Payload{
-		Data: state,
-		MD5:  sum[:],
 	}
 
 	stateFile, err := statefile.Read(bytes.NewReader(payload.Data))
@@ -307,6 +290,37 @@ func (s *State) refreshState() error {
 	s.readSerial = stateFile.Serial
 	s.readState = s.state.DeepCopy()
 	return nil
+}
+
+func (s *State) getStatePayload() (*remote.Payload, error) {
+	ctx := context.Background()
+
+	sv, err := s.tfeClient.StateVersions.ReadCurrent(ctx, s.workspace.ID)
+	if err != nil {
+		if err == tfe.ErrResourceNotFound {
+			// If no state exists, then return nil.
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error retrieving state: %v", err)
+	}
+
+	state, err := s.tfeClient.StateVersions.Download(ctx, sv.DownloadURL)
+	if err != nil {
+		return nil, fmt.Errorf("error downloading state: %v", err)
+	}
+
+	// If the state is empty, then return nil.
+	if len(state) == 0 {
+		return nil, nil
+	}
+
+	// Get the MD5 checksum of the state.
+	sum := md5.Sum(state)
+
+	return &remote.Payload{
+		Data: state,
+		MD5:  sum[:],
+	}, nil
 }
 
 // Unlock calls the Client's Unlock method if it's implemented.
