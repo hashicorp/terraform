@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -385,7 +386,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	path, err := ModulePath(args)
+	path, err := os.Getwd()
 	if err != nil {
 		return 1
 	}
@@ -397,6 +398,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	// Get schemas, if possible
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
 	if diags.HasErrors() {
+		fmt.Println("here3")
 		return 1
 	}
 	// Write the new state
