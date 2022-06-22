@@ -127,7 +127,21 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := stateMgr.WriteState(srcStateFile.State, nil); err != nil {
+	path, err := os.Getwd()
+	if err != nil {
+		return 1
+	}
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		return 1
+	}
+	// Get schemas, if possible
+	schemas, diags := getSchemas(&c.Meta, srcStateFile.State, config)
+	if diags.HasErrors() {
+		return 1
+	}
+
+	if err := stateMgr.WriteState(srcStateFile.State, schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
