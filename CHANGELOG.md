@@ -30,7 +30,8 @@ BUG FIXES:
 
 * Made `terraform output` CLI help documentation consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
 * `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. [GH-31236]
-* Consider `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` environment variables in S3 backend.
+* Consider `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` environment variables 
+  in S3 backend. ([#31300](https://github.com/hashicorp/terraform/pull/31300))
 
 EXPERIMENTS:
 

@@ -139,7 +139,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "MFA token",
-				Default:     "",
+				DefaultFunc: schema.EnvDefaultFunc("AWS_SESSION_TOKEN", ""),
 			},
 
 			"skip_credentials_validation": {
