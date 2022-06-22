@@ -40,27 +40,36 @@ type CheckRule struct {
 // is found.
 func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resource) hcl.Diagnostics {
 	var diags hcl.Diagnostics
-	refs, _ := lang.References(cr.Condition.Variables())
-	for _, ref := range refs {
-		var refAddr addrs.Resource
-
-		switch rs := ref.Subject.(type) {
-		case addrs.Resource:
-			refAddr = rs
-		case addrs.ResourceInstance:
-			refAddr = rs.Resource
-		default:
+	exprs := []hcl.Expression{
+		cr.Condition,
+		cr.ErrorMessage,
+	}
+	for _, expr := range exprs {
+		if expr == nil {
 			continue
 		}
+		refs, _ := lang.References(expr.Variables())
+		for _, ref := range refs {
+			var refAddr addrs.Resource
 
-		if refAddr.Equal(addr) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  fmt.Sprintf("Invalid reference in %s", checkType),
-				Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addr.String()),
-				Subject:  cr.Condition.Range().Ptr(),
-			})
-			break
+			switch rs := ref.Subject.(type) {
+			case addrs.Resource:
+				refAddr = rs
+			case addrs.ResourceInstance:
+				refAddr = rs.Resource
+			default:
+				continue
+			}
+
+			if refAddr.Equal(addr) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Invalid reference in %s", checkType),
+					Detail:   fmt.Sprintf("Configuration for %s may not refer to itself.", addr.String()),
+					Subject:  expr.Range().Ptr(),
+				})
+				break
+			}
 		}
 	}
 	return diags
