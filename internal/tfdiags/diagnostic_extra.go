@@ -101,3 +101,71 @@ type DiagnosticExtraUnwrapper interface {
 	// value returns a value that was also wrapping it.
 	UnwrapDiagnosticExtra() interface{}
 }
+
+// DiagnosticExtraBecauseUnknown is an interface implemented by values in
+// the Extra field of Diagnostic when the diagnostic is potentially caused by
+// the presence of unknown values in an expression evaluation.
+//
+// Just implementing this interface is not sufficient signal, though. Callers
+// must also call the DiagnosticCausedByUnknown method in order to confirm
+// the result, or use the package-level function DiagnosticCausedByUnknown
+// as a convenient wrapper.
+type DiagnosticExtraBecauseUnknown interface {
+	// DiagnosticCausedByUnknown returns true if the associated diagnostic
+	// was caused by the presence of unknown values during an expression
+	// evaluation, or false otherwise.
+	//
+	// Callers might use this to tailor what contextual information they show
+	// alongside an error report in the UI, to avoid potential confusion
+	// caused by talking about the presence of unknown values if that was
+	// immaterial to the error.
+	DiagnosticCausedByUnknown() bool
+}
+
+// DiagnosticCausedByUnknown returns true if the given diagnostic has an
+// indication that it was caused by the presence of unknown values during
+// an expression evaluation.
+//
+// This is a wrapper around checking if the diagnostic's extra info implements
+// interface DiagnosticExtraBecauseUnknown and then calling its method if so.
+func DiagnosticCausedByUnknown(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraBecauseUnknown](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticCausedByUnknown()
+}
+
+// DiagnosticExtraBecauseSensitive is an interface implemented by values in
+// the Extra field of Diagnostic when the diagnostic is potentially caused by
+// the presence of sensitive values in an expression evaluation.
+//
+// Just implementing this interface is not sufficient signal, though. Callers
+// must also call the DiagnosticCausedBySensitive method in order to confirm
+// the result, or use the package-level function DiagnosticCausedBySensitive
+// as a convenient wrapper.
+type DiagnosticExtraBecauseSensitive interface {
+	// DiagnosticCausedBySensitive returns true if the associated diagnostic
+	// was caused by the presence of sensitive values during an expression
+	// evaluation, or false otherwise.
+	//
+	// Callers might use this to tailor what contextual information they show
+	// alongside an error report in the UI, to avoid potential confusion
+	// caused by talking about the presence of sensitive values if that was
+	// immaterial to the error.
+	DiagnosticCausedBySensitive() bool
+}
+
+// DiagnosticCausedBySensitive returns true if the given diagnostic has an
+// indication that it was caused by the presence of sensitive values during
+// an expression evaluation.
+//
+// This is a wrapper around checking if the diagnostic's extra info implements
+// interface DiagnosticExtraBecauseSensitive and then calling its method if so.
+func DiagnosticCausedBySensitive(diag Diagnostic) bool {
+	maybe := ExtraInfo[DiagnosticExtraBecauseSensitive](diag)
+	if maybe == nil {
+		return false
+	}
+	return maybe.DiagnosticCausedBySensitive()
+}

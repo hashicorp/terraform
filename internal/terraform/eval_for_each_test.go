@@ -88,38 +88,45 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 
 func TestEvaluateForEachExpression_errors(t *testing.T) {
 	tests := map[string]struct {
-		Expr                     hcl.Expression
-		Summary, DetailSubstring string
+		Expr                               hcl.Expression
+		Summary, DetailSubstring           string
+		CausedByUnknown, CausedBySensitive bool
 	}{
 		"null set": {
 			hcltest.MockExprLiteral(cty.NullVal(cty.Set(cty.String))),
 			"Invalid for_each argument",
 			`the given "for_each" argument value is null`,
+			false, false,
 		},
 		"string": {
 			hcltest.MockExprLiteral(cty.StringVal("i am definitely a set")),
 			"Invalid for_each argument",
 			"must be a map, or set of strings, and you have provided a value of type string",
+			false, false,
 		},
 		"list": {
 			hcltest.MockExprLiteral(cty.ListVal([]cty.Value{cty.StringVal("a"), cty.StringVal("a")})),
 			"Invalid for_each argument",
 			"must be a map, or set of strings, and you have provided a value of type list",
+			false, false,
 		},
 		"tuple": {
 			hcltest.MockExprLiteral(cty.TupleVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})),
 			"Invalid for_each argument",
 			"must be a map, or set of strings, and you have provided a value of type tuple",
+			false, false,
 		},
 		"unknown string set": {
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
 			"Invalid for_each argument",
 			"set includes values derived from resource attributes that cannot be determined until apply",
+			true, false,
 		},
 		"unknown map": {
 			hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
 			"Invalid for_each argument",
 			"map includes keys derived from resource attributes that cannot be determined until apply",
+			true, false,
 		},
 		"marked map": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -128,31 +135,37 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			}).Mark(marks.Sensitive)),
 			"Invalid for_each argument",
 			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			false, true,
 		},
 		"set containing booleans": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.BoolVal(true)})),
 			"Invalid for_each set argument",
 			"supports maps and sets of strings, but you have provided a set containing type bool",
+			false, false,
 		},
 		"set containing null": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.NullVal(cty.String)})),
 			"Invalid for_each set argument",
 			"must not contain null values",
+			false, false,
 		},
 		"set containing unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
 			"Invalid for_each argument",
 			"set includes values derived from resource attributes that cannot be determined until apply",
+			true, false,
 		},
 		"set containing dynamic unknown value": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
 			"Invalid for_each argument",
 			"set includes values derived from resource attributes that cannot be determined until apply",
+			true, false,
 		},
 		"set containing marked values": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark(marks.Sensitive), cty.StringVal("boop")})),
 			"Invalid for_each argument",
 			"Sensitive values, or values derived from sensitive values, cannot be used as for_each arguments. If used, the sensitive value could be exposed as a resource instance key.",
+			false, true,
 		},
 	}
 
@@ -183,6 +196,13 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 				}
 			} else {
 				t.Errorf("diagnostic does not support FromExpr\ngot: %s", spew.Sdump(diags[0]))
+			}
+
+			if got, want := tfdiags.DiagnosticCausedByUnknown(diags[0]), test.CausedByUnknown; got != want {
+				t.Errorf("wrong result from tfdiags.DiagnosticCausedByUnknown\ngot:  %#v\nwant: %#v", got, want)
+			}
+			if got, want := tfdiags.DiagnosticCausedBySensitive(diags[0]), test.CausedBySensitive; got != want {
+				t.Errorf("wrong result from tfdiags.DiagnosticCausedBySensitive\ngot:  %#v\nwant: %#v", got, want)
 			}
 		})
 	}

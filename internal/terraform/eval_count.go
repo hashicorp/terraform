@@ -31,6 +31,12 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags
 			Summary:  "Invalid count argument",
 			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
 			Subject:  expr.Range().Ptr(),
+
+			// TODO: Also populate Expression and EvalContext in here, but
+			// we can't easily do that right now because the hcl.EvalContext
+			// (which is not the same as the ctx we have in scope here) is
+			// hidden away inside evaluateCountExpressionValue.
+			Extra: diagnosticCausedByUnknown(true),
 		})
 	}
 
@@ -91,7 +97,7 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",
-			Detail:   `The given "count" argument value is unsuitable: negative numbers are not supported.`,
+			Detail:   `The given "count" argument value is unsuitable: must be greater than or equal to zero.`,
 			Subject:  expr.Range().Ptr(),
 		})
 		return nullCount, diags
