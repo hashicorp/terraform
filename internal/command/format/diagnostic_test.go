@@ -130,6 +130,7 @@ func TestDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedBySensitive(true),
 			},
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
@@ -164,6 +165,7 @@ func TestDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedByUnknown(true),
 			},
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
@@ -198,6 +200,7 @@ func TestDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedByUnknown(true),
 			},
 			`[red]╷[reset]
 [red]│[reset] [bold][red]Error: [reset][bold]Bad bad bad[reset]
@@ -391,6 +394,7 @@ Whatever shall we do?
 						}),
 					},
 				},
+				Extra: diagnosticCausedBySensitive(true),
 			},
 			`
 Error: Bad bad bad
@@ -403,7 +407,72 @@ Error: Bad bad bad
 Whatever shall we do?
 `,
 		},
+		"error with source code subject and expression referring to sensitive value when not related to sensitivity": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.StringVal("blah").Mark(marks.Sensitive),
+						}),
+					},
+				},
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+
+Whatever shall we do?
+`,
+		},
 		"error with source code subject and unknown string expression": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.String),
+						}),
+					},
+				},
+				Extra: diagnosticCausedByUnknown(true),
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep is a string, known only after apply
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown string expression when problem isn't unknown-related": {
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Bad bad bad",
@@ -431,12 +500,46 @@ Error: Bad bad bad
   on test.tf line 1:
    1: test source code
     ├────────────────
-    │ boop.beep is a string, known only after apply
+    │ boop.beep is a string
 
 Whatever shall we do?
 `,
 		},
 		"error with source code subject and unknown expression of unknown type": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Bad bad bad",
+				Detail:   "Whatever shall we do?",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 1, Column: 6, Byte: 5},
+					End:      hcl.Pos{Line: 1, Column: 12, Byte: 11},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "boop"},
+					hcl.TraverseAttr{Name: "beep"},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"boop": cty.ObjectVal(map[string]cty.Value{
+							"beep": cty.UnknownVal(cty.DynamicPseudoType),
+						}),
+					},
+				},
+				Extra: diagnosticCausedByUnknown(true),
+			},
+			`
+Error: Bad bad bad
+
+  on test.tf line 1:
+   1: test source code
+    ├────────────────
+    │ boop.beep will be known only after apply
+
+Whatever shall we do?
+`,
+		},
+		"error with source code subject and unknown expression of unknown type when problem isn't unknown-related": {
 			&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Bad bad bad",
@@ -463,8 +566,6 @@ Error: Bad bad bad
 
   on test.tf line 1:
    1: test source code
-    ├────────────────
-    │ boop.beep will be known only after apply
 
 Whatever shall we do?
 `,
@@ -819,4 +920,26 @@ func (e fakeDiagFunctionCallExtra) CalledFunctionName() string {
 
 func (e fakeDiagFunctionCallExtra) FunctionCallError() error {
 	return nil
+}
+
+// diagnosticCausedByUnknown is a testing helper for exercising our logic
+// for selectively showing unknown values alongside our source snippets for
+// diagnostics that are explicitly marked as being caused by unknown values.
+type diagnosticCausedByUnknown bool
+
+var _ tfdiags.DiagnosticExtraBecauseUnknown = diagnosticCausedByUnknown(true)
+
+func (e diagnosticCausedByUnknown) DiagnosticCausedByUnknown() bool {
+	return bool(e)
+}
+
+// diagnosticCausedBySensitive is a testing helper for exercising our logic
+// for selectively showing sensitive values alongside our source snippets for
+// diagnostics that are explicitly marked as being caused by sensitive values.
+type diagnosticCausedBySensitive bool
+
+var _ tfdiags.DiagnosticExtraBecauseSensitive = diagnosticCausedBySensitive(true)
+
+func (e diagnosticCausedBySensitive) DiagnosticCausedBySensitive() bool {
+	return bool(e)
 }

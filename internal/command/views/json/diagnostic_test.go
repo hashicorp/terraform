@@ -412,6 +412,7 @@ func TestNewDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedBySensitive(true),
 			},
 			&Diagnostic{
 				Severity: "error",
@@ -441,6 +442,61 @@ func TestNewDiagnostic(t *testing.T) {
 							Traversal: `var.boop["hello!"]`,
 							Statement: `has a sensitive value`,
 						},
+					},
+				},
+			},
+		},
+		"error with source code subject and expression referring to sensitive value when not caused by sensitive values": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Wrong noises",
+				Detail:   "Biological sounds are not allowed",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 2, Column: 9, Byte: 42},
+					End:      hcl.Pos{Line: 2, Column: 26, Byte: 59},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "var"},
+					hcl.TraverseAttr{Name: "boop"},
+					hcl.TraverseIndex{Key: cty.StringVal("hello!")},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"var": cty.ObjectVal(map[string]cty.Value{
+							"boop": cty.MapVal(map[string]cty.Value{
+								"hello!": cty.StringVal("bleurgh").Mark(marks.Sensitive),
+							}),
+						}),
+					},
+				},
+			},
+			&Diagnostic{
+				Severity: "error",
+				Summary:  "Wrong noises",
+				Detail:   "Biological sounds are not allowed",
+				Range: &DiagnosticRange{
+					Filename: "test.tf",
+					Start: Pos{
+						Line:   2,
+						Column: 9,
+						Byte:   42,
+					},
+					End: Pos{
+						Line:   2,
+						Column: 26,
+						Byte:   59,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "test"`),
+					Code:                 (`  foo = var.boop["hello!"]`),
+					StartLine:            (2),
+					HighlightStartOffset: (8),
+					HighlightEndOffset:   (25),
+					Values:               []DiagnosticExpressionValue{
+						// The sensitive value is filtered out because this is
+						// not a sensitive-value-related diagnostic message.
 					},
 				},
 			},
@@ -525,6 +581,7 @@ func TestNewDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedByUnknown(true),
 			},
 			&Diagnostic{
 				Severity: "error",
@@ -582,6 +639,7 @@ func TestNewDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedByUnknown(true),
 			},
 			&Diagnostic{
 				Severity: "error",
@@ -611,6 +669,61 @@ func TestNewDiagnostic(t *testing.T) {
 							Traversal: `var.boop["hello!"]`,
 							Statement: `will be known only after apply`,
 						},
+					},
+				},
+			},
+		},
+		"error with source code subject and unknown expression of unknown type when not caused by unknown values": {
+			&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Wrong noises",
+				Detail:   "Biological sounds are not allowed",
+				Subject: &hcl.Range{
+					Filename: "test.tf",
+					Start:    hcl.Pos{Line: 2, Column: 9, Byte: 42},
+					End:      hcl.Pos{Line: 2, Column: 26, Byte: 59},
+				},
+				Expression: hcltest.MockExprTraversal(hcl.Traversal{
+					hcl.TraverseRoot{Name: "var"},
+					hcl.TraverseAttr{Name: "boop"},
+					hcl.TraverseIndex{Key: cty.StringVal("hello!")},
+				}),
+				EvalContext: &hcl.EvalContext{
+					Variables: map[string]cty.Value{
+						"var": cty.ObjectVal(map[string]cty.Value{
+							"boop": cty.MapVal(map[string]cty.Value{
+								"hello!": cty.UnknownVal(cty.DynamicPseudoType),
+							}),
+						}),
+					},
+				},
+			},
+			&Diagnostic{
+				Severity: "error",
+				Summary:  "Wrong noises",
+				Detail:   "Biological sounds are not allowed",
+				Range: &DiagnosticRange{
+					Filename: "test.tf",
+					Start: Pos{
+						Line:   2,
+						Column: 9,
+						Byte:   42,
+					},
+					End: Pos{
+						Line:   2,
+						Column: 26,
+						Byte:   59,
+					},
+				},
+				Snippet: &DiagnosticSnippet{
+					Context:              strPtr(`resource "test_resource" "test"`),
+					Code:                 (`  foo = var.boop["hello!"]`),
+					StartLine:            (2),
+					HighlightStartOffset: (8),
+					HighlightEndOffset:   (25),
+					Values:               []DiagnosticExpressionValue{
+						// The unknown value is filtered out because this is
+						// not an unknown-value-related diagnostic message.
 					},
 				},
 			},
@@ -666,6 +779,7 @@ func TestNewDiagnostic(t *testing.T) {
 						}),
 					},
 				},
+				Extra: diagnosticCausedBySensitive(true),
 			},
 			&Diagnostic{
 				Severity: "error",
@@ -813,3 +927,25 @@ func TestNewDiagnostic(t *testing.T) {
 // are fields which are pointer-to-string to ensure that the rendered JSON
 // results in `null` for an empty value, rather than `""`.
 func strPtr(s string) *string { return &s }
+
+// diagnosticCausedByUnknown is a testing helper for exercising our logic
+// for selectively showing unknown values alongside our source snippets for
+// diagnostics that are explicitly marked as being caused by unknown values.
+type diagnosticCausedByUnknown bool
+
+var _ tfdiags.DiagnosticExtraBecauseUnknown = diagnosticCausedByUnknown(true)
+
+func (e diagnosticCausedByUnknown) DiagnosticCausedByUnknown() bool {
+	return bool(e)
+}
+
+// diagnosticCausedBySensitive is a testing helper for exercising our logic
+// for selectively showing sensitive values alongside our source snippets for
+// diagnostics that are explicitly marked as being caused by sensitive values.
+type diagnosticCausedBySensitive bool
+
+var _ tfdiags.DiagnosticExtraBecauseSensitive = diagnosticCausedBySensitive(true)
+
+func (e diagnosticCausedBySensitive) DiagnosticCausedBySensitive() bool {
+	return bool(e)
+}
