@@ -385,7 +385,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 		return 0 // This is as far as we go in dry-run mode
 	}
-
+	// Get schemas, if possible, before writing state
 	path, err := os.Getwd()
 	if err != nil {
 		return 1
@@ -393,9 +393,10 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	// Get schemas, if possible, before writing state
+
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
 	if diags.HasErrors() {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
