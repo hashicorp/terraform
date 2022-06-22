@@ -248,7 +248,7 @@ func (c *ImportCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	// Get schemas, if possible
+	// Get schemas, if possible, before writing state
 	schemas, diags := getSchemas(&c.Meta, newState, config)
 	if diags.HasErrors() {
 		return 1

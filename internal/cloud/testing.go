@@ -472,6 +472,4 @@ func TestCloudLocks(t *testing.T, a, b statemgr.Full) {
 	if err = lockerB.Unlock(lockIDB); err != nil {
 		t.Fatal("error unlocking client B:", err)
 	}
-
-	// TODO: Should we enforce that Unlock requires the correct ID?
 }

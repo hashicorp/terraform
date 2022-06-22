@@ -135,9 +135,10 @@ func (c *StatePushCommand) Run(args []string) int {
 	if diags.HasErrors() {
 		return 1
 	}
-	// Get schemas, if possible
+	// Get schemas, if possible, before writing state
 	schemas, diags := getSchemas(&c.Meta, srcStateFile.State, config)
 	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load schemas: %s", err))
 		return 1
 	}
 

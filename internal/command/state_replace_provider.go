@@ -169,11 +169,13 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 
 	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
 
 	schemas, diags := getSchemas(&c.Meta, state, config)
 	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
 

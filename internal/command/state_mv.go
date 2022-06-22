@@ -395,9 +395,10 @@ func (c *StateMvCommand) Run(args []string) int {
 	if diags.HasErrors() {
 		return 1
 	}
-	// Get schemas, if possible
+	// Get schemas, if possible, before writing state
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
 	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
 	// Write the new state
