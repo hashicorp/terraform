@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sort"
 	"testing"
 	"time"
 
@@ -164,7 +165,13 @@ func TestResourceProvider_generateEnvVars(t *testing.T) {
 				t.Fatalf("expected %d out, got %d\n", test.WantCount, got.LengthInt())
 			}
 
-			if !test.Want.RawEquals(got) {
+			gotSlice := got.AsValueSlice()
+
+			sort.Slice(gotSlice, func(i, j int) bool {
+				return gotSlice[i].AsString() < gotSlice[j].AsString()
+			})
+
+			if !test.Want.RawEquals(cty.ListVal(gotSlice)) {
 				t.Fatalf("Got unexpected result: %v instead of %v", got, test.Want)
 			}
 		})
