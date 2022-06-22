@@ -7,6 +7,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * backend/http: Fixed bug where the HTTP backend would fail to retry acquiring the state lock and ignored the `-lock-timeout` flag. [GH-31256]
+* Fix crash if a `precondition` or `postcondition` block omitted the required `condition` argument. [GH-31290]
 
 ## 1.2.3 (June 15, 2022)
 
