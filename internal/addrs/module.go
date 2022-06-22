@@ -33,11 +33,21 @@ func (m Module) String() string {
 	if len(m) == 0 {
 		return ""
 	}
-	var steps []string
+	size := 0
 	for _, s := range m {
-		steps = append(steps, "module", s)
+		size += len(s)
 	}
-	return strings.Join(steps, ".")
+	var sb strings.Builder
+	// 8 is len("module.") + len(".")
+	sb.Grow(8*len(m) + size)
+	for i, s := range m {
+		sb.WriteString("module.")
+		sb.WriteString(s)
+		if i != len(m)-1 {
+			sb.WriteString(".")
+		}
+	}
+	return sb.String()
 }
 
 func (m Module) Equal(other Module) bool {
