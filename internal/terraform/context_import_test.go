@@ -790,7 +790,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
-func TestContextImport_noConfigModuleImport(t *testing.T) {
+func TestContextImport_nestedModuleImport(t *testing.T) {
 	p := testProvider("aws")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -824,6 +824,7 @@ variable "y" {
 
 resource "test_resource" "unused" {
   value = var.y
+  // missing required, but should not error
 }
 `,
 	})
@@ -837,7 +838,8 @@ resource "test_resource" "unused" {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+					"id":       {Type: cty.String, Computed: true},
+					"required": {Type: cty.String, Required: true},
 				},
 			},
 		},
@@ -848,17 +850,8 @@ resource "test_resource" "unused" {
 			{
 				TypeName: "test_resource",
 				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("test"),
-				}),
-			},
-		},
-	}
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_resource",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("test"),
+					"id":       cty.StringVal("test"),
+					"required": cty.StringVal("value"),
 				}),
 			},
 		},
@@ -885,7 +878,7 @@ resource "test_resource" "unused" {
 	}
 
 	ri := state.ResourceInstance(mustResourceInstanceAddr("test_resource.test"))
-	expected := `{"id":"test"}`
+	expected := `{"id":"test","required":"value"}`
 	if ri == nil || ri.Current == nil {
 		t.Fatal("no state is recorded for resource instance test_resource.test")
 	}
