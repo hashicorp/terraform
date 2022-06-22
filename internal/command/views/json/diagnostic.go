@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcled"
 	"github.com/hashicorp/hcl/v2/hclparse"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -95,6 +96,10 @@ type DiagnosticSnippet struct {
 	// Values is a sorted slice of expression values which may be useful in
 	// understanding the source of an error in a complex expression.
 	Values []DiagnosticExpressionValue `json:"values"`
+
+	// FunctionCall is information about a function call whose failure is
+	// being reported by this diagnostic, if any.
+	FunctionCall *DiagnosticFunctionCall `json:"function_call,omitempty"`
 }
 
 // DiagnosticExpressionValue represents an HCL traversal string (e.g.
@@ -105,6 +110,20 @@ type DiagnosticSnippet struct {
 type DiagnosticExpressionValue struct {
 	Traversal string `json:"traversal"`
 	Statement string `json:"statement"`
+}
+
+// DiagnosticFunctionCall represents a function call whose information is
+// being included as part of a diagnostic snippet.
+type DiagnosticFunctionCall struct {
+	// CalledAs is the full name that was used to call this function,
+	// potentially including namespace prefixes if the function does not belong
+	// to the default function namespace.
+	CalledAs string `json:"called_as"`
+
+	// Signature is a description of the signature of the function that was
+	// called, if any. Might be omitted if we're reporting that a call failed
+	// because the given function name isn't known, for example.
+	Signature *Function `json:"signature,omitempty"`
 }
 
 // NewDiagnostic takes a tfdiags.Diagnostic and a map of configuration sources,
@@ -294,7 +313,24 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 					return values[i].Traversal < values[j].Traversal
 				})
 				diagnostic.Snippet.Values = values
+
+				if callInfo := tfdiags.ExtraInfo[hclsyntax.FunctionCallDiagExtra](diag); callInfo != nil && callInfo.CalledFunctionName() != "" {
+					calledAs := callInfo.CalledFunctionName()
+					baseName := calledAs
+					if idx := strings.LastIndex(baseName, "::"); idx >= 0 {
+						baseName = baseName[idx+2:]
+					}
+					callInfo := &DiagnosticFunctionCall{
+						CalledAs: calledAs,
+					}
+					if f, ok := ctx.Functions[calledAs]; ok {
+						callInfo.Signature = DescribeFunction(baseName, f)
+					}
+					diagnostic.Snippet.FunctionCall = callInfo
+				}
+
 			}
+
 		}
 	}
 
