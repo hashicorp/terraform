@@ -135,8 +135,6 @@ func (s *State) PersistState() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	fmt.Printf("Printing schemas: %+v", s.schemas)
-
 	if s.readState != nil {
 		lineageUnchanged := s.readLineage != "" && s.lineage == s.readLineage
 		serialUnchanged := s.readSerial != 0 && s.serial == s.readSerial
@@ -215,7 +213,6 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 	if runID != "" {
 		options.Run = &tfe.Run{ID: runID}
 	}
-	fmt.Printf("printing options: %+v", options)
 	// Create the new state.
 	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
 	return err
