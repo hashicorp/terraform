@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -73,6 +72,14 @@ func (b *Local) opRefresh(
 		))
 	}
 
+	// get schemas before writing state
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	// Perform the refresh in a goroutine so we can be interrupted
 	var newState *states.State
 	var refreshDiags tfdiags.Diagnostics
@@ -96,9 +103,16 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	err := statemgr.WriteAndPersist(opState, newState)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to write state: %w", err))
+	errWrite := opState.WriteState(newState, schemas)
+	if errWrite != nil {
+		diags = diags.Append(fmt.Errorf("failed to write state: %w", errWrite))
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
+	errPersist := opState.PersistState()
+	if errPersist != nil {
+		diags = diags.Append(fmt.Errorf("failed to write state: %w", errPersist))
 		op.ReportResult(runningOp, diags)
 		return
 	}
