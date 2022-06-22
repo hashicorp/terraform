@@ -69,8 +69,9 @@ func TestStateReplaceProvider(t *testing.T) {
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
-					View: view,
+					Ui:               ui,
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
 				},
 			},
 		}
@@ -105,8 +106,9 @@ func TestStateReplaceProvider(t *testing.T) {
 		c := &StateReplaceProviderCommand{
 			StateMeta{
 				Meta: Meta{
-					Ui:   ui,
-					View: view,
+					Ui:               ui,
+					testingOverrides: metaOverridesForProvider(testProvider()),
+					View:             view,
 				},
 			},
 		}
