@@ -248,7 +248,8 @@ directory where you'd run `terraform apply` — should also specify the
 _maximum_ provider version it is intended to work with, to avoid accidental
 upgrades to incompatible new versions. The `~>` operator is a convenient
 shorthand for allowing the rightmost component of a version to increment. In
-the example below it permits patch releases within a specific minor release:
+the example below, the operator permits patch releases within a specific minor
+release:
 
 ```hcl
 terraform {
