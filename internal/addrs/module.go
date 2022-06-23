@@ -165,3 +165,11 @@ func (m Module) Ancestors() []Module {
 func (m Module) configMoveableSigil() {
 	// ModuleInstance is moveable
 }
+
+func (m Module) UniqueKey() UniqueKey {
+	return moduleUniqueKey(m.String())
+}
+
+type moduleUniqueKey string
+
+func (k moduleUniqueKey) uniqueKeySigil() {}

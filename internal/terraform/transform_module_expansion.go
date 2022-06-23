@@ -23,16 +23,18 @@ type ModuleExpansionTransformer struct {
 	// to alter the evaluation behavior.
 	Concrete ConcreteModuleNodeFunc
 
-	closers map[string]*nodeCloseModule
+	closers map[addrs.UniqueKey]*nodeCloseModule
 }
 
 func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
-	t.closers = make(map[string]*nodeCloseModule)
+	moduleKeys := nodeModuleKeyMap(g)
+
+	t.closers = make(map[addrs.UniqueKey]*nodeCloseModule)
 	// The root module is always a singleton and so does not need expansion
 	// processing, but any descendent modules do. We'll process them
 	// recursively using t.transform.
 	for _, cfg := range t.Config.Children {
-		err := t.transform(g, cfg, nil)
+		err := t.transform(g, cfg, nil, moduleKeys)
 		if err != nil {
 			return err
 		}
@@ -59,7 +61,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 		if !ok {
 			continue
 		}
-		if closer, ok := t.closers[pather.ModulePath().String()]; ok {
+		if closer, ok := t.closers[moduleKeys[pather]]; ok {
 			// The module closer depends on each child resource instance, since
 			// during apply the module expansion will complete before the
 			// individual instances are applied.
@@ -80,7 +82,7 @@ func (t *ModuleExpansionTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, parentNode dag.Vertex) error {
+func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, parentNode dag.Vertex, moduleKeys map[GraphNodeModulePath]addrs.UniqueKey) error {
 	_, call := c.Path.Call()
 	modCall := c.Parent.Module.ModuleCalls[call.Name]
 
@@ -102,14 +104,17 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 		g.Connect(dag.BasicEdge(expander, parentNode))
 	}
 
+	ourModuleKey := c.Path.UniqueKey()
+
 	// Add the closer (which acts as the root module node) to provide a
 	// single exit point for the expanded module.
 	closer := &nodeCloseModule{
 		Addr: c.Path,
 	}
 	g.Add(closer)
+	moduleKeys[GraphNodeModulePath(closer)] = ourModuleKey
 	g.Connect(dag.BasicEdge(closer, expander))
-	t.closers[c.Path.String()] = closer
+	t.closers[c.Path.UniqueKey()] = closer
 
 	for _, childV := range g.Vertices() {
 		// don't connect a node to itself
@@ -117,19 +122,19 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 			continue
 		}
 
-		var path addrs.Module
+		var childModuleKey addrs.UniqueKey
 		switch t := childV.(type) {
 		case GraphNodeDestroyer:
 			// skip destroyers, as they can only depend on other resources.
 			continue
 
 		case GraphNodeModulePath:
-			path = t.ModulePath()
+			childModuleKey = moduleKeys[t]
 		default:
 			continue
 		}
 
-		if path.Equal(c.Path) {
+		if childModuleKey == ourModuleKey {
 			log.Printf("[TRACE] ModuleExpansionTransformer: %s must wait for expansion of %s", dag.VertexName(childV), c.Path)
 			g.Connect(dag.BasicEdge(childV, expander))
 		}
@@ -137,10 +142,29 @@ func (t *ModuleExpansionTransformer) transform(g *Graph, c *configs.Config, pare
 
 	// Also visit child modules, recursively.
 	for _, cc := range c.Children {
-		if err := t.transform(g, cc, expander); err != nil {
+		if err := t.transform(g, cc, expander, moduleKeys); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+// nodeModuleKeyMap builds a cache data structure to allow more quickly
+// deciding whether two graph nodes belong to the same module, by caching
+// the comparable UniqueKey values of each node's module path.
+//
+// The result is a map with one entry for each graph node that reports that
+// it belongs to a module by implementing GraphNodeModulePath. The keys are
+// the nodes themselves, which assumes that our node implementations are always
+// comparable types; we typically ensure that's true by implementing
+// GraphNodeModulePath as a method on a pointer type.
+func nodeModuleKeyMap(g *Graph) map[GraphNodeModulePath]addrs.UniqueKey {
+	ret := make(map[GraphNodeModulePath]addrs.UniqueKey)
+	for _, v := range g.Vertices() {
+		if mp, ok := v.(GraphNodeModulePath); ok {
+			ret[mp] = mp.ModulePath().UniqueKey()
+		}
+	}
+	return ret
 }
