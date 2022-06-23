@@ -54,10 +54,6 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
-	// CustomConcrete can be set to customize the node types created
-	// for various parts of the plan. This is useful in order to customize
-	// the plan behavior.
-	CustomConcrete                  bool
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
 	ConcreteResourceInstance        ConcreteResourceInstanceNodeFunc

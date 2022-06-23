@@ -62,7 +62,6 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		State:              state,
 		RootVariableValues: variables,
 		Plugins:            c.plugins,
-		skipRefresh:        true,
 		Operation:          walkImport,
 	}
 
