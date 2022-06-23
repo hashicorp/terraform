@@ -2,7 +2,8 @@
 
 ENHANCEMENTS:
 
-* Improved validation of required_providers to prevent single providers from being required with multiple names [GH-31218]
+* Improved validation of `required_providers` to prevent single providers from being required with multiple names. [GH-31218]
+* Improved plan performance by optimizing `addrs.Module.String` for allocations. [GH-31293]
 
 BUG FIXES:
 
