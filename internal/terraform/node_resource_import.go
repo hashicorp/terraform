@@ -5,61 +5,10 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
-
-// ImportStateTransformer is a GraphTransformer that adds nodes to the
-// graph to represent the imports we want to do for resources.
-type ImportStateTransformer struct {
-	Targets []*ImportTarget
-	Config  *configs.Config
-}
-
-func (t *ImportStateTransformer) Transform(g *Graph) error {
-	for _, target := range t.Targets {
-
-		// This is only likely to happen in misconfigured tests
-		if t.Config == nil {
-			return fmt.Errorf("cannot import into an empty configuration")
-		}
-
-		// Get the module config
-		modCfg := t.Config.Descendent(target.Addr.Module.Module())
-		if modCfg == nil {
-			return fmt.Errorf("module %s not found", target.Addr.Module.Module())
-		}
-
-		providerAddr := addrs.AbsProviderConfig{
-			Module: target.Addr.Module.Module(),
-		}
-
-		// Try to find the resource config
-		rsCfg := modCfg.Module.ResourceByAddr(target.Addr.Resource.Resource)
-		if rsCfg != nil {
-			// Get the provider FQN for the resource from the resource configuration
-			providerAddr.Provider = rsCfg.Provider
-
-			// Get the alias from the resource's provider local config
-			providerAddr.Alias = rsCfg.ProviderConfigAddr().Alias
-		} else {
-			// Resource has no matching config, so use an implied provider
-			// based on the resource type
-			rsProviderType := target.Addr.Resource.Resource.ImpliedProvider()
-			providerAddr.Provider = modCfg.Module.ImpliedProviderForUnqualifiedType(rsProviderType)
-		}
-
-		node := &graphNodeImportState{
-			Addr:         target.Addr,
-			ID:           target.ID,
-			ProviderAddr: providerAddr,
-		}
-		g.Add(node)
-	}
-	return nil
-}
 
 type graphNodeImportState struct {
 	Addr             addrs.AbsResourceInstance // Addr is the resource address to import into

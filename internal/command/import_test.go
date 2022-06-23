@@ -644,63 +644,6 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
-func TestImport_allowMissingResourceConfig(t *testing.T) {
-	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
-
-	statePath := testTempFile(t)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
-		},
-	}
-
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_instance",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("yay"),
-				}),
-			},
-		},
-	}
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Block: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {Type: cty.String, Optional: true, Computed: true},
-					},
-				},
-			},
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-allow-missing-config",
-		"test_instance.foo",
-		"bar",
-	}
-
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if !p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState should be called")
-	}
-
-	testStateOutput(t, statePath, testImportStr)
-}
-
 func TestImport_emptyConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("empty"))()
 
