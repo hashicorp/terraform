@@ -56,6 +56,31 @@ func TestModuleEqual_false(t *testing.T) {
 	}
 }
 
+func TestModuleString(t *testing.T) {
+	testCases := map[string]Module{
+		"": {},
+		"module.alpha": {
+			"alpha",
+		},
+		"module.alpha.module.beta": {
+			"alpha",
+			"beta",
+		},
+		"module.alpha.module.beta.module.charlie": {
+			"alpha",
+			"beta",
+			"charlie",
+		},
+	}
+	for str, module := range testCases {
+		t.Run(str, func(t *testing.T) {
+			if got, want := module.String(), str; got != want {
+				t.Errorf("wrong result: got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func BenchmarkModuleStringShort(b *testing.B) {
 	module := Module{"a", "b"}
 	for n := 0; n < b.N; n++ {
