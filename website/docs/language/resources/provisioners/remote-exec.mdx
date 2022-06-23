@@ -48,8 +48,10 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `inline` - This is a list of command strings. They are executed in the order
-  they are provided. This cannot be provided with `script` or `scripts`.
+* `inline` - This is a list of command strings. Strings are collected in order as
+  a single `.sh` script which is executed on the remote host. A default shell `#!` 
+  is used unless a `#!` string is the first command, such as `#!/bin/bash`. 
+  This cannot be provided with `script` or `scripts`.
 
 * `script` - This is a path (relative or absolute) to a local script that will
   be copied to the remote resource and then executed. This cannot be provided
