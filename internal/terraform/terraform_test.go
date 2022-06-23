@@ -42,13 +42,13 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func testModule(t *testing.T, name string) *configs.Config {
+func testModule(t testing.TB, name string) *configs.Config {
 	t.Helper()
 	c, _ := testModuleWithSnapshot(t, name)
 	return c
 }
 
-func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *configload.Snapshot) {
+func testModuleWithSnapshot(t testing.TB, name string) (*configs.Config, *configload.Snapshot) {
 	t.Helper()
 
 	dir := filepath.Join(fixtureDir, name)
@@ -85,7 +85,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 
 // testModuleInline takes a map of path -> config strings and yields a config
 // structure with those files loaded from disk
-func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
+func testModuleInline(t testing.TB, sources map[string]string) *configs.Config {
 	t.Helper()
 
 	cfgPath := t.TempDir()
