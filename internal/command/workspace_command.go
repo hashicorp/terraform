@@ -15,14 +15,7 @@ type WorkspaceCommand struct {
 }
 
 func (c *WorkspaceCommand) Run(args []string) int {
-	c.Meta.process(args)
-	envCommandShowWarning(c.Ui, c.LegacyName)
-
-	cmdFlags := c.Meta.extendedFlagSet("workspace")
-	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
-
-	c.Ui.Output(c.Help())
-	return 0
+	return cli.RunResultHelp
 }
 
 func (c *WorkspaceCommand) Help() string {
