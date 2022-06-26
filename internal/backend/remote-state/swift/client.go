@@ -288,7 +288,7 @@ func (c *RemoteClient) put(object string, data []byte, deleteAfter int, ifNoneMa
 	}
 
 	if deleteAfter >= 0 {
-		createOpts.DeleteAfter = deleteAfter
+		createOpts.DeleteAfter = int64(deleteAfter)
 	}
 
 	if ifNoneMatch != "" {
