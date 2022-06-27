@@ -26,8 +26,8 @@ For more information, refer to the [What is Terraform?](https://www.terraform.io
 
 Documentation is available on the [Terraform website](https://www.terraform.io):
 
-- [Introduction](https://www.terraform.io/intro/index.html)
-- [Documentation](https://www.terraform.io/docs/index.html)
+- [Introduction](https://www.terraform.io/intro)
+- [Documentation](https://www.terraform.io/docs)
 
 If you're new to Terraform and want to get started creating infrastructure, please check out our [Getting Started guides](https://learn.hashicorp.com/terraform#getting-started) on HashiCorp's learning platform. There are also [additional guides](https://learn.hashicorp.com/terraform#operations-and-development) to continue your learning.
 
