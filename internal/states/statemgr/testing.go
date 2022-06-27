@@ -47,7 +47,7 @@ func TestFull(t *testing.T, s Full) {
 	// Write a new state and verify that we have it
 	current.RootModule().SetOutputValue("bar", cty.StringVal("baz"), false)
 
-	if err := s.WriteState(current, nil); err != nil {
+	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -56,7 +56,7 @@ func TestFull(t *testing.T, s Full) {
 	}
 
 	// Test persistence
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -78,10 +78,10 @@ func TestFull(t *testing.T, s Full) {
 
 	// Same serial
 	serial := newMeta.Serial
-	if err := s.WriteState(current, nil); err != nil {
+	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -101,10 +101,10 @@ func TestFull(t *testing.T, s Full) {
 	current.EnsureModule(addrs.RootModuleInstance).SetOutputValue(
 		"serialCheck", cty.StringVal("true"), false,
 	)
-	if err := s.WriteState(current, nil); err != nil {
+	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

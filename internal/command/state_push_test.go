@@ -264,10 +264,10 @@ func TestStatePush_forceRemoteState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := sMgr.WriteState(states.NewState(), nil); err != nil {
+	if err := sMgr.WriteState(states.NewState()); err != nil {
 		t.Fatal(err)
 	}
-	if err := sMgr.PersistState(); err != nil {
+	if err := sMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 

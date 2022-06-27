@@ -129,10 +129,10 @@ func TestBackendStates(t *testing.T, b Backend) {
 		barState := states.NewState()
 
 		// write a known state to foo
-		if err := foo.WriteState(fooState, nil); err != nil {
+		if err := foo.WriteState(fooState); err != nil {
 			t.Fatal("error writing foo state:", err)
 		}
-		if err := foo.PersistState(); err != nil {
+		if err := foo.PersistState(nil); err != nil {
 			t.Fatal("error persisting foo state:", err)
 		}
 
@@ -157,10 +157,10 @@ func TestBackendStates(t *testing.T, b Backend) {
 		)
 
 		// write a distinct known state to bar
-		if err := bar.WriteState(barState, nil); err != nil {
+		if err := bar.WriteState(barState); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if err := bar.PersistState(); err != nil {
+		if err := bar.PersistState(nil); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
 

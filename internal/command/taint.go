@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -125,6 +126,24 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get schemas, if possible, before writing state
+	path, err := os.Getwd()
+	if err != nil {
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+		return 1
+	}
+
+	schemas, diags := getSchemas(&c.Meta, state, config)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to get schemas: %s", err))
+		return 1
+	}
+
 	ss := state.SyncWrapper()
 
 	// Get the resource and instance we're going to taint
@@ -167,11 +186,11 @@ func (c *TaintCommand) Run(args []string) int {
 	obj.Status = states.ObjectTainted
 	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
-	if err := stateMgr.WriteState(state, nil); err != nil {
+	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

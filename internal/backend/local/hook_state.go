@@ -24,7 +24,7 @@ func (h *StateHook) PostStateUpdate(new *states.State) (terraform.HookAction, er
 	defer h.Unlock()
 
 	if h.StateMgr != nil {
-		if err := h.StateMgr.WriteState(new, nil); err != nil {
+		if err := h.StateMgr.WriteState(new); err != nil {
 			return terraform.HookActionHalt, err
 		}
 	}

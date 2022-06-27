@@ -18,16 +18,16 @@ func (s *LockDisabled) State() *states.State {
 	return s.Inner.State()
 }
 
-func (s *LockDisabled) WriteState(v *states.State, schemas *terraform.Schemas) error {
-	return s.Inner.WriteState(v, schemas)
+func (s *LockDisabled) WriteState(v *states.State) error {
+	return s.Inner.WriteState(v)
 }
 
 func (s *LockDisabled) RefreshState() error {
 	return s.Inner.RefreshState()
 }
 
-func (s *LockDisabled) PersistState() error {
-	return s.Inner.PersistState()
+func (s *LockDisabled) PersistState(schemas *terraform.Schemas) error {
+	return s.Inner.PersistState(schemas)
 }
 
 func (s *LockDisabled) Lock(info *LockInfo) (string, error) {

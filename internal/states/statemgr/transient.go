@@ -2,7 +2,6 @@ package statemgr
 
 import (
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // Transient is a union of the Reader and Writer interfaces, for types that
@@ -59,15 +58,11 @@ type Reader interface {
 // Implementations that cache the state in memory must take a deep copy of it,
 // since the caller may continue to modify the given state object after
 // WriteState returns.
-//
-// Some implementations may require the config schema when writing state,
-// for example, when generating the external json state representation,
-// but this argument should be considered optional.
 type Writer interface {
 	// WriteState saves a transient snapshot of the given state.
 	//
 	// The caller must ensure that the given state object is not concurrently
 	// modified while a WriteState call is in progress. WriteState itself
 	// will never modify the given state.
-	WriteState(*states.State, *terraform.Schemas) error
+	WriteState(*states.State) error
 }

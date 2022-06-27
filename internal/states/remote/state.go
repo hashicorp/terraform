@@ -56,7 +56,7 @@ func (s *State) StateForMigration() *statefile.File {
 }
 
 // statemgr.Writer impl.
-func (s *State) WriteState(state *states.State, schemas *terraform.Schemas) error {
+func (s *State) WriteState(state *states.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -140,7 +140,7 @@ func (s *State) refreshState() error {
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState() error {
+func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

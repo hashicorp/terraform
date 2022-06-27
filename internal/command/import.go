@@ -255,11 +255,11 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := state.WriteState(newState, schemas); err != nil {
+	if err := state.WriteState(newState); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := state.PersistState(); err != nil {
+	if err := state.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

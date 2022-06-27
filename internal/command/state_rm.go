@@ -128,11 +128,11 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := stateMgr.WriteState(state, schemas); err != nil {
+	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}

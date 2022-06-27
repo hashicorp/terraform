@@ -221,7 +221,7 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
-func (s *stateStorageThatFailsRefresh) WriteState(*states.State, *terraform.Schemas) error {
+func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -229,6 +229,6 @@ func (s *stateStorageThatFailsRefresh) RefreshState() error {
 	return fmt.Errorf("intentionally failing for testing purposes")
 }
 
-func (s *stateStorageThatFailsRefresh) PersistState() error {
+func (s *stateStorageThatFailsRefresh) PersistState(schemas *terraform.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }

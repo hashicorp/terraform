@@ -142,11 +142,11 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
-	if err := stateMgr.WriteState(srcStateFile.State, schemas); err != nil {
+	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
 		return 1
 	}

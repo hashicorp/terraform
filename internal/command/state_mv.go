@@ -403,22 +403,22 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 1
 	}
 	// Write the new state
-	if err := stateToMgr.WriteState(stateTo, schemas); err != nil {
+	if err := stateToMgr.WriteState(stateTo); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateToMgr.PersistState(); err != nil {
+	if err := stateToMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
 
 	// Write the old state if it is different
 	if stateTo != stateFrom {
-		if err := stateFromMgr.WriteState(stateFrom, schemas); err != nil {
+		if err := stateFromMgr.WriteState(stateFrom); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}
-		if err := stateFromMgr.PersistState(); err != nil {
+		if err := stateFromMgr.PersistState(schemas); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}

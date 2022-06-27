@@ -41,7 +41,6 @@ type State struct {
 	serial, readSerial   uint64
 	state, readState     *states.State
 	disableLocks         bool
-	schemas              *terraform.Schemas
 	tfeClient            *tfe.Client
 	organization         string
 	workspace            *tfe.Workspace
@@ -117,7 +116,7 @@ func (s *State) StateSnapshotMeta() statemgr.SnapshotMeta {
 }
 
 // statemgr.Writer impl.
-func (s *State) WriteState(state *states.State, schemas *terraform.Schemas) error {
+func (s *State) WriteState(state *states.State) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -125,13 +124,12 @@ func (s *State) WriteState(state *states.State, schemas *terraform.Schemas) erro
 	// a reference to the given object and can potentially go on to mutate
 	// it after we return, but we want the snapshot at this point in time.
 	s.state = state.DeepCopy()
-	s.schemas = schemas
 
 	return nil
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState() error {
+func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -171,8 +169,8 @@ func (s *State) PersistState() error {
 	}
 
 	var jsonState []byte
-	if s.schemas != nil {
-		jsonState, err = jsonstate.Marshal(f, s.schemas)
+	if schemas != nil {
+		jsonState, err = jsonstate.Marshal(f, schemas)
 		if err != nil {
 			return err
 		}

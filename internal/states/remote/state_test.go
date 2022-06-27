@@ -35,8 +35,8 @@ func TestStateRace(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s.WriteState(current, nil)
-			s.PersistState()
+			s.WriteState(current)
+			s.PersistState(nil)
 			s.RefreshState()
 		}()
 	}
@@ -247,10 +247,10 @@ func TestStatePersist(t *testing.T) {
 	for _, tc := range testCases {
 		s, cleanup := tc.mutationFunc(mgr)
 
-		if err := mgr.WriteState(s, nil); err != nil {
+		if err := mgr.WriteState(s); err != nil {
 			t.Fatalf("failed to WriteState for %q: %s", tc.name, err)
 		}
-		if err := mgr.PersistState(); err != nil {
+		if err := mgr.PersistState(nil); err != nil {
 			t.Fatalf("failed to PersistState for %q: %s", tc.name, err)
 		}
 
@@ -381,7 +381,7 @@ func TestWriteStateForMigration(t *testing.T) {
 		t.Fatalf("failed to RefreshState: %s", err)
 	}
 
-	if err := mgr.WriteState(mgr.State(), nil); err != nil {
+	if err := mgr.WriteState(mgr.State()); err != nil {
 		t.Fatalf("failed to write initial state: %s", err)
 	}
 
@@ -415,8 +415,8 @@ func TestWriteStateForMigration(t *testing.T) {
 
 		// At this point we should just do a normal write and persist
 		// as would happen from the CLI
-		mgr.WriteState(mgr.State(), nil)
-		mgr.PersistState()
+		mgr.WriteState(mgr.State())
+		mgr.PersistState(nil)
 
 		if logIdx >= len(mockClient.log) {
 			t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))
@@ -533,7 +533,7 @@ func TestWriteStateForMigrationWithForcePushClient(t *testing.T) {
 		t.Fatalf("failed to RefreshState: %s", err)
 	}
 
-	if err := mgr.WriteState(mgr.State(), nil); err != nil {
+	if err := mgr.WriteState(mgr.State()); err != nil {
 		t.Fatalf("failed to write initial state: %s", err)
 	}
 
@@ -577,8 +577,8 @@ func TestWriteStateForMigrationWithForcePushClient(t *testing.T) {
 
 		// At this point we should just do a normal write and persist
 		// as would happen from the CLI
-		mgr.WriteState(mgr.State(), nil)
-		mgr.PersistState()
+		mgr.WriteState(mgr.State())
+		mgr.PersistState(nil)
 
 		if logIdx >= len(mockClient.log) {
 			t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))

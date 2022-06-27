@@ -46,9 +46,9 @@ func RefreshAndRead(mgr Storage) (*states.State, error) {
 // is required, call WriteState and PersistState on the state manager directly
 // and handle their errors.
 func WriteAndPersist(mgr Storage, state *states.State, schemas *terraform.Schemas) error {
-	err := mgr.WriteState(state, schemas)
+	err := mgr.WriteState(state)
 	if err != nil {
 		return err
 	}
-	return mgr.PersistState()
+	return mgr.PersistState(schemas)
 }

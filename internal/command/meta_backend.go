@@ -989,11 +989,11 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 			log.Printf("[TRACE] Meta.Backend: removing old state snapshots from old backend")
 			for _, localState := range localStates {
 				// We always delete the local state, unless that was our new state too.
-				if err := localState.WriteState(nil, nil); err != nil {
+				if err := localState.WriteState(nil); err != nil {
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags
 				}
-				if err := localState.PersistState(); err != nil {
+				if err := localState.PersistState(nil); err != nil {
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags
 				}

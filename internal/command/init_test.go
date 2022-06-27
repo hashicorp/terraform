@@ -1257,7 +1257,7 @@ func TestInit_inputFalse(t *testing.T) {
 			false, // not sensitive
 		)
 	})
-	if err := statemgr.NewFilesystem("foo").WriteState(fooState, nil); err != nil {
+	if err := statemgr.NewFilesystem("foo").WriteState(fooState); err != nil {
 		t.Fatal(err)
 	}
 	barState := states.BuildState(func(s *states.SyncState) {
@@ -1267,7 +1267,7 @@ func TestInit_inputFalse(t *testing.T) {
 			false, // not sensitive
 		)
 	})
-	if err := statemgr.NewFilesystem("bar").WriteState(barState, nil); err != nil {
+	if err := statemgr.NewFilesystem("bar").WriteState(barState); err != nil {
 		t.Fatal(err)
 	}
 

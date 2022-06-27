@@ -64,7 +64,7 @@ func Migrate(dst, src Transient) error {
 	// Managers to not support full-fidelity migration, so migration will not
 	// preserve serial/lineage.
 	s := src.State()
-	return dst.WriteState(s, nil)
+	return dst.WriteState(s)
 }
 
 // Import loads the given state snapshot into the given manager, preserving
@@ -94,7 +94,7 @@ func Import(f *statefile.File, mgr Transient, force bool) error {
 
 	// For managers that don't implement Migrator, this is just a normal write
 	// of the state contained in the given file.
-	return mgr.WriteState(f.State, nil)
+	return mgr.WriteState(f.State)
 }
 
 // Export retrieves the latest state snapshot from the given manager, including

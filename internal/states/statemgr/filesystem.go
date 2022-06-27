@@ -120,7 +120,7 @@ func (s *Filesystem) State() *states.State {
 
 // WriteState is an incorrect implementation of Writer that actually also
 // persists.
-func (s *Filesystem) WriteState(state *states.State, schemas *terraform.Schemas) error {
+func (s *Filesystem) WriteState(state *states.State) error {
 	// TODO: this should use a more robust method of writing state, by first
 	// writing to a temp file on the same filesystem, and renaming the file over
 	// the original.
@@ -224,7 +224,7 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 
 // PersistState is an implementation of Persister that does nothing because
 // this type's Writer implementation does its own persistence.
-func (s *Filesystem) PersistState() error {
+func (s *Filesystem) PersistState(schemas *terraform.Schemas) error {
 	return nil
 }
 

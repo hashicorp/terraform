@@ -54,16 +54,16 @@ func (m *fakeFull) State() *states.State {
 	return m.t.State()
 }
 
-func (m *fakeFull) WriteState(s *states.State, schemas *terraform.Schemas) error {
-	return m.t.WriteState(s, nil)
+func (m *fakeFull) WriteState(s *states.State) error {
+	return m.t.WriteState(s)
 }
 
 func (m *fakeFull) RefreshState() error {
-	return m.t.WriteState(m.fakeP.State(), nil)
+	return m.t.WriteState(m.fakeP.State())
 }
 
-func (m *fakeFull) PersistState() error {
-	return m.fakeP.WriteState(m.t.State(), nil)
+func (m *fakeFull) PersistState(schemas *terraform.Schemas) error {
+	return m.fakeP.WriteState(m.t.State())
 }
 
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {
@@ -112,7 +112,7 @@ func (m *fakeErrorFull) State() *states.State {
 	return nil
 }
 
-func (m *fakeErrorFull) WriteState(s *states.State, schemas *terraform.Schemas) error {
+func (m *fakeErrorFull) WriteState(s *states.State) error {
 	return errors.New("fake state manager error")
 }
 
@@ -120,7 +120,7 @@ func (m *fakeErrorFull) RefreshState() error {
 	return errors.New("fake state manager error")
 }
 
-func (m *fakeErrorFull) PersistState() error {
+func (m *fakeErrorFull) PersistState(schemas *terraform.Schemas) error {
 	return errors.New("fake state manager error")
 }
 
