@@ -53,6 +53,6 @@ Once your PR to `stable-website` is merged, open a PR bumping the submodule comm
 ### Deployment
 
 New commits in `hashicorp/terraform` do not automatically deploy the site. Do the following for documentation pull requests:
-- **Add a backport label to the PR.** This is the label corresponding to the latest Terraform patch release (e.g., `1.2-backport`). When you merge your PR to `main`, GitHub bot automatically generates a backport PR to merge your commits into the appropriate release branch.
+- **Add a backport label to the PR.** Use the label that corresponds to the latest Terraform patch release (e.g., `1.2-backport`). When you merge your PR to `main`, GitHub bot automatically generates a backport PR to merge your commits into the appropriate release branch.
 - **Merge the backport PR.** When all tests pass successfully, merge the backport PR into the release branch. The new content will be added to the site during the next minor release.
 - **Cherry-pick changes to `stable-website`.** If you want your changes to show up immediately, check out the latest version of the`stable-website` branch, cherry-pick your changes, and run `git push` to add your changes to the remote `stable-website` branch. Your changes will be live on the site within the hour. 
