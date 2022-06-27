@@ -7,77 +7,58 @@ description: >-
 
 # Command: apply
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) collection on HashiCorp Learn. For more in-depth details on the `apply` command, check out the [Apply Terraform Configuration tutorial](https://learn.hashicorp.com/tutorials/terraform/apply?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
-
 The `terraform apply` command executes the actions proposed in a Terraform
 plan.
 
-The most straightforward way to use `terraform apply` is to run it without
-any arguments at all, in which case it will automatically create a new
-execution plan (as if you had run `terraform plan`) and then prompt you to
-approve that plan, before taking the indicated actions.
-
-Another way to use `terraform apply` is to pass it the filename of a saved
-plan file you created earlier with `terraform plan -out=...`, in which case
-Terraform will apply the changes in the plan without any confirmation prompt.
-This two-step workflow is primarily intended for when
-[running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+> **Hands On:** Try the [Apply Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/apply?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial to learn how Terraform applies a configuration, how Terraform recovers from errors during apply, and common ways to use this command.
 
 ## Usage
 
 Usage: `terraform apply [options] [plan file]`
 
-The behavior of `terraform apply` differs significantly depending on whether
-you pass it the filename of a previously-saved plan file.
+
 
 ### Automatic Plan Mode
 
-In the default case, with no saved plan file, `terraform apply` creates its own
-plan of action, in the same way that [`terraform plan`](/cli/commands/plan) would.
+When you run `terraform apply` without passing a saved plan file, Terraform automatically creates a new execution plan as if you had run [`terraform plan`](/cli/commands/plan), prompts you to approve that plan, and takes the indicated actions. You can use all of the [planning modes](/cli/commands/plan#planning-modes) and
+[planning options](/cli/commands/plan#planning-options) to customize how Terraform will create the plan.
 
-Terraform will propose the plan to you and prompt you to approve it before
-taking the described actions, unless you waive that prompt by using the
-`-auto-approve` option.
+You can pass the `-auto-approve` option to instruct Terraform to apply the plan without asking for confirmation.
 
--> **Tip:** When you run `terraform apply` without a saved plan file, you can use all of the [planning modes](/cli/commands/plan#planning-modes) and
-[planning options](/cli/commands/plan#planning-options) available for `terraform plan`. This lets you customize how Terraform will create the plan.
+!> **Warning:** If you use `-auto-approve`, we recommend making sure that no one can change your infrastructure outside of your Terraform workflow. This minimizes the risk of unpredictable changes and configuration drift.
 
 ### Saved Plan Mode
 
-If you pass the filename of a previously-saved plan file, `terraform apply`
-performs exactly the steps specified by that plan file. It does not prompt for
-approval; if you want to inspect a plan file before applying it, you can use
-[`terraform show`](/cli/commands/show).
+When you pass a [saved plan file](/cli/commands/plan#out-filename) to `terraform apply`, Terraform takes the actions in the saved plan without prompting you for confirmation. You may want to use this two-step workflow when [running Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
-When using a saved plan, none of the planning modes or planning options linked
-above are supported; these options only affect Terraform's decisions about which
+Use [`terraform show`](/cli/commands/show) to inspect a saved plan file before applying it.
+
+When using a saved plan, you cannot specify any additional planning modes or options. These options only affect Terraform's decisions about which
 actions to take, and the plan file contains the final results of those
 decisions.
 
 ### Plan Options
 
-When run without a saved plan file, `terraform apply` supports all of `terraform
-plan`'s planning modes and planning options. For details, see:
+Without a saved plan file, `terraform apply` supports all planning modes and planning options available for `terraform plan`.
 
-* [Planning Modes](/cli/commands/plan#planning-modes)
-* [Planning Options](/cli/commands/plan#planning-options)
+-  **[Planning Modes](/cli/commands/plan#planning-modes):** These include `-destroy`, which creates a plan to destroy all remote objects, and `-refresh-only`, which creates a plan to update Terraform state and root module output values.
+- **[Planning Options](/cli/commands/plan#planning-options):** These include specifying which resource instances Terraform should replace, setting Terraform input variables, etc.
 
 ### Apply Options
 
-The following options allow you to change various details about how the
-apply command executes and reports on the apply operation.
+The following options change how the apply command executes and reports on the apply operation.
 
-* `-auto-approve` - Skips interactive approval of plan before applying. This
+- `-auto-approve` - Skips interactive approval of plan before applying. This
   option is ignored when you pass a previously-saved plan file, because
   Terraform considers you passing the plan file as the approval and so
   will never prompt in that case.
 
-* `-compact-warnings` - Shows any warning messages in a compact form which
+- `-compact-warnings` - Shows any warning messages in a compact form which
   includes only the summary messages, unless the warnings are accompanied by
   at least one error and thus the warning text might be useful context for
   the errors.
 
-* `-input=false` - Disables all of Terraform's interactive prompts. Note that
+- `-input=false` - Disables all of Terraform's interactive prompts. Note that
   this also prevents Terraform from prompting for interactive approval of a
   plan, so Terraform will conservatively assume that you do not wish to
   apply the plan, causing the operation to fail. If you wish to run Terraform
@@ -85,27 +66,27 @@ apply command executes and reports on the apply operation.
   [Running Terraform in Automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) for some
   different approaches.
 
-* `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
+- `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
   This implies `-input=false`, so the configuration must have no unassigned
   variable values to continue. To enable this flag, you must also either enable
   the `-auto-approve` flag or specify a previously-saved plan.
 
   [machine-readable-ui]: /internals/machine-readable-ui
 
-* `-lock=false` - Don't hold a state lock during the operation. This is
+- `-lock=false` - Don't hold a state lock during the operation. This is
   dangerous if others might concurrently run commands against the same
   workspace.
 
-* `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+- `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
   instructs Terraform to retry acquiring a lock for a period of time before
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-* `-no-color` - Disables terminal formatting sequences in the output. Use this
+- `-no-color` - Disables terminal formatting sequences in the output. Use this
   if you are running Terraform in a context where its output will be
   rendered by a system that cannot interpret terminal formatting.
 
-* `-parallelism=n` - Limit the number of concurrent operation as Terraform
+- `-parallelism=n` - Limit the number of concurrent operation as Terraform
   [walks the graph](/internals/graph#walking-the-graph). Defaults to
   10\.
 
