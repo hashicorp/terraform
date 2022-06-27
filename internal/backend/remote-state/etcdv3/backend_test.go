@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	etcdv3 "go.etcd.io/etcd/clientv3"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 var (

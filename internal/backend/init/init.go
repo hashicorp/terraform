@@ -16,7 +16,6 @@ import (
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
-	backendEtcdv2 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv2"
 	backendEtcdv3 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
@@ -81,12 +80,6 @@ func Init(services *disco.Disco) {
 			return deprecateBackend(
 				backendArtifactory.New(),
 				`Warning: "artifactory" backend is deprecated, and will be removed in a future release."`,
-			)
-		},
-		"etcd": func() backend.Backend {
-			return deprecateBackend(
-				backendEtcdv2.New(),
-				`Warning: "etcd" backend is deprecated, and will be removed in a future release."`,
 			)
 		},
 		"etcdv3": func() backend.Backend {

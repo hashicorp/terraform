@@ -5,7 +5,6 @@ package tools
 
 import (
 	_ "github.com/golang/mock/mockgen"
-	_ "github.com/golang/protobuf/protoc-gen-go"
 	_ "github.com/mitchellh/gox"
 	_ "github.com/nishanths/exhaustive"
 	_ "golang.org/x/tools/cmd/cover"

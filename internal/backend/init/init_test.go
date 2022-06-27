@@ -25,7 +25,6 @@ func TestInit_backend(t *testing.T) {
 
 		{"azure", "init.deprecatedBackendShim"},
 		{"artifactory", "init.deprecatedBackendShim"},
-		{"etcd", "init.deprecatedBackendShim"},
 		{"etcdv3", "init.deprecatedBackendShim"},
 		{"manta", "init.deprecatedBackendShim"},
 		{"swift", "init.deprecatedBackendShim"},
