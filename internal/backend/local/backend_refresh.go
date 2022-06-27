@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -51,7 +52,7 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	// the state was locked during succesfull context creation; unlock the state
+	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {
 		diags := op.StateLocker.Unlock()
@@ -103,16 +104,9 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	errWrite := opState.WriteState(newState, schemas)
-	if errWrite != nil {
-		diags = diags.Append(fmt.Errorf("failed to write state: %w", errWrite))
-		op.ReportResult(runningOp, diags)
-		return
-	}
-
-	errPersist := opState.PersistState()
-	if errPersist != nil {
-		diags = diags.Append(fmt.Errorf("failed to write state: %w", errPersist))
+	err := statemgr.WriteAndPersist(opState, newState, schemas)
+	if err != nil {
+		diags = diags.Append(fmt.Errorf("failed to write state: %w", err))
 		op.ReportResult(runningOp, diags)
 		return
 	}

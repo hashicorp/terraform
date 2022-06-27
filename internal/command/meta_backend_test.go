@@ -339,7 +339,7 @@ func TestMetaBackend_configureNewWithState(t *testing.T) {
 	state = states.NewState()
 	mark := markStateForMatching(state, "changing")
 
-	if err := statemgr.WriteAndPersist(s, state); err != nil {
+	if err := statemgr.WriteAndPersist(s, state, nil); err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
