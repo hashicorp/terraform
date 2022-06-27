@@ -247,7 +247,9 @@ A module intended to be used as the root of a configuration — that is, as the
 directory where you'd run `terraform apply` — should also specify the
 _maximum_ provider version it is intended to work with, to avoid accidental
 upgrades to incompatible new versions. The `~>` operator is a convenient
-shorthand for allowing only patch releases within a specific minor release:
+shorthand for allowing the rightmost component of a version to increment. The
+following example uses the operator to allow only patch releases within a 
+specific minor release:
 
 ```hcl
 terraform {
