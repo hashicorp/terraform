@@ -20,7 +20,7 @@ Usage: `terraform apply [options] [plan file]`
 
 ### Automatic Plan Mode
 
-When you run `terraform apply` without arguments, Terraform automatically creates a new execution plan as if you had run [`terraform plan`](/cli/commands/plan), prompts you to approve that plan, and takes the indicated actions. You can use all of the [planning modes](/cli/commands/plan#planning-modes) and
+When you run `terraform apply` without passing a saved plan file, Terraform automatically creates a new execution plan as if you had run [`terraform plan`](/cli/commands/plan), prompts you to approve that plan, and takes the indicated actions. You can use all of the [planning modes](/cli/commands/plan#planning-modes) and
 [planning options](/cli/commands/plan#planning-options) to customize how Terraform will create the plan.
 
 You can pass the `-auto-approve` option to instruct Terraform to apply the plan without asking for confirmation.
