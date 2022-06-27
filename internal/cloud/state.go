@@ -199,12 +199,12 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 	ctx := context.Background()
 
 	options := tfe.StateVersionCreateOptions{
-		Lineage:  tfe.String(lineage),
-		Serial:   tfe.Int64(int64(serial)),
-		MD5:      tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-		State:    tfe.String(base64.StdEncoding.EncodeToString(state)),
-		Force:    tfe.Bool(isForcePush),
-		ExtState: jsonState,
+		Lineage:   tfe.String(lineage),
+		Serial:    tfe.Int64(int64(serial)),
+		MD5:       tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+		State:     tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:     tfe.Bool(isForcePush),
+		JSONState: tfe.String(base64.StdEncoding.EncodeToString(jsonState)),
 	}
 
 	// If we have a run ID, make sure to add it to the options
