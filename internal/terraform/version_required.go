@@ -27,6 +27,25 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 	module := config.Module
 
 	for _, constraint := range module.CoreVersionConstraints {
+		// Before checking if the constraints are met, check that we are not using any prerelease fields as these
+		// are not currently supported.
+		for _, required := range constraint.Required {
+			if required.Prerelease() {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_version constraint",
+					Detail:   fmt.Sprintf("Prerelease version constraints are not supported: %s.", required.String()),
+					Subject:  constraint.DeclRange.Ptr(),
+				})
+			}
+		}
+
+		if len(diags) > 0 {
+			// There were some prerelease fields in the constraints. Don't check the constraints as they will
+			// fail, and the diagnostics are already populated.
+			continue
+		}
+
 		if !constraint.Required.Check(tfversion.SemVer) {
 			switch {
 			case len(config.Path) == 0:
