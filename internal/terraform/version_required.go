@@ -34,8 +34,10 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid required_version constraint",
-					Detail:   fmt.Sprintf("Prerelease version constraints are not supported: %s.", required.String()),
-					Subject:  constraint.DeclRange.Ptr(),
+					Detail: fmt.Sprintf(
+						"Prerelease version constraints are not supported: %s. Remove the prerelease information from the constraint. Prerelease versions of terraform will match constraints using their version core only.",
+						required.String()),
+					Subject: constraint.DeclRange.Ptr(),
 				})
 			}
 		}
