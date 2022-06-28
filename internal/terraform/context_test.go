@@ -68,6 +68,22 @@ func TestNewContextRequiredVersion(t *testing.T) {
 		},
 
 		{
+			"prerelease doesn't match with inequality",
+			"",
+			"0.8.0",
+			"> 0.7.0-beta",
+			true,
+		},
+
+		{
+			"prerelease doesn't match with equality",
+			"",
+			"0.7.0",
+			"0.7.0-beta",
+			true,
+		},
+
+		{
 			"module matches",
 			"context-required-version-module",
 			"0.5.0",
