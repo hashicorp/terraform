@@ -424,10 +424,15 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 
 		bf := backendInit.Backend(backendType)
 		if bf == nil {
+			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+				detail = msg
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
+				Detail:   detail,
 				Subject:  &root.Backend.TypeRange,
 			})
 			return nil, true, diags

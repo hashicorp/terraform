@@ -193,10 +193,15 @@ func getBackend(cfg cty.Value) (backend.Backend, cty.Value, tfdiags.Diagnostics)
 	log.Printf("[DEBUG] Initializing remote state backend: %s", backendType)
 	f := getBackendFactory(backendType)
 	if f == nil {
+		detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+		if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+			detail = msg
+		}
+
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid backend configuration",
-			fmt.Sprintf("There is no backend type named %q.", backendType),
+			detail,
 			cty.Path(nil).GetAttr("backend"),
 		))
 		return nil, cty.NilVal, diags
