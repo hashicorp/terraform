@@ -48,9 +48,8 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `inline` - This is a list of command strings. Strings are collected in order as
-  a single `.sh` script which is executed on the remote host. A default shell `#!` 
-  is used unless a `#!` string is the first command, such as `#!/bin/bash`. 
+* `inline` - This is a list of command strings. The provisioner uses a default
+  shell unless you specify a shell as the first command, eg. `#!/bin/bash`. 
   This cannot be provided with `script` or `scripts`.
 
 * `script` - This is a path (relative or absolute) to a local script that will
