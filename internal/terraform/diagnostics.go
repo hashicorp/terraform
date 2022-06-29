@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -39,4 +41,42 @@ var _ tfdiags.DiagnosticExtraBecauseSensitive = diagnosticCausedBySensitive(true
 
 func (e diagnosticCausedBySensitive) DiagnosticCausedBySensitive() bool {
 	return bool(e)
+}
+
+// diagnosticAboutConfigCheckable is an implementation of
+// moduletest.ConfigCheckableDiagnosticExtra which can be used to annotate
+// a diagnostic as being related to a particular static checkable object.
+type diagnosticAboutConfigCheckable struct {
+	addr    addrs.ConfigCheckable
+	wrapped interface{}
+}
+
+var _ tfdiags.DiagnosticExtraUnwrapper = diagnosticAboutConfigCheckable{}
+
+func diagnosticExtraAboutConfigCheckable(addr addrs.ConfigCheckable, wrapping interface{}) diagnosticAboutConfigCheckable {
+	return diagnosticAboutConfigCheckable{addr, wrapping}
+}
+
+func (e diagnosticAboutConfigCheckable) ExtraConfigCheckable() addrs.ConfigCheckable {
+	return e.addr
+}
+
+func (e diagnosticAboutConfigCheckable) UnwrapDiagnosticExtra() interface{} {
+	return e.wrapped
+}
+
+// diagnosticAboutCheckFailure is an implementation of
+// moduletest.CheckStatusDiagnosticExtra which can be used to annotate a
+// diagnostic as being a direct report of a check failure for a particular
+// dynamic checkable object.
+type diagnosticAboutCheckFailure struct {
+	addr addrs.Checkable
+}
+
+func diagnosticExtraForCheckFailure(addr addrs.Checkable) diagnosticAboutCheckFailure {
+	return diagnosticAboutCheckFailure{addr}
+}
+
+func (e diagnosticAboutCheckFailure) ExtraCheckStatus() (addrs.Checkable, checks.Status) {
+	return e.addr, checks.StatusFail
 }

@@ -165,6 +165,12 @@ func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext
 		Subject:     rule.Condition.Range().Ptr(),
 		Expression:  rule.Condition,
 		EvalContext: hclCtx,
+
+		// When we're showing check results in a specialized UI for that
+		// purpose it is often redundant to also show the diagnostic
+		// describing the failure, so this annotation allows such UIs to
+		// skip showing check-failure-related diagnostics in particular.
+		Extra: diagnosticExtraForCheckFailure(self),
 	})
 
 	return checkResult{

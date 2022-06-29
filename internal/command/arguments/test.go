@@ -16,6 +16,17 @@ type Test struct {
 // related to how it presents its results. That is, it's the arguments that
 // are relevant to the command's view rather than its controller.
 type TestOutput struct {
+	// ShowAll, if true, requests that any view that would normally summarize
+	// away passing and skipped tests should instead show them, so that the
+	// user can get an overview of all of the test cases that were declared
+	// even if they passed or were skipped.
+	//
+	// If false, it's up to the view to decide what's most appropriate. Views
+	// that generate machine-readable output in particular tend to just show
+	// everything always and let whatever other software consumes the output
+	// be the one to filter down if needed.
+	ShowAll bool
+
 	// If not an empty string, JUnitXMLFile gives a filename where JUnit-style
 	// XML test result output should be written, in addition to the normal
 	// output printed to the standard output and error streams.
@@ -39,6 +50,7 @@ func ParseTest(args []string) (Test, tfdiags.Diagnostics) {
 	f.SetOutput(ioutil.Discard)
 	f.Usage = func() {}
 	f.StringVar(&ret.Output.JUnitXMLFile, "junit-xml", "", "Write a JUnit XML file describing the results")
+	f.BoolVar(&ret.Output.ShowAll, "show-all", false, "Force showing all test cases, even if they passed or were skipped")
 
 	err := f.Parse(args)
 	if err != nil {
