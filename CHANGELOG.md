@@ -1,14 +1,14 @@
-## 1.2.4 (Unreleased)
+## 1.2.4 (June 29, 2022)
 
 ENHANCEMENTS:
 
-* Improved validation of `required_providers` to prevent single providers from being required with multiple names. [GH-31218]
-* Improved plan performance by optimizing `addrs.Module.String` for allocations. [GH-31293]
+* Improved validation of `required_providers` to prevent single providers from being required with multiple names. ([#31218](https://github.com/hashicorp/terraform/issues/31218))
+* Improved plan performance by optimizing `addrs.Module.String` for allocations. ([#31293](https://github.com/hashicorp/terraform/issues/31293))
 
 BUG FIXES:
 
-* backend/http: Fixed bug where the HTTP backend would fail to retry acquiring the state lock and ignored the `-lock-timeout` flag. [GH-31256]
-* Fix crash if a `precondition` or `postcondition` block omitted the required `condition` argument. [GH-31290]
+* backend/http: Fixed bug where the HTTP backend would fail to retry acquiring the state lock and ignored the `-lock-timeout` flag. ([#31256](https://github.com/hashicorp/terraform/issues/31256))
+* Fix crash if a `precondition` or `postcondition` block omitted the required `condition` argument. ([#31290](https://github.com/hashicorp/terraform/issues/31290))
 
 ## 1.2.3 (June 15, 2022)
 
