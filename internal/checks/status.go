@@ -71,3 +71,37 @@ func StatusForCtyValue(v cty.Value) Status {
 		panic(fmt.Sprintf("cannot use %#v as check status", v))
 	}
 }
+
+// AggregateStatus combines two separate statuses into a single aggregate
+// status.
+//
+// This function implements a sort of priority scheme for statuses, where
+// "stronger" statuses mask "weaker" ones. The strength order of statuses,
+// from strongest to weakest, is:
+//   - StatusError
+//   - StatusFail
+//   - StatusUnknown
+//   - StatusPass
+//
+// The intent of this ordering is from a similar principle as short-circuiting
+// boolean operators. For example, if one test has failed then a subsequent
+// result cannot possibly change the outcome to unknown or pass, but it could
+// change it to an error.
+func AggregateStatus(a, b Status) Status {
+	switch {
+	case a == b:
+		// Easy case: they're both the same!
+		return a
+	case a == StatusError || b == StatusError:
+		return StatusError
+	case a == StatusFail || b == StatusFail:
+		return StatusFail
+	case a == StatusUnknown || b == StatusUnknown:
+		return StatusUnknown
+	default:
+		// There aren't any other statuses, so we shouldn't get here.
+		// (If both a and b are StatusPass then our first case above
+		// would have handled that.)
+		panic(fmt.Sprintf("cannot aggregate %s with %s", a, b))
+	}
+}
