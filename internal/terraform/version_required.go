@@ -39,37 +39,35 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 						required.String()),
 					Subject: constraint.DeclRange.Ptr(),
 				})
+
+				// Don't check the current constraint against the version, as it will fail, but carry on checking the
+				// other constraints.
+				continue
 			}
-		}
 
-		if len(diags) > 0 {
-			// There were some prerelease fields in the constraints. Don't check the constraints as they will
-			// fail, and the diagnostics are already populated.
-			continue
-		}
-
-		if !constraint.Required.Check(tfversion.SemVer) {
-			switch {
-			case len(config.Path) == 0:
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unsupported Terraform Core version",
-					Detail: fmt.Sprintf(
-						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
-						tfversion.String(),
-					),
-					Subject: constraint.DeclRange.Ptr(),
-				})
-			default:
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Unsupported Terraform Core version",
-					Detail: fmt.Sprintf(
-						"Module %s (from %s) does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
-						config.Path, config.SourceAddr, tfversion.String(),
-					),
-					Subject: constraint.DeclRange.Ptr(),
-				})
+			if !required.Check(tfversion.SemVer) {
+				switch {
+				case len(config.Path) == 0:
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unsupported Terraform Core version",
+						Detail: fmt.Sprintf(
+							"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update the version constraint %s. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+							tfversion.String(), required.String(),
+						),
+						Subject: constraint.DeclRange.Ptr(),
+					})
+				default:
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Unsupported Terraform Core version",
+						Detail: fmt.Sprintf(
+							"Module %s (from %s) does not support Terraform version %s. To proceed, either choose another supported Terraform version or update the version constraint %s. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+							config.Path, config.SourceAddr, tfversion.String(), required.String(),
+						),
+						Subject: constraint.DeclRange.Ptr(),
+					})
+				}
 			}
 		}
 	}

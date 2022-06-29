@@ -37,18 +37,18 @@ var (
 
 func TestNewContextRequiredVersion(t *testing.T) {
 	cases := []struct {
-		Name    string
-		Module  string
-		Version string
-		Value   string
-		Err     bool
+		Name     string
+		Module   string
+		Version  string
+		Value    string
+		ErrCount int
 	}{
 		{
 			"no requirement",
 			"",
 			"0.1.0",
 			"",
-			false,
+			0,
 		},
 
 		{
@@ -56,7 +56,15 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"",
 			"0.1.0",
 			"> 0.6.0",
-			true,
+			1,
+		},
+
+		{
+			"doesn't match partial",
+			"",
+			"0.1.0",
+			"> 0.6.0, < 0.7.0",
+			1,
 		},
 
 		{
@@ -64,7 +72,15 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"",
 			"0.7.0",
 			"> 0.6.0",
-			false,
+			0,
+		},
+
+		{
+			"matches multiple",
+			"",
+			"0.7.0",
+			"> 0.6.0, < 0.8.0",
+			0,
 		},
 
 		{
@@ -72,7 +88,15 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"",
 			"0.8.0",
 			"> 0.7.0-beta",
-			true,
+			1,
+		},
+
+		{
+			"prerelease doesn't match with inequality partial",
+			"",
+			"0.8.0",
+			"> 0.7.0-beta, < 0.9.0",
+			1,
 		},
 
 		{
@@ -80,7 +104,15 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"",
 			"0.7.0",
 			"0.7.0-beta",
-			true,
+			1,
+		},
+
+		{
+			"prerelease doesn't match with inequality partial",
+			"",
+			"0.10.0",
+			"> 0.7.0-beta, < 0.9.0",
+			2,
 		},
 
 		{
@@ -88,7 +120,7 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"context-required-version-module",
 			"0.5.0",
 			"",
-			false,
+			0,
 		},
 
 		{
@@ -96,7 +128,7 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			"context-required-version-module",
 			"0.4.0",
 			"",
-			true,
+			1,
 		},
 	}
 
@@ -127,8 +159,15 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			}
 
 			diags = c.Validate(mod)
-			if diags.HasErrors() != tc.Err {
-				t.Fatalf("err: %s", diags.Err())
+			errCount := 0
+			for _, diag := range diags {
+				if diag.Severity() == tfdiags.Error {
+					errCount++
+				}
+			}
+
+			if errCount != tc.ErrCount {
+				t.Fatalf("invalid error count: %s", diags.Err())
 			}
 		})
 	}
