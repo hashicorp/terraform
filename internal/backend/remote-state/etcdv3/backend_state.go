@@ -6,12 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	etcdv3 "go.etcd.io/etcd/clientv3"
-
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	etcdv3 "go.etcd.io/etcd/client/v3"
 )
 
 func (b *Backend) Workspaces() ([]string, error) {

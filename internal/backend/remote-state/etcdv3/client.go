@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	etcdv3 "go.etcd.io/etcd/clientv3"
-	etcdv3sync "go.etcd.io/etcd/clientv3/concurrency"
+	etcdv3 "go.etcd.io/etcd/client/v3"
+	etcdv3sync "go.etcd.io/etcd/client/v3/concurrency"
 )
 
 const (
