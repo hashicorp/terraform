@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * Report correct error message when a prerelease field is included in the `required_version` global constraint. [GH-31331]
+* Fix case when extra blank lines were inserted into the plan for unchanged blocks. [GH-31330]
 
 ## 1.2.4 (June 29, 2022)
 
