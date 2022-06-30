@@ -42,7 +42,7 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.0
 	github.com/hashicorp/go-tfe v1.0.0
 	github.com/hashicorp/go-uuid v1.0.2
-	github.com/hashicorp/go-version v1.3.0
+	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
 	github.com/hashicorp/hcl/v2 v2.13.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
