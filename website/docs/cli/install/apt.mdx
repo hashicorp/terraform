@@ -50,7 +50,7 @@ Add the official HashiCorp repository to your system.
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 ```
 
-The above command line uses the `lsb_release -cs` command to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
+The above command uses `lsb_release -cs` to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
 
 To install Terraform from the new repository:
 
