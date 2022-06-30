@@ -807,6 +807,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			newItem := cty.NullVal(oldItem.Type())
 			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Delete, oldItem, newItem, indent, blankBeforeInner, path)
 			if skipped {
+				skippedBlocks++
+			} else {
 				blankBeforeInner = false
 			}
 		}
@@ -816,6 +818,8 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 			oldItem := cty.NullVal(newItem.Type())
 			skipped := p.writeNestedBlockDiff(name, nil, &blockS.Block, plans.Create, oldItem, newItem, indent, blankBeforeInner, path)
 			if skipped {
+				skippedBlocks++
+			} else {
 				blankBeforeInner = false
 			}
 		}
