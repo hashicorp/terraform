@@ -27,6 +27,29 @@ func CheckCoreVersionRequirements(config *configs.Config) tfdiags.Diagnostics {
 	module := config.Module
 
 	for _, constraint := range module.CoreVersionConstraints {
+		// Before checking if the constraints are met, check that we are not using any prerelease fields as these
+		// are not currently supported.
+		var prereleaseDiags tfdiags.Diagnostics
+		for _, required := range constraint.Required {
+			if required.Prerelease() {
+				prereleaseDiags = prereleaseDiags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_version constraint",
+					Detail: fmt.Sprintf(
+						"Prerelease version constraints are not supported: %s. Remove the prerelease information from the constraint. Prerelease versions of terraform will match constraints using their version core only.",
+						required.String()),
+					Subject: constraint.DeclRange.Ptr(),
+				})
+			}
+		}
+
+		if len(prereleaseDiags) > 0 {
+			// There were some prerelease fields in the constraints. Don't check the constraints as they will
+			// fail, and populate the diagnostics for these constraints with the prerelease diagnostics.
+			diags = diags.Append(prereleaseDiags)
+			continue
+		}
+
 		if !constraint.Required.Check(tfversion.SemVer) {
 			switch {
 			case len(config.Path) == 0:
