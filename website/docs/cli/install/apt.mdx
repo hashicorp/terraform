@@ -34,9 +34,9 @@ To configure your repository:
 1. Download the signing key to a new keyring.
 
    ```bash
-   $ wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | \
+   $ wget -O- https://apt.releases.hashicorp.com/gpg | \
+       gpg --dearmor | \
        sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-   ```
 
 1. Verify the key's fingerprint.
 
