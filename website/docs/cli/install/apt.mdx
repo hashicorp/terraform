@@ -29,25 +29,28 @@ package repositories.
 
 The Terraform packages are signed using a private key controlled by HashiCorp,
 so in most situations the first step would be to configure your system to trust
-that HashiCorp key for package authentication. For example:
+that HashiCorp key for package authentication.
+
+The following example downloads the signing key to a new keyring.
 
 ```bash
-wget -qO - terraform.gpg https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/terraform-archive-keyring.gpg
+wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
 ```
 
-After registering the key, you can add the official HashiCorp repository to
-your system:
+Verify the key's fingerprint.
 
 ```bash
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/terraform-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/terraform.list
+gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg --fingerprint
+```
+The fingerprint must match `E8A0 32E0 94D8 EB4E A189 D270 DA41 8C88 A321 9F7B`. Yuo can also verify the key on [Security at HashiCorp](https://www.hashicorp.com/security) under **Linux Package Checksum Verification**.
+
+Add the official HashiCorp repository to your system.
+
+```bash
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 ```
 
-The above command line uses the following sub-shell commands:
-
-* `dpkg --print-architecture` to determine your system's primary APT
-  architecture/ABI, such as `amd64`.
-* `lsb_release -cs` to find the distribution release codename for your current
-  system, such as `buster`, `groovy`, or `sid`.
+The above command line uses the `lsb_release -cs` command to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
 
 To install Terraform from the new repository:
 
