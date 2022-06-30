@@ -3,6 +3,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -123,6 +124,15 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		for _, configElem := range opts.PlanTimeCheckResults.ConfigResults.Elems {
 			if configElem.Value.ObjectAddrsKnown() {
 				configAddr := configElem.Key
+				if _, isOutput := configAddr.(addrs.ConfigOutputValue); isOutput {
+					// HACK: We use the same graph nodes for output values
+					// during both plan and apply, and so the expand nodes for
+					// our output values will report the checkable objects
+					// in the normal way, and so we musn't "pre-report" them
+					// here, unlike other object types which use a pre-expanded
+					// graph topology during apply. :(
+					continue
+				}
 				checkState.ReportCheckableObjects(configAddr, configElem.Value.ObjectResults.Keys())
 			}
 		}
