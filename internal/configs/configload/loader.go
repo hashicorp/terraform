@@ -50,12 +50,22 @@ type Config struct {
 func NewLoader(config *Config) (*Loader, error) {
 	fs := afero.NewOsFs()
 	parser := configs.NewParser(fs)
-	reg := registry.NewClient(config.Services, nil)
+	return NewLoaderWithParser(config, parser)
+}
 
+// NewLoaderWithParser is a variant of NewLoader that allows the caller to
+// provide its own config parser, whereas NewLoader constructs its own
+// parser which consults the local filesystem.
+//
+// One reason to use this is if you need multiple loaders with different
+// settings to share the same underlying parser, to draw module source code
+// from the same locations but for use in different contexts.
+func NewLoaderWithParser(config *Config, parser *configs.Parser) (*Loader, error) {
+	reg := registry.NewClient(config.Services, nil)
 	ret := &Loader{
 		parser: parser,
 		modules: moduleMgr{
-			FS:         afero.Afero{Fs: fs},
+			FS:         afero.Afero{Fs: parser.Filesystem()},
 			CanInstall: true,
 			Dir:        config.ModulesDir,
 			Services:   config.Services,

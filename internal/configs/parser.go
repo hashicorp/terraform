@@ -106,6 +106,12 @@ func (p *Parser) ForceFileSource(filename string, src []byte) {
 	})
 }
 
+// Filesystem returns the underlying filesystem implementation that this
+// parser would use to read files.
+func (p *Parser) Filesystem() afero.Afero {
+	return p.fs
+}
+
 // AllowLanguageExperiments specifies whether subsequent LoadConfigFile (and
 // similar) calls will allow opting in to experimental language features.
 //
