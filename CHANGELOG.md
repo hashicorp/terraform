@@ -1,5 +1,9 @@
 ## 1.2.5 (Unreleased)
 
+BUG FIXES:
+
+* Report correct error message when a prerelease field is included in the `required_version` global constraint. [GH-31331]
+
 ## 1.2.4 (June 29, 2022)
 
 ENHANCEMENTS:
