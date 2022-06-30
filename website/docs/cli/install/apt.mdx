@@ -27,11 +27,9 @@ package repositories.
 
 ## Repository Configuration
 
-The Terraform packages are signed using a private key controlled by HashiCorp,
-so in most situations the first step would be to configure your system to trust
-that HashiCorp key for package authentication.
+The Terraform packages are signed using a private key controlled by HashiCorp, so first you must configure your system to trust that HashiCorp key for package authentication.
 
-The following example downloads the signing key to a new keyring.
+Download the signing key to a new keyring.
 
 ```bash
 wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
@@ -44,15 +42,15 @@ gpg --no-default-keyring --keyring /usr/share/keyrings/hashicorp-archive-keyring
 ```
 The fingerprint must match `E8A0 32E0 94D8 EB4E A189 D270 DA41 8C88 A321 9F7B`. Yuo can also verify the key on [Security at HashiCorp](https://www.hashicorp.com/security) under **Linux Package Checksum Verification**.
 
-Add the official HashiCorp repository to your system.
+Add the official HashiCorp repository to your system. The `lsb_release -cs` command to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
 
 ```bash
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 ```
 
-The above command line uses the `lsb_release -cs` command to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
+The command line uses the `lsb_release -cs` command to find the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
 
-To install Terraform from the new repository:
+Install Terraform from the new repository.
 
 ```bash
 sudo apt update
