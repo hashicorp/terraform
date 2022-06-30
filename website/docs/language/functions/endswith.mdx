@@ -1,0 +1,30 @@
+---
+page_title: endswith - Functions - Configuration Language
+description: |-
+  The endswith function takes a given string and a given suffix value,
+  and returns true if the first given string contains the given value at its end.
+---
+
+# `endswith` Function
+
+`endswith` takes a given string and a given suffix value,
+and returns true if the first given string contains the given value at its end.
+
+```hcl
+endswith(string, suffix)
+```
+
+## Examples
+
+```
+> endswith("hello world", "world")
+true
+
+> endswith("hello world", "hello")
+false
+```
+
+## Related Functions
+
+- [`startswith`](/language/functions/startswith) takes a given string and a given prefix value,
+  and returns true if the first given string contains the given value at its beginning
