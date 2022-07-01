@@ -3,7 +3,7 @@ package e2etest
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -159,7 +159,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -199,7 +199,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
-	//// INIT
+	// // INIT
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
@@ -213,7 +213,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		t.Errorf("test provider binary found in .terraform dir")
 	}
 
-	//// PLAN
+	// // PLAN
 	_, stderr, err = tf.Run("plan", "-out=tfplan")
 	if err != nil {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
@@ -223,7 +223,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 		t.Error("PlanResourceChange not called on un-managed provider")
 	}
 
-	//// APPLY
+	// // APPLY
 	_, stderr, err = tf.Run("apply", "tfplan")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
@@ -234,7 +234,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	}
 	provider.ResetApplyResourceChangeCalled()
 
-	//// DESTROY
+	// // DESTROY
 	_, stderr, err = tf.Run("destroy", "-auto-approve")
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)
@@ -264,7 +264,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		Logger: hclog.New(&hclog.LoggerOptions{
 			Name:   "plugintest",
 			Level:  hclog.Trace,
-			Output: ioutil.Discard,
+			Output: io.Discard,
 		}),
 		Test: &plugin.ServeTestConfig{
 			Context:          ctx,
@@ -304,7 +304,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 
 	tf.AddEnv("TF_REATTACH_PROVIDERS=" + string(reattachStr))
 
-	//// INIT
+	// // INIT
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
 		t.Fatalf("unexpected init error: %s\nstderr:\n%s", err, stderr)
@@ -318,7 +318,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		t.Errorf("test provider binary found in .terraform dir")
 	}
 
-	//// PLAN
+	// // PLAN
 	_, stderr, err = tf.Run("plan", "-out=tfplan")
 	if err != nil {
 		t.Fatalf("unexpected plan error: %s\nstderr:\n%s", err, stderr)
@@ -328,7 +328,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 		t.Error("PlanResourceChange not called on un-managed provider")
 	}
 
-	//// APPLY
+	// // APPLY
 	_, stderr, err = tf.Run("apply", "tfplan")
 	if err != nil {
 		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
@@ -339,7 +339,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 	}
 	provider.ResetApplyResourceChangeCalled()
 
-	//// DESTROY
+	// // DESTROY
 	_, stderr, err = tf.Run("destroy", "-auto-approve")
 	if err != nil {
 		t.Fatalf("unexpected destroy error: %s\nstderr:\n%s", err, stderr)

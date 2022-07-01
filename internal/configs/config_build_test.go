@@ -2,7 +2,7 @@ package configs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -158,7 +158,7 @@ func TestBuildConfigChildModuleBackend(t *testing.T) {
 
 func TestBuildConfigInvalidModules(t *testing.T) {
 	testDir := "testdata/config-diagnostics"
-	dirs, err := ioutil.ReadDir(testDir)
+	dirs, err := os.ReadDir(testDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -199,8 +199,8 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			// expected location in the source, but is not required.
 			// The literal characters `\n` are replaced with newlines, but
 			// otherwise the string is unchanged.
-			expectedErrs := readDiags(ioutil.ReadFile(filepath.Join(testDir, name, "errors")))
-			expectedWarnings := readDiags(ioutil.ReadFile(filepath.Join(testDir, name, "warnings")))
+			expectedErrs := readDiags(os.ReadFile(filepath.Join(testDir, name, "errors")))
+			expectedWarnings := readDiags(os.ReadFile(filepath.Join(testDir, name, "warnings")))
 
 			_, buildDiags := BuildConfig(mod, ModuleWalkerFunc(
 				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {

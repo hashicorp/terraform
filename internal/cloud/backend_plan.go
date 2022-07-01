@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -144,7 +143,7 @@ in order to capture the filesystem context the remote workspace expects:
 		// We did a check earlier to make sure we either have a config dir,
 		// or the plan is run with -destroy. So this else clause will only
 		// be executed when we are destroying and doesn't need the config.
-		configDir, err = ioutil.TempDir("", "tf")
+		configDir, err = os.MkdirTemp("", "tf")
 		if err != nil {
 			return nil, generalError("Failed to create temporary directory", err)
 		}

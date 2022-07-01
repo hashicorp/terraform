@@ -3,7 +3,7 @@ package funcs
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"unicode/utf8"
@@ -11,7 +11,7 @@ import (
 	"github.com/bmatcuk/doublestar"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
@@ -416,7 +416,7 @@ func readFileBytes(baseDir, path string, marks cty.ValueMarks) ([]byte, error) {
 	}
 	defer f.Close()
 
-	src, err := ioutil.ReadAll(f)
+	src, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}

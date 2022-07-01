@@ -5,14 +5,13 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	triton "github.com/joyent/triton-go"
+	"github.com/joyent/triton-go"
 	"github.com/joyent/triton-go/authentication"
 	"github.com/joyent/triton-go/storage"
 )
@@ -155,7 +154,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	} else {
 		var keyBytes []byte
 		if _, err = os.Stat(config.KeyMaterial); err == nil {
-			keyBytes, err = ioutil.ReadFile(config.KeyMaterial)
+			keyBytes, err = os.ReadFile(config.KeyMaterial)
 			if err != nil {
 				return fmt.Errorf("Error reading key material from %s: %s",
 					config.KeyMaterial, err)

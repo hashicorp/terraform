@@ -6,7 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	plugin "github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -148,9 +148,9 @@ type Meta struct {
 	// flag is set, to reinforce that experiments are not for production use.
 	AllowExperimentalFeatures bool
 
-	//----------------------------------------------------------
+	// ----------------------------------------------------------
 	// Protected: commands can set these
-	//----------------------------------------------------------
+	// ----------------------------------------------------------
 
 	// pluginPath is a user defined set of directories to look for plugins.
 	// This is set during init with the `-plugin-dir` flag, saved to a file in
@@ -161,9 +161,9 @@ type Meta struct {
 	// Override certain behavior for tests within this package
 	testingOverrides *testingOverrides
 
-	//----------------------------------------------------------
+	// ----------------------------------------------------------
 	// Private: do not set these
-	//----------------------------------------------------------
+	// ----------------------------------------------------------
 
 	// configLoader is a shared configuration loader that is used by
 	// LoadConfig and other commands that access configuration files.
@@ -492,7 +492,7 @@ func (m *Meta) contextOpts() (*terraform.ContextOpts, error) {
 // See also command/arguments/default.go
 func (m *Meta) defaultFlagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
-	f.SetOutput(ioutil.Discard)
+	f.SetOutput(io.Discard)
 
 	// Set the default Usage to empty
 	f.Usage = func() {}
@@ -702,7 +702,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		return envVar, true
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+	envData, err := os.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName
@@ -724,7 +724,7 @@ func (m *Meta) SetWorkspace(name string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
+	err = os.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}

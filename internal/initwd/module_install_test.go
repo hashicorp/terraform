@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,7 +13,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -121,12 +120,12 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 	// %%BASE%% with the temporary directory path.
 	{
 		rootFilename := filepath.Join(dir, "package-escape.tf")
-		template, err := ioutil.ReadFile(rootFilename)
+		template, err := os.ReadFile(rootFilename)
 		if err != nil {
 			t.Fatal(err)
 		}
 		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
-		err = ioutil.WriteFile(rootFilename, final, 0644)
+		err = os.WriteFile(rootFilename, final, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -156,12 +155,12 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 	// %%BASE%% with the temporary directory path.
 	{
 		rootFilename := filepath.Join(dir, "package-prefix.tf")
-		template, err := ioutil.ReadFile(rootFilename)
+		template, err := os.ReadFile(rootFilename)
 		if err != nil {
 			t.Fatal(err)
 		}
 		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
-		err = ioutil.WriteFile(rootFilename, final, 0644)
+		err = os.WriteFile(rootFilename, final, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -420,7 +419,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
-	//check that the registry reponses were cached
+	// check that the registry reponses were cached
 	packageAddr := addrs.ModuleRegistryPackage{
 		Host:         svchost.Hostname("registry.terraform.io"),
 		Namespace:    "hashicorp",
@@ -636,7 +635,7 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 	t.Helper()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-configload")
+	tmpDir, err := os.MkdirTemp("", "terraform-configload")
 	if err != nil {
 		t.Fatalf("failed to create temporary directory: %s", err)
 		return "", nil

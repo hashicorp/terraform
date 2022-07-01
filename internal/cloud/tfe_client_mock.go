@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -15,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/go-tfe"
 	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/copystructure"
 )
@@ -129,7 +128,7 @@ func (m *MockApplies) Logs(ctx context.Context, applyID string) (io.Reader, erro
 		return bytes.NewBufferString("logfile does not exist"), nil
 	}
 
-	logs, err := ioutil.ReadFile(logfile)
+	logs, err := os.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +305,7 @@ func (m *MockCostEstimates) Logs(ctx context.Context, costEstimateID string) (io
 		return bytes.NewBufferString("logfile does not exist"), nil
 	}
 
-	logs, err := ioutil.ReadFile(logfile)
+	logs, err := os.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +510,7 @@ func (m *MockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 		return bytes.NewBufferString("logfile does not exist"), nil
 	}
 
-	logs, err := ioutil.ReadFile(logfile)
+	logs, err := os.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -627,7 +626,7 @@ func (m *MockPolicyChecks) Read(ctx context.Context, policyCheckID string) (*tfe
 		return nil, fmt.Errorf("logfile does not exist")
 	}
 
-	logs, err := ioutil.ReadFile(logfile)
+	logs, err := os.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +675,7 @@ func (m *MockPolicyChecks) Logs(ctx context.Context, policyCheckID string) (io.R
 		return bytes.NewBufferString("logfile does not exist"), nil
 	}
 
-	logs, err := ioutil.ReadFile(logfile)
+	logs, err := os.ReadFile(logfile)
 	if err != nil {
 		return nil, err
 	}
@@ -855,7 +854,7 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 		r.Plan.Status = tfe.PlanRunning
 	}
 
-	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
+	logs, _ := os.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
 	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
 		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false

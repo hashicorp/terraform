@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -17,9 +16,9 @@ import (
 	"sync"
 
 	"github.com/hashicorp/errwrap"
-	multierror "github.com/hashicorp/go-multierror"
-	uuid "github.com/hashicorp/go-uuid"
-	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/go-uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -1956,7 +1955,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
 	// This is suboptimal, but will work for now.
-	jsonBytes, err := ioutil.ReadAll(buf)
+	jsonBytes, err := io.ReadAll(buf)
 	if err != nil {
 		return nil, fmt.Errorf("Reading state file failed: %v", err)
 	}

@@ -3,7 +3,7 @@ package views
 import (
 	"encoding/xml"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
 
@@ -324,7 +324,7 @@ func (v *testHuman) junitXMLResults(results map[string]*moduletest.Suite, filena
 		panic(fmt.Sprintf("invalid values to marshal as JUnit XML: %s", err))
 	}
 
-	err = ioutil.WriteFile(filename, xmlOut, 0644)
+	err = os.WriteFile(filename, xmlOut, 0644)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -82,7 +81,7 @@ func TestMain(m *testing.M) {
 
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
-//the test and all its subtests complete.
+// the test and all its subtests complete.
 //
 // Although workdir.Dir is built to support arbitrary base directories, the
 // not-yet-migrated behaviors in command.Meta tend to expect the root module
@@ -895,7 +894,7 @@ func testCopyDir(t *testing.T, src, dst string) {
 		t.Fatal(err)
 	}
 
-	entries, err := ioutil.ReadDir(src)
+	entries, err := os.ReadDir(src)
 	if err != nil {
 		return
 	}
@@ -905,7 +904,7 @@ func testCopyDir(t *testing.T, src, dst string) {
 		dstPath := filepath.Join(dst, entry.Name())
 
 		// If the entry is a symlink, we copy the contents
-		for entry.Mode()&os.ModeSymlink != 0 {
+		for entry.Type()&os.ModeSymlink != 0 {
 			target, err := os.Readlink(srcPath)
 			if err != nil {
 				t.Fatal(err)

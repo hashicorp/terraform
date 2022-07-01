@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -839,12 +839,12 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 	// State file should be not be installed
 	if _, err := os.Stat(filepath.Join(tmp, DefaultStateFilename)); err == nil {
-		data, _ := ioutil.ReadFile(DefaultStateFilename)
+		data, _ := os.ReadFile(DefaultStateFilename)
 		t.Fatalf("State path should not exist: %s", string(data))
 	}
 
 	// Check that there is no remote state config
-	if src, err := ioutil.ReadFile(remoteStatePath); err == nil {
+	if src, err := os.ReadFile(remoteStatePath); err == nil {
 		t.Fatalf("has %s file; should not\n%s", remoteStatePath, src)
 	}
 }
@@ -852,7 +852,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1371,7 +1371,7 @@ func TestApply_varFile(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1433,7 +1433,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1494,7 +1494,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars.json")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2061,7 +2061,7 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 		t.Fatalf("failed to open output file: %s", err)
 	}
 	defer wantFile.Close()
-	wantBytes, err := ioutil.ReadAll(wantFile)
+	wantBytes, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("failed to read output file: %s", err)
 	}

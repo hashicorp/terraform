@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestLoadModuleCall(t *testing.T) {
-	src, err := ioutil.ReadFile("testdata/invalid-files/module-calls.tf")
+	src, err := os.ReadFile("testdata/invalid-files/module-calls.tf")
 	if err != nil {
 		t.Fatal(err)
 	}

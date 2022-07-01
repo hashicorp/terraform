@@ -3,15 +3,14 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"testing"
 
-	expect "github.com/Netflix/go-expect"
-	tfe "github.com/hashicorp/go-tfe"
+	"github.com/Netflix/go-expect"
+	"github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/e2e"
 	tfversion "github.com/hashicorp/terraform/version"
 )
@@ -180,7 +179,7 @@ func setTfeClient() {
 
 func setupBinary() func() {
 	log.Println("Setting up terraform binary")
-	tmpTerraformBinaryDir, err := ioutil.TempDir("", "terraform-test")
+	tmpTerraformBinaryDir, err := os.MkdirTemp("", "terraform-test")
 	if err != nil {
 		fmt.Printf("Could not create temp directory: %v\n", err)
 		os.Exit(1)

@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -140,7 +139,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	return nil
 }
 
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 // State Migration Scenarios
 //
 // The functions below cover handling all the various scenarios that
@@ -154,7 +153,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 // The suffix is used to disambiguate multiple cases with the same type of
 // states.
 //
-//-------------------------------------------------------------------
+// -------------------------------------------------------------------
 
 // Multi-state to multi-state.
 func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
@@ -475,7 +474,7 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	destination := destinationState.State()
 
 	// Save both to a temporary
-	td, err := ioutil.TempDir("", "terraform")
+	td, err := os.MkdirTemp("", "terraform")
 	if err != nil {
 		return false, fmt.Errorf("Error creating temporary directory: %s", err)
 	}
@@ -545,7 +544,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	if err != nil {
 		return err
 	}
-	//to be used below, not yet implamented
+	// to be used below, not yet implamented
 	// destinationWorkspaces, destinationSingleState
 	_, _, err = retrieveWorkspaces(opts.Destination, opts.SourceType)
 	if err != nil {
@@ -605,7 +604,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		if migrate, err := m.promptSingleToCloudSingleStateMigration(opts); err != nil {
 			return err
 		} else if !migrate {
-			return nil //skip migrating but return successfully
+			return nil // skip migrating but return successfully
 		}
 
 		return m.backendMigrateState_s_s(opts)

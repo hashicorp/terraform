@@ -3,12 +3,11 @@ package providercache
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
 
-	getter "github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter"
 
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -53,7 +52,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 		return nil, fmt.Errorf("unsuccessful request to %s: %s", url, resp.Status)
 	}
 
-	f, err := ioutil.TempFile("", "terraform-provider")
+	f, err := os.CreateTemp("", "terraform-provider")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open temporary file to download from %s", url)
 	}
