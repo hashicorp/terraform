@@ -27,7 +27,7 @@ func init() {
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")
-	registerConcludedExperiment(ModuleVariableOptionalAttrs, "Optional object attributes in module variable type constraints can now be used by default, without enabling an experiment.")
+	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the Terraform language from Terraform v1.3.0 onwards.")
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
