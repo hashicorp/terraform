@@ -42,6 +42,10 @@ func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 				Type:     cty.List(cty.String),
 				Optional: true,
 			},
+			"environment": {
+				Type:     cty.Map(cty.String),
+				Optional: true,
+			},
 			"script": {
 				Type:     cty.String,
 				Optional: true,
@@ -89,6 +93,14 @@ func (p *provisioner) ValidateProvisionerConfig(req provisioners.ValidateProvisi
 			`Only one of "inline", "script", or "scripts" must be set`,
 		))
 	}
+
+	if !cfg.GetAttr("environment").IsNull() && inline.IsNull() && (script.IsNull() || scripts.IsNull()) {
+		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
+			tfdiags.Error,
+			"Invalid remote-exec provisioner configuration",
+			"Environment can be set only with inline commands",
+		))
+	}
 	return resp
 }
 
@@ -112,8 +124,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 		return resp
 	}
 
+	// Collect environment variables
+	envVars := generateEnvVars(req.Connection, req.Config)
+
 	// Collect the scripts
-	scripts, err := collectScripts(req.Config)
+	scripts, err := collectScripts(req.Config, envVars)
 	if err != nil {
 		resp.Diagnostics = resp.Diagnostics.Append(tfdiags.WholeContainingBody(
 			tfdiags.Error,
@@ -149,8 +164,16 @@ func (p *provisioner) Close() error {
 }
 
 // generateScripts takes the configuration and creates a script from each inline config
-func generateScripts(inline cty.Value) ([]string, error) {
+func generateScripts(inline cty.Value, envVars cty.Value) ([]string, error) {
 	var lines []string
+
+	for _, v := range envVars.AsValueSlice() {
+		if v.IsNull() || v.AsString() == "" {
+			continue
+		}
+		lines = append(lines, v.AsString())
+	}
+
 	for _, l := range inline.AsValueSlice() {
 		if l.IsNull() {
 			return nil, errors.New("invalid null string in 'scripts'")
@@ -167,12 +190,33 @@ func generateScripts(inline cty.Value) ([]string, error) {
 	return []string{strings.Join(lines, "\n")}, nil
 }
 
+func generateEnvVars(connection cty.Value, v cty.Value) cty.Value {
+	setVar := `export %s=%q`
+	if connType := connection.GetAttr("type"); !connType.IsNull() {
+		targetPlatform := connection.GetAttr("target_platform")
+		if connType.AsString() == "winrm" || (!targetPlatform.IsNull() && targetPlatform.AsString() == "windows") {
+			setVar = `@set "%s=%s"`
+		}
+	}
+
+	scripts := []cty.Value{}
+	if envVars := v.GetAttr("environment"); !envVars.IsNull() {
+		for key, val := range envVars.AsValueMap() {
+			if !val.IsNull() && val.AsString() != "" {
+				scripts = append(scripts, cty.StringVal(fmt.Sprintf(setVar, key, val.AsString())))
+			}
+		}
+	}
+
+	return cty.ListVal(scripts)
+}
+
 // collectScripts is used to collect all the scripts we need
 // to execute in preparation for copying them.
-func collectScripts(v cty.Value) ([]io.ReadCloser, error) {
+func collectScripts(v cty.Value, envVars cty.Value) ([]io.ReadCloser, error) {
 	// Check if inline
 	if inline := v.GetAttr("inline"); !inline.IsNull() {
-		scripts, err := generateScripts(inline)
+		scripts, err := generateScripts(inline, envVars)
 		if err != nil {
 			return nil, err
 		}

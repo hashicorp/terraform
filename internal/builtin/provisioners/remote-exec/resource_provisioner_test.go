@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"sort"
 	"testing"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/communicator"
 	"github.com/hashicorp/terraform/internal/communicator/remote"
+	"github.com/hashicorp/terraform/internal/communicator/shared"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
@@ -50,13 +52,20 @@ exit 0
 `
 
 func TestResourceProvider_generateScript(t *testing.T) {
-	inline := cty.ListVal([]cty.Value{
-		cty.StringVal("cd /tmp"),
-		cty.StringVal("wget http://foobar"),
-		cty.StringVal("exit 0"),
-	})
+	p := New()
+	schema := p.GetSchema()
+	v, err := schema.Provisioner.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+		"inline": cty.ListVal([]cty.Value{
+			cty.StringVal("cd /tmp"),
+			cty.StringVal("wget http://foobar"),
+			cty.StringVal("exit 0"),
+		}),
+	}))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-	out, err := generateScripts(inline)
+	out, err := generateScripts(v.GetAttr("inline"), cty.ListValEmpty(cty.String))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -70,10 +79,126 @@ func TestResourceProvider_generateScript(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_generateEnvVars(t *testing.T) {
+	cases := []struct {
+		ConnectionType cty.Value
+		EnvVars        cty.Value
+		Want           cty.Value
+		WantCount      int
+	}{
+		{
+			cty.StringVal("ssh"),
+			cty.ObjectVal(map[string]cty.Value{
+				"TEST_VAR": cty.StringVal("My test var"),
+			}),
+			cty.ListVal([]cty.Value{cty.StringVal(`export TEST_VAR="My test var"`)}),
+			1,
+		},
+		{
+			cty.StringVal("ssh"),
+			cty.ObjectVal(map[string]cty.Value{
+				"TEST_VAR": cty.StringVal(`My test var with "quotes"`),
+			}),
+			cty.ListVal([]cty.Value{cty.StringVal(`export TEST_VAR="My test var with \"quotes\""`)}),
+			1,
+		},
+		{
+			cty.StringVal("ssh"),
+			cty.ObjectVal(map[string]cty.Value{
+				"TEST_VAR0": cty.StringVal("My test var"),
+				"TEST_VAR1": cty.StringVal("My test var"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal(`export TEST_VAR0="My test var"`),
+				cty.StringVal(`export TEST_VAR1="My test var"`),
+			}),
+			2,
+		},
+		{
+			cty.StringVal("ssh"),
+			cty.ObjectVal(map[string]cty.Value{
+				"TEST_VAR0": cty.StringVal("My test var"),
+				"TEST_VAR1": cty.StringVal(""),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal(`export TEST_VAR0="My test var"`),
+			}),
+			1,
+		},
+		{
+			cty.StringVal("winrm"),
+			cty.ObjectVal(map[string]cty.Value{
+				"TEST_VAR0": cty.StringVal("My test var"),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.StringVal(`@set "TEST_VAR0=My test var"`),
+			}),
+			1,
+		},
+	}
+
+	p := New()
+	schema := p.GetSchema()
+
+	for tn, test := range cases {
+		t.Run(fmt.Sprintf("%d", tn), func(t *testing.T) {
+			connection, err := shared.ConnectionBlockSupersetSchema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+				"type": test.ConnectionType,
+				"host": cty.StringVal("127.0.0.1"),
+			}))
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			v, err := schema.Provisioner.CoerceValue(cty.ObjectVal(map[string]cty.Value{
+				"environment": test.EnvVars,
+			}))
+
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			got := generateEnvVars(connection, v)
+
+			if got.LengthInt() != test.WantCount {
+				t.Fatalf("expected %d out, got %d\n", test.WantCount, got.LengthInt())
+			}
+
+			gotSlice := got.AsValueSlice()
+
+			sort.Slice(gotSlice, func(i, j int) bool {
+				return gotSlice[i].AsString() < gotSlice[j].AsString()
+			})
+
+			if !test.Want.RawEquals(cty.ListVal(gotSlice)) {
+				t.Fatalf("Got unexpected result: %v instead of %v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestResourceProvider_ScriptsWithEnvVars(t *testing.T) {
+	c := cty.ObjectVal(map[string]cty.Value{
+		"script": cty.StringVal("/dev/null"),
+		"environment": cty.ObjectVal(map[string]cty.Value{
+			"TEST_VAR": cty.StringVal("test"),
+		}),
+	})
+
+	resp := New().ValidateProvisionerConfig(provisioners.ValidateProvisionerConfigRequest{
+		Config: c,
+	})
+
+	if !resp.Diagnostics.HasErrors() {
+		t.Fatalf("Should have errors")
+	}
+}
+
 func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
 	inline := cty.ListVal([]cty.Value{cty.StringVal("")})
 
-	_, err := generateScripts(inline)
+	_, err := generateScripts(inline, cty.ListValEmpty(cty.String))
 	if err == nil {
 		t.Fatal("expected error, got none")
 	}
@@ -84,15 +209,21 @@ func TestResourceProvider_generateScriptEmptyInline(t *testing.T) {
 }
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
-	conf := map[string]cty.Value{
+	p := New()
+	schema := p.GetSchema().Provisioner
+
+	conf, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"inline": cty.ListVal([]cty.Value{
 			cty.StringVal("cd /tmp"),
 			cty.StringVal("wget http://foobar"),
 			cty.StringVal("exit 0"),
 		}),
+	}))
+	if err != nil {
+		t.Fatalf("err: %v", err)
 	}
 
-	scripts, err := collectScripts(cty.ObjectVal(conf))
+	scripts, err := collectScripts(conf, cty.ListValEmpty(cty.String))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -125,7 +256,7 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scripts, err := collectScripts(conf)
+	scripts, err := collectScripts(conf, cty.ListValEmpty(cty.String))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -160,7 +291,7 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	scripts, err := collectScripts(conf)
+	scripts, err := collectScripts(conf, cty.ListValEmpty(cty.String))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -193,7 +324,7 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = collectScripts(conf)
+	_, err = collectScripts(conf, cty.ListValEmpty(cty.String))
 	if err == nil {
 		t.Fatal("expected error")
 	}
@@ -204,6 +335,9 @@ func TestResourceProvider_CollectScripts_scriptsEmpty(t *testing.T) {
 }
 
 func TestProvisionerTimeout(t *testing.T) {
+	p := New()
+	schema := p.GetSchema().Provisioner
+
 	o := cli.NewMockUi()
 	c := new(communicator.MockCommunicator)
 
@@ -225,11 +359,14 @@ func TestProvisionerTimeout(t *testing.T) {
 	c.UploadScripts = map[string]string{"hello": "echo hello"}
 	c.RemoteScriptPath = "hello"
 
-	conf := map[string]cty.Value{
+	conf, err := schema.CoerceValue(cty.ObjectVal(map[string]cty.Value{
 		"inline": cty.ListVal([]cty.Value{cty.StringVal("echo hello")}),
+	}))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	scripts, err := collectScripts(cty.ObjectVal(conf))
+	scripts, err := collectScripts(conf, cty.ListValEmpty(cty.String))
 	if err != nil {
 		t.Fatal(err)
 	}
