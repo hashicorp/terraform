@@ -39,18 +39,8 @@ You should preview all of your changes locally before creating a pull request. T
 1. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and Next.js will automatically rebuild them.
 1. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
 
-## Deploying Changes
 
-Merge the PR to main. The changes will appear in the next major Terraform release.
-
-If you need your changes to be deployed sooner, cherry-pick them to:
-
-- the current release branch (e.g. `v1.1`) and push. They will be deployed in the next minor version release (once every two weeks).
-- the `stable-website` branch and push. They will be included in the next site deploy (see below). Note that the release process resets `stable-website` to match the release tag, removing any additional commits. So, we recommend always cherry-picking to the version branch first and then to `stable-website` when needed.
-
-Once your PR to `stable-website` is merged, open a PR bumping the submodule commit in [`terraform-website`](https://github.com/hashicorp/terraform-website).
-
-### Deployment
+## Deploy Changes
 
 New commits in `hashicorp/terraform` do not automatically deploy the site. Do the following for documentation pull requests:
 - **Add a backport label to the PR.** Use the label that corresponds to the latest Terraform patch release (e.g., `1.2-backport`). When you merge your PR to `main`, GitHub bot automatically generates a backport PR to merge your commits into the appropriate release branch.
