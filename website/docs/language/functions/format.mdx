@@ -34,6 +34,23 @@ Hello, Valentina!
 Hello, Valentina!
 ```
 
+The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/language/expressions/custom-conditions#error-messages) error messages.
+
+```
+> format("%#v", "hello")
+"\"hello\""
+> format("%#v", true)
+"true"
+> format("%#v", 1)
+"1"
+> format("%#v", {a = 1})
+"{\"a\":1}"
+> format("%#v", [true])
+"[true]"
+> format("%#v", null)
+"null"
+```
+
 The `format` function is most useful when you use more complex format specifications.
 
 ## Specification Syntax
