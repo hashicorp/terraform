@@ -7,7 +7,7 @@ description: |-
 
 # `format` Function
 
-`format` produces a string by formatting a number of other values according
+The `format` function produces a string by formatting a number of other values according
 to a specification string. It is similar to the `printf` function in C, and
 other similar functions in other programming languages.
 
@@ -25,7 +25,7 @@ There are 4 lights
 ```
 
 Simple format verbs like `%s` and `%d` behave similarly to template
-interpolation syntax, which is often more readable:
+interpolation syntax, which is often more readable.
 
 ```
 > format("Hello, %s!", var.name)
@@ -34,8 +34,24 @@ Hello, Valentina!
 Hello, Valentina!
 ```
 
-The `format` function is therefore more useful when you use more complex format
-specifications, as described in the following section.
+The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/language/expressions/custom-conditions#error-messages) error messages.
+
+```
+> format("%#v", "hello")
+"\"hello\""
+> format("%#v", true)
+"true"
+> format("%#v", 1)
+"1"
+> format("%#v", {a = 1})
+"{\"a\":1}"
+> format("%#v", [true])
+"[true]"
+> format("%#v", null)
+"null"
+```
+
+The `format` function is most useful when you use more complex format specifications.
 
 ## Specification Syntax
 
@@ -45,13 +61,25 @@ for each verb sequence in the specification. The verbs are matched with
 consecutive arguments and formatted as directed, as long as each given argument
 is convertible to the type required by the format verb.
 
-The specification may contain the following verbs:
+By default, `%` sequences consume successive arguments starting with the first.
+Introducing a `[n]` sequence immediately before the verb letter, where `n` is a
+decimal integer, explicitly chooses a particular value argument by its
+one-based index. Subsequent calls without an explicit index will then proceed
+with `n`+1, `n`+2, etc.
+
+The function produces an error if the format string requests an impossible
+conversion or access more arguments than are given. An error is produced also
+for an unsupported format verb.
+
+### Verbs
+
+The specification may contain the following verbs.
 
 | Verb  | Result                                                                                    |
 | ----- | ----------------------------------------------------------------------------------------- |
 | `%%`  | Literal percent sign, consuming no value.                                                 |
-| `%v`  | Default formatting based on the value type, as described below.                           |
-| `%#v` | JSON serialization of the value, as with `jsonencode`.                                    |
+| `%v`  | Default formatting based on the [value type](#default-format-verbs). Accepts all types, including items of `null`, `list`, and `map` types.                           |
+| `%#v` | JSON serialization of the value, as with `jsonencode`. Accepts all types, including items of `null`, `list`, and `map` types.  |
 | `%t`  | Convert to boolean and produce `true` or `false`.                                         |
 | `%b`  | Convert to integer number and produce binary representation.                              |
 | `%d`  | Convert to integer number and produce decimal representation.                             |
@@ -66,7 +94,9 @@ The specification may contain the following verbs:
 | `%s`  | Convert to string and insert the string's characters.                                     |
 | `%q`  | Convert to string and produce a JSON quoted string representation.                        |
 
-When `%v` is used, one of the following format verbs is chosen based on the value type:
+### Default Format Verbs
+
+When `%v` is used, Terraform chooses the appropriate format verb based on the value type.
 
 | Type      | Verb  |
 | --------- | ----- |
@@ -75,14 +105,14 @@ When `%v` is used, one of the following format verbs is chosen based on the valu
 | `bool`    | `%t`  |
 | any other | `%#v` |
 
-Null values produce the string `null` if formatted with `%v` or `%#v`, and
-cause an error for other verbs.
+Null values produce the string `null` if formatted with `%v` or `%#v`, and cause an error for other verbs.
 
-A width modifier can be included with an optional decimal number immediately
-preceding the verb letter, to specify how many characters will be used to
-represent the value. Precision can be specified after the (optional) width
-with a period (`.`) followed by a decimal number. If width or precision are
-omitted then default values are selected based on the given value. For example:
+### Width Modifier
+
+Use a width modifier with an optional decimal number immediately
+preceding the verb letter to specify how many characters will be used to represent the value. You can specify precision after the (optional) width with a period (`.`) followed by a decimal number. If width or precision are omitted, Terraform selects default values based on the given value.
+
+The following examples demonstrate example use cases for the width modifier.
 
 | Sequence | Result                       |
 | -------- | ---------------------------- |
@@ -91,8 +121,13 @@ omitted then default values are selected based on the given value. For example:
 | `%.2f`   | Default width, precision 2.  |
 | `%9.2f`  | Width 9, precision 2.        |
 
-The following additional symbols can be used immediately after the `%` symbol
-to set additional flags:
+-> **Note:** Width and precision modifiers with non-numeric types such as
+strings (`%s`) are interpreted differently. Setting either width or precision to
+zero is the same as not including them at all.
+
+### Additional Format Options
+
+Use the following symbols immediately after the `%` symbol to set additional formatting requirements.
 
 | Symbol | Result                                                         |
 | ------ | -------------------------------------------------------------- |
@@ -101,19 +136,6 @@ to set additional flags:
 | `-`    | Pad the width with spaces on the right rather than the left.   |
 | `0`    | Pad the width with leading zeros rather than spaces.           |
 
-By default, `%` sequences consume successive arguments starting with the first.
-Introducing a `[n]` sequence immediately before the verb letter, where `n` is a
-decimal integer, explicitly chooses a particular value argument by its
-one-based index. Subsequent calls without an explicit index will then proceed
-with `n`+1, `n`+2, etc.
-
-The function produces an error if the format string requests an impossible
-conversion or access more arguments than are given. An error is produced also
-for an unsupported format verb.
-
--> **Note:** Width and precision modifiers with non-numeric types such as
-strings (`%s`) are interpreted differently. Setting either width or precision to
-zero is the same as not including them at all.
 
 ## Related Functions
 
