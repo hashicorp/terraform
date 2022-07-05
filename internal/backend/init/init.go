@@ -16,7 +16,6 @@ import (
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
-	backendEtcdv3 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
@@ -86,12 +85,6 @@ func Init(services *disco.Disco) {
 				`Warning: "artifactory" backend is deprecated, and will be removed in a future release."`,
 			)
 		},
-		"etcdv3": func() backend.Backend {
-			return deprecateBackend(
-				backendEtcdv3.New(),
-				`Warning: "etcdv3" backend is deprecated, and will be removed in a future release."`,
-			)
-		},
 		"manta": func() backend.Backend {
 			return deprecateBackend(
 				backendManta.New(),
@@ -107,7 +100,8 @@ func Init(services *disco.Disco) {
 	}
 
 	RemovedBackends = map[string]string{
-		"etcd": `The "etcd" backend is not supported in Terraform v1.3 or later.`,
+		"etcd":   `The "etcd" backend is not supported in Terraform v1.3 or later.`,
+		"etcdv3": `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
 	}
 }
 
