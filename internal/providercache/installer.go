@@ -464,7 +464,13 @@ NeedProvider:
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
 		}
-		authResult, err := installTo.InstallPackage(ctx, meta, preferredHashes)
+
+		allowedHashes := preferredHashes
+		if mode.forceInstallChecksums() {
+			allowedHashes = []getproviders.Hash{}
+		}
+
+		authResult, err := installTo.InstallPackage(ctx, meta, allowedHashes)
 		if err != nil {
 			// TODO: Consider retrying for certain kinds of error that seem
 			// likely to be transient. For now, we just treat all errors equally.
@@ -594,6 +600,11 @@ const (
 	// sets.
 	InstallNewProvidersOnly InstallMode = 'N'
 
+	// InstallNewProvidersForce is an InstallMode that follows the same
+	// logic as InstallNewProvidersOnly except it does not verify existing
+	// checksums but force installs new checksums for all given providers.
+	InstallNewProvidersForce InstallMode = 'F'
+
 	// InstallUpgrades is an InstallMode that causes the installer to check
 	// all requested providers to see if new versions are available that
 	// are also in the given version sets, even if a suitable version of
@@ -603,6 +614,10 @@ const (
 
 func (m InstallMode) forceQueryAllProviders() bool {
 	return m == InstallUpgrades
+}
+
+func (m InstallMode) forceInstallChecksums() bool {
+	return m == InstallNewProvidersForce
 }
 
 // InstallerError is an error type that may be returned (but is not guaranteed)
