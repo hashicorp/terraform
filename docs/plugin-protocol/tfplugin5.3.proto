@@ -157,15 +157,15 @@ message GetProviderSchema {
         map<string, Schema> data_source_schemas = 3;
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
-        Capabilities capabilities = 6;
+        ServerCapabilities server_capabilities = 6;
     }
 
 
-    // Capabilities allows providers to communicate extra information regarding
-    // supported protocol features. This is used to indicate availability of
-    // certain forward-compatible changes which may be optional in a major
-    // protocol version, but cannot be tested for directly.
-    message Capabilities {
+    // ServerCapabilities allows providers to communicate extra information
+    // regarding supported protocol features. This is used to indicate
+    // availability of certain forward-compatible changes which may be optional
+    // in a major protocol version, but cannot be tested for directly.
+    message ServerCapabilities {
         // The plan_destroy capability signals that a provider expects a call
         // to PlanResourceChange when a resource is going to be destroyed.
         bool plan_destroy = 1;

@@ -100,7 +100,10 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	// grpc response size limit is 4MB. 64MB should cover most any use case, and
 	// if we get providers nearing that we may want to consider a finer-grained
 	// API to fetch individual resource schemas.
-	// Note: this option is marked as EXPERIMENTAL in the grpc API.
+	// Note: this option is marked as EXPERIMENTAL in the grpc API. We keep
+	// this for compatibility, but recent providers all set the max message
+	// size much higher on the server side, which is the supported method for
+	// determining payload size.
 	const maxRecvSize = 64 << 20
 	protoResp, err := p.client.GetProviderSchema(p.ctx, new(proto6.GetProviderSchema_Request), grpc.MaxRecvMsgSizeCallOption{MaxRecvMsgSize: maxRecvSize})
 	if err != nil {
@@ -134,8 +137,8 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
-	if protoResp.Capabilities != nil {
-		resp.Capabilities.PlanDestroy = protoResp.Capabilities.PlanDestroy
+	if protoResp.ServerCapabilities != nil {
+		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 	}
 
 	p.schemas = resp
@@ -408,7 +411,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	metaSchema := schema.ProviderMeta
-	capabilities := schema.Capabilities
+	capabilities := schema.ServerCapabilities
 
 	// If the provider doesn't support planning a destroy operation, we can
 	// return immediately.

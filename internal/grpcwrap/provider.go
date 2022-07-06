@@ -59,8 +59,8 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		}
 	}
 
-	resp.Capabilities = &tfplugin5.GetProviderSchema_Capabilities{
-		PlanDestroy: p.schema.Capabilities.PlanDestroy,
+	resp.ServerCapabilities = &tfplugin5.GetProviderSchema_ServerCapabilities{
+		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
 	}
 
 	// include any diagnostics from the original GetSchema call

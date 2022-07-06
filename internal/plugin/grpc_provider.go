@@ -130,8 +130,8 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 		resp.DataSources[name] = convert.ProtoToProviderSchema(data)
 	}
 
-	if protoResp.Capabilities != nil {
-		resp.Capabilities.PlanDestroy = protoResp.Capabilities.PlanDestroy
+	if protoResp.ServerCapabilities != nil {
+		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 	}
 
 	p.schemas = resp
@@ -415,7 +415,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	}
 
 	metaSchema := schema.ProviderMeta
-	capabilities := schema.Capabilities
+	capabilities := schema.ServerCapabilities
 
 	// If the provider doesn't support planning a destroy operation, we can
 	// return immediately.

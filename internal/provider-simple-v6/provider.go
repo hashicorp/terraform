@@ -43,7 +43,7 @@ func Provider() providers.Interface {
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
 			},
-			Capabilities: providers.Capabilities{
+			ServerCapabilities: providers.ServerCapabilities{
 				PlanDestroy: true,
 			},
 		},
