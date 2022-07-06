@@ -978,7 +978,14 @@ func showFixtureProvider() *terraform.MockProvider {
 			Private: req.Private,
 		}
 	}
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan,
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		idVal := req.ProposedNewState.GetAttr("id")
 		amiVal := req.ProposedNewState.GetAttr("ami")
 		if idVal.IsNull() {
