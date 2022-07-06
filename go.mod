@@ -192,6 +192,4 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-replace github.com/golang/mock v1.5.0 => github.com/golang/mock v1.4.4
-
 go 1.18
