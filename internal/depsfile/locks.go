@@ -408,7 +408,7 @@ func (l *ProviderLock) AllHashes() []getproviders.Hash {
 //
 // This function assumes the hashes are in each ProviderLock are sorted.
 // If the ProviderLock was created by the NewProviderLock constructor then
-// the hashes are guarenteed to be sorted.
+// the hashes are guaranteed to be sorted.
 func (l *ProviderLock) ContainsAll(target *ProviderLock) bool {
 	if target == nil || len(target.hashes) == 0 {
 		return true

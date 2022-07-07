@@ -2,6 +2,9 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -170,6 +173,84 @@ func TestProvidersLock_args(t *testing.T) {
 		output := ui.ErrorWriter.String()
 		if !strings.Contains(output, "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
 			t.Fatalf("missing expected error message: %s", output)
+		}
+	})
+}
+
+func TestProvidersLockCalculateChangeType(t *testing.T) {
+	provider := addrs.NewDefaultProvider("provider")
+	v2 := getproviders.MustParseVersion("2.0.0")
+	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+
+	t.Run("oldLock == nil", func(t *testing.T) {
+		platformLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if ct := providersLockCalculateChangeType(nil, platformLock); ct != providersLockChangeTypeNewProvider {
+			t.Fatalf("output was %s but should be %s", ct, providersLockChangeTypeNewProvider)
+		}
+	})
+
+	t.Run("oldLock == platformLock", func(t *testing.T) {
+		platformLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		oldLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if ct := providersLockCalculateChangeType(oldLock, platformLock); ct != providersLockChangeTypeNoChange {
+			t.Fatalf("output was %s but should be %s", ct, providersLockChangeTypeNoChange)
+		}
+	})
+
+	t.Run("oldLock > platformLock", func(t *testing.T) {
+		platformLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		oldLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"1ZAChGWUMWn4zmIk",
+			"K43RHM2klOoywtyW",
+			"HWjRvIuWZ1LVatnc",
+			"swJPXfuCNhJsTM5c",
+			"KwhJK4p/U2dqbKhI",
+		})
+
+		if ct := providersLockCalculateChangeType(oldLock, platformLock); ct != providersLockChangeTypeNoChange {
+			t.Fatalf("output was %s but should be %s", ct, providersLockChangeTypeNoChange)
+		}
+	})
+
+	t.Run("oldLock < platformLock", func(t *testing.T) {
+		platformLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"1ZAChGWUMWn4zmIk",
+			"K43RHM2klOoywtyW",
+			"HWjRvIuWZ1LVatnc",
+			"swJPXfuCNhJsTM5c",
+			"KwhJK4p/U2dqbKhI",
+		})
+
+		oldLock := depsfile.NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if ct := providersLockCalculateChangeType(oldLock, platformLock); ct != providersLockChangeTypeNewHashes {
+			t.Fatalf("output was %s but should be %s", ct, providersLockChangeTypeNoChange)
 		}
 	})
 }
