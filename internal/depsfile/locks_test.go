@@ -239,10 +239,10 @@ func TestProviderLockContainsAll(t *testing.T) {
 		})
 
 		if !original.ContainsAll(target) {
-			t.Fatalf("orginal should contain all hashes in target")
+			t.Errorf("orginal should contain all hashes in target")
 		}
 		if target.ContainsAll(original) {
-			t.Fatalf("target should not contain all hashes in orginal")
+			t.Errorf("target should not contain all hashes in orginal")
 		}
 	})
 
@@ -260,10 +260,10 @@ func TestProviderLockContainsAll(t *testing.T) {
 		})
 
 		if !original.ContainsAll(target) {
-			t.Fatalf("orginal should contain all hashes in target")
+			t.Errorf("orginal should contain all hashes in target")
 		}
 		if !target.ContainsAll(original) {
-			t.Fatalf("target should not contain all hashes in orginal")
+			t.Errorf("target should not contain all hashes in orginal")
 		}
 	})
 
