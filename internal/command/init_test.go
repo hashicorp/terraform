@@ -1735,7 +1735,7 @@ func TestInit_providerSource(t *testing.T) {
 		t.Fatalf("unexpected output: %s\nexpected to include %q", got, want)
 	}
 
-	if got, want := ui.ErrorWriter.String(), "(hashicorp/test, hashicorp/source, hashicorp/test-beta)"; !strings.Contains(got, want) {
+	if got, want := ui.ErrorWriter.String(), "(hashicorp/source, hashicorp/test, hashicorp/test-beta)"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
