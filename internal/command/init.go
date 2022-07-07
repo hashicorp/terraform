@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
@@ -888,6 +889,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		}
 
 		if len(incompleteProviders) > 0 {
+			// We don't really care about the order here, we just want the output to be deterministic.
+			sort.Slice(incompleteProviders, func(i, j int) bool {
+				return incompleteProviders[i] < incompleteProviders[j]
+			})
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Incomplete validation for providers",
