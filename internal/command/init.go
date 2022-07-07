@@ -869,6 +869,28 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			return true, false, diags
 		}
 
+		// Jump in here and add a warning if any of the providers we've validated
+		// have only a single checksum. This usually means we didn't manage to
+		// pull checksums for all architectures remotely and only generated the
+		// checksum locally for the current architecture. There is a simple fix
+		// for this so terraform can print out some help.
+
+		var incompleteProviders []string
+		for provider, locks := range newLocks.AllProviders() {
+			if len(locks.AllHashes()) == 1 {
+				incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+			}
+		}
+
+		if len(incompleteProviders) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Incomplete validation for providers",
+				fmt.Sprintf(
+					"Terraform has only been able to record incomplete checksums for some providers (%s) so you may encounter problems when the lock file is used on machines with a different architecture. This can normally be fixed by running `terraform providers lock -platform=os_arch` for all target architectures.",
+					strings.Join(incompleteProviders, ", "))))
+		}
+
 		if previousLocks.Empty() {
 			// A change from empty to non-empty is special because it suggests
 			// we're running "terraform init" for the first time against a
