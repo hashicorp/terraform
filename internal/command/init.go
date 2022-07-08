@@ -549,6 +549,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx, done := c.InterruptibleContext()
 	defer done()
 
+	// We want to print out a nice warning if we don't manage to pull
+	// checksums for all our providers. This is tracked via callbacks
+	// and incomplete providers are stored here for later analysis.
+	var incompleteProviders []string
+
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -790,6 +795,58 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s%s)", provider.ForDisplay(), version, authResult, keyID))
 		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, local getproviders.Hash, remote []getproviders.Hash, cached []getproviders.Hash) {
+			// We're going to use this opportunity to track if we have any
+			// "incomplete" installs of providers. An incomplete install is
+			// when we are only going to write the local hash into our lock
+			// file which means a `terraform init` command will fail in future
+			// when used on machines of a different architecture.
+			//
+			// We want to print a warning about this.
+
+			if len(remote) > 0 {
+				// If we have any remote hashes then we don't worry - as we
+				// know we retrieved all available hashes for this version
+				// anyway.
+				return
+			}
+
+			if len(cached) > 1 {
+				// If we have more than 1 cached hash, then we also don't need
+				// to worry - this must mean that `terraform providers lock`
+				// has already been executed or this provider was downloaded
+				// properly the first time.
+				//
+				// Basically, `terraform init` can't ever fix itself if we are
+				// running across architectures and we have only one hash for a
+				// different architecture. So, if we have more than one hash
+				// then at some point a single architecture has been able to
+				// add multiple hashes which means it must have been able to
+				// pull the remote hashes.
+				return
+			}
+
+			if len(cached) == 1 && local != cached[0] {
+				// This is a bit of weird case. We only cached a single hash
+				// previously which would normally indicate a problem. But now,
+				// we've managed to add a second hash to the lock file so
+				// something strange has happened.
+				//
+				// I don't think this will ever happen in the wild, but if it
+				// does we'll assume there's an edgecase for a provider that
+				// only supports a single architecture and somehow only pulled
+				// the remote hashes for the provider into the lock file when
+				// initialising. So we won't print a warning.
+				return
+			}
+
+			// Now, either cached and remote are empty so we're only writing out a
+			// local hash, or cached contains exactly one entry and it's the same
+			// as the local hash.
+			//
+			// Either way, this is bad. Let's complain/warn.
+			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			thirdPartySigned := false
 			for _, authResult := range authResults {
@@ -803,18 +860,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
 					"https://www.terraform.io/docs/cli/plugins/signing.html"))
 			}
-		},
-		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to validate installed provider",
-				fmt.Sprintf(
-					"Validating provider %s v%s failed: %s",
-					provider.ForDisplay(),
-					version,
-					err,
-				),
-			))
 		},
 	}
 	ctx = evts.OnContext(ctx)
@@ -875,21 +920,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			return true, false, diags
 		}
 
-		// Jump in here and add a warning if any of the providers we've validated
-		// have only a single checksum. This usually means we didn't manage to
-		// pull checksums for all architectures remotely and only generated the
-		// checksum locally for the current architecture. There is a simple fix
-		// for this so terraform can print out some help.
-
-		var incompleteProviders []string
-		for provider, locks := range newLocks.AllProviders() {
-			if len(locks.AllHashes()) == 1 {
-				incompleteProviders = append(incompleteProviders, provider.ForDisplay())
-			}
-		}
-
+		// Jump in here and add a warning if any of the providers are incomplete.
 		if len(incompleteProviders) > 0 {
-			// We don't really care about the order here, we just want the output to be deterministic.
+			// We don't really care about the order here, we just want the
+			// output to be deterministic.
 			sort.Slice(incompleteProviders, func(i, j int) bool {
 				return incompleteProviders[i] < incompleteProviders[j]
 			})

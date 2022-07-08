@@ -164,20 +164,22 @@ func installerLogEventsForTests(into chan<- *testInstallerEventLogItem) *Install
 				}{version.String(), err.Error()},
 			}
 		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, local getproviders.Hash, remote []getproviders.Hash, cached []getproviders.Hash) {
+			into <- &testInstallerEventLogItem{
+				Event:    "ProvidersLockUpdated",
+				Provider: provider,
+				Args: struct {
+					Version string
+					Local   getproviders.Hash
+					Remote  []getproviders.Hash
+					Cached  []getproviders.Hash
+				}{version.String(), local, remote, cached},
+			}
+		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			into <- &testInstallerEventLogItem{
 				Event: "ProvidersFetched",
 				Args:  authResults,
-			}
-		},
-		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			into <- &testInstallerEventLogItem{
-				Event:    "HashPackageFailure",
-				Provider: provider,
-				Args: struct {
-					Version string
-					Error   string
-				}{version.String(), err.Error()},
 			}
 		},
 	}
