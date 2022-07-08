@@ -761,6 +761,20 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				// but rather just emit a single general message about it at
 				// the end, by checking ctx.Err().
 
+			case providercache.ErrChecksumMiss:
+				// This is a special kind of error that can often be fixed using
+				// the `terraform providers lock` command. We're just going to
+				// amend the actual error message with some extra information
+				// about how to fix this.
+
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to install provider",
+					fmt.Sprintf("Error while installing %s v%s: %s\n\nUse the `terraform providers lock` command to include all necessary platforms in the dependency lock file. Ensure the current platform, %s, is included.",
+						provider.ForDisplay(), version, err.Msg, err.Meta.TargetPlatform.String(),
+					),
+				))
+
 			default:
 				// We can potentially end up in here under cancellation too,
 				// in spite of our getproviders.ErrRequestCanceled case above,
