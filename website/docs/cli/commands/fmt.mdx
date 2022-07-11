@@ -45,12 +45,10 @@ and the generated files.
 
 ## Usage
 
-Usage: `terraform fmt [options] [DIR]`
+Usage: `terraform fmt [options] [TARGET]`
 
 By default, `fmt` scans the current directory for configuration files. If
-the `dir` argument is provided then it will scan that given directory
-instead. If `dir` is a single dash (`-`) then `fmt` will read from standard
-input (STDIN).
+you provide a directory for the `target` argument, then `fmt` will scan that directory instead. If you provide a file, then `fmt` will process just that file. If you provide a single dash (`-`), then `fmt` will read from standard input (STDIN).
 
 The command-line flags are all optional. The list of available flags are:
 
