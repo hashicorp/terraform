@@ -5,5 +5,4 @@ repos:
       - id: go-fmt
       - id: go-vet
       - id: go-imports
-      - id: go-lint
       - id: go-mod-tidy
