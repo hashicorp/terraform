@@ -700,6 +700,22 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 				},
 			},
 		},
+		DataSources: map[string]providers.Schema{
+			"test_data_source": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"valid": {
+							Type:     cty.Bool,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
 	}
 	view, done := testView(t)
 	c := &PlanCommand{
@@ -1507,6 +1523,14 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 			PlannedState: req.ProposedNewState,
 		}
 	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("zzzzz"),
+				"valid": cty.BoolVal(true),
+			}),
+		}
+	}
 	return p
 }
 
@@ -1524,6 +1548,14 @@ func planWarningsFixtureProvider() *terraform.MockProvider {
 				tfdiags.SimpleWarning("warning 3"),
 			},
 			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("zzzzz"),
+				"valid": cty.BoolVal(true),
+			}),
 		}
 	}
 	return p
