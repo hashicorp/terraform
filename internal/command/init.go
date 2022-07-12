@@ -908,10 +908,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			})
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
-				"Incomplete validation for providers",
+				incompleteLockFileInformationHeader,
 				fmt.Sprintf(
-					"Terraform has only been able to record incomplete checksums for some providers (%s) so you may encounter problems when the lock file is used on machines with a different architecture. This can normally be fixed by running `terraform providers lock -platform=os_arch` for all target architectures.",
-					strings.Join(incompleteProviders, ", "))))
+					incompleteLockFileInformationBody,
+					strings.Join(incompleteProviders, "\n  - "),
+					getproviders.CurrentPlatform.String())))
 		}
 
 		if previousLocks.Empty() {
@@ -1235,3 +1236,18 @@ Alternatively, upgrade to the latest version of Terraform for compatibility with
 
 // No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
+
+// incompleteLockFileInformationHeader is the summary displayed to users when
+// the lock file has only recorded local hashes.
+const incompleteLockFileInformationHeader = `Incomplete lock file information for providers`
+
+// incompleteLockFileInformationBody is the body of text displayed to users when
+// the lock file has only recorded local hashes.
+const incompleteLockFileInformationBody = `Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:
+  - %s
+
+The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running running on another platform will fail to install these providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)`
