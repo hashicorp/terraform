@@ -107,16 +107,23 @@ type InstallerEvents struct {
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 
 	// The ProvidersLockUpdated event is called whenever the lock file will be
-	// updated. It provides information around which hashes were already
-	// present, which hashes were fetched from the remote cache, and which hash
-	// was computed locally.
+	// updated. It provides the following information:
 	//
-	// The final lock file will be updated with all the supplied hashes.
+	//   - `localHashes`: Hashes computed on the local system by analyzing
+	//                    files on disk.
+	//   - `signedHashes`: Hashes signed by the private key that the origin
+	//                     registry claims is the owner of this provider.
+	//   - `priorHashes`: Hashes already present in the lock file before we
+	//                    made any changes.
 	//
-	// It not just likely, but expected that there will be duplicates shared
-	// between all three collections of hashes i.e. the local hash and remote
-	// hashes could already be in the cached hashes.
-	ProvidersLockUpdated func(provider addrs.Provider, version getproviders.Version, local getproviders.Hash, remote []getproviders.Hash, cached []getproviders.Hash)
+	// The final lock file will be updated with a union of all the provided
+	// hashes. It not just likely, but expected that there will be duplicates
+	// shared between all three collections of hashes i.e. the local hash and
+	// remote hashes could already be in the cached hashes.
+	//
+	// In addition, we place a guarantee that the hash slices will be ordered
+	// in the same manner enforced by the lock file within NewProviderLock.
+	ProvidersLockUpdated func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash)
 
 	// The ProvidersFetched event is called after all fetch operations if at
 	// least one provider was fetched successfully.

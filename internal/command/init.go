@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -795,54 +796,35 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s%s)", provider.ForDisplay(), version, authResult, keyID))
 		},
-		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, local getproviders.Hash, remote []getproviders.Hash, cached []getproviders.Hash) {
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
 			// We're going to use this opportunity to track if we have any
 			// "incomplete" installs of providers. An incomplete install is
-			// when we are only going to write the local hash into our lock
+			// when we are only going to write the local hashes into our lock
 			// file which means a `terraform init` command will fail in future
 			// when used on machines of a different architecture.
 			//
 			// We want to print a warning about this.
 
-			if len(remote) > 0 {
-				// If we have any remote hashes then we don't worry - as we
-				// know we retrieved all available hashes for this version
+			if len(signedHashes) > 0 {
+				// If we have any signedHashes hashes then we don't worry - as
+				// we know we retrieved all available hashes for this version
 				// anyway.
 				return
 			}
 
-			if len(cached) > 1 {
-				// If we have more than 1 cached hash, then we also don't need
-				// to worry - this must mean that `terraform providers lock`
-				// has already been executed or this provider was downloaded
-				// properly the first time.
-				//
-				// Basically, `terraform init` can't ever fix itself if we are
-				// running across architectures and we have only one hash for a
-				// different architecture. So, if we have more than one hash
-				// then at some point a single architecture has been able to
-				// add multiple hashes which means it must have been able to
-				// pull the remote hashes.
+			// If local hashes and prior hashes are exactly the same then
+			// it means we didn't record any signed hashes previously, and
+			// we know we're not adding any extra in now (because we already
+			// checked the signedHashes), so that's a problem. We check here
+			// if they are not equal and return early. If they are equal then
+			// this is handled by amending incompleteProviders below.
+			if !reflect.DeepEqual(localHashes, priorHashes) {
 				return
 			}
 
-			if len(cached) == 1 && local != cached[0] {
-				// This is a bit of weird case. We only cached a single hash
-				// previously which would normally indicate a problem. But now,
-				// we've managed to add a second hash to the lock file so
-				// something strange has happened.
-				//
-				// I don't think this will ever happen in the wild, but if it
-				// does we'll assume there's an edgecase for a provider that
-				// only supports a single architecture and somehow only pulled
-				// the remote hashes for the provider into the lock file when
-				// initialising. So we won't print a warning.
-				return
-			}
-
-			// Now, either cached and remote are empty so we're only writing out a
-			// local hash, or cached contains exactly one entry and it's the same
-			// as the local hash.
+			// Now, either signedHashes is empty, or priorHashes is exactly the
+			// same as our localHashes which means we never retrieved the
+			// signedHashes previously.
 			//
 			// Either way, this is bad. Let's complain/warn.
 			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
