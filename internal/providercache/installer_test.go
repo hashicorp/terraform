@@ -176,12 +176,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"2.1.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								nil,
 							},
@@ -307,12 +307,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"2.1.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								nil,
 							},
@@ -446,12 +446,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"2.1.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								nil,
 							},
@@ -585,12 +585,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"2.0.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 							},
@@ -828,12 +828,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"2.1.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								nil,
 							},
@@ -1009,12 +1009,12 @@ func TestEnsureProviderVersions(t *testing.T) {
 							Provider: beepProvider,
 							Args: struct {
 								Version string
-								Local   getproviders.Hash
-								Remote  []getproviders.Hash
-								Cached  []getproviders.Hash
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
 							}{
 								"1.0.0",
-								"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 								nil,
 								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
 							},

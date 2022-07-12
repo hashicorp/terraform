@@ -815,10 +815,12 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			// If local hashes and prior hashes are exactly the same then
 			// it means we didn't record any signed hashes previously, and
 			// we know we're not adding any extra in now (because we already
-			// checked the signedHashes), so that's a problem. We check here
-			// if they are not equal and return early. If they are equal then
-			// this is handled by amending incompleteProviders below.
-			if !reflect.DeepEqual(localHashes, priorHashes) {
+			// checked the signedHashes), so that's a problem.
+			//
+			// In the actual check here, if we have any priorHashes and those
+			// hashes are not the same as the local hashes then we're going to
+			// accept that this provider has been configured correctly.
+			if len(priorHashes) > 0 && !reflect.DeepEqual(localHashes, priorHashes) {
 				return
 			}
 
