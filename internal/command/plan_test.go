@@ -700,6 +700,22 @@ func TestPlan_providerArgumentUnset(t *testing.T) {
 				},
 			},
 		},
+		DataSources: map[string]providers.Schema{
+			"test_data_source": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"valid": {
+							Type:     cty.Bool,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
 	}
 	view, done := testView(t)
 	c := &PlanCommand{
@@ -1382,6 +1398,33 @@ func TestPlan_warnings(t *testing.T) {
 	})
 }
 
+func TestPlan_jsonGoldenReference(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan"), td)
+	defer testChdir(t, td)()
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-json",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	checkGoldenReference(t, output, "plan")
+}
+
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
@@ -1408,6 +1451,22 @@ func planFixtureSchema() *providers.GetProviderSchemaResponse {
 				},
 			},
 		},
+		DataSources: map[string]providers.Schema{
+			"test_data_source": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {
+							Type:     cty.String,
+							Required: true,
+						},
+						"valid": {
+							Type:     cty.Bool,
+							Computed: true,
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -1421,6 +1480,14 @@ func planFixtureProvider() *terraform.MockProvider {
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
 		return providers.PlanResourceChangeResponse{
 			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("zzzzz"),
+				"valid": cty.BoolVal(true),
+			}),
 		}
 	}
 	return p
@@ -1456,6 +1523,14 @@ func planVarsFixtureProvider() *terraform.MockProvider {
 			PlannedState: req.ProposedNewState,
 		}
 	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("zzzzz"),
+				"valid": cty.BoolVal(true),
+			}),
+		}
+	}
 	return p
 }
 
@@ -1473,6 +1548,14 @@ func planWarningsFixtureProvider() *terraform.MockProvider {
 				tfdiags.SimpleWarning("warning 3"),
 			},
 			PlannedState: req.ProposedNewState,
+		}
+	}
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+		return providers.ReadDataSourceResponse{
+			State: cty.ObjectVal(map[string]cty.Value{
+				"id":    cty.StringVal("zzzzz"),
+				"valid": cty.BoolVal(true),
+			}),
 		}
 	}
 	return p
