@@ -883,7 +883,7 @@ func quoteShell(args []string, targetPlatform string, scriptPath string) (string
 	}
 	if targetPlatform == TargetPlatformWindows {
 		cmd := shquot.WindowsArgv(args)
-		if (strings.HasPrefix(cmd, `"`) && strings.HasSuffix(scriptPath, ".ps1")) {
+		if strings.HasPrefix(cmd, `"`) && strings.HasSuffix(scriptPath, ".ps1") {
 			cmd = "&" + cmd
 		}
 		return cmd, nil
