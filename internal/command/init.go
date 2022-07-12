@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -549,6 +550,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	ctx, done := c.InterruptibleContext()
 	defer done()
 
+	// We want to print out a nice warning if we don't manage to pull
+	// checksums for all our providers. This is tracked via callbacks
+	// and incomplete providers are stored here for later analysis.
+	var incompleteProviders []string
+
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
 	// things relatively concise. Later it'd be nice to have a progress UI
@@ -790,6 +796,41 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s%s)", provider.ForDisplay(), version, authResult, keyID))
 		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
+			// We're going to use this opportunity to track if we have any
+			// "incomplete" installs of providers. An incomplete install is
+			// when we are only going to write the local hashes into our lock
+			// file which means a `terraform init` command will fail in future
+			// when used on machines of a different architecture.
+			//
+			// We want to print a warning about this.
+
+			if len(signedHashes) > 0 {
+				// If we have any signedHashes hashes then we don't worry - as
+				// we know we retrieved all available hashes for this version
+				// anyway.
+				return
+			}
+
+			// If local hashes and prior hashes are exactly the same then
+			// it means we didn't record any signed hashes previously, and
+			// we know we're not adding any extra in now (because we already
+			// checked the signedHashes), so that's a problem.
+			//
+			// In the actual check here, if we have any priorHashes and those
+			// hashes are not the same as the local hashes then we're going to
+			// accept that this provider has been configured correctly.
+			if len(priorHashes) > 0 && !reflect.DeepEqual(localHashes, priorHashes) {
+				return
+			}
+
+			// Now, either signedHashes is empty, or priorHashes is exactly the
+			// same as our localHashes which means we never retrieved the
+			// signedHashes previously.
+			//
+			// Either way, this is bad. Let's complain/warn.
+			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			thirdPartySigned := false
 			for _, authResult := range authResults {
@@ -803,18 +844,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
 					"https://www.terraform.io/docs/cli/plugins/signing.html"))
 			}
-		},
-		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to validate installed provider",
-				fmt.Sprintf(
-					"Validating provider %s v%s failed: %s",
-					provider.ForDisplay(),
-					version,
-					err,
-				),
-			))
 		},
 	}
 	ctx = evts.OnContext(ctx)
@@ -875,21 +904,10 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 			return true, false, diags
 		}
 
-		// Jump in here and add a warning if any of the providers we've validated
-		// have only a single checksum. This usually means we didn't manage to
-		// pull checksums for all architectures remotely and only generated the
-		// checksum locally for the current architecture. There is a simple fix
-		// for this so terraform can print out some help.
-
-		var incompleteProviders []string
-		for provider, locks := range newLocks.AllProviders() {
-			if len(locks.AllHashes()) == 1 {
-				incompleteProviders = append(incompleteProviders, provider.ForDisplay())
-			}
-		}
-
+		// Jump in here and add a warning if any of the providers are incomplete.
 		if len(incompleteProviders) > 0 {
-			// We don't really care about the order here, we just want the output to be deterministic.
+			// We don't really care about the order here, we just want the
+			// output to be deterministic.
 			sort.Slice(incompleteProviders, func(i, j int) bool {
 				return incompleteProviders[i] < incompleteProviders[j]
 			})
