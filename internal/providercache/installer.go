@@ -28,13 +28,22 @@ type Installer struct {
 	// available via one of the cache directories.
 	source getproviders.Source
 
-	// globalCacheDir is an optional additional directory that will, if
-	// provided, be treated as a read-through cache when retrieving new
-	// provider versions. That is, new packages are fetched into this
-	// directory first and then linked into targetDir, which allows sharing
+	// readThroughCacheDirs are optional additional directories that will,
+	// if provided, be treated as read-through caches when retrieving new
+	// provider versions. That is, new packages are fetched into these
+	// directories first and then linked into targetDir, which allows sharing
 	// both the disk space and the download time for a particular provider
 	// version between different configurations on the same system.
-	globalCacheDir *Dir
+	//
+	// If there are multiple cache directories then the installer will search
+	// them in reverse order to try to find an already-cached package, linking
+	// it to all directories downstream of that directory if found. If
+	// none of the directories contain a suitable package then the installer
+	// will download the provider into the zeroth element of this list and
+	// then link it from there to all of the ones downstream, so all of the
+	// directories will be "warmed" with the requested package for future
+	// requests.
+	readThroughCacheDirs []*Dir
 
 	// builtInProviderTypes is an optional set of types that should be
 	// considered valid to appear in the special terraform.io/builtin/...
@@ -65,6 +74,38 @@ func NewInstaller(targetDir *Dir, source getproviders.Source) *Installer {
 	}
 }
 
+// ChildInstaller constructs a new installer with the same provider source
+// and special providers as the reciever but a new target directory.
+//
+// The new installer treats its "parent" (this method's reciever) as as a
+// read-through cache directory, so multiple child installers sharing the
+// same parent can all potentially share the on-disk provider plugins.
+//
+// The new installer takes a snapshot of the special settings of the receiever
+// at the time of the call, so if both parent and child should share the same
+// global cache dir, built in provider types, etc then a caller should set
+// those on the parent before calling ChildInstaller on it.
+//
+// Callers must not call EnsureProviderVersions on a child concurrently with
+// a call on its parent, and must not call EnsureProviderVersions on two
+// descendents of the same root installer, to avoid attempts to concurrently
+// query and modify the shared upstream cache directories.
+//
+// The new target directory must be for the same platform as the reciever,
+// or this function will panic.
+func (i *Installer) NewChildInstaller(targetDir *Dir) *Installer {
+	if ours, theirs := i.targetDir.targetPlatform, targetDir.targetPlatform; ours != theirs {
+		panic(fmt.Sprintf("child installer for platform %s cannot target %s", ours, theirs))
+	}
+
+	ret := *i
+	ret.targetDir = targetDir
+	ret.readThroughCacheDirs = make([]*Dir, len(i.readThroughCacheDirs), len(i.readThroughCacheDirs)+1)
+	copy(ret.readThroughCacheDirs, i.readThroughCacheDirs)
+	ret.readThroughCacheDirs = append(ret.readThroughCacheDirs, i.targetDir)
+	return &ret
+}
+
 // Clone returns a new Installer which has the a new target directory but
 // the same optional global cache directory, the same installation sources,
 // and the same built-in/unmanaged providers. The result can be mutated further
@@ -93,6 +134,12 @@ func (i *Installer) ProviderSource() getproviders.Source {
 // The global cache directory for an installer must never be the same as its
 // target directory, and must not be used as one of its provider sources.
 // If these overlap then undefined behavior will result.
+//
+// Don't call SetGlobalCacheDir on an installer that was created by calling
+// NewChildInstaller on another installer. Instead, call SetGlobalCacheDir
+// on the root installer before calling NewChildInstaller. Calling
+// SetGlobalCacheDir on a child installer will transform it into a root
+// installer which works directly with the given cache directory.
 func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 	// A little safety check to catch straightforward mistakes where the
 	// directories overlap. Better to panic early than to do
@@ -100,13 +147,13 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 	if same, err := copydir.SameFile(i.targetDir.baseDir, cacheDir.baseDir); err == nil && same {
 		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory %s", cacheDir.baseDir, i.targetDir.baseDir))
 	}
-	i.globalCacheDir = cacheDir
+	i.readThroughCacheDirs = []*Dir{cacheDir}
 }
 
 // HasGlobalCacheDir returns true if someone has previously called
 // SetGlobalCacheDir to configure a global cache directory for this installer.
 func (i *Installer) HasGlobalCacheDir() bool {
-	return i.globalCacheDir != nil
+	return len(i.readThroughCacheDirs) > 0
 }
 
 // SetBuiltInProviderTypes tells the receiver to consider the type names in the
@@ -317,6 +364,7 @@ NeedProvider:
 	// install its package into our target cache (possibly via the global cache).
 	authResults := map[addrs.Provider]*getproviders.PackageAuthenticationResult{} // record auth results for all successfully fetched providers
 	targetPlatform := i.targetDir.targetPlatform                                  // we inherit this to behave correctly in unit tests
+Packages:
 	for provider, version := range need {
 		if err := ctx.Err(); err != nil {
 			// If our context has been cancelled or reached a timeout then
@@ -343,94 +391,132 @@ NeedProvider:
 			}
 		}
 
-		if i.globalCacheDir != nil {
-			// Step 3a: If our global cache already has this version available then
-			// we'll just link it in.
-			if cached := i.globalCacheDir.ProviderVersion(provider, version); cached != nil {
-				if cb := evts.LinkFromCacheBegin; cb != nil {
-					cb(provider, version, i.globalCacheDir.baseDir)
-				}
-				if _, err := cached.ExecutableFile(); err != nil {
-					err := fmt.Errorf("provider binary not found: %s", err)
-					errs[provider] = err
-					if cb := evts.LinkFromCacheFailure; cb != nil {
-						cb(provider, version, err)
-					}
-					continue
-				}
+		if len(i.readThroughCacheDirs) > 0 {
+			// Step 3a: If any of our cache directories already have this version
+			// available then we'll link it in from the "closest" directory,
+			// searching backwards through the directories.
+			for cacheIdx := len(i.readThroughCacheDirs) - 1; cacheIdx >= 0; cacheIdx-- {
+				cacheDir := i.readThroughCacheDirs[cacheIdx]
 
-				err := i.targetDir.LinkFromOtherCache(cached, preferredHashes)
-				if err != nil {
-					errs[provider] = err
-					if cb := evts.LinkFromCacheFailure; cb != nil {
-						cb(provider, version, err)
+				if cached := cacheDir.ProviderVersion(provider, version); cached != nil {
+					if cb := evts.LinkFromCacheBegin; cb != nil {
+						cb(provider, version, cacheDir.baseDir)
 					}
-					continue
-				}
-				// We'll fetch what we just linked to make sure it actually
-				// did show up there.
-				new := i.targetDir.ProviderVersion(provider, version)
-				if new == nil {
-					err := fmt.Errorf("after linking %s from provider cache at %s it is still not detected in the target directory; this is a bug in Terraform", provider, i.globalCacheDir.baseDir)
-					errs[provider] = err
-					if cb := evts.LinkFromCacheFailure; cb != nil {
-						cb(provider, version, err)
+					if _, err := cached.ExecutableFile(); err != nil {
+						err := fmt.Errorf("provider binary not found: %s", err)
+						errs[provider] = err
+						if cb := evts.LinkFromCacheFailure; cb != nil {
+							cb(provider, version, err)
+						}
+						continue Packages
 					}
-					continue
-				}
 
-				// The LinkFromOtherCache call above should've verified that
-				// the package matches one of the hashes previously recorded,
-				// if any. We'll now augment those hashes with one freshly
-				// calculated from the package we just linked, which allows
-				// the lock file to gradually transition to recording newer hash
-				// schemes when they become available.
-				var newHashes []getproviders.Hash
-				if lock != nil && lock.Version() == version {
-					// If the version we're installing is identical to the
-					// one we previously locked then we'll keep all of the
-					// hashes we saved previously and add to it. Otherwise
-					// we'll be starting fresh, because each version has its
-					// own set of packages and thus its own hashes.
-					newHashes = append(newHashes, preferredHashes...)
-
-					// NOTE: The behavior here is unfortunate when a particular
-					// provider version was already cached on the first time
-					// the current configuration requested it, because that
-					// means we don't currently get the opportunity to fetch
-					// and verify the checksums for the new package from
-					// upstream. That's currently unavoidable because upstream
-					// checksums are in the "ziphash" format and so we can't
-					// verify them against our cache directory's unpacked
-					// packages: we'd need to go fetch the package from the
-					// origin and compare against it, which would defeat the
-					// purpose of the global cache.
-					//
-					// If we fetch from upstream on the first encounter with
-					// a particular provider then we'll end up in the other
-					// codepath below where we're able to also include the
-					// checksums from the origin registry.
-				}
-				newHash, err := cached.Hash()
-				if err != nil {
-					err := fmt.Errorf("after linking %s from provider cache at %s, failed to compute a checksum for it: %s", provider, i.globalCacheDir.baseDir, err)
-					errs[provider] = err
-					if cb := evts.LinkFromCacheFailure; cb != nil {
-						cb(provider, version, err)
+					// We now need to work "downwards" from our current cacheIdx,
+					// linking to any further down the list and then ultimately
+					// to the target directory, so that everything after the
+					// current cacheIdx will be primed to find this package
+					// again next time.
+					for cacheIdx++; cacheIdx < len(i.readThroughCacheDirs); cacheIdx++ {
+						downstreamCacheDir := i.readThroughCacheDirs[cacheIdx]
+						// Note: We don't create a chain of symlinks here, and
+						// instead just link everything to the directory we
+						// found above, because traversing multiple chained
+						// symlinks is inefficient and some software has an
+						// upper limit to how many links it will follow.
+						err := downstreamCacheDir.LinkFromOtherCache(cached, preferredHashes)
+						if err != nil {
+							errs[provider] = err
+							if cb := evts.LinkFromCacheFailure; cb != nil {
+								cb(provider, version, err)
+							}
+							continue Packages
+						}
 					}
-					continue
-				}
-				// The hashes slice gets deduplicated in the lock file
-				// implementation, so we don't worry about potentially
-				// creating a duplicate here.
-				newHashes = append(newHashes, newHash)
-				locks.SetProvider(provider, version, reqs[provider], newHashes)
+					// NOTE: cacheIdx is invalid beyond this point. All
+					// codepaths below must terminate our innermost loop without
+					// any more iterations.
+					cacheIdx = 0
 
-				if cb := evts.LinkFromCacheSuccess; cb != nil {
-					cb(provider, version, new.PackageDir)
+					err := i.targetDir.LinkFromOtherCache(cached, preferredHashes)
+					if err != nil {
+						errs[provider] = err
+						if cb := evts.LinkFromCacheFailure; cb != nil {
+							cb(provider, version, err)
+						}
+						continue Packages
+					}
+
+					// We'll fetch what we just linked to make sure it actually
+					// did show up there.
+					new := i.targetDir.ProviderVersion(provider, version)
+					if new == nil {
+						err := fmt.Errorf("after linking %s from provider cache at %s it is still not detected in the target directory; this is a bug in Terraform", provider, cacheDir.baseDir)
+						errs[provider] = err
+						if cb := evts.LinkFromCacheFailure; cb != nil {
+							cb(provider, version, err)
+						}
+						continue Packages
+					}
+
+					// The LinkFromOtherCache call above should've verified that
+					// the package matches one of the hashes previously recorded,
+					// if any. We'll now augment those hashes with one freshly
+					// calculated from the package we just linked, which allows
+					// the lock file to gradually transition to recording newer hash
+					// schemes when they become available.
+					var newHashes []getproviders.Hash
+					if lock != nil && lock.Version() == version {
+						// If the version we're installing is identical to the
+						// one we previously locked then we'll keep all of the
+						// hashes we saved previously and add to it. Otherwise
+						// we'll be starting fresh, because each version has its
+						// own set of packages and thus its own hashes.
+						newHashes = append(newHashes, preferredHashes...)
+
+						// NOTE: The behavior here is unfortunate when a particular
+						// provider version was already cached on the first time
+						// the current configuration requested it, because that
+						// means we don't currently get the opportunity to fetch
+						// and verify the checksums for the new package from
+						// upstream. That's currently unavoidable because upstream
+						// checksums are in the "ziphash" format and so we can't
+						// verify them against our cache directory's unpacked
+						// packages: we'd need to go fetch the package from the
+						// origin and compare against it, which would defeat the
+						// purpose of the global cache.
+						//
+						// If we fetch from upstream on the first encounter with
+						// a particular provider then we'll end up in the other
+						// codepath below where we're able to also include the
+						// checksums from the origin registry.
+					}
+					newHash, err := cached.Hash()
+					if err != nil {
+						err := fmt.Errorf("after linking %s from provider cache at %s, failed to compute a checksum for it: %s", provider, cacheDir.baseDir, err)
+						errs[provider] = err
+						if cb := evts.LinkFromCacheFailure; cb != nil {
+							cb(provider, version, err)
+						}
+						continue Packages
+					}
+					// The hashes slice gets deduplicated in the lock file
+					// implementation, so we don't worry about potentially
+					// creating a duplicate here.
+					newHashes = append(newHashes, newHash)
+					locks.SetProvider(provider, version, reqs[provider], newHashes)
+					// TODO: Need to rebase this to include the evts.ProvidersLockUpdated
+					// call from the following PR, once it's merged:
+					// https://github.com/hashicorp/terraform/pull/31399
+
+					if cb := evts.LinkFromCacheSuccess; cb != nil {
+						cb(provider, version, new.PackageDir)
+					}
+					continue Packages // Don't need to do full install, then.
 				}
-				continue // Don't need to do full install, then.
 			}
+			// If we fall out of the readThroughCacheDirs loop then none of
+			// the cache directories already have this package, so we'll
+			// intentionally fall through to the main installation below.
 		}
 
 		// Step 3b: Get the package metadata for the selected version from our
@@ -457,12 +543,15 @@ NeedProvider:
 			cb(provider, version, meta.Location)
 		}
 		var installTo, linkTo *Dir
-		if i.globalCacheDir != nil {
-			installTo = i.globalCacheDir
+		var linkToAlso []*Dir
+		if len(i.readThroughCacheDirs) > 0 {
+			installTo = i.readThroughCacheDirs[0]
 			linkTo = i.targetDir
+			linkToAlso = i.readThroughCacheDirs[1:]
 		} else {
 			installTo = i.targetDir
 			linkTo = nil // no linking needed
+			linkToAlso = nil
 		}
 		authResult, err := installTo.InstallPackage(ctx, meta, preferredHashes)
 		if err != nil {
@@ -490,6 +579,16 @@ NeedProvider:
 				cb(provider, version, err)
 			}
 			continue
+		}
+		for _, linkTo := range linkToAlso {
+			err := linkTo.LinkFromOtherCache(new, nil)
+			if err != nil {
+				errs[provider] = err
+				if cb := evts.FetchPackageFailure; cb != nil {
+					cb(provider, version, err)
+				}
+				continue Packages
+			}
 		}
 		if linkTo != nil {
 			// We skip emitting the "LinkFromCache..." events here because
