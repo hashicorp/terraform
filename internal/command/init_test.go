@@ -1734,8 +1734,7 @@ func TestInit_providerSource(t *testing.T) {
 	if got, want := ui.OutputWriter.String(), "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected output: %s\nexpected to include %q", got, want)
 	}
-
-	if got, want := ui.ErrorWriter.String(), "(hashicorp/source, hashicorp/test, hashicorp/test-beta)"; !strings.Contains(got, want) {
+	if got, want := ui.ErrorWriter.String(), "\n  - hashicorp/source\n  - hashicorp/test\n  - hashicorp/test-beta"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
