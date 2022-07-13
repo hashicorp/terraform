@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -42,10 +43,12 @@ func (s *Scenario) LoadMainConfig(env *RunEnvironment) (*configs.Config, tfdiags
 	}
 	loader.AllowLanguageExperiments(env.ExperimentsAllowed)
 
+	const errSummary = "Invalid test scenario configuration"
+
 	if !loader.IsConfigDir(configDir) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Invalid test scenario configuration",
+			errSummary,
 			fmt.Sprintf("The test scenario directory %s doesn't contain any Terraform configuration files.", configDir),
 		))
 		return nil, diags
@@ -53,6 +56,46 @@ func (s *Scenario) LoadMainConfig(env *RunEnvironment) (*configs.Config, tfdiags
 
 	config, hclDiags := loader.LoadConfig(configDir)
 	diags = diags.Append(hclDiags)
+
+	// We have various constraints on what's allowed in a test scenario
+	// configuration so that we can work with them in the slightly-unusual
+	// execution environment of the test harness.
+	if config.Module.Backend != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail:   "A test scenario configuration must not have a backend configuration, because the test harness controls state storage during testing.",
+			Subject:  &config.Module.Backend.DeclRange,
+		})
+	}
+	if config.Module.CloudConfig != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail:   "A test scenario configuration must not have a Terraform Cloud configuration, because the test harness controls operaions and state storage during testing.",
+			Subject:  &config.Module.CloudConfig.DeclRange,
+		})
+	}
+	for _, v := range config.Module.Variables {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  errSummary,
+			Detail:   "A test scenario configuration must not declare any input variables, because it must be self-contained and ready to use.",
+			Subject:  v.DeclRange.Ptr(),
+		})
+	}
+	if config.Module.ProviderRequirements != nil {
+		for _, pr := range config.Module.ProviderRequirements.RequiredProviders {
+			if len(pr.Aliases) != 0 {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  errSummary,
+					Detail:   "A test scenario configuration cannot require external provider configurations, because it must be self-contained and ready to use.",
+					Subject:  pr.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
 
 	return config, diags
 }
