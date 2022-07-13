@@ -119,7 +119,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			return authResult, ErrProviderChecksumMiss{
 				Meta: meta,
 				Msg: fmt.Sprintf(
-					"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file",
+					"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file, for more information: https://www.terraform.io/language/provider-checksum-verification",
 					meta.Provider, meta.Version,
 				),
 			}
@@ -204,7 +204,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 			return authResult, ErrProviderChecksumMiss{
 				Meta: meta,
 				Msg: fmt.Sprintf(
-					"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)",
+					"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms), for more information: https://www.terraform.io/language/provider-checksum-verification",
 					meta.Provider, meta.Version,
 				),
 			}
