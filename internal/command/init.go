@@ -1251,7 +1251,7 @@ const incompleteLockFileInformationHeader = `Incomplete lock file information fo
 const incompleteLockFileInformationBody = `Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:
   - %s
 
-The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running running on another platform will fail to install these providers.
+The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running on another platform will fail to install these providers.
 
 To calculate additional checksums for another platform, run:
   terraform providers lock -platform=linux_amd64
