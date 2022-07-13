@@ -1,3 +1,5 @@
+## 1.2.6 (Unreleased)
+
 ## 1.2.5 (July 13, 2022)
 
 BUG FIXES:
