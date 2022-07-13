@@ -1,9 +1,9 @@
-## 1.2.5 (Unreleased)
+## 1.2.5 (July 13, 2022)
 
 BUG FIXES:
 
-* Report correct error message when a prerelease field is included in the `required_version` global constraint. [GH-31331]
-* Fix case when extra blank lines were inserted into the plan for unchanged blocks. [GH-31330]
+* Report correct error message when a prerelease field is included in the `required_version` global constraint. ([#31331](https://github.com/hashicorp/terraform/issues/31331))
+* Fix case when extra blank lines were inserted into the plan for unchanged blocks. ([#31330](https://github.com/hashicorp/terraform/issues/31330))
 
 ## 1.2.4 (June 29, 2022)
 
