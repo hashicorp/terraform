@@ -322,7 +322,7 @@ to bring them under Terraform's management without needing to recreate them
 first.
 
 When using this facility, the user provides the address of the resource
-instance they wish to bind the existing object to, and a string repesentation
+instance they wish to bind the existing object to, and a string representation
 of the identifier of the existing object to be imported in a syntax defined
 by the provider on a per-resource-type basis, which we'll call the
 **Import ID**.

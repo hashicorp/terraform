@@ -11041,6 +11041,13 @@ locals {
 	p := testProvider("test")
 
 	p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if r.ProposedNewState.IsNull() {
+			resp.PlannedState = r.ProposedNewState
+			resp.PlannedPrivate = r.PriorPrivate
+			return resp
+		}
+
 		n := r.ProposedNewState.AsValueMap()
 
 		if r.PriorState.IsNull() {
@@ -11453,13 +11460,20 @@ resource "test_resource" "a" {
 `})
 
 	p := testProvider("test")
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		proposed := req.ProposedNewState.AsValueMap()
 		proposed["id"] = cty.UnknownVal(cty.String)
-		return providers.PlanResourceChangeResponse{
-			PlannedState:    cty.ObjectVal(proposed),
-			RequiresReplace: []cty.Path{{cty.GetAttrStep{Name: "value"}}},
-		}
+
+		resp.PlannedState = cty.ObjectVal(proposed)
+		resp.RequiresReplace = []cty.Path{{cty.GetAttrStep{Name: "value"}}}
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{

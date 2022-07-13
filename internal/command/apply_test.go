@@ -3,11 +3,9 @@ package command
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -21,7 +19,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -29,7 +26,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
 )
 
 func TestApply(t *testing.T) {
@@ -2055,81 +2051,7 @@ func TestApply_jsonGoldenReference(t *testing.T) {
 		t.Fatal("state should not be nil")
 	}
 
-	// Load the golden reference fixture
-	wantFile, err := os.Open(path.Join(testFixturePath("apply"), "output.jsonlog"))
-	if err != nil {
-		t.Fatalf("failed to open output file: %s", err)
-	}
-	defer wantFile.Close()
-	wantBytes, err := ioutil.ReadAll(wantFile)
-	if err != nil {
-		t.Fatalf("failed to read output file: %s", err)
-	}
-	want := string(wantBytes)
-
-	got := output.Stdout()
-
-	// Split the output and the reference into lines so that we can compare
-	// messages
-	got = strings.TrimSuffix(got, "\n")
-	gotLines := strings.Split(got, "\n")
-
-	want = strings.TrimSuffix(want, "\n")
-	wantLines := strings.Split(want, "\n")
-
-	if len(gotLines) != len(wantLines) {
-		t.Errorf("unexpected number of log lines: got %d, want %d", len(gotLines), len(wantLines))
-	}
-
-	// Verify that the log starts with a version message
-	type versionMessage struct {
-		Level     string `json:"@level"`
-		Message   string `json:"@message"`
-		Type      string `json:"type"`
-		Terraform string `json:"terraform"`
-		UI        string `json:"ui"`
-	}
-	var gotVersion versionMessage
-	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
-		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
-	}
-	wantVersion := versionMessage{
-		"info",
-		fmt.Sprintf("Terraform %s", tfversion.String()),
-		"version",
-		tfversion.String(),
-		views.JSON_UI_VERSION,
-	}
-	if !cmp.Equal(wantVersion, gotVersion) {
-		t.Errorf("unexpected first message:\n%s", cmp.Diff(wantVersion, gotVersion))
-	}
-
-	// Compare the rest of the lines against the golden reference
-	var gotLineMaps []map[string]interface{}
-	for i, line := range gotLines[1:] {
-		index := i + 1
-		var gotMap map[string]interface{}
-		if err := json.Unmarshal([]byte(line), &gotMap); err != nil {
-			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[index])
-		}
-		if _, ok := gotMap["@timestamp"]; !ok {
-			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
-		}
-		delete(gotMap, "@timestamp")
-		gotLineMaps = append(gotLineMaps, gotMap)
-	}
-	var wantLineMaps []map[string]interface{}
-	for i, line := range wantLines[1:] {
-		index := i + 1
-		var wantMap map[string]interface{}
-		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
-			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
-		}
-		wantLineMaps = append(wantLineMaps, wantMap)
-	}
-	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
-		t.Errorf("wrong output lines\n%s", diff)
-	}
+	checkGoldenReference(t, output, "apply")
 }
 
 func TestApply_warnings(t *testing.T) {

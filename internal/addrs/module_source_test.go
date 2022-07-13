@@ -59,7 +59,7 @@ func TestParseModuleSource(t *testing.T) {
 		"main registry implied": {
 			input: "hashicorp/subnets/cidr",
 			want: ModuleSourceRegistry{
-				PackageAddr: ModuleRegistryPackage{
+				Package: ModuleRegistryPackage{
 					Host:         svchost.Hostname("registry.terraform.io"),
 					Namespace:    "hashicorp",
 					Name:         "subnets",
@@ -71,7 +71,7 @@ func TestParseModuleSource(t *testing.T) {
 		"main registry implied, subdir": {
 			input: "hashicorp/subnets/cidr//examples/foo",
 			want: ModuleSourceRegistry{
-				PackageAddr: ModuleRegistryPackage{
+				Package: ModuleRegistryPackage{
 					Host:         svchost.Hostname("registry.terraform.io"),
 					Namespace:    "hashicorp",
 					Name:         "subnets",
@@ -92,7 +92,7 @@ func TestParseModuleSource(t *testing.T) {
 		"custom registry": {
 			input: "example.com/awesomecorp/network/happycloud",
 			want: ModuleSourceRegistry{
-				PackageAddr: ModuleRegistryPackage{
+				Package: ModuleRegistryPackage{
 					Host:         svchost.Hostname("example.com"),
 					Namespace:    "awesomecorp",
 					Name:         "network",
@@ -104,7 +104,7 @@ func TestParseModuleSource(t *testing.T) {
 		"custom registry, subdir": {
 			input: "example.com/awesomecorp/network/happycloud//examples/foo",
 			want: ModuleSourceRegistry{
-				PackageAddr: ModuleRegistryPackage{
+				Package: ModuleRegistryPackage{
 					Host:         svchost.Hostname("example.com"),
 					Namespace:    "awesomecorp",
 					Name:         "network",
@@ -118,68 +118,68 @@ func TestParseModuleSource(t *testing.T) {
 		"github.com shorthand": {
 			input: "github.com/hashicorp/terraform-cidr-subnets",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
+				Package: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
 			},
 		},
 		"github.com shorthand, subdir": {
 			input: "github.com/hashicorp/terraform-cidr-subnets//example/foo",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
-				Subdir:      "example/foo",
+				Package: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
+				Subdir:  "example/foo",
 			},
 		},
 		"git protocol, URL-style": {
 			input: "git://example.com/code/baz.git",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git://example.com/code/baz.git"),
+				Package: ModulePackage("git://example.com/code/baz.git"),
 			},
 		},
 		"git protocol, URL-style, subdir": {
 			input: "git://example.com/code/baz.git//bleep/bloop",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git://example.com/code/baz.git"),
-				Subdir:      "bleep/bloop",
+				Package: ModulePackage("git://example.com/code/baz.git"),
+				Subdir:  "bleep/bloop",
 			},
 		},
 		"git over HTTPS, URL-style": {
 			input: "git::https://example.com/code/baz.git",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::https://example.com/code/baz.git"),
+				Package: ModulePackage("git::https://example.com/code/baz.git"),
 			},
 		},
 		"git over HTTPS, URL-style, subdir": {
 			input: "git::https://example.com/code/baz.git//bleep/bloop",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::https://example.com/code/baz.git"),
-				Subdir:      "bleep/bloop",
+				Package: ModulePackage("git::https://example.com/code/baz.git"),
+				Subdir:  "bleep/bloop",
 			},
 		},
 		"git over SSH, URL-style": {
 			input: "git::ssh://git@example.com/code/baz.git",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::ssh://git@example.com/code/baz.git"),
+				Package: ModulePackage("git::ssh://git@example.com/code/baz.git"),
 			},
 		},
 		"git over SSH, URL-style, subdir": {
 			input: "git::ssh://git@example.com/code/baz.git//bleep/bloop",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("git::ssh://git@example.com/code/baz.git"),
-				Subdir:      "bleep/bloop",
+				Package: ModulePackage("git::ssh://git@example.com/code/baz.git"),
+				Subdir:  "bleep/bloop",
 			},
 		},
 		"git over SSH, scp-style": {
 			input: "git::git@example.com:code/baz.git",
 			want: ModuleSourceRemote{
 				// Normalized to URL-style
-				PackageAddr: ModulePackage("git::ssh://git@example.com/code/baz.git"),
+				Package: ModulePackage("git::ssh://git@example.com/code/baz.git"),
 			},
 		},
 		"git over SSH, scp-style, subdir": {
 			input: "git::git@example.com:code/baz.git//bleep/bloop",
 			want: ModuleSourceRemote{
 				// Normalized to URL-style
-				PackageAddr: ModulePackage("git::ssh://git@example.com/code/baz.git"),
-				Subdir:      "bleep/bloop",
+				Package: ModulePackage("git::ssh://git@example.com/code/baz.git"),
+				Subdir:  "bleep/bloop",
 			},
 		},
 
@@ -190,63 +190,63 @@ func TestParseModuleSource(t *testing.T) {
 		"Google Cloud Storage bucket implied, path prefix": {
 			input: "www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE"),
+				Package: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE"),
 			},
 		},
 		"Google Cloud Storage bucket, path prefix": {
 			input: "gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE"),
+				Package: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH_TO_MODULE"),
 			},
 		},
 		"Google Cloud Storage bucket implied, archive object": {
 			input: "www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip"),
+				Package: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip"),
 			},
 		},
 		"Google Cloud Storage bucket, archive object": {
 			input: "gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip"),
+				Package: ModulePackage("gcs::https://www.googleapis.com/storage/v1/BUCKET_NAME/PATH/TO/module.zip"),
 			},
 		},
 
 		"Amazon S3 bucket implied, archive object": {
 			input: "s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
+				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
 			},
 		},
 		"Amazon S3 bucket, archive object": {
 			input: "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
+				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
 			},
 		},
 
 		"HTTP URL": {
 			input: "http://example.com/module",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("http://example.com/module"),
+				Package: ModulePackage("http://example.com/module"),
 			},
 		},
 		"HTTPS URL": {
 			input: "https://example.com/module",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("https://example.com/module"),
+				Package: ModulePackage("https://example.com/module"),
 			},
 		},
 		"HTTPS URL, archive file": {
 			input: "https://example.com/module.zip",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("https://example.com/module.zip"),
+				Package: ModulePackage("https://example.com/module.zip"),
 			},
 		},
 		"HTTPS URL, forced archive file": {
 			input: "https://example.com/module?archive=tar",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("https://example.com/module?archive=tar"),
+				Package: ModulePackage("https://example.com/module?archive=tar"),
 			},
 		},
 		"HTTPS URL, forced archive file and checksum": {
@@ -255,7 +255,7 @@ func TestParseModuleSource(t *testing.T) {
 				// The query string only actually gets processed when we finally
 				// do the get, so "checksum=blah" is accepted as valid up
 				// at this parsing layer.
-				PackageAddr: ModulePackage("https://example.com/module?archive=tar&checksum=blah"),
+				Package: ModulePackage("https://example.com/module?archive=tar&checksum=blah"),
 			},
 		},
 
@@ -266,7 +266,7 @@ func TestParseModuleSource(t *testing.T) {
 			// is replaced by a deep filesystem copy instead.
 			input: "/tmp/foo/example",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("file:///tmp/foo/example"),
+				Package: ModulePackage("file:///tmp/foo/example"),
 			},
 		},
 		"absolute filesystem path, subdir": {
@@ -277,8 +277,8 @@ func TestParseModuleSource(t *testing.T) {
 			// syntax to move the package root higher in the real filesystem.
 			input: "/tmp/foo//example",
 			want: ModuleSourceRemote{
-				PackageAddr: ModulePackage("file:///tmp/foo"),
-				Subdir:      "example",
+				Package: ModulePackage("file:///tmp/foo"),
+				Subdir:  "example",
 			},
 		},
 
@@ -310,7 +310,7 @@ func TestParseModuleSource(t *testing.T) {
 				// Unfortunately go-getter doesn't actually reject a totally
 				// invalid address like this until getting time, as long as
 				// it looks somewhat like a URL.
-				PackageAddr: ModulePackage("dfgdfgsd:dgfhdfghdfghdfg/dfghdfghdfg"),
+				Package: ModulePackage("dfgdfgsd:dgfhdfghdfghdfg/dfghdfghdfg"),
 			},
 		},
 	}
@@ -344,8 +344,8 @@ func TestParseModuleSource(t *testing.T) {
 func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 	t.Run("both have subdir", func(t *testing.T) {
 		remote := ModuleSourceRemote{
-			PackageAddr: ModulePackage("boop"),
-			Subdir:      "foo",
+			Package: ModulePackage("boop"),
+			Subdir:  "foo",
 		}
 		registry := ModuleSourceRegistry{
 			Subdir: "bar",
@@ -363,8 +363,8 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 	})
 	t.Run("only remote has subdir", func(t *testing.T) {
 		remote := ModuleSourceRemote{
-			PackageAddr: ModulePackage("boop"),
-			Subdir:      "foo",
+			Package: ModulePackage("boop"),
+			Subdir:  "foo",
 		}
 		registry := ModuleSourceRegistry{
 			Subdir: "",
@@ -382,8 +382,8 @@ func TestModuleSourceRemoteFromRegistry(t *testing.T) {
 	})
 	t.Run("only registry has subdir", func(t *testing.T) {
 		remote := ModuleSourceRemote{
-			PackageAddr: ModulePackage("boop"),
-			Subdir:      "",
+			Package: ModulePackage("boop"),
+			Subdir:  "",
 		}
 		registry := ModuleSourceRegistry{
 			Subdir: "bar",
@@ -565,7 +565,7 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 			if got, want := addr.ForDisplay(), test.wantForDisplay; got != want {
 				t.Errorf("wrong ForDisplay() result\ngot:  %s\nwant: %s", got, want)
 			}
-			if got, want := addr.PackageAddr.ForRegistryProtocol(), test.wantForProtocol; got != want {
+			if got, want := addr.Package.ForRegistryProtocol(), test.wantForProtocol; got != want {
 				t.Errorf("wrong ForRegistryProtocol() result\ngot:  %s\nwant: %s", got, want)
 			}
 		})

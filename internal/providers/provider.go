@@ -85,6 +85,19 @@ type GetProviderSchemaResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// ServerCapabilities lists optional features supported by the provider.
+	ServerCapabilities ServerCapabilities
+}
+
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate availability
+// of certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+type ServerCapabilities struct {
+	// PlanDestroy signals that this provider expects to receive a
+	// PlanResourceChange call for resources that are to be destroyed.
+	PlanDestroy bool
 }
 
 type ValidateProviderConfigRequest struct {

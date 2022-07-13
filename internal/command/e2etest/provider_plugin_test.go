@@ -72,6 +72,16 @@ func TestProviderProtocols(t *testing.T) {
 	}
 
 	if !strings.Contains(stdout, "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.") {
-		t.Fatalf("wrong output:\n%s", stdout)
+		t.Fatalf("wrong output:\nstdout:%s\nstderr%s", stdout, stderr)
+	}
+
+	/// DESTROY
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Fatalf("wrong destroy output\nstdout:%s\nstderr:%s", stdout, stderr)
 	}
 }

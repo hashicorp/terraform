@@ -9,7 +9,7 @@ There are also some historical exceptions to this rule, which we hope to
 supplement with plan-and-apply-based equivalents over time.
 
 This document describes the default planning behavior of Terraform in the
-absense of any special instructions, and also describes the three main
+absence of any special instructions, and also describes the three main
 design approaches we can choose from when modelling non-default behaviors that
 require additional information from outside of Terraform Core.
 
@@ -148,7 +148,7 @@ main sub-categories:
   top-level block which refers to other resources using the typical address
   syntax.
 
-The following is a non-exhastive list of existing examples of
+The following is a non-exhaustive list of existing examples of
 configuration-driven behaviors, selected to illustrate some different variations
 that might be useful inspiration for new designs:
 
@@ -210,7 +210,7 @@ protocol does not talk about the action types explicitly, and instead only
 implies them via other content of the request and response, with Terraform Core
 making the final decision about how to react to that information.
 
-The following is a non-exhastive list of existing examples of
+The following is a non-exhaustive list of existing examples of
 provider-driven behaviors, selected to illustrate some different variations
 that might be useful inspiration for new designs:
 
@@ -258,7 +258,7 @@ most appropriate way to handle a particular use-case, because the need for the
 behavior originates in some process happening outside of the scope of any
 particular Terraform module or provider.
 
-The following is a non-exhastive list of existing examples of
+The following is a non-exhaustive list of existing examples of
 single-run behaviors, selected to illustrate some different variations
 that might be useful inspiration for new designs:
 

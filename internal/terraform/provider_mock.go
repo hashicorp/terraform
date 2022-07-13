@@ -356,6 +356,13 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		return *p.PlanResourceChangeResponse
 	}
 
+	// this is a destroy plan,
+	if r.ProposedNewState.IsNull() {
+		resp.PlannedState = r.ProposedNewState
+		resp.PlannedPrivate = r.PriorPrivate
+		return resp
+	}
+
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
