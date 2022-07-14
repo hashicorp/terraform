@@ -170,7 +170,6 @@ func realMain() int {
 		return 1
 	}
 
-	//FJN here <<<<<<<<<<<<<<<<<<<<
 	// The arguments can begin with a -chdir option to ask Terraform to switch
 	// to a different working directory for the rest of its work. If that
 	// option is present then extractChdirOption returns a trimmed args with that option removed.
