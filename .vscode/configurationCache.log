@@ -1,1 +1,0 @@
-{"buildTargets":[".NOTPARALLEL",".PHONY","exhaustive","fmtcheck","generate","protobuf","staticcheck","website","website-test","website/build-local","website/local"],"launchTargets":[],"customConfigurationProvider":{"workspaceBrowse":{"browsePath":[],"compilerArgs":[]},"fileIndex":[]}}
