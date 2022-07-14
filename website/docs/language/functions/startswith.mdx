@@ -1,14 +1,12 @@
 ---
 page_title: startsswith - Functions - Configuration Language
 description: |-
-  The startswith function takes a given string and a given prefix value,
-  and returns true if the first given string contains the given value at its beginning.
+  The startswith function  takes two values: a string to check and a prefix string. It returns true if the string begins with that exact prefix.
 ---
 
 # `startswith` Function
 
-`startswith` takes a given string and a given prefix value,
-and returns true if the first given string contains the given value at its beginning.
+`startswith` takes two values: a string to check and a prefix string. The function returns true if the string begins with that exact prefix.
 
 ```hcl
 startswith(string, prefix)
@@ -26,5 +24,4 @@ false
 
 ## Related Functions
 
-- [`endswith`](/language/functions/endswith) takes a given string and a given suffix value,
-  and returns true if the first given string contains the given value at its end
+- [`endswith`](/language/functions/endswith) takes two values: a string to check and a suffix string. The function returns true if the first string ends with that exact suffix value.
