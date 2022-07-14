@@ -16,6 +16,8 @@ NEW FEATURES:
 
     Assigning `{ a = "foo" }` to this variable will result in the value `{ a = "foo", b = null, c = 127 }`.
 
+* Added functions: `startswith` and `endswith` allow you to check whether a given string has a specified prefix or suffix. [GH-31220]
+
 UPGRADE NOTES:
 
 * `terraform show -json`: Output changes now include more detail about the unknown-ness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
