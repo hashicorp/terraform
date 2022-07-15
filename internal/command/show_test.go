@@ -905,6 +905,34 @@ func TestShow_planWithNonDefaultStateLineage(t *testing.T) {
 	}
 }
 
+func TestShow_corruptStatefile(t *testing.T) {
+	td := t.TempDir()
+	inputDir := "testdata/show-corrupt-statefile"
+	testCopyDir(t, inputDir, td)
+	defer testChdir(t, td)()
+
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(testProvider()),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{})
+	output := done(t)
+
+	if code != 1 {
+		t.Fatalf("unexpected exit status %d; want 1\ngot: %s", code, output.Stdout())
+	}
+
+	got := output.Stderr()
+	want := `Unsupported state file format`
+	if !strings.Contains(got, want) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	}
+}
+
 // showFixtureSchema returns a schema suitable for processing the configuration
 // in testdata/show. This schema should be assigned to a mock provider
 // named "test".
