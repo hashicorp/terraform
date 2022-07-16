@@ -466,13 +466,11 @@ func TestBackendExtraPaths(t *testing.T) {
 	// RemoteClient to Put things in various paths
 	client := &RemoteClient{
 		s3Client:             b.s3Client,
-		dynClient:            b.dynClient,
 		bucketName:           b.bucketName,
 		path:                 b.path("s1"),
 		serverSideEncryption: b.serverSideEncryption,
 		acl:                  b.acl,
 		kmsKeyID:             b.kmsKeyID,
-		ddbTable:             b.ddbTable,
 	}
 
 	// Write the first state

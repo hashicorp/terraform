@@ -16,7 +16,7 @@ import (
 
 func TestRemoteClient_impl(t *testing.T) {
 	var _ remote.Client = new(RemoteClient)
-	var _ remote.ClientLocker = new(RemoteClient)
+	var _ remote.ClientLocker = new(RemoteClientWithDDBLock)
 }
 
 func TestRemoteClient(t *testing.T) {
@@ -176,7 +176,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := s.(*remote.State).Client.(*RemoteClient)
+	client := s.(*remote.State).Client.(*RemoteClientWithDDBLock)
 
 	sum := md5.Sum([]byte("test"))
 

@@ -31,14 +31,12 @@ const (
 
 type RemoteClient struct {
 	s3Client              *s3.S3
-	dynClient             *dynamodb.DynamoDB
 	bucketName            string
 	path                  string
 	serverSideEncryption  bool
 	customerEncryptionKey []byte
 	acl                   string
 	kmsKeyID              string
-	ddbTable              string
 }
 
 var (
@@ -53,51 +51,7 @@ var (
 // test hook called when checksums don't match
 var testChecksumHook func()
 
-func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
-	deadline := time.Now().Add(consistencyRetryTimeout)
-
-	// If we have a checksum, and the returned payload doesn't match, we retry
-	// up until deadline.
-	for {
-		payload, err = c.get()
-		if err != nil {
-			return nil, err
-		}
-
-		// If the remote state was manually removed the payload will be nil,
-		// but if there's still a digest entry for that state we will still try
-		// to compare the MD5 below.
-		var digest []byte
-		if payload != nil {
-			digest = payload.MD5
-		}
-
-		// verify that this state is what we expect
-		if expected, err := c.getMD5(); err != nil {
-			log.Printf("[WARN] failed to fetch state md5: %s", err)
-		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
-			log.Printf("[WARN] state md5 mismatch: expected '%x', got '%x'", expected, digest)
-
-			if testChecksumHook != nil {
-				testChecksumHook()
-			}
-
-			if time.Now().Before(deadline) {
-				time.Sleep(consistencyRetryPollInterval)
-				log.Println("[INFO] retrying S3 RemoteClient.Get...")
-				continue
-			}
-
-			return nil, fmt.Errorf(errBadChecksumFmt, digest)
-		}
-
-		break
-	}
-
-	return payload, err
-}
-
-func (c *RemoteClient) get() (*remote.Payload, error) {
+func (c *RemoteClient) Get() (*remote.Payload, error) {
 	var output *s3.GetObjectOutput
 	var err error
 
@@ -183,6 +137,74 @@ func (c *RemoteClient) Put(data []byte) error {
 		return fmt.Errorf("failed to upload state: %s", err)
 	}
 
+	return nil
+}
+
+func (c *RemoteClient) Delete() error {
+	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket: &c.bucketName,
+		Key:    &c.path,
+	})
+
+	return err
+}
+
+type RemoteClientWithDDBLock struct {
+	*RemoteClient
+
+	dynClient *dynamodb.DynamoDB
+	ddbTable  string
+}
+
+func (c *RemoteClientWithDDBLock) Get() (payload *remote.Payload, err error) {
+	deadline := time.Now().Add(consistencyRetryTimeout)
+
+	// If we have a checksum, and the returned payload doesn't match, we retry
+	// up until deadline.
+	for {
+		payload, err = c.RemoteClient.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		// If the remote state was manually removed the payload will be nil,
+		// but if there's still a digest entry for that state we will still try
+		// to compare the MD5 below.
+		var digest []byte
+		if payload != nil {
+			digest = payload.MD5
+		}
+
+		// verify that this state is what we expect
+		if expected, err := c.getMD5(); err != nil {
+			log.Printf("[WARN] failed to fetch state md5: %s", err)
+		} else if len(expected) > 0 && !bytes.Equal(expected, digest) {
+			log.Printf("[WARN] state md5 mismatch: expected '%x', got '%x'", expected, digest)
+
+			if testChecksumHook != nil {
+				testChecksumHook()
+			}
+
+			if time.Now().Before(deadline) {
+				time.Sleep(consistencyRetryPollInterval)
+				log.Println("[INFO] retrying S3 RemoteClient.Get...")
+				continue
+			}
+
+			return nil, fmt.Errorf(errBadChecksumFmt, digest)
+		}
+
+		break
+	}
+
+	return payload, err
+}
+
+func (c *RemoteClientWithDDBLock) Put(data []byte) error {
+	if err := c.RemoteClient.Put(data); err != nil {
+		return err
+	}
+
 	sum := md5.Sum(data)
 	if err := c.putMD5(sum[:]); err != nil {
 		// if this errors out, we unfortunately have to error out altogether,
@@ -194,13 +216,8 @@ func (c *RemoteClient) Put(data []byte) error {
 	return nil
 }
 
-func (c *RemoteClient) Delete() error {
-	_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
-		Bucket: &c.bucketName,
-		Key:    &c.path,
-	})
-
-	if err != nil {
+func (c *RemoteClientWithDDBLock) Delete() error {
+	if err := c.RemoteClient.Delete(); err != nil {
 		return err
 	}
 
@@ -211,11 +228,7 @@ func (c *RemoteClient) Delete() error {
 	return nil
 }
 
-func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
-	if c.ddbTable == "" {
-		return "", nil
-	}
-
+func (c *RemoteClientWithDDBLock) Lock(info *statemgr.LockInfo) (string, error) {
 	info.Path = c.lockPath()
 
 	if info.ID == "" {
@@ -253,11 +266,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	return info.ID, nil
 }
 
-func (c *RemoteClient) getMD5() ([]byte, error) {
-	if c.ddbTable == "" {
-		return nil, nil
-	}
-
+func (c *RemoteClientWithDDBLock) getMD5() ([]byte, error) {
 	getParams := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
@@ -286,11 +295,7 @@ func (c *RemoteClient) getMD5() ([]byte, error) {
 }
 
 // store the hash of the state so that clients can check for stale state files.
-func (c *RemoteClient) putMD5(sum []byte) error {
-	if c.ddbTable == "" {
-		return nil
-	}
-
+func (c *RemoteClientWithDDBLock) putMD5(sum []byte) error {
 	if len(sum) != md5.Size {
 		return errors.New("invalid payload md5")
 	}
@@ -311,11 +316,7 @@ func (c *RemoteClient) putMD5(sum []byte) error {
 }
 
 // remove the hash value for a deleted state
-func (c *RemoteClient) deleteMD5() error {
-	if c.ddbTable == "" {
-		return nil
-	}
-
+func (c *RemoteClientWithDDBLock) deleteMD5() error {
 	params := &dynamodb.DeleteItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath() + stateIDSuffix)},
@@ -328,7 +329,7 @@ func (c *RemoteClient) deleteMD5() error {
 	return nil
 }
 
-func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
+func (c *RemoteClientWithDDBLock) getLockInfo() (*statemgr.LockInfo, error) {
 	getParams := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"LockID": {S: aws.String(c.lockPath())},
@@ -357,11 +358,7 @@ func (c *RemoteClient) getLockInfo() (*statemgr.LockInfo, error) {
 	return lockInfo, nil
 }
 
-func (c *RemoteClient) Unlock(id string) error {
-	if c.ddbTable == "" {
-		return nil
-	}
-
+func (c *RemoteClientWithDDBLock) Unlock(id string) error {
 	lockErr := &statemgr.LockError{}
 
 	// TODO: store the path and lock ID in separate fields, and have proper
@@ -394,7 +391,7 @@ func (c *RemoteClient) Unlock(id string) error {
 	return nil
 }
 
-func (c *RemoteClient) lockPath() string {
+func (c *RemoteClientWithDDBLock) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
 

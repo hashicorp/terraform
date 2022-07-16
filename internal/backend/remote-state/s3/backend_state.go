@@ -104,21 +104,28 @@ func (b *Backend) DeleteWorkspace(name string) error {
 }
 
 // get a remote client configured for this state
-func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
+func (b *Backend) remoteClient(name string) (remote.Client, error) {
 	if name == "" {
 		return nil, errors.New("missing state name")
 	}
 
 	client := &RemoteClient{
 		s3Client:              b.s3Client,
-		dynClient:             b.dynClient,
 		bucketName:            b.bucketName,
 		path:                  b.path(name),
 		serverSideEncryption:  b.serverSideEncryption,
 		customerEncryptionKey: b.customerEncryptionKey,
 		acl:                   b.acl,
 		kmsKeyID:              b.kmsKeyID,
-		ddbTable:              b.ddbTable,
+	}
+
+	if b.ddbTable != "" {
+		clientWithLock := &RemoteClientWithDDBLock{
+			RemoteClient: client,
+			dynClient:    b.dynClient,
+			ddbTable:     b.ddbTable,
+		}
+		return clientWithLock, nil
 	}
 
 	return client, nil
@@ -157,7 +164,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		// take a lock on this state while we write it
 		lockInfo := statemgr.NewLockInfo()
 		lockInfo.Operation = "init"
-		lockId, err := client.Lock(lockInfo)
+		lockId, err := stateMgr.Lock(lockInfo)
 		if err != nil {
 			return nil, fmt.Errorf("failed to lock s3 state: %s", err)
 		}
