@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -147,6 +149,11 @@ func (c *RemoteClient) Delete() error {
 	})
 
 	return err
+}
+
+func (c *RemoteClient) getSSECustomerKeyMD5() string {
+	b := md5.Sum(c.customerEncryptionKey)
+	return base64.StdEncoding.EncodeToString(b[:])
 }
 
 type RemoteClientWithDDBLock struct {
@@ -395,9 +402,139 @@ func (c *RemoteClientWithDDBLock) lockPath() string {
 	return fmt.Sprintf("%s/%s", c.bucketName, c.path)
 }
 
-func (c *RemoteClient) getSSECustomerKeyMD5() string {
-	b := md5.Sum(c.customerEncryptionKey)
-	return base64.StdEncoding.EncodeToString(b[:])
+type RemoteClientWithS3Lock struct {
+	*RemoteClient
+
+	lockPath string
+}
+
+// Lock writes to a lock file, ensuring file creation. Returns the lock ID
+// number, which must be passed to Unlock().
+func (c *RemoteClientWithS3Lock) Lock(info *statemgr.LockInfo) (string, error) {
+	// update the path we're using
+	info.Path = c.lockFileURL()
+
+	infoData, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
+
+	lockKey := path.Join(c.lockPath, info.ID)
+
+	// create object with random suffix
+	o, err := c.s3Client.PutObject(&s3.PutObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(lockKey),
+		Body:   aws.ReadSeekCloser(bytes.NewReader(infoData)),
+	})
+	if err != nil {
+		return "", c.lockError(fmt.Errorf("writing %q failed: %v", c.lockFileURL(), err))
+	}
+
+	// list object with c.lockPath prefix
+	l, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(c.bucketName),
+		Prefix: aws.String(c.lockPath),
+	})
+	if err != nil {
+		return "", c.lockError(fmt.Errorf("listing %q failed: %v", c.lockFileURL(), err))
+	}
+
+	if len(l.Contents) != 1 {
+		_, err := c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+			Bucket:    aws.String(c.bucketName),
+			Key:       aws.String(lockKey),
+			VersionId: o.VersionId,
+		})
+		if err != nil {
+			return "", c.lockError(fmt.Errorf("lock %q cleanup failed: %v", c.lockFileURL(), err))
+		}
+
+		return "", c.lockError(fmt.Errorf("locking %q failed: %v", c.lockFileURL(), err))
+	}
+
+	return info.ID, nil
+}
+
+func (c *RemoteClientWithS3Lock) Unlock(id string) error {
+	lockKey := path.Join(c.lockPath, id)
+
+	// try to obtain object version to avoid creating deletion
+	// markers in versioned buckets
+	h, err := c.s3Client.HeadObject(&s3.HeadObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    aws.String(lockKey),
+	})
+	if err != nil {
+		return c.lockError(err)
+	}
+
+	_, err = c.s3Client.DeleteObject(&s3.DeleteObjectInput{
+		Bucket:    aws.String(c.bucketName),
+		Key:       aws.String(lockKey),
+		VersionId: h.VersionId,
+	})
+	if err != nil {
+		return c.lockError(err)
+	}
+
+	return nil
+}
+
+func (c *RemoteClientWithS3Lock) lockError(err error) *statemgr.LockError {
+	lockErr := &statemgr.LockError{
+		Err: err,
+	}
+
+	info, infoErr := c.lockInfo()
+	if infoErr != nil {
+		lockErr.Err = multierror.Append(lockErr.Err, infoErr)
+	} else {
+		lockErr.Info = info
+	}
+	return lockErr
+}
+
+// lockInfo reads the lock file, parses its contents and returns the parsed
+// LockInfo struct.
+func (c *RemoteClientWithS3Lock) lockInfo() (*statemgr.LockInfo, error) {
+	l, err := c.s3Client.ListObjects(&s3.ListObjectsInput{
+		Bucket: aws.String(c.bucketName),
+		Prefix: aws.String(c.lockPath),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(l.Contents) == 0 {
+		return nil, nil
+	}
+
+	// read first lock file
+	output, err := c.s3Client.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(c.bucketName),
+		Key:    l.Contents[0].Key,
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer output.Body.Close()
+
+	rawData, err := ioutil.ReadAll(output.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	info := &statemgr.LockInfo{}
+	if err := json.Unmarshal(rawData, info); err != nil {
+		return nil, err
+	}
+
+	return info, nil
+}
+
+func (c *RemoteClientWithS3Lock) lockFileURL() string {
+	return fmt.Sprintf("s3://%v/%v", c.bucketName, c.lockPath)
 }
 
 const errBadChecksumFmt = `state data in S3 does not have the expected content.

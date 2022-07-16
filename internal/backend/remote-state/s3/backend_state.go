@@ -17,6 +17,8 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
+const lockFileSuffix = ".tflock"
+
 func (b *Backend) Workspaces() ([]string, error) {
 	const maxKeys = 1000
 
@@ -120,15 +122,17 @@ func (b *Backend) remoteClient(name string) (remote.Client, error) {
 	}
 
 	if b.ddbTable != "" {
-		clientWithLock := &RemoteClientWithDDBLock{
+		return &RemoteClientWithDDBLock{
 			RemoteClient: client,
 			dynClient:    b.dynClient,
 			ddbTable:     b.ddbTable,
-		}
-		return clientWithLock, nil
+		}, nil
 	}
 
-	return client, nil
+	return &RemoteClientWithS3Lock{
+		RemoteClient: client,
+		lockPath:     b.lockPath(name),
+	}, nil
 }
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
@@ -217,6 +221,10 @@ func (b *Backend) path(name string) string {
 	}
 
 	return path.Join(b.workspaceKeyPrefix, name, b.keyName)
+}
+
+func (b *Backend) lockPath(name string) string {
+	return b.path(name) + lockFileSuffix
 }
 
 const errStateUnlock = `
