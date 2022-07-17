@@ -141,11 +141,14 @@ func implicitProviderSource(services *disco.Disco, overrideWd string) getprovide
 	}
 
 	localMirror := "terraform.d/plugins"
+	addLocalDir(localMirror) // our "vendor" directory - to preserve backward compatibility
+
 	// if user has applied -chdir re-home where to look for local mirror
 	if overrideWd != "" {
 		localMirror = filepath.Join(overrideWd, localMirror)
+		addLocalDir(localMirror) // our "vendor" directory with a re-homed CWD
 	}
-	addLocalDir(localMirror) // our "vendor" directory
+
 	cliConfigDir, err := cliconfig.ConfigDir()
 	if err == nil {
 		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
