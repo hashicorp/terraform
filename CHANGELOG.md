@@ -1,5 +1,8 @@
 ## 1.2.6 (Unreleased)
 
+BUG FIXES:
+* Fix panic on `terraform show` when state file is invalid or unavailable [GH-31444]
+
 ## 1.2.5 (July 13, 2022)
 
 BUG FIXES:
