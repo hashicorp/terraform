@@ -311,7 +311,9 @@ the operating system where you are running Terraform:
 
 If a `terraform.d/plugins` directory exists in the current working directory
 then Terraform will also include that directory, regardless of your operating
-system.
+system. *The behavior is slightly different when using `-chdir` with the `init` command,
+the launch directory, not the directory specified with `-chdir`, is used
+for checking for the existence of the `terraform.d/plugins` directory.*
 
 Terraform will check each of the paths above to see if it exists, and if so
 treat it as a filesystem mirror. The directory structure inside each one must
