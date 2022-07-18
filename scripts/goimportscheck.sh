@@ -8,7 +8,7 @@ if [[ -n ${target_files}  ]]; then
   exit 0
 fi
 
-goimports_files=$(goimports -l -local github.com/hashicorp/terraform/ ${target_files})
+goimports_files=$(goimports -w -l -local github.com/hashicorp/terraform/ ${target_files})
 if [[ -n ${goimports_files} ]]; then
   echo 'goimports needs running on the following files:'
   echo "${goimports_files}"
