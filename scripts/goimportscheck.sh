@@ -2,9 +2,9 @@
 
 # Check goimports
 echo "==> Checking the code complies with goimports requirements..."
-target_files=$(git diff --name-only main | grep .go)
+target_files=$(git diff --name-only main | grep "\.go")
 
-if [[ -n ${target_files}  ]]; then
+if [[ -z ${target_files}  ]]; then
   exit 0
 fi
 
