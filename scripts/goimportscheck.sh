@@ -2,7 +2,7 @@
 
 # Check goimports
 echo "==> Checking the code complies with goimports requirements..."
-target_files=$(git diff --name-only HEAD HEAD~1 | grep .go)
+target_files=$(git diff --name-only main | grep .go)
 
 if [[ -n ${target_files}  ]]; then
   exit 0
