@@ -5,9 +5,12 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
+
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -65,12 +68,22 @@ func (r *remoteClient) Put(state []byte) error {
 		return fmt.Errorf("Error reading state: %s", err)
 	}
 
+	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
+	if err != nil {
+		return fmt.Errorf("Error reading output values: %s", err)
+	}
+	o, err := json.Marshal(ov)
+	if err != nil {
+		return fmt.Errorf("Error converting output values to json: %s", err)
+	}
+
 	options := tfe.StateVersionCreateOptions{
-		Lineage: tfe.String(stateFile.Lineage),
-		Serial:  tfe.Int64(int64(stateFile.Serial)),
-		MD5:     tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-		State:   tfe.String(base64.StdEncoding.EncodeToString(state)),
-		Force:   tfe.Bool(r.forcePush),
+		Lineage:          tfe.String(stateFile.Lineage),
+		Serial:           tfe.Int64(int64(stateFile.Serial)),
+		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:            tfe.Bool(r.forcePush),
+		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(o)),
 	}
 
 	// If we have a run ID, make sure to add it to the options
