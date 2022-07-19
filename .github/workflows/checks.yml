@@ -141,6 +141,8 @@ jobs:
     steps:
       - name: "Fetch source code"
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # We need to do comparisons against the main branch.
 
       - name: Determine Go version
         id: go
