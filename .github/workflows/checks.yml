@@ -141,6 +141,8 @@ jobs:
     steps:
       - name: "Fetch source code"
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # We need to do comparisons against the main branch.
 
       - name: Determine Go version
         id: go
@@ -178,9 +180,13 @@ jobs:
           restore-keys: |
             protobuf-tools-
 
+      - name: Install CI tooling
+        run: |
+          go install golang.org/x/tools/cmd/goimports@v0.1.11
+
       - name: "Code consistency checks"
         run: |
-          make fmtcheck generate staticcheck exhaustive protobuf
+          make fmtcheck importscheck generate staticcheck exhaustive protobuf
           if [[ -n "$(git status --porcelain)" ]]; then
             echo >&2 "ERROR: Generated files are inconsistent. Run 'make generate' and 'make protobuf' locally and then commit the updated files."
             git >&2 status --porcelain
