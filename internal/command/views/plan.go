@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
@@ -15,7 +17,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // The Plan view is used for the plan command.
@@ -176,7 +177,7 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 				view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure matches the configuration.[reset]\n\n"),
 			)
 
-			if haveRefreshChanges && !plan.CanApply() {
+			if haveRefreshChanges {
 				if plan.CanApply() {
 					// In this case, applying this plan will not change any
 					// remote objects but _will_ update the state to match what
