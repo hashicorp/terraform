@@ -39,7 +39,8 @@ importscheck:
 	@sh -c "'$(CURDIR)/scripts/goimportscheck.sh'"
 
 vetcheck:
-	@sh -c "'$(CURDIR)/scripts/govetcheck.sh'"
+	@echo "==> Checking that the code complies with go vet requirements"
+	@go vet ./...
 
 staticcheck:
 	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
