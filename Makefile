@@ -35,6 +35,9 @@ protobuf:
 fmtcheck:
 	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
+importscheck:
+	@sh -c "'$(CURDIR)/scripts/goimportscheck.sh'"
+
 staticcheck:
 	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
 
@@ -63,4 +66,4 @@ website/build-local:
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test staticcheck website/local website/build-local
+.PHONY: fmtcheck importscheck generate protobuf website website-test staticcheck website/local website/build-local

@@ -113,6 +113,12 @@ func New() backend.Backend {
 					return nil, nil
 				},
 			},
+			"accelerate": {
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Description: "Whether to enable global Acceleration",
+				Default:     false,
+			},
 		},
 	}
 
@@ -138,7 +144,16 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.encrypt = data.Get("encrypt").(bool)
 	b.acl = data.Get("acl").(string)
 
-	u, err := url.Parse(fmt.Sprintf("https://%s.cos.%s.myqcloud.com", b.bucket, b.region))
+	var (
+		u   *url.URL
+		err error
+	)
+	accelerate := data.Get("accelerate").(bool)
+	if accelerate {
+		u, err = url.Parse(fmt.Sprintf("https://%s.cos.accelerate.myqcloud.com", b.bucket))
+	} else {
+		u, err = url.Parse(fmt.Sprintf("https://%s.cos.%s.myqcloud.com", b.bucket, b.region))
+	}
 	if err != nil {
 		return err
 	}

@@ -151,7 +151,7 @@ func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Di
 	// Get the latest state snapshot from the backend for the current workspace
 	stateFile, stateErr := getStateFromBackend(b, workspace)
 	if stateErr != nil {
-		diags = diags.Append(stateErr.Error())
+		diags = diags.Append(stateErr)
 		return nil, diags
 	}
 
