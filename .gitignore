@@ -25,3 +25,5 @@ vendor/
 
 # Coverage
 coverage.txt
+
+/temp

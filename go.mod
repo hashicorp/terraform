@@ -193,3 +193,6 @@ require (
 )
 
 go 1.18
+
+// DEBUG
+replace github.com/hashicorp/go-tfe v1.5.0 => ../go-tfe
