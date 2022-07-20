@@ -16,7 +16,7 @@ import "fmt"
 // as reordering check blocks between runs will result in their addresses
 // changing.
 type Check struct {
-	Container Checkable
+	Container AbsCheckable
 	Type      CheckType
 	Index     int
 }
@@ -36,27 +36,54 @@ func (c Check) String() string {
 	}
 }
 
-// Checkable is an interface implemented by all address types that can contain
-// condition blocks.
-type Checkable interface {
-	checkableSigil()
+// AbsCheckable is an interface implemented by all absolute address types that
+// can have checks attached to them by a module author.
+type AbsCheckable interface {
+	absCheckableSigil()
 
 	// Check returns the address of an individual check rule of a specified
 	// type and index within this checkable container.
 	Check(CheckType, int) Check
+
+	// ConfigCheckable returns the address of the configuration construct that
+	// this Checkable belongs to.
+	//
+	// Checkable objects can potentially be dynamically declared during a
+	// plan operation using constructs like resource for_each, and so
+	// ConfigCheckable gives us a way to talk about the static containers
+	// those dynamic objects belong to, in case we wish to group together
+	// dynamic checkable objects into their static checkable for reporting
+	// purposes.
+	ConfigCheckable() ConfigCheckable
+
 	String() string
 }
 
 var (
-	_ Checkable = AbsResourceInstance{}
-	_ Checkable = AbsOutputValue{}
+	_ AbsCheckable = AbsResourceInstance{}
+	_ AbsCheckable = AbsOutputValue{}
 )
 
-type checkable struct {
+// ConfigCheckable is an interface implemented by address types that represent
+// configuration constructs that can have AbsCheckable addresses associated with
+// them.
+//
+// This address type therefore in a sense represents a container for zero or
+// more checkable objects all declared by the same configuration construct,
+// so that we can talk about these groups of checkable objects before we're
+// ready to decide how many checkable objects belong to each one.
+type ConfigCheckable interface {
+	UniqueKeyer
+
+	configCheckableSigil()
+
+	String() string
 }
 
-func (c checkable) checkableSigil() {
-}
+var (
+	_ ConfigCheckable = ConfigResource{}
+	_ ConfigCheckable = ConfigOutputValue{}
+)
 
 // CheckType describes the category of check.
 //go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go

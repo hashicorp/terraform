@@ -27,7 +27,7 @@ import (
 //
 // If any of the rules do not pass, the returned diagnostics will contain
 // errors. Otherwise, it will either be empty or contain only warnings.
-func evalCheckRules(typ addrs.CheckType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) tfdiags.Diagnostics {
+func evalCheckRules(typ addrs.CheckType, rules []*configs.CheckRule, ctx EvalContext, self addrs.AbsCheckable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	if len(rules) == 0 {
@@ -48,7 +48,7 @@ func evalCheckRules(typ addrs.CheckType, rules []*configs.CheckRule, ctx EvalCon
 	return diags
 }
 
-func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (*plans.ConditionResult, tfdiags.Diagnostics) {
+func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext, self addrs.AbsCheckable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (*plans.ConditionResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	const errInvalidCondition = "Invalid condition result"
 

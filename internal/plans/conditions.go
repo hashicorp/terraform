@@ -19,7 +19,7 @@ import (
 type Conditions map[string]*ConditionResult
 
 type ConditionResult struct {
-	Address      addrs.Checkable
+	Address      addrs.AbsCheckable
 	Result       cty.Value
 	Type         addrs.CheckType
 	ErrorMessage string
