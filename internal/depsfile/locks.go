@@ -403,6 +403,30 @@ func (l *ProviderLock) AllHashes() []getproviders.Hash {
 	return l.hashes
 }
 
+// ContainsAll returns true if the hashes in this ProviderLock contains
+// all the hashes in the target.
+//
+// This function assumes the hashes are in each ProviderLock are sorted.
+// If the ProviderLock was created by the NewProviderLock constructor then
+// the hashes are guaranteed to be sorted.
+func (l *ProviderLock) ContainsAll(target *ProviderLock) bool {
+	if target == nil || len(target.hashes) == 0 {
+		return true
+	}
+
+	targetIndex := 0
+	for ix := 0; ix < len(l.hashes); ix++ {
+		if l.hashes[ix] == target.hashes[targetIndex] {
+			targetIndex++
+
+			if targetIndex >= len(target.hashes) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // PreferredHashes returns a filtered version of the AllHashes return value
 // which includes only the strongest of the availabile hash schemes, in
 // case legacy hash schemes are deprecated over time but still supported for
