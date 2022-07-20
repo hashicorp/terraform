@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	svchost "github.com/hashicorp/terraform-svchost"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
