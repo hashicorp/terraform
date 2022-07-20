@@ -385,14 +385,14 @@ NeedProvider:
 				// calculated from the package we just linked, which allows
 				// the lock file to gradually transition to recording newer hash
 				// schemes when they become available.
-				var newHashes []getproviders.Hash
+				var priorHashes []getproviders.Hash
 				if lock != nil && lock.Version() == version {
 					// If the version we're installing is identical to the
 					// one we previously locked then we'll keep all of the
 					// hashes we saved previously and add to it. Otherwise
 					// we'll be starting fresh, because each version has its
 					// own set of packages and thus its own hashes.
-					newHashes = append(newHashes, preferredHashes...)
+					priorHashes = append(priorHashes, preferredHashes...)
 
 					// NOTE: The behavior here is unfortunate when a particular
 					// provider version was already cached on the first time
@@ -423,8 +423,17 @@ NeedProvider:
 				// The hashes slice gets deduplicated in the lock file
 				// implementation, so we don't worry about potentially
 				// creating a duplicate here.
+				var newHashes []getproviders.Hash
+				newHashes = append(newHashes, priorHashes...)
 				newHashes = append(newHashes, newHash)
 				locks.SetProvider(provider, version, reqs[provider], newHashes)
+				if cb := evts.ProvidersLockUpdated; cb != nil {
+					// We want to ensure that newHash and priorHashes are
+					// sorted. newHash is a single value, so it's definitely
+					// sorted. priorHashes are pulled from the lock file, so
+					// are also already sorted.
+					cb(provider, version, []getproviders.Hash{newHash}, nil, priorHashes)
+				}
 
 				if cb := evts.LinkFromCacheSuccess; cb != nil {
 					cb(provider, version, new.PackageDir)
@@ -530,14 +539,14 @@ NeedProvider:
 		// The hashes slice gets deduplicated in the lock file
 		// implementation, so we don't worry about potentially
 		// creating duplicates here.
-		var newHashes []getproviders.Hash
+		var priorHashes []getproviders.Hash
 		if lock != nil && lock.Version() == version {
 			// If the version we're installing is identical to the
 			// one we previously locked then we'll keep all of the
 			// hashes we saved previously and add to it. Otherwise
 			// we'll be starting fresh, because each version has its
 			// own set of packages and thus its own hashes.
-			newHashes = append(newHashes, preferredHashes...)
+			priorHashes = append(priorHashes, preferredHashes...)
 		}
 		newHash, err := new.Hash()
 		if err != nil {
@@ -548,15 +557,32 @@ NeedProvider:
 			}
 			continue
 		}
-		newHashes = append(newHashes, newHash)
+
+		var signedHashes []getproviders.Hash
 		if authResult.SignedByAnyParty() {
 			// We'll trust new hashes from upstream only if they were verified
 			// as signed by a suitable key. Otherwise, we'd record only
 			// a new hash we just calculated ourselves from the bytes on disk,
 			// and so the hashes would cover only the current platform.
-			newHashes = append(newHashes, meta.AcceptableHashes()...)
+			signedHashes = append(signedHashes, meta.AcceptableHashes()...)
 		}
+
+		var newHashes []getproviders.Hash
+		newHashes = append(newHashes, newHash)
+		newHashes = append(newHashes, priorHashes...)
+		newHashes = append(newHashes, signedHashes...)
+
 		locks.SetProvider(provider, version, reqs[provider], newHashes)
+		if cb := evts.ProvidersLockUpdated; cb != nil {
+			// newHash and priorHashes are already sorted.
+			// But we do need to sort signedHashes so we can reason about it
+			// sensibly.
+			sort.Slice(signedHashes, func(i, j int) bool {
+				return string(signedHashes[i]) < string(signedHashes[j])
+			})
+
+			cb(provider, version, []getproviders.Hash{newHash}, signedHashes, priorHashes)
+		}
 
 		if cb := evts.FetchPackageSuccess; cb != nil {
 			cb(provider, version, new.PackageDir, authResult)
