@@ -1,7 +1,14 @@
 ## 1.2.6 (Unreleased)
 
+ENHANCEMENTS:
+
+* Add a warning and guidance when `terraform init` fails to fully populate the `.terraform.lock.hcl` file. [GH-31399]
+* Add a direct link to the relevant documentation when `terraform init` fails on missing checksums. [GH-31408]
+
 BUG FIXES:
-* Fix panic on `terraform show` when state file is invalid or unavailable [GH-31444]
+
+* Fix panic on `terraform show` when state file is invalid or unavailable. [GH-31444]
+* Fix `terraform providers lock` command failing on missing checksums. [GH-31389]
 
 ## 1.2.5 (July 13, 2022)
 
