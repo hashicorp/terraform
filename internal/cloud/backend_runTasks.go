@@ -52,7 +52,7 @@ func (b *Cloud) runTasksWithTaskResults(context *IntegrationContext, output Inte
 		stage, err := fetchTaskStage(b, context.StopContext)
 
 		if err != nil {
-			return false, generalError("Failed to retrieve pre-apply task stage", err)
+			return false, generalError("Failed to retrieve task stage", err)
 		}
 
 		summary := summarizeTaskResults(stage.TaskResults)

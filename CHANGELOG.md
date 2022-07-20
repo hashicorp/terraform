@@ -36,6 +36,7 @@ ENHANCEMENTS:
 * The COS backend now supports global acceleration. ([#31425](https://github.com/hashicorp/terraform/issues/31425))
 * providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
 * refactoring: `moved` blocks can now be used to move resources to and from external modules ([#31556](https://github.com/hashicorp/terraform/issues/31556))
+* When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about pre-plan run tasks ([#31617](https://github.com/hashicorp/terraform/issues/31617))
 
 BUG FIXES:
 
@@ -54,7 +55,7 @@ EXPERIMENTS:
     * The built-in `defaults` function, previously used to meet the use-case of replacing null values with default values, will not graduate to stable and has been removed. Use the second argument of `optional` inline in your type constraint to declare default values instead.
 
     If you have any experimental modules that were participating in this experiment, you will need to remove the experiment opt-in and adopt the new syntax for declaring default values in order to migrate your existing module to the stablized version of this feature. If you are writing a shared module for others to use, we recommend declaring that your module requires Terraform v1.3.0 or later to give specific feedback when using the new feature on older Terraform versions, in place of the previous declaration to use the experimental form of this feature:
-    
+
     ```hcl
     terraform {
       required_version = ">= 1.3.0"
