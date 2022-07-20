@@ -1553,6 +1553,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"1.0.0", beepProviderDir},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"1.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:does-not-match"},
+							},
+						},
+						{
 							Event:    "FetchPackageSuccess",
 							Provider: beepProvider,
 							Args: struct {
