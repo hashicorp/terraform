@@ -106,15 +106,28 @@ type InstallerEvents struct {
 	FetchPackageSuccess func(provider addrs.Provider, version getproviders.Version, localDir string, authResult *getproviders.PackageAuthenticationResult)
 	FetchPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 
+	// The ProvidersLockUpdated event is called whenever the lock file will be
+	// updated. It provides the following information:
+	//
+	//   - `localHashes`: Hashes computed on the local system by analyzing
+	//                    files on disk.
+	//   - `signedHashes`: Hashes signed by the private key that the origin
+	//                     registry claims is the owner of this provider.
+	//   - `priorHashes`: Hashes already present in the lock file before we
+	//                    made any changes.
+	//
+	// The final lock file will be updated with a union of all the provided
+	// hashes. It not just likely, but expected that there will be duplicates
+	// shared between all three collections of hashes i.e. the local hash and
+	// remote hashes could already be in the cached hashes.
+	//
+	// In addition, we place a guarantee that the hash slices will be ordered
+	// in the same manner enforced by the lock file within NewProviderLock.
+	ProvidersLockUpdated func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash)
+
 	// The ProvidersFetched event is called after all fetch operations if at
 	// least one provider was fetched successfully.
 	ProvidersFetched func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult)
-
-	// HashPackageFailure is called if the installer is unable to determine
-	// the hash of the contents of an installed package after installation.
-	// In that case, the selection will not be recorded in the target cache
-	// directory's lock file.
-	HashPackageFailure func(provider addrs.Provider, version getproviders.Version, err error)
 }
 
 // OnContext produces a context with all of the same behaviors as the given

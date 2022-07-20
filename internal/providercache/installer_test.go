@@ -172,6 +172,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"2.1.0", beepProviderDir},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "FetchPackageSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -286,6 +301,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Version  string
 								Location getproviders.PackageLocation
 							}{"2.1.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
 						},
 						{
 							Event:    "FetchPackageSuccess",
@@ -412,6 +442,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "LinkFromCacheSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -534,6 +579,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Version  string
 								Location getproviders.PackageLocation
 							}{"2.0.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+							},
 						},
 						{
 							Event:    "FetchPackageSuccess",
@@ -764,6 +824,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"2.1.0", beepProviderDir},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "FetchPackageSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -928,6 +1003,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Version  string
 								Location getproviders.PackageLocation
 							}{"1.0.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"1.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+							},
 						},
 						{
 							Event:    "FetchPackageSuccess",
