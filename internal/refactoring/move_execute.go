@@ -92,7 +92,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 		}
 	}
 
-	g.ReverseDepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
+	for _, v := range g.ReverseTopologicalOrder() {
 		stmt := v.(*MoveStatement)
 
 		for _, ms := range state.Modules {
@@ -187,9 +187,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 				panic(fmt.Sprintf("unhandled move object kind %s", kind))
 			}
 		}
-
-		return nil
-	})
+	}
 
 	return ret
 }

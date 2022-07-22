@@ -414,34 +414,136 @@ func BenchmarkDAG(b *testing.B) {
 	}
 }
 
-func TestAcyclicGraph_ReverseDepthFirstWalk_WithRemoval(t *testing.T) {
+func TestAcyclicGraphWalkOrder(t *testing.T) {
+	/* Sample dependency graph,
+	   all edges pointing downwards.
+	       1    2
+	      / \  /  \
+	     3    4    5
+	    /      \  /
+	   6         7
+	           / | \
+	          8  9  10
+	           \ | /
+	             11
+	*/
+
 	var g AcyclicGraph
-	g.Add(1)
-	g.Add(2)
-	g.Add(3)
-	g.Connect(BasicEdge(3, 2))
-	g.Connect(BasicEdge(2, 1))
+	for i := 1; i <= 11; i++ {
+		g.Add(i)
+	}
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(2, 5))
+	g.Connect(BasicEdge(3, 6))
+	g.Connect(BasicEdge(4, 7))
+	g.Connect(BasicEdge(5, 7))
+	g.Connect(BasicEdge(7, 8))
+	g.Connect(BasicEdge(7, 9))
+	g.Connect(BasicEdge(7, 10))
+	g.Connect(BasicEdge(8, 11))
+	g.Connect(BasicEdge(9, 11))
+	g.Connect(BasicEdge(10, 11))
 
-	var visits []Vertex
-	var lock sync.Mutex
-	root := make(Set)
-	root.Add(1)
+	start := make(Set)
+	start.Add(2)
+	start.Add(1)
+	reverse := make(Set)
+	reverse.Add(11)
+	reverse.Add(6)
 
-	err := g.ReverseDepthFirstWalk(root, func(v Vertex, d int) error {
-		lock.Lock()
-		defer lock.Unlock()
-		visits = append(visits, v)
-		g.Remove(v)
-		return nil
+	t.Run("DepthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(depthFirst|downOrder, true, start, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{2, 0}, {5, 1}, {7, 2}, {9, 3}, {11, 4}, {8, 3}, {10, 3}, {4, 1}, {1, 0}, {3, 1}, {6, 2},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
 	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	t.Run("ReverseDepthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(depthFirst|upOrder, true, reverse, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
 
-	expected := []Vertex{1, 2, 3}
-	if !reflect.DeepEqual(visits, expected) {
-		t.Fatalf("expected: %#v, got: %#v", expected, visits)
-	}
+		})
+		expect := []vertexAtDepth{
+			{6, 0}, {3, 1}, {1, 2}, {11, 0}, {9, 1}, {7, 2}, {5, 3}, {2, 4}, {4, 3}, {8, 1}, {10, 1},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+	t.Run("BreadthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(breadthFirst|downOrder, true, start, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{1, 0}, {2, 0}, {3, 1}, {4, 1}, {5, 1}, {6, 2}, {7, 2}, {10, 3}, {8, 3}, {9, 3}, {11, 4},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+	t.Run("ReverseBreadthFirst", func(t *testing.T) {
+		var visits []vertexAtDepth
+		g.walk(breadthFirst|upOrder, true, reverse, func(v Vertex, d int) error {
+			visits = append(visits, vertexAtDepth{v, d})
+			return nil
+
+		})
+		expect := []vertexAtDepth{
+			{11, 0}, {6, 0}, {10, 1}, {8, 1}, {9, 1}, {3, 1}, {7, 2}, {1, 2}, {4, 3}, {5, 3}, {2, 4},
+		}
+		if !reflect.DeepEqual(visits, expect) {
+			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+
+	t.Run("TopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(downOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.DownEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
+		}
+	})
+	t.Run("ReverseTopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(upOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.UpEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
+		}
+	})
 }
 
 const testGraphTransReductionStr = `
