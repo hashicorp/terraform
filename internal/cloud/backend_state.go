@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -36,12 +37,12 @@ func (r *remoteClient) Get() (*remote.Payload, error) {
 			// If no state exists, then return nil.
 			return nil, nil
 		}
-		return nil, fmt.Errorf("Error retrieving state: %v", err)
+		return nil, fmt.Errorf("failed to retrieve state: %w", err)
 	}
 
 	state, err := r.client.StateVersions.Download(ctx, sv.DownloadURL)
 	if err != nil {
-		return nil, fmt.Errorf("Error downloading state: %v", err)
+		return nil, fmt.Errorf("failed to download state: %w", err)
 	}
 
 	// If the state is empty, then return nil.
@@ -65,16 +66,16 @@ func (r *remoteClient) Put(state []byte) error {
 	// Read the raw state into a Terraform state.
 	stateFile, err := statefile.Read(bytes.NewReader(state))
 	if err != nil {
-		return fmt.Errorf("Error reading state: %s", err)
+		return fmt.Errorf("failed to read state: %w", err)
 	}
 
 	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
 	if err != nil {
-		return fmt.Errorf("Error reading output values: %s", err)
+		return fmt.Errorf("failed to translate outputs: %w", err)
 	}
 	o, err := json.Marshal(ov)
 	if err != nil {
-		return fmt.Errorf("Error converting output values to json: %s", err)
+		return fmt.Errorf("failed to marshal outputs to json: %w", err)
 	}
 
 	options := tfe.StateVersionCreateOptions{
@@ -96,7 +97,7 @@ func (r *remoteClient) Put(state []byte) error {
 	_, err = r.client.StateVersions.Create(ctx, r.workspace.ID, options)
 	if err != nil {
 		r.stateUploadErr = true
-		return fmt.Errorf("Error uploading state: %v", err)
+		return fmt.Errorf("failed to upload state: %w", err)
 	}
 
 	return nil
@@ -106,7 +107,7 @@ func (r *remoteClient) Put(state []byte) error {
 func (r *remoteClient) Delete() error {
 	err := r.client.Workspaces.Delete(context.Background(), r.organization, r.workspace.Name)
 	if err != nil && err != tfe.ErrResourceNotFound {
-		return fmt.Errorf("Error deleting workspace %s: %v", r.workspace.Name, err)
+		return fmt.Errorf("failed to delete workspace %s: %w", r.workspace.Name, err)
 	}
 
 	return nil
@@ -159,7 +160,7 @@ func (r *remoteClient) Unlock(id string) error {
 	if r.lockInfo != nil {
 		// Verify the expected lock ID.
 		if r.lockInfo.ID != id {
-			lockErr.Err = fmt.Errorf("lock ID does not match existing lock")
+			lockErr.Err = errors.New("lock ID does not match existing lock")
 			return lockErr
 		}
 
