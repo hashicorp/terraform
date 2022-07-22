@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestMarshalOutputs(t *testing.T) {
@@ -92,7 +93,7 @@ func TestMarshalOutputs(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, err := marshalOutputs(test.Outputs)
+		got, err := MarshalOutputs(test.Outputs)
 		if test.Err {
 			if err == nil {
 				t.Fatal("succeeded; want error")
