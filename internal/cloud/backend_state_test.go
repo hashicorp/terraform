@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -19,7 +20,50 @@ func TestRemoteClient(t *testing.T) {
 	remote.TestClient(t, client)
 }
 
-func TestRemoteClient_stateLock(t *testing.T) {
+func TestRemoteClient_stateVersionCreated(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	raw, err := b.StateMgr(testBackendSingleWorkspaceName)
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+
+	client := raw.(*remote.State).Client
+
+	err = client.Put(([]byte)(`
+{
+	"version": 4,
+	"terraform_version": "1.3.0",
+	"serial": 1,
+	"lineage": "backend-change",
+	"outputs": {
+			"foo": {
+					"type": "string",
+					"value": "bar"
+			}
+	}
+}`))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	stateVersionsAPI := b.client.StateVersions.(*MockStateVersions)
+	if got, want := len(stateVersionsAPI.stateVersions), 1; got != want {
+		t.Fatalf("wrong number of state versions in the mock client %d; want %d", got, want)
+	}
+
+	var stateVersion *tfe.StateVersion
+	for _, sv := range stateVersionsAPI.stateVersions {
+		stateVersion = sv
+	}
+
+	if stateVersionsAPI.outputStates[stateVersion.ID] == nil || len(stateVersionsAPI.outputStates[stateVersion.ID]) == 0 {
+		t.Fatal("no state version outputs in the mock client")
+	}
+}
+
+func TestRemoteClient_TestRemoteLocks(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 

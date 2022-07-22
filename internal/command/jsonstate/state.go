@@ -174,7 +174,8 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 	return nil
 }
 
-// MarshalOutputs returns the json representation of the state output values
+// MarshalOutputs translates a map of states.OutputValue to a map of jsonstate.output,
+// which are defined for json encoding.
 func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, error) {
 	if outputs == nil {
 		return nil, nil

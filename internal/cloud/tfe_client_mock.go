@@ -923,6 +923,7 @@ type MockStateVersions struct {
 	states        map[string][]byte
 	stateVersions map[string]*tfe.StateVersion
 	workspaces    map[string][]string
+	outputStates  map[string][]byte
 }
 
 func newMockStateVersions(client *MockClient) *MockStateVersions {
@@ -931,6 +932,7 @@ func newMockStateVersions(client *MockClient) *MockStateVersions {
 		states:        make(map[string][]byte),
 		stateVersions: make(map[string]*tfe.StateVersion),
 		workspaces:    make(map[string][]string),
+		outputStates:  make(map[string][]byte),
 	}
 }
 
@@ -972,6 +974,7 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	}
 
 	m.states[sv.DownloadURL] = state
+	m.outputStates[sv.ID] = []byte(*options.JSONStateOutputs)
 	m.stateVersions[sv.ID] = sv
 	m.workspaces[workspaceID] = append(m.workspaces[workspaceID], sv.ID)
 
