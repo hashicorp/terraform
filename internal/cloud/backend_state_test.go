@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
+
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statefile"
