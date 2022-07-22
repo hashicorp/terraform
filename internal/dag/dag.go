@@ -179,6 +179,69 @@ type vertexAtDepth struct {
 	Depth  int
 }
 
+// TopologicalOrder returns a topological sort of the given graph. The nodes
+// are not sorted, and any valid order may be returned. This function will
+// panic if it encounters a cycle.
+func (g *AcyclicGraph) TopologicalOrder() []Vertex {
+	return g.topoOrder(upOrder)
+}
+
+// ReverseTopologicalOrder returns a topological sort of the given graph,
+// following each edge in reverse. The nodes are not sorted, and any valid
+// order may be returned. This function will panic if it encounters a cycle.
+func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
+	return g.topoOrder(downOrder)
+}
+
+func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
+	// Use a dfs-based sorting algorithm, similar to that used in
+	// TransitiveReduction.
+	sorted := make([]Vertex, 0, len(g.vertices))
+
+	// tmp track the current working node to check for cycles
+	tmp := map[Vertex]bool{}
+
+	// perm tracks completed nodes to end the recursion
+	perm := map[Vertex]bool{}
+
+	var visit func(v Vertex)
+
+	visit = func(v Vertex) {
+		if perm[v] {
+			return
+		}
+
+		if tmp[v] {
+			panic("cycle found in dag")
+		}
+
+		tmp[v] = true
+		var next Set
+		switch {
+		case order&downOrder != 0:
+			next = g.downEdgesNoCopy(v)
+		case order&upOrder != 0:
+			next = g.upEdgesNoCopy(v)
+		default:
+			panic(fmt.Sprintln("invalid order", order))
+		}
+
+		for _, u := range next {
+			visit(u)
+		}
+
+		tmp[v] = false
+		perm[v] = true
+		sorted = append(sorted, v)
+	}
+
+	for _, v := range g.Vertices() {
+		visit(v)
+	}
+
+	return sorted
+}
+
 type walkType uint64
 
 const (

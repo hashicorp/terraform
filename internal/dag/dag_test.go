@@ -429,7 +429,7 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 	*/
 
 	var g AcyclicGraph
-	for i := 0; i <= 11; i++ {
+	for i := 1; i <= 11; i++ {
 		g.Add(i)
 	}
 	g.Connect(BasicEdge(1, 3))
@@ -507,6 +507,41 @@ func TestAcyclicGraphWalkOrder(t *testing.T) {
 		}
 		if !reflect.DeepEqual(visits, expect) {
 			t.Errorf("expected visits:\n%v\ngot:\n%v\n", expect, visits)
+		}
+	})
+
+	t.Run("TopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(downOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.DownEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
+		}
+	})
+	t.Run("ReverseTopologicalOrder", func(t *testing.T) {
+		order := g.topoOrder(upOrder)
+
+		// Validate the order by checking it against the initial graph. We only
+		// need to verify that each node has it's direct dependencies
+		// satisfied.
+		completed := map[Vertex]bool{}
+		for _, v := range order {
+			deps := g.UpEdges(v)
+			for _, dep := range deps {
+				if !completed[dep] {
+					t.Fatalf("walking node %v, but dependency %v was not yet seen", v, dep)
+				}
+			}
+			completed[v] = true
 		}
 	})
 }
