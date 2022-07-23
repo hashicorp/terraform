@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/command/jsonchecks"
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -41,6 +42,7 @@ type plan struct {
 	Config             json.RawMessage   `json:"configuration,omitempty"`
 	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
 	Conditions         []conditionResult `json:"condition_results,omitempty"`
+	Checks             json.RawMessage   `json:"checks,omitempty"`
 }
 
 func newPlan() *plan {
@@ -180,10 +182,15 @@ func Marshal(
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
 	}
 
-	// output.Conditions
+	// output.Conditions (deprecated in favor of Checks, below)
 	err = output.marshalCheckResults(p.Checks)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshaling check results: %s", err)
+	}
+
+	// output.Checks
+	if p.Checks != nil && p.Checks.ConfigResults.Len() > 0 {
+		output.Checks = jsonchecks.MarshalCheckStates(p.Checks)
 	}
 
 	// output.PriorState
