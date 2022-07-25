@@ -3,8 +3,11 @@ package cloud
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -20,6 +23,11 @@ type State struct {
 
 	delegate remote.State
 }
+
+const ErrStateVersionOutputUpgrade = `
+The remote state version was created by a version of terraform older than
+1.3.0 and must be updated before outputs can be read by terraform.
+`
 
 // Proof that cloud State is a statemgr.Persistent interface
 var _ statemgr.Persistent = (*State)(nil)
@@ -74,6 +82,10 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	result := make(map[string]*states.OutputValue)
 
 	for _, output := range so.Items {
+		if output.DetailedType == nil {
+			return nil, errors.New(strings.TrimSpace(ErrStateVersionOutputUpgrade))
+		}
+
 		if output.Sensitive {
 			// Since this is a sensitive value, the output must be requested explicitly in order to
 			// read its value, which is assumed to be present by callers
@@ -84,26 +96,38 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 			output.Value = sensitiveOutput.Value
 		}
 
-		bufType, err := json.Marshal(output.DetailedType)
+		cval, err := tfeOutputToCtyValue(*output)
 		if err != nil {
-			return nil, fmt.Errorf("could not marshal output %s type: %w", output.ID, err)
-		}
-
-		var ctype cty.Type
-		err = ctype.UnmarshalJSON(bufType)
-		if err != nil {
-			return nil, fmt.Errorf("could not interpret output %s type: %w", output.ID, err)
-		}
-
-		cval, err := gocty.ToCtyValue(output.Value, ctype)
-		if err != nil {
-			return nil, fmt.Errorf("could not interpret value %v as type %s for output %s: %w", cval, ctype.FriendlyName(), output.ID, err)
+			return nil, fmt.Errorf("could not decode output %s (ID %s)", output.Name, output.ID)
 		}
 
 		result[output.Name] = &states.OutputValue{
 			Value:     cval,
 			Sensitive: output.Sensitive,
 		}
+	}
+
+	return result, nil
+}
+
+// tfeOutputToCtyValue decodes a combination of TFE output value and detailed-type to create a
+// cty value that is suitable for use in terraform.
+func tfeOutputToCtyValue(output tfe.StateVersionOutput) (cty.Value, error) {
+	var result cty.Value
+	bufType, err := json.Marshal(output.DetailedType)
+	if err != nil {
+		return result, fmt.Errorf("could not marshal output %s type: %w", output.ID, err)
+	}
+
+	var ctype cty.Type
+	err = ctype.UnmarshalJSON(bufType)
+	if err != nil {
+		return result, fmt.Errorf("could not interpret output %s type: %w", output.ID, err)
+	}
+
+	result, err = gocty.ToCtyValue(output.Value, ctype)
+	if err != nil {
+		return result, fmt.Errorf("could not interpret value %v as type %s for output %s: %w", result, ctype.FriendlyName(), output.ID, err)
 	}
 
 	return result, nil

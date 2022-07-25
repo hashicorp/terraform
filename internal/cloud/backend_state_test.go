@@ -30,7 +30,7 @@ func TestRemoteClient_stateVersionCreated(t *testing.T) {
 		t.Fatalf("error: %v", err)
 	}
 
-	client := raw.(*remote.State).Client
+	client := raw.(*State).Client
 
 	err = client.Put(([]byte)(`
 {
