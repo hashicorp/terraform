@@ -149,7 +149,7 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 }
 
 const providersCommandHelp = `
-Usage: terraform [global options] providers [dir]
+Usage: terraform [global options] providers [DIR]
 
   Prints out a tree of modules in the referenced configuration annotated with
   their provider requirements.
