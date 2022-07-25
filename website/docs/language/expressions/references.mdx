@@ -321,9 +321,9 @@ Terraform cannot predict the value of this id until the object has been created.
 To allow expressions to still be evaluated during the plan phase, Terraform
 uses special "unknown value" placeholders for these results. In most cases you
 don't need to do anything special to deal with these, since the Terraform
-language automatically handles unknown values during expressions, so that
-for example adding a known value to an unknown value automatically produces
-an unknown value as the result.
+language automatically handles unknown values in expressions, so that for
+example adding a known value to an unknown value automatically produces an
+unknown value as the result.
 
 However, there are some situations where unknown values _do_ have a significant
 effect:
@@ -349,4 +349,4 @@ effect:
   types where possible, but incorrect use of such values may not be detected
   until the apply phase, causing the apply to fail.
 
-Unknown values appear in the `terraform plan` output as `(not yet known)`.
+Unknown values appear in the `terraform plan` output as `(known after apply)`.
