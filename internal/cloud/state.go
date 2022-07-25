@@ -25,10 +25,13 @@ type State struct {
 	delegate remote.State
 }
 
-const ErrStateVersionOutputUpgrade = `
-The remote state version was created by a version of terraform older than
-1.3.0 and must be updated before outputs can be read by terraform.
-`
+var ErrNotEnoughOutputsTypeInformation = errors.New("not enough type information to read outputs")
+var ErrStateVersionOutputsUpgradeState = errors.New(strings.TrimSpace(`
+You are not authorized to read the full state version containing outputs.
+State versions created by terraform v1.3.0 and newer do not require this level
+of authorization and therefore this error can be fixed by upgrading the remote
+state version.
+`))
 
 // Proof that cloud State is a statemgr.Persistent interface
 var _ statemgr.Persistent = (*State)(nil)
@@ -70,6 +73,22 @@ func (s *State) WriteState(state *states.State) error {
 	return s.delegate.WriteState(state)
 }
 
+func (s *State) fallbackReadOutputsFromFullState() (map[string]*states.OutputValue, error) {
+	if err := s.RefreshState(); err != nil {
+		if strings.HasSuffix(err.Error(), "failed to retrieve state: forbidden") {
+			return nil, ErrStateVersionOutputsUpgradeState
+		}
+		return nil, fmt.Errorf("failed to load state: %w", err)
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.RootModule().OutputValues, nil
+}
+
 // GetRootOutputValues fetches output values from Terraform Cloud
 func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	ctx := context.Background()
@@ -84,7 +103,11 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 
 	for _, output := range so.Items {
 		if output.DetailedType == nil {
-			return nil, errors.New(strings.TrimSpace(ErrStateVersionOutputUpgrade))
+			// If there is no detailed type information available, this state was probably created
+			// with a version of terraform < 1.3.0. In this case, we'll eject completely from this
+			// function and fall back to the old behavior of reading the entire state file, which
+			// requires a higher level of authorization.
+			return s.fallbackReadOutputsFromFullState()
 		}
 
 		if output.Sensitive {
