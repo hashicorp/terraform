@@ -10,6 +10,7 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-getter"
+
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -76,6 +77,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 
+	// Read dependency lock info
+	providersLock, lockDiags := c.lockedDependencies()
+	diags = diags.Append(lockDiags)
+
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -121,6 +126,7 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))
 			continue
 		}
+		providerLock := providersLock.Provider(provider)
 		constraintsStr := getproviders.VersionConstraintsString(constraints)
 		c.Ui.Output(fmt.Sprintf("- Mirroring %s...", provider.ForDisplay()))
 		// First we'll look for the latest version that matches the given
@@ -140,7 +146,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if len(constraintsStr) > 0 {
+		if providerLock != nil {
+			selected = providerLock.Version()
+			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet dependency lock record", selected.String()))
+		} else if len(constraintsStr) > 0 {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet constraints %s", selected.String(), constraintsStr))
 		} else {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s with no constraints", selected.String()))
