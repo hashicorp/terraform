@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"

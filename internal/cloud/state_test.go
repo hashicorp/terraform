@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/go-tfe"
+
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 

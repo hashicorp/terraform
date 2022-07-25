@@ -2,6 +2,7 @@ package statemgr
 
 import (
 	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/states"
 )
 
