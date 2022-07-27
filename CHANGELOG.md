@@ -1,16 +1,16 @@
-## 1.2.6 (Unreleased)
+## 1.2.6 (July 27, 2022)
 
 ENHANCEMENTS:
 
-* Add a warning and guidance when `terraform init` fails to fully populate the `.terraform.lock.hcl` file. [GH-31399]
-* Add a direct link to the relevant documentation when `terraform init` fails on missing checksums. [GH-31408]
+* Add a warning and guidance when `terraform init` fails to fully populate the `.terraform.lock.hcl` file. ([#31399](https://github.com/hashicorp/terraform/issues/31399))
+* Add a direct link to the relevant documentation when `terraform init` fails on missing checksums. ([#31408](https://github.com/hashicorp/terraform/issues/31408))
 
 BUG FIXES:
 
-* Fix panic on `terraform show` when state file is invalid or unavailable. [GH-31444]
-* Fix `terraform providers lock` command failing on missing checksums. [GH-31389]
-* Some combinations of move block operations would be executed in the wrong order [GH-31499]
-* Don't attribute an error to the provider when a computed attribute is listed in `ignore_changes` [GH-31509]
+* Fix panic on `terraform show` when state file is invalid or unavailable. ([#31444](https://github.com/hashicorp/terraform/issues/31444))
+* Fix `terraform providers lock` command failing on missing checksums. ([#31389](https://github.com/hashicorp/terraform/issues/31389))
+* Some combinations of move block operations would be executed in the wrong order ([#31499](https://github.com/hashicorp/terraform/issues/31499))
+* Don't attribute an error to the provider when a computed attribute is listed in `ignore_changes` ([#31509](https://github.com/hashicorp/terraform/issues/31509))
 
 ## 1.2.5 (July 13, 2022)
 
