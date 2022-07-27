@@ -499,10 +499,10 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 			if isConfig {
 				attrs[name] = v.GetAttr(name)
 			} else {
-				attrs[name] = cty.NullVal(attr.Type)
+				attrs[name] = cty.NullVal(attr.ImpliedType())
 			}
 		case attr.Computed:
-			attrs[name] = cty.NullVal(attr.Type)
+			attrs[name] = cty.NullVal(attr.ImpliedType())
 		default:
 			attrs[name] = v.GetAttr(name)
 		}
