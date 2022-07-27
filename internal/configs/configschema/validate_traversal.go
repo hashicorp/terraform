@@ -75,10 +75,10 @@ func (b *Block) StaticValidateTraversal(traversal hcl.Traversal) tfdiags.Diagnos
 
 	if attrS, exists := b.Attributes[name]; exists {
 		// For attribute validation we will just apply the rest of the
-		// traversal to an unknown value of the attribute type and pass
-		// through HCL's own errors, since we don't want to replicate all of
-		// HCL's type checking rules here.
-		val := cty.UnknownVal(attrS.Type)
+		// traversal to an unknown value of the attribute type and pass through
+		// HCL's own errors, since we don't want to replicate all of HCL's type
+		// checking rules here.
+		val := cty.UnknownVal(attrS.ImpliedType())
 		_, hclDiags := after.TraverseRel(val)
 		diags = diags.Append(hclDiags)
 		return diags
