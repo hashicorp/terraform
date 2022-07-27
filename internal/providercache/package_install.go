@@ -45,7 +45,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 			// so we'll return a more appropriate one here.
 			return nil, fmt.Errorf("provider download was interrupted")
 		}
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", getproviders.HostFromRequest(req), err)
 	}
 	defer resp.Body.Close()
 
