@@ -135,7 +135,7 @@ func (a *Attribute) internalValidate(name, prefix string) error {
 			// no validations to perform
 		case NestingList, NestingSet:
 			if a.NestedType.Nesting == NestingSet {
-				ety := a.NestedType.ImpliedType()
+				ety := a.ImpliedType()
 				if ety.HasDynamicTypes() {
 					// This is not permitted because the HCL (cty) set implementation
 					// needs to know the exact type of set elements in order to
