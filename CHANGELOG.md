@@ -10,6 +10,7 @@ BUG FIXES:
 * Fix panic on `terraform show` when state file is invalid or unavailable. [GH-31444]
 * Fix `terraform providers lock` command failing on missing checksums. [GH-31389]
 * Some combinations of move block operations would be executed in the wrong order [GH-31499]
+* Don't attribute an error to the provider when a computed attribute is listed in `ignore_changes` [GH-31509]
 
 ## 1.2.5 (July 13, 2022)
 
