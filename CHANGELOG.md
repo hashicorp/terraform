@@ -1,3 +1,5 @@
+## 1.2.7 (Unreleased)
+
 ## 1.2.6 (July 27, 2022)
 
 ENHANCEMENTS:
