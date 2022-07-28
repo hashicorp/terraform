@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/hashicorp/go-tfe"
@@ -25,12 +26,11 @@ type State struct {
 	delegate remote.State
 }
 
-var ErrNotEnoughOutputsTypeInformation = errors.New("not enough type information to read outputs")
-var ErrStateVersionOutputsUpgradeState = errors.New(strings.TrimSpace(`
+var ErrStateVersionUnauthorizedUpgradeState = errors.New(strings.TrimSpace(`
 You are not authorized to read the full state version containing outputs.
 State versions created by terraform v1.3.0 and newer do not require this level
-of authorization and therefore this error can be fixed by upgrading the remote
-state version.
+of authorization and therefore this error can usually be fixed by upgrading the
+remote state version.
 `))
 
 // Proof that cloud State is a statemgr.Persistent interface
@@ -74,16 +74,18 @@ func (s *State) WriteState(state *states.State) error {
 }
 
 func (s *State) fallbackReadOutputsFromFullState() (map[string]*states.OutputValue, error) {
+	log.Printf("[DEBUG] falling back to reading full state")
+
 	if err := s.RefreshState(); err != nil {
-		if strings.HasSuffix(err.Error(), "failed to retrieve state: forbidden") {
-			return nil, ErrStateVersionOutputsUpgradeState
-		}
 		return nil, fmt.Errorf("failed to load state: %w", err)
 	}
 
 	state := s.State()
 	if state == nil {
-		state = states.NewState()
+		// We know that there is supposed to be state (and this is not simply a new workspace
+		// without state) because the fallback is only invoked when outputs are present but
+		// detailed types are not available.
+		return nil, ErrStateVersionUnauthorizedUpgradeState
 	}
 
 	return state.RootModule().OutputValues, nil
