@@ -318,12 +318,10 @@ values are decided dynamically by the remote system. For example, if a
 particular remote object type is assigned a generated unique id on creation,
 Terraform cannot predict the value of this id until the object has been created.
 
-To allow expressions to still be evaluated during the plan phase, Terraform
-uses special "unknown value" placeholders for these results. In most cases you
-don't need to do anything special to deal with these, since the Terraform
-language automatically handles unknown values in expressions, so that for
-example adding a known value to an unknown value automatically produces an
-unknown value as the result.
+Terraform uses special unknown value placeholders for information that it
+cannot predict during the plan phase. The Terraform language automatically
+handles unknown values in expressions. For example, adding a known value to an
+unknown value automatically produces an unknown value as a result.
 
 However, there are some situations where unknown values _do_ have a significant
 effect:
