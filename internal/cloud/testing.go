@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +15,9 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/mitchellh/cli"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -23,8 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"github.com/mitchellh/cli"
-	"github.com/zclconf/go-cty/cty"
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 )
@@ -117,7 +119,69 @@ func testRemoteClient(t *testing.T) remote.Client {
 		t.Fatalf("error: %v", err)
 	}
 
-	return raw.(*remote.State).Client
+	return raw.(*State).Client
+}
+
+func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
+	b, cleanup := testBackendWithName(t)
+
+	// Get a new mock client to use for adding outputs
+	mc := NewMockClient()
+
+	mc.StateVersionOutputs.create("svo-abcd", &tfe.StateVersionOutput{
+		ID:           "svo-abcd",
+		Value:        "foobar",
+		Sensitive:    true,
+		Type:         "string",
+		Name:         "sensitive_output",
+		DetailedType: "string",
+	})
+
+	mc.StateVersionOutputs.create("svo-zyxw", &tfe.StateVersionOutput{
+		ID:           "svo-zyxw",
+		Value:        "bazqux",
+		Type:         "string",
+		Name:         "nonsensitive_output",
+		DetailedType: "string",
+	})
+
+	var dt interface{}
+	var val interface{}
+	err := json.Unmarshal([]byte(`["object", {"foo":"string"}]`), &dt)
+	if err != nil {
+		t.Fatalf("could not unmarshal detailed type: %s", err)
+	}
+	err = json.Unmarshal([]byte(`{"foo":"bar"}`), &val)
+	if err != nil {
+		t.Fatalf("could not unmarshal value: %s", err)
+	}
+	mc.StateVersionOutputs.create("svo-efgh", &tfe.StateVersionOutput{
+		ID:           "svo-efgh",
+		Value:        val,
+		Type:         "object",
+		Name:         "object_output",
+		DetailedType: dt,
+	})
+
+	err = json.Unmarshal([]byte(`["list", "bool"]`), &dt)
+	if err != nil {
+		t.Fatalf("could not unmarshal detailed type: %s", err)
+	}
+	err = json.Unmarshal([]byte(`[true, false, true, true]`), &val)
+	if err != nil {
+		t.Fatalf("could not unmarshal value: %s", err)
+	}
+	mc.StateVersionOutputs.create("svo-ijkl", &tfe.StateVersionOutput{
+		ID:           "svo-ijkl",
+		Value:        val,
+		Type:         "array",
+		Name:         "list_output",
+		DetailedType: dt,
+	})
+
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
+
+	return b, cleanup
 }
 
 func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
@@ -149,6 +213,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 

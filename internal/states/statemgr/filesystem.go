@@ -233,6 +233,20 @@ func (s *Filesystem) RefreshState() error {
 	return s.refreshState()
 }
 
+func (s *Filesystem) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	err := s.RefreshState()
+	if err != nil {
+		return nil, err
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.RootModule().OutputValues, nil
+}
+
 func (s *Filesystem) refreshState() error {
 	var reader io.Reader
 

@@ -19,6 +19,7 @@ func TestState_impl(t *testing.T) {
 	var _ statemgr.Writer = new(State)
 	var _ statemgr.Persister = new(State)
 	var _ statemgr.Refresher = new(State)
+	var _ statemgr.OutputReader = new(State)
 	var _ statemgr.Locker = new(State)
 }
 
@@ -273,6 +274,33 @@ func TestStatePersist(t *testing.T) {
 	logCnt := len(mockClient.log)
 	if logIdx != logCnt {
 		log.Fatalf("not all requests were read. Expected logIdx to be %d but got %d", logCnt, logIdx)
+	}
+}
+
+func TestState_GetRootOutputValues(t *testing.T) {
+	// Initial setup of state with outputs already defined
+	mgr := &State{
+		Client: &mockClient{
+			current: []byte(`
+				{
+					"version": 4,
+					"lineage": "mock-lineage",
+					"serial": 1,
+					"terraform_version":"0.0.0",
+					"outputs": {"foo": {"value":"bar", "type": "string"}},
+					"resources": []
+				}
+			`),
+		},
+	}
+
+	outputs, err := mgr.GetRootOutputValues()
+	if err != nil {
+		t.Errorf("Expected GetRootOutputValues to not return an error, but it returned %v", err)
+	}
+
+	if len(outputs) != 1 {
+		t.Errorf("Expected %d outputs, but received %d", 1, len(outputs))
 	}
 }
 

@@ -155,5 +155,9 @@ func TestFullInitialState() *states.State {
 		Module:   addrs.RootModule,
 	}
 	childMod.SetResourceProvider(rAddr, providerAddr)
+
+	state.RootModule().SetOutputValue("sensitive_output", cty.StringVal("it's a secret"), true)
+	state.RootModule().SetOutputValue("nonsensitive_output", cty.StringVal("hello, world!"), false)
+
 	return state
 }

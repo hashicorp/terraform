@@ -30,6 +30,7 @@ type MockClient struct {
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
 	StateVersions         *MockStateVersions
+	StateVersionOutputs   *MockStateVersionOutputs
 	Variables             *MockVariables
 	Workspaces            *MockWorkspaces
 }
@@ -44,6 +45,7 @@ func NewMockClient() *MockClient {
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
 	c.StateVersions = newMockStateVersions(c)
+	c.StateVersionOutputs = newMockStateVersionOutputs(c)
 	c.Variables = newMockVariables(c)
 	c.Workspaces = newMockWorkspaces(c)
 	return c
@@ -1027,6 +1029,49 @@ func (m *MockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 
 func (m *MockStateVersions) ListOutputs(ctx context.Context, svID string, options *tfe.StateVersionOutputsListOptions) (*tfe.StateVersionOutputsList, error) {
 	panic("not implemented")
+}
+
+type MockStateVersionOutputs struct {
+	client  *MockClient
+	outputs map[string]*tfe.StateVersionOutput
+}
+
+func newMockStateVersionOutputs(client *MockClient) *MockStateVersionOutputs {
+	return &MockStateVersionOutputs{
+		client:  client,
+		outputs: make(map[string]*tfe.StateVersionOutput),
+	}
+}
+
+// This is a helper function in order to create mocks to be read later
+func (m *MockStateVersionOutputs) create(id string, svo *tfe.StateVersionOutput) {
+	m.outputs[id] = svo
+}
+
+func (m *MockStateVersionOutputs) Read(ctx context.Context, outputID string) (*tfe.StateVersionOutput, error) {
+	result, ok := m.outputs[outputID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	return result, nil
+}
+
+func (m *MockStateVersionOutputs) ReadCurrent(ctx context.Context, workspaceID string) (*tfe.StateVersionOutputsList, error) {
+	svl := &tfe.StateVersionOutputsList{}
+	for _, sv := range m.outputs {
+		svl.Items = append(svl.Items, sv)
+	}
+
+	svl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(svl.Items),
+	}
+
+	return svl, nil
 }
 
 type MockVariables struct {

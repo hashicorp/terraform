@@ -65,6 +65,10 @@ func (m *fakeFull) PersistState() error {
 	return m.fakeP.WriteState(m.t.State())
 }
 
+func (m *fakeFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return m.State().RootModule().OutputValues, nil
+}
+
 func (m *fakeFull) Lock(info *LockInfo) (string, error) {
 	m.lockLock.Lock()
 	defer m.lockLock.Unlock()
@@ -109,6 +113,10 @@ var _ Full = (*fakeErrorFull)(nil)
 
 func (m *fakeErrorFull) State() *states.State {
 	return nil
+}
+
+func (m *fakeErrorFull) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return nil, errors.New("fake state manager error")
 }
 
 func (m *fakeErrorFull) WriteState(s *states.State) error {
