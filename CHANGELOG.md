@@ -32,6 +32,7 @@ ENHANCEMENTS:
 * The Terraform CLI now calls `PlanResourceChange` for compatible providers when destroying resource instances. ([#31179](https://github.com/hashicorp/terraform/issues/31179))
 * The AzureRM Backend now only supports MSAL (and Microsoft Graph) and no longer makes use of ADAL (and Azure Active Directory Graph) for authentication ([#31070](https://github.com/hashicorp/terraform/issues/31070))
 * The COS backend now supports global acceleration. [GH-31425]
+* providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
 
 BUG FIXES:
 
