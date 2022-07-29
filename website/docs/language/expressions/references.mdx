@@ -120,8 +120,7 @@ to mark the reference as for a data resource.
 
 The following values are available:
 
-- `path.module` is the filesystem path of the module where the expression
-  is placed. You can use `path.module` in write operations, but we do not recommend this when using local module sources. Multiple invocations of local modules use the same source directory, overwriting the data in `path.module` during each call. This can lead to race conditions and unexpected results.
+- `path.module` is the filesystem path of the module where the expression is placed. We do not recommend using `path.module` in write operations because it can produce different behavior depending on whether you use remote or local module sources. Multiple invocations of local modules use the same source directory, overwriting the data in `path.module` during each call. This can lead to race conditions and unexpected results.
 - `path.root` is the filesystem path of the root module of the configuration.
 - `path.cwd` is the filesystem path of the current working directory. In
   normal use of Terraform this is the same as `path.root`, but some advanced
