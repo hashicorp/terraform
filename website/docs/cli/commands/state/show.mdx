@@ -68,8 +68,7 @@ $ terraform state show 'packet_device.worker[0]'
 
 ## Example: Show a Resource configured with for_each
 
-The example below shows the `"example"` instance of a `packet_device` resource named `worker` configured with
-[`for_each`](/language/meta-arguments/for_each). Please note that single quotes ``` surrounding a resource name are required when referencing a resource that contains special characters, such as double quotes, in its identifier:
+The following example shows the "example" instance of a packet_device resource named worker configured with for_each. You must place the resource name in single quotes when it contains special characters (e.g., double quotes).:
 
 Linux, Mac OS, and UNIX:
 
