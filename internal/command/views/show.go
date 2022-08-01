@@ -2,7 +2,6 @@ package views
 
 import (
 	"fmt"
-
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"

@@ -2,11 +2,10 @@ package remote
 
 import (
 	"context"
-	"reflect"
-	"testing"
-
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"reflect"
+	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
