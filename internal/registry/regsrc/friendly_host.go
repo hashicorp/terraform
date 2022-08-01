@@ -3,8 +3,6 @@ package regsrc
 import (
 	"regexp"
 	"strings"
-
-	"github.com/hashicorp/terraform-svchost"
 )
 
 var (
