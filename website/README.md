@@ -44,7 +44,7 @@ You should preview all of your changes locally before creating a pull request. T
 1. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
 
 
-## Deploy Changes
+## Deploying Changes
 The website generates versioned documentation by pointing to the HEAD of the release branch for that version. For example, the `v1.2.x` documentation on the website points to the HEAD of the `v1.2` release branch in the `terraform` repository. 
 
 Merging a PR to `main` queues up documentation changes for the next minor product release. To update the latest documentation, you must also backport your changes to one or more release branches. Changes that you push to a release branch become live on the site within one hour.
