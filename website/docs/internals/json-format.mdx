@@ -44,7 +44,7 @@ The JSON output format consists of the following objects and sub-objects:
 - [Configuration Representation](#configuration-representation) — A sub-object of plan output that describes a parsed Terraform configuration.
   - [Expression Representation](#expression-representation) — A sub-object of a configuration representation that describes an unevaluated expression.
   - [Block Expressions Representation](#block-expressions-representation) — A sub-object of a configuration representation that describes the expressions nested inside a block.
-- [Change Representation](#change-representation) — A sub-object of plan output that describes planned changes to an object.
+- [Change Representation](#change-representation) — A sub-object of plan output that describes changes to an object.
 
 ## State Representation
 
@@ -98,9 +98,9 @@ For ease of consumption by callers, the plan representation includes a partial r
     },
   },
 
-  // "changes" is a description of the individual change actions that Terraform
-  // plans to use to move from the prior state to a new state matching the
-  // configuration.
+  // "resource_changes" is a description of the individual change actions that
+  // Terraform plans to use to move from the prior state to a new state
+  // matching the configuration.
   "resource_changes": [
     // Each element of this array describes the action to take
     // for one instance object. All resources in the
@@ -186,6 +186,26 @@ For ease of consumption by callers, the plan representation includes a partial r
       action_reason: "replace_because_tainted"
     }
   ],
+
+  // "resource_drift" is a description of the individual changes detected when
+  // Terraform compared the most recent state to the prior saved state.
+  "resource_drift": [
+    {
+        // "resource_drift" utilizes the same object structure as
+        // "resource_changes".
+    }
+  ],
+
+  // "relevant_attributes" lists the sources of all values contributing to
+  // changes in the plan. "relevant_attributes" can be used to filter
+  // "resource_drift" to determine which external changes may have affected the
+  // plan result.
+  "relevant_attributes": [
+    {
+      "resource": "aws_instance.foo",
+      "attribute": "attr",
+    }
+  ]
 
   // "output_changes" describes the planned changes to the output values of the
   // root module.
@@ -526,7 +546,7 @@ For now we expect callers to just hard-code assumptions about the schemas of par
 
 ## Change Representation
 
-A `<change-representation>` describes the change that will be made to the indicated object.
+A `<change-representation>` describes the change to the indicated object.
 
 ```javascript
 {
