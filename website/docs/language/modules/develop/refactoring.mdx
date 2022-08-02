@@ -400,12 +400,6 @@ assumes that all three of these modules are maintained by the same people
 and distributed together in a single
 [module package](/language/modules/sources#modules-in-package-sub-directories).
 
-To reduce [coupling](https://en.wikipedia.org/wiki/Coupling_\(computer_programming\))
-between separately-packaged modules, Terraform only allows declarations of
-moves between modules in the same package. In other words, Terraform would
-not have allowed moving into `module.x` above if the `source` address of
-that call had not been a [local path](/language/modules/sources#local-paths).
-
 Terraform resolves module references in `moved` blocks relative to the module
 instance they are defined in. For example, if the original module above were
 already a child module named `module.original`, the reference to
