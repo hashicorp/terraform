@@ -40,6 +40,7 @@ BUG FIXES:
 * `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. ([#31236](https://github.com/hashicorp/terraform/issues/31236))
 * `terraform output` CLI help documentation is now more consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
 * getproviders: account for occasionally missing Host header in errors ([#31542](https://github.com/hashicorp/terraform/issues/31542))
+* core: Do not create "delete" changes for nonexistent outputs [GH-31471]
 
 EXPERIMENTS:
 
