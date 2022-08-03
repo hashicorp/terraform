@@ -5,11 +5,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestNodeApplyableOutputExecute_knownValue(t *testing.T) {
@@ -146,6 +147,25 @@ func TestNodeDestroyableOutputExecute(t *testing.T) {
 	state := states.NewState()
 	state.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("bar"), false)
 	state.OutputValue(outputAddr)
+
+	ctx := &MockEvalContext{
+		StateState: state.SyncWrapper(),
+	}
+	node := NodeDestroyableOutput{Addr: outputAddr}
+
+	diags := node.Execute(ctx, walkApply)
+	if diags.HasErrors() {
+		t.Fatalf("Unexpected error: %s", diags.Err())
+	}
+	if state.OutputValue(outputAddr) != nil {
+		t.Fatal("Unexpected outputs in state after removal")
+	}
+}
+
+func TestNodeDestroyableOutputExecute_notInState(t *testing.T) {
+	outputAddr := addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
+
+	state := states.NewState()
 
 	ctx := &MockEvalContext{
 		StateState: state.SyncWrapper(),

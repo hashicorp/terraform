@@ -420,12 +420,14 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
-		for name, o := range mod.OutputValues {
-			if name == n.Addr.OutputValue.Name {
-				sensitiveBefore = o.Sensitive
-				before = o.Value
-				break
-			}
+		if o, ok := mod.OutputValues[n.Addr.OutputValue.Name]; ok {
+			sensitiveBefore = o.Sensitive
+			before = o.Value
+		} else {
+			// If the output was not in state, a delete change would
+			// be meaningless, so exit early.
+			return nil
+
 		}
 	}
 
