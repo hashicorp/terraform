@@ -29,7 +29,7 @@ terraform apply -destroy
 For that reason, this command accepts most of the options that
 [`terraform apply`](/cli/commands/apply) accepts, although it does
 not accept a plan file argument and forces the selection of the "destroy"
-planning mode.
+planning mode. This includes the -target option which lets you specify a subset of resources that Terraform should destroy.
 
 You can also create a speculative destroy plan, to see what the effect of
 destroying would be, by running the following command:
