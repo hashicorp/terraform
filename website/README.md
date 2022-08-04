@@ -43,9 +43,8 @@ You should preview all of your changes locally before creating a pull request. T
 1. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and Next.js will automatically rebuild them.
 1. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
 
-
 ## Deploying Changes
-The website generates versioned documentation by pointing to the HEAD of the release branch for that version. For example, the `v1.2.x` documentation on the website points to the HEAD of the `v1.2` release branch in the `terraform` repository. 
+The website generates versioned documentation by pointing to the HEAD of the release branch for that version. For example, the `v1.2.x` documentation on the website points to the HEAD of the `v1.2` release branch in the `terraform` repository.
 
 Merging a PR to `main` queues up documentation changes for the next minor product release. To update the latest documentation, you must also backport your changes to one or more release branches. Changes that you push to a release branch become live on the site within one hour.
 
@@ -55,9 +54,9 @@ For example, if Terraform is on v1.2.x:
 
 ### Backporting
 
-**Important:** Editing old versions (not latest) should be rare. We backport to old versions when there is an egregious error. Egregious errors include inaccuracies that could cause security vulnerabilities or extreme inconvenience for users. 
+**Important:** Editing old versions (not latest) should be rare. We backport to old versions when there is an egregious error. Egregious errors include inaccuracies that could cause security vulnerabilities or extreme inconvenience for users.
 
-Backporting involves cherry-picking commits to one or more release branches within a docs repository. For example, if Terraform is currently on v1.2 and you need to add a security warning to the v1.1 documentation, you can backport (cherry-pick) commits to the v1.1 branch by labeling the PR with a backport label (e.g., 1.2-backport) associated with the release branch for the target version. 
+Backporting involves cherry-picking commits to one or more release branches within a docs repository. For example, if Terraform is currently on v1.2 and you need to add a security warning to the v1.1 documentation, you can backport (cherry-pick) commits to the v1.1 branch by labeling the PR with a backport label (e.g., 1.2-backport) associated with the release branch for the target version.
 
 When you merge a pull request with one or more backport labels, GitHub Actions opens a backport PR to cherry-pick your changes to the associated release branches. Someone needs to manually merge the backport PR to finish backporting the changes.  
 

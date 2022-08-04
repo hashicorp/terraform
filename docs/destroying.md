@@ -33,6 +33,7 @@ digraph create {
 -->
 
 Order of operations:
+
 1. `A` is created
 1. `B` is created
 1. `C` is created
@@ -121,11 +122,11 @@ digraph replacement {
 -->
 
 Order of operations:
+
 1. `B` is destroyed
 1. `A` is destroyed
 1. `A` is created
 1. `B` is created
-
 
 This second example replaces only `A`, while updating `B`. Resource `B` is only
 updated once `A` has been destroyed and recreated.
@@ -150,6 +151,7 @@ digraph replacement {
 -->
 
 Order of operations:
+
 1. `A` is destroyed
 1. `A` is created
 1. `B` is updated
@@ -215,17 +217,16 @@ digraph replacement {
 }
 -->
 
-
 Order of operations:
+
 1. `B` is destroyed
-2. `A` is created
+1. `A` is created
 1. `B` is created
 1. `A` is destroyed
 
 Note that in this first example, the creation of `B` is inserted in between the
 creation of `A` and the destruction of `A`. This becomes more important in the
 update example below.
-
 
 ![Replace dependency, dependency is create_before_destroy](./images/replace_dep_cbd_dep.png)
 <!--
@@ -247,6 +248,7 @@ digraph replacement {
 -->
 
 Order of operations:
+
 1. `A` is created
 1. `B` is updated
 1. `A` is destroyed
@@ -283,6 +285,7 @@ digraph update {
 -->
 
 Order of operations:
+
 1. `B` is updated
 1. `A` is destroyed
 
@@ -350,6 +353,7 @@ digraph replacement {
 -->
 
 Order of operations:
+
 1. `A` is created
 1. `B` is created
 1. `B` is destroyed

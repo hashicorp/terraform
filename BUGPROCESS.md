@@ -2,12 +2,12 @@
 The Terraform Core team has adopted a more structured bug triage process than we previously used. Our goal is to respond to reports of issues quickly.
 
 When a bug report is filed, our goal is to either:
-1. Get it to a state where it is ready for engineering to fix it in an upcoming Terraform release, or 
+1. Get it to a state where it is ready for engineering to fix it in an upcoming Terraform release, or
 2. Close it explain why, if we can't help
 
 ## Process
 
-### 1. [Newly created issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering. 
+### 1. [Newly created issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Anew+label%3Abug+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3A%22waiting+for+reproduction%22+-label%3A%22waiting-response%22+-label%3Aexplained+) require initial filtering.
 
 These are raw reports that need categorization and support clarifying them. They need the following done:
 
@@ -22,22 +22,21 @@ Once this initial filtering has been done, remove the new label. If an issue sub
 
 ### 2. Clarify [unreproduced issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+created%3A%3E2020-05-01+-label%3Abackend%2Fk8s+-label%3Aprovisioner%2Fsalt-masterless+-label%3Adocumentation+-label%3Aprovider%2Fazuredevops+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3Anew+-label%3A%22waiting+for+reproduction%22+-label%3Awaiting-response+-label%3Aexplained+sort%3Acreated-asc+)
 
-A core team member initially determines whether the issue is immediately reproducible. If they cannot readily reproduce it, they label it "waiting for reproduction" and correspond with the reporter to describe what is needed. When the issue is reproduced by a core team member, they label it "confirmed". 
+A core team member initially determines whether the issue is immediately reproducible. If they cannot readily reproduce it, they label it "waiting for reproduction" and correspond with the reporter to describe what is needed. When the issue is reproduced by a core team member, they label it "confirmed".
 
 "confirmed" issues should have a clear reproduction case. Anyone who picks it up should be able to reproduce it readily without having to invent any details.
 
 Note that the link above excludes issues reported before May 2020; this is to avoid including issues that were reported prior to this new process being implemented. [Unreproduced issues reported before May 2020](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+created%3A%3C2020-05-01+-label%3Aprovisioner%2Fsalt-masterless+-label%3Adocumentation+-label%3Aprovider%2Fazuredevops+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent+-label%3Abackend%2Fmanta+-label%3Abackend%2Fatlas+-label%3Abackend%2Fetcdv3+-label%3Abackend%2Fetcdv2+-label%3Aconfirmed+-label%3A%22pending+project%22+-label%3Anew+-label%3A%22waiting+for+reproduction%22+-label%3Awaiting-response+-label%3Aexplained+sort%3Areactions-%2B1-desc) will be triaged as capacity permits.
 
-
 ### 3. Explain or fix [confirmed issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+-label%3Aexplained+-label%3Abackend%2Foss+-label%3Abackend%2Fk8s+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+)
 The next step for confirmed issues is to either:
 
 * explain why the behavior is expected, label the issue as "working as designed", and close it, or
-* locate the cause of the defect in the codebase. When the defect is located, and that description is posted on the issue, the issue is labeled "explained". In many cases, this step will get skipped if the fix is obvious, and engineers will jump forward and make a PR. 
+* locate the cause of the defect in the codebase. When the defect is located, and that description is posted on the issue, the issue is labeled "explained". In many cases, this step will get skipped if the fix is obvious, and engineers will jump forward and make a PR.
 
  [Confirmed crashes](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Acrash+label%3Abug+-label%3Abackend%2Fk8s+-label%3Aexplained+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+) should generally be considered high impact
 
-### 4. The last step for [explained issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Aexplained+no%3Amilestone+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+) is to make a PR to fix them. 
+### 4. The last step for [explained issues](https://github.com/hashicorp/terraform/issues?q=is%3Aopen+label%3Abug+label%3Aexplained+no%3Amilestone+-label%3Abackend%2Fk8s+-label%3Abackend%2Foss+-label%3Abackend%2Fazure+-label%3Abackend%2Fs3+-label%3Abackend%2Fgcs+-label%3Abackend%2Fconsul+-label%3Abackend%2Fartifactory+-label%3Aterraform-cloud+-label%3Abackend%2Fremote+-label%3Abackend%2Fswift+-label%3Abackend%2Fpg+-label%3Abackend%2Ftencent++-label%3Abackend%2Fmanta++-label%3Abackend%2Fatlas++-label%3Abackend%2Fetcdv3++-label%3Abackend%2Fetcdv2+label%3Aconfirmed+-label%3A%22pending+project%22+) is to make a PR to fix them.
 
 Explained issues that are expected to be fixed in a future release should be assigned to a milestone
 
@@ -46,7 +45,7 @@ label                    | description
 ------------------------ | -----------
 new                      | new issue not yet triaged
 explained                | a Terraform Core team member has described the root cause of this issue in code
-waiting for reproduction | unable to reproduce issue without further information 
+waiting for reproduction | unable to reproduce issue without further information
 not reproducible         | closed because a reproduction case could not be generated
 duplicate                | issue closed because another issue already tracks this problem
 confirmed                | a Terraform Core team member has reproduced this issue

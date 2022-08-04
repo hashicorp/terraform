@@ -39,7 +39,6 @@ build a `terraform-bundle` executable as follows:
 After running these commands, your original working directory will have an
 executable named `terraform-bundle`, which you can then run.
 
-
 For information
 on how to use `terraform-bundle`, see
 [the README from the v0.15 branch](https://github.com/hashicorp/terraform/blob/v0.15/tools/terraform-bundle/README.md).
