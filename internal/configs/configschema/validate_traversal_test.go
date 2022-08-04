@@ -10,9 +10,10 @@ import (
 
 func TestStaticValidateTraversal(t *testing.T) {
 	attrs := map[string]*Attribute{
-		"str":  {Type: cty.String, Optional: true},
-		"list": {Type: cty.List(cty.String), Optional: true},
-		"dyn":  {Type: cty.DynamicPseudoType, Optional: true},
+		"str":        {Type: cty.String, Optional: true},
+		"list":       {Type: cty.List(cty.String), Optional: true},
+		"dyn":        {Type: cty.DynamicPseudoType, Optional: true},
+		"deprecated": {Type: cty.String, Computed: true, Deprecated: true},
 		"nested_single": {
 			Optional: true,
 			NestedType: &Object{
@@ -220,6 +221,10 @@ func TestStaticValidateTraversal(t *testing.T) {
 			`obj.nested_map["key"].optional`,
 			``,
 		},
+		{
+			`obj.deprecated`,
+			`Deprecated attribute: The attribute "deprecated" is deprecated. Refer to the provider documentation for details.`,
+		},
 	}
 
 	for _, test := range tests {
@@ -239,8 +244,9 @@ func TestStaticValidateTraversal(t *testing.T) {
 					t.Errorf("unexpected error: %s", diags.Err().Error())
 				}
 			} else {
-				if diags.HasErrors() {
-					if got := diags.Err().Error(); got != test.WantError {
+				err := diags.ErrWithWarnings()
+				if err != nil {
+					if got := err.Error(); got != test.WantError {
 						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, test.WantError)
 					}
 				} else {
