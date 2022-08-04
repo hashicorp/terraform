@@ -1,0 +1,14 @@
+{
+	"Modules": [
+		{
+			"Key": "test",
+			"Source": "./sub",
+			"Dir": "testdata/invalid-names-in-submodules/sub"
+		},
+		{
+			"Key": "",
+			"Source": "",
+			"Dir": "."
+		}
+	]
+}
