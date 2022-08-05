@@ -41,6 +41,7 @@ BUG FIXES:
 * `terraform output` CLI help documentation is now more consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
 * getproviders: account for occasionally missing Host header in errors ([#31542](https://github.com/hashicorp/terraform/issues/31542))
 * core: Do not create "delete" changes for nonexistent outputs ([#31471](https://github.com/hashicorp/terraform/issues/31471))
+* configload: validate implied provider names in submodules to avoid crash ([#31573](https://github.com/hashicorp/terraform/issues/31573))
 
 EXPERIMENTS:
 
