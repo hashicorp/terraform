@@ -153,6 +153,18 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			}
 
 			localName := r.Addr().ImpliedProvider()
+
+			_, err := addrs.ParseProviderPart(localName)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider local name",
+					Detail:   fmt.Sprintf("%q is an invalid implied provider local name: %s", localName, err),
+					Subject:  r.DeclRange.Ptr(),
+				})
+				continue
+			}
+
 			if _, ok := localNames[localName]; ok {
 				// OK, this was listed directly in the required_providers
 				continue
