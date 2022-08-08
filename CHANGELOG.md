@@ -1,5 +1,9 @@
 ## 1.2.7 (Unreleased)
 
+BUG FIXES:
+
+* fix: validate implied provider names in submodules ([#31590](https://github.com/hashicorp/terraform/issues/31590))
+
 ## 1.2.6 (July 27, 2022)
 
 ENHANCEMENTS:
