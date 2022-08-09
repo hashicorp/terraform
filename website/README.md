@@ -16,7 +16,7 @@ Click **Edit this page** at the bottom of any Terraform website page to go direc
 You must update the the sidebar navigation when you add or delete documentation .mdx files. If you do not update the navigation, the website deploy preview fails.
 
 To update the sidebar navigation, you must edit the appropriate `nav-data.json` file. This repository contains the sidebar navigation files for the following documentation sets:
-- Terraform Language: [`language-nav-data.json`]https://github.com/hashicorp/terraform/blob/main/website/data/language-nav-data.json]
+- Terraform Language: [`language-nav-data.json`](https://github.com/hashicorp/terraform/blob/main/website/data/language-nav-data.json)
 - Terraform CLI: [`cli-nav-data.json`](https://github.com/hashicorp/terraform/blob/main/website/data/cli-nav-data.json)
 - Introduction to Terraform: [`intro-nav-data.json`](https://github.com/hashicorp/terraform/blob/update-readme/website/data/intro-nav-data.json)
 
