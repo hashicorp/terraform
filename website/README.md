@@ -2,10 +2,8 @@
 
 This directory contains the portions of [the Terraform website](https://www.terraform.io/) that pertain to the core functionality, excluding providers and the overall configuration.
 
-The files in this directory are intended to be used in conjunction with
-[the `terraform-website` repository](https://github.com/hashicorp/terraform-website), which brings all of the
-different documentation sources together and contains the scripts for testing and building the site as
-a whole.
+The website uses the files in this directory in conjunction with
+[the `terraform-website` repository](https://github.com/hashicorp/terraform-website). The `terraform-website` repository brings all of the documentation together and contains the scripts for testing and building the entire site.
 
 ## Suggesting Changes
 
@@ -15,7 +13,14 @@ Click **Edit this page** at the bottom of any Terraform website page to go direc
 
 ## Modifying Sidebar Navigation
 
-Updates to the sidebar navigation of Terraform docs need to be made in the [`terraform-website`](https://github.com/hashicorp/terraform-website/) repository (preferably in a PR also updating the submodule commit). You can read more about how to make modifications to the navigation in the [README for `terraform-website`](https://github.com/hashicorp/terraform-website#editing-navigation-sidebars).
+You must update the the sidebar navigation when you add or delete documentation .mdx files. If you do not update the navigation, the website deploy preview fails.
+
+To update the sidebar navigation, you must edit the appropriate `nav-data.json` file. This repository contains the sidebar navigation files for the following documentation sets:
+- Terraform Language: [`language-nav-data.json`]https://github.com/hashicorp/terraform/blob/main/website/data/language-nav-data.json]
+- Terraform CLI: [`cli-nav-data.json`](https://github.com/hashicorp/terraform/blob/main/website/data/cli-nav-data.json)
+- Introduction to Terraform: [`intro-nav-data.json`](https://github.com/hashicorp/terraform/blob/update-readme/website/data/intro-nav-data.json)
+
+For more details about how to update the sidebar navigation, refer to [Editing Navigation Sidebars](https://github.com/hashicorp/terraform-website#editing-navigation-sidebars) in the `terraform-website` repository.
 
 ## Adding Redirects
 
@@ -28,7 +33,7 @@ You should preview all of your changes locally before creating a pull request. T
 **Set Up Local Environment**
 
 1. [Install Docker](https://docs.docker.com/get-docker/).
-2. Create a `~/go` directory manually or by [installing Go](https://golang.org/doc/install).
+2. [Install Go](https://golang.org/doc/install) or create a `~/go` directory manually.
 3. Open terminal and set `GOPATH` as an environment variable:
 
    Bash: `export $GOPATH=~/go`(bash)
@@ -40,8 +45,8 @@ You should preview all of your changes locally before creating a pull request. T
 **Launch Site Locally**
 
 1. Navigate into your local `terraform` top-level directory and run `make website`.
-1. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and Next.js will automatically rebuild them.
-1. When you're done with the preview, press `ctrl-C` in your terminal to stop the server.
+1. Open `http://localhost:3000` in your web browser. While the preview is running, you can edit pages and Next.js automatically rebuilds them.
+1. Press `ctrl-C` in your terminal to stop the server and end the preview.
 
 
 ## Deploying Changes
