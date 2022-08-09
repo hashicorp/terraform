@@ -1,5 +1,9 @@
 ## 1.2.7 (Unreleased)
 
+ENHANCEMENTS:
+
+* config: Check for direct references to deprecated computed attributes [GH-31576]
+
 BUG FIXES:
 
 * config: Crash caused by invalid implied resource provider name in submodules [GH-31573]
