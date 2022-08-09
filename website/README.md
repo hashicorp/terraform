@@ -59,7 +59,7 @@ The website generates versioned documentation by pointing to the HEAD of the rel
 
 **Important:** Editing old versions (not latest) should be rare. We backport to old versions when there is an egregious error. Egregious errors include inaccuracies that could cause security vulnerabilities or extreme inconvenience for users. 
 
-Backporting involves cherry-picking commits to one or more release branches within a docs repository. You can backport (cherry-pick) commits to a version branch by adding the associated backport label to your pull request. For example, if you need to add a security warning to the v1.1 documentation, you must add the `1.1-backport` label. When you merge a pull request with one or more backport labels, GitHub Actions opens a backport PR to cherry-pick your changes to the associated release branches. Someone needs to manually merge the backport PR to finish backporting the changes. 
+Backporting involves cherry-picking commits to one or more release branches within a docs repository. You can backport (cherry-pick) commits to a version branch by adding the associated backport label to your pull request. For example, if you need to add a security warning to the v1.1 documentation, you must add the `1.1-backport` label. When you merge a pull request with one or more backport labels, GitHub Actions opens a backport PR to cherry-pick your changes to the associated release branches. You must manually merge the backport PR to finish backporting the changes. 
 
 To make your changes available on the latest docs version:
 
