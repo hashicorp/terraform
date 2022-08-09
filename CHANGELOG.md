@@ -8,6 +8,7 @@ BUG FIXES:
 
 * config: Crash caused by invalid implied resource provider name in submodules [GH-31573]
 * core: Error when referencing nested attributes from terraform-plugin-framework provider [GH-31532]
+* command: Add missing output text for applyable refresh plans [GH-31469]
 
 ## 1.2.6 (July 27, 2022)
 
