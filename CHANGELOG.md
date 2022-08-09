@@ -2,7 +2,8 @@
 
 BUG FIXES:
 
-* cli: Crash caused by invalid implied resource provider name in submodules [GH-31573]
+* config: Crash caused by invalid implied resource provider name in submodules [GH-31573]
+* core: Error when referencing nested attributes from terraform-plugin-framework provider [GH-31532]
 
 ## 1.2.6 (July 27, 2022)
 
