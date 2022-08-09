@@ -13,6 +13,42 @@ func TestStaticValidateTraversal(t *testing.T) {
 		"str":  {Type: cty.String, Optional: true},
 		"list": {Type: cty.List(cty.String), Optional: true},
 		"dyn":  {Type: cty.DynamicPseudoType, Optional: true},
+		"nested_single": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingSingle,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_list": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingList,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_set": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingSet,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_map": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingMap,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
 	}
 	schema := &Block{
 		Attributes: attrs,
@@ -167,6 +203,22 @@ func TestStaticValidateTraversal(t *testing.T) {
 		{
 			`obj.map_block.anything.nonexist`,
 			`Unsupported attribute: This object has no argument, nested block, or exported attribute named "nonexist".`,
+		},
+		{
+			`obj.nested_single.optional`,
+			``,
+		},
+		{
+			`obj.nested_list[0].optional`,
+			``,
+		},
+		{
+			`obj.nested_set[0].optional`,
+			`Invalid index: Elements of a set are identified only by their value and don't have any separate index or key to select with, so it's only possible to perform operations across all elements of the set.`,
+		},
+		{
+			`obj.nested_map["key"].optional`,
+			``,
 		},
 	}
 
