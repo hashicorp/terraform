@@ -2,7 +2,7 @@
 
 BUG FIXES:
 
-* fix: validate implied provider names in submodules ([#31590](https://github.com/hashicorp/terraform/issues/31590))
+* cli: Crash caused by invalid implied resource provider name in submodules [GH-31573]
 
 ## 1.2.6 (July 27, 2022)
 
