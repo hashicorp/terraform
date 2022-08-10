@@ -21,6 +21,7 @@ NEW FEATURES:
 UPGRADE NOTES:
 
 * `terraform show -json`: Output changes now include more detail about the unknown-ness of the planned value. Previously, a planned output would be marked as either fully known or partially unknown, with the `after_unknown` field having value `false` or `true` respectively. Now outputs correctly expose the full structure of unknownness for complex values, allowing consumers of the JSON output format to determine which values in a collection are known only after apply.
+* `terraform import`: The `-allow-missing-config` has been removed, and at least an empty configuration block must exist to import a resource.
 
     Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. ([#31235](https://github.com/hashicorp/terraform/issues/31235))
 
@@ -42,6 +43,7 @@ BUG FIXES:
 * getproviders: account for occasionally missing Host header in errors ([#31542](https://github.com/hashicorp/terraform/issues/31542))
 * core: Do not create "delete" changes for nonexistent outputs ([#31471](https://github.com/hashicorp/terraform/issues/31471))
 * configload: validate implied provider names in submodules to avoid crash ([#31573](https://github.com/hashicorp/terraform/issues/31573))
+* core: `import` fails when resources or modules are expanded with for each, or input from data sources is required [GH-31283]
 
 EXPERIMENTS:
 
