@@ -1,14 +1,14 @@
-## 1.2.7 (Unreleased)
+## 1.2.7 (August 10, 2022)
 
 ENHANCEMENTS:
 
-* config: Check for direct references to deprecated computed attributes. [GH-31576]
+* config: Check for direct references to deprecated computed attributes. ([#31576](https://github.com/hashicorp/terraform/issues/31576))
 
 BUG FIXES:
 
-* config: Fix an crash if a submodule contains a resource whose implied provider local name contains invalid characters, by adding additional validation rules to turn it into a real error. [GH-31573]
-* core: Fix some handling of provider schema attributes which use the newer "structural typing" mechanism introduced with protocol version 6, and therefore with the new Terraform Plugin Framework [GH-31532]
-* command: Add missing output text for applyable refresh plans. [GH-31469]
+* config: Fix an crash if a submodule contains a resource whose implied provider local name contains invalid characters, by adding additional validation rules to turn it into a real error. ([#31573](https://github.com/hashicorp/terraform/issues/31573))
+* core: Fix some handling of provider schema attributes which use the newer "structural typing" mechanism introduced with protocol version 6, and therefore with the new Terraform Plugin Framework ([#31532](https://github.com/hashicorp/terraform/issues/31532))
+* command: Add missing output text for applyable refresh plans. ([#31469](https://github.com/hashicorp/terraform/issues/31469))
 
 ## 1.2.6 (July 27, 2022)
 
