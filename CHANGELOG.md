@@ -2,13 +2,13 @@
 
 ENHANCEMENTS:
 
-* config: Check for direct references to deprecated computed attributes [GH-31576]
+* config: Check for direct references to deprecated computed attributes. [GH-31576]
 
 BUG FIXES:
 
-* config: Crash caused by invalid implied resource provider name in submodules [GH-31573]
-* core: Error when referencing nested attributes from terraform-plugin-framework provider [GH-31532]
-* command: Add missing output text for applyable refresh plans [GH-31469]
+* config: Fix an crash if a submodule contains a resource whose implied provider local name contains invalid characters, by adding additional validation rules to turn it into a real error. [GH-31573]
+* core: Fix some handling of provider schema attributes which use the newer "structural typing" mechanism introduced with protocol version 6, and therefore with the new Terraform Plugin Framework [GH-31532]
+* command: Add missing output text for applyable refresh plans. [GH-31469]
 
 ## 1.2.6 (July 27, 2022)
 
