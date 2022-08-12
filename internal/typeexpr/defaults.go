@@ -91,7 +91,7 @@ func (t *defaultsTransformer) Enter(p cty.Path, v cty.Value) (cty.Value, error) 
 	// Apply defaults where attributes are missing, constructing a new
 	// value with the same marks.
 	for attr, defaultValue := range defaults {
-		if _, ok := attrs[attr]; !ok {
+		if attrValue, ok := attrs[attr]; !ok || attrValue.IsNull() {
 			attrs[attr] = defaultValue
 		}
 	}
