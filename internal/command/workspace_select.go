@@ -18,7 +18,9 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
+	var orCreate bool
 	cmdFlags := c.Meta.defaultFlagSet("workspace select")
+	cmdFlags.BoolVar(&orCreate, "or-create", false, "create workspace if it doesnt exist")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -96,8 +98,16 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 	}
 
 	if !found {
-		c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
-		return 1
+		if orCreate {
+			_, err = b.StateMgr(name)
+			if err != nil {
+				c.Ui.Error(err.Error())
+				return 1
+			}
+		} else {
+			c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
+			return 1
+		}
 	}
 
 	err = c.SetWorkspace(name)
