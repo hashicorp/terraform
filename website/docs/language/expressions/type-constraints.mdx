@@ -260,7 +260,7 @@ value and thus perform no type conversion whatsoever.
 
 ## Optional Object Type Attributes
 
--> **Note:** Optional type attributes are supported in Terraform v1.3 and later.
+-> **Note:** Optional object type attributes are supported only in Terraform v1.3 and later.
 
 Terraform typically returns an error when it does not receive a value for specified object attributes. When you mark an attribute as optional, Terraform instead inserts a default value for the missing attribute. This allows the receiving module to describe an appropriate fallback behavior.
 
@@ -280,6 +280,8 @@ The `optional` modifier takes one or two arguments.
 - **Type:** (Required) The first argument
 specifies the type of the attribute.
 - **Default:** (Optional) The second argument defines the default value that Terraform should use if the attribute is not present. This must be compatible with the attribute type. If not specified, Terraform uses a `null` value of the appropriate type as the default.
+
+An optional attribute with a non-`null` default value is guaranteed to never have the value `null` within the receiving module. Terraform will substitute the default value both when a caller omits the attribute altogether and when a caller explicitly sets it to `null`, thereby avoiding the need for additional checks to handle a possible null value.
 
 Terraform applies object attribute defaults top-down in nested variable types. This means that Terraform applies the default value you specify in the `optional` modifier first and then later applies any nested default values to that attribute.
 
@@ -383,3 +385,33 @@ tolist([
   },
 ])
 ```
+
+### Example: Conditionally setting an optional attribute
+
+Sometimes the decision about whether or not to set a value for an optional argument needs to be made dynamically based on some other data. In that case, the calling `module` block can use a conditional expression with `null` as one of its result arms to represent dynamically leaving the argument unset.
+
+With the `variable "buckets"` declaration shown in the previous section, the following example conditionally overrides the `index_document` and `error_document` settings in the `website` object based on a new variable `var.legacy_filenames`:
+
+```hcl
+variable "legacy_filenames" {
+  type     = bool
+  default  = false
+  nullable = false
+}
+
+module "buckets" {
+  source = "./modules/buckets"
+
+  buckets = [
+    {
+      name = "maybe_legacy"
+      website = {
+        error_document = var.legacy_filenames ? "ERROR.HTM" : null
+        index_document = var.legacy_filenames ? "INDEX.HTM" : null
+      }
+    },
+  ]
+}
+```
+
+When `var.legacy_filenames` is set to `true`, the call will override the document filenames. When it is `false`, the call will leave the two filenames unspecified, thereby allowing the module to use its specified default values.
