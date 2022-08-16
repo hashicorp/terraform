@@ -1,7 +1,7 @@
 # Terraform Core Resource Destruction Notes
 
 This document intends to describe some of the details and complications
-involved in the destructions of resources. It covers the ordering defined for
+involved in the destruction of resources. It covers the ordering defined for
 related create and destroy operations, as well as changes to the lifecycle
 ordering imposed by `create_before_destroy`. It is not intended to enumerate
 all possible combinations of dependency ordering, only to outline the basics
