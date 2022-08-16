@@ -77,7 +77,7 @@ or state operations.
 
 After you initialize, Terraform creates `.terraform/terraform.tfstate` locally. This file contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check `.terraform/terraform.tfstate` into Git, as it may contain sensitive credentials for your remote backend.
 
-The local backend configuration file is different and entirely separate from the `terraform.tfstate` file that contains [state data](/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
+The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
 
 When you change backends, Terraform gives you the option to migrate
 your state to the new backend. This lets you adopt backends without losing
