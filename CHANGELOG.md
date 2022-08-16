@@ -35,6 +35,7 @@ ENHANCEMENTS:
 * The AzureRM Backend now only supports MSAL (and Microsoft Graph) and no longer makes use of ADAL (and Azure Active Directory Graph) for authentication ([#31070](https://github.com/hashicorp/terraform/issues/31070))
 * The COS backend now supports global acceleration. ([#31425](https://github.com/hashicorp/terraform/issues/31425))
 * providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
+* refactoring: `moved` blocks can now be used to move resources to and from external modules [GH-31556]
 
 BUG FIXES:
 
