@@ -75,7 +75,7 @@ When you change a backend's configuration, you must run `terraform init` again
 to validate and configure the backend before you can perform any plans, applies,
 or state operations.
 
-After you initialize, Terraform creates `.terraform/terraform.tfstate` locally. This file contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check `.terraform/terraform.tfstate` into Git, as it may contain sensitive credentials for your remote backend.
+After you initialize, Terraform creates a `.terraform/` directory locally. This directory contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check this directory into Git, as it may contain sensitive credentials for your remote backend.
 
 The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
 
