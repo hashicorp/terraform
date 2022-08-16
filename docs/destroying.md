@@ -356,6 +356,6 @@ Order of operations:
 1. `A` is destroyed
 
 This also demonstrates why `create_before_destroy` cannot be overridden when
-it is inherited; changing the behaviour here isn't possible without removing
+it is inherited; changing the behavior here isn't possible without removing
 the initial reason for `create_before_destroy`; otherwise cycles are always
 introduced into the graph.
