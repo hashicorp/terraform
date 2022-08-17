@@ -920,6 +920,7 @@ func (b *Cloud) IsLocalOperations() bool {
 // as a helper to wrap any potentially colored strings.
 //
 // TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
+//
 //lint:ignore U1000 see above todo
 func (b *Cloud) cliColorize() *colorstring.Colorize {
 	if b.CLIColor != nil {

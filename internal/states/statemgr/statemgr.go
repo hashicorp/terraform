@@ -19,7 +19,7 @@ type Storage interface {
 // of the implementing type that will fail at compile time if the interface
 // isn't satisfied, such as:
 //
-//     var _ statemgr.Full = (*ImplementingType)(nil)
+//	var _ statemgr.Full = (*ImplementingType)(nil)
 type Full interface {
 	Storage
 	Locker

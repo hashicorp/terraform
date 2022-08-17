@@ -43,7 +43,8 @@ func TypeConstraintFromVal(v cty.Value) cty.Type {
 // ConvertFunc is a cty function that implements type conversions.
 //
 // Its signature is as follows:
-//     convert(value, type_constraint)
+//
+//	convert(value, type_constraint)
 //
 // ...where type_constraint is a type constraint expression as defined by
 // typeexpr.TypeConstraint.

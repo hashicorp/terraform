@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
-//the test and all its subtests complete.
+// the test and all its subtests complete.
 //
 // Although workdir.Dir is built to support arbitrary base directories, the
 // not-yet-migrated behaviors in command.Meta tend to expect the root module
@@ -92,8 +92,8 @@ func TestMain(m *testing.M) {
 // to use the result inside a command.Meta object you must use a pattern
 // similar to the following when initializing your test:
 //
-//     wd := tempWorkingDir(t)
-//     defer testChdir(t, wd.RootModuleDir())()
+//	wd := tempWorkingDir(t)
+//	defer testChdir(t, wd.RootModuleDir())()
 //
 // Note that testChdir modifies global state for the test process, and so a
 // test using this pattern must never call t.Parallel().
@@ -327,9 +327,9 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 // The given mark string is returned verbatim, to allow the following pattern
 // in tests:
 //
-//     mark := markStateForMatching(state, "foo")
-//     // (do stuff to the state)
-//     assertStateHasMarker(state, mark)
+//	mark := markStateForMatching(state, "foo")
+//	// (do stuff to the state)
+//	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
 	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
 	return mark
@@ -704,10 +704,10 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // When using this function, the configuration fixture for the test must
 // include an empty configuration block for the HTTP backend, like this:
 //
-// terraform {
-//   backend "http" {
-//   }
-// }
+//	terraform {
+//	  backend "http" {
+//	  }
+//	}
 //
 // If such a block isn't present, or if it isn't empty, then an error will
 // be returned about the backend configuration having changed and that

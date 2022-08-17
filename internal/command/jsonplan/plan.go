@@ -708,7 +708,7 @@ func actionString(action string) []string {
 // encodePaths lossily encodes a cty.PathSet into an array of arrays of step
 // values, such as:
 //
-//   [["length"],["triggers",0,"value"]]
+//	[["length"],["triggers",0,"value"]]
 //
 // The lossiness is that we cannot distinguish between an IndexStep with string
 // key and a GetAttr step. This is fine with JSON output, because JSON's type
@@ -716,8 +716,8 @@ func actionString(action string) []string {
 // indexes.
 //
 // JavaScript (or similar dynamic language) consumers of these values can
-// recursively apply the steps to a given object using an index operation for
-// each step.
+// iterate over the the steps starting from the root object to reach the
+// value that each path is describing.
 func encodePaths(pathSet cty.PathSet) (json.RawMessage, error) {
 	if pathSet.Empty() {
 		return nil, nil

@@ -10,17 +10,18 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// PlanGraphBuilder implements GraphBuilder and is responsible for building
-// a graph for planning (creating a Terraform Diff).
+// PlanGraphBuilder is a GraphBuilder implementation that builds a graph for
+// planning and for other "plan-like" operations which don't require an
+// already-calculated plan as input.
 //
-// The primary difference between this graph and others:
+// Unlike the apply graph builder, this graph builder:
 //
-//   * Based on the config since it represents the target state
+//   - Makes its decisions primarily based on the given configuration, which
+//     represents the desired state.
 //
-//   * Ignores lifecycle options since no lifecycle events occur here. This
-//     simplifies the graph significantly since complex transforms such as
-//     create-before-destroy can be completely ignored.
-//
+//   - Ignores certain lifecycle concerns like create_before_destroy, because
+//     those are only important once we already know what action we're planning
+//     to take against a particular resource instance.
 type PlanGraphBuilder struct {
 	// Config is the configuration tree to build a plan from.
 	Config *configs.Config

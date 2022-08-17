@@ -2924,7 +2924,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 // A common pattern in TF configs is to have a set of resources with the same
 // count and to use count.index to create correspondences between them:
 //
-//    foo_id = "${foo.bar.*.id[count.index]}"
+//	foo_id = "${foo.bar.*.id[count.index]}"
 //
 // This test is for the situation where some instances already exist and the
 // count is increased. In that case, we should see only the create diffs
