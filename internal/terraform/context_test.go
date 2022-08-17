@@ -68,6 +68,22 @@ func TestNewContextRequiredVersion(t *testing.T) {
 		},
 
 		{
+			"prerelease doesn't match with inequality",
+			"",
+			"0.8.0",
+			"> 0.7.0-beta",
+			true,
+		},
+
+		{
+			"prerelease doesn't match with equality",
+			"",
+			"0.7.0",
+			"0.7.0-beta",
+			true,
+		},
+
+		{
 			"module matches",
 			"context-required-version-module",
 			"0.5.0",
@@ -260,6 +276,14 @@ func testApplyFn(req providers.ApplyResourceChangeRequest) (resp providers.Apply
 
 func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	var planned map[string]cty.Value
+
+	// this is a destroy plan
+	if req.ProposedNewState.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
+
 	if !req.ProposedNewState.IsNull() {
 		planned = req.ProposedNewState.AsValueMap()
 	}

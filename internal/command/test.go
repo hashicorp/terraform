@@ -317,7 +317,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	locks := depsfile.NewLocks()
 	evts := &providercache.InstallerEvents{
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
-			if err != nil && provider.IsDefault() && provider.Type == "test" {
+			if err != nil && addrs.IsDefaultProvider(provider) && provider.Type == "test" {
 				// This is some additional context for the failure error
 				// we'll generate afterwards. Not the most ideal UX but
 				// good enough for this prototype implementation, to help

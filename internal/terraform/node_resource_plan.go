@@ -38,6 +38,9 @@ type nodeExpandPlannableResource struct {
 
 	// We attach dependencies to the Resource during refresh, since the
 	// instances are instantiated during DynamicExpand.
+	// FIXME: These would be better off converted to a generic Set data
+	// structure in the future, as we need to compare for equality and take the
+	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
 }
 
@@ -319,6 +322,17 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
+		// check if this node is being imported first
+		for _, importTarget := range n.importTargets {
+			if importTarget.Addr.Equal(a.Addr) {
+				return &graphNodeImportState{
+					Addr:             importTarget.Addr,
+					ID:               importTarget.ID,
+					ResolvedProvider: n.ResolvedProvider,
+				}
+			}
+		}
+
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider

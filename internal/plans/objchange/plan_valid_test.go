@@ -1628,6 +1628,32 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			[]string{`.map.one.name: planned value cty.StringVal("from_provider") does not match config value cty.StringVal("from_config")`},
 		},
+
+		// If a config value ended up in a computed-only attribute it can still
+		// be a valid plan. We either got here because the user ignore warnings
+		// about ignore_changes on computed attributes, or we failed to
+		// validate a config with computed values. Either way, we don't want to
+		// indicate an error with the provider.
+		"computed only value with config": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("old"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("old"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			nil,
+		},
 	}
 
 	for name, test := range tests {

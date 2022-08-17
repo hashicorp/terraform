@@ -45,7 +45,6 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
-	cmdFlags.BoolVar(&c.Meta.allowMissingConfig, "allow-missing-config", false, "allow missing config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -135,7 +134,7 @@ func (c *ImportCommand) Run(args []string) int {
 			break
 		}
 	}
-	if !c.Meta.allowMissingConfig && rc == nil {
+	if rc == nil {
 		modulePath := addr.Module.String()
 		if modulePath == "" {
 			modulePath = "the root module"
@@ -262,10 +261,6 @@ func (c *ImportCommand) Run(args []string) int {
 
 	c.Ui.Output(c.Colorize().Color("[reset][green]\n" + importCommandSuccessMsg))
 
-	if c.Meta.allowMissingConfig && rc == nil {
-		c.Ui.Output(c.Colorize().Color("[reset][yellow]\n" + importCommandAllowMissingResourceMsg))
-	}
-
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
 		return 1
@@ -309,8 +304,6 @@ Options:
                           to use to configure the provider. Defaults to pwd.
                           If no config files are present, they must be provided
                           via the input prompts or env vars.
-
-  -allow-missing-config   Allow import when no resource configuration block exists.
 
   -input=false            Disable interactive input prompts.
 
@@ -360,13 +353,4 @@ const importCommandSuccessMsg = `Import successful!
 
 The resources that were imported are shown above. These resources are now in
 your Terraform state and will henceforth be managed by Terraform.
-`
-
-const importCommandAllowMissingResourceMsg = `Import does not generate resource configuration, you must create a resource
-configuration block that matches the current or desired state manually.
-
-If there is no matching resource configuration block for the imported
-resource, Terraform will delete the resource on the next "terraform apply".
-It is recommended that you run "terraform plan" to verify that the
-configuration is correct and complete.
 `

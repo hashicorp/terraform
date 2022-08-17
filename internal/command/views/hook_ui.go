@@ -65,6 +65,7 @@ const (
 	uiResourceModify
 	uiResourceDestroy
 	uiResourceRead
+	uiResourceNoOp
 )
 
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -89,6 +90,8 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	case plans.Read:
 		operation = "Reading..."
 		op = uiResourceRead
+	case plans.NoOp:
+		op = uiResourceNoOp
 	default:
 		// We don't expect any other actions in here, so anything else is a
 		// bug in the caller but we'll ignore it in order to be robust.
@@ -106,12 +109,14 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		idValue = ""
 	}
 
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: %s%s[reset]"),
-		dispAddr,
-		operation,
-		stateIdSuffix,
-	))
+	if operation != "" {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: %s%s[reset]"),
+			dispAddr,
+			operation,
+			stateIdSuffix,
+		))
+	}
 
 	key := addr.String()
 	uiState := uiResourceState{
@@ -129,7 +134,9 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 	h.resourcesLock.Unlock()
 
 	// Start goroutine that shows progress
-	go h.stillApplying(uiState)
+	if op != uiResourceNoOp {
+		go h.stillApplying(uiState)
+	}
 
 	return terraform.HookActionContinue, nil
 }
@@ -201,6 +208,9 @@ func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation
 		msg = "Creation complete"
 	case uiResourceRead:
 		msg = "Read complete"
+	case uiResourceNoOp:
+		// We don't make any announcements about no-op changes
+		return terraform.HookActionContinue, nil
 	case uiResourceUnknown:
 		return terraform.HookActionContinue, nil
 	}

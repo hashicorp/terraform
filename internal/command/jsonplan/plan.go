@@ -442,7 +442,8 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		changeV.After, _ = changeV.After.UnmarkDeep()
 
 		var before, after []byte
-		afterUnknown := cty.False
+		var afterUnknown cty.Value
+
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
@@ -455,8 +456,18 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 				if err != nil {
 					return err
 				}
+				afterUnknown = cty.False
 			} else {
-				afterUnknown = cty.True
+				filteredAfter := omitUnknowns(changeV.After)
+				if filteredAfter.IsNull() {
+					after = nil
+				} else {
+					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
+					if err != nil {
+						return err
+					}
+				}
+				afterUnknown = unknownAsBool(changeV.After)
 			}
 		}
 
@@ -566,8 +577,9 @@ func omitUnknowns(val cty.Value) cty.Value {
 			newVal := omitUnknowns(v)
 			if newVal != cty.NilVal {
 				vals = append(vals, newVal)
-			} else if newVal == cty.NilVal && ty.IsListType() {
-				// list length may be significant, so we will turn unknowns into nulls
+			} else if newVal == cty.NilVal {
+				// element order is how we correlate unknownness, so we must
+				// replace unknowns with nulls
 				vals = append(vals, cty.NullVal(v.Type()))
 			}
 		}

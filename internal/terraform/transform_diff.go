@@ -65,7 +65,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		var update, delete, createBeforeDestroy bool
 		switch rc.Action {
 		case plans.NoOp:
-			continue
+			// For a no-op change we don't take any action but we still
+			// run any condition checks associated with the object, to
+			// make sure that they still hold when considering the
+			// results of other changes.
+			update = true
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:

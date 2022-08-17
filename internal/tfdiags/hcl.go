@@ -50,6 +50,10 @@ func (d hclDiagnostic) FromExpr() *FromExpr {
 	}
 }
 
+func (d hclDiagnostic) ExtraInfo() interface{} {
+	return d.diag.Extra
+}
+
 // SourceRangeFromHCL constructs a SourceRange from the corresponding range
 // type within the HCL package.
 func SourceRangeFromHCL(hclRange hcl.Range) SourceRange {

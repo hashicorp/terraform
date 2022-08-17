@@ -320,6 +320,10 @@
             "href": "/language/functions/chomp"
           },
           {
+            "title": "<code>endswith</code>",
+            "href": "/language/functions/endswith"
+          },
+          {
             "title": "<code>format</code>",
             "href": "/language/functions/format"
           },
@@ -351,6 +355,10 @@
           {
             "title": "<code>split</code>",
             "href": "/language/functions/split"
+          },
+          {
+            "title": "<code>startswith</code>",
+            "href": "/language/functions/startswith"
           },
           {
             "title": "<code>strrev</code>",
@@ -776,6 +784,7 @@
       { "title": "dirname", "path": "functions/dirname", "hidden": true },
       { "title": "distinct", "path": "functions/distinct", "hidden": true },
       { "title": "element", "path": "functions/element", "hidden": true },
+      { "title": "endswith", "path": "functions/endswith", "hidden": true },
       { "title": "file", "path": "functions/file", "hidden": true },
       { "title": "filebase64", "path": "functions/filebase64", "hidden": true },
       {
@@ -851,6 +860,7 @@
       { "title": "slice", "path": "functions/slice", "hidden": true },
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
+      { "title": "startswith", "path": "functions/startswith", "hidden": true },
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },
@@ -903,7 +913,6 @@
       {
         "title": "Backends",
         "routes": [
-          { "title": "Overview", "path": "settings/backends" },
           {
             "title": "Backend Configuration",
             "path": "settings/backends/configuration"
@@ -1145,75 +1154,7 @@
       }
     ]
   },
-  {
-    "title": "Historical docs: 0.11 and Older",
-    "routes": [
-      { "title": "Overview", "path": "configuration-0-11" },
-      {
-        "title": "Load Order and Semantics",
-        "path": "configuration-0-11/load"
-      },
-      {
-        "title": "Configuration Syntax",
-        "path": "configuration-0-11/syntax"
-      },
-      {
-        "title": "Interpolation Syntax",
-        "path": "configuration-0-11/interpolation"
-      },
-      {
-        "title": "Overrides",
-        "path": "configuration-0-11/override"
-      },
-      {
-        "title": "Resources",
-        "path": "configuration-0-11/resources"
-      },
-      {
-        "title": "Data Sources",
-        "path": "configuration-0-11/data-sources"
-      },
-      {
-        "title": "Providers",
-        "href": "/language/providers"
-      },
-      {
-        "title": "Variables",
-        "path": "configuration-0-11/variables"
-      },
-      {
-        "title": "Outputs",
-        "path": "configuration-0-11/outputs"
-      },
-      {
-        "title": "Local Values",
-        "path": "configuration-0-11/locals"
-      },
-      {
-        "title": "Modules",
-        "path": "configuration-0-11/modules"
-      },
-      {
-        "title": "Terraform",
-        "path": "configuration-0-11/terraform"
-      },
-      {
-        "title": "Provisioners",
-        "href": "/language/resources/provisioners"
-      },
-      {
-        "title": "Providers",
-        "path": "configuration-0-11/providers",
-        "hidden": true
-      },
-      {
-        "title": "Terraform Push (deprecated)",
-        "path": "configuration-0-11/terraform-enterprise"
-      },
-      {
-        "title": "Environment Variables",
-        "path": "configuration-0-11/environment-variables"
-      }
-    ]
-  }
+  { "divider": true },
+  { "title": "Terraform Internals", "href": "/internals" },
+  { "divider": true }
 ]

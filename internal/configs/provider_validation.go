@@ -82,7 +82,54 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 	}
 
 	if mod.ProviderRequirements != nil {
+		// Track all known local types too to ensure we don't have duplicated
+		// with different local names.
+		localTypes := map[string]bool{}
+
+		// check for duplicate requirements of the same type
 		for _, req := range mod.ProviderRequirements.RequiredProviders {
+			if localTypes[req.Type.String()] {
+				// find the last declaration to give a better error
+				prevDecl := ""
+				for localName, typ := range localNames {
+					if typ.Equals(req.Type) {
+						prevDecl = localName
+					}
+				}
+
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Duplicate required provider",
+					Detail: fmt.Sprintf(
+						"Provider %s with the local name %q was previously required as %q. A provider can only be required once within required_providers.",
+						req.Type.ForDisplay(), req.Name, prevDecl,
+					),
+					Subject: &req.DeclRange,
+				})
+			} else if addrs.IsDefaultProvider(req.Type) {
+				// Now check for possible implied duplicates, where a provider
+				// block uses a default namespaced provider, but that provider
+				// was required via a different name.
+				impliedLocalName := req.Type.Type
+				// We have to search through the configs for a match, since the keys contains any aliases.
+				for _, pc := range mod.ProviderConfigs {
+					if pc.Name == impliedLocalName && req.Name != impliedLocalName {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Duplicate required provider",
+							Detail: fmt.Sprintf(
+								"Provider %s with the local name %q was implicitly required via a configuration block as %q. The provider configuration block name must match the name used in required_providers.",
+								req.Type.ForDisplay(), req.Name, req.Type.Type,
+							),
+							Subject: &req.DeclRange,
+						})
+						break
+					}
+				}
+			}
+
+			localTypes[req.Type.String()] = true
+
 			localNames[req.Name] = req.Type
 			for _, alias := range req.Aliases {
 				addr := addrs.AbsProviderConfig{
@@ -94,6 +141,56 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			}
 		}
 	}
+
+	checkImpliedProviderNames := func(resourceConfigs map[string]*Resource) {
+		// Now that we have all the provider configs and requirements validated,
+		// check for any resources which use an implied localname which doesn't
+		// match that of required_providers
+		for _, r := range resourceConfigs {
+			// We're looking for resources with no specific provider reference
+			if r.ProviderConfigRef != nil {
+				continue
+			}
+
+			localName := r.Addr().ImpliedProvider()
+
+			_, err := addrs.ParseProviderPart(localName)
+			if err != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid provider local name",
+					Detail:   fmt.Sprintf("%q is an invalid implied provider local name: %s", localName, err),
+					Subject:  r.DeclRange.Ptr(),
+				})
+				continue
+			}
+
+			if _, ok := localNames[localName]; ok {
+				// OK, this was listed directly in the required_providers
+				continue
+			}
+
+			defAddr := addrs.ImpliedProviderForUnqualifiedType(localName)
+
+			// Now make sure we don't have the same provider required under a
+			// different name.
+			for prevLocalName, addr := range localNames {
+				if addr.Equals(defAddr) {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Duplicate required provider",
+						Detail: fmt.Sprintf(
+							"Provider %q was implicitly required via resource %q, but listed in required_providers as %q. Either the local name in required_providers must match the resource name, or the %q provider must be assigned within the resource block.",
+							defAddr, r.Addr(), prevLocalName, prevLocalName,
+						),
+						Subject: &r.DeclRange,
+					})
+				}
+			}
+		}
+	}
+	checkImpliedProviderNames(mod.ManagedResources)
+	checkImpliedProviderNames(mod.DataResources)
 
 	// collect providers passed from the parent
 	if parentCall != nil {
@@ -260,7 +357,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		if !(localName || configAlias || emptyConfig) {
 
 			// we still allow default configs, so switch to a warning if the incoming provider is a default
-			if providerAddr.Provider.IsDefault() {
+			if addrs.IsDefaultProvider(providerAddr.Provider) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Reference to undefined provider",

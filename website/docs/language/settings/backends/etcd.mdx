@@ -3,7 +3,9 @@ page_title: 'Backend Type: etcd'
 description: Terraform can store state remotely in etcd 2.x.
 ---
 
-# etcd
+# etcd (deprecated)
+
+-> **Note:** The `etcd` backend is deprecated and will be removed in a future Terraform release.
 
 Stores the state in [etcd 2.x](https://coreos.com/etcd/docs/latest/v2/README.html) at a given path.
 
@@ -32,7 +34,9 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-## Configuration variables
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 

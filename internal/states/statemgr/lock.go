@@ -15,6 +15,10 @@ func (s *LockDisabled) State() *states.State {
 	return s.Inner.State()
 }
 
+func (s *LockDisabled) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return s.Inner.GetRootOutputValues()
+}
+
 func (s *LockDisabled) WriteState(v *states.State) error {
 	return s.Inner.WriteState(v)
 }

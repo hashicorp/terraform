@@ -2,6 +2,7 @@ package dag
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -178,65 +179,135 @@ type vertexAtDepth struct {
 	Depth  int
 }
 
+// TopologicalOrder returns a topological sort of the given graph. The nodes
+// are not sorted, and any valid order may be returned. This function will
+// panic if it encounters a cycle.
+func (g *AcyclicGraph) TopologicalOrder() []Vertex {
+	return g.topoOrder(upOrder)
+}
+
+// ReverseTopologicalOrder returns a topological sort of the given graph,
+// following each edge in reverse. The nodes are not sorted, and any valid
+// order may be returned. This function will panic if it encounters a cycle.
+func (g *AcyclicGraph) ReverseTopologicalOrder() []Vertex {
+	return g.topoOrder(downOrder)
+}
+
+func (g *AcyclicGraph) topoOrder(order walkType) []Vertex {
+	// Use a dfs-based sorting algorithm, similar to that used in
+	// TransitiveReduction.
+	sorted := make([]Vertex, 0, len(g.vertices))
+
+	// tmp track the current working node to check for cycles
+	tmp := map[Vertex]bool{}
+
+	// perm tracks completed nodes to end the recursion
+	perm := map[Vertex]bool{}
+
+	var visit func(v Vertex)
+
+	visit = func(v Vertex) {
+		if perm[v] {
+			return
+		}
+
+		if tmp[v] {
+			panic("cycle found in dag")
+		}
+
+		tmp[v] = true
+		var next Set
+		switch {
+		case order&downOrder != 0:
+			next = g.downEdgesNoCopy(v)
+		case order&upOrder != 0:
+			next = g.upEdgesNoCopy(v)
+		default:
+			panic(fmt.Sprintln("invalid order", order))
+		}
+
+		for _, u := range next {
+			visit(u)
+		}
+
+		tmp[v] = false
+		perm[v] = true
+		sorted = append(sorted, v)
+	}
+
+	for _, v := range g.Vertices() {
+		visit(v)
+	}
+
+	return sorted
+}
+
+type walkType uint64
+
+const (
+	depthFirst walkType = 1 << iota
+	breadthFirst
+	downOrder
+	upOrder
+)
+
 // DepthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start.
-// The algorithm used here does not do a complete topological sort. To ensure
-// correct overall ordering run TransitiveReduction first.
 func (g *AcyclicGraph) DepthFirstWalk(start Set, f DepthWalkFunc) error {
-	seen := make(map[Vertex]struct{})
-	frontier := make([]*vertexAtDepth, 0, len(start))
-	for _, v := range start {
-		frontier = append(frontier, &vertexAtDepth{
-			Vertex: v,
-			Depth:  0,
-		})
-	}
-	for len(frontier) > 0 {
-		// Pop the current vertex
-		n := len(frontier)
-		current := frontier[n-1]
-		frontier = frontier[:n-1]
-
-		// Check if we've seen this already and return...
-		if _, ok := seen[current.Vertex]; ok {
-			continue
-		}
-		seen[current.Vertex] = struct{}{}
-
-		// Visit the current node
-		if err := f(current.Vertex, current.Depth); err != nil {
-			return err
-		}
-
-		for _, v := range g.downEdgesNoCopy(current.Vertex) {
-			frontier = append(frontier, &vertexAtDepth{
-				Vertex: v,
-				Depth:  current.Depth + 1,
-			})
-		}
-	}
-
-	return nil
+	return g.walk(depthFirst|downOrder, false, start, f)
 }
 
 // ReverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
-// The algorithm used here does not do a complete topological sort. To ensure
-// correct overall ordering run TransitiveReduction first.
 func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
+	return g.walk(depthFirst|upOrder, false, start, f)
+}
+
+// BreadthFirstWalk does a breadth-first walk of the graph starting from
+// the vertices in start.
+func (g *AcyclicGraph) BreadthFirstWalk(start Set, f DepthWalkFunc) error {
+	return g.walk(breadthFirst|downOrder, false, start, f)
+}
+
+// ReverseBreadthFirstWalk does a breadth-first walk _up_ the graph starting from
+// the vertices in start.
+func (g *AcyclicGraph) ReverseBreadthFirstWalk(start Set, f DepthWalkFunc) error {
+	return g.walk(breadthFirst|upOrder, false, start, f)
+}
+
+// Setting test to true will walk sets of vertices in sorted order for
+// deterministic testing.
+func (g *AcyclicGraph) walk(order walkType, test bool, start Set, f DepthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
-	frontier := make([]*vertexAtDepth, 0, len(start))
+	frontier := make([]vertexAtDepth, 0, len(start))
 	for _, v := range start {
-		frontier = append(frontier, &vertexAtDepth{
+		frontier = append(frontier, vertexAtDepth{
 			Vertex: v,
 			Depth:  0,
 		})
 	}
+
+	if test {
+		testSortFrontier(frontier)
+	}
+
 	for len(frontier) > 0 {
 		// Pop the current vertex
-		n := len(frontier)
-		current := frontier[n-1]
-		frontier = frontier[:n-1]
+		var current vertexAtDepth
+
+		switch {
+		case order&depthFirst != 0:
+			// depth first, the frontier is used like a stack
+			n := len(frontier)
+			current = frontier[n-1]
+			frontier = frontier[:n-1]
+		case order&breadthFirst != 0:
+			// breadth first, the frontier is used like a queue
+			current = frontier[0]
+			frontier = frontier[1:]
+		default:
+			panic(fmt.Sprint("invalid visit order", order))
+		}
 
 		// Check if we've seen this already and return...
 		if _, ok := seen[current.Vertex]; ok {
@@ -244,18 +315,53 @@ func (g *AcyclicGraph) ReverseDepthFirstWalk(start Set, f DepthWalkFunc) error {
 		}
 		seen[current.Vertex] = struct{}{}
 
-		for _, t := range g.upEdgesNoCopy(current.Vertex) {
-			frontier = append(frontier, &vertexAtDepth{
-				Vertex: t,
-				Depth:  current.Depth + 1,
-			})
-		}
-
 		// Visit the current node
 		if err := f(current.Vertex, current.Depth); err != nil {
 			return err
 		}
-	}
 
+		var edges Set
+		switch {
+		case order&downOrder != 0:
+			edges = g.downEdgesNoCopy(current.Vertex)
+		case order&upOrder != 0:
+			edges = g.upEdgesNoCopy(current.Vertex)
+		default:
+			panic(fmt.Sprint("invalid walk order", order))
+		}
+
+		if test {
+			frontier = testAppendNextSorted(frontier, edges, current.Depth+1)
+		} else {
+			frontier = appendNext(frontier, edges, current.Depth+1)
+		}
+	}
 	return nil
+}
+
+func appendNext(frontier []vertexAtDepth, next Set, depth int) []vertexAtDepth {
+	for _, v := range next {
+		frontier = append(frontier, vertexAtDepth{
+			Vertex: v,
+			Depth:  depth,
+		})
+	}
+	return frontier
+}
+
+func testAppendNextSorted(frontier []vertexAtDepth, edges Set, depth int) []vertexAtDepth {
+	var newEdges []vertexAtDepth
+	for _, v := range edges {
+		newEdges = append(newEdges, vertexAtDepth{
+			Vertex: v,
+			Depth:  depth,
+		})
+	}
+	testSortFrontier(newEdges)
+	return append(frontier, newEdges...)
+}
+func testSortFrontier(f []vertexAtDepth) {
+	sort.Slice(f, func(i, j int) bool {
+		return VertexName(f[i].Vertex) < VertexName(f[j].Vertex)
+	})
 }

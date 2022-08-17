@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/experiments"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // When developing UI for experimental features, you can temporarily disable
@@ -27,7 +26,7 @@ var disableExperimentWarnings = ""
 // the experiments are known before we process the result of the module config,
 // and thus we can take into account which experiments are active when deciding
 // how to decode.
-func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
+func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.Diagnostics) {
 	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
 
 	ret := experiments.NewSet()
@@ -85,9 +84,37 @@ func sniffActiveExperiments(body hcl.Body) (experiments.Set, hcl.Diagnostics) {
 		}
 
 		exps, expDiags := decodeExperimentsAttr(attr)
-		diags = append(diags, expDiags...)
-		if !expDiags.HasErrors() {
-			ret = experiments.SetUnion(ret, exps)
+
+		// Because we concluded this particular experiment in the same
+		// release as we made experiments alpha-releases-only, we need to
+		// treat it as special to avoid masking the "experiment has concluded"
+		// error with the more general "experiments are not available at all"
+		// error. Note that this experiment is marked as concluded so this
+		// only "allows" showing the different error message that it is
+		// concluded, and does not allow actually using the experiment outside
+		// of an alpha.
+		// NOTE: We should be able to remove this special exception a release
+		// or two after v1.3 when folks have had a chance to notice that the
+		// experiment has concluded and update their modules accordingly.
+		// When we do so, we might also consider changing decodeExperimentsAttr
+		// to _not_ include concluded experiments in the returned set, since
+		// we're doing that right now only to make this condition work.
+		if exps.Has(experiments.ModuleVariableOptionalAttrs) && len(exps) == 1 {
+			allowed = true
+		}
+
+		if allowed {
+			diags = append(diags, expDiags...)
+			if !expDiags.HasErrors() {
+				ret = experiments.SetUnion(ret, exps)
+			}
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Module uses experimental features",
+				Detail:   "Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.",
+				Subject:  attr.NameRange.Ptr(),
+			})
 		}
 	}
 
@@ -126,6 +153,15 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				Subject:  expr.Range().Ptr(),
 			})
 		case experiments.ConcludedError:
+			// As a special case we still include the optional attributes
+			// experiment if it's present, because our caller treats that
+			// as special. See the comment in sniffActiveExperiments for
+			// more information, and remove this special case here one the
+			// special case up there is also removed.
+			if kw == "module_variable_optional_attrs" {
+				ret.Add(experiments.ModuleVariableOptionalAttrs)
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Experiment has concluded",
@@ -145,7 +181,7 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  fmt.Sprintf("Experimental feature %q is active", exp.Keyword()),
-					Detail:   "Experimental features are subject to breaking changes in future minor or patch releases, based on feedback.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+					Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 					Subject:  expr.Range().Ptr(),
 				})
 			}
@@ -196,51 +232,5 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
-	if !m.ActiveExperiments.Has(experiments.ModuleVariableOptionalAttrs) {
-		for _, v := range m.Variables {
-			if typeConstraintHasOptionalAttrs(v.ConstraintType) {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Optional object type attributes are experimental",
-					Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding module_variable_optional_attrs to the list of active experiments.",
-					Subject:  v.DeclRange.Ptr(),
-				})
-			}
-		}
-	}
-
 	return diags
-}
-
-func typeConstraintHasOptionalAttrs(ty cty.Type) bool {
-	if ty == cty.NilType {
-		// Weird, but we'll just ignore it to avoid crashing.
-		return false
-	}
-
-	switch {
-	case ty.IsPrimitiveType():
-		return false
-	case ty.IsCollectionType():
-		return typeConstraintHasOptionalAttrs(ty.ElementType())
-	case ty.IsObjectType():
-		if len(ty.OptionalAttributes()) != 0 {
-			return true
-		}
-		for _, aty := range ty.AttributeTypes() {
-			if typeConstraintHasOptionalAttrs(aty) {
-				return true
-			}
-		}
-		return false
-	case ty.IsTupleType():
-		for _, ety := range ty.TupleElementTypes() {
-			if typeConstraintHasOptionalAttrs(ety) {
-				return true
-			}
-		}
-		return false
-	default:
-		return false
-	}
 }

@@ -148,3 +148,16 @@ func (l *Loader) ImportSourcesFromSnapshot(snap *Snapshot) {
 		}
 	}
 }
+
+// AllowLanguageExperiments specifies whether subsequent LoadConfig (and
+// similar) calls will allow opting in to experimental language features.
+//
+// If this method is never called for a particular loader, the default behavior
+// is to disallow language experiments.
+//
+// Main code should set this only for alpha or development builds. Test code
+// is responsible for deciding for itself whether and how to call this
+// method.
+func (l *Loader) AllowLanguageExperiments(allowed bool) {
+	l.parser.AllowLanguageExperiments(allowed)
+}

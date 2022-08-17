@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -16,7 +18,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodeAbstractResourceInstance represents a resource instance with no
@@ -378,6 +379,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 // planDestroy returns a plain destroy diff.
 func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState *states.ResourceInstanceObject, deposedKey states.DeposedKey) (*plans.ResourceInstanceChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+	var plan *plans.ResourceInstanceChange
 
 	absAddr := n.Addr
 
@@ -410,9 +412,60 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		return noop, nil
 	}
 
-	// Plan is always the same for a destroy. We don't need the provider's
-	// help for this one.
-	plan := &plans.ResourceInstanceChange{
+	unmarkedPriorVal, _ := currentState.Value.UnmarkDeep()
+
+	// The config and new value are null to signify that this is a destroy
+	// operation.
+	nullVal := cty.NullVal(unmarkedPriorVal.Type())
+
+	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	if err != nil {
+		return plan, diags.Append(err)
+	}
+
+	metaConfigVal, metaDiags := n.providerMetas(ctx)
+	diags = diags.Append(metaDiags)
+	if diags.HasErrors() {
+		return plan, diags
+	}
+
+	// Allow the provider to check the destroy plan, and insert any necessary
+	// private data.
+	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
+		TypeName:         n.Addr.Resource.Resource.Type,
+		Config:           nullVal,
+		PriorState:       unmarkedPriorVal,
+		ProposedNewState: nullVal,
+		PriorPrivate:     currentState.Private,
+		ProviderMeta:     metaConfigVal,
+	})
+
+	// We may not have a config for all destroys, but we want to reference it in
+	// the diagnostics if we do.
+	if n.Config != nil {
+		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
+	}
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return plan, diags
+	}
+
+	// Check that the provider returned a null value here, since that is the
+	// only valid value for a destroy plan.
+	if !resp.PlannedState.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Provider produced invalid plan",
+			fmt.Sprintf(
+				"Provider %q planned a non-null destroy value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				n.ResolvedProvider.Provider, n.Addr),
+		),
+		)
+		return plan, diags
+	}
+
+	// Plan is always the same for a destroy.
+	plan = &plans.ResourceInstanceChange{
 		Addr:        absAddr,
 		PrevRunAddr: n.prevRunAddr(ctx),
 		DeposedKey:  deposedKey,
@@ -421,7 +474,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			Before: currentState.Value,
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
-		Private:      currentState.Private,
+		Private:      resp.PlannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
 	}
 
@@ -1658,7 +1711,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		return nil, keyData, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
 	}
 
-	if planned != nil && planned.Action != plans.Read {
+	if planned != nil && planned.Action != plans.Read && planned.Action != plans.NoOp {
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
 		diags = diags.Append(fmt.Errorf(
@@ -1691,6 +1744,13 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 			return h.PostApply(n.Addr, states.CurrentGen, planned.Before, diags.Err())
 		}))
 		return nil, keyData, diags // failed preconditions prevent further evaluation
+	}
+
+	if planned.Action == plans.NoOp {
+		// If we didn't actually plan to read this then we have nothing more
+		// to do; we're evaluating this only for incidentals like the
+		// precondition/postcondition checks.
+		return nil, keyData, diags
 	}
 
 	configVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
@@ -1990,6 +2050,19 @@ func (n *NodeAbstractResourceInstance) apply(
 		state = &states.ResourceInstanceObject{}
 	}
 
+	if applyConfig != nil {
+		forEach, _ := evaluateForEachExpression(applyConfig.ForEach, ctx)
+		keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+	}
+
+	if change.Action == plans.NoOp {
+		// If this is a no-op change then we don't want to actually change
+		// anything, so we'll just echo back the state we were given and
+		// let our internal checks and updates proceed.
+		log.Printf("[TRACE] NodeAbstractResourceInstance.apply: skipping %s because it has no planned action", n.Addr)
+		return state, keyData, diags
+	}
+
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, keyData, diags.Append(err)
@@ -2006,8 +2079,6 @@ func (n *NodeAbstractResourceInstance) apply(
 	configVal := cty.NullVal(cty.DynamicPseudoType)
 	if applyConfig != nil {
 		var configDiags tfdiags.Diagnostics
-		forEach, _ := evaluateForEachExpression(applyConfig.ForEach, ctx)
-		keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 		configVal, _, configDiags = ctx.EvaluateBlock(applyConfig.Config, schema, nil, keyData)
 		diags = diags.Append(configDiags)
 		if configDiags.HasErrors() {

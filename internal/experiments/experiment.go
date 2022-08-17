@@ -27,7 +27,7 @@ func init() {
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")
-	registerCurrentExperiment(ModuleVariableOptionalAttrs)
+	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the Terraform language from Terraform v1.3.0 onwards.")
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
@@ -92,6 +92,7 @@ var currentExperiments = make(Set)
 // Members of this map are registered in the init function above.
 var concludedExperiments = make(map[Experiment]string)
 
+//lint:ignore U1000 No experiments are active
 func registerCurrentExperiment(exp Experiment) {
 	currentExperiments.Add(exp)
 }

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -8,14 +9,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Test that the PreApply hook is called with the correct deposed key
@@ -914,6 +917,162 @@ resource "test_resource" "c" {
 	})
 }
 
+func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
+	// This tests the less common situation where a condition fails due to
+	// a change in a resource other than the one the condition is attached to,
+	// and the condition result is unknown during planning.
+	//
+	// This edge case is a tricky one because it relies on Terraform still
+	// visiting test_resource.b (in the configuration below) to evaluate
+	// its conditions even though there aren't any changes directly planned
+	// for it, so that we can consider whether changes to test_resource.a
+	// have changed the outcome.
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			resource "test_resource" "a" {
+				value = var.input
+			}
+
+			resource "test_resource" "b" {
+				value = "beep"
+
+				lifecycle {
+					postcondition {
+						condition     = test_resource.a.output == self.output
+						error_message = "Outputs must match."
+					}
+				}
+			}
+		`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"output": {
+						Type:     cty.String,
+						Computed: true,
+					},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// Whenever "value" changes, "output" follows it during the apply step,
+		// but is initially unknown during the plan step.
+
+		m := req.ProposedNewState.AsValueMap()
+		priorVal := cty.NullVal(cty.String)
+		if !req.PriorState.IsNull() {
+			priorVal = req.PriorState.GetAttr("value")
+		}
+		if m["output"].IsNull() || !priorVal.RawEquals(m["value"]) {
+			m["output"] = cty.UnknownVal(cty.String)
+		}
+
+		resp.PlannedState = cty.ObjectVal(m)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		m := req.PlannedState.AsValueMap()
+		m["output"] = m["value"]
+		resp.NewState = cty.ObjectVal(m)
+		return resp
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	instA := mustResourceInstanceAddr("test_resource.a")
+	instB := mustResourceInstanceAddr("test_resource.b")
+
+	// Preparation: an initial plan and apply with a correct input variable
+	// should succeed and give us a valid and complete state to use for the
+	// subsequent plan and apply that we'll expect to fail.
+	var prevRunState *states.State
+	{
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("beep"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		planA := plan.Changes.ResourceInstance(instA)
+		if planA == nil || planA.Action != plans.Create {
+			t.Fatalf("incorrect initial plan for instance A\nwant a 'create' change\ngot: %s", spew.Sdump(planA))
+		}
+		planB := plan.Changes.ResourceInstance(instB)
+		if planB == nil || planB.Action != plans.Create {
+			t.Fatalf("incorrect initial plan for instance B\nwant a 'create' change\ngot: %s", spew.Sdump(planB))
+		}
+
+		state, diags := ctx.Apply(plan, m)
+		assertNoErrors(t, diags)
+
+		stateA := state.ResourceInstance(instA)
+		if stateA == nil || stateA.Current == nil || !bytes.Contains(stateA.Current.AttrsJSON, []byte(`"beep"`)) {
+			t.Fatalf("incorrect initial state for instance A\ngot: %s", spew.Sdump(stateA))
+		}
+		stateB := state.ResourceInstance(instB)
+		if stateB == nil || stateB.Current == nil || !bytes.Contains(stateB.Current.AttrsJSON, []byte(`"beep"`)) {
+			t.Fatalf("incorrect initial state for instance B\ngot: %s", spew.Sdump(stateB))
+		}
+		prevRunState = state
+	}
+
+	// Now we'll run another plan and apply with a different value for
+	// var.input that should cause the test_resource.b condition to be unknown
+	// during planning and then fail during apply.
+	{
+		plan, diags := ctx.Plan(m, prevRunState, &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("boop"), // NOTE: This has changed
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoErrors(t, diags)
+		planA := plan.Changes.ResourceInstance(instA)
+		if planA == nil || planA.Action != plans.Update {
+			t.Fatalf("incorrect initial plan for instance A\nwant an 'update' change\ngot: %s", spew.Sdump(planA))
+		}
+		planB := plan.Changes.ResourceInstance(instB)
+		if planB == nil || planB.Action != plans.NoOp {
+			t.Fatalf("incorrect initial plan for instance B\nwant a 'no-op' change\ngot: %s", spew.Sdump(planB))
+		}
+
+		_, diags = ctx.Apply(plan, m)
+		if !diags.HasErrors() {
+			t.Fatal("final apply succeeded, but should've failed with a postcondition error")
+		}
+		if len(diags) != 1 {
+			t.Fatalf("expected exactly one diagnostic, but got: %s", diags.Err().Error())
+		}
+		if got, want := diags[0].Description().Summary, "Resource postcondition failed"; got != want {
+			t.Fatalf("wrong diagnostic summary\ngot:  %s\nwant: %s", got, want)
+		}
+	}
+}
+
 // pass an input through some expanded values, and back to a provider to make
 // sure we can fully evaluate a provider configuration during a destroy plan.
 func TestContext2Apply_destroyWithConfiguredProvider(t *testing.T) {
@@ -1042,11 +1201,110 @@ output "out" {
 	state, diags := ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 
-	// TODO: extend this to ensure the otherProvider is always properly
-	// configured during the destroy plan
+	otherProvider.ConfigureProviderCalled = false
+	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		// check that our config is complete, even during a destroy plan
+		expected := cty.ObjectVal(map[string]cty.Value{
+			"local":  cty.ListVal([]cty.Value{cty.StringVal("first-ok"), cty.StringVal("second-ok")}),
+			"output": cty.ListVal([]cty.Value{cty.StringVal("first-ok"), cty.StringVal("second-ok")}),
+			"var": cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("first"),
+				"b": cty.StringVal("second"),
+			}),
+		})
+
+		if !req.Config.RawEquals(expected) {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf(
+				`incorrect provider config:
+expected: %#v
+got:      %#v`,
+				expected, req.Config))
+		}
+
+		return resp
+	}
 
 	opts.Mode = plans.DestroyMode
+	// skip refresh so that we don't configure the provider before the destroy plan
+	opts.SkipRefresh = true
+
 	// destroy only a single instance not included in the moved statements
 	_, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
+
+	if !otherProvider.ConfigureProviderCalled {
+		t.Fatal("failed to configure provider during destroy plan")
+	}
+}
+
+// check that a provider can verify a planned destroy
+func TestContext2Apply_plannedDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+}`,
+	})
+
+	p := simpleMockProvider()
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		if !req.ProposedNewState.IsNull() {
+			// we should only be destroying in this test
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unexpected plan with %#v", req.ProposedNewState))
+			return resp
+		}
+
+		resp.PlannedState = req.ProposedNewState
+		// we're going to verify the destroy plan by inserting private data required for destroy
+		resp.PlannedPrivate = append(resp.PlannedPrivate, []byte("planned")...)
+		return resp
+	}
+
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		// if the value is nil, we return that directly to correspond to a delete
+		if !req.PlannedState.IsNull() {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unexpected apply with %#v", req.PlannedState))
+			return resp
+		}
+
+		resp.NewState = req.PlannedState
+
+		// make sure we get our private data from the plan
+		private := string(req.PlannedPrivate)
+		if private != "planned" {
+			resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("missing private data from plan, got %q", private))
+		}
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"ok"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+		// we don't want to refresh, because that actually runs a normal plan
+		SkipRefresh: true,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("plan: %s", diags.Err())
+	}
+
+	_, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("apply: %s", diags.Err())
+	}
 }

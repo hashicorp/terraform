@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestValidateMoves(t *testing.T) {
@@ -334,7 +335,7 @@ Each resource can have moved from only one source resource.`,
 					`test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to resource in another module package": {
 			Statements: []MoveStatement{
@@ -344,7 +345,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move from module call in another module package": {
 			Statements: []MoveStatement{
@@ -354,7 +355,7 @@ Each resource can have moved from only one source resource.`,
 					`module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to module call in another module package": {
 			Statements: []MoveStatement{
@@ -364,7 +365,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"implied move from resource in another module package": {
 			Statements: []MoveStatement{
@@ -702,5 +703,5 @@ func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) Mov
 }
 
 var fakeExternalModuleSource = addrs.ModuleSourceRemote{
-	PackageAddr: addrs.ModulePackage("fake-external:///"),
+	Package: addrs.ModulePackage("fake-external:///"),
 }

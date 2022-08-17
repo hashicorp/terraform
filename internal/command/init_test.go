@@ -1644,7 +1644,7 @@ func TestInit_providerSource(t *testing.T) {
 	})
 	defer close()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1726,13 +1726,16 @@ func TestInit_providerSource(t *testing.T) {
 			},
 		),
 	}
+
 	if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
-	outputStr := ui.OutputWriter.String()
-	if want := "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(outputStr, want) {
-		t.Fatalf("unexpected output: %s\nexpected to include %q", outputStr, want)
+	if got, want := ui.OutputWriter.String(), "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected output: %s\nexpected to include %q", got, want)
+	}
+	if got, want := ui.ErrorWriter.String(), "\n  - hashicorp/source\n  - hashicorp/test\n  - hashicorp/test-beta"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
 

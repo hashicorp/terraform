@@ -87,9 +87,7 @@ changes the remote system to match the changes you make to
 your configuration. Terraform has two alternative planning modes, each of which creates a plan with a different intended outcome. These options are available for  both `terraform plan` and [`terraform apply`](/cli/commands/apply).
 
 * **Destroy mode:** creates a plan whose goal is to destroy all remote objects
-  that currently exist, leaving an empty Terraform state. This can be useful
-  for situations like transient development environments, where the managed
-  objects cease to be useful once the development task is complete.
+  that currently exist, leaving an empty Terraform state. It is the same as running [`terraform destroy`](/cli/commands/destroy). Destroy mode can be useful for situations like transient development environments, where the managed objects cease to be useful once the development task is complete.
 
   Activate destroy mode using the `-destroy` command line option.
 

@@ -212,6 +212,16 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 					for _, v := range g.UpEdges(n) {
 						switch v.(type) {
 						case graphNodeExpandsInstances:
+							// Root module output values (which the following
+							// condition matches) are exempt because we know
+							// there is only ever exactly one instance of the
+							// root module, and so it's not actually important
+							// to expand it and so this lets us do a bit more
+							// pruning than we'd be able to do otherwise.
+							if tmp, ok := v.(graphNodeTemporaryValue); ok && !tmp.temporaryValue() {
+								continue
+							}
+
 							// expanders can always depend on module expansion
 							// themselves
 							return

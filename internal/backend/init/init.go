@@ -16,8 +16,6 @@ import (
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
-	backendEtcdv2 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv2"
-	backendEtcdv3 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
@@ -44,6 +42,10 @@ import (
 var backends map[string]backend.InitFn
 var backendsLock sync.Mutex
 
+// RemovedBackends is a record of previously supported backends which have
+// since been deprecated and removed.
+var RemovedBackends map[string]string
+
 // Init initializes the backends map with all our hardcoded backends.
 func Init(services *disco.Disco) {
 	backendsLock.Lock()
@@ -54,26 +56,22 @@ func Init(services *disco.Disco) {
 		"remote": func() backend.Backend { return backendRemote.New(services) },
 
 		// Remote State backends.
-		"artifactory": func() backend.Backend { return backendArtifactory.New() },
-		"azurerm":     func() backend.Backend { return backendAzure.New() },
-		"consul":      func() backend.Backend { return backendConsul.New() },
-		"cos":         func() backend.Backend { return backendCos.New() },
-		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
-		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
-		"gcs":         func() backend.Backend { return backendGCS.New() },
-		"http":        func() backend.Backend { return backendHTTP.New() },
-		"inmem":       func() backend.Backend { return backendInmem.New() },
-		"kubernetes":  func() backend.Backend { return backendKubernetes.New() },
-		"manta":       func() backend.Backend { return backendManta.New() },
-		"oss":         func() backend.Backend { return backendOSS.New() },
-		"pg":          func() backend.Backend { return backendPg.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },
-		"swift":       func() backend.Backend { return backendSwift.New() },
+		"azurerm":    func() backend.Backend { return backendAzure.New() },
+		"consul":     func() backend.Backend { return backendConsul.New() },
+		"cos":        func() backend.Backend { return backendCos.New() },
+		"gcs":        func() backend.Backend { return backendGCS.New() },
+		"http":       func() backend.Backend { return backendHTTP.New() },
+		"inmem":      func() backend.Backend { return backendInmem.New() },
+		"kubernetes": func() backend.Backend { return backendKubernetes.New() },
+		"oss":        func() backend.Backend { return backendOSS.New() },
+		"pg":         func() backend.Backend { return backendPg.New() },
+		"s3":         func() backend.Backend { return backendS3.New() },
 
 		// Terraform Cloud 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
 
+		// FIXME: remove deprecated backends for v1.3
 		// Deprecated backends.
 		"azure": func() backend.Backend {
 			return deprecateBackend(
@@ -81,6 +79,29 @@ func Init(services *disco.Disco) {
 				`Warning: "azure" name is deprecated, please use "azurerm"`,
 			)
 		},
+		"artifactory": func() backend.Backend {
+			return deprecateBackend(
+				backendArtifactory.New(),
+				`Warning: "artifactory" backend is deprecated, and will be removed in a future release."`,
+			)
+		},
+		"manta": func() backend.Backend {
+			return deprecateBackend(
+				backendManta.New(),
+				`Warning: "manta" backend is deprecated, and will be removed in a future release."`,
+			)
+		},
+		"swift": func() backend.Backend {
+			return deprecateBackend(
+				backendSwift.New(),
+				`Warning: "swift" backend is deprecated, and will be removed in a future release."`,
+			)
+		},
+	}
+
+	RemovedBackends = map[string]string{
+		"etcd":   `The "etcd" backend is not supported in Terraform v1.3 or later.`,
+		"etcdv3": `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
 	}
 }
 

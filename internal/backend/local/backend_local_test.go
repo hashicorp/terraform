@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -20,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocalRun(t *testing.T) {
@@ -218,6 +219,10 @@ func (s *stateStorageThatFailsRefresh) Unlock(id string) error {
 
 func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
+}
+
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return nil, fmt.Errorf("unimplemented")
 }
 
 func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {

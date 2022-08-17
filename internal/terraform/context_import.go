@@ -56,11 +56,13 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 	variables := opts.SetVariables
 
 	// Initialize our graph builder
-	builder := &ImportGraphBuilder{
+	builder := &PlanGraphBuilder{
 		ImportTargets:      opts.Targets,
 		Config:             config,
+		State:              state,
 		RootVariableValues: variables,
 		Plugins:            c.plugins,
+		Operation:          walkImport,
 	}
 
 	// Build the graph

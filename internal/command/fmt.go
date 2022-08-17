@@ -55,11 +55,6 @@ func (c *FmtCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) > 1 {
-		c.Ui.Error("The fmt command expects at most one argument.")
-		cmdFlags.Usage()
-		return 1
-	}
 
 	var paths []string
 	if len(args) == 0 {
@@ -68,7 +63,7 @@ func (c *FmtCommand) Run(args []string) int {
 		c.list = false
 		c.write = false
 	} else {
-		paths = []string{args[0]}
+		paths = args
 	}
 
 	var output io.Writer
@@ -528,15 +523,20 @@ func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
 
 func (c *FmtCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] fmt [options] [DIR]
+Usage: terraform [global options] fmt [options] [target...]
 
-	Rewrites all Terraform configuration files to a canonical format. Both
-	configuration files (.tf) and variables files (.tfvars) are updated.
-	JSON files (.tf.json or .tfvars.json) are not modified.
+  Rewrites all Terraform configuration files to a canonical format. Both
+  configuration files (.tf) and variables files (.tfvars) are updated.
+  JSON files (.tf.json or .tfvars.json) are not modified.
 
-	If DIR is not specified then the current working directory will be used.
-	If DIR is "-" then content will be read from STDIN. The given content must
-	be in the Terraform language native syntax; JSON is not supported.
+  By default, fmt scans the current directory for configuration files. If you
+  provide a directory for the target argument, then fmt will scan that
+  directory instead. If you provide a file, then fmt will process just that
+  file. If you provide a single dash ("-"), then fmt will read from standard
+  input (STDIN).
+
+  The content must be in the Terraform language native syntax; JSON is not
+  supported.
 
 Options:
 

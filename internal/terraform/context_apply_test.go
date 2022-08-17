@@ -18,6 +18,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -28,8 +31,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -7025,6 +7026,12 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// test did not match actual terraform behavior: the output remains in
 	// state.
 	//
+	// The reason it remains in the state is that we prune out the root module
+	// output values from the destroy graph as part of pruning out the "update"
+	// nodes for the resources, because otherwise the root module output values
+	// force the resources to stay in the graph and can therefore cause
+	// unwanted dependency cycles.
+	//
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to
 	// expect 0 outputs.
@@ -11041,6 +11048,13 @@ locals {
 	p := testProvider("test")
 
 	p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if r.ProposedNewState.IsNull() {
+			resp.PlannedState = r.ProposedNewState
+			resp.PlannedPrivate = r.PriorPrivate
+			return resp
+		}
+
 		n := r.ProposedNewState.AsValueMap()
 
 		if r.PriorState.IsNull() {
@@ -11453,13 +11467,20 @@ resource "test_resource" "a" {
 `})
 
 	p := testProvider("test")
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		proposed := req.ProposedNewState.AsValueMap()
 		proposed["id"] = cty.UnknownVal(cty.String)
-		return providers.PlanResourceChangeResponse{
-			PlannedState:    cty.ObjectVal(proposed),
-			RequiresReplace: []cty.Path{{cty.GetAttrStep{Name: "value"}}},
-		}
+
+		resp.PlannedState = cty.ObjectVal(proposed)
+		resp.RequiresReplace = []cty.Path{{cty.GetAttrStep{Name: "value"}}}
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -11978,10 +11999,6 @@ resource "test_resource" "foo" {
 func TestContext2Apply_moduleVariableOptionalAttributes(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type = object({
     required = string
@@ -12054,10 +12071,6 @@ output "out" {
 func TestContext2Apply_moduleVariableOptionalAttributesDefault(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type    = object({
     required = string

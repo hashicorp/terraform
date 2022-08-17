@@ -1,7 +1,7 @@
 # Terraform Core Resource Destruction Notes
 
 This document intends to describe some of the details and complications
-involved in the destructions of resources. It covers the ordering defined for
+involved in the destruction of resources. It covers the ordering defined for
 related create and destroy operations, as well as changes to the lifecycle
 ordering imposed by `create_before_destroy`. It is not intended to enumerate
 all possible combinations of dependency ordering, only to outline the basics
@@ -356,6 +356,6 @@ Order of operations:
 1. `A` is destroyed
 
 This also demonstrates why `create_before_destroy` cannot be overridden when
-it is inherited; changing the behaviour here isn't possible without removing
+it is inherited; changing the behavior here isn't possible without removing
 the initial reason for `create_before_destroy`; otherwise cycles are always
 introduced into the graph.

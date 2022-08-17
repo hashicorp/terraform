@@ -8,6 +8,58 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
+// StartsWithFunc constructs a function that checks if a string starts with
+// a specific prefix using strings.HasPrefix
+var StartsWithFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "prefix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		prefix := args[1].AsString()
+
+		if strings.HasPrefix(str, prefix) {
+			return cty.True, nil
+		}
+
+		return cty.False, nil
+	},
+})
+
+// EndsWithFunc constructs a function that checks if a string ends with
+// a specific suffix using strings.HasSuffix
+var EndsWithFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "suffix",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		str := args[0].AsString()
+		suffix := args[1].AsString()
+
+		if strings.HasSuffix(str, suffix) {
+			return cty.True, nil
+		}
+
+		return cty.False, nil
+	},
+})
+
 // ReplaceFunc constructs a function that searches a given string for another
 // given substring, and replaces each occurence with a given replacement string.
 var ReplaceFunc = function.New(&function.Spec{

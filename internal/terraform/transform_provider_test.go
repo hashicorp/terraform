@@ -49,58 +49,6 @@ func TestProviderTransformer(t *testing.T) {
 	}
 }
 
-func TestProviderTransformer_ImportModuleChild(t *testing.T) {
-	mod := testModule(t, "import-module")
-
-	g := testProviderTransformerGraph(t, mod)
-
-	{
-		tf := &ImportStateTransformer{
-			Config: mod,
-			Targets: []*ImportTarget{
-				&ImportTarget{
-					Addr: addrs.RootModuleInstance.
-						Child("child", addrs.NoKey).
-						ResourceInstance(
-							addrs.ManagedResourceMode,
-							"aws_instance",
-							"foo",
-							addrs.NoKey,
-						),
-					ID: "bar",
-				},
-			},
-		}
-
-		if err := tf.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		t.Logf("graph after ImportStateTransformer:\n%s", g.String())
-	}
-
-	{
-		tf := &MissingProviderTransformer{}
-		if err := tf.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		t.Logf("graph after MissingProviderTransformer:\n%s", g.String())
-	}
-
-	{
-		tf := &ProviderTransformer{}
-		if err := tf.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		t.Logf("graph after ProviderTransformer:\n%s", g.String())
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformImportModuleChildStr)
-	if actual != expected {
-		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
-	}
-}
-
 // Test providers with FQNs that do not match the typeName
 func TestProviderTransformer_fqns(t *testing.T) {
 	for _, mod := range []string{"fqns", "fqns-module"} {
@@ -446,6 +394,42 @@ provider["registry.terraform.io/hashicorp/test"].z`
 	}
 }
 
+func TestProviderConfigTransformer_duplicateLocalName(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+terraform {
+  required_providers {
+	# We have to allow this since it wasn't previously prevented. If the
+	# default config is equivalent to the provider config, the user may never
+	# see an error.
+    dupe = {
+      source = "registry.terraform.io/hashicorp/test"
+    }
+  }
+}
+
+provider "test" {
+}
+`})
+	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
+
+	g := testProviderTransformerGraph(t, mod)
+	tf := ProviderConfigTransformer{
+		Config:   mod,
+		Concrete: concrete,
+	}
+	if err := tf.Transform(g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := `provider["registry.terraform.io/hashicorp/test"]`
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 const testTransformProviderBasicStr = `
 aws_instance.web
   provider["registry.terraform.io/hashicorp/aws"]
@@ -505,12 +489,3 @@ module.child.module.grandchild.aws_instance.baz
   provider["registry.terraform.io/hashicorp/aws"].foo
 provider["registry.terraform.io/hashicorp/aws"].foo
 `
-
-const testTransformImportModuleChildStr = `        
-module.child.aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
-module.child.aws_instance.foo (import id "bar")
-  provider["registry.terraform.io/hashicorp/aws"]
-module.child.module.nested.aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"]`

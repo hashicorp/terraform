@@ -71,8 +71,8 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			destroy = rootChange.Action == plans.Delete
 		}
 
-		// If this is a root output, we add the apply or destroy node directly,
-		// as the root modules does not expand.
+		// If this is a root output and we're destroying, we add the destroy
+		// node directly, as there is no need to expand.
 
 		var node dag.Vertex
 		switch {
@@ -80,14 +80,6 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			node = &NodeDestroyableOutput{
 				Addr:   addr.Absolute(addrs.RootModuleInstance),
 				Config: o,
-			}
-
-		case c.Path.IsRoot():
-			node = &NodeApplyableOutput{
-				Addr:        addr.Absolute(addrs.RootModuleInstance),
-				Config:      o,
-				Change:      rootChange,
-				RefreshOnly: t.RefreshOnly,
 			}
 
 		default:

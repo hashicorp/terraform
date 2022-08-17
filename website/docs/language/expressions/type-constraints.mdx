@@ -260,11 +260,11 @@ value and thus perform no type conversion whatsoever.
 
 ## Optional Object Type Attributes
 
-Terraform v1.3 adds support for marking particular attributes as optional in an
-object type constraint.
+-> **Note:** Optional object type attributes are supported only in Terraform v1.3 and later.
 
-To mark an attribute as optional, use the additional `optional(...)` modifier
-around its type declaration:
+Terraform typically returns an error when it does not receive a value for specified object attributes. When you mark an attribute as optional, Terraform instead inserts a default value for the missing attribute. This allows the receiving module to describe an appropriate fallback behavior.
+
+To mark attributes as optional, use the `optional` modifier in the object type constraint. The following example creates optional attribute `b` and optional attribute with a default value `c`.
 
 ```hcl
 variable "with_optional_attribute" {
@@ -276,32 +276,20 @@ variable "with_optional_attribute" {
 }
 ```
 
-When evaluating variable values, Terraform will return an error if an object
-attribute specified in the variable type is not present in the given value.
-Marking an attribute as optional changes the behavior in that situation:
-Terraform will instead insert a default value for the missing attribute,
-allowing the receiving module to describe an appropriate fallback behavior.
+The `optional` modifier takes one or two arguments.
+- **Type:** (Required) The first argument
+specifies the type of the attribute.
+- **Default:** (Optional) The second argument defines the default value that Terraform should use if the attribute is not present. This must be compatible with the attribute type. If not specified, Terraform uses a `null` value of the appropriate type as the default.
 
-The `optional` modifier takes one or two arguments. The first argument
-specifies the type of the attribute, and (if given) the second attribute
-defines the default value to use if the attribute is not present. The default
-must be compatible with the attribute type. If no default is specified, a
-`null` value of the appropriate type will be used as the default.
+An optional attribute with a non-`null` default value is guaranteed to never have the value `null` within the receiving module. Terraform will substitute the default value both when a caller omits the attribute altogether and when a caller explicitly sets it to `null`, thereby avoiding the need for additional checks to handle a possible null value.
 
-During evaluation, object attribute defaults are applied top-down in nested
-variable types. This means that a given attribute's default value will also
-have any nested default values applied to it later.
+Terraform applies object attribute defaults top-down in nested variable types. This means that Terraform applies the default value you specify in the `optional` modifier first and then later applies any nested default values to that attribute.
 
 ### Example: Nested Structures with Optional Attributes and Defaults
 
-The following configuration defines a variable which describes a number of storage buckets, each of which is used to host a website. This variable type uses several optional attributes, one of which is itself an `object` type with optional attributes and defaults.
+The following example defines a variable for storage buckets that host a website. This variable type uses several optional attributes, including `website`, which is itself an optional `object` type that has optional attributes and defaults.
 
 ```hcl
-terraform {
-  # Optional attributes are currently experimental.
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "buckets" {
   type = list(object({
     name    = string
@@ -315,8 +303,13 @@ variable "buckets" {
 }
 ```
 
-To test this out, we can create a file `terraform.tfvars` to provide an example
-value for `var.buckets`:
+The following example `terraform.tfvars` file specifies three bucket configurations for `var.buckets`.
+
+- `production` sets the routing rules to add a redirect
+- `archived` uses default configuration, but is disabled
+- `docs` overrides the index and error documents to use text files
+
+The `production` bucket does not specify the index and error documents, and the `archived` bucket omits the website configuration entirely. Terraform will use the default values specified in the `bucket` type constraint.
 
 ```hcl
 buckets = [
@@ -347,15 +340,11 @@ buckets = [
 ]
 ```
 
-The intent here is to specify three bucket configurations:
+This configuration produces the following variable values.
 
-- `production` sets the routing rules to add a redirect;
-- `archived` uses default configuration but is disabled;
-- `docs` overrides the index and error documents to use text files.
-
-Note that `production` does not specify the index and error documents, and `archived` omits the website configuration altogether. Because our type specifies a default value for the `website` attribute as an empty object `{}`, Terraform fills in the defaults specified in the nested type.
-
-The resulting variable value is:
+- For the `production` and `docs` buckets, Terraform sets `enabled` to `true`. Terraform also supplies default values for `website`, and then the values specified in `docs` override those defaults.
+- For the `archived` and `docs` buckets, Terraform sets `routing_rules` to a `null` value. When Terraform does not receive optional attributes and there are no specified defaults, Terraform populates those attributes with a `null` value.
+- For the `archived` bucket, Terraform populates the `website` attribute with the default values specified in the `buckets` type constraint.
 
 ```hcl
 tolist([
@@ -397,22 +386,32 @@ tolist([
 ])
 ```
 
-Here we can see that for `production` and `docs`, the `enabled` attribute has been filled in as `true`. The default values for the `website` attribute have also been filled in, with the values specified by `docs` overriding the defaults. For `archived`, the entire default `website` value is populated.
+### Example: Conditionally setting an optional attribute
 
-One important point is that the `website` attribute for the `archived` and `docs` buckets contains a `null` value for `routing_rules`. When declaring a type constraint with an optional object attributes without a default, a value which omits that attribute will be populated with a `null` value, rather than continuing to omit the attribute in the final result.
+Sometimes the decision about whether or not to set a value for an optional argument needs to be made dynamically based on some other data. In that case, the calling `module` block can use a conditional expression with `null` as one of its result arms to represent dynamically leaving the argument unset.
 
-### Experimental Status
-
-Because this feature is currently experimental, it requires an explicit
-opt-in on a per-module basis. To use it, write a `terraform` block with the
-`experiments` argument set as follows:
+With the `variable "buckets"` declaration shown in the previous section, the following example conditionally overrides the `index_document` and `error_document` settings in the `website` object based on a new variable `var.legacy_filenames`:
 
 ```hcl
-terraform {
-  experiments = [module_variable_optional_attrs]
+variable "legacy_filenames" {
+  type     = bool
+  default  = false
+  nullable = false
+}
+
+module "buckets" {
+  source = "./modules/buckets"
+
+  buckets = [
+    {
+      name = "maybe_legacy"
+      website = {
+        error_document = var.legacy_filenames ? "ERROR.HTM" : null
+        index_document = var.legacy_filenames ? "INDEX.HTM" : null
+      }
+    },
+  ]
 }
 ```
 
-Until the experiment is concluded, the behavior of this feature may see
-breaking changes even in minor releases. We recommend using this feature
-only in prerelease versions of modules as long as it remains experimental.
+When `var.legacy_filenames` is set to `true`, the call will override the document filenames. When it is `false`, the call will leave the two filenames unspecified, thereby allowing the module to use its specified default values.

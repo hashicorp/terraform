@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -52,10 +54,6 @@ type PlanGraphBuilder struct {
 	// where we _only_ do the refresh step.)
 	skipPlanChanges bool
 
-	// CustomConcrete can be set to customize the node types created
-	// for various parts of the plan. This is useful in order to customize
-	// the plan behavior.
-	CustomConcrete                  bool
 	ConcreteProvider                ConcreteProviderNodeFunc
 	ConcreteResource                ConcreteResourceNodeFunc
 	ConcreteResourceInstance        ConcreteResourceInstanceNodeFunc
@@ -63,12 +61,16 @@ type PlanGraphBuilder struct {
 	ConcreteResourceInstanceDeposed ConcreteResourceInstanceDeposedNodeFunc
 	ConcreteModule                  ConcreteModuleNodeFunc
 
-	// destroy is set to true when create a full destroy plan.
-	destroy bool
+	// Plan Operation this graph will be used for.
+	Operation walkOperation
+
+	// ImportTargets are the list of resources to import.
+	ImportTargets []*ImportTarget
 }
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Diagnostics) {
+	log.Printf("[TRACE] building graph for %s", b.Operation)
 	return (&BasicGraphBuilder{
 		Steps: b.Steps(),
 		Name:  "PlanGraphBuilder",
@@ -77,14 +79,29 @@ func (b *PlanGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Dia
 
 // See GraphBuilder
 func (b *PlanGraphBuilder) Steps() []GraphTransformer {
-	b.init()
+	switch b.Operation {
+	case walkPlan:
+		b.initPlan()
+	case walkPlanDestroy:
+		b.initDestroy()
+	case walkValidate:
+		b.initValidate()
+	case walkImport:
+		b.initImport()
+	default:
+		panic("invalid plan operation: " + b.Operation.String())
+	}
 
 	steps := []GraphTransformer{
 		// Creates all the resources represented in the config
 		&ConfigTransformer{
 			Concrete: b.ConcreteResource,
 			Config:   b.Config,
-			skip:     b.destroy,
+
+			// Resources are not added from the config on destroy.
+			skip: b.Operation == walkPlanDestroy,
+
+			importTargets: b.ImportTargets,
 		},
 
 		// Add dynamic values
@@ -94,7 +111,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&OutputTransformer{
 			Config:            b.Config,
 			RefreshOnly:       b.skipPlanChanges,
-			removeRootOutputs: b.destroy,
+			removeRootOutputs: b.Operation == walkPlanDestroy,
 		},
 
 		// Add orphan resources
@@ -102,13 +119,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Concrete: b.ConcreteResourceOrphan,
 			State:    b.State,
 			Config:   b.Config,
-			skip:     b.destroy,
+			skip:     b.Operation == walkPlanDestroy,
 		},
 
 		// We also need nodes for any deposed instance objects present in the
-		// state, so we can plan to destroy them. (This intentionally
-		// skips creating nodes for _current_ objects, since ConfigTransformer
-		// created nodes that will do that during DynamicExpand.)
+		// state, so we can plan to destroy them. (During plan this will
+		// intentionally skip creating nodes for _current_ objects, since
+		// ConfigTransformer created nodes that will do that during
+		// DynamicExpand.)
 		&StateTransformer{
 			ConcreteCurrent: b.ConcreteResourceInstance,
 			ConcreteDeposed: b.ConcreteResourceInstanceDeposed,
@@ -172,12 +190,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 	return steps
 }
 
-func (b *PlanGraphBuilder) init() {
-	// Do nothing if the user requests customizing the fields
-	if b.CustomConcrete {
-		return
-	}
-
+func (b *PlanGraphBuilder) initPlan() {
 	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
 		return &NodeApplyableProvider{
 			NodeAbstractProvider: a,
@@ -210,5 +223,61 @@ func (b *PlanGraphBuilder) init() {
 			skipPlanChanges: b.skipPlanChanges,
 		}
 	}
+}
 
+func (b *PlanGraphBuilder) initDestroy() {
+	b.initPlan()
+
+	b.ConcreteResourceInstance = func(a *NodeAbstractResourceInstance) dag.Vertex {
+		return &NodePlanDestroyableResourceInstance{
+			NodeAbstractResourceInstance: a,
+			skipRefresh:                  b.skipRefresh,
+		}
+	}
+}
+
+func (b *PlanGraphBuilder) initValidate() {
+	// Set the provider to the normal provider. This will ask for input.
+	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{
+			NodeAbstractProvider: a,
+		}
+	}
+
+	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		return &NodeValidatableResource{
+			NodeAbstractResource: a,
+		}
+	}
+
+	b.ConcreteModule = func(n *nodeExpandModule) dag.Vertex {
+		return &nodeValidateModule{
+			nodeExpandModule: *n,
+		}
+	}
+}
+
+func (b *PlanGraphBuilder) initImport() {
+	b.ConcreteProvider = func(a *NodeAbstractProvider) dag.Vertex {
+		return &NodeApplyableProvider{
+			NodeAbstractProvider: a,
+		}
+	}
+
+	b.ConcreteResource = func(a *NodeAbstractResource) dag.Vertex {
+		return &nodeExpandPlannableResource{
+			NodeAbstractResource: a,
+
+			// For now we always skip planning changes for import, since we are
+			// not going to combine importing with other changes. This is
+			// temporary to try and maintain existing import behaviors, but
+			// planning will need to be allowed for more complex configurations.
+			skipPlanChanges: true,
+
+			// We also skip refresh for now, since the plan output is written
+			// as the new state, and users are not expecting the import process
+			// to update any other instances in state.
+			skipRefresh: true,
+		}
+	}
 }

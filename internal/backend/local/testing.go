@@ -62,7 +62,14 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
 	}
 
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan,
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		rSchema, _ := schema.SchemaForResourceType(addrs.ManagedResourceMode, req.TypeName)
 		if rSchema == nil {
 			rSchema = &configschema.Block{} // default schema is empty

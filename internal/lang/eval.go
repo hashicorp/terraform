@@ -259,8 +259,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// First we'll do static validation of the references. This catches things
 	// early that might otherwise not get caught due to unknown values being
 	// present in the scope during planning.
-	if staticDiags := s.Data.StaticValidateReferences(refs, selfAddr); staticDiags.HasErrors() {
-		diags = diags.Append(staticDiags)
+	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr)
+	diags = diags.Append(staticDiags)
+	if staticDiags.HasErrors() {
 		return ctx, diags
 	}
 

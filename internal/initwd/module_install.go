@@ -306,7 +306,7 @@ func (i *ModuleInstaller) installLocalModule(req *earlyconfig.ModuleRequest, key
 func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyconfig.ModuleRequest, key string, instPath string, addr addrs.ModuleSourceRegistry, manifest modsdir.Manifest, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	hostname := addr.PackageAddr.Host
+	hostname := addr.Package.Host
 	reg := i.reg
 	var resp *response.ModuleVersions
 	var exists bool
@@ -314,7 +314,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyc
 	// A registry entry isn't _really_ a module package, but we'll pretend it's
 	// one for the sake of this reporting by just trimming off any source
 	// directory.
-	packageAddr := addr.PackageAddr
+	packageAddr := addr.Package
 
 	// Our registry client is still using the legacy model of addresses, so
 	// we'll shim it here for now.
@@ -469,9 +469,9 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyc
 
 	dlAddr := i.registryPackageSources[moduleAddr]
 
-	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.PackageAddr)
+	log.Printf("[TRACE] ModuleInstaller: %s %s %s is available at %q", key, packageAddr, latestMatch, dlAddr.Package)
 
-	err := fetcher.FetchPackage(ctx, instPath, dlAddr.PackageAddr.String())
+	err := fetcher.FetchPackage(ctx, instPath, dlAddr.Package.String())
 	if errors.Is(err, context.Canceled) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -494,7 +494,7 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyc
 		return nil, nil, diags
 	}
 
-	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, dlAddr.PackageAddr, instPath)
+	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, dlAddr.Package, instPath)
 
 	// Incorporate any subdir information from the original path into the
 	// address returned by the registry in order to find the final directory
@@ -540,7 +540,7 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *earlyc
 
 	// Report up to the caller that we're about to start downloading.
 	addr := req.SourceAddr.(addrs.ModuleSourceRemote)
-	packageAddr := addr.PackageAddr
+	packageAddr := addr.Package
 	hooks.Download(key, packageAddr.String(), nil)
 
 	if len(req.VersionConstraints) != 0 {
@@ -758,7 +758,7 @@ func splitAddrSubdir(addr addrs.ModuleSource) (string, string) {
 		addr.Subdir = ""
 		return addr.String(), subDir
 	case addrs.ModuleSourceRemote:
-		return addr.PackageAddr.String(), addr.Subdir
+		return addr.Package.String(), addr.Subdir
 	case nil:
 		panic("splitAddrSubdir on nil addrs.ModuleSource")
 	default:

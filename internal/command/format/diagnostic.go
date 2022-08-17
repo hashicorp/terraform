@@ -278,7 +278,7 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 			)
 		}
 
-		if len(snippet.Values) > 0 {
+		if len(snippet.Values) > 0 || (snippet.FunctionCall != nil && snippet.FunctionCall.Signature != nil) {
 			// The diagnostic may also have information about the dynamic
 			// values of relevant variables at the point of evaluation.
 			// This is particularly useful for expressions that get evaluated
@@ -291,6 +291,24 @@ func appendSourceSnippets(buf *bytes.Buffer, diag *viewsjson.Diagnostic, color *
 			})
 
 			fmt.Fprint(buf, color.Color("    [dark_gray]├────────────────[reset]\n"))
+			if callInfo := snippet.FunctionCall; callInfo != nil && callInfo.Signature != nil {
+
+				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] while calling [bold]%s[reset]("), callInfo.CalledAs)
+				for i, param := range callInfo.Signature.Params {
+					if i > 0 {
+						buf.WriteString(", ")
+					}
+					buf.WriteString(param.Name)
+				}
+				if param := callInfo.Signature.VariadicParam; param != nil {
+					if len(callInfo.Signature.Params) > 0 {
+						buf.WriteString(", ")
+					}
+					buf.WriteString(param.Name)
+					buf.WriteString("...")
+				}
+				buf.WriteString(")\n")
+			}
 			for _, value := range values {
 				fmt.Fprintf(buf, color.Color("    [dark_gray]│[reset] [bold]%s[reset] %s\n"), value.Traversal, value.Statement)
 			}

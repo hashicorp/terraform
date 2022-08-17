@@ -314,6 +314,47 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"endswith": {
+			{
+				`endswith("hello world", "world")`,
+				cty.True,
+			},
+			{
+				`endswith("hello world", "hello")`,
+				cty.False,
+			},
+			{
+				`endswith("hello world", "")`,
+				cty.True,
+				// Completely empty suffix value  ( "" )
+				// will always evaluate to true for all strings.
+			},
+			{
+				`endswith("hello world", " ")`,
+				cty.False,
+			},
+			{
+				`endswith("", "")`,
+				cty.True,
+			},
+			{
+				`endswith("", " ")`,
+				cty.False,
+			},
+			{
+				`endswith(" ", "")`,
+				cty.True,
+			},
+			{
+				`endswith("", "hello")`,
+				cty.False,
+			},
+			{
+				`endswith(" ", "hello")`,
+				cty.False,
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
@@ -813,6 +854,47 @@ func TestFunctions(t *testing.T) {
 					cty.StringVal("Hello"),
 					cty.StringVal("World"),
 				}),
+			},
+		},
+
+		"startswith": {
+			{
+				`startswith("hello world", "hello")`,
+				cty.True,
+			},
+			{
+				`startswith("hello world", "world")`,
+				cty.False,
+			},
+			{
+				`startswith("hello world", "")`,
+				cty.True,
+				// Completely empty prefix value  ( "" )
+				// will always evaluate to true for all strings.
+			},
+			{
+				`startswith("hello world", " ")`,
+				cty.False,
+			},
+			{
+				`startswith("", "")`,
+				cty.True,
+			},
+			{
+				`startswith("", " ")`,
+				cty.False,
+			},
+			{
+				`startswith(" ", "")`,
+				cty.True,
+			},
+			{
+				`startswith("", "hello")`,
+				cty.False,
+			},
+			{
+				`startswith(" ", "hello")`,
+				cty.False,
 			},
 		},
 

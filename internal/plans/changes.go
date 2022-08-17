@@ -1,9 +1,10 @@
 package plans
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Changes describes various actions that Terraform will attempt to take if
@@ -114,6 +115,23 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	}
 
 	return nil
+}
+
+// RootOutputValues returns planned changes for all outputs of the root module.
+func (c *Changes) RootOutputValues() []*OutputChangeSrc {
+	var res []*OutputChangeSrc
+
+	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
+		res = append(res, oc)
+
+	}
+
+	return res
 }
 
 // OutputValues returns planned changes for all outputs for all module

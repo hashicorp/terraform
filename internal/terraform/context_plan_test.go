@@ -3093,6 +3093,15 @@ func TestContext2Plan_forEachUnknownValue(t *testing.T) {
 	if !strings.Contains(gotErrStr, wantErrStr) {
 		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
 	}
+
+	// We should have a diagnostic that is marked as being caused by unknown
+	// values.
+	for _, diag := range diags {
+		if tfdiags.DiagnosticCausedByUnknown(diag) {
+			return // don't fall through to the error below
+		}
+	}
+	t.Fatalf("no diagnostic is marked as being caused by unknown\n%s", diags.Err().Error())
 }
 
 func TestContext2Plan_destroy(t *testing.T) {

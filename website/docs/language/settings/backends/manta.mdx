@@ -3,7 +3,9 @@ page_title: 'Backend Type: manta'
 description: Terraform can store state in manta.
 ---
 
-# manta
+# manta (deprecated)
+
+-> **Note:** The `manta` backend is deprecated and will be removed in a future Terraform release.
 
 Stores the state as an artifact in [Manta](https://www.joyent.com/manta).
 
@@ -35,7 +37,9 @@ data "terraform_remote_state" "foo" {
 }
 ```
 
-## Configuration variables
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 

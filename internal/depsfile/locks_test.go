@@ -216,3 +216,94 @@ func TestLocksProviderSetRemove(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderLockContainsAll(t *testing.T) {
+	provider := addrs.NewDefaultProvider("provider")
+	v2 := getproviders.MustParseVersion("2.0.0")
+	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+
+	t.Run("non-symmetric", func(t *testing.T) {
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"1ZAChGWUMWn4zmIk",
+			"K43RHM2klOoywtyW",
+			"HWjRvIuWZ1LVatnc",
+			"swJPXfuCNhJsTM5c",
+			"KwhJK4p/U2dqbKhI",
+		})
+
+		if !original.ContainsAll(target) {
+			t.Errorf("orginal should contain all hashes in target")
+		}
+		if target.ContainsAll(original) {
+			t.Errorf("target should not contain all hashes in orginal")
+		}
+	})
+
+	t.Run("symmetric", func(t *testing.T) {
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if !original.ContainsAll(target) {
+			t.Errorf("orginal should contain all hashes in target")
+		}
+		if !target.ContainsAll(original) {
+			t.Errorf("target should not contain all hashes in orginal")
+		}
+	})
+
+	t.Run("edge case - null", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if !original.ContainsAll(nil) {
+			t.Fatalf("orginal should report true on nil")
+		}
+	})
+
+	t.Run("edge case - empty", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+
+		if !original.ContainsAll(target) {
+			t.Fatalf("orginal should report true on empty")
+		}
+	})
+
+	t.Run("edge case - original empty", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if original.ContainsAll(target) {
+			t.Fatalf("orginal should report false when empty")
+		}
+	})
+}
