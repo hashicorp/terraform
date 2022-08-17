@@ -21,7 +21,7 @@ import (
 // like the following, which again should be needed only in test code which
 // might need to inspect the filesystem in order to make assertions:
 //
-//     filepath.Join(d.RootModuleDir(), normalizePathResult)
+//	filepath.Join(d.RootModuleDir(), normalizePathResult)
 //
 // The above is suitable only for situations where the given path is known
 // to be beneath the working directory, which is the typical situation for

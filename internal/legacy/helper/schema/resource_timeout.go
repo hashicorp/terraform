@@ -153,7 +153,6 @@ func unsupportedTimeoutKeyError(key string) error {
 //
 // StateEncode encodes the timeout into the ResourceData's InstanceState for
 // saving to state
-//
 func (t *ResourceTimeout) DiffEncode(id *terraform.InstanceDiff) error {
 	return t.metaEncode(id)
 }

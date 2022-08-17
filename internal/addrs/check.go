@@ -59,8 +59,9 @@ func (c checkable) checkableSigil() {
 }
 
 // CheckType describes the category of check.
-//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
 type CheckType int
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
 
 const (
 	InvalidCondition      CheckType = 0
