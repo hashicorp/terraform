@@ -127,11 +127,12 @@ The following values are available:
   the data in `path.module` during each call. This can lead to race conditions and
   unexpected results.
 - `path.root` is the filesystem path of the root module of the configuration.
-* `path.cwd` is the filesystem path of the current working directory. This is
-  an absolute path which includes details about the filesystem structure,
-  and is useful in some advanced cases where Terraform is run from a directory
-  other than the root module directory. We recommend using `path.root` or
-  `path.module` over `path.cwd` where possible.
+- `path.cwd` is the filesystem path of the original working directory from where you
+  ran Terraform before applying any `-chdir` argument. This path is an absolute path
+  that includes details about the filesystem structure. It is also useful in some
+  advanced cases where Terraform is run from a directory other than the root module
+  directory. We recommend using `path.root` or `path.module` over `path.cwd` where
+  possible.
 - `terraform.workspace` is the name of the currently selected
   [workspace](/language/state/workspaces).
 
