@@ -587,8 +587,11 @@ func (i *ModuleInstaller) installGoGetterModule(ctx context.Context, req *earlyc
 		return nil, diags
 	}
 
-	subDir := filepath.FromSlash(addr.Subdir)
-	modDir := filepath.Join(instPath, subDir)
+	modDir, err := getmodules.ExpandSubdirGlobs(instPath, addr.Subdir)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
 
 	log.Printf("[TRACE] ModuleInstaller: %s %q was downloaded to %s", key, addr, modDir)
 
