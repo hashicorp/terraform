@@ -88,6 +88,23 @@ func TestDefaults_Apply(t *testing.T) {
 				"b": cty.StringVal("false"),
 			}),
 		},
+		// Defaults will replace explicit nulls.
+		"object with explicit null for attribute with default": {
+			defaults: &Defaults{
+				Type: simpleObject,
+				DefaultValues: map[string]cty.Value{
+					"b": cty.True,
+				},
+			},
+			value: cty.MapVal(map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.NullVal(cty.String),
+			}),
+			want: cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.True,
+			}),
+		},
 		// Defaults can be specified at any level of depth and will be applied
 		// so long as there is a parent value to populate.
 		"nested object with defaults applied": {
@@ -371,7 +388,7 @@ func TestDefaults_Apply(t *testing.T) {
 							// the child type.
 							"c": cty.ObjectVal(map[string]cty.Value{
 								"a": cty.StringVal("fallback"),
-								"b": cty.NullVal(cty.Bool),
+								"b": cty.False,
 							}),
 						},
 						Children: map[string]*Defaults{
@@ -410,7 +427,65 @@ func TestDefaults_Apply(t *testing.T) {
 						// default value for "c" includes a non-default value
 						// already.
 						"a": cty.StringVal("fallback"),
-						"b": cty.NullVal(cty.Bool),
+						"b": cty.False,
+					}),
+					"d": cty.NumberIntVal(7),
+				}),
+			}),
+		},
+		"set of nested objects, nulls in default sub-object overridden": {
+			defaults: &Defaults{
+				Type: cty.Set(nestedObject),
+				Children: map[string]*Defaults{
+					"": {
+						Type: nestedObject,
+						DefaultValues: map[string]cty.Value{
+							// The default value for "c" is used to prepopulate
+							// the nested object's value if not specified, but
+							// the null default for its "b" attribute will be
+							// overridden by the default specified in the child
+							// type.
+							"c": cty.ObjectVal(map[string]cty.Value{
+								"a": cty.StringVal("fallback"),
+								"b": cty.NullVal(cty.Bool),
+							}),
+						},
+						Children: map[string]*Defaults{
+							"c": {
+								Type: simpleObject,
+								DefaultValues: map[string]cty.Value{
+									"b": cty.True,
+								},
+							},
+						},
+					},
+				},
+			},
+			value: cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("foo"),
+					}),
+					"d": cty.NumberIntVal(5),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"d": cty.NumberIntVal(7),
+				}),
+			}),
+			want: cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"a": cty.StringVal("foo"),
+						"b": cty.True,
+					}),
+					"d": cty.NumberIntVal(5),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"c": cty.ObjectVal(map[string]cty.Value{
+						// The default value for "b" overrides the explicit
+						// null in the default value for "c".
+						"a": cty.StringVal("fallback"),
+						"b": cty.True,
 					}),
 					"d": cty.NumberIntVal(7),
 				}),
