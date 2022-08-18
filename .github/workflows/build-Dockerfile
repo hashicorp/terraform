@@ -24,10 +24,10 @@ ARG TARGETARCH
 LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
 
 # New standard version label.
-LABEL version=$VERSION
+LABEL version=$PRODUCT_VERSION
 
 # Historical Terraform-specific label preserved for backward compatibility.
-LABEL "com.hashicorp.terraform.version"="${VERSION}"
+LABEL "com.hashicorp.terraform.version"="${PRODUCT_VERSION}"
 
 RUN apk add --no-cache git openssh
 
