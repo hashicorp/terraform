@@ -291,6 +291,28 @@ in order to capture the filesystem context the remote workspace expects:
 			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
+	// Retrieve the run to get task stages.
+	// Task Stages are calculated upfront so we only need to call this once for the run.
+	taskStages := make([]*tfe.TaskStage, 0)
+	result, err := b.client.Runs.ReadWithOptions(stopCtx, r.ID, &tfe.RunReadOptions{
+		Include: []tfe.RunIncludeOpt{tfe.RunTaskStages},
+	})
+	if err == nil {
+		taskStages = result.TaskStages
+	} else {
+		// This error would be expected for older versions of TFE that do not allow
+		// fetching task_stages.
+		if !strings.HasSuffix(err.Error(), "Invalid include parameter") {
+			return r, generalError("Failed to retrieve run", err)
+		}
+	}
+
+	if stageID := getTaskStageIDByName(taskStages, tfe.PrePlan); stageID != nil {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, *stageID, "Pre-plan Tasks"); err != nil {
+			return r, err
+		}
+	}
+
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "plan", r, w)
 	if err != nil {
 		return r, err
@@ -324,20 +346,9 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	// Retrieve the run to get its current status.
-	runID := r.ID
-	r, err = b.client.Runs.ReadWithOptions(stopCtx, runID, &tfe.RunReadOptions{
-		Include: []tfe.RunIncludeOpt{tfe.RunTaskStages},
-	})
+	r, err = b.client.Runs.Read(stopCtx, r.ID)
 	if err != nil {
-		// This error would be expected for older versions of TFE that do not allow
-		// fetching task_stages.
-		if strings.HasSuffix(err.Error(), "Invalid include parameter") {
-			r, err = b.client.Runs.Read(stopCtx, runID)
-		}
-
-		if err != nil {
-			return r, generalError("Failed to retrieve run", err)
-		}
+		return r, generalError("Failed to retrieve run", err)
 	}
 
 	// If the run is canceled or errored, we still continue to the
@@ -346,18 +357,8 @@ in order to capture the filesystem context the remote workspace expects:
 	// status of the run will be "errored", but there is still policy
 	// information which should be shown.
 
-	// Await post-plan run tasks
-	integration := &IntegrationContext{
-		B:             b,
-		StopContext:   stopCtx,
-		CancelContext: cancelCtx,
-		Op:            op,
-		Run:           r,
-	}
-
-	if stageID := getTaskStageIDByName(r.TaskStages, tfe.PostPlan); stageID != nil {
-		err = b.runTasks(integration, integration.BeginOutput("Run Tasks (post-plan)"), *stageID)
-		if err != nil {
+	if stageID := getTaskStageIDByName(taskStages, tfe.PostPlan); stageID != nil {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, *stageID, "Post-plan Tasks"); err != nil {
 			return r, err
 		}
 	}

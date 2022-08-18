@@ -199,6 +199,17 @@ func (b *Cloud) waitForRun(stopCtx, cancelCtx context.Context, op *backend.Opera
 	}
 }
 
+func (b *Cloud) waitTaskStage(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run, stageID string, outputTitle string) error {
+	integration := &IntegrationContext{
+		B:             b,
+		StopContext:   stopCtx,
+		CancelContext: cancelCtx,
+		Op:            op,
+		Run:           r,
+	}
+	return b.runTasks(integration, integration.BeginOutput(outputTitle), stageID)
+}
+
 func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
 	if r.CostEstimate == nil {
 		return nil
