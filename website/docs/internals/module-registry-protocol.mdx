@@ -121,9 +121,9 @@ the string "versions".
 This is the primary endpoint for resolving module sources, returning the
 available versions for a given fully-qualified module.
 
-| Method | Path                                  | Produces           |
-| ------ | ------------------------------------- | ------------------ |
-| `GET`  | `:namespace/:name/:provider/versions` | `application/json` |
+| Method | Path                                | Produces           |
+| ------ | ----------------------------------- | ------------------ |
+| `GET`  | `:namespace/:name/:system/versions` | `application/json` |
 
 ### Parameters
 
@@ -169,11 +169,11 @@ matches against any version constraints given in configuration.
 ```
 
 Return `404 Not Found` to indicate that no module is available with the
-requested namespace, name, and provider
+requested namespace, name, and target system.
 
 ## Download Source Code for a Specific Module Version
 
-This endpoint downloads the specified version of a module for a single provider.
+This endpoint downloads the specified version of a module for a single target system.
 
 | Method | Path                                         | Produces           |
 | ------ | -------------------------------------------- | ------------------ |
@@ -187,7 +187,7 @@ This endpoint downloads the specified version of a module for a single provider.
 - `name` `(string: <required>)` - The name of the module.
   This is required and is specified as part of the URL path.
 
-- `provider` `(string: <required>)` - The name of the target system.
+- `system` `(string: <required>)` - The name of the target system.
   This is required and is specified as part of the URL path.
 
 - `version` `(string: <required>)` - The version of the module.
