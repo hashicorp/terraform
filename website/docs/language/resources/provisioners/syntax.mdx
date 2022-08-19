@@ -164,10 +164,7 @@ provisioners must connect to the remote system using SSH or WinRM.
 You must include [a `connection` block](/language/resources/provisioners/connection) so that Terraform
 will know how to communicate with the server.
 
-Terraform includes several built-in provisioners; use the navigation sidebar to
-view their documentation.
-
-It's also possible to use third-party provisioners as plugins, by placing them
+Terraform includes several built-in provisioners. You can also use third-party provisioners as plugins, by placing them
 in `%APPDATA%\terraform.d\plugins`, `~/.terraform.d/plugins`, or the same
 directory where the Terraform binary is installed. However, we do not recommend
 using any provisioners except the built-in `file`, `local-exec`, and
