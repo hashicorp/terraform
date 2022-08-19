@@ -21,13 +21,11 @@ body:
     id: tf-version
     attributes:
       label: Terraform Version
-      description: Run `terraform version` to show the version, and paste the result between `` marks. If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
-
+      description: Run `terraform version` to show the version, and paste the result below. If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
+      render: shell
       placeholder:
       value: |
-        ```
         ...output of `terraform version`...
-        ```
     validations:
       required: true
 
@@ -68,7 +66,7 @@ body:
       placeholder:
       value:
     validations:
-      required: true
+      required: false
 
   - type: textarea
     id: tf-references

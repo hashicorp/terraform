@@ -32,12 +32,11 @@ body:
     id: tf-version
     attributes:
       label: Terraform Version
-      description: Run `terraform version` to show the version, and paste the result between `` marks. If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
+      description: Run `terraform version` to show the version, and paste the result below. If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
       placeholder:
+      render: shell
       value: |
-        ```
         ...output of `terraform version`...
-        ```
     validations:
       required: true
 
