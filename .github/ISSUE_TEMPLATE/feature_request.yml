@@ -84,4 +84,4 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Note:** if the submit button is disabled and you have filled out all required fields, check that you did not forget a Title for the issue.
+        **Note:** If the submit button is disabled and you have filled out all required fields, please check that you did not forget a **Title** for the issue.
