@@ -33,10 +33,9 @@ body:
     attributes:
       label: Terraform Version
       description: Run `terraform version` to show the version, and paste the result below. If you are not running the latest version of Terraform, please try upgrading because your issue may have already been fixed.
-      placeholder:
       render: shell
-      value: |
-        ...output of `terraform version`...
+      placeholder: ...output of `terraform version`...
+      value:
     validations:
       required: true
 
@@ -118,3 +117,8 @@ body:
       value:
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** if the submit button is disabled and you have filled out all required fields, check that you did not forget a Title for the issue.
