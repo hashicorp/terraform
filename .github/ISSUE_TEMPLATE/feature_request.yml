@@ -23,9 +23,8 @@ body:
       label: Terraform Version
       description: Run `terraform version` to show the version, and paste the result below. If you're not using the latest version, please check to see if something related to your request has already been implemented in a later version.
       render: shell
-      placeholder:
-      value: |
-        ...output of `terraform version`...
+      placeholder: ...output of `terraform version`...
+      value:
     validations:
       required: true
 
@@ -81,3 +80,8 @@ body:
       value:
     validations:
       required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        **Note:** if the submit button is disabled and you have filled out all required fields, check that you did not forget a Title for the issue.
