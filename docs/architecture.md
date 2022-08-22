@@ -71,7 +71,7 @@ backends in an instance of
 [`local.Local`](https://pkg.go.dev/github.com/hashicorp/terraform/internal/backend/local#Local),
 causing the operation to be executed locally within the `terraform` process itself.
 
-## Backends
+#### Backends
 
 A _backend_ determines where Terraform should store its state snapshots.
 
