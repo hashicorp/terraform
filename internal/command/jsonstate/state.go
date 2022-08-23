@@ -6,19 +6,25 @@ import (
 	"sort"
 
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// FormatVersion represents the version of the json format and will be
-// incremented for any change to this format that requires changes to a
-// consuming parser.
-const FormatVersion = "1.0"
+// FormatVersion1 represents the original version of the json format and will
+// be incremented in its minor version only for any significant change that
+// a consumer may wish to vary its behavior to benefit from.
+const FormatVersion1 = "1.0"
+
+// FormatVersion2 represents the current minor version of the second generation
+// of this format.
+const FormatVersion2 = "2.0"
 
 // state is the top-level representation of the json format of a terraform
 // state.
@@ -56,7 +62,7 @@ type module struct {
 	ChildModules []module `json:"child_modules,omitempty"`
 }
 
-// Resource is the representation of a resource in the state.
+// Resource is the representation of a resource instance object in the state.
 type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
@@ -84,11 +90,44 @@ type resource struct {
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
+	//
+	// This is populated only in state JSON version 1. Later versions use
+	// "Attributes" instead.
 	AttributeValues attributeValues `json:"values,omitempty"`
+
+	// Attributes is a JSON representation of the attribute values of the
+	// resource instance object, whose structure depends on the resource
+	// type schema.
+	//
+	// This is populated only in state JSON version 2. Unlike AttributeValues
+	// for state JSON version 1, this is the raw JSON attribute data copied
+	// verbatim from the latest state snapshot without any subsequent
+	// transformations, and so consumers of this result must use the schema
+	// for this resource type to robustly consume the attributes. In particular,
+	// any attribute that is marked as dynamically-typed in the schema will
+	// be represented as a JSON object with "type" and "value" properties,
+	// which is ambiguous with a statically-typed nested object value and
+	// can only be distinguished using the schema.
+	Attributes json.RawMessage `json:"attributes,omitempty"`
+
+	// AttributesLegacyFlatmap is set when the Attributes field contains a
+	// legacy flatmap representation of resource data that hasn't yet been
+	// updated to the v0.12-and-later nested JSON format.
+	AttributesLegacyFlatmap bool `json:"attributes_legacy_flatmap,omitempty"`
 
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
+	//
+	// This is populated only in state JSON version 1. Later versions
+	// populate SensitivePaths instead.
 	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
+
+	// SensitivePaths is a set of paths through the Attributes object to
+	// any nested attributes that are marked as sensitive.
+	//
+	// This is populated only in state JSON version 2 and later. Older versions
+	// populate SensitiveValues instead.
+	SensitivePaths []Path `json:"sensitive_paths,omitempty"`
 
 	// DependsOn contains a list of the resource's dependencies. The entries are
 	// addresses relative to the containing module.
@@ -99,6 +138,22 @@ type resource struct {
 
 	// Deposed is set if the resource is deposed in terraform state.
 	DeposedKey string `json:"deposed_key,omitempty"`
+}
+
+// Path is a JSON-serializable equivalent of a cty.Path, serialized as an
+// object containing an array rather than just an array to allow for potential
+// backward-compatible future expansion.
+//
+// Path is slightly lossy when compared to cty.Path because it doesn't
+// distinguish between indexing into a map and accessing an attribute of an
+// object, both of which will be serialized as JSON strings. That's defensible
+// for JSON because JSON itself does not distinguish between maps and objects,
+// and so this simplification gives sufficient detail to traverse through any
+// JSON data structure returned elsewhere in our JSON output. Callers who
+// _do_ care to distinguish object and map traversal must refer to out-of-band
+// information, such as a resource type schema.
+type Path struct {
+	Steps []addrs.InstanceKey `json:"steps"`
 }
 
 // attributeValues is the JSON representation of the attribute values of the
@@ -124,16 +179,29 @@ func marshalAttributeValues(value cty.Value) attributeValues {
 	return ret
 }
 
-// newState() returns a minimally-initialized state
-func newState() *state {
+// newState1() returns a minimally-initialized state version 1
+func newState1() *state {
 	return &state{
-		FormatVersion: FormatVersion,
+		FormatVersion: FormatVersion1,
 	}
 }
 
-// Marshal returns the json encoding of a terraform state.
-func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
-	output := newState()
+// newState1() returns a minimally-initialized state version 1
+func newState2() *state {
+	return &state{
+		FormatVersion: FormatVersion2,
+	}
+}
+
+// Marshal1 generates a JSON state in the original format, which requires
+// access to all of the provider schemas in order to make small transformations
+// to the attribute serialization for resources.
+func Marshal1(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
+	if schemas == nil {
+		panic("can't generate state version 1 with nil schemas")
+	}
+
+	output := newState1()
 
 	if sf == nil || sf.State.Empty() {
 		ret, err := json.Marshal(output)
@@ -146,6 +214,33 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 
 	// output.StateValues
 	err := output.marshalStateValues(sf.State, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	ret, err := json.Marshal(output)
+	return ret, err
+}
+
+// Marshal2 generates a JSON state in a newer format, which is broadly the
+// same shape as format 1.0 except that it encodes resource attribute data
+// in a raw form that is exactly what's stored in the given state file,
+// without any convenience transformations that would require schema access
+// to implement.
+func Marshal2(sf *statefile.File) ([]byte, error) {
+	output := newState2()
+
+	if sf == nil || sf.State.Empty() {
+		ret, err := json.Marshal(output)
+		return ret, err
+	}
+
+	if sf.TerraformVersion != nil {
+		output.TerraformVersion = sf.TerraformVersion.String()
+	}
+
+	// output.StateValues
+	err := output.marshalStateValues(sf.State, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -315,90 +410,203 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				)
 			}
 
-			schema, version := schemas.ResourceTypeConfig(
-				r.ProviderConfig.Provider,
-				resAddr.Mode,
-				resAddr.Type,
-			)
-
-			// It is possible that the only instance is deposed
-			if ri.Current != nil {
-				if version != ri.Current.SchemaVersion {
-					return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
-				}
-
-				current.SchemaVersion = ri.Current.SchemaVersion
-
+			// "schema" is populated only if we're marshalling to state JSON
+			// version 1, which requires some transformations that can only
+			// be done with access to the schema. For later versions we don't
+			// use the schema and just export exactly what's written in the
+			// underlying state snapshot.
+			var schema *configschema.Block
+			var version uint64
+			if schemas != nil {
+				schema, version = schemas.ResourceTypeConfig(
+					r.ProviderConfig.Provider,
+					resAddr.Mode,
+					resAddr.Type,
+				)
 				if schema == nil {
 					return nil, fmt.Errorf("no schema found for %s (in provider %s)", resAddr.String(), r.ProviderConfig.Provider)
 				}
-				riObj, err := ri.Current.Decode(schema.ImpliedType())
-				if err != nil {
-					return nil, err
-				}
-
-				current.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				s := SensitiveAsBool(riObj.Value)
-				v, err := ctyjson.Marshal(s, s.Type())
-				if err != nil {
-					return nil, err
-				}
-				current.SensitiveValues = v
-
-				if len(riObj.Dependencies) > 0 {
-					dependencies := make([]string, len(riObj.Dependencies))
-					for i, v := range riObj.Dependencies {
-						dependencies[i] = v.String()
-					}
-					current.DependsOn = dependencies
-				}
-
-				if riObj.Status == states.ObjectTainted {
-					current.Tainted = true
-				}
-				ret = append(ret, current)
 			}
 
-			for deposedKey, rios := range ri.Deposed {
-				// copy the base fields from the current instance
-				deposed := resource{
-					Address:      current.Address,
-					Type:         current.Type,
-					Name:         current.Name,
-					ProviderName: current.ProviderName,
-					Mode:         current.Mode,
-					Index:        current.Index,
-				}
+			if schema != nil {
+				// Generating JSON state version 1
 
-				riObj, err := rios.Decode(schema.ImpliedType())
-				if err != nil {
-					return nil, err
-				}
-
-				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
-
-				s := SensitiveAsBool(riObj.Value)
-				v, err := ctyjson.Marshal(s, s.Type())
-				if err != nil {
-					return nil, err
-				}
-				deposed.SensitiveValues = v
-
-				if len(riObj.Dependencies) > 0 {
-					dependencies := make([]string, len(riObj.Dependencies))
-					for i, v := range riObj.Dependencies {
-						dependencies[i] = v.String()
+				// It is possible that the only instance is deposed
+				if ri.Current != nil {
+					if version != ri.Current.SchemaVersion {
+						return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
 					}
-					deposed.DependsOn = dependencies
+
+					current.SchemaVersion = ri.Current.SchemaVersion
+
+					riObj, err := ri.Current.Decode(schema.ImpliedType())
+					if err != nil {
+						return nil, err
+					}
+
+					current.AttributeValues = marshalAttributeValues(riObj.Value)
+
+					s := SensitiveAsBool(riObj.Value)
+					v, err := ctyjson.Marshal(s, s.Type())
+					if err != nil {
+						return nil, err
+					}
+					current.SensitiveValues = v
+
+					if len(riObj.Dependencies) > 0 {
+						dependencies := make([]string, len(riObj.Dependencies))
+						for i, v := range riObj.Dependencies {
+							dependencies[i] = v.String()
+						}
+						current.DependsOn = dependencies
+					}
+
+					if riObj.Status == states.ObjectTainted {
+						current.Tainted = true
+					}
+					ret = append(ret, current)
 				}
 
-				if riObj.Status == states.ObjectTainted {
-					deposed.Tainted = true
+				for deposedKey, rios := range ri.Deposed {
+					// copy the base fields from the current instance
+					deposed := resource{
+						Address:      current.Address,
+						Type:         current.Type,
+						Name:         current.Name,
+						ProviderName: current.ProviderName,
+						Mode:         current.Mode,
+						Index:        current.Index,
+					}
+
+					riObj, err := rios.Decode(schema.ImpliedType())
+					if err != nil {
+						return nil, err
+					}
+
+					deposed.AttributeValues = marshalAttributeValues(riObj.Value)
+
+					s := SensitiveAsBool(riObj.Value)
+					v, err := ctyjson.Marshal(s, s.Type())
+					if err != nil {
+						return nil, err
+					}
+					deposed.SensitiveValues = v
+
+					if len(riObj.Dependencies) > 0 {
+						dependencies := make([]string, len(riObj.Dependencies))
+						for i, v := range riObj.Dependencies {
+							dependencies[i] = v.String()
+						}
+						deposed.DependsOn = dependencies
+					}
+
+					if riObj.Status == states.ObjectTainted {
+						deposed.Tainted = true
+					}
+					deposed.DeposedKey = deposedKey.String()
+					ret = append(ret, deposed)
 				}
-				deposed.DeposedKey = deposedKey.String()
-				ret = append(ret, deposed)
+
+			} else {
+				// Generating JSON state version 2
+
+				// It is possible that the only instance is deposed
+				if ri.Current != nil {
+					if version != ri.Current.SchemaVersion {
+						return nil, fmt.Errorf("schema version %d for %s in state does not match version %d from the provider", ri.Current.SchemaVersion, resAddr, version)
+					}
+
+					current.SchemaVersion = ri.Current.SchemaVersion
+					riObj := ri.Current
+
+					switch {
+					case len(riObj.AttrsJSON) != 0:
+						current.Attributes = riObj.AttrsJSON
+					default:
+						// Legacy flatmap mode: we serialize this as a JSON
+						// object with properties that are all string values,
+						// directly exposing the flatmap form. This is an
+						// annoying special case but thankfully now incredibly
+						// rare since nothing has been generating this format
+						// since Terraform v0.12.
+						current.AttributesLegacyFlatmap = true
+
+						attrsJSON, err := json.Marshal(riObj.AttrsFlat)
+						if err != nil {
+							// Should not get here, since there's no reason
+							// for serializing a map[string]string to fail.
+							return nil, fmt.Errorf("failed to serialize flatmap attributes for %s: %s", resAddr, err)
+						}
+						current.Attributes = attrsJSON
+					}
+
+					current.SensitivePaths = SensitivePaths(riObj.AttrSensitivePaths)
+
+					if len(riObj.Dependencies) > 0 {
+						dependencies := make([]string, len(riObj.Dependencies))
+						for i, v := range riObj.Dependencies {
+							dependencies[i] = v.String()
+						}
+						current.DependsOn = dependencies
+					}
+
+					if riObj.Status == states.ObjectTainted {
+						current.Tainted = true
+					}
+					ret = append(ret, current)
+				}
+
+				for deposedKey, riObj := range ri.Deposed {
+					// copy the base fields from the current instance
+					deposed := resource{
+						Address:      current.Address,
+						Type:         current.Type,
+						Name:         current.Name,
+						ProviderName: current.ProviderName,
+						Mode:         current.Mode,
+						Index:        current.Index,
+					}
+
+					switch {
+					case len(riObj.AttrsJSON) != 0:
+						deposed.Attributes = riObj.AttrsJSON
+					default:
+						// Legacy flatmap mode: we serialize this as a JSON
+						// object with properties that are all string values,
+						// directly exposing the flatmap form. This is an
+						// annoying special case but thankfully now incredibly
+						// rare since nothing has been generating this format
+						// since Terraform v0.12.
+						deposed.AttributesLegacyFlatmap = true
+
+						attrsJSON, err := json.Marshal(riObj.AttrsFlat)
+						if err != nil {
+							// Should not get here, since there's no reason
+							// for serializing a map[string]string to fail.
+							return nil, fmt.Errorf("failed to serialize flatmap attributes for %s: %s", resAddr, err)
+						}
+						deposed.Attributes = attrsJSON
+					}
+
+					deposed.SensitivePaths = SensitivePaths(riObj.AttrSensitivePaths)
+
+					if len(riObj.Dependencies) > 0 {
+						dependencies := make([]string, len(riObj.Dependencies))
+						for i, v := range riObj.Dependencies {
+							dependencies[i] = v.String()
+						}
+						deposed.DependsOn = dependencies
+					}
+
+					if riObj.Status == states.ObjectTainted {
+						deposed.Tainted = true
+					}
+					deposed.DeposedKey = deposedKey.String()
+					ret = append(ret, deposed)
+				}
+
 			}
+
 		}
 	}
 
@@ -479,4 +687,48 @@ func SensitiveAsBool(val cty.Value) cty.Value {
 		// Should never happen, since the above should cover all types
 		panic(fmt.Sprintf("sensitiveAsBool cannot handle %#v", val))
 	}
+}
+
+// SensitivePaths generates a JSON-serializable representation of the sensitive
+// value paths in the given set of marked paths.
+func SensitivePaths(markedPaths []cty.PathValueMarks) []Path {
+	if len(markedPaths) == 0 {
+		// Can't possibly have any sensitive values then
+		return nil
+	}
+	ret := make([]Path, 0, len(markedPaths))
+	for _, markedPath := range markedPaths {
+		if _, ok := markedPath.Marks[marks.Sensitive]; !ok {
+			continue // Only interested in "sensitive" marks
+		}
+		jsonPath := make([]addrs.InstanceKey, len(markedPath.Path))
+		for i, step := range markedPath.Path {
+			switch step := step.(type) {
+
+			case cty.IndexStep:
+				switch {
+				case step.Key.Type() == cty.String:
+					jsonPath[i] = addrs.StringKey(step.Key.AsString())
+				case step.Key.Type() == cty.Number:
+					var idx int
+					err := gocty.FromCtyValue(step.Key, &idx)
+					if err != nil {
+						panic(fmt.Sprintf("invalid index in path: %s", err))
+					}
+					jsonPath[i] = addrs.IntKey(idx)
+				default:
+					panic(fmt.Sprintf("invalid index in path: %#v", step.Key.Type()))
+				}
+			case cty.GetAttrStep:
+				jsonPath[i] = addrs.StringKey(step.Name)
+			}
+		}
+		ret = append(ret, Path{
+			Steps: jsonPath,
+		})
+	}
+	if len(ret) == 0 {
+		return nil
+	}
+	return ret
 }

@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
@@ -21,10 +22,10 @@ type Show interface {
 	Diagnostics(diags tfdiags.Diagnostics)
 }
 
-func NewShow(vt arguments.ViewType, view *View) Show {
+func NewShow(vt arguments.ViewType, formatVersion int, view *View) Show {
 	switch vt {
 	case arguments.ViewJSON:
-		return &ShowJSON{view: view}
+		return &ShowJSON{view: view, formatVersion: formatVersion}
 	case arguments.ViewHuman:
 		return &ShowHuman{view: view}
 	default:
@@ -61,7 +62,8 @@ func (v *ShowHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 type ShowJSON struct {
-	view *View
+	view          *View
+	formatVersion int
 }
 
 var _ Show = (*ShowJSON)(nil)
@@ -78,12 +80,25 @@ func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, stateFile *
 	} else {
 		// It is possible that there is neither state nor a plan.
 		// That's ok, we'll just return an empty object.
-		jsonState, err := jsonstate.Marshal(stateFile, schemas)
-		if err != nil {
-			v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
-			return 1
+
+		switch v.formatVersion {
+		case 1:
+			jsonState, err := jsonstate.Marshal1(stateFile, schemas)
+			if err != nil {
+				v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
+				return 1
+			}
+			v.view.streams.Println(string(jsonState))
+		case 2:
+			jsonState, err := jsonstate.Marshal2(stateFile)
+			if err != nil {
+				v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
+				return 1
+			}
+			v.view.streams.Println(string(jsonState))
+		default:
+			panic(fmt.Sprintf("unsupported format version %d", v.formatVersion))
 		}
-		v.view.streams.Println(string(jsonState))
 	}
 	return 0
 }

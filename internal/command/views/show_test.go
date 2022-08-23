@@ -68,7 +68,7 @@ func TestShowHuman(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewView(streams)
 			view.Configure(&arguments.View{NoColor: true})
-			v := NewShow(arguments.ViewHuman, view)
+			v := NewShow(arguments.ViewHuman, 1, view)
 
 			code := v.Display(nil, testCase.plan, testCase.stateFile, testCase.schemas)
 			if code != 0 {
@@ -124,7 +124,7 @@ func TestShowJSON(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewView(streams)
 			view.Configure(&arguments.View{NoColor: true})
-			v := NewShow(arguments.ViewJSON, view)
+			v := NewShow(arguments.ViewJSON, 1, view)
 
 			schemas := &terraform.Schemas{
 				Providers: map[addrs.Provider]*terraform.ProviderSchema{

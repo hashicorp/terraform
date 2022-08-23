@@ -37,7 +37,7 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 	}
 
 	// Set up view
-	view := views.NewShow(args.ViewType, c.View)
+	view := views.NewShow(args.ViewType, args.FormatVersion, c.View)
 
 	// Check for user-supplied plugin path
 	var err error
@@ -70,7 +70,9 @@ Options:
 
   -no-color           If specified, output won't contain any color.
   -json               If specified, output the Terraform plan or state in
-                      a machine-readable form.
+                      version 1 of the machine-readable JSON format.
+  -json2              If specified, output the Terraform plan or state in
+                      version 2 of the machine-readable JSON format.
 
 `
 	return strings.TrimSpace(helpText)

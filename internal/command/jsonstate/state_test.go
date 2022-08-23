@@ -175,7 +175,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	}
 }
 
-func TestMarshalResources(t *testing.T) {
+func TestMarshal1Resources(t *testing.T) {
 	deposedKey := states.NewDeposedKey()
 	tests := map[string]struct {
 		Resources map[string]*states.Resource
@@ -547,6 +547,413 @@ func TestMarshalResources(t *testing.T) {
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := marshalResources(test.Resources, addrs.RootModuleInstance, test.Schemas)
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			diff := cmp.Diff(got, test.Want)
+			if diff != "" {
+				t.Fatalf("wrong result: %s\n", diff)
+			}
+
+		})
+	}
+}
+
+func TestMarshal2Resources(t *testing.T) {
+	deposedKey := states.NewDeposedKey()
+	tests := map[string]struct {
+		Resources map[string]*states.Resource
+		Want      []resource
+		Err       bool
+	}{
+		"nil": {
+			nil,
+			nil,
+			false,
+		},
+		"singleton resource": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+			},
+			false,
+		},
+		"attribute data with a sensitive value": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"foozles":"confuzles"}`),
+								AttrSensitivePaths: []cty.PathValueMarks{{
+									Path:  cty.Path{cty.GetAttrStep{Name: "foozles"}},
+									Marks: cty.NewValueMarks(marks.Sensitive)},
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"foozles":"confuzles"}`)),
+					SensitivePaths: []Path{
+						{
+							Steps: []addrs.InstanceKey{
+								addrs.StringKey("foozles"),
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		"singleton resource wrong schema version": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								SchemaVersion: 1,
+								Status:        states.ObjectReady,
+								AttrsJSON:     []byte(`{"woozles":["confuzles"]}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			nil,
+			true,
+		},
+		"resource with count": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.IntKey(0): {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar[0]",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.IntKey(0),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+			},
+			false,
+		},
+		"resource with for_each": {
+			map[string]*states.Resource{
+				"test_thing.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.StringKey("rockhopper"): {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar[\"rockhopper\"]",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.StringKey("rockhopper"),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+			},
+			false,
+		},
+		"deposed object": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
+								states.DeposedKey(deposedKey): {
+									Status:    states.ObjectReady,
+									AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					DeposedKey:   deposedKey.String(),
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+			},
+			false,
+		},
+		"deposed and current objects": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Deposed: map[states.DeposedKey]*states.ResourceInstanceObjectSrc{
+								states.DeposedKey(deposedKey): {
+									Status:    states.ObjectReady,
+									AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+								},
+							},
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					DeposedKey:   deposedKey.String(),
+					Attributes:   json.RawMessage([]byte(`{"woozles":"confuzles"}`)),
+				},
+			},
+			false,
+		},
+		"attribute data with a sensitive value in a map": {
+			map[string]*states.Resource{
+				"test_map_attr.bar": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_map_attr",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"data":{"woozles":"confuzles"}}`),
+								AttrSensitivePaths: []cty.PathValueMarks{{
+									Path: cty.Path{
+										cty.GetAttrStep{Name: "data"},
+										cty.IndexStep{Key: cty.StringVal("woozles")},
+									},
+									Marks: cty.NewValueMarks(marks.Sensitive)},
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:      "test_map_attr.bar",
+					Mode:         "managed",
+					Type:         "test_map_attr",
+					Name:         "bar",
+					Index:        addrs.InstanceKey(nil),
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					Attributes:   json.RawMessage([]byte(`{"data":{"woozles":"confuzles"}}`)),
+					SensitivePaths: []Path{
+						{
+							Steps: []addrs.InstanceKey{
+								addrs.StringKey("data"),
+								addrs.StringKey("woozles"),
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+		"legacy flatmap attributes": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status: states.ObjectReady,
+								AttrsFlat: map[string]string{
+									"data.woozles": "confuzles",
+								},
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			[]resource{
+				{
+					Address:                 "test_thing.bar",
+					Mode:                    "managed",
+					Type:                    "test_thing",
+					Name:                    "bar",
+					Index:                   addrs.InstanceKey(nil),
+					ProviderName:            "registry.terraform.io/hashicorp/test",
+					Attributes:              json.RawMessage([]byte(`{"data.woozles":"confuzles"}`)),
+					AttributesLegacyFlatmap: true,
+				},
+			},
+			false,
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := marshalResources(test.Resources, addrs.RootModuleInstance, nil)
 			if test.Err {
 				if err == nil {
 					t.Fatal("succeeded; want error")
