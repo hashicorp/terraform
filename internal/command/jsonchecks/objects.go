@@ -15,6 +15,11 @@ func makeStaticObjectAddr(addr addrs.ConfigCheckable) staticObjectAddr {
 
 	switch addr := addr.(type) {
 	case addrs.ConfigResource:
+		if kind := addr.CheckableKind(); kind != addrs.CheckableResource {
+			// Something has gone very wrong
+			panic(fmt.Sprintf("%T has CheckableKind %s", addr, kind))
+		}
+
 		ret["kind"] = "resource"
 		switch addr.Resource.Mode {
 		case addrs.ManagedResourceMode:
@@ -30,6 +35,11 @@ func makeStaticObjectAddr(addr addrs.ConfigCheckable) staticObjectAddr {
 			ret["module"] = addr.Module.String()
 		}
 	case addrs.ConfigOutputValue:
+		if kind := addr.CheckableKind(); kind != addrs.CheckableOutputValue {
+			// Something has gone very wrong
+			panic(fmt.Sprintf("%T has CheckableKind %s", addr, kind))
+		}
+
 		ret["kind"] = "output_value"
 		ret["name"] = addr.OutputValue.Name
 		if !addr.Module.IsRoot() {
