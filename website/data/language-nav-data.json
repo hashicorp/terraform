@@ -602,6 +602,10 @@
             "href": "/language/functions/timeadd"
           },
           {
+            "title": "<code>timecmp</code>",
+            "href": "/language/functions/timecmp"
+          },
+          {
             "title": "<code>timestamp</code>",
             "href": "/language/functions/timestamp"
           }
@@ -880,6 +884,7 @@
         "hidden": true
       },
       { "title": "timeadd", "path": "functions/timeadd", "hidden": true },
+      { "title": "timecmp", "path": "functions/timecmp", "hidden": true },
       { "title": "timestamp", "path": "functions/timestamp", "hidden": true },
       { "title": "title", "path": "functions/title", "hidden": true },
       { "title": "tobool", "path": "functions/tobool", "hidden": true },
