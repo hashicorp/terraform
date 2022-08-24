@@ -9,10 +9,8 @@ description: The `terraform import` command is used to import existing infrastru
 
 The `terraform import` command is used to import existing infrastructure.
 
-The command currently can only import one resource at a time. This means
-you can't yet point Terraform import to an entire collection of resources
-such as an AWS VPC and import all of it. This workflow will be improved in a
-future version of Terraform.
+The command can only import one resource at a time. This means
+you cannnot import an entire collection of resources such as an AWS VPC at one time. 
 
 ~> Warning: Terraform expects that each remote object it is managing will be
 bound to only one resource address, which is normally guaranteed by Terraform
