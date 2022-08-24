@@ -161,8 +161,7 @@ resource "aws_instance" "web" {
 
 The `local-exec` provisioner requires no other configuration, but most other
 provisioners must connect to the remote system using SSH or WinRM.
-You must include [a `connection` block](/language/resources/provisioners/connection) so that Terraform
-will know how to communicate with the server.
+You must include [a `connection` block](/language/resources/provisioners/connection) so that Terraform knows how to communicate with the server.
 
 Terraform includes several built-in provisioners. You can also use third-party provisioners as plugins, by placing them
 in `%APPDATA%\terraform.d\plugins`, `~/.terraform.d/plugins`, or the same
