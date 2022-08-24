@@ -98,6 +98,10 @@ func (v AbsOutputValue) ConfigCheckable() ConfigCheckable {
 	return v.ConfigOutputValue()
 }
 
+func (v AbsOutputValue) CheckableKind() CheckableKind {
+	return CheckableOutputValue
+}
+
 func (v AbsOutputValue) UniqueKey() UniqueKey {
 	return absOutputValueUniqueKey(v.String())
 }
@@ -204,6 +208,10 @@ func (v ConfigOutputValue) String() string {
 
 func (v ConfigOutputValue) configCheckableSigil() {
 	// ConfigOutputValue is the ConfigCheckable for AbsOutputValue.
+}
+
+func (v ConfigOutputValue) CheckableKind() CheckableKind {
+	return CheckableOutputValue
 }
 
 func (v ConfigOutputValue) UniqueKey() UniqueKey {

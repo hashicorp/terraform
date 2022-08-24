@@ -522,13 +522,19 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 
 	ret.ConfigResults = addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate]()
 	for _, aggrIn := range in {
+		objectKind := decodeCheckableObjectKindV4(aggrIn.ObjectKind)
+		if objectKind == addrs.CheckableKindInvalid {
+			diags = diags.Append(fmt.Errorf("unsupported checkable object kind %q", aggrIn.ObjectKind))
+			continue
+		}
+
 		// Some trickiness here: we only have an address parser for
 		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
 		// because once we have an addrs.Checkable we can always derive an
 		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
 		// be the same syntax as a Checkable with no index information and
 		// thus we can reuse the same parser for both here.
-		configAddrProxy, moreDiags := addrs.ParseCheckableStr(aggrIn.ConfigAddr)
+		configAddrProxy, moreDiags := addrs.ParseCheckableStr(objectKind, aggrIn.ConfigAddr)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			continue
@@ -549,7 +555,7 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 		if len(aggrIn.Objects) != 0 {
 			aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
 			for _, objectIn := range aggrIn.Objects {
-				objectAddr, moreDiags := addrs.ParseCheckableStr(objectIn.ObjectAddr)
+				objectAddr, moreDiags := addrs.ParseCheckableStr(objectKind, objectIn.ObjectAddr)
 				diags = diags.Append(moreDiags)
 				if moreDiags.HasErrors() {
 					continue
@@ -574,6 +580,7 @@ func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
 
 	for _, configElem := range in.ConfigResults.Elems {
 		configResultsOut := checkResultsV4{
+			ObjectKind: encodeCheckableObjectKindV4(configElem.Key.CheckableKind()),
 			ConfigAddr: configElem.Key.String(),
 			Status:     encodeCheckStatusV4(configElem.Value.Status),
 		}
@@ -619,6 +626,31 @@ func encodeCheckStatusV4(in checks.Status) string {
 		return "unknown"
 	default:
 		panic(fmt.Sprintf("unsupported check status %s", in))
+	}
+}
+
+func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
+	switch in {
+	case "resource":
+		return addrs.CheckableResource
+	case "output":
+		return addrs.CheckableOutputValue
+	default:
+		// We'll treat anything else as invalid just as a concession to
+		// forward-compatible parsing, in case a later version of Terraform
+		// introduces a new status.
+		return addrs.CheckableKindInvalid
+	}
+}
+
+func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
+	switch in {
+	case addrs.CheckableResource:
+		return "resource"
+	case addrs.CheckableOutputValue:
+		return "output"
+	default:
+		panic(fmt.Sprintf("unsupported checkable object kind %s", in))
 	}
 }
 
@@ -676,6 +708,7 @@ type instanceObjectStateV4 struct {
 }
 
 type checkResultsV4 struct {
+	ObjectKind string                 `json:"object_kind"`
 	ConfigAddr string                 `json:"config_addr"`
 	Status     string                 `json:"status"`
 	Objects    []checkResultsObjectV4 `json:"objects"`
