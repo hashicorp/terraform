@@ -947,6 +947,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"timecmp": {
+			{
+				`timecmp("2017-11-22T00:00:00Z", "2017-11-22T00:00:00Z")`,
+				cty.Zero,
+			},
+		},
+
 		"title": {
 			{
 				`title("hello")`,
