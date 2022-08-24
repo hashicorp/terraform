@@ -297,6 +297,10 @@ func (r AbsResourceInstance) Check(t CheckType, i int) Check {
 	}
 }
 
+func (v AbsResourceInstance) CheckableKind() CheckableKind {
+	return CheckableResource
+}
+
 func (r AbsResourceInstance) Equal(o AbsResourceInstance) bool {
 	return r.Module.Equal(o.Module) && r.Resource.Equal(o.Resource)
 }
@@ -419,6 +423,10 @@ func (r ConfigResource) configMoveableSigil() {
 
 func (r ConfigResource) configCheckableSigil() {
 	// ConfigResource represents a configuration object that declares checkable objects
+}
+
+func (v ConfigResource) CheckableKind() CheckableKind {
+	return CheckableResource
 }
 
 type configResourceKey string

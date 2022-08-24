@@ -20,7 +20,8 @@ import (
 //
 // Note also that the check address is only relevant within the scope of a run,
 // as reordering check blocks between runs will result in their addresses
-// changing.
+// changing. Check is therefore for internal use only and should not be exposed
+// in durable artifacts such as state snapshots.
 type Check struct {
 	Container Checkable
 	Type      CheckType
@@ -66,37 +67,14 @@ type checkKey struct {
 
 func (k checkKey) uniqueKeySigil() {}
 
-// Checkable is an interface implemented by all address types that can contain
-// condition blocks.
-type Checkable interface {
-	UniqueKeyer
-
-	checkableSigil()
-
-	// Check returns the address of an individual check rule of a specified
-	// type and index within this checkable container.
-	Check(CheckType, int) Check
-
-	// ConfigCheckable returns the address of the configuration construct that
-	// this Checkable belongs to.
-	//
-	// Checkable objects can potentially be dynamically declared during a
-	// plan operation using constructs like resource for_each, and so
-	// ConfigCheckable gives us a way to talk about the static containers
-	// those dynamic objects belong to, in case we wish to group together
-	// dynamic checkable objects into their static checkable for reporting
-	// purposes.
-	ConfigCheckable() ConfigCheckable
-
-	String() string
-}
-
-var (
-	_ Checkable = AbsResourceInstance{}
-	_ Checkable = AbsOutputValue{}
-)
-
-// CheckType describes the category of check.
+// CheckType describes a category of check. We use this only to establish
+// uniqueness for Check values, and do not expose this concept of "check types"
+// (which is subject to change in future) in any durable artifacts such as
+// state snapshots.
+//
+// (See [CheckableKind] for an enumeration that we _do_ use externally, to
+// describe the type of object being checked rather than the type of the check
+// itself.)
 type CheckType int
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
@@ -124,6 +102,48 @@ func (c CheckType) Description() string {
 	}
 }
 
+// Checkable is an interface implemented by all address types that can contain
+// condition blocks.
+type Checkable interface {
+	UniqueKeyer
+
+	checkableSigil()
+
+	// Check returns the address of an individual check rule of a specified
+	// type and index within this checkable container.
+	Check(CheckType, int) Check
+
+	// ConfigCheckable returns the address of the configuration construct that
+	// this Checkable belongs to.
+	//
+	// Checkable objects can potentially be dynamically declared during a
+	// plan operation using constructs like resource for_each, and so
+	// ConfigCheckable gives us a way to talk about the static containers
+	// those dynamic objects belong to, in case we wish to group together
+	// dynamic checkable objects into their static checkable for reporting
+	// purposes.
+	ConfigCheckable() ConfigCheckable
+
+	CheckableKind() CheckableKind
+	String() string
+}
+
+var (
+	_ Checkable = AbsResourceInstance{}
+	_ Checkable = AbsOutputValue{}
+)
+
+// CheckableKind describes the different kinds of checkable objects.
+type CheckableKind rune
+
+//go:generate go run golang.org/x/tools/cmd/stringer -type=CheckableKind check.go
+
+const (
+	CheckableKindInvalid CheckableKind = 0
+	CheckableResource    CheckableKind = 'R'
+	CheckableOutputValue CheckableKind = 'O'
+)
+
 // ConfigCheckable is an interfaces implemented by address types that represent
 // configuration constructs that can have Checkable addresses associated with
 // them.
@@ -137,6 +157,7 @@ type ConfigCheckable interface {
 
 	configCheckableSigil()
 
+	CheckableKind() CheckableKind
 	String() string
 }
 
@@ -145,15 +166,17 @@ var (
 	_ ConfigCheckable = ConfigOutputValue{}
 )
 
-// ParseCheckableStr attempts to parse the given string as a Checkable address.
+// ParseCheckableStr attempts to parse the given string as a Checkable address
+// of the given kind.
 //
 // This should be the opposite of Checkable.String for any Checkable address
-// type.
+// type, as long as "kind" is set to the value returned by the address's
+// CheckableKind method.
 //
 // We do not typically expect users to write out checkable addresses as input,
 // but we use them as part of some of our wire formats for persisting check
 // results between runs.
-func ParseCheckableStr(src string) (Checkable, tfdiags.Diagnostics) {
+func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(src), "", hcl.InitialPos)
@@ -178,13 +201,34 @@ func ParseCheckableStr(src string) (Checkable, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
-	switch remain.RootName() {
-	case "output":
+	// We use "kind" to disambiguate here because unfortunately we've
+	// historically never reserved "output" as a possible resource type name
+	// and so it is in principle possible -- albeit unlikely -- that there
+	// might be a resource whose type is literally "output".
+	switch kind {
+	case CheckableResource:
+		riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
+		diags = diags.Append(moreDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		return riAddr, diags
+
+	case CheckableOutputValue:
 		if len(remain) != 2 {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid checkable address",
 				Detail:   "Output address must have only one attribute part after the keyword 'output', giving the name of the output value.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		if remain.RootName() != "output" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Output address must follow the module address with the keyword 'output'.",
 				Subject:  remain.SourceRange().Ptr(),
 			})
 			return nil, diags
@@ -200,12 +244,8 @@ func ParseCheckableStr(src string) (Checkable, tfdiags.Diagnostics) {
 		} else {
 			return OutputValue{Name: step.Name}.Absolute(path), diags
 		}
+
 	default:
-		riAddr, moreDiags := parseResourceInstanceUnderModule(path, remain)
-		diags = diags.Append(moreDiags)
-		if diags.HasErrors() {
-			return nil, diags
-		}
-		return riAddr, diags
+		panic(fmt.Sprintf("unsupported CheckableKind %s", kind))
 	}
 }

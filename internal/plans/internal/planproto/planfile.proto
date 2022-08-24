@@ -227,22 +227,30 @@ message CheckResults {
         ERROR   = 3;
     }
 
+    enum ObjectKind {
+        UNSPECIFIED = 0;
+        RESOURCE = 1;
+        OUTPUT_VALUE = 2;
+    }
+
     message ObjectResult {
         string object_addr = 1;
         Status status = 2;
         repeated string failure_messages = 3;
     }
 
+    ObjectKind kind = 1;
+
     // Address of the configuration object that declared the checks.
-    string config_addr = 1;
+    string config_addr = 2;
 
     // The aggregate status of the entire configuration object, based on
     // the statuses of its zero or more checkable objects.
-    Status status = 2;
+    Status status = 3;
 
     // The results for individual objects that were declared by the
     // configuration object named in config_addr.
-    repeated ObjectResult objects = 3;
+    repeated ObjectResult objects = 4;
 }
 
 // DynamicValue represents a value whose type is not decided until runtime,

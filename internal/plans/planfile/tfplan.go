@@ -106,13 +106,23 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			return nil, fmt.Errorf("aggregate check results for %s have unsupported status %#v", rawCRs.ConfigAddr, rawCRs.Status)
 		}
 
+		var objKind addrs.CheckableKind
+		switch rawCRs.Kind {
+		case planproto.CheckResults_RESOURCE:
+			objKind = addrs.CheckableResource
+		case planproto.CheckResults_OUTPUT_VALUE:
+			objKind = addrs.CheckableOutputValue
+		default:
+			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
+		}
+
 		// Some trickiness here: we only have an address parser for
 		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
 		// because once we have an addrs.Checkable we can always derive an
 		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
 		// be the same syntax as a Checkable with no index information and
 		// thus we can reuse the same parser for both here.
-		configAddrProxy, diags := addrs.ParseCheckableStr(rawCRs.ConfigAddr)
+		configAddrProxy, diags := addrs.ParseCheckableStr(objKind, rawCRs.ConfigAddr)
 		if diags.HasErrors() {
 			return nil, diags.Err()
 		}
@@ -126,7 +136,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 		aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
 		for _, rawCR := range rawCRs.Objects {
-			objectAddr, diags := addrs.ParseCheckableStr(rawCR.ObjectAddr)
+			objectAddr, diags := addrs.ParseCheckableStr(objKind, rawCR.ObjectAddr)
 			if diags.HasErrors() {
 				return nil, diags.Err()
 			}
@@ -502,6 +512,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 				pcrs.Status = planproto.CheckResults_ERROR
 			default:
 				return fmt.Errorf("checkable configuration %s has unsupported aggregate status %s", configElem.Key, crs.Status)
+			}
+			switch kind := configElem.Key.CheckableKind(); kind {
+			case addrs.CheckableResource:
+				pcrs.Kind = planproto.CheckResults_RESOURCE
+			case addrs.CheckableOutputValue:
+				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
+			default:
+				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
 			}
 
 			for _, objectElem := range configElem.Value.ObjectResults.Elems {
