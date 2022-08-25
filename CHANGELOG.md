@@ -31,7 +31,8 @@ UPGRADE NOTES:
 ENHANCEMENTS:
 
 * config: Optional attributes for object type constraints, as described under new features above. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
-* `terraform fmt` now accepts multiple target paths, allowing formatting of several individual files at once. ([#28191](https://github.com/hashicorp/terraform/issues/28191))
+* config: New built-in function `timecmp` allows determining the ordering relationship between two timestamps while taking potentially-different UTC offsets into account. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
+* `terraform fmt` now accepts multiple target paths, allowing formatting of several individual files at once. ([#31687](https://github.com/hashicorp/terraform/issues/31687))
 * When reporting an error message related to a function call, Terraform will now include contextual information about the signature of the function that was being called, as an aid to understanding why the call might have failed. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
 * When reporting an error or warning message that isn't caused by values being unknown or marked as sensitive, Terraform will no longer mention any values having those characteristics in the contextual information presented alongside the error. Terraform will still return this information for the small subset of error messages that are specifically about unknown values or sensitive values being invalid in certain contexts. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
 * The Terraform CLI now calls `PlanResourceChange` for compatible providers when destroying resource instances. ([#31179](https://github.com/hashicorp/terraform/issues/31179))
