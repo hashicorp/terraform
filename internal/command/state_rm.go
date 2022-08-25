@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -110,11 +111,30 @@ func (c *StateRmCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	// Get schemas, if possible, before writing state
+	path, err := os.Getwd()
+	if err != nil {
+		// MBANG TODO - add warnings here?
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+
+	schemas, diags := getSchemas(&c.Meta, state, config)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+
 	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}

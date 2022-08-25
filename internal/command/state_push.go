@@ -126,11 +126,28 @@ func (c *StatePushCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
+
+	// Get schemas, if possible, before writing state
+	path, err := os.Getwd()
+	if err != nil {
+		return 1
+	}
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		// MBANG TODO - add warnings here?
+		return 1
+	}
+	schemas, diags := getSchemas(&c.Meta, srcStateFile.State, config)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load schemas: %s", err))
+		return 1
+	}
+
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to write state: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to persist state: %s", err))
 		return 1
 	}

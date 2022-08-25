@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -163,6 +164,25 @@ func (c *UntaintCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
+
+	// Get schemas, if possible, before writing state
+	path, err := os.Getwd()
+	if err != nil {
+		// MBANG TODO - add warnings here?
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+		return 1
+	}
+
+	schemas, diags := getSchemas(&c.Meta, state, config)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load config: %s", err))
+		return 1
+	}
 	obj.Status = states.ObjectReady
 	ss.SetResourceInstanceCurrent(addr, obj, rs.ProviderConfig)
 
@@ -170,7 +190,7 @@ func (c *UntaintCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

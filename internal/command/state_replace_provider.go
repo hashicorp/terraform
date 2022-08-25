@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -160,12 +161,30 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
+	// Get schemas, if possible, before writing state
+	path, err := os.Getwd()
+	if err != nil {
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		// MBANG TODO - add warnings here?
+		return 1
+	}
+	
+	schemas, diags := getSchemas(&c.Meta, state, config)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf("Failed to load schemas: %s", err))
+		return 1
+	}
+
 	// Write the updated state
 	if err := stateMgr.WriteState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}

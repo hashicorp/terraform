@@ -248,13 +248,22 @@ func (c *ImportCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get schemas, if possible, before writing state
+	schemas, diags := getSchemas(&c.Meta, newState, config)
+	if diags.HasErrors() {
+		// MBANG TODO - add warning that the schema could not be initialized
+		// and therefore the JSON state can not be created and may affect
+		// external applications relying on that data format
+		return 1
+	}
+
 	// Persist the final state
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
 	if err := state.WriteState(newState); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := state.PersistState(); err != nil {
+	if err := state.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

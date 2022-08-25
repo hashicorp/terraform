@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // State is similar to remote State and delegates to it, except in the case of output values,
@@ -63,9 +64,9 @@ func (s *State) RefreshState() error {
 	return s.delegate.RefreshState()
 }
 
-// RefreshState delegates calls to refresh State to the remote State
-func (s *State) PersistState() error {
-	return s.delegate.PersistState()
+// PersistState delegates calls to persist State to the remote State
+func (s *State) PersistState(schemas *terraform.Schemas) error {
+	return s.delegate.PersistState(schemas)
 }
 
 // WriteState delegates calls to write State to the remote State

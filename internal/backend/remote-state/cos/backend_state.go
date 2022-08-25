@@ -126,7 +126,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 				err = lockUnlock(err)
 				return nil, err
 			}
-			if err := stateMgr.PersistState(); err != nil {
+			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

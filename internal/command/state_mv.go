@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -385,12 +386,31 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	path, err := os.Getwd()
+	if err != nil {
+		// MBANG TODO - add warning here too?
+		return 1
+	}
+
+	config, diags := c.loadConfig(path)
+	if diags.HasErrors() {
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+
+	schemas, diags := getSchemas(&c.Meta, stateTo, config)
+	if diags.HasErrors() {
+		// MBANG TODO - is this the warning?
+		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		return 1
+	}
+
 	// Write the new state
 	if err := stateToMgr.WriteState(stateTo); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
-	if err := stateToMgr.PersistState(); err != nil {
+	if err := stateToMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 		return 1
 	}
@@ -401,7 +421,7 @@ func (c *StateMvCommand) Run(args []string) int {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}
-		if err := stateFromMgr.PersistState(); err != nil {
+		if err := stateFromMgr.PersistState(schemas); err != nil {
 			c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
 			return 1
 		}

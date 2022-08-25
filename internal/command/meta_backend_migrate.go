@@ -434,11 +434,27 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// includes preserving any lineage/serial information where possible, if
 	// both managers support such metadata.
 	log.Print("[TRACE] backendMigrateState: migration confirmed, so migrating")
+
+	path, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("could not get working directory")
+	}
+
+	config, diags := m.loadConfig(path)
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+
+	schemas, diags := getSchemas(m, destination, config)
+	if diags.HasErrors() {
+		return diags.Err()
+	}
+
 	if err := statemgr.Migrate(destinationState, sourceState); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
-	if err := destinationState.PersistState(); err != nil {
+	if err := destinationState.PersistState(schemas); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
@@ -960,7 +976,7 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured 
+Error copying state from the previous %q backend to the newly configured
 %q backend:
     %s
 
