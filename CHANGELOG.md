@@ -24,6 +24,9 @@ UPGRADE NOTES:
 * `terraform import`: The `-allow-missing-config` has been removed, and at least an empty configuration block must exist to import a resource.
 
     Consumers of the JSON output format expecting on the `after_unknown` field to be only `false` or `true` should be updated to support [the change representation](https://www.terraform.io/internals/json-format#change-representation) described in the documentation, and as was already used for resource changes. ([#31235](https://github.com/hashicorp/terraform/issues/31235))
+* AzureRM Backend: This release concludes [the deprecation cycle started in Terraform v1.1](https://www.terraform.io/language/upgrade-guides/1-1#preparation-for-removing-azure-ad-graph-support-in-the-azurerm-backend) for the `azurerm` backend's support of "ADAL" authentication. This backend now supports only "MSAL" (Microsoft Graph) authentication.
+
+    This follows from [Microsoft's own deprecation of Azure AD Graph](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-faq), and so you must follow the migration instructions presented in that Azure documentation to adopt Microsoft Graph and then change your backend configuration to use MSAL authentication before upgrading to Terraform v1.3.
 * When making requests to HTTPS servers, Terraform will now reject invalid handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
 
     This only applies to requests made directly by Terraform CLI, such as provider installation and remote state storage. Terraform providers are separate programs which decide their own policy for handling of TLS handshakes.
