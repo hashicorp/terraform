@@ -16,6 +16,13 @@ declare -a target_files
 target_files[0]=""
 
 base_branch="origin/main"
+
+# HACK: If we seem to be running inside a GitHub Actions pull request check
+# then we'll use the PR's target branch from this variable instead.
+if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
+  base_branch="origin/$GITHUB_BASE_REF"
+fi
+
 readarray -t target_files < <(git diff --name-only ${base_branch} --diff-filter=MA | grep "\.go")
 
 if [[ "${#target_files[@]}" -eq 0 ]]; then
