@@ -33,16 +33,16 @@ protobuf:
 	go run ./tools/protobuf-compile .
 
 fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+	sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
 
 importscheck:
-	@sh -c "'$(CURDIR)/scripts/goimportscheck.sh'"
+	sh -c "'$(CURDIR)/scripts/goimportscheck.sh'"
 
 staticcheck:
-	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
+	sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
 
 exhaustive:
-	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
+	sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
 
 # Default: run this if working on the website locally to run in watch mode.
 website:
