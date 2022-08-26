@@ -2,10 +2,10 @@ package command
 
 import (
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -381,8 +381,13 @@ Resource instance test_instance.bar was not found, but this is not an error
 because -allow-missing was set.
 
 `)
-	if diff := cmp.Diff(expected, actual); diff != "" {
-		t.Fatalf("wrong output\n%s", diff)
+	re, err := regexp.Compile(expected)
+	if err != nil {
+		t.Fatalf("Error compiling regexp: %s", err)
+	}
+
+	if !re.MatchString(actual) {
+		t.Fatalf("wrong output\n expected: %s \n actual: %s", expected, actual)
 	}
 }
 

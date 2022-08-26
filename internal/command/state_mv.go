@@ -388,20 +388,17 @@ func (c *StateMvCommand) Run(args []string) int {
 
 	path, err := os.Getwd()
 	if err != nil {
-		// MBANG TODO - add warning here too?
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
 	if diags.HasErrors() {
-		// MBANG TODO - is this the warning?
-		c.Ui.Error(fmt.Sprintf(errStateRmPersist, err))
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		return 1
 	}
 

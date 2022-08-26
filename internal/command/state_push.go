@@ -130,17 +130,17 @@ func (c *StatePushCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	path, err := os.Getwd()
 	if err != nil {
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
+
 	config, diags := c.loadConfig(path)
 	if diags.HasErrors() {
-		// MBANG TODO - add warnings here?
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
+
 	schemas, diags := getSchemas(&c.Meta, srcStateFile.State, config)
 	if diags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf("Failed to load schemas: %s", err))
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {

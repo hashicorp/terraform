@@ -251,10 +251,7 @@ func (c *ImportCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	schemas, diags := getSchemas(&c.Meta, newState, config)
 	if diags.HasErrors() {
-		// MBANG TODO - add warning that the schema could not be initialized
-		// and therefore the JSON state can not be created and may affect
-		// external applications relying on that data format
-		return 1
+		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	// Persist the final state
