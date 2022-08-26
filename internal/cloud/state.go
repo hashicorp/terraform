@@ -210,13 +210,29 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState []byte) error {
 	ctx := context.Background()
 
+	// Read the raw state into a Terraform state.
+	stateFile, err := statefile.Read(bytes.NewReader(state))
+	if err != nil {
+		return fmt.Errorf("failed to read state: %w", err)
+	}
+
+	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
+	if err != nil {
+		return fmt.Errorf("failed to translate outputs: %w", err)
+	}
+	o, err := json.Marshal(ov)
+	if err != nil {
+		return fmt.Errorf("failed to marshal outputs to json: %w", err)
+	}
+
 	options := tfe.StateVersionCreateOptions{
-		Lineage:   tfe.String(lineage),
-		Serial:    tfe.Int64(int64(serial)),
-		MD5:       tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
-		State:     tfe.String(base64.StdEncoding.EncodeToString(state)),
-		Force:     tfe.Bool(isForcePush),
-		JSONState: tfe.String(base64.StdEncoding.EncodeToString(jsonState)),
+		Lineage:          tfe.String(lineage),
+		Serial:           tfe.Int64(int64(serial)),
+		MD5:              tfe.String(fmt.Sprintf("%x", md5.Sum(state))),
+		State:            tfe.String(base64.StdEncoding.EncodeToString(state)),
+		Force:            tfe.Bool(isForcePush),
+		JSONState:        tfe.String(base64.StdEncoding.EncodeToString(jsonState)),
+		JSONStateOutputs: tfe.String(base64.StdEncoding.EncodeToString(o)),
 	}
 
 	// If we have a run ID, make sure to add it to the options
@@ -226,7 +242,7 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 		options.Run = &tfe.Run{ID: runID}
 	}
 	// Create the new state.
-	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
+	_, err = s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
 	return err
 }
 
