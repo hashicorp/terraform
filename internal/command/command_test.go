@@ -766,6 +766,62 @@ func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *htt
 	return state, srv
 }
 
+// testCloudBackendState is used to make a cloud configured
+// backend.
+//
+// When using this function, the configuration fixture for the test must
+// include an empty configuration block for the HTTP backend, like this:
+//
+//	terraform {
+//	  cloud {
+//	  }
+//	}
+//
+// If such a block isn't present, then an error will
+// be returned about the backend configuration having changed and that
+// "terraform init" must be run, since the test backend config cache created
+// by this function contains the hash for an empty configuration.
+func testCloudBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
+	t.Helper()
+
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if req.Method == "PUT" {
+			resp.WriteHeader(c)
+			return
+		}
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+
+	// If a state was given, make sure we calculate the proper b64md5
+	if s != nil {
+		err := statefile.Write(&statefile.File{State: s}, buf)
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+
+	state := legacy.NewState()
+	state.Backend = &legacy.BackendState{
+		Type:      "cloud",
+		ConfigRaw: json.RawMessage(fmt.Sprintf(`{"address":%q}`, srv.URL)),
+	}
+
+	return state, srv
+}
+
 // testRemoteState is used to make a test HTTP server to return a given
 // state file that can be used for testing legacy remote state.
 //

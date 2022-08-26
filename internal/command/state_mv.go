@@ -386,18 +386,25 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
+	b, backendDiags := c.Backend(&BackendOpts{})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	path, err := os.Getwd()
-	if err != nil {
+	if err != nil && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	config, diags := c.loadConfig(path)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	schemas, diags := getSchemas(&c.Meta, stateTo, config)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		return 1
 	}

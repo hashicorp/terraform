@@ -1,6 +1,8 @@
 package command
 
 import (
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -16,6 +18,12 @@ however, historic state information may be missing if the affected integration r
 
 %s
 `
+
+func isCloudMode(b backend.Enhanced) bool {
+	_, ok := b.(*cloud.Cloud)
+
+	return ok
+}
 
 func getSchemas(c *Meta, state *states.State, config *configs.Config) (*terraform.Schemas, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics

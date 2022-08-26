@@ -128,17 +128,17 @@ func (c *TaintCommand) Run(args []string) int {
 
 	// Get schemas, if possible, before writing state
 	path, err := os.Getwd()
-	if err != nil {
+	if err != nil && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	config, diags := c.loadConfig(path)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	schemas, diags := getSchemas(&c.Meta, state, config)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 

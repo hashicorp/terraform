@@ -161,19 +161,26 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
+	b, backendDiags := c.Backend(&BackendOpts{})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Get schemas, if possible, before writing state
 	path, err := os.Getwd()
-	if err != nil {
+	if err != nil && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	config, diags := c.loadConfig(path)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	schemas, diags := getSchemas(&c.Meta, state, config)
-	if diags.HasErrors() {
+	if diags.HasErrors() && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
