@@ -23,6 +23,12 @@ if [[ -n "${GITHUB_BASE_REF:-}" ]]; then
   base_branch="origin/$GITHUB_BASE_REF"
 fi
 
+# FIXME: "readarray' is a Bash 4 feature, which means that currently this script
+# can't work on macOS which (at the time of writing this) ships with only Bash 3.
+# We can probably replace this with something more clunky using an overridden
+# "IFS" environment variable, but the primary place we want to run this right
+# now is in our "quick checks" workflow and that _does_ have a reasonably
+# modern version of Bash.
 readarray -t target_files < <(git diff --name-only ${base_branch} --diff-filter=MA | grep "\.go")
 
 if [[ "${#target_files[@]}" -eq 0 ]]; then
