@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"os"
 	"strings"
 
@@ -393,20 +394,23 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get schemas, if possible, before writing state
+	schemas := &terraform.Schemas{}
 	path, err := os.Getwd()
-	if err != nil && isCloudMode(b) {
-		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
+	schemaErr := err != nil
+
+	if !schemaErr {
+		config, diags := c.loadConfig(path)
+		schemaErr = diags.HasErrors()
+
+		if !schemaErr {
+			schemas, diags = getSchemas(&c.Meta, stateTo, config)
+			schemaErr = diags.HasErrors()
+		}
 	}
 
-	config, diags := c.loadConfig(path)
-	if diags.HasErrors() && isCloudMode(b) {
+	if schemaErr && isCloudMode(b) {
 		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
-	}
-
-	schemas, diags := getSchemas(&c.Meta, stateTo, config)
-	if diags.HasErrors() && isCloudMode(b) {
-		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
-		return 1
 	}
 
 	// Write the new state
