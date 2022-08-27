@@ -234,7 +234,8 @@ func TestMTLS(t *testing.T) {
 
 	t.Run("fail with no client cert", func(t *testing.T) {
 		conf := map[string]cty.Value{
-			"address": cty.StringVal(url),
+			"address":                cty.StringVal(url),
+			"skip_cert_verification": cty.BoolVal(true),
 		}
 		b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
 		if b == nil {
