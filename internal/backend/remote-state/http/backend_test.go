@@ -195,9 +195,6 @@ func testCerts(t *testing.T, server *httptest.Server) (certFile, keyFile string)
 		_ = os.Remove(certFile)
 	})
 	cert := server.TLS.Certificates[0]
-	if err != nil {
-		t.Fatal(err)
-	}
 	if err := pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]}); err != nil {
 		t.Fatal(err)
 	}
