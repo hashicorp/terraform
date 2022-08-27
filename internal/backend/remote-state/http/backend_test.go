@@ -1,6 +1,13 @@
 package http
 
 import (
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 	"time"
@@ -161,4 +168,110 @@ func testWithEnv(t *testing.T, key string, value string) func() {
 			t.Fatalf("err: %v", err)
 		}
 	}
+}
+
+const sampleState = `
+{
+    "version": 4,
+    "serial": 0,
+    "lineage": "666f9301-7e65-4b19-ae23-71184bb19b03",
+    "remote": {
+        "type": "http",
+        "config": {
+            "path": "local-state.tfstate"
+        }
+    }
+}
+`
+
+func testCerts(t *testing.T, server *httptest.Server) (certFile, keyFile string) {
+	// Create the CERTIFICATE
+	f, err := os.CreateTemp(os.TempDir(), "cert.*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	certFile = f.Name()
+	t.Cleanup(func() {
+		_ = os.Remove(certFile)
+	})
+	cert := server.TLS.Certificates[0]
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]}); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	// Create the RSA PRIVATE KEY
+	if f, err = os.CreateTemp(os.TempDir(), "key.*"); err != nil {
+		t.Fatal(err)
+	}
+	keyFile = f.Name()
+	t.Cleanup(func() {
+		_ = os.Remove(keyFile)
+	})
+	if err = pem.Encode(f, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(cert.PrivateKey.(*rsa.PrivateKey)),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	return
+}
+
+func TestMTLS(t *testing.T) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = io.WriteString(writer, sampleState)
+	}))
+	ts.TLS = &tls.Config{
+		ClientAuth: tls.RequireAnyClientCert,
+	}
+	ts.StartTLS()
+	defer ts.Close()
+
+	url := ts.URL + "/state"
+
+	t.Run("fail with no client cert", func(t *testing.T) {
+		conf := map[string]cty.Value{
+			"address": cty.StringVal(url),
+		}
+		b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+		if b == nil {
+			t.Fatalf("nil b")
+		}
+		sm, err := b.StateMgr(backend.DefaultStateName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := sm.RefreshState(); err == nil {
+			t.Fatal("expected error refreshing state because no client cert is passed")
+		}
+	})
+
+	t.Run("pass with cacert and client cert", func(t *testing.T) {
+		certFile, keyFile := testCerts(t, ts)
+
+		conf := map[string]cty.Value{
+			"address": cty.StringVal(url),
+			"cacert":  cty.StringVal(certFile),
+			"cert":    cty.StringVal(certFile),
+			"key":     cty.StringVal(keyFile),
+		}
+		b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
+		if b == nil {
+			t.Fatalf("nil b")
+		}
+		sm, err := b.StateMgr(backend.DefaultStateName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = sm.RefreshState(); err != nil {
+			t.Fatal(err)
+		}
+		state := sm.State()
+		if state == nil {
+			t.Fatal("nil state")
+		}
+	})
 }
