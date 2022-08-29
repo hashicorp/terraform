@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -162,7 +161,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		resource.ProviderConfig.Provider = to
 	}
 
-	b, backendDiags := c.Backend(&BackendOpts{})
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -170,22 +169,12 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	schemas := &terraform.Schemas{}
-	path, err := os.Getwd()
-	schemaErr := err != nil
-
-	if !schemaErr {
-		config, diags := c.loadConfig(path)
-		schemaErr = diags.HasErrors()
-
-		if !schemaErr {
-			schemas, diags = getSchemas(&c.Meta, state, config)
-			schemaErr = diags.HasErrors()
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		schemas, diags = c.GetSchemas(state)
+		if diags.HasErrors() {
+			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		}
-	}
-
-	if schemaErr && isCloudMode(b) {
-		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	// Write the updated state

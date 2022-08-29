@@ -435,26 +435,14 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// both managers support such metadata.
 	log.Print("[TRACE] backendMigrateState: migration confirmed, so migrating")
 
-	path, err := os.Getwd()
-	if err != nil {
-		return fmt.Errorf("could not get working directory")
-	}
-
-	config, diags := m.loadConfig(path)
-	if diags.HasErrors() {
-		return diags.Err()
-	}
-
-	schemas, diags := getSchemas(m, destination, config)
-	if diags.HasErrors() {
-		return diags.Err()
-	}
-
 	if err := statemgr.Migrate(destinationState, sourceState); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
-	if err := destinationState.PersistState(schemas); err != nil {
+	// Fetching schemas during init might be more of a hassle than we want to attempt
+	// in the case that we're migrating to TFC backend, the initial JSON state won't
+	// be generated and stored.
+	if err := destinationState.PersistState(nil); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}

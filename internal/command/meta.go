@@ -6,6 +6,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/states"
 	"io/ioutil"
 	"log"
 	"os"
@@ -778,4 +780,44 @@ func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	}
 
 	return nil
+}
+
+// GetSchemas loads and returns the schemas
+func (c *Meta) GetSchemas(state *states.State) (*terraform.Schemas, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	var config *configs.Config
+
+	path, err := os.Getwd()
+	if err != nil {
+		diags.Append(err)
+		return nil, diags
+	}
+
+	config, diags = c.loadConfig(path)
+	if diags.HasErrors() {
+		diags.Append(diags)
+		return nil, diags
+	}
+
+	if config != nil || state != nil {
+		opts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+		tfCtx, ctxDiags := terraform.NewContext(opts)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			return nil, diags
+		}
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags := tfCtx.Schemas(config, state)
+		diags = diags.Append(schemaDiags)
+		if schemaDiags.HasErrors() {
+			return nil, diags
+		}
+		return schemas, diags
+
+	}
+	return nil, diags
 }

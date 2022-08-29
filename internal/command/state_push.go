@@ -3,6 +3,7 @@ package command
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"io"
 	"os"
 	"strings"
@@ -129,22 +130,13 @@ func (c *StatePushCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	schemas := &terraform.Schemas{}
-	path, err := os.Getwd()
-	schemaErr := err != nil
-
-	if !schemaErr {
-		config, diags := c.loadConfig(path)
-		schemaErr = diags.HasErrors()
-
-		if !schemaErr {
-			schemas, diags = getSchemas(&c.Meta, srcStateFile.State, config)
-			schemaErr = diags.HasErrors()
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var diags tfdiags.Diagnostics
+		schemas, diags = c.GetSchemas(srcStateFile.State)
+		if diags.HasErrors() {
+			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		}
-	}
-
-	if schemaErr && isCloudMode(b) {
-		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {

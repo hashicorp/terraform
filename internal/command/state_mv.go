@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -387,7 +386,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		return 0 // This is as far as we go in dry-run mode
 	}
 
-	b, backendDiags := c.Backend(&BackendOpts{})
+	b, backendDiags := c.Backend(nil)
 	diags = diags.Append(backendDiags)
 	if backendDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -395,22 +394,12 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	schemas := &terraform.Schemas{}
-	path, err := os.Getwd()
-	schemaErr := err != nil
-
-	if !schemaErr {
-		config, diags := c.loadConfig(path)
-		schemaErr = diags.HasErrors()
-
-		if !schemaErr {
-			schemas, diags = getSchemas(&c.Meta, stateTo, config)
-			schemaErr = diags.HasErrors()
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		schemas, diags = c.GetSchemas(stateTo)
+		if diags.HasErrors() {
+			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		}
-	}
-
-	if schemaErr && isCloudMode(b) {
-		c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 	}
 
 	// Write the new state
