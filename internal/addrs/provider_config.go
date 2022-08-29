@@ -388,6 +388,10 @@ func (pc AbsProviderConfig) LegacyString() string {
 	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
 }
 
+func (pc AbsProviderConfig) Equal(other AbsProviderConfig) bool {
+	return pc.Alias == other.Alias && pc.Provider.Equals(other.Provider) && pc.Module.Equal(other.Module)
+}
+
 // String() returns a string representation of an AbsProviderConfig in a format like the following examples:
 //
 //   - provider["example.com/namespace/name"]
