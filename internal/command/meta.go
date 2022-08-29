@@ -783,9 +783,8 @@ func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 }
 
 // GetSchemas loads and returns the schemas
-func (c *Meta) GetSchemas(state *states.State) (*terraform.Schemas, tfdiags.Diagnostics) {
+func (c *Meta) GetSchemas(state *states.State, config *configs.Config) (*terraform.Schemas, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var config *configs.Config
 
 	path, err := os.Getwd()
 	if err != nil {
@@ -793,10 +792,12 @@ func (c *Meta) GetSchemas(state *states.State) (*terraform.Schemas, tfdiags.Diag
 		return nil, diags
 	}
 
-	config, diags = c.loadConfig(path)
-	if diags.HasErrors() {
-		diags.Append(diags)
-		return nil, diags
+	if config == nil {
+		config, diags = c.loadConfig(path)
+		if diags.HasErrors() {
+			diags.Append(diags)
+			return nil, diags
+		}
 	}
 
 	if config != nil || state != nil {

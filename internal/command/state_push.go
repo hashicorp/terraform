@@ -133,7 +133,7 @@ func (c *StatePushCommand) Run(args []string) int {
 	var schemas *terraform.Schemas
 	if isCloudMode(b) {
 		var diags tfdiags.Diagnostics
-		schemas, diags = c.GetSchemas(srcStateFile.State)
+		schemas, diags = c.GetSchemas(srcStateFile.State, nil)
 		if diags.HasErrors() {
 			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		}

@@ -1,11 +1,11 @@
 package command
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"

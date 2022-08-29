@@ -396,7 +396,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
 	if isCloudMode(b) {
-		schemas, diags = c.GetSchemas(stateTo)
+		schemas, diags = c.GetSchemas(stateTo, nil)
 		if diags.HasErrors() {
 			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
 		}
