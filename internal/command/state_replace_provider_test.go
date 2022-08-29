@@ -2,11 +2,7 @@ package command
 
 import (
 	"bytes"
-	"fmt"
-	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/states/statefile"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -63,63 +59,6 @@ func TestStateReplaceProvider(t *testing.T) {
 				Module:   addrs.RootModule,
 			},
 		)
-	})
-
-	t.Run("Schemas not initialized and JSON output not generated", func(t *testing.T) {
-		td := t.TempDir()
-		testCopyDir(t, testFixturePath("init-cloud-simple"), td)
-		defer testChdir(t, td)()
-
-		// Some of the tests need a non-empty placeholder state file to work
-		// with.
-		fakeStateFile := &statefile.File{
-			Lineage:          "boop",
-			Serial:           4,
-			TerraformVersion: version.Must(version.NewVersion("1.0.0")),
-			State:            state,
-		}
-		var fakeStateBuf bytes.Buffer
-		err := statefile.WriteForTest(fakeStateFile, &fakeStateBuf)
-		if err != nil {
-			t.Error(err)
-		}
-		statePath := testStateFile(t, state)
-
-		ui := new(cli.MockUi)
-		view, _ := testView(t)
-		c := &StateReplaceProviderCommand{
-			StateMeta{
-				Meta: Meta{
-					Ui:   ui,
-					View: view,
-				},
-			},
-		}
-
-		inputBuf := &bytes.Buffer{}
-		ui.InputReader = inputBuf
-		inputBuf.WriteString("yes\n")
-
-		args := []string{
-			"-state", statePath,
-			"hashicorp/aws",
-			"acmecorp/aws",
-		}
-		if code := c.Run(args); code != 0 {
-			t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-		}
-
-		// Check for the warning
-		actual := strings.TrimSpace(ui.ErrorWriter.String())
-		expected := strings.TrimSpace(fmt.Sprintf(failedToLoadSchemasMessage, ""))
-		re, err := regexp.Compile(expected)
-		if err != nil {
-			t.Fatalf("Error compiling regexp: %s", err)
-		}
-
-		if !re.MatchString(actual) {
-			t.Fatalf("wrong output\n expected: %s \n actual: %s", expected, actual)
-		}
 	})
 
 	t.Run("happy path", func(t *testing.T) {
