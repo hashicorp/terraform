@@ -1,6 +1,9 @@
 package cloud
 
 import (
+	"bytes"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"io/ioutil"
 	"testing"
 
 	"github.com/hashicorp/go-tfe"
@@ -27,14 +30,9 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	b, bCleanup := testBackendWithOutputs(t)
 	defer bCleanup()
 
-	client := &remoteClient{
-		client: b.client,
-		workspace: &tfe.Workspace{
-			ID: "ws-abcd",
-		},
-	}
-
-	state := NewState(client)
+	state := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+		ID: "ws-abcd",
+	}}
 	outputs, err := state.GetRootOutputValues()
 
 	if err != nil {
@@ -79,5 +77,61 @@ func TestState_GetRootOutputValues(t *testing.T) {
 		if so.Sensitive != testCase.Sensitive {
 			t.Errorf("Key %s does not match sensitive expectation %v", testCase.Name, testCase.Sensitive)
 		}
+	}
+}
+
+func TestState(t *testing.T) {
+	var buf bytes.Buffer
+	s := statemgr.TestFullInitialState()
+	sf := statefile.New(s, "stub-lineage", 2)
+	err := statefile.Write(sf, &buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	data := buf.Bytes()
+
+	state := testCloudState(t)
+
+	jsonState, err := ioutil.ReadFile("../command/testdata/show-json-state/sensitive-variables/output.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jsonStateOutputs := []byte(`
+{
+	"version": 4,
+	"terraform_version": "1.3.0",
+	"serial": 1,
+	"lineage": "backend-change",
+	"outputs": {
+			"foo": {
+					"type": "string",
+					"value": "bar"
+			}
+	}
+}`)
+
+	if err := state.uploadState(state.lineage, state.serial, state.forcePush, data, jsonState, jsonStateOutputs); err != nil {
+		t.Fatalf("put: %s", err)
+	}
+
+	payload, err := state.getStatePayload()
+	if err != nil {
+		t.Fatalf("get: %s", err)
+	}
+	if !bytes.Equal(payload.Data, data) {
+		t.Fatalf("expected full state %q\n\ngot: %q", string(payload.Data), string(data))
+	}
+
+	if err := state.Delete(); err != nil {
+		t.Fatalf("delete: %s", err)
+	}
+
+	p, err := state.getStatePayload()
+	if err != nil {
+		t.Fatalf("get: %s", err)
+	}
+	if p != nil {
+		t.Fatalf("expected empty state, got: %q", string(p.Data))
 	}
 }
