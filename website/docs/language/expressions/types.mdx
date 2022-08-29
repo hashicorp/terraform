@@ -140,7 +140,8 @@ expression must produce a value of that type.
 Where possible, Terraform automatically converts values from one type to
 another in order to produce the expected type. If this isn't possible, Terraform
 will produce a type mismatch error and you must update the configuration with a
-more suitable expression.
+more suitable expression.  Automatic type conversion does not occur when using 
+the [equality operator](/language/expressions/operators.mdx#equality-operators).
 
 Terraform automatically converts number and bool values to strings when needed.
 It also converts strings to numbers or bools, as long as the string contains a
@@ -149,3 +150,4 @@ valid representation of a number or bool value.
 * `true` converts to `"true"`, and vice-versa
 * `false` converts to `"false"`, and vice-versa
 * `15` converts to `"15"`, and vice-versa
+
