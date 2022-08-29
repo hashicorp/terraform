@@ -26,8 +26,6 @@ type ModuleCall struct {
 	Count   hcl.Expression
 	ForEach hcl.Expression
 
-	Providers []PassedProviderConfig
-
 	DependsOn []hcl.Traversal
 
 	DeclRange hcl.Range
@@ -154,36 +152,12 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["providers"]; exists {
-		seen := make(map[string]hcl.Range)
-		pairs, pDiags := hcl.ExprMap(attr.Expr)
-		diags = append(diags, pDiags...)
-		for _, pair := range pairs {
-			key, keyDiags := decodeProviderConfigRef(pair.Key, "providers")
-			diags = append(diags, keyDiags...)
-			value, valueDiags := decodeProviderConfigRef(pair.Value, "providers")
-			diags = append(diags, valueDiags...)
-			if keyDiags.HasErrors() || valueDiags.HasErrors() {
-				continue
-			}
-
-			matchKey := key.String()
-			if prev, exists := seen[matchKey]; exists {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Duplicate provider address",
-					Detail:   fmt.Sprintf("A provider configuration was already passed to %s at %s. Each child provider configuration can be assigned only once.", matchKey, prev),
-					Subject:  pair.Value.Range().Ptr(),
-				})
-				continue
-			}
-
-			rng := hcl.RangeBetween(pair.Key.Range(), pair.Value.Range())
-			seen[matchKey] = rng
-			mc.Providers = append(mc.Providers, PassedProviderConfig{
-				InChild:  key,
-				InParent: value,
-			})
-		}
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Obsolete module call meta-argument",
+			Detail:   "The meta-argument \"providers\" was special in earlier versions of Terraform to explicitly pass provider configurations to the child module, but that should now be done using normal input variables of a provider configuration type.",
+			Subject:  attr.NameRange.Ptr(),
+		})
 	}
 
 	var seenEscapeBlock *hcl.Block
@@ -234,13 +208,6 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 // variables, required provider configurations, and output values.
 func (mc *ModuleCall) EntersNewPackage() bool {
 	return moduleSourceAddrEntersNewPackage(mc.SourceAddr)
-}
-
-// PassedProviderConfig represents a provider config explicitly passed down to
-// a child module, possibly giving it a new local address in the process.
-type PassedProviderConfig struct {
-	InChild  *ProviderConfigRef
-	InParent *ProviderConfigRef
 }
 
 var moduleBlockSchema = &hcl.BodySchema{

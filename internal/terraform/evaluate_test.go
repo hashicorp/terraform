@@ -7,6 +7,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -177,11 +178,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 		Config: configs.SynthBody("", map[string]cty.Value{
 			"id": cty.StringVal("foo"),
 		}),
-		Provider: addrs.Provider{
-			Hostname:  addrs.DefaultProviderRegistryHost,
-			Namespace: "hashicorp",
-			Type:      "test",
-		},
+		ProviderExpr: hcltest.MockExprTraversalSrc(`provider.test`),
 	}
 
 	evaluator := &Evaluator{
@@ -419,14 +416,10 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 			Module: &configs.Module{
 				ManagedResources: map[string]*configs.Resource{
 					"test_resource.foo": {
-						Mode: addrs.ManagedResourceMode,
-						Type: "test_resource",
-						Name: "foo",
-						Provider: addrs.Provider{
-							Hostname:  addrs.DefaultProviderRegistryHost,
-							Namespace: "hashicorp",
-							Type:      "test",
-						},
+						Mode:         addrs.ManagedResourceMode,
+						Type:         "test_resource",
+						Name:         "foo",
+						ProviderExpr: hcltest.MockExprTraversalSrc(`provider.test`),
 					},
 				},
 			},

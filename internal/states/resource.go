@@ -18,13 +18,6 @@ type Resource struct {
 	// this resource. This map can contain a mixture of different key types,
 	// but only the ones of InstanceKeyType are considered current.
 	Instances map[addrs.InstanceKey]*ResourceInstance
-
-	// ProviderConfig is the absolute address for the provider configuration that
-	// most recently managed this resource. This is used to connect a resource
-	// with a provider configuration when the resource configuration block is
-	// not available, such as if it has been removed from configuration
-	// altogether.
-	ProviderConfig addrs.AbsProviderConfig
 }
 
 // Instance returns the state for the instance with the given key, or nil
@@ -34,8 +27,8 @@ func (rs *Resource) Instance(key addrs.InstanceKey) *ResourceInstance {
 }
 
 // CreateInstance creates an instance and adds it to the resource
-func (rs *Resource) CreateInstance(key addrs.InstanceKey) *ResourceInstance {
-	is := NewResourceInstance()
+func (rs *Resource) CreateInstance(key addrs.InstanceKey, providerConfig addrs.AbsProviderConfig) *ResourceInstance {
+	is := NewResourceInstance(providerConfig)
 	rs.Instances[key] = is
 	return is
 }
@@ -45,10 +38,10 @@ func (rs *Resource) CreateInstance(key addrs.InstanceKey) *ResourceInstance {
 //
 // Because this may create and save a new state, it is considered to be
 // a write operation.
-func (rs *Resource) EnsureInstance(key addrs.InstanceKey) *ResourceInstance {
+func (rs *Resource) EnsureInstance(key addrs.InstanceKey, providerConfig addrs.AbsProviderConfig) *ResourceInstance {
 	ret := rs.Instance(key)
 	if ret == nil {
-		ret = NewResourceInstance()
+		ret = NewResourceInstance(providerConfig)
 		rs.Instances[key] = ret
 	}
 	return ret
@@ -65,13 +58,21 @@ type ResourceInstance struct {
 	// replaced and are pending destruction due to the create_before_destroy
 	// lifecycle mode.
 	Deposed map[DeposedKey]*ResourceInstanceObjectSrc
+
+	// ProviderConfig is the absolute address for the provider configuration
+	// that most recently managed this resource instance. This is used to
+	// connect a resource with a provider configuration when the resource
+	// configuration block is not available, such as if it has been removed
+	// from configuration altogether.
+	ProviderConfig addrs.AbsProviderConfig
 }
 
 // NewResourceInstance constructs and returns a new ResourceInstance, ready to
 // use.
-func NewResourceInstance() *ResourceInstance {
+func NewResourceInstance(providerConfig addrs.AbsProviderConfig) *ResourceInstance {
 	return &ResourceInstance{
-		Deposed: map[DeposedKey]*ResourceInstanceObjectSrc{},
+		Deposed:        map[DeposedKey]*ResourceInstanceObjectSrc{},
+		ProviderConfig: providerConfig,
 	}
 }
 

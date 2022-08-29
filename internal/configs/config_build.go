@@ -31,8 +31,6 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 		cfg.resolveProviderTypes()
 	}
 
-	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
-
 	return cfg, diags
 }
 

@@ -22,8 +22,7 @@ type Resource struct {
 	Count   hcl.Expression
 	ForEach hcl.Expression
 
-	ProviderConfigRef *ProviderConfigRef
-	Provider          addrs.Provider
+	ProviderExpr hcl.Expression
 
 	Preconditions  []*CheckRule
 	Postconditions []*CheckRule
@@ -66,26 +65,6 @@ func (r *Resource) Addr() addrs.Resource {
 		Mode: r.Mode,
 		Type: r.Type,
 		Name: r.Name,
-	}
-}
-
-// ProviderConfigAddr returns the address for the provider configuration that
-// should be used for this resource. This function returns a default provider
-// config addr if an explicit "provider" argument was not provided.
-func (r *Resource) ProviderConfigAddr() addrs.LocalProviderConfig {
-	if r.ProviderConfigRef == nil {
-		// If no specific "provider" argument is given, we want to look up the
-		// provider config where the local name matches the implied provider
-		// from the resource type. This may be different from the resource's
-		// provider type.
-		return addrs.LocalProviderConfig{
-			LocalName: r.Addr().ImpliedProvider(),
-		}
-	}
-
-	return addrs.LocalProviderConfig{
-		LocalName: r.ProviderConfigRef.Name,
-		Alias:     r.ProviderConfigRef.Alias,
 	}
 }
 
@@ -145,9 +124,14 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
-		var providerDiags hcl.Diagnostics
-		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
-		diags = append(diags, providerDiags...)
+		r.ProviderExpr = attr.Expr
+	} else {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing required meta-argument`,
+			Detail:   `Resource blocks must always include a "provider" argument specifying which provider configuration to use for each instance of the resource.`,
+			Subject:  block.Body.MissingItemRange().Ptr(),
+		})
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {
@@ -398,9 +382,14 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
-		var providerDiags hcl.Diagnostics
-		r.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
-		diags = append(diags, providerDiags...)
+		r.ProviderExpr = attr.Expr
+	} else {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Missing required meta-argument`,
+			Detail:   `Resource blocks must always include a "provider" argument specifying which provider configuration to use for each instance of the resource.`,
+			Subject:  block.Body.MissingItemRange().Ptr(),
+		})
 	}
 
 	if attr, exists := content.Attributes["depends_on"]; exists {

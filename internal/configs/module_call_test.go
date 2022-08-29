@@ -97,32 +97,6 @@ func TestLoadModuleCall(t *testing.T) {
 					},
 				},
 			},
-			Providers: []PassedProviderConfig{
-				{
-					InChild: &ProviderConfigRef{
-						Name: "aws",
-						NameRange: hcl.Range{
-							Filename: "module-calls.tf",
-							Start:    hcl.Pos{Line: 27, Column: 5, Byte: 332},
-							End:      hcl.Pos{Line: 27, Column: 8, Byte: 335},
-						},
-					},
-					InParent: &ProviderConfigRef{
-						Name: "aws",
-						NameRange: hcl.Range{
-							Filename: "module-calls.tf",
-							Start:    hcl.Pos{Line: 27, Column: 11, Byte: 338},
-							End:      hcl.Pos{Line: 27, Column: 14, Byte: 341},
-						},
-						Alias: "foo",
-						AliasRange: &hcl.Range{
-							Filename: "module-calls.tf",
-							Start:    hcl.Pos{Line: 27, Column: 14, Byte: 341},
-							End:      hcl.Pos{Line: 27, Column: 18, Byte: 345},
-						},
-					},
-				},
-			},
 			DeclRange: hcl.Range{
 				Filename: "module-calls.tf",
 				Start:    hcl.Pos{Line: 14, Column: 1, Byte: 167},

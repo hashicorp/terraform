@@ -141,7 +141,8 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	providerConfigAddr := n.readPlannedProviderConfigAddr(ctx)
+	_, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -175,13 +176,13 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		// actually reading the data (e.g. because it was already read during
 		// the plan phase) and so we're only running through here to get the
 		// extra details like precondition/postcondition checks.
-		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState, providerConfigAddr, providerSchema))
 		if diags.HasErrors() {
 			return diags
 		}
 	}
 
-	diags = diags.Append(n.writeChange(ctx, nil, ""))
+	diags = diags.Append(n.writeChange(ctx, nil, "", providerSchema))
 
 	diags = diags.Append(updateStateHook(ctx))
 
@@ -208,8 +209,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var createBeforeDestroyEnabled bool
 	var deposedKey states.DeposedKey
 
+	providerConfigAddr := n.readPlannedProviderConfigAddr(ctx)
 	addr := n.ResourceInstanceAddr().Resource
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	_, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -250,7 +252,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		log.Printf("[TRACE] managedResourceExecute: prior object for %s now deposed with key %s", n.Addr, deposedKey)
 	}
 
-	state, readDiags := n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
+	state, readDiags := n.readResourceInstanceState(ctx, n.ResourceInstanceAddr(), providerConfigAddr)
 	diags = diags.Append(readDiags)
 	if diags.HasErrors() {
 		return diags
@@ -295,7 +297,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// We clear the change out here so that future nodes don't see a change
 	// that is already complete.
-	err = n.writeChange(ctx, nil, "")
+	err = n.writeChange(ctx, nil, "", providerSchema)
 	if err != nil {
 		return diags.Append(err)
 	}
@@ -306,7 +308,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		// dependencies are always updated to match the configuration during apply
 		state.Dependencies = n.Dependencies
 	}
-	err = n.writeResourceInstanceState(ctx, state, workingState)
+	err = n.writeResourceInstanceState(ctx, state, workingState, providerConfigAddr, providerSchema)
 	if err != nil {
 		return diags.Append(err)
 	}
@@ -319,7 +321,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	state = maybeTainted(addr.Absolute(ctx.Path()), state, diffApply, diags.Err())
 
-	err = n.writeResourceInstanceState(ctx, state, workingState)
+	err = n.writeResourceInstanceState(ctx, state, workingState, providerConfigAddr, providerSchema)
 	if err != nil {
 		return diags.Append(err)
 	}
@@ -386,6 +388,8 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
 
+	providerConfigAddr := actualChange.ProviderAddr
+
 	schema, _ := providerSchema.SchemaForResourceAddr(addr.ContainingResource())
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
@@ -422,7 +426,7 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 				"Provider produced inconsistent final plan",
 				fmt.Sprintf(
 					"When expanding the plan for %s to include new values learned so far during apply, provider %q changed the planned action from %s to %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					absAddr, n.ResolvedProvider.Provider.String(),
+					absAddr, providerConfigAddr.Provider.String(),
 					plannedChange.Action, actualChange.Action,
 				),
 			))
@@ -436,7 +440,7 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 			"Provider produced inconsistent final plan",
 			fmt.Sprintf(
 				"When expanding the plan for %s to include new values learned so far during apply, provider %q produced an invalid new value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				absAddr, n.ResolvedProvider.Provider.String(), tfdiags.FormatError(err),
+				absAddr, providerConfigAddr.Provider.String(), tfdiags.FormatError(err),
 			),
 		))
 	}

@@ -5,6 +5,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -196,7 +197,10 @@ func (a *Analyzer) metaReferencesResourceInstance(moduleAddr addrs.ModuleInstanc
 	// available. In invalid cases we might be dealing with partial information,
 	// and so the schema might be nil so we won't be able to return reference
 	// information for this particular situation.
-	providerSchema := a.providerSchemas[rc.Provider]
+	// FIXME: Need to somehow update this to work with dynamically-assigned
+	// provider configurations.
+	//providerSchema := a.providerSchemas[rc.Provider]
+	var providerSchema *providers.Schemas
 	if providerSchema == nil {
 		return nil
 	}

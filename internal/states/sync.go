@@ -195,15 +195,14 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 	return inst.GetGeneration(gen).DeepCopy()
 }
 
-// SetResourceMeta updates the resource-level metadata for the resource at
-// the given address, creating the containing module state and resource state
-// as a side-effect if not already present.
-func (s *SyncState) SetResourceProvider(addr addrs.AbsResource, provider addrs.AbsProviderConfig) {
+// EnsureResourceHusk ensures that there's at least an empty husk (no instances)
+// for the given resource address in the state.
+func (s *SyncState) EnsureResourceHusk(addr addrs.AbsResource) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
 	ms := s.state.EnsureModule(addr.Module)
-	ms.SetResourceProvider(addr.Resource, provider)
+	ms.EnsureResourceHusk(addr.Resource)
 }
 
 // RemoveResource removes the entire state for the given resource, taking with
@@ -438,7 +437,7 @@ func (s *SyncState) RemovePlannedResourceInstanceObjects() {
 				if is.Current != nil && is.Current.Status == ObjectPlanned {
 					// Setting the current instance to nil removes it from the
 					// state altogether if there are not also deposed instances.
-					ms.SetResourceInstanceCurrent(instAddr, nil, rs.ProviderConfig)
+					ms.SetResourceInstanceCurrent(instAddr, nil, is.ProviderConfig)
 				}
 
 				for dk, obj := range is.Deposed {

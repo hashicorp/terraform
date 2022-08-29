@@ -372,26 +372,6 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		}
 	}
 
-	// Each resource in the configuration creates an *implicit* provider
-	// dependency, though we'll only record it if there isn't already
-	// an explicit dependency on the same provider.
-	for _, rc := range c.Module.ManagedResources {
-		fqn := rc.Provider
-		if _, exists := reqs[fqn]; exists {
-			// Explicit dependency already present
-			continue
-		}
-		reqs[fqn] = nil
-	}
-	for _, rc := range c.Module.DataResources {
-		fqn := rc.Provider
-		if _, exists := reqs[fqn]; exists {
-			// Explicit dependency already present
-			continue
-		}
-		reqs[fqn] = nil
-	}
-
 	// "provider" block can also contain version constraints
 	for _, provider := range c.Module.ProviderConfigs {
 		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
@@ -456,26 +436,6 @@ func (c *Config) resolveProviderTypes() {
 			addr := addrs.NewDefaultProvider(p.Name)
 			p.providerType = addr
 			providers[p.Name] = addr
-		}
-	}
-
-	// connect module call providers to the correct type
-	for _, mod := range c.Module.ModuleCalls {
-		for _, p := range mod.Providers {
-			if addr, known := providers[p.InParent.Name]; known {
-				p.InParent.providerType = addr
-			}
-		}
-	}
-
-	// fill in parent module calls too
-	if c.Parent != nil {
-		for _, mod := range c.Parent.Module.ModuleCalls {
-			for _, p := range mod.Providers {
-				if addr, known := providers[p.InChild.Name]; known {
-					p.InChild.providerType = addr
-				}
-			}
 		}
 	}
 }
@@ -544,6 +504,28 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
 	}
 
+}
+
+// ProviderForResource returns the provider type for the given resource, or
+// panics if there is no such resource.
+//
+// A resource has a static provider type which is decided by correlating
+// the prefix of its resource type name with the table of provider local
+// names in this module.
+//
+// FIXME: This is a temporary hack introduced as part of prototyping dynamic
+// assignment of provider configurations, since that requires us to be able
+// to know the expected provider type before we evaluate the dynamic expression
+// which selects a configuration for that provider. This can't really fly as
+// the final design because e.g. it doesn't allow for there to be two providers
+// in scope that share the same resource type prefix, and that was the original
+// goal of the "local name" concept in the first place.
+func (c *Config) ProviderForResource(addr addrs.ConfigResource) addrs.Provider {
+	mc := c.Descendent(addr.Module)
+	if mc == nil {
+		panic(fmt.Sprintf("Module.ProviderForResource with undeclared resource %s", addr))
+	}
+	return mc.Module.ProviderForResource(addr.Resource)
 }
 
 // ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first

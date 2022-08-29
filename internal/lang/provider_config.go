@@ -67,6 +67,17 @@ func ProviderConfigValue(addr addrs.AbsProviderConfig) cty.Value {
 	return cty.CapsuleVal(ty, &addr)
 }
 
+// ProviderConfigFromValue returns the provider configuration address
+// encapsulated in the given value, which must be of a type previously
+// returned by [ProviderConfigType].
+//
+// If the given value is not a known, non-known value of an appropriate
+// type then this function will panic.
+func ProviderConfigFromValue(v cty.Value) addrs.AbsProviderConfig {
+	raw := v.EncapsulatedValue()
+	return *raw.(*addrs.AbsProviderConfig)
+}
+
 // providerConfigTypeBaseCapsuleOps represents all of the common parts of
 // the CapsuleOps objects produced by ProviderConfigType. That function must
 // shallow-copy this object and then override the parts that need to vary

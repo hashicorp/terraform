@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -26,72 +25,9 @@ func testProviderTransformerGraph(t *testing.T, cfg *configs.Config) *Graph {
 	return g
 }
 
-func TestProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-basic")
-
-	g := testProviderTransformerGraph(t, mod)
-	{
-		transform := &MissingProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	transform := &ProviderTransformer{}
-	if err := transform.Transform(g); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformProviderBasicStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
-// Test providers with FQNs that do not match the typeName
-func TestProviderTransformer_fqns(t *testing.T) {
-	for _, mod := range []string{"fqns", "fqns-module"} {
-		mod := testModule(t, fmt.Sprintf("transform-provider-%s", mod))
-
-		g := testProviderTransformerGraph(t, mod)
-		{
-			transform := &MissingProviderTransformer{Config: mod}
-			if err := transform.Transform(g); err != nil {
-				t.Fatalf("err: %s", err)
-			}
-		}
-
-		transform := &ProviderTransformer{Config: mod}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-
-		actual := strings.TrimSpace(g.String())
-		expected := strings.TrimSpace(testTransformProviderBasicStr)
-		if actual != expected {
-			t.Fatalf("bad:\n\n%s", actual)
-		}
-	}
-}
-
 func TestCloseProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 	g := testProviderTransformerGraph(t, mod)
-
-	{
-		transform := &MissingProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &ProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
 
 	{
 		transform := &CloseProviderTransformer{}
@@ -112,8 +48,6 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 
 	g := testProviderTransformerGraph(t, mod)
 	transforms := []GraphTransformer{
-		&MissingProviderTransformer{},
-		&ProviderTransformer{},
 		&CloseProviderTransformer{},
 		&TargetsTransformer{
 			Targets: []addrs.Targetable{
@@ -134,103 +68,6 @@ func TestCloseProviderTransformer_withTargets(t *testing.T) {
 	expected := strings.TrimSpace(``)
 	if actual != expected {
 		t.Fatalf("expected:%s\n\ngot:\n\n%s", expected, actual)
-	}
-}
-
-func TestMissingProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-missing")
-
-	g := testProviderTransformerGraph(t, mod)
-	{
-		transform := &MissingProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &ProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &CloseProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformMissingProviderBasicStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-func TestMissingProviderTransformer_grandchildMissing(t *testing.T) {
-	mod := testModule(t, "transform-provider-missing-grandchild")
-
-	concrete := func(a *NodeAbstractProvider) dag.Vertex { return a }
-
-	g := testProviderTransformerGraph(t, mod)
-	{
-		transform := transformProviders(concrete, mod)
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-	{
-		transform := &TransitiveReductionTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformMissingGrandchildProviderStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
-	}
-}
-
-func TestPruneProviderTransformer(t *testing.T) {
-	mod := testModule(t, "transform-provider-prune")
-
-	g := testProviderTransformerGraph(t, mod)
-	{
-		transform := &MissingProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &ProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &CloseProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		transform := &PruneProviderTransformer{}
-		if err := transform.Transform(g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformPruneProviderBasicStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 

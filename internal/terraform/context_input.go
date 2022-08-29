@@ -76,31 +76,6 @@ func (c *Context) Input(config *configs.Config, mode InputMode) tfdiags.Diagnost
 			pas[addr.String()] = addr
 			log.Printf("[TRACE] Context.Input: Provider %s declared at %s", addr, pc.DeclRange)
 		}
-		// We also need to detect _implied_ provider configs from resources.
-		// These won't have *configs.Provider objects, but they will still
-		// exist in the map and we'll just treat them as empty below.
-		for _, rc := range config.Module.ManagedResources {
-			pa := rc.ProviderConfigAddr()
-			if pa.Alias != "" {
-				continue // alias configurations cannot be implied
-			}
-			if _, exists := pcs[pa.String()]; !exists {
-				pcs[pa.String()] = nil
-				pas[pa.String()] = pa
-				log.Printf("[TRACE] Context.Input: Provider %s implied by resource block at %s", pa, rc.DeclRange)
-			}
-		}
-		for _, rc := range config.Module.DataResources {
-			pa := rc.ProviderConfigAddr()
-			if pa.Alias != "" {
-				continue // alias configurations cannot be implied
-			}
-			if _, exists := pcs[pa.String()]; !exists {
-				pcs[pa.String()] = nil
-				pas[pa.String()] = pa
-				log.Printf("[TRACE] Context.Input: Provider %s implied by data block at %s", pa, rc.DeclRange)
-			}
-		}
 
 		for pk, pa := range pas {
 			pc := pcs[pk] // will be nil if this is an implied config

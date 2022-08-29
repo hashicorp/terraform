@@ -184,10 +184,6 @@ func (mc *ModuleCall) merge(omc *ModuleCall) hcl.Diagnostics {
 
 	mc.Config = MergeBodies(mc.Config, omc.Config)
 
-	if len(omc.Providers) != 0 {
-		mc.Providers = omc.Providers
-	}
-
 	// We don't allow depends_on to be overridden because that is likely to
 	// cause confusing misbehavior.
 	if len(mc.DependsOn) != 0 {
@@ -218,13 +214,8 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		r.ForEach = or.ForEach
 	}
 
-	if or.ProviderConfigRef != nil {
-		r.ProviderConfigRef = or.ProviderConfigRef
-		if existing, exists := rps[or.ProviderConfigRef.Name]; exists {
-			r.Provider = existing.Type
-		} else {
-			r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)
-		}
+	if or.ProviderExpr != nil {
+		r.ProviderExpr = or.ProviderExpr
 	}
 
 	// Provider FQN is set by Terraform during Merge

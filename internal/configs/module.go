@@ -2,6 +2,7 @@ package configs
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -311,21 +312,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.ManagedResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid resource name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	for _, r := range file.DataResources {
@@ -340,21 +326,6 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
-
-		// set the provider FQN for the resource
-		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
-		} else {
-			// an invalid data source name (for e.g. "null resource" instead of
-			// "null_resource") can cause a panic down the line in addrs:
-			// https://github.com/hashicorp/terraform/issues/25560
-			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
-			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
-			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
-		}
 	}
 
 	// "Moved" blocks just append, because they are all independent
@@ -568,6 +539,42 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 		// Type = LocalName
 		return p.Type
 	}
+}
+
+// ProviderForResource returns the provider type for the given resource in
+// the receiving module, or panics if there is no such resource.
+//
+// A resource has a static provider type which is decided by correlating
+// the prefix of its resource type name with the table of provider local
+// names in this module.
+//
+// FIXME: This is a temporary hack introduced as part of prototyping dynamic
+// assignment of provider configurations, since that requires us to be able
+// to know the expected provider type before we evaluate the dynamic expression
+// which selects a configuration for that provider. This can't really fly as
+// the final design because e.g. it doesn't allow for there to be two providers
+// in scope that share the same resource type prefix, and that was the original
+// goal of the "local name" concept in the first place.
+func (m *Module) ProviderForResource(addr addrs.Resource) addrs.Provider {
+	r := m.ResourceByAddr(addr)
+	if r == nil {
+		panic(fmt.Sprintf("Module.ProviderForResource with undeclared resource %s", addr))
+	}
+
+	// FIXME: A more robust version of this logic exists somewhere else, but
+	// we weren't able to find it quickly for prototyping purposes. If something
+	// like this graduates beyond prototype, track down the canonical
+	// implementation of this rule and use it.
+	typ := addr.Type
+	under := strings.Index(typ, "_")
+	var localName string
+	if under == -1 {
+		localName = typ
+	} else {
+		localName = typ[:under]
+	}
+
+	return m.ImpliedProviderForUnqualifiedType(localName)
 }
 
 // ProviderForLocalConfig returns the provider FQN for a given

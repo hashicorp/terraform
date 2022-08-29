@@ -117,32 +117,6 @@ func TestModuleOverrideModule(t *testing.T) {
 				Byte:   17,
 			},
 		},
-		Providers: []PassedProviderConfig{
-			{
-				InChild: &ProviderConfigRef{
-					Name: "test",
-					NameRange: hcl.Range{
-						Filename: "testdata/valid-modules/override-module/b_override.tf",
-						Start:    hcl.Pos{Line: 7, Column: 5, Byte: 97},
-						End:      hcl.Pos{Line: 7, Column: 9, Byte: 101},
-					},
-				},
-				InParent: &ProviderConfigRef{
-					Name: "test",
-					NameRange: hcl.Range{
-						Filename: "testdata/valid-modules/override-module/b_override.tf",
-						Start:    hcl.Pos{Line: 7, Column: 12, Byte: 104},
-						End:      hcl.Pos{Line: 7, Column: 16, Byte: 108},
-					},
-					Alias: "b_override",
-					AliasRange: &hcl.Range{
-						Filename: "testdata/valid-modules/override-module/b_override.tf",
-						Start:    hcl.Pos{Line: 7, Column: 16, Byte: 108},
-						End:      hcl.Pos{Line: 7, Column: 27, Byte: 119},
-					},
-				},
-			},
-		},
 	}
 
 	// We're going to extract and nil out our hcl.Body here because DeepEqual
@@ -287,37 +261,6 @@ func TestModuleOverrideSensitiveVariable(t *testing.T) {
 				t.Errorf("wrong result for sensitive set\ngot: %t want: %t", got[v].Sensitive, want.sensitive)
 			}
 		})
-	}
-}
-
-func TestModuleOverrideResourceFQNs(t *testing.T) {
-	mod, diags := testModuleFromDir("testdata/valid-modules/override-resource-provider")
-	assertNoDiagnostics(t, diags)
-
-	got := mod.ManagedResources["test_instance.explicit"]
-	wantProvider := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
-	wantProviderCfg := &ProviderConfigRef{
-		Name: "bar-test",
-		NameRange: hcl.Range{
-			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
-			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 51},
-			End:      hcl.Pos{Line: 2, Column: 22, Byte: 59},
-		},
-	}
-
-	if !got.Provider.Equals(wantProvider) {
-		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
-	}
-	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
-
-	// now verify that a resource with no provider config falls back to default
-	got = mod.ManagedResources["test_instance.default"]
-	wantProvider = addrs.NewDefaultProvider("test")
-	if !got.Provider.Equals(wantProvider) {
-		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
-	}
-	if got.ProviderConfigRef != nil {
-		t.Fatalf("wrong result: found provider config ref %s, expected nil", got.ProviderConfigRef)
 	}
 }
 

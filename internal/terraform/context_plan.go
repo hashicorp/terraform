@@ -614,13 +614,13 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				continue
 			}
 
-			provider := rs.ProviderConfig.Provider
 			for key, oldIS := range rs.Instances {
 				if oldIS.Current == nil {
 					// Not interested in instances that only have deposed objects
 					continue
 				}
 				addr := rs.Addr.Instance(key)
+				provider := oldIS.ProviderConfig.Provider
 
 				// Previous run address defaults to the current address, but
 				// can differ if the resource moved before refreshing
@@ -706,7 +706,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				change := &plans.ResourceInstanceChange{
 					Addr:         addr,
 					PrevRunAddr:  prevRunAddr,
-					ProviderAddr: rs.ProviderConfig,
+					ProviderAddr: newIS.ProviderConfig,
 					Change: plans.Change{
 						Action: action,
 						Before: oldVal,

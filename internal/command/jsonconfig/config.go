@@ -3,7 +3,6 @@ package jsonconfig
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -265,34 +264,9 @@ func marshalProviderConfigs(
 	}
 
 	// Must also visit our child modules, recursively.
-	for name, mc := range c.Module.ModuleCalls {
+	for name := range c.Module.ModuleCalls {
 		// Keys in c.Children are guaranteed to match those in c.Module.ModuleCalls
 		cc := c.Children[name]
-
-		// Add provider config map entries for passed provider configs,
-		// pointing at the passed configuration
-		for _, ppc := range mc.Providers {
-			// These provider names include aliases, if set
-			moduleProviderName := ppc.InChild.String()
-			parentProviderName := ppc.InParent.String()
-
-			// Look up the provider FQN from the module context, using the non-aliased local name
-			providerFqn := cc.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: ppc.InChild.Name})
-
-			// The presence of passed provider configs means that we cannot have
-			// any configuration expressions or version constraints here
-			p := providerConfig{
-				Name:          moduleProviderName,
-				FullName:      providerFqn.String(),
-				ModuleAddress: cc.Path.String(),
-			}
-
-			key := opaqueProviderKey(moduleProviderName, cc.Path.String())
-			parentKey := opaqueProviderKey(parentProviderName, cc.Parent.Path.String())
-			p.parentKey = findSourceProviderKey(parentKey, p.FullName, m)
-
-			m[key] = p
-		}
 
 		// Finally, marshal any other provider configs within the called module.
 		// It is safe to do this last because it is invalid to configure a
@@ -439,81 +413,85 @@ func marshalModuleCall(c *configs.Config, mc *configs.ModuleCall, schemas *terra
 }
 
 func marshalResources(resources map[string]*configs.Resource, schemas *terraform.Schemas, moduleAddr string) ([]resource, error) {
-	var rs []resource
-	for _, v := range resources {
-		providerConfigKey := opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr)
-		r := resource{
-			Address:           v.Addr().String(),
-			Type:              v.Type,
-			Name:              v.Name,
-			ProviderConfigKey: providerConfigKey,
-		}
-
-		switch v.Mode {
-		case addrs.ManagedResourceMode:
-			r.Mode = "managed"
-		case addrs.DataResourceMode:
-			r.Mode = "data"
-		default:
-			return rs, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, v.Mode.String())
-		}
-
-		cExp := marshalExpression(v.Count)
-		if !cExp.Empty() {
-			r.CountExpression = &cExp
-		} else {
-			fExp := marshalExpression(v.ForEach)
-			if !fExp.Empty() {
-				r.ForEachExpression = &fExp
+	// TODO: Figure out what to do with this in a world of dynamic provider configuration assignments
+	panic("jsonconfig doesn't support dynamic provider configuration assignments yet")
+	/*
+		var rs []resource
+		for _, v := range resources {
+			providerConfigKey := opaqueProviderKey(v.ProviderConfigAddr().StringCompact(), moduleAddr)
+			r := resource{
+				Address:           v.Addr().String(),
+				Type:              v.Type,
+				Name:              v.Name,
+				ProviderConfigKey: providerConfigKey,
 			}
-		}
 
-		schema, schemaVer := schemas.ResourceTypeConfig(
-			v.Provider,
-			v.Mode,
-			v.Type,
-		)
-		if schema == nil {
-			return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
-		}
-		r.SchemaVersion = schemaVer
-
-		r.Expressions = marshalExpressions(v.Config, schema)
-
-		// Managed is populated only for Mode = addrs.ManagedResourceMode
-		if v.Managed != nil && len(v.Managed.Provisioners) > 0 {
-			var provisioners []provisioner
-			for _, p := range v.Managed.Provisioners {
-				schema := schemas.ProvisionerConfig(p.Type)
-				prov := provisioner{
-					Type:        p.Type,
-					Expressions: marshalExpressions(p.Config, schema),
-				}
-				provisioners = append(provisioners, prov)
+			switch v.Mode {
+			case addrs.ManagedResourceMode:
+				r.Mode = "managed"
+			case addrs.DataResourceMode:
+				r.Mode = "data"
+			default:
+				return rs, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, v.Mode.String())
 			}
-			r.Provisioners = provisioners
-		}
 
-		if len(v.DependsOn) > 0 {
-			dependencies := make([]string, len(v.DependsOn))
-			for i, d := range v.DependsOn {
-				ref, diags := addrs.ParseRef(d)
-				// we should not get an error here, because `terraform validate`
-				// would have complained well before this point, but if we do we'll
-				// silenty skip it.
-				if !diags.HasErrors() {
-					dependencies[i] = ref.Subject.String()
+			cExp := marshalExpression(v.Count)
+			if !cExp.Empty() {
+				r.CountExpression = &cExp
+			} else {
+				fExp := marshalExpression(v.ForEach)
+				if !fExp.Empty() {
+					r.ForEachExpression = &fExp
 				}
 			}
-			r.DependsOn = dependencies
-		}
 
-		rs = append(rs, r)
-	}
-	sort.Slice(rs, func(i, j int) bool {
-		return rs[i].Address < rs[j].Address
-	})
-	return rs, nil
+			schema, schemaVer := schemas.ResourceTypeConfig(
+				v.Provider,
+				v.Mode,
+				v.Type,
+			)
+			if schema == nil {
+				return nil, fmt.Errorf("no schema found for %s (in provider %s)", v.Addr().String(), v.Provider)
+			}
+			r.SchemaVersion = schemaVer
+
+			r.Expressions = marshalExpressions(v.Config, schema)
+
+			// Managed is populated only for Mode = addrs.ManagedResourceMode
+			if v.Managed != nil && len(v.Managed.Provisioners) > 0 {
+				var provisioners []provisioner
+				for _, p := range v.Managed.Provisioners {
+					schema := schemas.ProvisionerConfig(p.Type)
+					prov := provisioner{
+						Type:        p.Type,
+						Expressions: marshalExpressions(p.Config, schema),
+					}
+					provisioners = append(provisioners, prov)
+				}
+				r.Provisioners = provisioners
+			}
+
+			if len(v.DependsOn) > 0 {
+				dependencies := make([]string, len(v.DependsOn))
+				for i, d := range v.DependsOn {
+					ref, diags := addrs.ParseRef(d)
+					// we should not get an error here, because `terraform validate`
+					// would have complained well before this point, but if we do we'll
+					// silenty skip it.
+					if !diags.HasErrors() {
+						dependencies[i] = ref.Subject.String()
+					}
+				}
+				r.DependsOn = dependencies
+			}
+
+			rs = append(rs, r)
+		}
+		sort.Slice(rs, func(i, j int) bool {
+			return rs[i].Address < rs[j].Address
+		})
+		return rs, nil
+	*/
 }
 
 // Flatten all resource provider keys in a module and its descendents, such

@@ -84,25 +84,29 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 		}
 
-		providerAddr, addrDiags := addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
-		diags.Append(addrDiags)
-		if addrDiags.HasErrors() {
-			// If ParseAbsProviderConfigStr returns an error, the state may have
-			// been written before Provider FQNs were introduced and the
-			// AbsProviderConfig string format will need normalization. If so,
-			// we treat it like a legacy provider (namespace "-") and let the
-			// provider installer handle detecting the FQN.
-			var legacyAddrDiags tfdiags.Diagnostics
-			providerAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
-			if legacyAddrDiags.HasErrors() {
-				continue
+		var resourceProviderAddr addrs.AbsProviderConfig
+		if rsV4.ProviderConfig != "" {
+			var addrDiags tfdiags.Diagnostics
+			resourceProviderAddr, addrDiags = addrs.ParseAbsProviderConfigStr(rsV4.ProviderConfig)
+			diags.Append(addrDiags)
+			if addrDiags.HasErrors() {
+				// If ParseAbsProviderConfigStr returns an error, the state may have
+				// been written before Provider FQNs were introduced and the
+				// AbsProviderConfig string format will need normalization. If so,
+				// we treat it like a legacy provider (namespace "-") and let the
+				// provider installer handle detecting the FQN.
+				var legacyAddrDiags tfdiags.Diagnostics
+				resourceProviderAddr, legacyAddrDiags = addrs.ParseLegacyAbsProviderConfigStr(rsV4.ProviderConfig)
+				if legacyAddrDiags.HasErrors() {
+					continue
+				}
 			}
 		}
 
 		ms := state.EnsureModule(moduleAddr)
 
 		// Ensure the resource container object is present in the state.
-		ms.SetResourceProvider(rAddr, providerAddr)
+		ms.EnsureResourceHusk(rAddr)
 
 		for _, isV4 := range rsV4.Instances {
 			keyRaw := isV4.IndexKey
@@ -132,6 +136,16 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			}
 
 			instAddr := rAddr.Instance(key)
+
+			providerAddr := resourceProviderAddr
+			if isV4.ProviderConfig != "" {
+				var addrDiags tfdiags.Diagnostics
+				providerAddr, addrDiags = addrs.ParseAbsProviderConfigStr(isV4.ProviderConfig)
+				diags.Append(addrDiags)
+				if addrDiags.HasErrors() {
+					continue
+				}
+			}
 
 			obj := &states.ResourceInstanceObjectSrc{
 				SchemaVersion:       isV4.SchemaVersion,
@@ -244,13 +258,6 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 				ms.SetResourceInstanceCurrent(instAddr, obj, providerAddr)
 			}
 		}
-
-		// We repeat this after creating the instances because
-		// SetResourceInstanceCurrent automatically resets this metadata based
-		// on the incoming objects. That behavior is useful when we're making
-		// piecemeal updates to the state during an apply, but when we're
-		// reading the state file we want to reflect its contents exactly.
-		ms.SetResourceProvider(rAddr, providerAddr)
 	}
 
 	// The root module is special in that we persist its attributes and thus
@@ -384,12 +391,11 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 			}
 
 			sV4.Resources = append(sV4.Resources, resourceStateV4{
-				Module:         moduleAddr.String(),
-				Mode:           mode,
-				Type:           resourceAddr.Type,
-				Name:           resourceAddr.Name,
-				ProviderConfig: rs.ProviderConfig.String(),
-				Instances:      []instanceObjectStateV4{},
+				Module:    moduleAddr.String(),
+				Mode:      mode,
+				Type:      resourceAddr.Type,
+				Name:      resourceAddr.Name,
+				Instances: []instanceObjectStateV4{},
 			})
 			rsV4 := &(sV4.Resources[len(sV4.Resources)-1])
 
@@ -506,6 +512,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		AttributesFlat:          obj.AttrsFlat,
 		AttributesRaw:           obj.AttrsJSON,
 		AttributeSensitivePaths: attributeSensitivePaths,
+		ProviderConfig:          is.ProviderConfig.String(),
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
@@ -681,13 +688,17 @@ type outputStateV4 struct {
 }
 
 type resourceStateV4 struct {
-	Module         string                  `json:"module,omitempty"`
-	Mode           string                  `json:"mode"`
-	Type           string                  `json:"type"`
-	Name           string                  `json:"name"`
-	EachMode       string                  `json:"each,omitempty"`
-	ProviderConfig string                  `json:"provider"`
-	Instances      []instanceObjectStateV4 `json:"instances"`
+	Module    string                  `json:"module,omitempty"`
+	Mode      string                  `json:"mode"`
+	Type      string                  `json:"type"`
+	Name      string                  `json:"name"`
+	EachMode  string                  `json:"each,omitempty"`
+	Instances []instanceObjectStateV4 `json:"instances"`
+
+	// This is no longer used on write but we might encounter a non-empty
+	// value here on read, if we're reading a snapshot created by an older
+	// version of Terraform.
+	ProviderConfig string `json:"provider,omitempty"`
 }
 
 type instanceObjectStateV4 struct {
@@ -699,6 +710,11 @@ type instanceObjectStateV4 struct {
 	AttributesRaw           json.RawMessage   `json:"attributes,omitempty"`
 	AttributesFlat          map[string]string `json:"attributes_flat,omitempty"`
 	AttributeSensitivePaths json.RawMessage   `json:"sensitive_attributes,omitempty"`
+
+	// We now always populate this on write but on read it might be empty,
+	// in which case we need to use the legacy ProviderConfig field from
+	// the parent resourceStateV4 instead.
+	ProviderConfig string `json:"provider"`
 
 	PrivateRaw []byte `json:"private,omitempty"`
 

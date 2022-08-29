@@ -49,58 +49,6 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	}
 }
 
-// This test validates the provider FQNs set in each Resource
-func TestNewModule_resource_providers(t *testing.T) {
-	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
-	if diags.HasErrors() {
-		t.Fatal(diags.Error())
-	}
-
-	// both the root and child module have two resources, one which should use
-	// the default implied provider and one explicitly using a provider set in
-	// required_providers
-	wantImplicit := addrs.NewDefaultProvider("test")
-	wantFoo := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
-	wantBar := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
-
-	// root module
-	if !cfg.Module.ManagedResources["test_instance.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantFoo,
-		)
-	}
-	if !cfg.Module.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
-			wantImplicit,
-		)
-	}
-
-	// a data source
-	if !cfg.Module.DataResources["data.test_resource.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantBar,
-		)
-	}
-
-	// child module
-	cm := cfg.Children["child"].Module
-	if !cm.ManagedResources["test_instance.explicit"].Provider.Equals(wantBar) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
-			wantBar,
-		)
-	}
-	if !cm.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
-			wantImplicit,
-		)
-	}
-}
-
 func TestProviderForLocalConfig(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/providers-explicit-fqn")
 	if diags.HasErrors() {
@@ -148,11 +96,6 @@ func TestModule_required_providers_after_resource(t *testing.T) {
 		)
 	}
 
-	if got := mod.ManagedResources["test_instance.my-instance"].Provider; !got.Equals(want) {
-		t.Errorf("wrong provider addr for \"test_instance.my-instance\"\ngot:  %s\nwant: %s",
-			got, want,
-		)
-	}
 }
 
 // We support overrides for required_providers blocks, which should replace the
@@ -176,11 +119,6 @@ func TestModule_required_provider_overrides(t *testing.T) {
 			req.Type, want,
 		)
 	}
-	if got := mod.ManagedResources["foo_thing.ft"].Provider; !got.Equals(want) {
-		t.Errorf("wrong provider addr for \"foo_thing.ft\"\ngot:  %s\nwant: %s",
-			got, want,
-		)
-	}
 
 	// The bar provider and resource should be using the override config
 	want = addrs.NewProvider(addrs.DefaultProviderRegistryHost, "blorp", "bar")
@@ -196,11 +134,6 @@ func TestModule_required_provider_overrides(t *testing.T) {
 	if gotVer, wantVer := req.Requirement.Required.String(), "~>2.0.0"; gotVer != wantVer {
 		t.Errorf("wrong provider version constraint for \"bar\"\ngot:  %s\nwant: %s",
 			gotVer, wantVer,
-		)
-	}
-	if got := mod.ManagedResources["bar_thing.bt"].Provider; !got.Equals(want) {
-		t.Errorf("wrong provider addr for \"bar_thing.bt\"\ngot:  %s\nwant: %s",
-			got, want,
 		)
 	}
 }
@@ -271,15 +204,10 @@ func TestModule_implied_provider(t *testing.T) {
 		if strings.HasPrefix(test.Address, "data.") {
 			resources = mod.DataResources
 		}
-		resource, exists := resources[test.Address]
+		_, exists := resources[test.Address]
 		if !exists {
 			t.Errorf("could not find resource %q in %#v", test.Address, resources)
 			continue
-		}
-		if got := resource.Provider; !got.Equals(test.Provider) {
-			t.Errorf("wrong provider addr for %q\ngot:  %s\nwant: %s",
-				test.Address, got, test.Provider,
-			)
 		}
 	}
 }

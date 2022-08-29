@@ -51,10 +51,9 @@ func (ms *Module) ResourceInstance(addr addrs.ResourceInstance) *ResourceInstanc
 	return rs.Instance(addr.Key)
 }
 
-// SetResourceProvider updates the resource-level metadata for the resource
-// with the given address, creating the resource state for it if it doesn't
-// already exist.
-func (ms *Module) SetResourceProvider(addr addrs.Resource, provider addrs.AbsProviderConfig) {
+// EnsureResourceHusk ensures there's at least a "husk" (a container without
+// any instances) for the given resource address.
+func (ms *Module) EnsureResourceHusk(addr addrs.Resource) {
 	rs := ms.Resource(addr)
 	if rs == nil {
 		rs = &Resource{
@@ -63,8 +62,6 @@ func (ms *Module) SetResourceProvider(addr addrs.Resource, provider addrs.AbsPro
 		}
 		ms.Resources[addr.String()] = rs
 	}
-
-	rs.ProviderConfig = provider
 }
 
 // RemoveResource removes the entire state for the given resource, taking with
@@ -119,8 +116,8 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 		return
 	}
 	if rs == nil && obj != nil {
-		// We don't have have a resource so make one, which is a side effect of setResourceMeta
-		ms.SetResourceProvider(addr.Resource, provider)
+		// We don't have have a resource so make one
+		ms.EnsureResourceHusk(addr.Resource)
 		// now we have a resource! so update the rs value to point to it
 		rs = ms.Resource(addr.Resource)
 	}
@@ -128,12 +125,9 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 	is := rs.Instance(addr.Key)
 	if is == nil {
 		// if we don't have a resource, create one and add to the instances
-		is = rs.CreateInstance(addr.Key)
-		// update the resource meta because we have a new
-		ms.SetResourceProvider(addr.Resource, provider)
+		is = rs.CreateInstance(addr.Key, provider)
 	}
-	// Update the resource's ProviderConfig, in case the provider has updated
-	rs.ProviderConfig = provider
+	is.ProviderConfig = provider
 	is.Current = obj
 }
 
@@ -154,10 +148,10 @@ func (ms *Module) SetResourceInstanceCurrent(addr addrs.ResourceInstance, obj *R
 // the instance is left with no objects after this operation then it will
 // be removed from its containing resource altogether.
 func (ms *Module) SetResourceInstanceDeposed(addr addrs.ResourceInstance, key DeposedKey, obj *ResourceInstanceObjectSrc, provider addrs.AbsProviderConfig) {
-	ms.SetResourceProvider(addr.Resource, provider)
+	ms.EnsureResourceHusk(addr.Resource)
 
 	rs := ms.Resource(addr.Resource)
-	is := rs.EnsureInstance(addr.Key)
+	is := rs.EnsureInstance(addr.Key, provider)
 	if obj != nil {
 		is.Deposed[key] = obj
 	} else {

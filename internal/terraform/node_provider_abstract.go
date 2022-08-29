@@ -17,6 +17,10 @@ type ConcreteProviderNodeFunc func(*NodeAbstractProvider) dag.Vertex
 type NodeAbstractProvider struct {
 	Addr addrs.AbsProviderConfig
 
+	// LocalAddr is a local reinterpretation of Addr within the provider
+	// local name namespace of the module that Addr belongs to.
+	LocalAddr addrs.LocalProviderConfig
+
 	// The fields below will be automatically set using the Attach
 	// interfaces if you're running those transforms, but also be explicitly
 	// set if you already have that information.
@@ -57,6 +61,11 @@ func (n *NodeAbstractProvider) References() []*addrs.Reference {
 	}
 
 	return ReferencesFromConfig(n.Config.Config, n.Schema)
+}
+
+// GraphNodeReferenceable
+func (n *NodeAbstractProvider) ReferenceableAddrs() []addrs.Referenceable {
+	return []addrs.Referenceable{n.LocalAddr}
 }
 
 // GraphNodeProvider

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -107,43 +108,6 @@ func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResourc
 	return nil
 }
 
-// GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool) {
-	// If we have a config we prefer that above all else
-	if n.Config != nil {
-		relAddr := n.Config.ProviderConfigAddr()
-		return addrs.LocalProviderConfig{
-			LocalName: relAddr.LocalName,
-			Alias:     relAddr.Alias,
-		}, false
-	}
-
-	// See if we have a valid provider config from the state.
-	if n.storedProviderConfig.Provider.Type != "" {
-		// An address from the state must match exactly, since we must ensure
-		// we refresh/destroy a resource with the same provider configuration
-		// that created it.
-		return n.storedProviderConfig, true
-	}
-
-	// No provider configuration found; return a default address
-	return addrs.AbsProviderConfig{
-		Provider: n.Provider(),
-		Module:   n.ModulePath(),
-	}, false
-}
-
-// GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
-	if n.Config != nil {
-		return n.Config.Provider
-	}
-	if n.storedProviderConfig.Provider.Type != "" {
-		return n.storedProviderConfig.Provider
-	}
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ContainingResource().ImpliedProvider())
-}
-
 // GraphNodeResourceInstance
 func (n *NodeAbstractResourceInstance) ResourceInstanceAddr() addrs.AbsResourceInstance {
 	return n.Addr
@@ -157,7 +121,49 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 	}
 	log.Printf("[TRACE] NodeAbstractResourceInstance.AttachResourceState for %s", n.Addr)
 	n.instanceState = s.Instance(n.Addr.Resource.Key)
-	n.storedProviderConfig = s.ProviderConfig
+	n.storedProviderConfig = n.instanceState.ProviderConfig
+}
+
+// providerConfigAddr evaluates the resource's "provider" argument expression
+// and, if successful, returns the provider configuration address it
+// resolved to.
+//
+// If the returned diagnostics contains no errors then the returned
+// configuration is guaranteed to belong to the same provider as the resource
+// itself does. If the returned diagnostics contains errors then the returned
+// address is invalida and must not be used.
+func (n *NodeAbstractResourceInstance) evalProviderConfigAddr(ctx EvalContext, inst instances.RepetitionData) (addrs.AbsProviderConfig, tfdiags.Diagnostics) {
+	wantTy := lang.ProviderConfigType(n.Provider())
+	scope := ctx.EvaluationScope(nil, inst)
+	v, diags := scope.EvalExpr(n.Config.ProviderExpr, wantTy)
+
+	// This is just another thing that won't work if it's unknown during
+	// planning, which is non-ideal. :( But we can't configure a provider
+	// for planning without knowing a configuration to use, so seems like
+	// this is just how it needs to be.
+	if !v.IsKnown() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Unknown provider configuration",
+			Detail:   fmt.Sprintf("The rule for choosing a provider configuration for %s depends on information that won't be known until the apply step, which is invalid.", n.Addr),
+			Subject:  n.Config.ProviderExpr.StartRange().Ptr(),
+		})
+	}
+	if v.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Null provider configuration",
+			Detail:   fmt.Sprintf("Can't use a null value as the provider configuration for %s.", n.Addr),
+			Subject:  n.Config.ProviderExpr.StartRange().Ptr(),
+		})
+	}
+	if diags.HasErrors() {
+		return addrs.AbsProviderConfig{}, diags
+	}
+
+	// If we have a known, non-null value of our wanted type then we should
+	// be able to unwrap it to get a provider configuration address.
+	return lang.ProviderConfigFromValue(v), diags
 }
 
 // readDiff returns the planned change for a particular resource instance
@@ -187,6 +193,16 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 	log.Printf("[TRACE] readDiff: Read %s change from plan for %s", change.Action, n.Addr)
 
 	return change, nil
+}
+
+func (n *NodeAbstractResourceInstance) readPlannedProviderConfigAddr(ctx EvalContext) addrs.AbsProviderConfig {
+	changes := ctx.Changes()
+	addr := n.ResourceInstanceAddr()
+
+	gen := states.CurrentGen
+	csrc := changes.GetResourceInstanceChange(addr, gen)
+
+	return csrc.ProviderAddr
 }
 
 func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
@@ -276,29 +292,25 @@ const (
 //
 // targetState determines which context state we're writing to during plan. The
 // default is the global working state.
-func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState) error {
-	return n.writeResourceInstanceStateImpl(ctx, states.NotDeposed, obj, targetState)
+func (n *NodeAbstractResourceInstance) writeResourceInstanceState(ctx EvalContext, obj *states.ResourceInstanceObject, targetState phaseState, providerConfigAddr addrs.AbsProviderConfig, providerSchema *providers.Schemas) error {
+	return n.writeResourceInstanceStateImpl(ctx, states.NotDeposed, obj, targetState, providerConfigAddr, providerSchema)
 }
 
-func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
+func (n *NodeAbstractResourceInstance) writeResourceInstanceStateDeposed(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState, providerConfigAddr addrs.AbsProviderConfig, providerSchema *providers.Schemas) error {
 	if deposedKey == states.NotDeposed {
 		// Bail out to avoid silently doing something other than what the
 		// caller seems to have intended.
 		panic("trying to write current state object using writeResourceInstanceStateDeposed")
 	}
-	return n.writeResourceInstanceStateImpl(ctx, deposedKey, obj, targetState)
+	return n.writeResourceInstanceStateImpl(ctx, deposedKey, obj, targetState, providerConfigAddr, providerSchema)
 }
 
 // (this is the private common body of both writeResourceInstanceState and
 // writeResourceInstanceStateDeposed. Don't call it directly; instead, use
 // one of the two wrappers to be explicit about which of the instance's
 // objects you are intending to write.
-func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState) error {
+func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalContext, deposedKey states.DeposedKey, obj *states.ResourceInstanceObject, targetState phaseState, providerConfigAddr addrs.AbsProviderConfig, providerSchema *providers.Schemas) error {
 	absAddr := n.Addr
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
-	}
 	logFuncName := "NodeAbstractResouceInstance.writeResourceInstanceState"
 	if deposedKey == states.NotDeposed {
 		log.Printf("[TRACE] %s to %s for %s", logFuncName, targetState, absAddr)
@@ -333,11 +345,11 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 	var write func(src *states.ResourceInstanceObjectSrc)
 	if deposedKey == states.NotDeposed {
 		write = func(src *states.ResourceInstanceObjectSrc) {
-			state.SetResourceInstanceCurrent(absAddr, src, n.ResolvedProvider)
+			state.SetResourceInstanceCurrent(absAddr, src, providerConfigAddr)
 		}
 	} else {
 		write = func(src *states.ResourceInstanceObjectSrc) {
-			state.SetResourceInstanceDeposed(absAddr, deposedKey, src, n.ResolvedProvider)
+			state.SetResourceInstanceDeposed(absAddr, deposedKey, src, providerConfigAddr)
 		}
 	}
 
@@ -383,12 +395,11 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 	absAddr := n.Addr
 
-	if n.ResolvedProvider.Provider.Type == "" {
-		if deposedKey == "" {
-			panic(fmt.Sprintf("planDestroy for %s does not have ProviderAddr set", absAddr))
-		} else {
-			panic(fmt.Sprintf("planDestroy for %s (deposed %s) does not have ProviderAddr set", absAddr, deposedKey))
-		}
+	// FIXME: Should pass forEach map to EvalDataForInstanceKey.
+	providerConfigAddr, moreDiags := n.evalProviderConfigAddr(ctx, EvalDataForInstanceKey(n.Addr.Resource.Key, nil))
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
 	}
 
 	// If there is no state or our attributes object is null then we're already
@@ -407,7 +418,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 				Before: cty.NullVal(cty.DynamicPseudoType),
 				After:  cty.NullVal(cty.DynamicPseudoType),
 			},
-			ProviderAddr: n.ResolvedProvider,
+			ProviderAddr: providerConfigAddr,
 		}
 		return noop, nil
 	}
@@ -418,7 +429,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 	// operation.
 	nullVal := cty.NullVal(unmarkedPriorVal.Type())
 
-	provider, _, err := getProvider(ctx, n.ResolvedProvider)
+	provider, _, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return plan, diags.Append(err)
 	}
@@ -458,7 +469,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			"Provider produced invalid plan",
 			fmt.Sprintf(
 				"Provider %q planned a non-null destroy value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, n.Addr),
+				providerConfigAddr.Provider, n.Addr),
 		),
 		)
 		return plan, diags
@@ -475,7 +486,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 			After:  cty.NullVal(cty.DynamicPseudoType),
 		},
 		Private:      resp.PlannedPrivate,
-		ProviderAddr: n.ResolvedProvider,
+		ProviderAddr: providerConfigAddr,
 	}
 
 	return plan, diags
@@ -483,7 +494,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 
 // writeChange saves a planned change for an instance object into the set of
 // global planned changes.
-func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey) error {
+func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plans.ResourceInstanceChange, deposedKey states.DeposedKey, providerSchema *providers.Schemas) error {
 	changes := ctx.Changes()
 
 	if change == nil {
@@ -495,11 +506,6 @@ func (n *NodeAbstractResourceInstance) writeChange(ctx EvalContext, change *plan
 		}
 		changes.RemoveResourceInstanceChange(n.Addr, gen)
 		return nil
-	}
-
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return err
 	}
 
 	if change.Addr.String() != n.Addr.String() || change.DeposedKey != deposedKey {
@@ -548,7 +554,15 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	} else {
 		log.Printf("[TRACE] NodeAbstractResourceInstance.refresh for %s (deposed object %s)", absAddr, deposedKey)
 	}
-	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+
+	// FIXME: Should pass forEach map to EvalDataForInstanceKey.
+	providerConfigAddr, moreDiags := n.evalProviderConfigAddr(ctx, EvalDataForInstanceKey(n.Addr.Resource.Key, nil))
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	provider, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return state, diags.Append(err)
 	}
@@ -623,7 +637,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s during refresh: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider.String(), absAddr, tfdiags.FormatError(err),
+				providerConfigAddr.Provider.String(), absAddr, tfdiags.FormatError(err),
 			),
 		))
 	}
@@ -637,7 +651,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	// external changes which will be handled by the subsequent plan.
 	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
 		var buf strings.Builder
-		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ResolvedProvider.Provider.String(), absAddr)
+		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", providerConfigAddr.Provider.String(), absAddr)
 		for _, err := range errs {
 			fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 		}
@@ -675,9 +689,18 @@ func (n *NodeAbstractResourceInstance) plan(
 	var plan *plans.ResourceInstanceChange
 	var keyData instances.RepetitionData
 
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	providerConfigAddr, moreDiags := n.evalProviderConfigAddr(ctx, keyData)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return plan, state, keyData, diags
+	}
+
 	config := *n.Config
 	resource := n.Addr.Resource.Resource
-	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return plan, state, keyData, diags.Append(err)
 	}
@@ -699,10 +722,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
 		return plan, state, keyData, diags
 	}
-
-	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
-
-	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -832,7 +851,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			"Provider produced invalid plan",
 			fmt.Sprintf(
 				"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				providerConfigAddr.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
 			),
 		))
 	}
@@ -850,7 +869,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			var buf strings.Builder
 			fmt.Fprintf(&buf,
 				"[WARN] Provider %q produced an invalid plan for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:",
-				n.ResolvedProvider.Provider, n.Addr,
+				providerConfigAddr.Provider, n.Addr,
 			)
 			for _, err := range errs {
 				fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
@@ -863,7 +882,7 @@ func (n *NodeAbstractResourceInstance) plan(
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q planned an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+						providerConfigAddr.Provider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
 					),
 				))
 			}
@@ -920,7 +939,7 @@ func (n *NodeAbstractResourceInstance) plan(
 					"Provider produced invalid plan",
 					fmt.Sprintf(
 						"Provider %q has indicated \"requires replacement\" on %s for a non-existent attribute path %#v.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-						n.ResolvedProvider.Provider, n.Addr, path,
+						providerConfigAddr.Provider, n.Addr, path,
 					),
 				))
 				continue
@@ -1060,7 +1079,7 @@ func (n *NodeAbstractResourceInstance) plan(
 				"Provider produced invalid plan",
 				fmt.Sprintf(
 					"Provider %q planned an invalid value for %s%s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					n.ResolvedProvider.Provider, n.Addr, tfdiags.FormatError(err),
+					providerConfigAddr.Provider, n.Addr, tfdiags.FormatError(err),
 				),
 			))
 		}
@@ -1116,7 +1135,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		Addr:         n.Addr,
 		PrevRunAddr:  n.prevRunAddr(ctx),
 		Private:      plannedPrivate,
-		ProviderAddr: n.ResolvedProvider,
+		ProviderAddr: providerConfigAddr,
 		Change: plans.Change{
 			Action: action,
 			Before: priorVal,
@@ -1366,158 +1385,174 @@ func processIgnoreChangesIndividual(prior, config cty.Value, ignoreChangesPath [
 // from the resource configuration.
 func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var newVal cty.Value
 
-	config := *n.Config
+	// FIXME: Not implemented in dynamic provider assignment prototype
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Unimplemented functionality",
+		"The dynamic provider assignment prototype doesn't support reading data sources.",
+	))
+	return cty.DynamicVal, diags
 
-	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	diags = diags.Append(err)
-	if diags.HasErrors() {
+	/*
+		var newVal cty.Value
+
+		config := *n.Config
+
+
+		provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+		diags = diags.Append(err)
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+		if providerSchema == nil {
+			diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+			return newVal, diags
+		}
+		schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
+		if schema == nil {
+			// Should be caught during validation, so we don't bother with a pretty error here
+			diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+			return newVal, diags
+		}
+
+		metaConfigVal, metaDiags := n.providerMetas(ctx)
+		diags = diags.Append(metaDiags)
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+
+		// Unmark before sending to provider, will re-mark before returning
+		var pvm []cty.PathValueMarks
+		configVal, pvm = configVal.UnmarkDeepWithPaths()
+
+		log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
+		validateResp := provider.ValidateDataResourceConfig(
+			providers.ValidateDataResourceConfigRequest{
+				TypeName: n.Addr.ContainingResource().Resource.Type,
+				Config:   configVal,
+			},
+		)
+		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+
+		// If we get down here then our configuration is complete and we're read
+		// to actually call the provider to read the data.
+		log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreApply(n.Addr, states.CurrentGen, plans.Read, cty.NullVal(configVal.Type()), configVal)
+		}))
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+
+		resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
+			TypeName:     n.Addr.ContainingResource().Resource.Type,
+			Config:       configVal,
+			ProviderMeta: metaConfigVal,
+		})
+		diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+		newVal = resp.State
+		if newVal == cty.NilVal {
+			// This can happen with incompletely-configured mocks. We'll allow it
+			// and treat it as an alias for a properly-typed null value.
+			newVal = cty.NullVal(schema.ImpliedType())
+		}
+
+		for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				),
+			))
+		}
+		if diags.HasErrors() {
+			return newVal, diags
+		}
+
+		if newVal.IsNull() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced null object",
+				fmt.Sprintf(
+					"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr,
+				),
+			))
+		}
+
+		if !newVal.IsNull() && !newVal.IsWhollyKnown() {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Provider produced invalid object",
+				fmt.Sprintf(
+					"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+					n.ResolvedProvider, n.Addr,
+				),
+			))
+
+			// We'll still save the object, but we need to eliminate any unknown
+			// values first because we can't serialize them in the state file.
+			// Note that this may cause set elements to be coalesced if they
+			// differed only by having unknown values, but we don't worry about
+			// that here because we're saving the value only for inspection
+			// purposes; the error we added above will halt the graph walk.
+			newVal = cty.UnknownAsNull(newVal)
+		}
+
+		if len(pvm) > 0 {
+			newVal = newVal.MarkWithPaths(pvm)
+		}
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
+		}))
+
 		return newVal, diags
-	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-		return newVal, diags
-	}
-	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
-		return newVal, diags
-	}
-
-	metaConfigVal, metaDiags := n.providerMetas(ctx)
-	diags = diags.Append(metaDiags)
-	if diags.HasErrors() {
-		return newVal, diags
-	}
-
-	// Unmark before sending to provider, will re-mark before returning
-	var pvm []cty.PathValueMarks
-	configVal, pvm = configVal.UnmarkDeepWithPaths()
-
-	log.Printf("[TRACE] readDataSource: Re-validating config for %s", n.Addr)
-	validateResp := provider.ValidateDataResourceConfig(
-		providers.ValidateDataResourceConfigRequest{
-			TypeName: n.Addr.ContainingResource().Resource.Type,
-			Config:   configVal,
-		},
-	)
-	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return newVal, diags
-	}
-
-	// If we get down here then our configuration is complete and we're read
-	// to actually call the provider to read the data.
-	log.Printf("[TRACE] readDataSource: %s configuration is complete, so reading from provider", n.Addr)
-
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreApply(n.Addr, states.CurrentGen, plans.Read, cty.NullVal(configVal.Type()), configVal)
-	}))
-	if diags.HasErrors() {
-		return newVal, diags
-	}
-
-	resp := provider.ReadDataSource(providers.ReadDataSourceRequest{
-		TypeName:     n.Addr.ContainingResource().Resource.Type,
-		Config:       configVal,
-		ProviderMeta: metaConfigVal,
-	})
-	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return newVal, diags
-	}
-	newVal = resp.State
-	if newVal == cty.NilVal {
-		// This can happen with incompletely-configured mocks. We'll allow it
-		// and treat it as an alias for a properly-typed null value.
-		newVal = cty.NullVal(schema.ImpliedType())
-	}
-
-	for _, err := range newVal.Type().TestConformance(schema.ImpliedType()) {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid object",
-			fmt.Sprintf(
-				"Provider %q produced an invalid value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
-			),
-		))
-	}
-	if diags.HasErrors() {
-		return newVal, diags
-	}
-
-	if newVal.IsNull() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced null object",
-			fmt.Sprintf(
-				"Provider %q produced a null value for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, n.Addr,
-			),
-		))
-	}
-
-	if !newVal.IsNull() && !newVal.IsWhollyKnown() {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Provider produced invalid object",
-			fmt.Sprintf(
-				"Provider %q produced a value for %s that is not wholly known.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider, n.Addr,
-			),
-		))
-
-		// We'll still save the object, but we need to eliminate any unknown
-		// values first because we can't serialize them in the state file.
-		// Note that this may cause set elements to be coalesced if they
-		// differed only by having unknown values, but we don't worry about
-		// that here because we're saving the value only for inspection
-		// purposes; the error we added above will halt the graph walk.
-		newVal = cty.UnknownAsNull(newVal)
-	}
-
-	if len(pvm) > 0 {
-		newVal = newVal.MarkWithPaths(pvm)
-	}
-
-	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostApply(n.Addr, states.CurrentGen, newVal, diags.Err())
-	}))
-
-	return newVal, diags
+	*/
 }
 
 func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	metaConfigVal := cty.NullVal(cty.DynamicPseudoType)
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
-	if err != nil {
-		return metaConfigVal, diags.Append(err)
-	}
-	if providerSchema == nil {
-		return metaConfigVal, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-	}
-	if n.ProviderMetas != nil {
-		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
-			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta == nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
-					Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
-					Subject:  &m.ProviderRange,
-				})
-			} else {
-				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
-				diags = diags.Append(configDiags)
+	// FIXME: Not implemented in dynamic provider assignment prototype
+	/*
+		_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+		if err != nil {
+			return metaConfigVal, diags.Append(err)
+		}
+		if providerSchema == nil {
+			return metaConfigVal, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
+		}
+		if n.ProviderMetas != nil {
+			if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
+				// if the provider doesn't support this feature, throw an error
+				if providerSchema.ProviderMeta == nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
+						Detail:   fmt.Sprintf("The resource %s belongs to a provider that doesn't support provider_meta blocks", n.Addr.Resource),
+						Subject:  &m.ProviderRange,
+					})
+				} else {
+					var configDiags tfdiags.Diagnostics
+					metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
+					diags = diags.Append(configDiags)
+				}
 			}
 		}
-	}
+		return metaConfigVal, diags
+	*/
 	return metaConfigVal, diags
 }
 
@@ -1535,7 +1570,16 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	var keyData instances.RepetitionData
 	var configVal cty.Value
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	providerConfigAddr, moreDiags := n.evalProviderConfigAddr(ctx, keyData)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, nil, keyData, diags
+	}
+
+	_, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return nil, nil, keyData, diags.Append(err)
 	}
@@ -1547,15 +1591,12 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", providerConfigAddr, n.Addr.ContainingResource().Resource.Type))
 		return nil, nil, keyData, diags
 	}
 
 	objTy := schema.ImpliedType()
 	priorVal := cty.NullVal(objTy)
-
-	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
-	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -1605,7 +1646,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		plannedChange := &plans.ResourceInstanceChange{
 			Addr:         n.Addr,
 			PrevRunAddr:  n.prevRunAddr(ctx),
-			ProviderAddr: n.ResolvedProvider,
+			ProviderAddr: providerConfigAddr,
 			Change: plans.Change{
 				Action: plans.Read,
 				Before: priorVal,
@@ -1703,7 +1744,16 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	providerConfigAddr, moreDiags := n.evalProviderConfigAddr(ctx, keyData)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, keyData, diags
+	}
+
+	_, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return nil, keyData, diags.Append(err)
 	}
@@ -1725,12 +1775,9 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", n.ResolvedProvider, n.Addr.ContainingResource().Resource.Type))
+		diags = diags.Append(fmt.Errorf("provider %q does not support data source %q", providerConfigAddr, n.Addr.ContainingResource().Resource.Type))
 		return nil, keyData, diags
 	}
-
-	forEach, _ := evaluateForEachExpression(config.ForEach, ctx)
-	keyData = EvalDataForInstanceKey(n.Addr.Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -2055,6 +2102,8 @@ func (n *NodeAbstractResourceInstance) apply(
 		keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 	}
 
+	providerConfigAddr := change.ProviderAddr
+
 	if change.Action == plans.NoOp {
 		// If this is a no-op change then we don't want to actually change
 		// anything, so we'll just echo back the state we were given and
@@ -2063,7 +2112,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		return state, keyData, diags
 	}
 
-	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, providerConfigAddr)
 	if err != nil {
 		return nil, keyData, diags.Append(err)
 	}
@@ -2190,7 +2239,7 @@ func (n *NodeAbstractResourceInstance) apply(
 				"Provider produced invalid object",
 				fmt.Sprintf(
 					"Provider %q produced an invalid nil value after apply for %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-					n.ResolvedProvider.String(), n.Addr.String(),
+					providerConfigAddr.String(), n.Addr.String(),
 				),
 			))
 		}
@@ -2203,7 +2252,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			"Provider produced invalid object",
 			fmt.Sprintf(
 				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-				n.ResolvedProvider.String(), tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
+				providerConfigAddr.String(), tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
 			),
 		))
 	}
@@ -2273,7 +2322,7 @@ func (n *NodeAbstractResourceInstance) apply(
 				// to notice in the logs if an inconsistency beyond the type system
 				// leads to a downstream provider failure.
 				var buf strings.Builder
-				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", n.ResolvedProvider.String(), n.Addr)
+				fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s, but we are tolerating it because it is using the legacy plugin SDK.\n    The following problems may be the cause of any confusing errors from downstream operations:", providerConfigAddr.String(), n.Addr)
 				for _, err := range errs {
 					fmt.Fprintf(&buf, "\n      - %s", tfdiags.FormatError(err))
 				}
@@ -2293,7 +2342,7 @@ func (n *NodeAbstractResourceInstance) apply(
 						"Provider produced inconsistent result after apply",
 						fmt.Sprintf(
 							"When applying changes to %s, provider %q produced an unexpected new value: %s.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
-							n.Addr, n.ResolvedProvider.String(), tfdiags.FormatError(err),
+							n.Addr, providerConfigAddr.String(), tfdiags.FormatError(err),
 						),
 					))
 				}
