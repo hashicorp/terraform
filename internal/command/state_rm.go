@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"strings"
+
+	"github.com/hashicorp/terraform/internal/terraform"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
