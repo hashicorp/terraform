@@ -434,7 +434,6 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	// includes preserving any lineage/serial information where possible, if
 	// both managers support such metadata.
 	log.Print("[TRACE] backendMigrateState: migration confirmed, so migrating")
-
 	if err := statemgr.Migrate(destinationState, sourceState); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
