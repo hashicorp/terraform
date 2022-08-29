@@ -247,6 +247,34 @@ func parseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 		})
 		return nil, diags
 
+	case "provider":
+		name, rng, remain, diags := parseSingleAttrRef(traversal)
+		var alias string
+		if len(remain) > 0 {
+			// FIXME: This is inconsistent with how we normally think about
+			// references, because we're pretending that a reference like
+			// provider.foo has one additional level of attributes if and
+			// only if it's written statically, like provider.foo.bar.
+			// provider.foo will actually refer to a provider configuration
+			// itself, which doesn't really have any attributes when considered
+			// dynamically. Hopefully we can find a better way to represent
+			// this that allows us to preserve our usual rule that dynamic
+			// and static indexing both produce the same result.
+			if getAttr, isAttr := remain[0].(hcl.TraverseAttr); isAttr {
+				alias = getAttr.Name
+				rng = hcl.RangeBetween(rng, remain[0].SourceRange())
+				remain = remain[1:]
+			}
+		}
+		return &Reference{
+			Subject: LocalProviderConfig{
+				LocalName: name,
+				Alias:     alias,
+			},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}, diags
+
 	case "path":
 		name, rng, remain, diags := parseSingleAttrRef(traversal)
 		return &Reference{

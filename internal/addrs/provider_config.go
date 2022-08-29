@@ -50,6 +50,7 @@ type LocalProviderConfig struct {
 }
 
 var _ ProviderConfig = LocalProviderConfig{}
+var _ Referenceable = LocalProviderConfig{}
 
 // NewDefaultLocalProviderConfig returns the address of the default (un-aliased)
 // configuration for the provider with the given local type name.
@@ -83,6 +84,16 @@ func (pc LocalProviderConfig) StringCompact() string {
 	}
 	return pc.LocalName
 }
+
+func (pc LocalProviderConfig) referenceableSigil() {}
+
+func (pc LocalProviderConfig) UniqueKey() UniqueKey {
+	return localProviderConfigUniqueKey(pc.String())
+}
+
+type localProviderConfigUniqueKey string
+
+func (k localProviderConfigUniqueKey) uniqueKeySigil() {}
 
 // AbsProviderConfig is the absolute address of a provider configuration
 // within a particular module instance.

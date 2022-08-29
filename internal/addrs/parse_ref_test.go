@@ -410,6 +410,85 @@ func TestParseRef(t *testing.T) {
 			`The "module" object does not support this operation.`,
 		},
 
+		// provider
+		{
+			`provider.foo`,
+			&Reference{
+				Subject: LocalProviderConfig{
+					LocalName: "foo",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`provider.foo.bar`,
+			&Reference{
+				Subject: LocalProviderConfig{
+					LocalName: "foo",
+					Alias:     "bar",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+			},
+			``,
+		},
+		{
+			`provider.foo.bar.baz`,
+			&Reference{
+				Subject: LocalProviderConfig{
+					LocalName: "foo",
+					Alias:     "bar",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 17, Byte: 16},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "baz",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 17, Byte: 16},
+							End:   hcl.Pos{Line: 1, Column: 21, Byte: 20},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			// If the step after the provider local name isn't a "get attribute"
+			// then we just treat it as remaining and let the evaluator raise
+			// an error when it tries to get an index on a provider
+			// configuration value, since those don't really have any
+			// indices/attributes.
+			`provider.foo["invalid"]`,
+			&Reference{
+				Subject: LocalProviderConfig{
+					LocalName: "foo",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseIndex{
+						Key: cty.StringVal("invalid"),
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 13, Byte: 12},
+							End:   hcl.Pos{Line: 1, Column: 24, Byte: 23},
+						},
+					},
+				},
+			},
+			``,
+		},
+
 		// path
 		{
 			`path.module`,
