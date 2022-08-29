@@ -526,10 +526,15 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 	}
 
 	// Configure the remote workspace name.
-	State := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
-		Name: name,
-	}}
-	return State.Delete()
+	client := &remoteClient{
+		client:       b.client,
+		organization: b.organization,
+		workspace: &tfe.Workspace{
+			Name: name,
+		},
+	}
+
+	return client.Delete()
 }
 
 // StateMgr implements backend.Enhanced.
@@ -614,7 +619,16 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
+	client := &remoteClient{
+		client:       b.client,
+		organization: b.organization,
+		workspace:    workspace,
+
+		// This is optionally set during Terraform Enterprise runs.
+		runID: os.Getenv("TFE_RUN_ID"),
+	}
+
+	return NewState(client), nil
 }
 
 // Operation implements backend.Enhanced.

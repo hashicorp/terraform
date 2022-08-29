@@ -5,6 +5,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	statespkg "github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"

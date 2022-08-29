@@ -1,14 +1,10 @@
 package cloud
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"path"
@@ -27,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -113,7 +110,7 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 	return testBackend(t, obj)
 }
 
-func testCloudState(t *testing.T) *State {
+func testRemoteClient(t *testing.T) remote.Client {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
@@ -122,7 +119,7 @@ func testCloudState(t *testing.T) *State {
 		t.Fatalf("error: %v", err)
 	}
 
-	return raw.(*State)
+	return raw.(*State).Client
 }
 
 func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
@@ -445,96 +442,4 @@ func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend
 		}
 	}
 	return vars
-}
-
-func TestState(t *testing.T, state *State) {
-	var buf bytes.Buffer
-	s := statemgr.TestFullInitialState()
-	sf := statefile.New(s, "stub-lineage", 2)
-	err := statefile.Write(sf, &buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	data := buf.Bytes()
-
-	jsonState, err := ioutil.ReadFile("../command/testdata/show-json-state/sensitive-variables/output.json")
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := state.uploadState(state.lineage, state.serial, state.forcePush, data, jsonState); err != nil {
-		t.Fatalf("put: %s", err)
-	}
-
-	payload, err := state.getStatePayload()
-	if err != nil {
-		t.Fatalf("get: %s", err)
-	}
-	if !bytes.Equal(payload.Data, data) {
-		t.Fatalf("expected full state %q\n\ngot: %q", string(payload.Data), string(data))
-	}
-
-	if err := state.Delete(); err != nil {
-		t.Fatalf("delete: %s", err)
-	}
-
-	p, err := state.getStatePayload()
-	if err != nil {
-		t.Fatalf("get: %s", err)
-	}
-	if p != nil {
-		t.Fatalf("expected empty state, got: %q", string(p.Data))
-	}
-}
-
-func TestCloudLocks(t *testing.T, a, b statemgr.Full) {
-	lockerA, ok := a.(statemgr.Locker)
-	if !ok {
-		t.Fatal("client A not a statemgr.Locker")
-	}
-
-	lockerB, ok := b.(statemgr.Locker)
-	if !ok {
-		t.Fatal("client B not a statemgr.Locker")
-	}
-
-	infoA := statemgr.NewLockInfo()
-	infoA.Operation = "test"
-	infoA.Who = "clientA"
-
-	infoB := statemgr.NewLockInfo()
-	infoB.Operation = "test"
-	infoB.Who = "clientB"
-
-	lockIDA, err := lockerA.Lock(infoA)
-	if err != nil {
-		t.Fatal("unable to get initial lock:", err)
-	}
-
-	_, err = lockerB.Lock(infoB)
-	if err == nil {
-		lockerA.Unlock(lockIDA)
-		t.Fatal("client B obtained lock while held by client A")
-	}
-	if _, ok := err.(*statemgr.LockError); !ok {
-		t.Errorf("expected a LockError, but was %t: %s", err, err)
-	}
-
-	if err := lockerA.Unlock(lockIDA); err != nil {
-		t.Fatal("error unlocking client A", err)
-	}
-
-	lockIDB, err := lockerB.Lock(infoB)
-	if err != nil {
-		t.Fatal("unable to obtain lock from client B")
-	}
-
-	if lockIDB == lockIDA {
-		t.Fatalf("duplicate lock IDs: %q", lockIDB)
-	}
-
-	if err = lockerB.Unlock(lockIDB); err != nil {
-		t.Fatal("error unlocking client B:", err)
-	}
 }

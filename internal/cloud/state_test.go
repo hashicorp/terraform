@@ -27,9 +27,14 @@ func TestState_GetRootOutputValues(t *testing.T) {
 	b, bCleanup := testBackendWithOutputs(t)
 	defer bCleanup()
 
-	state := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
-		ID: "ws-abcd",
-	}}
+	client := &remoteClient{
+		client: b.client,
+		workspace: &tfe.Workspace{
+			ID: "ws-abcd",
+		},
+	}
+
+	state := NewState(client)
 	outputs, err := state.GetRootOutputValues()
 
 	if err != nil {
