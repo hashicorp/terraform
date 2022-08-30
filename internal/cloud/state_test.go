@@ -2,9 +2,10 @@ package cloud
 
 import (
 	"bytes"
-	"github.com/hashicorp/terraform/internal/states/statefile"
 	"io/ioutil"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/states/statefile"
 
 	"github.com/hashicorp/go-tfe"
 

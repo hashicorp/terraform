@@ -4,13 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"path"
 	"testing"
 	"time"
+
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
