@@ -131,9 +131,7 @@ func (c *TaintCommand) Run(args []string) int {
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
-		if schemaDiags.HasErrors() {
-			diags = diags.Append(schemaDiags)
-		}
+		diags = diags.Append(schemaDiags)
 	}
 
 	ss := state.SyncWrapper()

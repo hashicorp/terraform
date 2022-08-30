@@ -253,9 +253,7 @@ func (c *ImportCommand) Run(args []string) int {
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(newState, nil)
-		if schemaDiags.HasErrors() {
-			diags = diags.Append(schemaDiags)
-		}
+		diags = diags.Append(schemaDiags)
 	}
 
 	// Persist the final state
