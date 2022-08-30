@@ -130,9 +130,9 @@ func (c *TaintCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
 	if isCloudMode(b) {
-		schemas, diags = c.GetSchemas(state, nil)
+		schemas, diags = c.MaybeGetSchemas(state, nil)
 		if diags.HasErrors() {
-			c.Ui.Warn(fmt.Sprintf(failedToLoadSchemasMessage, err))
+			c.Ui.Warn(failedToLoadSchemasMessage)
 		}
 	}
 

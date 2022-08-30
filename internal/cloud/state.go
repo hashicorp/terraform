@@ -33,8 +33,6 @@ import (
 type State struct {
 	mu sync.Mutex
 
-	// Client Client
-
 	// We track two pieces of meta data in addition to the state itself:
 	//
 	// lineage - the state's unique ID
@@ -142,7 +140,7 @@ func (s *State) WriteState(state *states.State) error {
 	return nil
 }
 
-// statemgr.Persister impl.
+// PersistState uploads a snapshot of the latest state as a StateVersion to Terraform Cloud
 func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

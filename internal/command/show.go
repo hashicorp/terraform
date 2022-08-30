@@ -110,7 +110,7 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.
 
 	// Get schemas, if possible
 	if config != nil || stateFile != nil {
-		schemas, diags = c.GetSchemas(stateFile.State, config)
+		schemas, diags = c.MaybeGetSchemas(stateFile.State, config)
 		if diags.HasErrors() {
 			return plan, stateFile, config, schemas, diags
 		}

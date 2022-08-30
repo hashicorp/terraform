@@ -438,9 +438,10 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
-	// Fetching schemas during init might be more of a hassle than we want to attempt
-	// in the case that we're migrating to TFC backend, the initial JSON state won't
-	// be generated and stored.
+	// The backend is currently handled before providers are installed during init,
+	// so requiring schemas here could lead to a catch-22 where it requires some manual
+	// intervention to proceed far enough for provider installation. To avoid this,
+	// when migrating to TFC backend, the initial JSON varient of state won't be generated and stored.
 	if err := destinationState.PersistState(nil); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)

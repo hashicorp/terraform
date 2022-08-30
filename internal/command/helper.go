@@ -6,13 +6,19 @@ import (
 )
 
 const failedToLoadSchemasMessage = `
-Terraform failed to load schemas, which will in turn affect its ability to generate the
-external JSON state file. This will not have any adverse effects on Terraforms ability
-to maintain state information, but may have adverse effects on any external integrations
-relying on this format. The file should be created on the next successful "terraform apply"
-however, historic state information may be missing if the affected integration relies on that
+Warning: Failed to update data for external integrations
 
-%s
+Terraform was unable to generate a description of the updated
+state for use with external integrations in Terraform Cloud.
+Any integrations configured for this workspace which depend on
+information from the state may not work correctly when using the
+result of this action.
+
+This problem occurs when Terraform cannot read the schema for
+one or more of the providers used in the state. The next successful
+apply will correct the problem by re-generating the JSON description
+of the state:
+    terraform apply
 `
 
 func isCloudMode(b backend.Enhanced) bool {

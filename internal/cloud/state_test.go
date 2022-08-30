@@ -5,10 +5,8 @@ import (
 	"io/ioutil"
 	"testing"
 
+	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/states/statefile"
-
-	"github.com/hashicorp/go-tfe"
-
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
@@ -100,10 +98,6 @@ func TestState(t *testing.T) {
 
 	jsonStateOutputs := []byte(`
 {
-	"version": 4,
-	"terraform_version": "1.3.0",
-	"serial": 1,
-	"lineage": "backend-change",
 	"outputs": {
 			"foo": {
 					"type": "string",
@@ -134,5 +128,68 @@ func TestState(t *testing.T) {
 	}
 	if p != nil {
 		t.Fatalf("expected empty state, got: %q", string(p.Data))
+	}
+}
+
+func TestCloudLocks(t *testing.T) {
+	back, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	a, err := back.StateMgr(testBackendSingleWorkspaceName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	b, err := back.StateMgr(testBackendSingleWorkspaceName)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	lockerA, ok := a.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client A not a statemgr.Locker")
+	}
+
+	lockerB, ok := b.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client B not a statemgr.Locker")
+	}
+
+	infoA := statemgr.NewLockInfo()
+	infoA.Operation = "test"
+	infoA.Who = "clientA"
+
+	infoB := statemgr.NewLockInfo()
+	infoB.Operation = "test"
+	infoB.Who = "clientB"
+
+	lockIDA, err := lockerA.Lock(infoA)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	_, err = lockerB.Lock(infoB)
+	if err == nil {
+		lockerA.Unlock(lockIDA)
+		t.Fatal("client B obtained lock while held by client A")
+	}
+	if _, ok := err.(*statemgr.LockError); !ok {
+		t.Errorf("expected a LockError, but was %t: %s", err, err)
+	}
+
+	if err := lockerA.Unlock(lockIDA); err != nil {
+		t.Fatal("error unlocking client A", err)
+	}
+
+	lockIDB, err := lockerB.Lock(infoB)
+	if err != nil {
+		t.Fatal("unable to obtain lock from client B")
+	}
+
+	if lockIDB == lockIDA {
+		t.Fatalf("duplicate lock IDs: %q", lockIDB)
+	}
+
+	if err = lockerB.Unlock(lockIDB); err != nil {
+		t.Fatal("error unlocking client B:", err)
 	}
 }

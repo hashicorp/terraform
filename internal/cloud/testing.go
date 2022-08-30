@@ -11,8 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
@@ -443,55 +441,4 @@ func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend
 		}
 	}
 	return vars
-}
-
-func TestCloudLocks(t *testing.T, a, b statemgr.Full) {
-	lockerA, ok := a.(statemgr.Locker)
-	if !ok {
-		t.Fatal("client A not a statemgr.Locker")
-	}
-
-	lockerB, ok := b.(statemgr.Locker)
-	if !ok {
-		t.Fatal("client B not a statemgr.Locker")
-	}
-
-	infoA := statemgr.NewLockInfo()
-	infoA.Operation = "test"
-	infoA.Who = "clientA"
-
-	infoB := statemgr.NewLockInfo()
-	infoB.Operation = "test"
-	infoB.Who = "clientB"
-
-	lockIDA, err := lockerA.Lock(infoA)
-	if err != nil {
-		t.Fatal("unable to get initial lock:", err)
-	}
-
-	_, err = lockerB.Lock(infoB)
-	if err == nil {
-		lockerA.Unlock(lockIDA)
-		t.Fatal("client B obtained lock while held by client A")
-	}
-	if _, ok := err.(*statemgr.LockError); !ok {
-		t.Errorf("expected a LockError, but was %t: %s", err, err)
-	}
-
-	if err := lockerA.Unlock(lockIDA); err != nil {
-		t.Fatal("error unlocking client A", err)
-	}
-
-	lockIDB, err := lockerB.Lock(infoB)
-	if err != nil {
-		t.Fatal("unable to obtain lock from client B")
-	}
-
-	if lockIDB == lockIDA {
-		t.Fatalf("duplicate lock IDs: %q", lockIDB)
-	}
-
-	if err = lockerB.Unlock(lockIDB); err != nil {
-		t.Fatal("error unlocking client B:", err)
-	}
 }
