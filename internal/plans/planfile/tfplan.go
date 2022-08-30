@@ -331,6 +331,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReadBecauseConfigUnknown
 	case planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING:
 		ret.ActionReason = plans.ResourceInstanceReadBecauseDependencyPending
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoMoveTarget
 	default:
 		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
 	}
@@ -705,6 +707,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN
 	case plans.ResourceInstanceReadBecauseDependencyPending:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING
+	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET
 	default:
 		return nil, fmt.Errorf("resource %s has unsupported action reason %s", change.Addr, change.ActionReason)
 	}
