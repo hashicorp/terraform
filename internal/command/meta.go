@@ -27,11 +27,13 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/command/workdir"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -778,4 +780,49 @@ func (m *Meta) checkRequiredVersion() tfdiags.Diagnostics {
 	}
 
 	return nil
+}
+
+// MaybeGetSchemas attempts to load and return the schemas
+// If there is not enough information to return the schemas,
+// it could potentially return nil without errors. It is the
+// responsibility of the caller to handle the lack of schema
+// information accordingly
+func (c *Meta) MaybeGetSchemas(state *states.State, config *configs.Config) (*terraform.Schemas, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	path, err := os.Getwd()
+	if err != nil {
+		diags.Append(tfdiags.SimpleWarning(failedToLoadSchemasMessage))
+		return nil, diags
+	}
+
+	if config == nil {
+		config, diags = c.loadConfig(path)
+		if diags.HasErrors() {
+			diags.Append(tfdiags.SimpleWarning(failedToLoadSchemasMessage))
+			return nil, diags
+		}
+	}
+
+	if config != nil || state != nil {
+		opts, err := c.contextOpts()
+		if err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+		tfCtx, ctxDiags := terraform.NewContext(opts)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			return nil, diags
+		}
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags := tfCtx.Schemas(config, state)
+		diags = diags.Append(schemaDiags)
+		if schemaDiags.HasErrors() {
+			return nil, diags
+		}
+		return schemas, diags
+
+	}
+	return nil, diags
 }

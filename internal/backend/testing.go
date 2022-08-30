@@ -132,7 +132,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := foo.WriteState(fooState); err != nil {
 			t.Fatal("error writing foo state:", err)
 		}
-		if err := foo.PersistState(); err != nil {
+		if err := foo.PersistState(nil); err != nil {
 			t.Fatal("error persisting foo state:", err)
 		}
 
@@ -160,7 +160,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := bar.WriteState(barState); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if err := bar.PersistState(); err != nil {
+		if err := bar.PersistState(nil); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
 

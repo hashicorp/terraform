@@ -4,6 +4,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // Persistent is a union of the Refresher and Persistent interfaces, for types
@@ -72,8 +73,12 @@ type Refresher interface {
 // is most commonly achieved by making use of atomic write capabilities on
 // the remote storage backend in conjunction with book-keeping with the
 // Serial and Lineage fields in the standard state file formats.
+//
+// Some implementations may optionally utilize config schema to persist
+// state. For example, when representing state in an external JSON
+// representation.
 type Persister interface {
-	PersistState() error
+	PersistState(*terraform.Schemas) error
 }
 
 // PersistentMeta is an optional extension to Persistent that allows inspecting
