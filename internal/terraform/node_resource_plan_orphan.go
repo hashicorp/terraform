@@ -157,6 +157,13 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {
 	cfg := n.Config
 	if cfg == nil {
+		if !n.Addr.Equal(n.prevRunAddr(ctx)) {
+			// This means the resource was moved - see also
+			// ResourceInstanceChange.Moved() which calculates
+			// this the same way.
+			return plans.ResourceInstanceDeleteBecauseNoMoveTarget
+		}
+
 		return plans.ResourceInstanceDeleteBecauseNoResourceConfig
 	}
 

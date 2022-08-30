@@ -413,6 +413,8 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			r.ActionReason = "delete_because_each_key"
 		case plans.ResourceInstanceDeleteBecauseNoModule:
 			r.ActionReason = "delete_because_no_module"
+		case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+			r.ActionReason = "delete_because_no_move_target"
 		case plans.ResourceInstanceReadBecauseConfigUnknown:
 			r.ActionReason = "read_because_config_unknown"
 		case plans.ResourceInstanceReadBecauseDependencyPending:

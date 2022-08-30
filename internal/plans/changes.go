@@ -427,6 +427,12 @@ const (
 	// specific reasons for a particular instance to no longer be declared.
 	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
 
+	// ResourceInstanceDeleteBecauseNoMoveTarget indicates that the resource
+	// address appears as the target ("to") in a moved block, but no
+	// configuration exists for that resource. According to our move rules,
+	// this combination evaluates to a deletion of the "new" resource.
+	ResourceInstanceDeleteBecauseNoMoveTarget ResourceInstanceChangeActionReason = 'A'
+
 	// ResourceInstanceReadBecauseConfigUnknown indicates that the resource
 	// must be read during apply (rather than during planning) because its
 	// configuration contains unknown values. This reason applies only to

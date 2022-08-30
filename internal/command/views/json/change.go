@@ -80,6 +80,7 @@ const (
 	ReasonDeleteBecauseCountIndex       ChangeReason = "delete_because_count_index"
 	ReasonDeleteBecauseEachKey          ChangeReason = "delete_because_each_key"
 	ReasonDeleteBecauseNoModule         ChangeReason = "delete_because_no_module"
+	ReasonDeleteBecauseNoMoveTarget     ChangeReason = "delete_because_no_move_target"
 	ReasonReadBecauseConfigUnknown      ChangeReason = "read_because_config_unknown"
 	ReasonReadBecauseDependencyPending  ChangeReason = "read_because_dependency_pending"
 )
@@ -108,6 +109,8 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonDeleteBecauseNoModule
 	case plans.ResourceInstanceReadBecauseConfigUnknown:
 		return ReasonReadBecauseConfigUnknown
+	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+		return ReasonDeleteBecauseNoMoveTarget
 	case plans.ResourceInstanceReadBecauseDependencyPending:
 		return ReasonReadBecauseDependencyPending
 	default:

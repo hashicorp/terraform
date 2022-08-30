@@ -151,6 +151,7 @@ enum ResourceInstanceActionReason {
     REPLACE_BY_TRIGGERS = 9;
     READ_BECAUSE_CONFIG_UNKNOWN = 10;
     READ_BECAUSE_DEPENDENCY_PENDING = 11;
+    DELETE_BECAUSE_NO_MOVE_TARGET = 12;
 }
 
 message ResourceInstanceChange {
