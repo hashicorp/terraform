@@ -171,9 +171,10 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
 	if isCloudMode(b) {
-		schemas, diags = c.MaybeGetSchemas(state, nil)
-		if diags.HasErrors() {
-			c.Ui.Warn(failedToLoadSchemasMessage)
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
+		if schemaDiags.HasErrors() {
+			diags = diags.Append(schemaDiags)
 		}
 	}
 
@@ -187,6 +188,7 @@ func (c *StateReplaceProviderCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.showDiagnostics(diags)
 	c.Ui.Output(fmt.Sprintf("\nSuccessfully replaced provider for %d resources.", len(willReplace)))
 	return 0
 }

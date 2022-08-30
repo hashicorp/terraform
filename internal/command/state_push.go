@@ -131,12 +131,9 @@ func (c *StatePushCommand) Run(args []string) int {
 
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
+	var diags tfdiags.Diagnostics
 	if isCloudMode(b) {
-		var diags tfdiags.Diagnostics
 		schemas, diags = c.MaybeGetSchemas(srcStateFile.State, nil)
-		if diags.HasErrors() {
-			c.Ui.Warn(failedToLoadSchemasMessage)
-		}
 	}
 
 	if err := stateMgr.WriteState(srcStateFile.State); err != nil {
@@ -148,6 +145,7 @@ func (c *StatePushCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.showDiagnostics(diags)
 	return 0
 }
 

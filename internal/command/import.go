@@ -251,9 +251,10 @@ func (c *ImportCommand) Run(args []string) int {
 	// Get schemas, if possible, before writing state
 	var schemas *terraform.Schemas
 	if isCloudMode(b) {
-		schemas, diags = c.MaybeGetSchemas(newState, nil)
-		if diags.HasErrors() {
-			c.Ui.Warn(failedToLoadSchemasMessage)
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(newState, nil)
+		if schemaDiags.HasErrors() {
+			diags = diags.Append(schemaDiags)
 		}
 	}
 

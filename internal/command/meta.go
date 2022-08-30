@@ -792,14 +792,14 @@ func (c *Meta) MaybeGetSchemas(state *states.State, config *configs.Config) (*te
 
 	path, err := os.Getwd()
 	if err != nil {
-		diags.Append(err)
+		diags.Append(tfdiags.SimpleWarning(failedToLoadSchemasMessage))
 		return nil, diags
 	}
 
 	if config == nil {
 		config, diags = c.loadConfig(path)
 		if diags.HasErrors() {
-			diags.Append(diags)
+			diags.Append(tfdiags.SimpleWarning(failedToLoadSchemasMessage))
 			return nil, diags
 		}
 	}
