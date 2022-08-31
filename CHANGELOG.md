@@ -29,7 +29,7 @@ UPGRADE NOTES:
 * When making requests to HTTPS servers, Terraform will now reject invalid handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
 
     This only applies to requests made directly by Terraform CLI, such as provider installation and remote state storage. Terraform providers are separate programs which decide their own policy for handling of TLS handshakes.
-* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The `azure` backend name has been removed: please use the name `azurerm` for this backend. [GH-31711] 
+* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The `azure` backend name has been removed: please use the name `azurerm` for this backend. [[#31711](https://github.com/hashicorp/terraform/issues/31711)] 
 
 ENHANCEMENTS:
 
@@ -43,9 +43,9 @@ ENHANCEMENTS:
 * The COS backend now supports global acceleration. ([#31425](https://github.com/hashicorp/terraform/issues/31425))
 * providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
 * refactoring: `moved` blocks can now be used to move resources to and from external modules ([#31556](https://github.com/hashicorp/terraform/issues/31556))
-* refactoring/plans: Terraform will now indicate when the deletion of a resource is due to moving a resource to a target not in configuration. This information is also available as a `ResourceInstanceActionReason` in the planproto. [GH-31695]
+* refactoring/plans: Terraform will now indicate when the deletion of a resource is due to moving a resource to a target not in configuration. This information is also available as a `ResourceInstanceActionReason` in the planproto. ([#31695](https://github.com/hashicorp/terraform/issues/31695))
 * When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about pre-plan run tasks ([#31617](https://github.com/hashicorp/terraform/issues/31617))
-* Terraform now sends the JSON state representation to the Cloud backend (when available) [GH-31698]
+* Terraform now sends the JSON state representation to the Cloud backend (when available) ([#31698](https://github.com/hashicorp/terraform/issues/31698))
 
 BUG FIXES:
 
