@@ -97,6 +97,8 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		}
 	}
 
+	var newState bool
+
 	if !found {
 		if orCreate {
 			_, err = b.StateMgr(name)
@@ -104,6 +106,7 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 				c.Ui.Error(err.Error())
 				return 1
 			}
+			newState = true
 		} else {
 			c.Ui.Error(fmt.Sprintf(envDoesNotExist, name))
 			return 1
@@ -116,11 +119,16 @@ func (c *WorkspaceSelectCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(
-		c.Colorize().Color(
-			fmt.Sprintf(envChanged, name),
-		),
-	)
+	if newState {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			strings.TrimSpace(envCreated), name)))
+	} else {
+		c.Ui.Output(
+			c.Colorize().Color(
+				fmt.Sprintf(envChanged, name),
+			),
+		)
+	}
 
 	return 0
 }
@@ -141,6 +149,10 @@ func (c *WorkspaceSelectCommand) Help() string {
 Usage: terraform [global options] workspace select NAME
 
   Select a different Terraform workspace.
+
+Options:
+
+    -or-create=false    Create the terraform workspace if if it doesnt exist.
 
 `
 	return strings.TrimSpace(helpText)
