@@ -152,7 +152,7 @@ Usage: terraform [global options] workspace select NAME
 
 Options:
 
-    -or-create=false    Create the Terraform workspace if if it doesnt exist.
+    -or-create=false    Create the Terraform workspace if it doesn't exist.
 
 `
 	return strings.TrimSpace(helpText)
