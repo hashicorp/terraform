@@ -44,6 +44,7 @@ ENHANCEMENTS:
 * refactoring: `moved` blocks can now be used to move resources to and from external modules ([#31556](https://github.com/hashicorp/terraform/issues/31556))
 * refactoring/plans: Terraform will now indicate when the deletion of a resource is due to moving a resource to a target not in configuration. This information is also available as a `ResourceInstanceActionReason` in the planproto. [GH-31695]
 * When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about pre-plan run tasks ([#31617](https://github.com/hashicorp/terraform/issues/31617))
+* Terraform now sends the JSON state representation to the Cloud backend (when available) [GH-31698]
 
 BUG FIXES:
 
