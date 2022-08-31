@@ -57,6 +57,5 @@
   { "divider": true },
   { "title": "Terraform CLI", "href": "/cli" },
   { "divider": true },
-  { "title": "Configuration Language", "href": "/language" },
-  { "divider": true }
+  { "title": "Configuration Language", "href": "/language" }
 ]
