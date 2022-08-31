@@ -934,10 +934,6 @@
                 "href": "/language/settings/backends/remote"
               },
               {
-                "title": "artifactory",
-                "href": "/language/settings/backends/artifactory"
-              },
-              {
                 "title": "azurerm",
                 "href": "/language/settings/backends/azurerm"
               },
@@ -948,14 +944,6 @@
               {
                 "title": "cos",
                 "href": "/language/settings/backends/cos"
-              },
-              {
-                "title": "etcd",
-                "href": "/language/settings/backends/etcd"
-              },
-              {
-                "title": "etcdv3",
-                "href": "/language/settings/backends/etcdv3"
               },
               {
                 "title": "gcs",
@@ -970,10 +958,6 @@
                 "href": "/language/settings/backends/kubernetes"
               },
               {
-                "title": "manta",
-                "href": "/language/settings/backends/manta"
-              },
-              {
                 "title": "oss",
                 "href": "/language/settings/backends/oss"
               },
@@ -984,10 +968,6 @@
               {
                 "title": "s3",
                 "href": "/language/settings/backends/s3"
-              },
-              {
-                "title": "swift",
-                "href": "/language/settings/backends/swift"
               }
             ]
           },
@@ -1000,11 +980,6 @@
             "title": "remote",
             "hidden": true,
             "path": "settings/backends/remote"
-          },
-          {
-            "title": "artifactory",
-            "hidden": true,
-            "path": "settings/backends/artifactory"
           },
           {
             "title": "azurerm",
@@ -1022,16 +997,6 @@
             "path": "settings/backends/cos"
           },
           {
-            "title": "etcd",
-            "hidden": true,
-            "path": "settings/backends/etcd"
-          },
-          {
-            "title": "etcdv3",
-            "hidden": true,
-            "path": "settings/backends/etcdv3"
-          },
-          {
             "title": "gcs",
             "hidden": true,
             "path": "settings/backends/gcs"
@@ -1047,11 +1012,6 @@
             "path": "settings/backends/kubernetes"
           },
           {
-            "title": "manta",
-            "hidden": true,
-            "path": "settings/backends/manta"
-          },
-          {
             "title": "oss",
             "hidden": true,
             "path": "settings/backends/oss"
@@ -1065,11 +1025,6 @@
             "title": "s3",
             "hidden": true,
             "path": "settings/backends/s3"
-          },
-          {
-            "title": "swift",
-            "hidden": true,
-            "path": "settings/backends/swift"
           }
         ]
       }
