@@ -1159,7 +1159,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				}
 			},
 			WantErr: `some providers could not be installed:
-- example.com/foo/beep: locked provider example.com/foo/beep 1.0.0 does not match configured version constraint >= 2.0.0; must use terraform init -upgrade to allow selection of new versions`,
+- example.com/foo/beep: locked provider example.com/foo/beep v1.0.0 does not match configured version constraint >= 2.0.0; must use terraform init -upgrade to allow selection of new versions`,
 			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
 				return map[addrs.Provider][]*testInstallerEventLogItem{
 					noProvider: {
@@ -1182,7 +1182,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 						{
 							Event:    "QueryPackagesFailure",
 							Provider: beepProvider,
-							Args:     `locked provider example.com/foo/beep 1.0.0 does not match configured version constraint >= 2.0.0; must use terraform init -upgrade to allow selection of new versions`,
+							Args:     `locked provider example.com/foo/beep v1.0.0 does not match configured version constraint >= 2.0.0; must use terraform init -upgrade to allow selection of new versions`,
 						},
 					},
 				}
@@ -1331,7 +1331,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
 			},
 			WantErr: `some providers could not be installed:
-- example.com/foo/beep: provider example.com/foo/beep 1.0.0 is not available for bleep_bloop`,
+- example.com/foo/beep: provider example.com/foo/beep v1.0.0 is not available for bleep_bloop`,
 			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
 				return map[addrs.Provider][]*testInstallerEventLogItem{
 					noProvider: {
@@ -1369,7 +1369,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Error   string
 							}{
 								"1.0.0",
-								"provider example.com/foo/beep 1.0.0 is not available for bleep_bloop",
+								"provider example.com/foo/beep v1.0.0 is not available for bleep_bloop",
 							},
 						},
 					},
@@ -1402,7 +1402,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
 			},
 			WantErr: `some providers could not be installed:
-- example.com/foo/beep: the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
+- example.com/foo/beep: the local package for example.com/foo/beep v1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
 			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
 				return map[addrs.Provider][]*testInstallerEventLogItem{
 					noProvider: {
@@ -1448,7 +1448,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Error   string
 							}{
 								"1.0.0",
-								`the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
+								`the local package for example.com/foo/beep v1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
 							},
 						},
 					},

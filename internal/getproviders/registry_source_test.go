@@ -162,7 +162,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"nonexist", "amd64",
 			PackageMeta{},
 			nil,
-			`provider example.com/awesomesauce/happycloud 1.2.0 is not available for nonexist_amd64`,
+			`provider example.com/awesomesauce/happycloud v1.2.0 is not available for nonexist_amd64`,
 		},
 		{
 			"not.example.com/awesomesauce/happycloud",

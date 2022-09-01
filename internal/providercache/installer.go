@@ -227,8 +227,8 @@ func (i *Installer) EnsureProviderVersions(ctx context.Context, locks *depsfile.
 			if lock := locks.Provider(provider); lock != nil {
 				if !acceptableVersions.Has(lock.Version()) {
 					err := fmt.Errorf(
-						"locked provider %s %s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
-						provider, lock.Version(), getproviders.VersionConstraintsString(versionConstraints),
+						"locked provider %s v%s does not match configured version constraint %s; must use terraform init -upgrade to allow selection of new versions",
+						provider.ForDisplay(), lock.Version().String(), getproviders.VersionConstraintsString(versionConstraints),
 					)
 					errs[provider] = err
 					// This is a funny case where we're returning an error

@@ -135,18 +135,18 @@ type ErrPlatformNotSupported struct {
 func (err ErrPlatformNotSupported) Error() string {
 	if err.MirrorURL != nil {
 		return fmt.Sprintf(
-			"provider mirror %s does not have a package of %s %s for %s",
+			"provider mirror %s does not have a package of %s v%s for %s",
 			err.MirrorURL.String(),
-			err.Provider,
-			err.Version,
-			err.Platform,
+			err.Provider.ForDisplay(),
+			err.Version.String(),
+			err.Platform.String(),
 		)
 	}
 	return fmt.Sprintf(
-		"provider %s %s is not available for %s",
-		err.Provider,
-		err.Version,
-		err.Platform,
+		"provider %s v%s is not available for %s",
+		err.Provider.ForDisplay(),
+		err.Version.String(),
+		err.Platform.String(),
 	)
 }
 
