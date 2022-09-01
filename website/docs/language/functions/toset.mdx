@@ -9,7 +9,9 @@ description: The toset function converts a value to a set.
 
 Explicit type conversions are rarely necessary in Terraform because it will
 convert types automatically where required. Use the explicit type conversion
-functions only to normalize types returned in module outputs.
+functions only to normalize types returned in module outputs, or in the
+particular case of `toset`, with
+[the `for_each` meta-argument](/language/meta-arguments/for_each#using-sets).
 
 Pass a _list_ value to `toset` to convert it to a set, which will remove any
 duplicate elements and discard the ordering of the elements.
