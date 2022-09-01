@@ -195,12 +195,12 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 		if matches, err := meta.MatchesAnyHash(allowedHashes); err != nil {
 			return authResult, fmt.Errorf(
 				"failed to calculate checksum for %s v%s package at %s: %s",
-				meta.Provider, meta.Version, meta.Location, err,
+				meta.Provider.ForDisplay(), meta.Version.String(), meta.Location, err,
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
 				"the local package for %s v%s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification",
-				meta.Provider, meta.Version,
+				meta.Provider.ForDisplay(), meta.Version.String(),
 			)
 		}
 	}
