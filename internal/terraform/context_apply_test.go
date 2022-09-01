@@ -6562,6 +6562,53 @@ func TestContext2Apply_outputBasic(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_outputWithTypeContraint(t *testing.T) {
+	m := testModule(t, "apply-output-type-constraint")
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	wantValues := map[string]cty.Value{
+		"string": cty.StringVal("true"),
+		"object_default": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("Ermintrude"),
+		}),
+		"object_override": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("Peppa"),
+		}),
+	}
+	ovs := state.RootModule().OutputValues
+	for name, want := range wantValues {
+		os, ok := ovs[name]
+		if !ok {
+			t.Errorf("missing output value %q", name)
+			continue
+		}
+		if got := os.Value; !want.RawEquals(got) {
+			t.Errorf("wrong value for output %q\ngot:  %#v\nwant: %#v", name, got, want)
+		}
+	}
+
+	for gotName := range ovs {
+		if _, ok := wantValues[gotName]; !ok {
+			t.Errorf("unexpected extra output value %q", gotName)
+		}
+	}
+}
+
 func TestContext2Apply_outputAdd(t *testing.T) {
 	m1 := testModule(t, "apply-output-add-before")
 	p1 := testProvider("aws")
