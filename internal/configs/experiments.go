@@ -232,5 +232,18 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
+	if !m.ActiveExperiments.Has(experiments.OutputTypeConstraints) {
+		for _, oc := range m.Outputs {
+			if oc.TypeSet {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Output value type constraints are experimental",
+					Detail:   "The \"type\" argument for output values is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding output_type_constraints to the list of active experiments.",
+					Subject:  oc.TypeRange.Ptr(),
+				})
+			}
+		}
+	}
+
 	return diags
 }
