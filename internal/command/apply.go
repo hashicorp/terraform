@@ -342,6 +342,10 @@ Options:
                          accompanied by errors, show them in a more compact
                          form that includes only the summary messages.
 
+  -destroy               Destroy Terraform-managed infrastructure.
+                         The command "terraform destroy" is a convenience alias
+                         for this option.
+
   -lock=false            Don't hold a state lock during the operation. This is
                          dangerous if others might concurrently run commands
                          against the same workspace.
