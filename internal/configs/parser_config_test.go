@@ -37,8 +37,10 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 			parser := testParser(map[string]string{
 				name: string(src),
 			})
+			parser.AllowLanguageExperiments(true)
 
 			_, diags := parser.LoadConfigFile(name)
+			diags = filterExperimentEnabledDiagnostics(t, diags)
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {

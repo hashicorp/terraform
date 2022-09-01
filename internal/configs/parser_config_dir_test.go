@@ -30,6 +30,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
 			parser := NewParser(nil)
+			parser.AllowLanguageExperiments(true)
 			path := filepath.Join("testdata/valid-modules", name)
 
 			mod, diags := parser.LoadConfigDir(path)
@@ -91,6 +92,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			parser := testParser(map[string]string{
 				"mod/" + name: string(src),
 			})
+			parser.AllowLanguageExperiments(true)
 
 			_, diags := parser.LoadConfigDir("mod")
 			if diags.HasErrors() {

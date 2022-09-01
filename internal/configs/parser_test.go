@@ -6,6 +6,7 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -166,6 +167,28 @@ func assertExactDiagnostics(t *testing.T, diags hcl.Diagnostics, want []string) 
 	}
 
 	return bad
+}
+
+// filterExperimentEnabledDiagnostics takes a set of diagnostics and returns
+// a filtered set which removes any warning diagnostics that are reporting
+// that an experimental feature is enabled.
+//
+// We sometimes use this as a pragmatic exception in tests that would otherwise
+// fail if any warnings are returned, because it means we can graduate a
+// feature from experimental to stable without having to reclassify its tests
+// from warning tests to success tests.
+func filterExperimentEnabledDiagnostics(t *testing.T, diags hcl.Diagnostics) hcl.Diagnostics {
+	ret := make(hcl.Diagnostics, 0, len(diags))
+	for _, diag := range diags {
+		if diag.Severity == hcl.DiagWarning {
+			summary := diag.Summary
+			if strings.HasPrefix(summary, `Experimental feature "`) && strings.HasSuffix(summary, `" is active`) {
+				continue
+			}
+		}
+		ret = append(ret, diag)
+	}
+	return ret
 }
 
 func assertResultDeepEqual(t *testing.T, got, want interface{}) bool {
