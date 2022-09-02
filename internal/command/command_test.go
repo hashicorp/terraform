@@ -138,9 +138,6 @@ func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"):                                           providers.FactoryFixed(p),
 			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp2", "test"): providers.FactoryFixed(p),
-			addrs.NewLegacyProvider("null"):                                            providers.FactoryFixed(p),
-			addrs.NewLegacyProvider("azurerm"):                                         providers.FactoryFixed(p),
-			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acmecorp", "aws"):    providers.FactoryFixed(p),
 		},
 	}
 }
