@@ -34,6 +34,9 @@ const (
 	// DiffLanguageDetectedDrift indicates that the change is detected drift
 	// from the configuration.
 	DiffLanguageDetectedDrift DiffLanguage = 'D'
+
+	// ProviderAttributeName name of provider Attribute in plan output
+	ProviderAttributeName string = "provider"
 )
 
 // ResourceChange returns a string representation of a change to a particular
@@ -190,6 +193,7 @@ func ResourceChange(
 		color:           color,
 		action:          change.Action,
 		requiredReplace: change.RequiredReplace,
+		provider:        change.ProviderAddr,
 	}
 
 	// Most commonly-used resources have nested blocks that result in us
@@ -197,7 +201,9 @@ func ResourceChange(
 	// start with that much capacity and then grow as needed for deeper
 	// structures.
 	path := make(cty.Path, 0, 3)
+	attrNameLen := calculateAttributesNameLen(schema.Attributes, change.Before, change.After, change.ProviderAddr.Alias)
 
+	writeProviderName(change.ProviderAddr, &p, path, attrNameLen)
 	result := p.writeBlockBodyDiff(schema, change.Before, change.After, 6, path)
 	if result.bodyWritten {
 		buf.WriteString("\n")
@@ -206,6 +212,40 @@ func ResourceChange(
 	buf.WriteString("}\n")
 
 	return buf.String()
+}
+
+// calculating max name length of Attributes for pretty print.
+func calculateAttributesNameLen(attrsS map[string]*configschema.Attribute, old, new cty.Value, alias string) int {
+	displayAttrNames := make(map[string]string, len(attrsS))
+	attrNameLen := 0
+	if alias != "" {
+		attrNameLen = len(ProviderAttributeName)
+	}
+	for name := range attrsS {
+		oldVal := ctyGetAttrMaybeNull(old, name)
+		newVal := ctyGetAttrMaybeNull(new, name)
+		if oldVal.IsNull() && newVal.IsNull() {
+			// Skip attributes where both old and new values are null
+			// (we do this early here so that we'll do our value alignment
+			// based on the longest attribute name that has a change, rather
+			// than the longest attribute name in the full set.)
+			continue
+		}
+		displayAttrNames[name] = displayAttributeName(name)
+		if len(displayAttrNames[name]) > attrNameLen {
+			attrNameLen = len(displayAttrNames[name])
+		}
+	}
+	return attrNameLen
+}
+
+// Write provider name if alias not empty.
+func writeProviderName(provider addrs.AbsProviderConfig, p *blockBodyDiffPrinter, path cty.Path, attrNameLen int) {
+	if provider.Alias == "" {
+		return
+	}
+	value := cty.StringVal(provider.Provider.Type + "." + provider.Alias)
+	p.writeAttrDiff(ProviderAttributeName, &configschema.Attribute{NestedType: nil}, value, value, attrNameLen, 6, path)
 }
 
 // OutputChanges returns a string representation of a set of changes to output
@@ -264,6 +304,7 @@ type blockBodyDiffPrinter struct {
 	color           *colorstring.Colorize
 	action          plans.Action
 	requiredReplace cty.PathSet
+	provider        addrs.AbsProviderConfig
 	// verbose is set to true when using the "diff" printer to format state
 	verbose bool
 }
@@ -330,7 +371,6 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 
 	attrNames := make([]string, 0, len(attrsS))
 	displayAttrNames := make(map[string]string, len(attrsS))
-	attrNameLen := 0
 	for name := range attrsS {
 		oldVal := ctyGetAttrMaybeNull(old, name)
 		newVal := ctyGetAttrMaybeNull(new, name)
@@ -344,15 +384,12 @@ func (p *blockBodyDiffPrinter) writeAttrsDiff(
 
 		attrNames = append(attrNames, name)
 		displayAttrNames[name] = displayAttributeName(name)
-		if len(displayAttrNames[name]) > attrNameLen {
-			attrNameLen = len(displayAttrNames[name])
-		}
 	}
 	sort.Strings(attrNames)
 	if len(attrNames) == 0 {
 		return false
 	}
-
+	attrNameLen := calculateAttributesNameLen(attrsS, old, new, p.provider.Alias)
 	for _, name := range attrNames {
 		attrS := attrsS[name]
 		oldVal := ctyGetAttrMaybeNull(old, name)
@@ -393,7 +430,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	path = append(path, cty.GetAttrStep{Name: name})
 	action, showJustNew := getPlanActionAndShow(old, new)
 
-	if action == plans.NoOp && !p.verbose && !identifyingAttribute(name, attrS) {
+	if action == plans.NoOp && !p.verbose && !identifyingAttribute(name) {
 		return true
 	}
 
@@ -1634,7 +1671,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				// TODO: If in future we have a schema associated with this
 				// object, we should pass the attribute's schema to
 				// identifyingAttribute here.
-				if action == plans.NoOp && !p.verbose && !identifyingAttribute(k, nil) {
+				if action == plans.NoOp && !p.verbose && !identifyingAttribute(k) {
 					suppressedElements++
 					continue
 				}
@@ -2002,8 +2039,8 @@ func DiffActionSymbol(action plans.Action) string {
 // name is important for identifying a resource. In the future, this may be
 // replaced by a flag in the schema, but for now this is likely to be good
 // enough.
-func identifyingAttribute(name string, attrSchema *configschema.Attribute) bool {
-	return name == "id" || name == "tags" || name == "name"
+func identifyingAttribute(name string) bool {
+	return name == "id" || name == "tags" || name == "name" || name == "provider"
 }
 
 func (p *blockBodyDiffPrinter) writeSkippedAttr(skipped, indent int) {
