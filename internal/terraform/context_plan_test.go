@@ -4536,7 +4536,15 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-wildcard")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// computed attributes should not be set in config
+		id := req.Config.GetAttr("id")
+		if !id.IsNull() {
+			t.Error("computed id set in plan config")
+		}
+
+		return testDiffFn(req)
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
