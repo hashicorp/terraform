@@ -1990,7 +1990,7 @@ func DiffActionSymbol(action plans.Action) string {
 	case plans.Delete:
 		return "  [red]-[reset]"
 	case plans.Read:
-		return " [cyan]<=[reset]"
+		return " [cyan]<==[reset]"
 	case plans.Update:
 		return "  [yellow]~[reset]"
 	default:

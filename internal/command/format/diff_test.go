@@ -551,7 +551,7 @@ new line
 			},
 			ExpectedOutput: `  # data.test_instance.example will be read during apply
   # (config refers to values not yet known)
- <= data "test_instance" "example" {
+ <== data "test_instance" "example" {
         name = "name"
     }
 `,
@@ -573,7 +573,7 @@ new line
 			},
 			ExpectedOutput: `  # data.test_instance.example will be read during apply
   # (depends on a resource or a module with changes pending)
- <= data "test_instance" "example" {
+ <== data "test_instance" "example" {
         name = "name"
     }
 `,
@@ -593,7 +593,7 @@ new line
 				},
 			},
 			ExpectedOutput: `  # data.test_instance.example will be read during apply
- <= data "test_instance" "example" {
+ <== data "test_instance" "example" {
         name = "name"
     }
 `,
