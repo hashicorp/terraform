@@ -1,8 +1,8 @@
-## 1.2.9 (Unreleased)
+## 1.2.9 (September 07, 2022)
 
 ENHANCEMENTS:
 
-* terraform init: add link to documentation when a checksum is missing from the lock file. [GH-31726]
+* terraform init: add link to documentation when a checksum is missing from the lock file. ([#31726](https://github.com/hashicorp/terraform/issues/31726))
 
 ## 1.2.8 (August 24, 2022)
 
