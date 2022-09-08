@@ -31,6 +31,7 @@ type Backend struct {
 	prefix     string
 
 	encryptionKey []byte
+	kmsKeyName    string
 }
 
 func New() backend.Backend {
@@ -87,6 +88,12 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
 				Default:     "",
+			},
+
+			"kms_encryption_key": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "A Cloud KMS key used by default when state files are written to the backend bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'",
 			},
 		},
 	}
@@ -210,6 +217,13 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error decoding encryption key: %s", err)
 		}
 		b.encryptionKey = k
+	}
+
+	// Cannot combine this with customer-supplied key
+	// TODO(SarahFrench) - add protections against the above
+	kmsName, kmsOk := data.GetOk("kms_encryption_key")
+	if kmsOk {
+		b.kmsKeyName = kmsName.(string)
 	}
 
 	return nil

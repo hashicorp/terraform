@@ -23,6 +23,7 @@ type remoteClient struct {
 	stateFilePath  string
 	lockFilePath   string
 	encryptionKey  []byte
+	kmsKeyName     string
 }
 
 func (c *remoteClient) Get() (payload *remote.Payload, err error) {
@@ -57,6 +58,9 @@ func (c *remoteClient) Get() (payload *remote.Payload, err error) {
 func (c *remoteClient) Put(data []byte) error {
 	err := func() error {
 		stateFileWriter := c.stateFile().NewWriter(c.storageContext)
+		if len(c.kmsKeyName) > 0 {
+			stateFileWriter.KMSKeyName = c.kmsKeyName
+		}
 		if _, err := stateFileWriter.Write(data); err != nil {
 			return err
 		}
@@ -170,6 +174,7 @@ func (c *remoteClient) stateFile() *storage.ObjectHandle {
 	if len(c.encryptionKey) > 0 {
 		return h.Key(c.encryptionKey)
 	}
+	// TODO(SarahFrench) - Nothing needed for KMs here as it's added to Writer variables, not Object handlers
 	return h
 }
 

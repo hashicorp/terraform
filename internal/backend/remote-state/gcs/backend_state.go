@@ -81,8 +81,11 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 		stateFilePath:  b.stateFile(name),
 		lockFilePath:   b.lockFile(name),
 		encryptionKey:  b.encryptionKey,
+		kmsKeyName:     b.kmsKeyName,
 	}, nil
 }
+
+// TODO(SarahFrench) - Is this the place where changing between customer-supplied and customer-managed keys could be handled?
 
 // StateMgr reads and returns the named state from GCS. If the named state does
 // not yet exist, a new state file is created.
