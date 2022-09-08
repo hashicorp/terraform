@@ -92,19 +92,13 @@ func (s *State) WriteStateForMigration(f *statefile.File, force bool) error {
 		}
 	}
 
-	// The remote backend needs to pass the `force` flag through to its client.
-	// For backends that support such operations, inform the client
-	// that a force push has been requested
-	if force {
-		s.EnableForcePush()
-	}
-
 	// We create a deep copy of the state here, because the caller also has
 	// a reference to the given object and can potentially go on to mutate
 	// it after we return, but we want the snapshot at this point in time.
 	s.state = f.State.DeepCopy()
 	s.lineage = f.Lineage
 	s.serial = f.Serial
+	s.forcePush = force
 
 	return nil
 }
@@ -136,6 +130,7 @@ func (s *State) WriteState(state *states.State) error {
 	// a reference to the given object and can potentially go on to mutate
 	// it after we return, but we want the snapshot at this point in time.
 	s.state = state.DeepCopy()
+	s.forcePush = false
 
 	return nil
 }
@@ -412,12 +407,6 @@ func (s *State) Delete() error {
 	}
 
 	return nil
-}
-
-// EnableForcePush to allow the remote client to overwrite state
-// by implementing remote.ClientForcePusher
-func (s *State) EnableForcePush() {
-	s.forcePush = true
 }
 
 // GetRootOutputValues fetches output values from Terraform Cloud
