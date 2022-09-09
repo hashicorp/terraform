@@ -1,0 +1,10 @@
+{
+  "values": {
+    "id": {
+      "string": "my_integer"
+    },
+    "integer": {
+      "number": "1"
+    }
+  }
+}

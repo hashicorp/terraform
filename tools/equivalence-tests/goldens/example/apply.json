@@ -1,0 +1,78 @@
+[
+  {
+    "@level": "info",
+    "@message": "mock_simple_resource.integer: Plan to create",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "create",
+      "resource": {
+        "addr": "mock_simple_resource.integer",
+        "implied_provider": "mock",
+        "module": "",
+        "resource": "mock_simple_resource.integer",
+        "resource_key": null,
+        "resource_name": "integer",
+        "resource_type": "mock_simple_resource"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "mock_simple_resource.integer: Creating...",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "resource": {
+        "addr": "mock_simple_resource.integer",
+        "implied_provider": "mock",
+        "module": "",
+        "resource": "mock_simple_resource.integer",
+        "resource_key": null,
+        "resource_name": "integer",
+        "resource_type": "mock_simple_resource"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "mock_simple_resource.integer: Creation complete after 0s [id=my_integer]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "id_value": "my_integer",
+      "resource": {
+        "addr": "mock_simple_resource.integer",
+        "implied_provider": "mock",
+        "module": "",
+        "resource": "mock_simple_resource.integer",
+        "resource_key": null,
+        "resource_name": "integer",
+        "resource_type": "mock_simple_resource"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 1,
+      "change": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

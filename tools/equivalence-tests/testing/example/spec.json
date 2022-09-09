@@ -1,0 +1,6 @@
+{
+  "golden-files": [
+    "terraform.resource/my_integer.json"
+  ],
+  "field-blocklist": {}
+}

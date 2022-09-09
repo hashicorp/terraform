@@ -63,6 +63,7 @@ require (
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/mitchellh/reflectwalk v1.0.2
 	github.com/nishanths/exhaustive v0.7.11
+	github.com/nsf/jsondiff v0.0.0-20210926074059-1e845ec5d249
 	github.com/packer-community/winrmcp v0.0.0-20180921211025-c76d91c1e7db
 	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/pkg/errors v0.9.1
