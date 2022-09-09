@@ -71,18 +71,20 @@ If a configuration includes no backend block, Terraform defaults to using the `l
 
 ## Initialization
 
-Whenever a configuration's backend changes, you must run `terraform init` again
+When you change a backend's configuration, you must run `terraform init` again
 to validate and configure the backend before you can perform any plans, applies,
 or state operations.
 
-When changing backends, Terraform will give you the option to migrate
+After you initialize, Terraform creates a `.terraform/` directory locally. This directory contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check this directory into Git, as it may contain sensitive credentials for your remote backend.
+
+The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
+
+When you change backends, Terraform gives you the option to migrate
 your state to the new backend. This lets you adopt backends without losing
 any existing state.
 
-To be extra careful, we always recommend manually backing up your state
-as well. You can do this by simply copying your `terraform.tfstate` file
-to another location. The initialization process should create a backup
-as well, but it never hurts to be safe!
+~> **Important:** Before migrating to a new backend, we strongly recommend manually backing up your state by copying your `terraform.tfstate` file
+to another location.
 
 ## Partial Configuration
 
