@@ -7,11 +7,6 @@
     "hidden": true
   },
   {
-    "title": "Terraform v1.0 Compatibility Promises",
-    "path": "v1-compatibility-promises",
-    "hidden": true
-  },
-  {
     "title": "Files and Directories",
     "routes": [
       { "title": "Overview", "path": "files" },
@@ -1057,62 +1052,12 @@
     ]
   },
   {
-    "title": "Upgrade Guides",
-    "routes": [
-      { "title": "Overview", "path": "upgrade-guides" },
-      {
-        "title": "Upgrading to Terraform v1.2",
-        "path": "upgrade-guides/1-2"
-      },
-      {
-        "title": "Upgrading to Terraform v1.1",
-        "path": "upgrade-guides/1-1"
-      },
-      {
-        "title": "Upgrading to Terraform v1.0",
-        "path": "upgrade-guides/1-0"
-      },
-      {
-        "title": "v1.0 Compatibility Promises",
-        "href": "/language/v1-compatibility-promises"
-      },
-      {
-        "title": "Upgrading to Terraform v0.15",
-        "path": "upgrade-guides/0-15"
-      },
-      {
-        "title": "Upgrading to Terraform v0.14",
-        "path": "upgrade-guides/0-14"
-      },
-      {
-        "title": "Upgrading to Terraform v0.13",
-        "path": "upgrade-guides/0-13"
-      },
-      {
-        "title": "Upgrading to Terraform v0.12",
-        "path": "upgrade-guides/0-12"
-      },
-      {
-        "title": "Upgrading to Terraform v0.11",
-        "path": "upgrade-guides/0-11"
-      },
-      {
-        "title": "Upgrading to Terraform v0.10",
-        "path": "upgrade-guides/0-10"
-      },
-      {
-        "title": "Upgrading to Terraform v0.9",
-        "path": "upgrade-guides/0-9"
-      },
-      {
-        "title": "Upgrading to Terraform v0.8",
-        "path": "upgrade-guides/0-8"
-      },
-      {
-        "title": "Upgrading to Terraform v0.7",
-        "path": "upgrade-guides/0-7"
-      }
-    ]
+    "title": "Upgrading to Terraform v1.4",
+    "path": "upgrade-guides"
+  },
+  {
+    "title": "v1.x Compatibility Promises",
+    "path": "v1-compatibility-promises"
   },
   { "divider": true },
   { "title": "Terraform Internals", "href": "/internals" },
