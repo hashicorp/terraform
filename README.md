@@ -1,6 +1,6 @@
 # Terraform
 
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/joycebrum/terraform/badge)](https://api.securityscorecards.dev/projects/github.com/joycebrum/terraform)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/hashicorp/terraform/badge)](https://api.securityscorecards.dev/projects/github.com/hashicorp/terraform)
 
 - Website: https://www.terraform.io
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
