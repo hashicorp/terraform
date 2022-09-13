@@ -25,6 +25,19 @@ type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
+
+	// CheckResults contains a snapshot of the statuses of checks at the
+	// end of the most recent update to the state. Callers might compare
+	// checks between runs to see if e.g. a previously-failing check has
+	// been fixed since the last run, or similar.
+	//
+	// CheckResults can be nil to indicate that there are no check results
+	// from the previous run at all, which is subtly different than the
+	// previous run having affirmatively recorded that there are no checks
+	// to run. For example, if this object was created from a state snapshot
+	// created by a version of Terraform that didn't yet support checks
+	// then this field will be nil.
+	CheckResults *CheckResults
 }
 
 // NewState constructs a minimal empty state, containing an empty root module.

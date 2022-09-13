@@ -124,6 +124,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"textencodebase64": funcs.TextEncodeBase64Func,
 			"timestamp":        funcs.TimestampFunc,
 			"timeadd":          stdlib.TimeAddFunc,
+			"timecmp":          funcs.TimeCmpFunc,
 			"title":            stdlib.TitleFunc,
 			"tostring":         funcs.MakeToFunc(cty.String),
 			"tonumber":         funcs.MakeToFunc(cty.Number),

@@ -56,7 +56,7 @@ func TestFull(t *testing.T, s Full) {
 	}
 
 	// Test persistence
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -81,7 +81,7 @@ func TestFull(t *testing.T, s Full) {
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -104,7 +104,7 @@ func TestFull(t *testing.T, s Full) {
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

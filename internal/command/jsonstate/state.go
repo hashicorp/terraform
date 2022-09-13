@@ -9,6 +9,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/jsonchecks"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -23,9 +24,10 @@ const FormatVersion = "1.0"
 // state is the top-level representation of the json format of a terraform
 // state.
 type state struct {
-	FormatVersion    string       `json:"format_version,omitempty"`
-	TerraformVersion string       `json:"terraform_version,omitempty"`
-	Values           *stateValues `json:"values,omitempty"`
+	FormatVersion    string          `json:"format_version,omitempty"`
+	TerraformVersion string          `json:"terraform_version,omitempty"`
+	Values           *stateValues    `json:"values,omitempty"`
+	Checks           json.RawMessage `json:"checks,omitempty"`
 }
 
 // stateValues is the common representation of resolved values for both the prior
@@ -148,6 +150,11 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	err := output.marshalStateValues(sf.State, schemas)
 	if err != nil {
 		return nil, err
+	}
+
+	// output.Checks
+	if sf.State.CheckResults != nil && sf.State.CheckResults.ConfigResults.Len() > 0 {
+		output.Checks = jsonchecks.MarshalCheckStates(sf.State.CheckResults)
 	}
 
 	ret, err := json.Marshal(output)

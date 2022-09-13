@@ -242,7 +242,7 @@ Use the [`can` function](/language/functions/can) to concisely use the validity 
 For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
 
 ```hcl
-  condition = can(regex("^[a-z]+$", var.name)
+  condition = can(regex("^[a-z]+$", var.name))
 ```
 
 You can also use `can` with the type conversion functions to test whether a value is convertible to a type or type constraint.

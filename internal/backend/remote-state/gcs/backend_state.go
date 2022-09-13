@@ -131,7 +131,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		if err := st.WriteState(states.NewState()); err != nil {
 			return nil, unlock(err)
 		}
-		if err := st.PersistState(); err != nil {
+		if err := st.PersistState(nil); err != nil {
 			return nil, unlock(err)
 		}
 

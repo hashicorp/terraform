@@ -16,6 +16,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // Filesystem is a full state manager that uses a file in the local filesystem
@@ -223,7 +224,7 @@ func (s *Filesystem) writeState(state *states.State, meta *SnapshotMeta) error {
 
 // PersistState is an implementation of Persister that does nothing because
 // this type's Writer implementation does its own persistence.
-func (s *Filesystem) PersistState() error {
+func (s *Filesystem) PersistState(schemas *terraform.Schemas) error {
 	return nil
 }
 

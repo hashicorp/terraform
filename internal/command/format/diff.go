@@ -115,6 +115,8 @@ func ResourceChange(
 		switch change.ActionReason {
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", addr.Resource.Resource))
+		case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+			buf.WriteString(fmt.Sprintf("\n  # (because %s was moved to %s, which is not in configuration)", change.PrevRunAddr, addr.Resource.Resource))
 		case plans.ResourceInstanceDeleteBecauseNoModule:
 			// FIXME: Ideally we'd truncate addr.Module to reflect the earliest
 			// step that doesn't exist, so it's clearer which call this refers

@@ -11,6 +11,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -2909,24 +2910,16 @@ resource "test_resource" "a" {
 				t.Fatalf("unexpected %s change for %s", res.Action, res.Addr)
 			}
 		}
+
 		addr := mustResourceInstanceAddr("data.test_data_source.a")
-		wantCheckTypes := []addrs.CheckType{
-			addrs.ResourcePrecondition,
-			addrs.ResourcePostcondition,
-		}
-		for _, ty := range wantCheckTypes {
-			checkAddr := addr.Check(ty, 0)
-			if result, ok := plan.Conditions[checkAddr.String()]; !ok {
-				t.Errorf("no condition result for %s", checkAddr)
-			} else {
-				wantResult := &plans.ConditionResult{
-					Address: addr,
-					Result:  cty.True,
-					Type:    ty,
-				}
-				if diff := cmp.Diff(wantResult, result, valueComparer); diff != "" {
-					t.Errorf("wrong condition result for %s\n%s", checkAddr, diff)
-				}
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
+		} else {
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusPass,
+			}
+			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
+				t.Errorf("wrong check result for %s\n%s", addr, diff)
 			}
 		}
 	})
@@ -3033,18 +3026,17 @@ resource "test_resource" "a" {
 			t.Fatalf("wrong error:\ngot:  %s\nwant: %q", got, want)
 		}
 		addr := mustResourceInstanceAddr("data.test_data_source.a")
-		checkAddr := addr.Check(addrs.ResourcePostcondition, 0)
-		if result, ok := plan.Conditions[checkAddr.String()]; !ok {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
 		} else {
-			wantResult := &plans.ConditionResult{
-				Address:      addr,
-				Result:       cty.False,
-				Type:         addrs.ResourcePostcondition,
-				ErrorMessage: "Results cannot be empty.",
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusFail,
+				FailureMessages: []string{
+					"Results cannot be empty.",
+				},
 			}
-			if diff := cmp.Diff(wantResult, result, valueComparer); diff != "" {
-				t.Errorf("wrong condition result\n%s", diff)
+			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
+				t.Errorf("wrong check result\n%s", diff)
 			}
 		}
 	})
@@ -3129,17 +3121,14 @@ output "a" {
 		if got, want := outputPlan.Action, plans.Create; got != want {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
-		checkAddr := addr.Check(addrs.OutputPrecondition, 0)
-		if result, ok := plan.Conditions[checkAddr.String()]; !ok {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no check result for %s", addr)
 		} else {
-			wantResult := &plans.ConditionResult{
-				Address: addr,
-				Result:  cty.True,
-				Type:    addrs.OutputPrecondition,
+			wantResult := &states.CheckResultObject{
+				Status: checks.StatusPass,
 			}
-			if diff := cmp.Diff(wantResult, result, valueComparer); diff != "" {
-				t.Errorf("wrong condition result\n%s", diff)
+			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
+				t.Errorf("wrong check result\n%s", diff)
 			}
 		}
 	})
@@ -3190,17 +3179,14 @@ output "a" {
 		if got, want := outputPlan.Action, plans.Create; got != want {
 			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
 		}
-		checkAddr := addr.Check(addrs.OutputPrecondition, 0)
-		if result, ok := plan.Conditions[checkAddr.String()]; !ok {
-			t.Errorf("no condition result for %s", checkAddr)
+		if gotResult := plan.Checks.GetObjectResult(addr); gotResult == nil {
+			t.Errorf("no condition result for %s", addr)
 		} else {
-			wantResult := &plans.ConditionResult{
-				Address:      addr,
-				Result:       cty.False,
-				Type:         addrs.OutputPrecondition,
-				ErrorMessage: "Wrong boop.",
+			wantResult := &states.CheckResultObject{
+				Status:          checks.StatusFail,
+				FailureMessages: []string{"Wrong boop."},
 			}
-			if diff := cmp.Diff(wantResult, result, valueComparer); diff != "" {
+			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
 				t.Errorf("wrong condition result\n%s", diff)
 			}
 		}
@@ -3330,11 +3316,11 @@ output "a" {
 	for _, diag := range diags {
 		desc := diag.Description()
 		if desc.Summary == "Module output value precondition failed" {
-			if got, want := desc.Detail, "The error message included a sensitive value, so it will not be displayed."; !strings.Contains(got, want) {
+			if got, want := desc.Detail, "This check failed, but has an invalid error message as described in the other accompanying messages."; !strings.Contains(got, want) {
 				t.Errorf("unexpected detail\ngot: %s\nwant to contain %q", got, want)
 			}
 		} else if desc.Summary == "Error message refers to sensitive values" {
-			if got, want := desc.Detail, "The error expression used to explain this condition refers to sensitive values."; !strings.Contains(got, want) {
+			if got, want := desc.Detail, "The error expression used to explain this condition refers to sensitive values, so Terraform will not display the resulting message."; !strings.Contains(got, want) {
 				t.Errorf("unexpected detail\ngot: %s\nwant to contain %q", got, want)
 			}
 		} else {

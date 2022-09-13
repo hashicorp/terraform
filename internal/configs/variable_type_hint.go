@@ -14,9 +14,9 @@ package configs
 // are in the documentation for each constant in this enumeration, but in
 // summary:
 //
-//     TypeHintString requires a primitive type
-//     TypeHintList requires a type that could be converted to a tuple
-//     TypeHintMap requires a type that could be converted to an object
+//   - TypeHintString requires a primitive type
+//   - TypeHintList requires a type that could be converted to a tuple
+//   - TypeHintMap requires a type that could be converted to an object
 type VariableTypeHint rune
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type VariableTypeHint

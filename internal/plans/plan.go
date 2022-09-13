@@ -32,11 +32,19 @@ type Plan struct {
 
 	VariableValues    map[string]DynamicValue
 	Changes           *Changes
-	Conditions        Conditions
 	DriftedResources  []*ResourceInstanceChangeSrc
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
+
+	// Checks captures a snapshot of the (probably-incomplete) check results
+	// at the end of the planning process.
+	//
+	// If this plan is applyable (that is, if the planning process completed
+	// without errors) then the set of checks here should be complete even
+	// though some of them will likely have StatusUnknown where the check
+	// condition depends on values we won't know until the apply step.
+	Checks *states.CheckResults
 
 	// RelevantAttributes is a set of resource instance addresses and
 	// attributes that are either directly affected by proposed changes or may

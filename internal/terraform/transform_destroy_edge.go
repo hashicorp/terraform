@@ -30,7 +30,7 @@ type GraphNodeCreator interface {
 //
 // That is complicated. Visually:
 //
-//   B_d -> A_d -> A -> B
+//	B_d -> A_d -> A -> B
 //
 // Notice that A destroy depends on B destroy, while B create depends on
 // A create. They're inverted. This must be done for example because often

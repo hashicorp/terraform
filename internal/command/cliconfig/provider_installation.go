@@ -294,9 +294,9 @@ type ProviderInstallationMethod struct {
 // different installation location types. The concrete implementations of
 // this interface are:
 //
-//     ProviderInstallationDirect:                install from the provider's origin registry
-//     ProviderInstallationFilesystemMirror(dir): install from a local filesystem mirror
-//     ProviderInstallationNetworkMirror(host):   install from a network mirror
+//   - [ProviderInstallationDirect]:                 install from the provider's origin registry
+//   - [ProviderInstallationFilesystemMirror] (dir): install from a local filesystem mirror
+//   - [ProviderInstallationNetworkMirror] (host):   install from a network mirror
 type ProviderInstallationLocation interface {
 	providerInstallationLocation()
 }

@@ -95,18 +95,18 @@ type AbsProviderConfig struct {
 var _ ProviderConfig = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
-// address. The following are examples of traversals that can be successfully
-// parsed as absolute provider configuration addresses:
+// configuration address. The following are examples of traversals that can be
+// successfully parsed as absolute provider configuration addresses:
 //
-//     provider["registry.terraform.io/hashicorp/aws"]
-//     provider["registry.terraform.io/hashicorp/aws"].foo
-//     module.bar.provider["registry.terraform.io/hashicorp/aws"]
-//     module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
+//   - provider["registry.terraform.io/hashicorp/aws"]
+//   - provider["registry.terraform.io/hashicorp/aws"].foo
+//   - module.bar.provider["registry.terraform.io/hashicorp/aws"]
+//   - module.bar.module.baz.provider["registry.terraform.io/hashicorp/aws"].foo
 //
 // This type of address is used, for example, to record the relationships
 // between resources and provider configurations in the state structure.
-// This type of address is not generally used in the UI, except in error
-// messages that refer to provider configurations.
+// This type of address is typically not used prominently in the UI, except in
+// error messages that refer to provider configurations.
 func ParseAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
 	modInst, remain, diags := parseModuleInstancePrefix(traversal)
 	var ret AbsProviderConfig
@@ -230,17 +230,22 @@ func ParseLegacyAbsProviderConfigStr(str string) (AbsProviderConfig, tfdiags.Dia
 }
 
 // ParseLegacyAbsProviderConfig parses the given traversal as an absolute
-// provider address. The following are examples of traversals that can be
-// successfully parsed as legacy absolute provider configuration addresses:
+// provider address in the legacy form used by Terraform v0.12 and earlier.
+// The following are examples of traversals that can be successfully parsed as
+// legacy absolute provider configuration addresses:
 //
-//     provider.aws
-//     provider.aws.foo
-//     module.bar.provider.aws
-//     module.bar.module.baz.provider.aws.foo
+//   - provider.aws
+//   - provider.aws.foo
+//   - module.bar.provider.aws
+//   - module.bar.module.baz.provider.aws.foo
 //
-// This type of address is used in legacy state and may appear in state v4 if
-// the provider config addresses have not been normalized to include provider
-// FQN.
+// We can encounter this kind of address in a historical state snapshot that
+// hasn't yet been upgraded by refreshing or applying a plan with
+// Terraform v0.13. Later versions of Terraform reject state snapshots using
+// this format, and so users must follow the Terraform v0.13 upgrade guide
+// in that case.
+//
+// We will not use this address form for any new file formats.
 func ParseLegacyAbsProviderConfig(traversal hcl.Traversal) (AbsProviderConfig, tfdiags.Diagnostics) {
 	modInst, remain, diags := parseModuleInstancePrefix(traversal)
 	var ret AbsProviderConfig
@@ -383,12 +388,12 @@ func (pc AbsProviderConfig) LegacyString() string {
 	return fmt.Sprintf("%s.%s.%s", pc.Module.String(), "provider", pc.Provider.LegacyString())
 }
 
-// String() returns a string representation of an AbsProviderConfig in the following format:
+// String() returns a string representation of an AbsProviderConfig in a format like the following examples:
 //
-// 	provider["example.com/namespace/name"]
-// 	provider["example.com/namespace/name"].alias
-// 	module.module-name.provider["example.com/namespace/name"]
-// 	module.module-name.provider["example.com/namespace/name"].alias
+//   - provider["example.com/namespace/name"]
+//   - provider["example.com/namespace/name"].alias
+//   - module.module-name.provider["example.com/namespace/name"]
+//   - module.module-name.provider["example.com/namespace/name"].alias
 func (pc AbsProviderConfig) String() string {
 	var parts []string
 	if len(pc.Module) > 0 {

@@ -382,11 +382,11 @@ type signatureAuthentication struct {
 // in turn until one is successful. If such a key is found, there are three
 // possible successful authentication results:
 //
-// 1. If the signing key is the HashiCorp official key, it is an official
-//    provider;
-// 2. Otherwise, if the signing key has a trust signature from the HashiCorp
-//    Partners key, it is a partner provider;
-// 3. If neither of the above is true, it is a community provider.
+//  1. If the signing key is the HashiCorp official key, it is an official
+//     provider;
+//  2. Otherwise, if the signing key has a trust signature from the HashiCorp
+//     Partners key, it is a partner provider;
+//  3. If neither of the above is true, it is a community provider.
 //
 // Any failure in the process of validating the signature will result in an
 // unauthenticated result.

@@ -526,15 +526,10 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 	}
 
 	// Configure the remote workspace name.
-	client := &remoteClient{
-		client:       b.client,
-		organization: b.organization,
-		workspace: &tfe.Workspace{
-			Name: name,
-		},
-	}
-
-	return client.Delete()
+	State := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
+		Name: name,
+	}}
+	return State.Delete()
 }
 
 // StateMgr implements backend.Enhanced.
@@ -619,16 +614,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	client := &remoteClient{
-		client:       b.client,
-		organization: b.organization,
-		workspace:    workspace,
-
-		// This is optionally set during Terraform Enterprise runs.
-		runID: os.Getenv("TFE_RUN_ID"),
-	}
-
-	return NewState(client), nil
+	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
 }
 
 // Operation implements backend.Enhanced.
@@ -920,6 +906,7 @@ func (b *Cloud) IsLocalOperations() bool {
 // as a helper to wrap any potentially colored strings.
 //
 // TODO SvH: Rename this back to Colorize as soon as we can pass -no-color.
+//
 //lint:ignore U1000 see above todo
 func (b *Cloud) cliColorize() *colorstring.Colorize {
 	if b.CLIColor != nil {

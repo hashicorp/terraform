@@ -37,7 +37,7 @@ func TestStateRace(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			s.WriteState(current)
-			s.PersistState()
+			s.PersistState(nil)
 			s.RefreshState()
 		}()
 	}
@@ -104,6 +104,7 @@ func TestStatePersist(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 		},
@@ -125,6 +126,7 @@ func TestStatePersist(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 		},
@@ -148,7 +150,8 @@ func TestStatePersist(t *testing.T) {
 							"value": "bar",
 						},
 					},
-					"resources": []interface{}{},
+					"resources":     []interface{}{},
+					"check_results": nil,
 				},
 			},
 		},
@@ -172,7 +175,8 @@ func TestStatePersist(t *testing.T) {
 							"value": "baz",
 						},
 					},
-					"resources": []interface{}{},
+					"resources":     []interface{}{},
+					"check_results": nil,
 				},
 			},
 		},
@@ -203,7 +207,8 @@ func TestStatePersist(t *testing.T) {
 							"value": "baz",
 						},
 					},
-					"resources": []interface{}{},
+					"resources":     []interface{}{},
+					"check_results": nil,
 				},
 			},
 		},
@@ -252,7 +257,7 @@ func TestStatePersist(t *testing.T) {
 			if err := mgr.WriteState(s); err != nil {
 				t.Fatalf("failed to WriteState for %q: %s", tc.name, err)
 			}
-			if err := mgr.PersistState(); err != nil {
+			if err := mgr.PersistState(nil); err != nil {
 				t.Fatalf("failed to PersistState for %q: %s", tc.name, err)
 			}
 
@@ -379,6 +384,7 @@ func TestWriteStateForMigration(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 			force: true,
@@ -397,6 +403,7 @@ func TestWriteStateForMigration(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 			force: true,
@@ -447,7 +454,7 @@ func TestWriteStateForMigration(t *testing.T) {
 			// At this point we should just do a normal write and persist
 			// as would happen from the CLI
 			mgr.WriteState(mgr.State())
-			mgr.PersistState()
+			mgr.PersistState(nil)
 
 			if logIdx >= len(mockClient.log) {
 				t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))
@@ -533,6 +540,7 @@ func TestWriteStateForMigrationWithForcePushClient(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 			force: true,
@@ -551,6 +559,7 @@ func TestWriteStateForMigrationWithForcePushClient(t *testing.T) {
 					"terraform_version": version.Version,
 					"outputs":           map[string]interface{}{"foo": map[string]interface{}{"type": string("string"), "value": string("bar")}},
 					"resources":         []interface{}{},
+					"check_results":     nil,
 				},
 			},
 			force: true,
@@ -611,7 +620,7 @@ func TestWriteStateForMigrationWithForcePushClient(t *testing.T) {
 			// At this point we should just do a normal write and persist
 			// as would happen from the CLI
 			mgr.WriteState(mgr.State())
-			mgr.PersistState()
+			mgr.PersistState(nil)
 
 			if logIdx >= len(mockClient.log) {
 				t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))

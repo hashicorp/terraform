@@ -180,10 +180,6 @@ jobs:
           restore-keys: |
             protobuf-tools-
 
-      - name: Install CI tooling
-        run: |
-          go install golang.org/x/tools/cmd/goimports@v0.1.11
-
       - name: "Code consistency checks"
         run: |
           make fmtcheck importscheck generate staticcheck exhaustive protobuf
