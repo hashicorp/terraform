@@ -29,33 +29,33 @@ UPGRADE NOTES:
 * When making requests to HTTPS servers, Terraform will now reject invalid handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
 
     This only applies to requests made directly by Terraform CLI, such as provider installation and remote state storage. Terraform providers are separate programs which decide their own policy for handling of TLS handshakes.
-* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The `azure` backend name has been removed: please use the name `azurerm` for this backend. [[#31711](https://github.com/hashicorp/terraform/issues/31711)] 
+* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The legacy backend name `azure` has also been removed, because the current Azure backend is named `azurerm`. [[#31711](https://github.com/hashicorp/terraform/issues/31711)] 
 
 ENHANCEMENTS:
 
 * config: Optional attributes for object type constraints, as described under new features above. ([#31154](https://github.com/hashicorp/terraform/issues/31154))
 * config: New built-in function `timecmp` allows determining the ordering relationship between two timestamps while taking potentially-different UTC offsets into account. ([#31687](https://github.com/hashicorp/terraform/pull/31687))
+* config: When reporting an error message related to a function call, Terraform will now include contextual information about the signature of the function that was being called, as an aid to understanding why the call might have failed. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
+* config: When reporting an error or warning message that isn't caused by values being unknown or marked as sensitive, Terraform will no longer mention any values having those characteristics in the contextual information presented alongside the error. Terraform will still return this information for the small subset of error messages that are specifically about unknown values or sensitive values being invalid in certain contexts. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
+* config: `moved` blocks can now describe resources moving to and from modules in separate module packages. ([#31556](https://github.com/hashicorp/terraform/issues/31556))
 * `terraform fmt` now accepts multiple target paths, allowing formatting of several individual files at once. ([#31687](https://github.com/hashicorp/terraform/issues/31687))
-* When reporting an error message related to a function call, Terraform will now include contextual information about the signature of the function that was being called, as an aid to understanding why the call might have failed. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
-* When reporting an error or warning message that isn't caused by values being unknown or marked as sensitive, Terraform will no longer mention any values having those characteristics in the contextual information presented alongside the error. Terraform will still return this information for the small subset of error messages that are specifically about unknown values or sensitive values being invalid in certain contexts. ([#31299](https://github.com/hashicorp/terraform/issues/31299))
-* The Terraform CLI now calls `PlanResourceChange` for compatible providers when destroying resource instances. ([#31179](https://github.com/hashicorp/terraform/issues/31179))
+* `terraform init`: provider installation errors now mention which host Terraform was downloading from ([#31524](https://github.com/hashicorp/terraform/issues/31524))
+* CLI: Terraform will report more explicitly when it is proposing to delete an object due to it having moved to a resource instance that is not currently declared in the configuration. ([#31695](https://github.com/hashicorp/terraform/issues/31695))
+* CLI: When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about pre-plan run tasks ([#31617](https://github.com/hashicorp/terraform/issues/31617))
 * The AzureRM Backend now only supports MSAL (and Microsoft Graph) and no longer makes use of ADAL (and Azure Active Directory Graph) for authentication ([#31070](https://github.com/hashicorp/terraform/issues/31070))
 * The COS backend now supports global acceleration. ([#31425](https://github.com/hashicorp/terraform/issues/31425))
-* providercache: include host in provider installation error ([#31524](https://github.com/hashicorp/terraform/issues/31524))
-* refactoring: `moved` blocks can now be used to move resources to and from external modules ([#31556](https://github.com/hashicorp/terraform/issues/31556))
-* refactoring/plans: Terraform will now indicate when the deletion of a resource is due to moving a resource to a target not in configuration. This information is also available as a `ResourceInstanceActionReason` in the planproto. ([#31695](https://github.com/hashicorp/terraform/issues/31695))
-* When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about pre-plan run tasks ([#31617](https://github.com/hashicorp/terraform/issues/31617))
-* Terraform now sends the JSON state representation to the Cloud backend (when available) ([#31698](https://github.com/hashicorp/terraform/issues/31698))
+* provider plugin protocol: The Terraform CLI now calls `PlanResourceChange` for compatible providers when destroying resource instances. ([#31179](https://github.com/hashicorp/terraform/issues/31179))
+* As an implementation detail of the Terraform Cloud integration, Terraform CLI will now capture and upload [the JSON integration format for state](https://www.terraform.io/internals/json-format#state-representation) along with any newly-recorded state snapshots, which then in turn allows Terraform Cloud to provide that information to API-based external integrations. ([#31698](https://github.com/hashicorp/terraform/issues/31698))
 
 BUG FIXES:
 
 * config: Terraform was not previously evaluating preconditions and postconditions during the apply phase for resource instances that didn't have any changes pending, which was incorrect because the outcome of a condition can potentially be affected by changes to _other_ objects in the configuration. Terraform will now always check the conditions for every resource instance included in a plan during the apply phase, even for resource instances that have "no-op" changes. This means that some failures that would previously have been detected only by a subsequent run will now be detected during the same run that caused them, thereby giving the feedback at the appropriate time. ([#31491](https://github.com/hashicorp/terraform/issues/31491))
-* `terraform show -json`: Fixed missing unknown markers in the encoding of partially unknown tuples and sets. ([#31236](https://github.com/hashicorp/terraform/issues/31236))
+* `terraform show -json`: Fixed missing markers for unknown values in the encoding of partially unknown tuples and sets. ([#31236](https://github.com/hashicorp/terraform/issues/31236))
 * `terraform output` CLI help documentation is now more consistent with web-based documentation. ([#29354](https://github.com/hashicorp/terraform/issues/29354))
-* getproviders: account for occasionally missing Host header in errors ([#31542](https://github.com/hashicorp/terraform/issues/31542))
-* core: Do not create "delete" changes for nonexistent outputs ([#31471](https://github.com/hashicorp/terraform/issues/31471))
-* configload: validate implied provider names in submodules to avoid crash ([#31573](https://github.com/hashicorp/terraform/issues/31573))
-* core: `import` fails when resources or modules are expanded with for each, or input from data sources is required ([#31283](https://github.com/hashicorp/terraform/issues/31283))
+* `terraform init`: Error messages now handle the situation where the underlying HTTP client library does not indicate a hostname for a failed request. ([#31542](https://github.com/hashicorp/terraform/issues/31542))
+* `terraform init`: Don't panic if a child module contains a resource with a syntactically-invalid resource type name. ([#31573](https://github.com/hashicorp/terraform/issues/31573))
+* CLI: The representation of destroying already-`null` output values in a destroy plan will no longer report them as being deleted, which avoids reporting the deletion of an output value that was already absent. ([#31471](https://github.com/hashicorp/terraform/issues/31471))
+* `terraform import`: Better handling of resources or modules that use `for_each`, and situations where data resources are needed to complete the operation. ([#31283](https://github.com/hashicorp/terraform/issues/31283))
 
 EXPERIMENTS:
 
