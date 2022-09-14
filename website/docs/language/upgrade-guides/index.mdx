@@ -5,9 +5,120 @@ description: Upgrading to Terraform v1.3
 
 # Upgrading to Terraform v1.3
 
--> Do you need the upgrade guide for an earlier version of Terraform? Use the
-version selector in the navigation bar to select the version you are intending
-to upgrade to.
+-> **Note:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.3 is still under development and so its upgrade guide is not yet
-finalized. This should be updated before the final v1.3.0 release.
+Terraform v1.3 is a minor release in the stable Terraform v1.0 series.
+
+Terraform v1.3 continues to honor [the Terraform v1.0 Compatibility Promises](https://www.terraform.io/language/v1-compatibility-promises), but there are some behavior changes outside of those promises that may affect a small number of users. Specifically, the following updates may require additional upgrade steps:
+
+* [Removal of Deprecated State Storage Backends](#removal-of-deprecated-state-storage-backends)
+* [Concluding the Optional Attributes Experiment](#concluding-the-optional-attributes-experiment)
+* [AzureRM Backend Requires Microsoft Graph](#azurerm-backend-requires-microsoft-graph)
+* [Other Small Changes](#other-small-changes)
+
+If you encounter any problems during upgrading which are not by this guide, or if the migration instructions don't work for you, please start a topic in [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core/27) to discuss it.
+
+## Removal of Deprecated State Storage Backends
+
+Terraform currently requires that all supported state storage backends be maintained in the Terraform codebase and compiled into Terraform CLI. Terraform therefore contains a mixture of backends maintained by the Terraform CLI team, backends maintained by other teams at HashiCorp, and backends maintained by third-party contributors.
+
+There are a number of backends that we have so far preserved on a best-effort basis despite them not having any active maintainers. Due to the overhead of continuing to support them, we deprecated the following unmaintained backends in Terraform v1.2.3:
+* `artifactory`
+* `etcd`
+* `etcdv3`
+* `manta`
+* `swift`
+
+All of these deprecated state storage backends are now removed in Terraform v1.3. If you are using any of these you will need to migrate to another state storage backend using Terraform v1.2 before you upgrade to Terraform v1.3.
+
+The following sections describe some specific migration considerations for each removed backend.
+
+### Migrating from the `artifactory` backend
+
+From JFrog Artifactory 7.38.4 or later, Artifactory has support for the state storage protocol used by Terraform's `remote` backend, using a special repository type called a [Terraform Backend Repository](https://www.jfrog.com/confluence/display/JFROG/Terraform+Backend+Repository).
+
+The `remote` backend was available in Terraform v1.2 and remains available in Terraform v1.3. If you are using the `artifactory` backend then we recommend migrating to the `remote` backend, using the configuration instructions provided by JFrog, before upgrading to Terraform v1.3.
+
+### Migrating from the `etcd` and `etcdv3` backends
+
+The two generations of state storage backend for [etcd](https://etcd.io/) have been removed and have no direct replacement.
+
+If you are [using etcd in conjunction with Kubernetes](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/), you might choose to migrate to [the `kubernetes` state storage backend](https://www.terraform.io/language/settings/backends/kubernetes), which stores Terraform state snapshots under a Kubernetes secret.
+
+### Migrating from the `manta` backend
+
+The Manta backend was written for an object storage system developed by Joyent. However, the backend was targeting the original implementation of that system which shut down in November 2019.
+
+This backend has therefore been unmaintained for several years and is now removed without replacement.
+
+### Migrating from the `swift` backend
+
+The `swift` backend was for OpenStack's object storage system, Swift. This backend has not had an active maintainer for some time and has not kept up with new features and changes to Swift itself, and so it is now removed.
+
+OpenStack Swift contains an implementation of the Amazon S3 API. Although [Terraform's `s3` backend](https://www.terraform.io/language/settings/backends/s3) officially supports only Amazon's implementation of that API, we have heard from users that they have had success using that backend to store Terraform state snapshots in Swift.
+
+If you intend to migrate to the `s3` backend then you should complete that migration with Terraform v1.2 before you upgrade to Terraform v1.3.
+
+## Concluding the Optional Attributes Experiment
+
+Terraform v0.14.0 introduced a new _experimental_ language feature for declaring object type constraints with optional attributes in your module's input variables. Thanks to feedback from those who tried the experiment, a refinement of that functionality is now stablized in Terraform v1.3.
+
+For general information on this new feature, see [Optional Object Type Attributes](/language/expressions/type-constraints#optional-object-type-attributes).
+
+If you have any experimental modules that were using the feature in its previous form, you can now adapt those modules for production use with the final form of the feature by making the following changes:
+
+1. Remove the `experiments = [module_variable_optional_attrs]` experiment opt-in from your module, and replace it with a Terraform version constraint inside the same `terraform` block:
+
+    ```hcl
+    terraform {
+      required_version = ">= 1.3.0"
+    }
+    ```
+
+    This version constraint makes it explicit that your module is using language features added in Terraform v1.3.0, which earlier versions of Terraform can use to give better feedback about the module not being supported there.
+2. If you were using the experimental `defaults` function, you will need to replace your use of it with the new syntax for declaring defaults as part of your main type constraint.
+
+    For example, you can declare a default value for an optional string attribute using a second argument to the `optional` syntax, inline in your type constraint expression:
+
+    ```hcl
+      type = object({
+        example = optional(string, "default value")
+      })
+    ```
+
+Because the experiment is concluded, the experimental implementation of this feature is no longer available and Terraform v1.3.0 and later will not accept any module that contains the explicit experiment opt-in.
+
+As with all new language features, you should take care to upgrade Terraform for all configurations which use a shared module before you use optional attributes in that shared module. Any module which must remain compatible with older versions of Terraform must not declare any optional attributes. Once all users of a module are using Terraform v1.3.0 or later, you can safely begin using optional attribute declarations.
+
+## AzureRM Backend Requires Microsoft Graph
+
+In response to [Microsoft's deprecation of Azure AD Graph](https://docs.microsoft.com/en-us/graph/migrate-azure-ad-graph-faq), Terraform v1.1 marked the beginning of a deprecation cycle for support of Azure AD Graph in Terraform's `azurerm` backend.
+
+That deprecation cycle has now concluded with the total removal of Azure AD Graph support in Terraform v1.3. The AzureRM backend now supports only [Microsoft Graph](https://docs.microsoft.com/en-us/graph/overview).
+
+If you previously set `use_microsoft_graph = true` in your backend configuration to explicitly opt in to using the Microsoft Graph client instead of Azure AD Graph, you will need to now remove that argument from your backend configuration.
+
+If you remove this setting in an already-initialized Terraform working directory then Terraform will detect it as a configuration change and prompt you to decide whether to migrate state to a new location. Because removing that setting does not change the physical location of the state snapshots, you should _not_ tell Terraform to migrate the state to a new location and should instead use the `-reconfigure` option to `terraform init`:
+
+```
+terraform init -reconfigure
+```
+
+If you did not previously set the `use_microsoft_graph` argument then you do not need to make any changes. Microsoft Graph is now used by default and is the only available implementation.
+
+## Other Small Changes
+
+There are some other changes in Terraform v1.3 that we don't expect to have a great impact but may affect a small number of users:
+* `terraform import` no longer supports the option `-allow-missing-config`. This option was originally added as a backward-compatibility helper when Terraform first began making use of the configuration during import, but the behavior of the import command was significantly limited by the requirement to be able to work without configuration, and so configuration is now required.
+
+    In most cases it is sufficient to write just an empty `resource` block whose resource type and name matches the address given on the `terraform import` command line. This will cause Terraform to associate the import operation with the default provider configuration for the provider that the resource belongs to.
+* `terraform show -json` previously simplified the "unknown" status for all output values to be a single boolean value, even though an output value of a collection or structural type can potentially be only partially unknown.
+
+    The JSON output now accurately describes partially-unknown output values in the same way as it describes partially-unknown values in resource attributes. Any consumer of the plan JSON format which was relying on output values always being either known or entirely unknown must be changed to support more complex situations in the `after_unknown` property of [the JSON Change Representation](https://www.terraform.io/internals/json-format#change-representation).
+* When making requests to HTTPS servers, Terraform will now reject invalid TLS handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
+
+    If you see new HTTPS, TLS, or SSL-related error messages after upgrading to Terraform v1.2, that may mean that the server that Terraform was trying to access has an incorrect implementation of the relevant protocols and will need to be upgraded to a correct version for continued use with Terraform.
+
+    Similar problems can also arise on networks that use HTTPS-intercepting [middleboxes](https://en.wikipedia.org/wiki/Middlebox), such as deep packet inspection firewalls. In that case, the protocol implementation of the middlebox must also be correct in order for Terraform to successfully access HTTPS servers through it.
+
+    This only applies to requests made directly by Terraform CLI, such as provider installation and remote state storage. Terraform providers are separate programs which decide their own policy for handling of TLS handshakes.
