@@ -29,7 +29,7 @@ UPGRADE NOTES:
 * When making requests to HTTPS servers, Terraform will now reject invalid handshakes that have duplicate extensions, as required by RFC 5246 section 7.4.1.4 and RFC 8446 section 4.2. This may cause new errors when interacting with existing buggy or misconfigured TLS servers, but should not affect correct servers.
 
     This only applies to requests made directly by Terraform CLI, such as provider installation and remote state storage. Terraform providers are separate programs which decide their own policy for handling of TLS handshakes.
-* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The legacy backend name `azure` has also been removed, because the current Azure backend is named `azurerm`. [[#31711](https://github.com/hashicorp/terraform/issues/31711)] 
+* The following backends, which were deprecated in v1.2.3, have now been removed: `artifactory`, `etcd`, `etcdv3`, `manta`, `swift`. The legacy backend name `azure` has also been removed, because the current Azure backend is named `azurerm`. ([#31711](https://github.com/hashicorp/terraform/issues/31711))
 
 ENHANCEMENTS:
 
