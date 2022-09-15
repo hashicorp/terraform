@@ -14,7 +14,7 @@ This page describes how to configure a backend by adding the [`backend` block](#
 
 ## Available Backends
 
-By default, Terraform uses a backend called [`local`](/language/settings/backends/local), which stores state as a local file on disk. You can also configure one of the built-in backends listed in the documentation sidebar.
+By default, Terraform uses a backend called [`local`](/language/settings/backends/local), which stores state as a local file on disk. You can also configure one of the built-in backends included in this documentation.
 
 Some of these backends act like plain remote disks for state files, while others support locking the state while operations are being performed. This helps prevent conflicts and inconsistencies. The built-in backends listed are the only backends. You cannot load additional backends as plugins.
 
@@ -61,9 +61,9 @@ The block label of the backend block (`"remote"`, in the example above) indicate
 
 The arguments used in the block's body are specific to the chosen backend type; they configure where and how the backend will store the configuration's state, and in some cases configure other behavior.
 
-Some backends allow providing access credentials directly as part of the configuration for use in unusual situations, for pragmatic reasons. However, in normal use we _do not_ recommend including access credentials as part of the backend configuration. Instead, leave those arguments completely unset and provide credentials via the credentials files or environment variables that are conventional for the target system, as described in the documentation for each backend.
+Some backends allow providing access credentials directly as part of the configuration for use in unusual situations, for pragmatic reasons. However, in normal use, we _do not_ recommend including access credentials as part of the backend configuration. Instead, leave those arguments completely unset and provide credentials using the credentials files or environment variables that are conventional for the target system, as described in the documentation for each backend.
 
-Refer to the list of backend types in the navigation sidebar for details about each supported backend type and its configuration arguments.
+Refer to the page for each backend type for full details and that type's configuration arguments.
 
 ### Default Backend
 

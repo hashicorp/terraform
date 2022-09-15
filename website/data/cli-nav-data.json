@@ -443,6 +443,5 @@
     ]
   },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" },
-  { "divider": true }
+  { "title": "Terraform Internals", "href": "/internals" }
 ]

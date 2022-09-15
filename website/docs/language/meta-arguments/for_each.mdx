@@ -16,10 +16,10 @@ pool of compute instances) without writing a separate block for each one.
 Terraform has two ways to do this:
 [`count`](/language/meta-arguments/count) and `for_each`.
 
-> **Hands-on:** Try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/tutorials/terraform/for-each?in=terraform/configuration-language) tutorial on HashiCorp Learn.
+> **Hands-on:** Try the [Manage Similar Resources With For Each](https://learn.hashicorp.com/tutorials/terraform/for-each?in=terraform/configuration-language) tutorial.
 
 If a resource or module block includes a `for_each` argument whose value is a map or
-a set of strings, Terraform will create one instance for each member of
+a set of strings, Terraform creates one instance for each member of
 that map or set.
 
 -> **Version note:** `for_each` was added in Terraform 0.12.6. Module support
