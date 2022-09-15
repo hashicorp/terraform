@@ -140,8 +140,11 @@ func decodeVariableBlock(block *hcl.Block, override bool) (*Variable, hcl.Diagno
 		if v.ConstraintType != cty.NilType {
 			var err error
 			// If the type constraint has defaults, we must apply those
-			// defaults to the variable default value before type conversion.
-			if v.TypeDefaults != nil {
+			// defaults to the variable default value before type conversion,
+			// unless the default value is null. Null is excluded from the
+			// type default application process as a special case, to allow
+			// nullable variables to have a null default value.
+			if v.TypeDefaults != nil && !val.IsNull() {
 				val = v.TypeDefaults.Apply(val)
 			}
 			val, err = convert.Convert(val, v.ConstraintType)
