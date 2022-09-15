@@ -18,6 +18,8 @@ By default, Terraform uses a backend called [`local`](/language/settings/backend
 
 Some of these backends act like plain remote disks for state files, while others support locking the state while operations are being performed. This helps prevent conflicts and inconsistencies. The built-in backends listed are the only backends. You cannot load additional backends as plugins.
 
+-> **Note:** We removed the `artifactory`, `etcd`, `etcdv3`, `manta`, and `swift` backends in Terraform v1.3. Information about their behavior in older versions is still available in the [Terraform v1.2 documentation](/language/v1.2.x/settings/backends/configuration). For migration paths from these removed backends, refer to [Upgrading to Terraform v1.3](/language/v1.3.x/upgrade-guides).
+
 ## Using a Backend Block
 
 You do not need to configure a backend when using Terraform Cloud because
