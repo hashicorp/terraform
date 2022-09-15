@@ -92,23 +92,6 @@
           {
             "title": "remote-exec",
             "path": "resources/provisioners/remote-exec"
-          },
-          { "divider": true },
-          {
-            "title": "chef",
-            "path": "resources/provisioners/chef"
-          },
-          {
-            "title": "habitat",
-            "path": "resources/provisioners/habitat"
-          },
-          {
-            "title": "puppet",
-            "path": "resources/provisioners/puppet"
-          },
-          {
-            "title": "salt-masterless",
-            "path": "resources/provisioners/salt-masterless"
           }
         ]
       }
