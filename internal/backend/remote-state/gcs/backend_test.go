@@ -166,7 +166,7 @@ func TestBackendWithPrefix(t *testing.T) {
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
 }
-func TestBackendWithEncryption(t *testing.T) {
+func TestBackendWithCustomerSuppliedEncryption(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
@@ -180,7 +180,7 @@ func TestBackendWithEncryption(t *testing.T) {
 	backend.TestBackendStateLocks(t, be0, be1)
 }
 
-func TestBackendWithKMS(t *testing.T) {
+func TestBackendWithCustomerManagedKMSEncryption(t *testing.T) {
 	t.Parallel()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
