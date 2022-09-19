@@ -52,12 +52,10 @@ func TestOutputsFromMap(t *testing.T) {
 		"beep": {
 			Sensitive: true,
 			Type:      json.RawMessage(`"string"`),
-			Value:     json.RawMessage(`"horse-battery"`),
 		},
 		"blorp": {
 			Sensitive: true,
 			Type:      json.RawMessage(`["object",{"a":["object",{"b":["object",{"c":"string"}]}]}]`),
-			Value:     json.RawMessage(`{"a":{"b":{"c":"oh, hi"}}}`),
 		},
 		"honk": {
 			Sensitive: false,
