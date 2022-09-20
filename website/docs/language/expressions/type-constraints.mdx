@@ -260,8 +260,6 @@ value and thus perform no type conversion whatsoever.
 
 ## Optional Object Type Attributes
 
--> **Note:** Optional object type attributes are supported only in Terraform v1.3 and later.
-
 Terraform typically returns an error when it does not receive a value for specified object attributes. When you mark an attribute as optional, Terraform instead inserts a default value for the missing attribute. This allows the receiving module to describe an appropriate fallback behavior.
 
 To mark attributes as optional, use the `optional` modifier in the object type constraint. The following example creates optional attribute `b` and optional attribute with a default value `c`.
