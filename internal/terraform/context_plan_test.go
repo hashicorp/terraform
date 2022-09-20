@@ -4543,6 +4543,11 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 			t.Error("computed id set in plan config")
 		}
 
+		foo := req.Config.GetAttr("foo")
+		if foo.IsNull() {
+			t.Error(`missing "foo" during plan, was set to "bar" in state and config`)
+		}
+
 		return testDiffFn(req)
 	}
 
@@ -4552,7 +4557,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance"}`),
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance","foo":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
