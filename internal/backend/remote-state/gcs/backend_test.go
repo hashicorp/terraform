@@ -221,10 +221,16 @@ func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Bac
 	}
 
 	config := map[string]interface{}{
-		"bucket":             bucket,
-		"prefix":             prefix,
-		"encryption_key":     key,
-		"kms_encryption_key": kmsName,
+		"bucket": bucket,
+		"prefix": prefix,
+	}
+	// Only add encryption keys to config if non-zero value set
+	// If not set here, default values are supplied in `TestBackendConfig` by `PrepareConfig` function call
+	if len(key) > 0 {
+		config["encryption_key"] = key
+	}
+	if len(kmsName) > 0 {
+		config["kms_encryption_key"] = kmsName
 	}
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
