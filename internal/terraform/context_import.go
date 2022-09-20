@@ -1,8 +1,10 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -30,6 +32,48 @@ type ImportTarget struct {
 
 	// ProviderAddr is the address of the provider that should handle the import.
 	ProviderAddr addrs.AbsProviderConfig
+}
+
+func findInvalidImportStatements(cfg *configs.Config, diags hcl.Diagnostics) hcl.Diagnostics {
+	for _, i := range cfg.Module.Import {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Import in nested module",
+			Detail:   "import statements are only allowed in the root module",
+			Subject:  i.DeclRange.Ptr(),
+		})
+	}
+
+	return diags
+}
+
+func getImportTargets(cfg *configs.Config) ([]*ImportTarget, hcl.Diagnostics) {
+	var targets []*ImportTarget
+	var diags hcl.Diagnostics
+	addrs := make(map[string]bool)
+	for _, i := range cfg.Module.Import {
+		to := i.To.String()
+		if addrs[to] {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate import statement",
+				Detail:   fmt.Sprintf("Multiple import statements for %s", to),
+				Subject:  i.DeclRange.Ptr(),
+			})
+			continue
+		}
+		addrs[to] = true
+		targets = append(targets, &ImportTarget{
+			Addr: i.To,
+			ID:   i.ID,
+		})
+	}
+
+	for _, childCfg := range cfg.Children {
+		diags = findInvalidImportStatements(childCfg, diags)
+	}
+
+	return targets, diags
 }
 
 // Import takes already-created external resources and brings them

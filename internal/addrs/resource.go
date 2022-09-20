@@ -334,6 +334,17 @@ func (r AbsResourceInstance) Less(o AbsResourceInstance) bool {
 	}
 }
 
+// InModule returns a new AbsResourceInstance with the module path
+// prefixed by module
+func (r AbsResourceInstance) InModule(module ModuleInstance) AbsResourceInstance {
+	modPath := make(ModuleInstance, 0, len(module)+len(r.Module))
+	modPath = append(modPath, module...)
+	modPath = append(modPath, r.Module...)
+	ret := r // copy address
+	ret.Module = modPath
+	return ret
+}
+
 // AbsResourceInstance is a Checkable
 func (r AbsResourceInstance) checkableSigil() {}
 

@@ -59,6 +59,9 @@ type PlanOpts struct {
 	// outside of Terraform), thereby hopefully replacing it with a
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// Targets to import while running plan
+	ImportTargets []*ImportTarget
 }
 
 // Plan generates an execution plan for the given context, and returns the
@@ -491,6 +494,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
+	imports, importDiags := getImportTargets(config)
+	if importDiags.HasErrors() {
+		diags.Append(importDiags)
+		return nil, diags
+	}
+	opts.ImportTargets = imports
+
 	graph, walkOp, moreDiags := c.planGraph(config, prevRunState, opts)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
@@ -556,6 +566,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues: opts.SetVariables,
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
+			ImportTargets:      opts.ImportTargets,
 			ForceReplace:       opts.ForceReplace,
 			skipRefresh:        opts.SkipRefresh,
 			Operation:          walkPlan,
@@ -568,6 +579,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			RootVariableValues: opts.SetVariables,
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
+			ImportTargets:      opts.ImportTargets,
 			skipRefresh:        opts.SkipRefresh,
 			skipPlanChanges:    true, // this activates "refresh only" mode.
 			Operation:          walkPlan,

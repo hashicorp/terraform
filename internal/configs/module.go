@@ -44,7 +44,8 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved []*Moved
+	Moved  []*Moved
+	Import []*Import
 }
 
 // File describes the contents of a single configuration file.
@@ -78,7 +79,8 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved []*Moved
+	Moved  []*Moved
+	Import []*Import
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -357,10 +359,11 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	// "Moved" blocks just append, because they are all independent
+	// "Moved" and "Import" blocks just append, because they are all independent
 	// of one another at this level. (We handle any references between
 	// them at runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
+	m.Import = append(m.Import, file.Import...)
 
 	return diags
 }
@@ -540,6 +543,15 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			Summary:  "Cannot override 'moved' blocks",
 			Detail:   "Records of moved objects can appear only in normal files, not in override files.",
 			Subject:  m.DeclRange.Ptr(),
+		})
+	}
+
+	for _, i := range file.Import {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot override 'import' blocks",
+			Detail:   "Records of import objects can appear only in normal files, not in override files.",
+			Subject:  i.DeclRange.Ptr(),
 		})
 	}
 
