@@ -84,16 +84,17 @@ func New() backend.Backend {
 			},
 
 			"encryption_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
-				Default:     "",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
+				ConflictsWith: []string{"kms_encryption_key"},
 			},
 
 			"kms_encryption_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A Cloud KMS key used by default when state files are written to the backend bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'",
+				Type:          schema.TypeString,
+				Optional:      true,
+				Description:   "A Cloud KMS key used by default when state files are written to the backend bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'",
+				ConflictsWith: []string{"encryption_key"},
 			},
 		},
 	}
