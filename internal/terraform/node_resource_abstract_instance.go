@@ -1165,7 +1165,7 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 		// to the provider as if they were included in the configuration.
 		ret, _ := cty.Transform(prior, func(path cty.Path, v cty.Value) (cty.Value, error) {
 			attr := schema.AttributeByPath(path)
-			if attr != nil && attr.Computed {
+			if attr != nil && attr.Computed && !attr.Optional {
 				return cty.NullVal(v.Type()), nil
 			}
 
