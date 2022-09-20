@@ -1,6 +1,10 @@
 [
   { "heading": "Terraform Internals" },
   {
+    "title": "Overview", 
+    "path": ""
+   },
+  {
     "title": "Credentials Helpers",
     "path": "credentials-helpers"
   },
