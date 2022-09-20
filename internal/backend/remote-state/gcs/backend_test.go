@@ -252,6 +252,13 @@ func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Bac
 func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 	t.Helper()
 
+	projectID := os.Getenv("GOOGLE_PROJECT")
+	if projectID == "" || os.Getenv("TF_ACC") == "" {
+		t.Skip("This test creates a KMS key ring and key in Cloud KMS. " +
+			"Since this may incur costs, it will only run if " +
+			"the TF_ACC and GOOGLE_PROJECT environment variables are set.")
+	}
+
 	// KMS Client
 	ctx := context.TODO()
 	c, err := kms.NewKeyManagementClient(ctx)
