@@ -21,16 +21,6 @@ Use the [`terraform workspace list`](/cli/commands/workspace/list), [`terraform 
 
 Use [the `terraform workspace select` command](/cli/commands/workspace/select) to change the currently selected workspace. For a given working directory, you can only select one workspace can be at a time. Most Terraform commands only interact with the currently selected workspace. This includes [provisioning](/cli/run) and [state manipulation](/cli/state).
 
-## Interactions with Terraform Cloud Workspaces
-
-Terraform Cloud organizes infrastructure using workspaces, but its workspaces
-act more like completely separate working directories. Each Terraform Cloud
-workspace has its own Terraform configuration, set of variable values, state
-data, run history, and settings.
-
-When you [integrate Terraform CLI with Terraform Cloud](/cli/cloud), you can associate the current CLI working directory with one or more remote Terraform Cloud workspaces. Then, use the `terraform workspace` commands to select the remote workspace you want to use for each run.
-
-Refer to [CLI-driven Runs](/cloud-docs/run/cli) in the Terraform Cloud documentation for more details.
 
 ## Use Cases
 
@@ -88,6 +78,18 @@ When multiple configurations represent distinct system components rather than mu
   configurations. This creates a tighter coupling between configurations,
   but avoids the need for the "producer" configuration to explicitly
   publish its results in a separate system.
+  
+
+## Interactions with Terraform Cloud Workspaces
+
+Terraform Cloud organizes infrastructure using workspaces, but its workspaces
+act more like completely separate working directories. Each Terraform Cloud
+workspace has its own Terraform configuration, set of variable values, state
+data, run history, and settings.
+
+When you [integrate Terraform CLI with Terraform Cloud](/cli/cloud), you can associate the current CLI working directory with one or more remote Terraform Cloud workspaces. Then, use the `terraform workspace` commands to select the remote workspace you want to use for each run.
+
+Refer to [CLI-driven Runs](/cloud-docs/run/cli) in the Terraform Cloud documentation for more details.
 
 
 ## Workspace Internals
