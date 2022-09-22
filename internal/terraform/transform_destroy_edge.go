@@ -170,9 +170,18 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 // closers also need to disable their use of expansion if the module itself is
 // no longer present.
 type pruneUnusedNodesTransformer struct {
+	// The plan graph builder will skip this transformer except during a full
+	// destroy. Planing normally involves all nodes, but during a destroy plan
+	// we may need to prune things which are in the configuration but do not
+	// exist in state to evaluate.
+	skip bool
 }
 
 func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	// We need a reverse depth first walk of modules, processing them in order
 	// from the leaf modules to the root. This allows us to remove unneeded
 	// dependencies from child modules, freeing up nodes in the parent module
