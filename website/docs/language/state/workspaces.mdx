@@ -7,54 +7,39 @@ description: >-
 
 # Workspaces
 
-Each Terraform configuration has an associated [backend](/language/settings/backends)
-that defines how operations are executed and where persistent data such as
-[the Terraform state](/language/state/purpose) are
+Each Terraform configuration has an associated [backend](/language/settings/backends) that defines how operations are executed and where persistent data such as [the Terraform state](/language/state/purpose) are
 stored.
 
-The persistent data stored in the backend belongs to a _workspace_. Initially
-the backend has only one workspace, called "default", and thus there is only
-one Terraform state associated with that configuration.
-
-Certain backends support multiple named workspaces, allowing multiple states
-to be associated with a single configuration. The configuration still
-has only one backend, but multiple distinct instances of that configuration
-to be deployed without configuring a new backend or changing authentication
+The persistent data stored in the backend belongs to a workspace. The backend initially has only one workspace containing one Terraform state associated with that configuration. Some backends support multiple named workspaces, allowing multiple states to be associated with a single configuration. The configuration still has only one backend, but you can deploy multiple distinct instances of that configuration without configuring a new backend or changing authentication
 credentials.
 
-Multiple workspaces are currently supported by the following backends:
+-> **Note**: The Terraform CLI workspaces are different from [workspaces in Terraform Cloud](/cloud-docs/workspaces). Refer to [Initializing and Migrating](/cli/cloud/migrating) for details about migrating a configuration with multiple workspaces to Terraform Cloud.
 
-* [AzureRM](/language/settings/backends/azurerm)
-* [Consul](/language/settings/backends/consul)
-* [COS](/language/settings/backends/cos)
-* [GCS](/language/settings/backends/gcs)
-* [Kubernetes](/language/settings/backends/kubernetes)
-* [Local](/language/settings/backends/local)
-* [OSS](/language/settings/backends/oss)
-* [Postgres](/language/settings/backends/pg)
-* [Remote](/language/settings/backends/remote)
-* [S3](/language/settings/backends/s3)
+## Backends Supporting Multiple Workspaces
 
-In the 0.9 line of Terraform releases, this concept was known as "environment".
-It was renamed in 0.10 based on feedback about confusion caused by the
-overloading of the word "environment" both within Terraform itself and within
-organizations that use Terraform.
+The following backends support multiple workspaces:
 
--> **Note**: The Terraform CLI workspace concept described in this document is
-different from but related to the Terraform Cloud
-[workspace](/cloud-docs/workspaces) concept.
-If you use multiple Terraform CLI workspaces in a single Terraform configuration
-and are migrating that configuration to Terraform Cloud, refer to [Initializing and Migrating](/cli/cloud/migrating).
+- [AzureRM](/language/settings/backends/azurerm)
+- [Consul](/language/settings/backends/consul)
+- [COS](/language/settings/backends/cos)
+- [GCS](/language/settings/backends/gcs)
+- [Kubernetes](/language/settings/backends/kubernetes)
+- [Local](/language/settings/backends/local)
+- [OSS](/language/settings/backends/oss)
+- [Postgres](/language/settings/backends/pg)
+- [Remote](/language/settings/backends/remote)
+- [S3](/language/settings/backends/s3)
+
 
 ## Using Workspaces
 
-~> **Important:** Workspaces are convenient, but they are not appropriate for system decomposition or deployments requiring separate credentials and access controls. Refer to [When Not to Use Multiple Workspaces](/cli/workspaces#when-not-to-use-multiple-workspaces) in the Terraform CLI documentation for details and recommended alternatives.
+~> **Important:** Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls. Refer to [When Not to Use Multiple Workspaces](/cli/workspaces#when-not-to-use-multiple-workspaces) in the Terraform CLI documentation for details and recommended alternatives.
 
-Terraform starts with a single, default workspace named `default` that you cannot delete. If you have never created a new workspace, you use the `default` workspace in your Terraform working directory.
+Terraform starts with a single, default workspace named `default` that you cannot delete. If you have not created a new workspace, you are using the default workspace in your Terraform working directory.
 
-When you run `terraform plan` in a new workspace, Terraform does not access existing resources in any other workspace. These resources still physically exist, but you must switch workspaces to manage them.
+When you run `terraform plan` in a new workspace, Terraform does not access existing resources in other workspaces. These resources still physically exist, but you must switch workspaces to manage them.
 
-You can manage workspaces with the `terraform workspace` set of commands. Refer to the [Terraform CLI workspaces](/cli/workspaces) documentation for more details.
+Refer to the [Terraform CLI workspaces](/cli/workspaces) documentation for full details about how to create and use workspaces.
 
 
 ## Current Workspace Interpolation
