@@ -170,6 +170,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// TargetsTransformer can determine which nodes to keep in the graph.
 		&DestroyEdgeTransformer{},
 
+		&pruneUnusedNodesTransformer{
+			skip: b.Operation != walkPlanDestroy,
+		},
+
 		// Target
 		&TargetsTransformer{Targets: b.Targets},
 
