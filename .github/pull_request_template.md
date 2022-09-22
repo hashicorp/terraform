@@ -2,12 +2,16 @@
 
 Describe in detail the changes you are proposing, and the rationale.
 
+See the contributing guide:
+
+https://github.com/hashicorp/terraform/blob/main/.github/CONTRIBUTING.md
+
 -->
 
 <!--
 
-Link any GitHub issues to be fixed by this PR, and add references to
-prior related PRs.
+Link all GitHub issues fixed by this PR, and add references to prior
+related PRs.
 
 -->
 
