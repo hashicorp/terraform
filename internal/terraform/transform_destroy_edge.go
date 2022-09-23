@@ -39,6 +39,63 @@ type GraphNodeCreator interface {
 // still subnets.
 type DestroyEdgeTransformer struct{}
 
+// tryInterProviderDestroyEdge checks if we're inserting a destroy edge
+// across a provider boundary, and only adds the edge if it results in no cycles.
+//
+// FIXME: The cycles can arise in valid configurations when a provider depends
+// on resources from another provider. In the future we may want to inspect
+// the dependencies of the providers themselves, to avoid needing to use the
+// blunt hammer of checking for cycles.
+//
+// A reduced example of this dependency problem looks something like:
+/*
+
+createA <-               createB
+  |        \            /    |
+  |         providerB <-     |
+  v                     \    v
+destroyA ------------->  destroyB
+
+*/
+//
+// The edge from destroyA to destroyB would be skipped in this case, but there
+// are still other combinations of changes which could connect the A and B
+// groups around providerB in various ways.
+//
+// The most difficult problem here happens during a full destroy operation.
+// That creates a special case where resources on which a provider depends must
+// exist for evaluation before they are destroyed. This means that any provider
+// dependencies must wait until all that provider's resources have first been
+// destroyed. This is where these cross-provider edges are still required to
+// ensure the correct order.
+func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
+	e := dag.BasicEdge(from, to)
+	g.Connect(e)
+
+	pc, ok := from.(GraphNodeProviderConsumer)
+	if !ok {
+		return
+	}
+	fromProvider := pc.Provider()
+
+	pc, ok = to.(GraphNodeProviderConsumer)
+	if !ok {
+		return
+	}
+	toProvider := pc.Provider()
+
+	sameProvider := fromProvider.Equals(toProvider)
+
+	// Check for cycles, and back out the edge if there are any.
+	// The cycles we are looking for only appears between providers, so don't
+	// waste time checking for cycles if both nodes use the same provider.
+	if !sameProvider && len(g.Cycles()) > 0 {
+		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
+			dag.VertexName(from), dag.VertexName(to))
+		g.RemoveEdge(e)
+	}
+}
+
 func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 	// Build a map of what is being destroyed (by address string) to
 	// the list of destroyers.
@@ -93,7 +150,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
 						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
-						g.Connect(dag.BasicEdge(desDep, des))
+						t.tryInterProviderDestroyEdge(g, desDep, des)
 					} else {
 						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
 					}
@@ -105,7 +162,7 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 				for _, createDep := range creators[resAddr.String()] {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
 						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
-						g.Connect(dag.BasicEdge(createDep, des))
+						t.tryInterProviderDestroyEdge(g, createDep, des)
 					} else {
 						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
 					}
