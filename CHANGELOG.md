@@ -1,5 +1,9 @@
 ## 1.3.1 (Unreleased)
 
+BUG FIXES:
+
+* Fixed a crash when using objects with optional attributes and default values in collections, most visible with nested modules. [GH-31847]
+
 ## 1.3.0 (September 21, 2022)
 
 NEW FEATURES:
