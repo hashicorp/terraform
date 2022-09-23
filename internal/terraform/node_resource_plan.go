@@ -11,10 +11,9 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-// nodeExpandPlannableResource handles the first layer of resource
-// expansion.  We need this extra layer so DynamicExpand is called twice for
-// the resource, the first to expand the Resource for each module instance, and
-// the second to expand each ResourceInstance for the expanded Resources.
+// nodeExpandPlannableResource represents an addrs.ConfigResource and implements
+// DynamicExpand to a subgraph containing all of the addrs.AbsResourceInstance
+// resulting from both the containing module and resource-specific expansion.
 type nodeExpandPlannableResource struct {
 	*NodeAbstractResource
 
@@ -94,23 +93,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
-	// Add the current expanded resource to the graph
-	for _, module := range moduleInstances {
-		resAddr := n.Addr.Resource.Absolute(module)
-		g.Add(&NodePlannableResource{
-			NodeAbstractResource:     n.NodeAbstractResource,
-			Addr:                     resAddr,
-			ForceCreateBeforeDestroy: n.ForceCreateBeforeDestroy,
-			dependencies:             n.dependencies,
-			skipRefresh:              n.skipRefresh,
-			skipPlanChanges:          n.skipPlanChanges,
-			forceReplace:             n.forceReplace,
-		})
-	}
-
 	// Lock the state while we inspect it
 	state := ctx.State().Lock()
-	defer ctx.State().Unlock()
 
 	var orphans []*states.Resource
 	for _, res := range state.Resources(n.Addr) {
@@ -121,11 +105,17 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 				break
 			}
 		}
-		// Address form state was not found in the current config
+		// The module instance of the resource in the state doesn't exist
+		// in the current config, so this whole resource is orphaned.
 		if !found {
 			orphans = append(orphans, res)
 		}
 	}
+
+	// We'll no longer use the state directly here, and the other functions
+	// we'll call below may use it so we'll release the lock.
+	state = nil
+	ctx.State().Unlock()
 
 	// The concrete resource factory we'll use for orphans
 	concreteResourceOrphan := func(a *NodeAbstractResourceInstance) *NodePlannableResourceInstanceOrphan {
@@ -154,72 +144,68 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		}
 	}
 
-	return &g, nil
+	// The above dealt with the expansion of the containing module, so now
+	// we need to deal with the expansion of the resource itself across all
+	// instances of the module.
+	//
+	// We'll gather up all of the leaf instances we learn about along the way
+	// so that we can inform the checks subsystem of which instances it should
+	// be expecting check results for, below.
+	var diags tfdiags.Diagnostics
+	instAddrs := addrs.MakeSet[addrs.Checkable]()
+	for _, module := range moduleInstances {
+		resAddr := n.Addr.Resource.Absolute(module)
+		err := n.expandResourceInstances(ctx, resAddr, &g, instAddrs)
+		diags = diags.Append(err)
+	}
+	if diags.HasErrors() {
+		return nil, diags.ErrWithWarnings()
+	}
+
+	// If this is a resource that participates in custom condition checks
+	// (i.e. it has preconditions or postconditions) then the check state
+	// wants to know the addresses of the checkable objects so that it can
+	// treat them as unknown status if we encounter an error before actually
+	// visiting the checks.
+	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
+		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, instAddrs)
+	}
+
+	return &g, diags.ErrWithWarnings()
 }
 
-// NodePlannableResource represents a resource that is "plannable":
-// it is ready to be planned in order to create a diff.
-type NodePlannableResource struct {
-	*NodeAbstractResource
-
-	Addr addrs.AbsResource
-
-	// ForceCreateBeforeDestroy might be set via our GraphNodeDestroyerCBD
-	// during graph construction, if dependencies require us to force this
-	// on regardless of what the configuration says.
-	ForceCreateBeforeDestroy *bool
-
-	// skipRefresh indicates that we should skip refreshing individual instances
-	skipRefresh bool
-
-	// skipPlanChanges indicates we should skip trying to plan change actions
-	// for any instances.
-	skipPlanChanges bool
-
-	// forceReplace are resource instance addresses where the user wants to
-	// force generating a replace action. This set isn't pre-filtered, so
-	// it might contain addresses that have nothing to do with the resource
-	// that this node represents, which the node itself must therefore ignore.
-	forceReplace []addrs.AbsResourceInstance
-
-	dependencies []addrs.ConfigResource
-}
-
-var (
-	_ GraphNodeModuleInstance       = (*NodePlannableResource)(nil)
-	_ GraphNodeDestroyerCBD         = (*NodePlannableResource)(nil)
-	_ GraphNodeDynamicExpandable    = (*NodePlannableResource)(nil)
-	_ GraphNodeReferenceable        = (*NodePlannableResource)(nil)
-	_ GraphNodeReferencer           = (*NodePlannableResource)(nil)
-	_ GraphNodeConfigResource       = (*NodePlannableResource)(nil)
-	_ GraphNodeAttachResourceConfig = (*NodePlannableResource)(nil)
-)
-
-func (n *NodePlannableResource) Path() addrs.ModuleInstance {
-	return n.Addr.Module
-}
-
-func (n *NodePlannableResource) Name() string {
-	return n.Addr.String()
-}
-
-// GraphNodeExecutable
-func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+// expandResourceInstances calculates the dynamic expansion for the resource
+// itself in the context of a particular module instance.
+//
+// It has several side-effects:
+//   - Adds a node to Graph g for each leaf resource instance it discovers, whether present or orphaned.
+//   - Registers the expansion of the resource in the "expander" object embedded inside EvalContext ctx.
+//   - Adds each present (non-orphaned) resource instance address to instAddrs (guaranteed to always be addrs.AbsResourceInstance, despite being declared as addrs.Checkable).
+//
+// After calling this for each of the module instances the resource appears
+// within, the caller must register the final superset instAddrs with the
+// checks subsystem so that it knows the fully expanded set of checkable
+// object instances for this resource instance.
+func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph, instAddrs addrs.Set[addrs.Checkable]) error {
 	var diags tfdiags.Diagnostics
 
 	if n.Config == nil {
 		// Nothing to do, then.
-		log.Printf("[TRACE] NodeApplyableResource: no configuration present for %s", n.Name())
-		return diags
+		log.Printf("[TRACE] nodeExpandPlannableResource: no configuration present for %s", n.Name())
+		return diags.ErrWithWarnings()
 	}
+
+	// The rest of our work here needs to know which module instance it's
+	// working in, so that it can evaluate expressions in the appropriate scope.
+	moduleCtx := globalCtx.WithPath(resAddr.Module)
 
 	// writeResourceState is responsible for informing the expander of what
 	// repetition mode this resource has, which allows expander.ExpandResource
 	// to work below.
-	moreDiags := n.writeResourceState(ctx, n.Addr)
+	moreDiags := n.writeResourceState(moduleCtx, resAddr)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
-		return diags
+		return diags.ErrWithWarnings()
 	}
 
 	// Before we expand our resource into potentially many resource instances,
@@ -227,8 +213,8 @@ func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdia
 	// consistent with the repetition mode of the resource. In other words,
 	// we're aiming to catch a situation where naming a particular resource
 	// instance would require an instance key but the given address has none.
-	expander := ctx.InstanceExpander()
-	instanceAddrs := expander.ExpandResource(n.ResourceAddr().Absolute(ctx.Path()))
+	expander := moduleCtx.InstanceExpander()
+	instanceAddrs := expander.ExpandResource(resAddr)
 
 	// If there's a number of instances other than 1 then we definitely need
 	// an index.
@@ -283,59 +269,41 @@ func (n *NodePlannableResource) Execute(ctx EvalContext, op walkOperation) tfdia
 		}
 	}
 	// NOTE: The actual interpretation of n.forceReplace to produce replace
-	// actions is in NodeAbstractResourceInstance.plan, because we must do so
-	// on a per-instance basis rather than for the whole resource.
+	// actions is in the per-instance function we're about to call, because
+	// we need to evaluate it on a per-instance basis.
 
-	return diags
-}
-
-// GraphNodeDestroyerCBD
-func (n *NodePlannableResource) CreateBeforeDestroy() bool {
-	if n.ForceCreateBeforeDestroy != nil {
-		return *n.ForceCreateBeforeDestroy
+	for _, addr := range instanceAddrs {
+		// If this resource is participating in the "checks" mechanism then our
+		// caller will need to know all of our expanded instance addresses as
+		// checkable object instances.
+		// (NOTE: instAddrs probably already has other instance addresses in it
+		// from earlier calls to this function with different resource addresses,
+		// because its purpose is to aggregate them all together into a single set.)
+		instAddrs.Add(addr)
 	}
 
-	// If we have no config, we just assume no
-	if n.Config == nil || n.Config.Managed == nil {
-		return false
+	// Our graph builder mechanism expects to always be constructing new
+	// graphs rather than adding to existing ones, so we'll first
+	// construct a subgraph just for this individual modules's instances and
+	// then we'll steal all of its nodes and edges to incorporate into our
+	// main graph which contains all of the resource instances together.
+	instG, err := n.resourceInstanceSubgraph(moduleCtx, resAddr, instanceAddrs)
+	if err != nil {
+		diags = diags.Append(err)
+		return diags.ErrWithWarnings()
 	}
+	g.Subsume(&instG.AcyclicGraph.Graph)
 
-	return n.Config.Managed.CreateBeforeDestroy
+	return diags.ErrWithWarnings()
 }
 
-// GraphNodeDestroyerCBD
-func (n *NodePlannableResource) ModifyCreateBeforeDestroy(v bool) error {
-	n.ForceCreateBeforeDestroy = &v
-	return nil
-}
-
-// GraphNodeDynamicExpandable
-func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, error) {
 	var diags tfdiags.Diagnostics
-
-	// Our instance expander should already have been informed about the
-	// expansion of this resource and of all of its containing modules, so
-	// it can tell us which instance addresses we need to process.
-	expander := ctx.InstanceExpander()
-	instanceAddrs := expander.ExpandResource(n.ResourceAddr().Absolute(ctx.Path()))
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
 	state := ctx.State().Lock()
 	defer ctx.State().Unlock()
-
-	// If this is a resource that participates in custom condition checks
-	// (i.e. it has preconditions or postconditions) then the check state
-	// wants to know the addresses of the checkable objects so that it can
-	// treat them as unknown status if we encounter an error before actually
-	// visiting the checks.
-	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
-		checkableAddrs := addrs.MakeSet[addrs.Checkable]()
-		for _, addr := range instanceAddrs {
-			checkableAddrs.Add(addr)
-		}
-		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, checkableAddrs)
-	}
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
@@ -401,7 +369,7 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		// Add the count/for_each orphans
 		&OrphanResourceInstanceCountTransformer{
 			Concrete:      concreteResourceOrphan,
-			Addr:          n.Addr,
+			Addr:          addr,
 			InstanceAddrs: instanceAddrs,
 			State:         state,
 		},
@@ -422,8 +390,8 @@ func (n *NodePlannableResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// Build the graph
 	b := &BasicGraphBuilder{
 		Steps: steps,
-		Name:  "NodePlannableResource",
+		Name:  "nodeExpandPlannableResource",
 	}
-	graph, diags := b.Build(ctx.Path())
+	graph, diags := b.Build(addr.Module)
 	return graph, diags.ErrWithWarnings()
 }

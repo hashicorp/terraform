@@ -401,6 +401,111 @@ resource "test_resource" "b" {
 	}
 }
 
+func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
+	// When a resource is in a nested module we have two levels of expansion
+	// to do: first expand the module the resource is declared in, and then
+	// expand the resource itself.
+	//
+	// In earlier versions of Terraform we did that expansion as two levels
+	// of DynamicExpand, which led to a bug where we didn't have any central
+	// location from which to register all of the instances of a checkable
+	// resource.
+	//
+	// We now handle the full expansion all in one graph node and one dynamic
+	// subgraph, which avoids the problem. This is a regression test for the
+	// earlier bug. If this test is panicking with "duplicate checkable objects
+	// report" then that suggests the bug is reintroduced and we're now back
+	// to reporting each module instance separately again, which is incorrect.
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test": {
+				Block: &configschema.Block{},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		resp.NewState = req.PriorState
+		return resp
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = cty.EmptyObjectVal
+		return resp
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			module "child" {
+				source = "./child"
+				count = 2 # must be at least 2 for this test to be valid
+			}
+		`,
+		"child/child.tf": `
+			locals {
+				a = "a"
+			}
+
+			resource "test" "test" {
+				lifecycle {
+					postcondition {
+						# It doesn't matter what this checks as long as it
+						# passes, because if we don't handle expansion properly
+						# then we'll crash before we even get to evaluating this.
+						condition = local.a == local.a
+						error_message = "Postcondition failed."
+					}
+				}
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	priorState := states.NewState()
+	plan, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	resourceInsts := []addrs.AbsResourceInstance{
+		mustResourceInstanceAddr("module.child[0].test.test"),
+		mustResourceInstanceAddr("module.child[1].test.test"),
+	}
+
+	for _, instAddr := range resourceInsts {
+		t.Run(fmt.Sprintf("results for %s", instAddr), func(t *testing.T) {
+			if rc := plan.Changes.ResourceInstance(instAddr); rc != nil {
+				if got, want := rc.Action, plans.Create; got != want {
+					t.Errorf("wrong action for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+				if got, want := rc.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+					t.Errorf("wrong action reason for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+			} else {
+				t.Errorf("no planned change for %s", instAddr)
+			}
+
+			if checkResult := plan.Checks.GetObjectResult(instAddr); checkResult != nil {
+				if got, want := checkResult.Status, checks.StatusPass; got != want {
+					t.Errorf("wrong check status for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+			} else {
+				t.Errorf("no check result for %s", instAddr)
+			}
+		})
+	}
+}
+
 func TestContext2Plan_dataResourceChecksManagedResourceChange(t *testing.T) {
 	// This tests the situation where the remote system contains data that
 	// isn't valid per a data resource postcondition, but that the
