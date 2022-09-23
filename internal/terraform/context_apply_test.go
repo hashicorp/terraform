@@ -12165,6 +12165,70 @@ output "out" {
 	}
 }
 
+func TestContext2Apply_moduleVariableOptionalAttributesDefaultChild(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type    = list(object({
+    a = optional(set(string))
+  }))
+  default = [
+	{ a = [ "foo" ] },
+	{ },
+  ]
+}
+
+module "child" {
+  source = "./child"
+  in     = var.in
+}
+
+output "out" {
+  value = module.child.out
+}
+`,
+		"child/main.tf": `
+variable "in" {
+  type    = list(object({
+    a = optional(set(string), [])
+  }))
+  default = []
+}
+
+output "out" {
+  value = var.in
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ListVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.SetVal([]cty.Value{cty.StringVal("foo")}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.SetValEmpty(cty.String),
+		}),
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
 func TestContext2Apply_provisionerSensitive(t *testing.T) {
 	m := testModule(t, "apply-provisioner-sensitive")
 	p := testProvider("aws")
