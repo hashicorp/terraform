@@ -430,7 +430,24 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 
 func TestContextImport_refresh(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "aws" {
+  foo = "bar"
+}
+
+resource "aws_instance" "foo" {
+}
+
+
+// we are only importing aws_instance.foo, so these resources will be unknown
+resource "aws_instance" "bar" {
+}
+data "aws_data_source" "bar" {
+  foo = aws_instance.bar.id
+}
+`})
+
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
@@ -446,6 +463,13 @@ func TestContextImport_refresh(t *testing.T) {
 				}),
 			},
 		},
+	}
+
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("id"),
+			"foo": cty.UnknownVal(cty.String),
+		}),
 	}
 
 	p.ReadResourceFn = nil
@@ -469,6 +493,10 @@ func TestContextImport_refresh(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	if d := state.ResourceInstance(mustResourceInstanceAddr("data.aws_data_source.bar")); d != nil {
+		t.Errorf("data.aws_data_source.bar has a status of ObjectPlanned and should not be in the state\ngot:%#v\n", d.Current)
 	}
 
 	actual := strings.TrimSpace(state.String())
