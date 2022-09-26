@@ -3,9 +3,10 @@
 BUG FIXES:
 
 * Fixed a crash when using objects with optional attributes and default values in collections, most visible with nested modules. [GH-31847]
-* Prevent cycles in some situations where a provider depends on resources in the configuration which are participating in planned changes [GH-31857]
-* Fix error when attempting to destroy a configuration where resources do not exist in the state [GH-31858]
-* Data sources which cannot be read during import may prevent the state from being serialized [GH-31871]
+* Prevent cycles in some situations where a provider depends on resources in the configuration which are participating in planned changes. [GH-31857]
+* Fixed an error when attempting to destroy a configuration where resources do not exist in the state. [GH-31858]
+* Data sources which cannot be read during will no longer prevent the state from being serialized. [GH-31871]
+* Fixed a crash which occured when a resource with a precondition and/or a postcondition appeared inside a module with two or more instances. [GH-31860]
 
 ## 1.3.0 (September 21, 2022)
 
