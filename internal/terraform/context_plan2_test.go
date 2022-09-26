@@ -453,7 +453,21 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 				a = "a"
 			}
 
-			resource "test" "test" {
+			resource "test" "test1" {
+				lifecycle {
+					postcondition {
+						# It doesn't matter what this checks as long as it
+						# passes, because if we don't handle expansion properly
+						# then we'll crash before we even get to evaluating this.
+						condition = local.a == local.a
+						error_message = "Postcondition failed."
+					}
+				}
+			}
+
+			resource "test" "test2" {
+				count = 2
+
 				lifecycle {
 					postcondition {
 						# It doesn't matter what this checks as long as it
@@ -478,8 +492,12 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 	assertNoErrors(t, diags)
 
 	resourceInsts := []addrs.AbsResourceInstance{
-		mustResourceInstanceAddr("module.child[0].test.test"),
-		mustResourceInstanceAddr("module.child[1].test.test"),
+		mustResourceInstanceAddr("module.child[0].test.test1"),
+		mustResourceInstanceAddr("module.child[0].test.test2[0]"),
+		mustResourceInstanceAddr("module.child[0].test.test2[1]"),
+		mustResourceInstanceAddr("module.child[1].test.test1"),
+		mustResourceInstanceAddr("module.child[1].test.test2[0]"),
+		mustResourceInstanceAddr("module.child[1].test.test2[1]"),
 	}
 
 	for _, instAddr := range resourceInsts {
