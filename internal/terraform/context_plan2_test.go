@@ -3518,3 +3518,44 @@ resource "test_object" "b" {
 		t.Fatalf("no cycle error found:\n got: %s\n", msg)
 	}
 }
+
+// plan a destroy with no state where configuration could fail to evaluate
+// expansion indexes.
+func TestContext2Plan_emptyDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  enable = true
+  value  = local.enable ? module.example[0].out : null
+}
+
+module "example" {
+  count  = local.enable ? 1 : 0
+  source = "./example"
+}
+`,
+		"example/main.tf": `
+resource "test_resource" "x" {
+}
+
+output "out" {
+  value = test_resource.x
+}
+`,
+	})
+
+	p := testProvider("test")
+	state := states.NewState()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+
+	assertNoErrors(t, diags)
+}
