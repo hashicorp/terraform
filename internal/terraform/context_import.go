@@ -82,6 +82,11 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		return state, diags
 	}
 
+	// Data sources which could not be read during the import plan will be
+	// unknown. We need to strip those objects out so that the state can be
+	// serialized.
+	walker.State.RemovePlannedResourceInstanceObjects()
+
 	newState := walker.State.Close()
 	return newState, diags
 }
