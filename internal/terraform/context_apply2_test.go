@@ -1201,6 +1201,25 @@ output "out" {
 	state, diags := ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 
+	// Resource changes which have dependencies across providers which
+	// themselves depend on resources can result in cycles.
+	// Because other_object transitively depends on the module resources
+	// through its provider, we trigger changes on both sides of this boundary
+	// to ensure we can create a valid plan.
+	//
+	// Taint the object to make sure a replacement works in the plan.
+	otherObjAddr := mustResourceInstanceAddr("other_object.other")
+	otherObj := state.ResourceInstance(otherObjAddr)
+	otherObj.Current.Status = states.ObjectTainted
+	// Force a change which needs to be reverted.
+	testObjAddr := mustResourceInstanceAddr(`module.mod["a"].test_object.a`)
+	testObjA := state.ResourceInstance(testObjAddr)
+	testObjA.Current.AttrsJSON = []byte(`{"test_bool":null,"test_list":null,"test_map":null,"test_number":null,"test_string":"changed"}`)
+
+	_, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+	return
+
 	otherProvider.ConfigureProviderCalled = false
 	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
 		// check that our config is complete, even during a destroy plan
