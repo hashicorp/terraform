@@ -113,6 +113,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
 	}
+	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
 		checkState := ctx.Checks()

@@ -171,6 +171,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, instAddrs)
 	}
 
+	addRootNodeToGraph(&g)
+
 	return &g, diags.ErrWithWarnings()
 }
 

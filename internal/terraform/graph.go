@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -88,6 +89,28 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 				return
 			}
 			if g != nil {
+				// The subgraph should always be valid, per our normal acyclic
+				// graph validation rules.
+				if err := g.Validate(); err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Graph node has invalid dynamic subgraph",
+						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: %s.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), err),
+					))
+					return
+				}
+				// If we passed validation then there is exactly one root node.
+				// That root node should always be "rootNode", the singleton
+				// root node value.
+				if n, err := g.Root(); err != nil || n != dag.Vertex(rootNode) {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Graph node has invalid dynamic subgraph",
+						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), v),
+					))
+					return
+				}
+
 				// Walk the subgraph
 				log.Printf("[TRACE] vertex %q: entering dynamic subgraph", dag.VertexName(v))
 				subDiags := g.walk(walker)
