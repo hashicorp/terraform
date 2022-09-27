@@ -2,6 +2,7 @@ package gcs
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +13,9 @@ import (
 	kms "cloud.google.com/go/kms/apiv1"
 	"cloud.google.com/go/storage"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"google.golang.org/api/option"
 	kmspb "google.golang.org/genproto/googleapis/cloud/kms/v1"
 )
 
@@ -261,9 +264,15 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 
 	// KMS Client
 	ctx := context.TODO()
-	c, err := kms.NewKeyManagementClient(ctx)
+	opts, err := testGetClientOptions(t)
 	if err != nil {
-		t.Fatal(err)
+		e := fmt.Errorf("testGetClientOptions() failed: %s", err)
+		t.Fatal(e)
+	}
+	c, err := kms.NewKeyManagementClient(ctx, opts...)
+	if err != nil {
+		e := fmt.Errorf("kms.NewKeyManagementClient() failed: %v", err)
+		t.Fatal(e)
 	}
 	defer c.Close()
 
@@ -324,9 +333,10 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 
 	// Get GCS Service account email, check has necessary permission on key
 	storageCtx := context.TODO()
-	sc, err := storage.NewClient(storageCtx)
+	sc, err := storage.NewClient(storageCtx, opts...) //reuse opts from KMS client
 	if err != nil {
-		t.Fatal(err)
+		e := fmt.Errorf("storage.NewClient() failed: %v", err)
+		t.Fatal(e)
 	}
 	defer sc.Close()
 	gcsServiceAccount, err := sc.ServiceAccount(storageCtx, keyDetails["project"])
@@ -389,4 +399,37 @@ func bucketName(t *testing.T) string {
 	}
 
 	return strings.ToLower(name)
+}
+
+// getClientOptions returns the []option.ClientOption needed to configure Google API clients
+// that are required in acceptance tests but are not part of the gcs backend itself
+func testGetClientOptions(t *testing.T) ([]option.ClientOption, error) {
+	t.Helper()
+
+	var creds string
+	if v := os.Getenv("GOOGLE_BACKEND_CREDENTIALS"); v != "" {
+		creds = v
+	} else {
+		creds = os.Getenv("GOOGLE_CREDENTIALS")
+	}
+	if creds == "" {
+		t.Skip("This test required credentials to be supplied via" +
+			"the GOOGLE_CREDENTIALS or GOOGLE_BACKEND_CREDENTIALS environment variables.")
+	}
+
+	var opts []option.ClientOption
+	var credOptions []option.ClientOption
+
+	contents, err := backend.ReadPathOrContents(creds)
+	if err != nil {
+		return nil, fmt.Errorf("error loading credentials: %s", err)
+	}
+	if !json.Valid([]byte(contents)) {
+		return nil, fmt.Errorf("the string provided in credentials is neither valid json nor a valid file path")
+	}
+	credOptions = append(credOptions, option.WithCredentialsJSON([]byte(contents)))
+	opts = append(opts, credOptions...)
+	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
+
+	return opts, nil
 }
