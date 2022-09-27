@@ -695,6 +695,29 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				return cty.DynamicVal, diags
 			}
 
+		case walkImport:
+			// Import does not yet plan resource changes, so new resources from
+			// config are not going to be found here. Once walkImport fully
+			// plans resources, this case should not longer be needed.
+			// In the single instance case, we can return a typed unknown value
+			// for the instance to better satisfy other expressions using the
+			// value. This of course will not help if statically known
+			// attributes are expected to be known elsewhere, but reduces the
+			// number of problematic configs for now.
+			// Unlike in plan and apply above we can't be sure the count or
+			// for_each instances are empty, so we return a DynamicVal. We
+			// don't really have a good value to return otherwise -- empty
+			// values will fail for direct index expressions, and unknown
+			// Lists and Maps could fail in some type unifications.
+			switch {
+			case config.Count != nil:
+				return cty.DynamicVal, diags
+			case config.ForEach != nil:
+				return cty.DynamicVal, diags
+			default:
+				return cty.UnknownVal(ty), diags
+			}
+
 		default:
 			// We should only end up here during the validate walk,
 			// since later walks should have at least partial states populated

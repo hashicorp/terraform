@@ -915,6 +915,76 @@ resource "test_resource" "unused" {
 	}
 }
 
+// New resources in the config during import won't exist for evaluation
+// purposes (until import is upgraded to using a complete plan). This means
+// that references to them are unknown, but in the case of single instances, we
+// can at least know the type of unknown value.
+func TestContextImport_newResourceUnknown(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "one" {
+}
+
+resource "test_resource" "two" {
+  count = length(flatten([test_resource.one.id]))
+}
+
+resource "test_resource" "test" {
+}
+`})
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	})
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_resource",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("test"),
+				}),
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+		Targets: []*ImportTarget{
+			{
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
+				),
+				ID: "test",
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ri := state.ResourceInstance(mustResourceInstanceAddr("test_resource.test"))
+	expected := `{"id":"test"}`
+	if ri == nil || ri.Current == nil {
+		t.Fatal("no state is recorded for resource instance test_resource.test")
+	}
+	if string(ri.Current.AttrsJSON) != expected {
+		t.Fatalf("expected %q, got %q\n", expected, ri.Current.AttrsJSON)
+	}
+}
+
 const testImportStr = `
 aws_instance.foo:
   ID = foo
