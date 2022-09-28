@@ -91,8 +91,11 @@ func New() backend.Backend {
 			},
 
 			"kms_encryption_key": {
-				Type:          schema.TypeString,
-				Optional:      true,
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_KMS_ENCRYPTION_KEY",
+				}, nil),
 				Description:   "A Cloud KMS key used by default when state files are written to the backend bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'",
 				ConflictsWith: []string{"encryption_key"},
 			},
@@ -196,6 +199,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
+	// Customer-supplied encryption
 	key := data.Get("encryption_key").(string)
 	if key == "" {
 		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
@@ -220,11 +224,14 @@ func (b *Backend) configure(ctx context.Context) error {
 		b.encryptionKey = k
 	}
 
-	// Cannot combine this with customer-supplied key
-	// TODO(SarahFrench) - add protections against the above
-	kmsName, kmsOk := data.GetOk("kms_encryption_key")
-	if kmsOk {
-		b.kmsKeyName = kmsName.(string)
+	// Customer-managed encryption
+	kmsName := data.Get("kms_encryption_key").(string)
+	if kmsName != "" {
+		kc, err := backend.ReadPathOrContents(kmsName)
+		if err != nil {
+			return fmt.Errorf("error loading KMS encryption key: %s", err)
+		}
+		b.kmsKeyName = kc
 	}
 
 	return nil
