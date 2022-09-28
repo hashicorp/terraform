@@ -4536,7 +4536,20 @@ func TestContext2Plan_ignoreChanges(t *testing.T) {
 func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 	m := testModule(t, "plan-ignore-changes-wildcard")
 	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// computed attributes should not be set in config
+		id := req.Config.GetAttr("id")
+		if !id.IsNull() {
+			t.Error("computed id set in plan config")
+		}
+
+		foo := req.Config.GetAttr("foo")
+		if foo.IsNull() {
+			t.Error(`missing "foo" during plan, was set to "bar" in state and config`)
+		}
+
+		return testDiffFn(req)
+	}
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
@@ -4544,7 +4557,7 @@ func TestContext2Plan_ignoreChangesWildcard(t *testing.T) {
 		mustResourceInstanceAddr("aws_instance.foo").Resource,
 		&states.ResourceInstanceObjectSrc{
 			Status:    states.ObjectReady,
-			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance"}`),
+			AttrsJSON: []byte(`{"id":"bar","ami":"ami-abcd1234","instance":"t2.micro","type":"aws_instance","foo":"bar"}`),
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
 	)
