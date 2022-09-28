@@ -5,8 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/providers"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -41,6 +41,9 @@ func Provider() providers.Interface {
 			},
 			DataSources: map[string]providers.Schema{
 				"simple_resource": simpleResource,
+			},
+			ServerCapabilities: providers.ServerCapabilities{
+				PlanDestroy: true,
 			},
 		},
 	}
@@ -85,6 +88,13 @@ func (s simple) ReadResource(req providers.ReadResourceRequest) (resp providers.
 }
 
 func (s simple) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+	if req.ProposedNewState.IsNull() {
+		// destroy op
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
+
 	m := req.ProposedNewState.AsValueMap()
 	_, ok := m["id"]
 	if !ok {

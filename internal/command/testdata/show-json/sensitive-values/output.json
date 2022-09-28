@@ -1,0 +1,129 @@
+{
+    "format_version": "1.0",
+    "variables": {
+        "test_var": {
+            "value": "boop"
+        }
+    },
+    "planned_values": {
+        "outputs": {
+            "test": {
+                "sensitive": true,
+                "type": "string",
+                "value": "boop"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "boop"
+                    },
+                    "sensitive_values": {
+                        "ami": true
+                    }
+                }
+            ]
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "test_instance.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "test",
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after": {
+                    "ami": "boop"
+                },
+                "after_unknown": {
+                    "id": true
+                },
+                "after_sensitive": {
+                  "ami": true
+                },
+                "before_sensitive": false
+            }
+        }
+    ],
+    "output_changes": {
+        "test": {
+            "actions": [
+                "create"
+            ],
+            "before": null,
+            "after": "boop",
+            "after_unknown": false,
+            "before_sensitive": true,
+            "after_sensitive": true
+        }
+    },
+    "prior_state": {
+        "format_version": "1.0",
+        "values": {
+            "outputs": {
+                "test": {
+                    "sensitive": true,
+                    "type": "string",
+                    "value": "boop"
+                }
+            },
+            "root_module": {}
+        }
+    },
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
+        "root_module": {
+            "outputs": {
+                "test": {
+                    "expression": {
+                        "references": [
+                            "test_instance.test.ami",
+                            "test_instance.test"
+                        ]
+                    },
+                    "sensitive": true
+                }
+            },
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "var.test_var"
+                            ]
+                        }
+                    }
+                }
+            ],
+            "variables": {
+                "test_var": {
+                    "default": "boop",
+                    "sensitive": true
+                }
+            }
+        }
+    }
+}

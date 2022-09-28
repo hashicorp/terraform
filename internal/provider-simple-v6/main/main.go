@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/hashicorp/terraform/internal/grpcwrap"
+	plugin "github.com/hashicorp/terraform/internal/plugin6"
 	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
 	"github.com/hashicorp/terraform/internal/tfplugin6"
-	plugin "github.com/hashicorp/terraform/plugin6"
 )
 
 func main() {

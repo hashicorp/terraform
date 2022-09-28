@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func wrapDiagnostics(diags tfconfig.Diagnostics) tfdiags.Diagnostics {
@@ -74,5 +74,9 @@ func (d wrappedDiagnostic) Source() tfdiags.Source {
 }
 
 func (d wrappedDiagnostic) FromExpr() *tfdiags.FromExpr {
+	return nil
+}
+
+func (d wrappedDiagnostic) ExtraInfo() interface{} {
 	return nil
 }

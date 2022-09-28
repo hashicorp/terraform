@@ -10,10 +10,10 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/configs/configschema"
-	"github.com/hashicorp/terraform/providers"
-	"github.com/hashicorp/terraform/repl"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/repl"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Provider is an implementation of providers.Interface which we're
@@ -240,8 +240,15 @@ func (p *Provider) UpgradeResourceState(req providers.UpgradeResourceStateReques
 
 // PlanResourceChange takes the current state and proposed state of a
 // resource, and returns the planned final state.
-func (p *Provider) PlanResourceChange(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+func (p *Provider) PlanResourceChange(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	log.Print("[TRACE] moduletest.Provider: PlanResourceChange")
+
+	// this is a destroy plan,
+	if req.ProposedNewState.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
 
 	var res providers.PlanResourceChangeResponse
 	if req.TypeName != "test_assertions" { // we only have one resource type

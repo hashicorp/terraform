@@ -1,0 +1,18 @@
+{
+  "resource": {
+    "test_object": {
+      "a": {
+        "count": 1,
+        "test_string": "new"
+      },
+      "b": {
+        "count": 1,
+        "lifecycle": {
+          "replace_triggered_by": [
+            "test_object.a[count.index].test_string"
+          ]
+        }
+      }
+    }
+  }
+}

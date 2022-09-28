@@ -1,0 +1,1 @@
+incorrect-type/main.tf:16,5-8: Reference to undefined provider; There is no explicit declaration for local provider name "baz" in module.mod, so Terraform is assuming you mean to pass a configuration for "hashicorp/baz".

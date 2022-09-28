@@ -9,9 +9,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestLoadLocksFromFile(t *testing.T) {
@@ -220,11 +220,7 @@ func TestSaveLocksToFile(t *testing.T) {
 	locks.SetProvider(bazProvider, oneDotTwo, nil, nil)
 	locks.SetProvider(booProvider, oneDotTwo, abbreviatedOneDotTwo, nil)
 
-	dir, err := ioutil.TempDir("", "terraform-internal-depsfile-savelockstofile")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	filename := filepath.Join(dir, LockFilePath)
 	diags := SaveLocksToFile(locks, filename)

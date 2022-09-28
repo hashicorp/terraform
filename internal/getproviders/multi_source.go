@@ -7,7 +7,7 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // MultiSource is a Source that wraps a series of other sources and combines
@@ -229,7 +229,7 @@ const Wildcard string = "*"
 // We'll read the default registry host from over in the addrs package, to
 // avoid duplicating it. A "default" provider uses the default registry host
 // by definition.
-var defaultRegistryHost = addrs.DefaultRegistryHost
+var defaultRegistryHost = addrs.DefaultProviderRegistryHost
 
 func normalizeProviderNameOrWildcard(s string) (string, error) {
 	if s == Wildcard {

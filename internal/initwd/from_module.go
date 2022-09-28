@@ -1,6 +1,7 @@
 package initwd
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -11,12 +12,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
+	"github.com/hashicorp/terraform/internal/getmodules"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const initFromModuleRootCallName = "root"
@@ -40,7 +42,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -142,8 +144,8 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
-	getter := reusingGetter{}
-	_, instDiags := inst.installDescendentModules(fakeRootModule, rootDir, instManifest, true, wrapHooks, getter)
+	fetcher := getmodules.NewPackageFetcher()
+	_, instDiags := inst.installDescendentModules(ctx, fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
 	diags = append(diags, instDiags...)
 	if instDiags.HasErrors() {
 		return diags
@@ -193,7 +195,7 @@ func DirFromModule(rootDir, modulesDir, sourceAddr string, reg *registry.Client,
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
 					if pathTraversesUp(mc.Source) {
-						packageAddr, givenSubdir := splitAddrSubdir(sourceAddr)
+						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddr)
 						newSubdir := filepath.Join(givenSubdir, mc.Source)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable

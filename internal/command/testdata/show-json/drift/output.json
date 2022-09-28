@@ -1,0 +1,181 @@
+{
+    "format_version": "1.0",
+    "planned_values": {
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.no_refresh",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "no_refresh",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "bar",
+                        "id": "placeholder"
+                    },
+                    "sensitive_values": {}
+                },
+                {
+                    "address": "test_instance.should_refresh",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "should_refresh",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "baz",
+                        "id": "placeholder"
+                    },
+                    "sensitive_values": {}
+                }
+            ]
+        }
+    },
+    "resource_drift": [
+        {
+            "address": "test_instance.should_refresh",
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "should_refresh",
+            "change": {
+                "actions": [
+                    "update"
+                ],
+                "before": {
+                    "ami": "refresh-me",
+                    "id": "placeholder"
+                },
+                "after": {
+                    "ami": "refreshed",
+                    "id": "placeholder"
+                },
+                "after_sensitive": {},
+                "after_unknown": {},
+                "before_sensitive": {}
+            }
+        }
+    ],
+    "resource_changes": [
+        {
+            "address": "test_instance.no_refresh",
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "no_refresh",
+            "change": {
+                "actions": [
+                    "update"
+                ],
+                "before": {
+                    "ami": "foo",
+                    "id": "placeholder"
+                },
+                "after": {
+                    "ami": "bar",
+                    "id": "placeholder"
+                },
+                "after_unknown": {},
+                "after_sensitive": {},
+                "before_sensitive": {}
+            }
+        },
+        {
+            "address": "test_instance.should_refresh",
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "should_refresh",
+            "change": {
+                "actions": [
+                    "update"
+                ],
+                "before": {
+                    "ami": "refreshed",
+                    "id": "placeholder"
+                },
+                "after": {
+                    "ami": "baz",
+                    "id": "placeholder"
+                },
+                "after_unknown": {},
+                "after_sensitive": {},
+                "before_sensitive": {}
+            }
+        }
+    ],
+    "prior_state": {
+        "format_version": "1.0",
+        "values": {
+            "root_module": {
+                "resources": [
+                    {
+                        "address": "test_instance.no_refresh",
+                        "mode": "managed",
+                        "type": "test_instance",
+                        "name": "no_refresh",
+                        "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "values": {
+                            "ami": "foo",
+                            "id": "placeholder"
+                        },
+                        "sensitive_values": {}
+                    },
+                    {
+                        "address": "test_instance.should_refresh",
+                        "mode": "managed",
+                        "type": "test_instance",
+                        "name": "should_refresh",
+                        "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "values": {
+                            "ami": "refreshed",
+                            "id": "placeholder"
+                        },
+                        "sensitive_values": {}
+                    }
+                ]
+            }
+        }
+    },
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.no_refresh",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "no_refresh",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "bar"
+                        }
+                    }
+                },
+                {
+                    "address": "test_instance.should_refresh",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "should_refresh",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "baz"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

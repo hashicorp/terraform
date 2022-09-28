@@ -6,11 +6,11 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/moduledeps"
-	"github.com/hashicorp/terraform/plugin/discovery"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/moduledeps"
+	"github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -56,7 +56,7 @@ type Config struct {
 	// from, as specified in configuration.
 	//
 	// This field is meaningless for the root module, where its contents are undefined.
-	SourceAddr string
+	SourceAddr addrs.ModuleSource
 
 	// Version is the specific version that was selected for this module,
 	// based on version constraints given in configuration.

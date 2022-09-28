@@ -1,9 +1,6 @@
 *.dll
 *.exe
 .DS_Store
-example.tf
-terraform.tfplan
-terraform.tfstate
 bin/
 modules-dev/
 /pkg/
@@ -13,9 +10,6 @@ website/build
 website/node_modules
 .vagrant/
 *.backup
-./*.tfstate
-.terraform/
-*.log
 *.bak
 *~
 .*.swp
@@ -24,12 +18,10 @@ website/node_modules
 *.test
 *.iml
 
+/terraform
+
 website/vendor
 vendor/
-
-# Test exclusions
-!command/testdata/**/*.tfstate
-!command/testdata/**/.terraform/
 
 # Coverage
 coverage.txt

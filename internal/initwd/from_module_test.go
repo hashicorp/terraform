@@ -1,19 +1,19 @@
 package initwd
 
 import (
-	"fmt"
-	"io/ioutil"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configload"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/registry"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestDirFromModule_registry(t *testing.T) {
@@ -38,7 +38,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 
 	reg := registry.NewClient(nil, nil)
-	diags := DirFromModule(dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
+	diags := DirFromModule(context.Background(), dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
@@ -57,29 +57,40 @@ func TestDirFromModule_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "root",
-			PackageAddr: "hashicorp/module-installer-acctest/aws",
+			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws",
 			Version:     v,
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, fmt.Sprintf(".terraform/modules/root/terraform-aws-module-installer-acctest-%s", v)),
+			// NOTE: This local path and the other paths derived from it below
+			// can vary depending on how the registry is implemented. At the
+			// time of writing this test, registry.terraform.io returns
+			// git repository source addresses and so this path refers to the
+			// root of the git clone, but historically the registry referred
+			// to GitHub-provided tar archives which meant that there was an
+			// extra level of subdirectory here for the typical directory
+			// nesting in tar archives, which would've been reflected as
+			// an extra segment on this path. If this test fails due to an
+			// additional path segment in future, then a change to the upstream
+			// registry might be the root cause.
+			LocalPath: filepath.Join(dir, ".terraform/modules/root"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a",
-			LocalPath:  filepath.Join(dir, fmt.Sprintf(".terraform/modules/root/terraform-aws-module-installer-acctest-%s/modules/child_a", v)),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/root/modules/child_a"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, fmt.Sprintf(".terraform/modules/root/terraform-aws-module-installer-acctest-%s/modules/child_b", v)),
+			LocalPath:  filepath.Join(dir, ".terraform/modules/root/modules/child_b"),
 		},
 	}
 
-	if assertResultDeepEqual(t, hooks.Calls, wantCalls) {
-		return
+	if diff := cmp.Diff(wantCalls, hooks.Calls); diff != "" {
+		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
 	loader, err := configload.NewLoader(&configload.Config{
@@ -143,7 +154,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 	}
 	modInstallDir := filepath.Join(dir, ".terraform/modules")
 
-	diags := DirFromModule(dir, modInstallDir, fromModuleDir, nil, hooks)
+	diags := DirFromModule(context.Background(), dir, modInstallDir, fromModuleDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -202,10 +213,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	// - tmpdir/local-modules (with contents of testdata/local-modules)
 	// - tmpdir/empty: the workDir we CD into for the test
 	// - tmpdir/empty/target (target, the destination for init -from-module)
-	tmpDir, err := ioutil.TempDir("", "terraform-configload")
-	if err != nil {
-		t.Fatal(err)
-	}
+	tmpDir := t.TempDir()
 	fromModuleDir := filepath.Join(tmpDir, "local-modules")
 	workDir := filepath.Join(tmpDir, "empty")
 	if err := os.Mkdir(fromModuleDir, os.ModePerm); err != nil {
@@ -230,14 +238,15 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to switch to temp dir %s: %s", tmpDir, err)
 	}
-	defer os.Chdir(oldDir)
-	defer os.RemoveAll(tmpDir)
+	t.Cleanup(func() {
+		os.Chdir(oldDir)
+	})
 
 	hooks := &testInstallHooks{}
 
 	modInstallDir := ".terraform/modules"
 	sourceDir := "../local-modules"
-	diags := DirFromModule(".", modInstallDir, sourceDir, nil, hooks)
+	diags := DirFromModule(context.Background(), ".", modInstallDir, sourceDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{

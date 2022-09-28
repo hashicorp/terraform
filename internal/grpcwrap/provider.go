@@ -3,9 +3,9 @@ package grpcwrap
 import (
 	"context"
 
+	"github.com/hashicorp/terraform/internal/plugin/convert"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfplugin5"
-	"github.com/hashicorp/terraform/plugin/convert"
-	"github.com/hashicorp/terraform/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -57,6 +57,10 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 			Version: dat.Version,
 			Block:   convert.ConfigSchemaToProto(dat.Block),
 		}
+	}
+
+	resp.ServerCapabilities = &tfplugin5.GetProviderSchema_ServerCapabilities{
+		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
 	}
 
 	// include any diagnostics from the original GetSchema call

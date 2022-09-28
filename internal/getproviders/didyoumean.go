@@ -11,7 +11,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // MissingProviderSuggestion takes a provider address that failed installation
@@ -40,7 +40,7 @@ import (
 // renaming suggestion even if one would've been available for a completed
 // request.
 func MissingProviderSuggestion(ctx context.Context, addr addrs.Provider, source Source, reqs Requirements) addrs.Provider {
-	if !addr.IsDefault() {
+	if !addrs.IsDefaultProvider(addr) {
 		return addr
 	}
 

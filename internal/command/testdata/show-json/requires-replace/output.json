@@ -1,0 +1,97 @@
+{
+    "format_version": "1.0",
+    "planned_values": {
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "force-replace"
+                    },
+                    "sensitive_values": {}
+                }
+            ]
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "test_instance.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "test",
+            "change": {
+                "actions": [
+                    "delete",
+                    "create"
+                ],
+                "before": {
+                    "ami": "bar",
+                    "id": "placeholder"
+                },
+                "after": {
+                    "ami": "force-replace"
+                },
+                "after_unknown": {
+                    "id": true
+                },
+                "after_sensitive": {},
+                "before_sensitive": {},
+                "replace_paths": [["ami"]]
+            },
+            "action_reason": "replace_because_cannot_update"
+        }
+    ],
+    "prior_state": {
+        "format_version": "1.0",
+        "values": {
+            "root_module": {
+                "resources": [
+                    {
+                        "address": "test_instance.test",
+                        "mode": "managed",
+                        "type": "test_instance",
+                        "name": "test",
+                        "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "values": {
+                            "ami": "bar",
+                            "id": "placeholder"
+                        },
+                        "sensitive_values": {}
+                    }
+                ]
+            }
+        }
+    },
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "force-replace"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

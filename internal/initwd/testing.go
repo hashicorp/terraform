@@ -1,12 +1,13 @@
 package initwd
 
 import (
-	"github.com/hashicorp/terraform/registry"
+	"context"
 	"testing"
 
-	"github.com/hashicorp/terraform/configs"
-	"github.com/hashicorp/terraform/configs/configload"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/registry"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // LoadConfigForTests is a convenience wrapper around configload.NewLoaderForTests,
@@ -35,7 +36,7 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
 
-	_, moreDiags := inst.InstallModules(rootDir, true, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, true, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()

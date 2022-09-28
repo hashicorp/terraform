@@ -20,8 +20,8 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/httpclient"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/version"
 )
@@ -55,7 +55,7 @@ func init() {
 	configureRequestTimeout()
 }
 
-var SupportedPluginProtocols = MustParseVersionConstraints("~> 5")
+var SupportedPluginProtocols = MustParseVersionConstraints(">= 5, <7")
 
 // registryClient is a client for the provider registry protocol that is
 // specialized only for the needs of this package. It's not intended as a
@@ -437,7 +437,7 @@ func (c *registryClient) getFile(url *url.URL) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s", resp.Status)
+		return nil, fmt.Errorf("%s returned from %s", resp.Status, HostFromRequest(resp.Request))
 	}
 
 	data, err := ioutil.ReadAll(resp.Body)
@@ -478,7 +478,7 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 	// both response and error.
 	var errMsg string
 	if resp != nil {
-		errMsg = fmt.Sprintf(": %d", resp.StatusCode)
+		errMsg = fmt.Sprintf(": %s returned from %s", resp.Status, HostFromRequest(resp.Request))
 	} else if err != nil {
 		errMsg = fmt.Sprintf(": %s", err)
 	}
@@ -490,6 +490,22 @@ func maxRetryErrorHandler(resp *http.Response, err error, numTries int) (*http.R
 			numTries, errMsg)
 	}
 	return resp, fmt.Errorf("the request failed, please try again later%s", errMsg)
+}
+
+// HostFromRequest extracts host the same way net/http Request.Write would,
+// accounting for empty Request.Host
+func HostFromRequest(req *http.Request) string {
+	if req.Host != "" {
+		return req.Host
+	}
+	if req.URL != nil {
+		return req.URL.Host
+	}
+
+	// this should never happen and if it does
+	// it will be handled as part of Request.Write()
+	// https://cs.opensource.google/go/go/+/refs/tags/go1.18.4:src/net/http/request.go;l=574
+	return ""
 }
 
 // configureRequestTimeout configures the registry client request timeout from

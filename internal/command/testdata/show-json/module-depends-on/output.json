@@ -1,0 +1,85 @@
+{
+    "format_version": "1.0",
+    "terraform_version": "0.13.1-dev",
+    "planned_values": {
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "foo-bar"
+                    },
+                    "sensitive_values": {}
+                }
+            ]
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "test_instance.test",
+            "mode": "managed",
+            "type": "test_instance",
+            "name": "test",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "change": {
+                "actions": [
+                    "create"
+                ],
+                "before": null,
+                "after": {
+                    "ami": "foo-bar"
+                },
+                "after_unknown": {
+                    "id": true
+                },
+                "after_sensitive": {},
+                "before_sensitive": false
+            }
+        }
+    ],
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "test",
+                    "provider_config_key": "test",
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "foo-bar"
+                        }
+                    },
+                    "schema_version": 0
+                }
+            ],
+            "module_calls": {
+                "foo": {
+                    "depends_on": [
+                        "test_instance.test"
+                    ],
+                    "source": "./foo",
+                    "module": {
+                        "variables": {
+                            "test_var": {
+                                "default": "foo-var"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

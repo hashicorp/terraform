@@ -9,7 +9,7 @@ import (
 
 	svchost "github.com/hashicorp/terraform-svchost"
 
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // SearchLocalDirectory performs an immediate, one-off scan of the given base
@@ -105,7 +105,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		}
 		var providerAddr addrs.Provider
 		if namespace == addrs.LegacyProviderNamespace {
-			if hostname != addrs.DefaultRegistryHost {
+			if hostname != addrs.DefaultProviderRegistryHost {
 				log.Printf("[WARN] local provider path %q indicates a legacy provider not on the default registry host; ignoring", fullPath)
 				return nil
 			}

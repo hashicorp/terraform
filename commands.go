@@ -10,14 +10,14 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/addrs"
-	"github.com/hashicorp/terraform/command"
-	"github.com/hashicorp/terraform/command/cliconfig"
-	"github.com/hashicorp/terraform/command/views"
-	"github.com/hashicorp/terraform/command/webbrowser"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/terminal"
-	pluginDiscovery "github.com/hashicorp/terraform/plugin/discovery"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
@@ -77,12 +77,12 @@ func initCommands(
 		configDir = "" // No config dir available (e.g. looking up a home directory failed)
 	}
 
-	dataDir := os.Getenv("TF_DATA_DIR")
+	wd := WorkingDir(originalWorkingDir, os.Getenv("TF_DATA_DIR"))
 
 	meta := command.Meta{
-		OriginalWorkingDir: originalWorkingDir,
-		Streams:            streams,
-		View:               views.NewView(streams),
+		WorkingDir: wd,
+		Streams:    streams,
+		View:       views.NewView(streams).SetRunningInAutomation(inAutomation),
 
 		Color:            true,
 		GlobalPluginDirs: globalPluginDirs(),
@@ -94,13 +94,14 @@ func initCommands(
 		RunningInAutomation: inAutomation,
 		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
-		OverrideDataDir:     dataDir,
 
 		ShutdownCh: makeShutdownCh(),
 
 		ProviderSource:       providerSrc,
 		ProviderDevOverrides: providerDevOverrides,
 		UnmanagedProviders:   unmanagedProviders,
+
+		AllowExperimentalFeatures: ExperimentsAllowed(),
 	}
 
 	// The command list is included in the terraform -help

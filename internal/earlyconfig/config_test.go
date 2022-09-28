@@ -9,28 +9,28 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/addrs"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/tfdiags"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 func TestConfigProviderRequirements(t *testing.T) {
 	cfg := testConfig(t, "testdata/provider-reqs")
 
 	impliedProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "implied",
 	)
 	nullProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "null",
 	)
 	randomProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "random",
 	)
 	tlsProvider := addrs.NewProvider(
-		addrs.DefaultRegistryHost,
+		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
 	happycloudProvider := addrs.NewProvider(
@@ -75,7 +75,7 @@ func testConfig(t *testing.T, baseDir string) *Config {
 // location information from the call.
 func testModuleWalkerFunc(req *ModuleRequest) (*tfconfig.Module, *version.Version, tfdiags.Diagnostics) {
 	callFilename := req.CallPos.Filename
-	sourcePath := req.SourceAddr
+	sourcePath := req.SourceAddr.String()
 	finalPath := filepath.Join(filepath.Dir(callFilename), sourcePath)
 	log.Printf("[TRACE] %s in %s -> %s", sourcePath, callFilename, finalPath)
 

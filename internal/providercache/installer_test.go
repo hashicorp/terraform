@@ -3,11 +3,9 @@ package providercache
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -18,7 +16,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/addrs"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -174,6 +173,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"2.1.0", beepProviderDir},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "FetchPackageSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -288,6 +302,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Version  string
 								Location getproviders.PackageLocation
 							}{"2.1.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
 						},
 						{
 							Event:    "FetchPackageSuccess",
@@ -414,6 +443,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "LinkFromCacheSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -536,6 +580,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Version  string
 								Location getproviders.PackageLocation
 							}{"2.0.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+							},
 						},
 						{
 							Event:    "FetchPackageSuccess",
@@ -766,6 +825,21 @@ func TestEnsureProviderVersions(t *testing.T) {
 							}{"2.1.0", beepProviderDir},
 						},
 						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"2.1.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								nil,
+							},
+						},
+						{
 							Event:    "FetchPackageSuccess",
 							Provider: beepProvider,
 							Args: struct {
@@ -819,6 +893,145 @@ func TestEnsureProviderVersions(t *testing.T) {
 						{
 							Event:    "BuiltInProviderAvailable",
 							Provider: terraformProvider,
+						},
+					},
+				}
+			},
+		},
+		"remove no-longer-needed provider from lock file": {
+			Source: getproviders.NewMockSource(
+				[]getproviders.PackageMeta{
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("1.0.0"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+				},
+				nil,
+			),
+			LockFile: `
+				provider "example.com/foo/beep" {
+					version     = "1.0.0"
+					constraints = ">= 1.0.0"
+					hashes = [
+						"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84=",
+					]
+				}
+				provider "example.com/foo/obsolete" {
+					version     = "2.0.0"
+					constraints = ">= 2.0.0"
+					hashes = [
+						"no:irrelevant",
+					]
+				}
+			`,
+			Mode: InstallNewProvidersOnly,
+			Reqs: getproviders.Requirements{
+				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+			},
+			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
+				if allCached := dir.AllAvailablePackages(); len(allCached) != 1 {
+					t.Errorf("wrong number of cache directory entries; want only one\n%s", spew.Sdump(allCached))
+				}
+				if allLocked := locks.AllProviders(); len(allLocked) != 1 {
+					t.Errorf("wrong number of provider lock entries; want only one\n%s", spew.Sdump(allLocked))
+				}
+
+				gotLock := locks.Provider(beepProvider)
+				wantLock := depsfile.NewProviderLock(
+					beepProvider,
+					getproviders.MustParseVersion("1.0.0"),
+					getproviders.MustParseVersionConstraints(">= 1.0.0"),
+					[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+				)
+				if diff := cmp.Diff(wantLock, gotLock, depsfile.ProviderLockComparer); diff != "" {
+					t.Errorf("wrong lock entry\n%s", diff)
+				}
+
+				gotEntry := dir.ProviderLatestVersion(beepProvider)
+				wantEntry := &CachedProvider{
+					Provider:   beepProvider,
+					Version:    getproviders.MustParseVersion("1.0.0"),
+					PackageDir: filepath.Join(dir.BasePath(), "example.com/foo/beep/1.0.0/bleep_bloop"),
+				}
+				if diff := cmp.Diff(wantEntry, gotEntry); diff != "" {
+					t.Errorf("wrong cache entry\n%s", diff)
+				}
+			},
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+							},
+						},
+						{
+							Event: "ProvidersFetched",
+							Args: map[addrs.Provider]*getproviders.PackageAuthenticationResult{
+								beepProvider: nil,
+							},
+						},
+					},
+					// Note: intentionally no entries for example.com/foo/obsolete
+					// here, because it's no longer needed and therefore not
+					// installed.
+					beepProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{">= 1.0.0", true},
+						},
+						{
+							Event:    "QueryPackagesSuccess",
+							Provider: beepProvider,
+							Args:     "1.0.0",
+						},
+						{
+							Event:    "FetchPackageMeta",
+							Provider: beepProvider,
+							Args:     "1.0.0",
+						},
+						{
+							Event:    "FetchPackageBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Version  string
+								Location getproviders.PackageLocation
+							}{"1.0.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"1.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+							},
+						},
+						{
+							Event:    "FetchPackageSuccess",
+							Provider: beepProvider,
+							Args: struct {
+								Version    string
+								LocalDir   string
+								AuthResult string
+							}{
+								"1.0.0",
+								filepath.Join(dir.BasePath(), "example.com/foo/beep/1.0.0/bleep_bloop"),
+								"unauthenticated",
+							},
 						},
 					},
 				}
@@ -1189,7 +1402,7 @@ func TestEnsureProviderVersions(t *testing.T) {
 				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
 			},
 			WantErr: `some providers could not be installed:
-- example.com/foo/beep: the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)`,
+- example.com/foo/beep: the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
 			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
 				return map[addrs.Provider][]*testInstallerEventLogItem{
 					noProvider: {
@@ -1235,7 +1448,136 @@ func TestEnsureProviderVersions(t *testing.T) {
 								Error   string
 							}{
 								"1.0.0",
-								`the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms)`,
+								`the local package for example.com/foo/beep 1.0.0 doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification`,
+							},
+						},
+					},
+				}
+			},
+		},
+		"force mode ignores hashes": {
+			Source: getproviders.NewMockSource(
+				[]getproviders.PackageMeta{
+					{
+						Provider:       beepProvider,
+						Version:        getproviders.MustParseVersion("1.0.0"),
+						TargetPlatform: fakePlatform,
+						Location:       beepProviderDir,
+					},
+				},
+				nil,
+			),
+			LockFile: `
+				provider "example.com/foo/beep" {
+					version     = "1.0.0"
+					constraints = ">= 1.0.0"
+					hashes = [
+						"h1:does-not-match",
+					]
+				}
+			`,
+			Mode: InstallNewProvidersForce,
+			Reqs: getproviders.Requirements{
+				beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+			},
+			Check: func(t *testing.T, dir *Dir, locks *depsfile.Locks) {
+				if allCached := dir.AllAvailablePackages(); len(allCached) != 1 {
+					t.Errorf("wrong number of cache directory entries; want only one\n%s", spew.Sdump(allCached))
+				}
+				if allLocked := locks.AllProviders(); len(allLocked) != 1 {
+					t.Errorf("wrong number of provider lock entries; want only one\n%s", spew.Sdump(allLocked))
+				}
+
+				gotLock := locks.Provider(beepProvider)
+				wantLock := depsfile.NewProviderLock(
+					beepProvider,
+					getproviders.MustParseVersion("1.0.0"),
+					getproviders.MustParseVersionConstraints(">= 1.0.0"),
+					[]getproviders.Hash{beepProviderHash, "h1:does-not-match"},
+				)
+				if diff := cmp.Diff(wantLock, gotLock, depsfile.ProviderLockComparer); diff != "" {
+					t.Errorf("wrong lock entry\n%s", diff)
+				}
+
+				gotEntry := dir.ProviderLatestVersion(beepProvider)
+				wantEntry := &CachedProvider{
+					Provider:   beepProvider,
+					Version:    getproviders.MustParseVersion("1.0.0"),
+					PackageDir: filepath.Join(dir.BasePath(), "example.com/foo/beep/1.0.0/bleep_bloop"),
+				}
+				if diff := cmp.Diff(wantEntry, gotEntry); diff != "" {
+					t.Errorf("wrong cache entry\n%s", diff)
+				}
+			},
+			WantEvents: func(inst *Installer, dir *Dir) map[addrs.Provider][]*testInstallerEventLogItem {
+				return map[addrs.Provider][]*testInstallerEventLogItem{
+					noProvider: {
+						{
+							Event: "PendingProviders",
+							Args: map[addrs.Provider]getproviders.VersionConstraints{
+								beepProvider: getproviders.MustParseVersionConstraints(">= 1.0.0"),
+							},
+						},
+						{
+							Event: "ProvidersFetched",
+							Args: map[addrs.Provider]*getproviders.PackageAuthenticationResult{
+								beepProvider: nil,
+							},
+						},
+					},
+					beepProvider: {
+						{
+							Event:    "QueryPackagesBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Constraints string
+								Locked      bool
+							}{">= 1.0.0", true},
+						},
+						{
+							Event:    "QueryPackagesSuccess",
+							Provider: beepProvider,
+							Args:     "1.0.0",
+						},
+						{
+							Event:    "FetchPackageMeta",
+							Provider: beepProvider,
+							Args:     "1.0.0",
+						},
+						{
+							Event:    "FetchPackageBegin",
+							Provider: beepProvider,
+							Args: struct {
+								Version  string
+								Location getproviders.PackageLocation
+							}{"1.0.0", beepProviderDir},
+						},
+						{
+							Event:    "ProvidersLockUpdated",
+							Provider: beepProvider,
+							Args: struct {
+								Version string
+								Local   []getproviders.Hash
+								Signed  []getproviders.Hash
+								Prior   []getproviders.Hash
+							}{
+								"1.0.0",
+								[]getproviders.Hash{"h1:2y06Ykj0FRneZfGCTxI9wRTori8iB7ZL5kQ6YyEnh84="},
+								nil,
+								[]getproviders.Hash{"h1:does-not-match"},
+							},
+						},
+						{
+							Event:    "FetchPackageSuccess",
+							Provider: beepProvider,
+							Args: struct {
+								Version    string
+								LocalDir   string
+								AuthResult string
+							}{
+								"1.0.0",
+								filepath.Join(dir.BasePath(), "example.com/foo/beep/1.0.0/bleep_bloop"),
+								"unauthenticated",
 							},
 						},
 					},
@@ -1319,11 +1661,7 @@ func TestEnsureProviderVersions_local_source(t *testing.T) {
 	source := getproviders.NewFilesystemMirrorSource("testdata/cachedir")
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath := t.TempDir()
 
 	// set up the installer using the temporary directory and filesystem source
 	platform := getproviders.Platform{OS: "linux", Arch: "amd64"}
@@ -1421,11 +1759,7 @@ func TestEnsureProviderVersions_protocol_errors(t *testing.T) {
 	defer close()
 
 	// create a temporary workdir
-	tmpDirPath, err := ioutil.TempDir("", "terraform-test-providercache")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpDirPath)
+	tmpDirPath := t.TempDir()
 
 	version0 := getproviders.MustParseVersionConstraints("0.1.0") // supports protocol version 1.0
 	version1 := getproviders.MustParseVersion("1.2.0")            // this is the expected result in tests with a match
@@ -1736,8 +2070,7 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 // In order to be able to compare the recorded temp dir paths, we need to
 // normalize the path to match what the installer would report.
 func tmpDir(t *testing.T) string {
-	d := t.TempDir()
-	unlinked, err := filepath.EvalSymlinks(d)
+	unlinked, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}

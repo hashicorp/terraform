@@ -1,0 +1,1 @@
+required-alias/main.tf:1,1-13: Missing required provider configuration; The child module requires an additional configuration for provider hashicorp/foo, with the local name "foo.bar".
