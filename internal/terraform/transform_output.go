@@ -26,6 +26,10 @@ type OutputTransformer struct {
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
 	RefreshOnly bool
+
+	// Planning must be set to true only when we're building a planning graph.
+	// It must be set to false whenever we're building an apply graph.
+	Planning bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -89,6 +93,7 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 				Config:      o,
 				Destroy:     t.removeRootOutputs,
 				RefreshOnly: t.RefreshOnly,
+				Planning:    t.Planning,
 			}
 		}
 

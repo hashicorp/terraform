@@ -14,11 +14,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Test that the PreApply hook is called with the correct deposed key
@@ -913,6 +915,119 @@ resource "test_resource" "c" {
 		// Resource c should not be in state
 		if state.ResourceInstance(mustResourceInstanceAddr("test_resource.c")) != nil {
 			t.Error("test_resource.c should not exist in state, but is")
+		}
+	})
+}
+
+func TestContext2Apply_outputValuePrecondition(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			module "child" {
+				source = "./child"
+
+				input = var.input
+			}
+
+			output "result" {
+				value = module.child.result
+
+				precondition {
+					condition     = var.input != ""
+					error_message = "Input must not be empty."
+				}
+			}
+		`,
+		"child/main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			output "result" {
+				value = var.input
+
+				precondition {
+					condition     = var.input != ""
+					error_message = "Input must not be empty."
+				}
+			}
+		`,
+	})
+
+	checkableObjects := []addrs.Checkable{
+		addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance),
+		addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+	}
+
+	t.Run("pass", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{})
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("beep"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoDiagnostics(t, diags)
+
+		for _, addr := range checkableObjects {
+			result := plan.Checks.GetObjectResult(addr)
+			if result == nil {
+				t.Fatalf("no check result for %s in the plan", addr)
+			}
+			if got, want := result.Status, checks.StatusPass; got != want {
+				t.Fatalf("wrong check status for %s during planning\ngot:  %s\nwant: %s", addr, got, want)
+			}
+		}
+
+		state, diags := ctx.Apply(plan, m)
+		assertNoDiagnostics(t, diags)
+		for _, addr := range checkableObjects {
+			result := state.CheckResults.GetObjectResult(addr)
+			if result == nil {
+				t.Fatalf("no check result for %s in the final state", addr)
+			}
+			if got, want := result.Status, checks.StatusPass; got != want {
+				t.Errorf("wrong check status for %s after apply\ngot:  %s\nwant: %s", addr, got, want)
+			}
+		}
+	})
+
+	t.Run("fail", func(t *testing.T) {
+		// NOTE: This test actually catches a failure during planning and so
+		// cannot proceed to apply, so it's really more of a plan test
+		// than an apply test but better to keep all of these
+		// thematically-related test cases together.
+		ctx := testContext2(t, &ContextOpts{})
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal(""),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatalf("succeeded; want error")
+		}
+
+		const wantSummary = "Module output value precondition failed"
+		found := false
+		for _, diag := range diags {
+			if diag.Severity() == tfdiags.Error && diag.Description().Summary == wantSummary {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Fatalf("missing expected error\nwant summary: %s\ngot: %s", wantSummary, diags.Err().Error())
 		}
 	})
 }

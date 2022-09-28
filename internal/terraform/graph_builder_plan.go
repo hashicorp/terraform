@@ -113,6 +113,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Config:            b.Config,
 			RefreshOnly:       b.skipPlanChanges,
 			removeRootOutputs: b.Operation == walkPlanDestroy,
+
+			// NOTE: We currently treat anything built with the plan graph
+			// builder as "planning" for our purposes here, because we share
+			// the same graph node implementation between all of the walk
+			// types and so the pre-planning walks still think they are
+			// producing a plan even though we immediately discard it.
+			Planning: true,
 		},
 
 		// Add orphan resources
