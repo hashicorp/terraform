@@ -1,5 +1,8 @@
 ## 1.3.1 (Unreleased)
 
+NOTE:
+* On `darwin/amd64` and `darwin/arm64` architectures, `terraform` binaries are now built with CGO enabled. This should not have any user-facing impact, except in cases where the pure Go DNS resolver causes problems on recent versions of macOS: using CGO may mitigate these issues. Please see the upstream bug https://github.com/golang/go/issues/52839 for more details.
+
 BUG FIXES:
 
 * Fixed a crash when using objects with optional attributes and default values in collections, most visible with nested modules. [GH-31847]
