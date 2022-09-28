@@ -84,8 +84,11 @@ func New() backend.Backend {
 			},
 
 			"encryption_key": {
-				Type:          schema.TypeString,
-				Optional:      true,
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_ENCRYPTION_KEY",
+				}, nil),
 				Description:   "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
 				ConflictsWith: []string{"kms_encryption_key"},
 			},
@@ -201,10 +204,6 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// Customer-supplied encryption
 	key := data.Get("encryption_key").(string)
-	if key == "" {
-		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
-	}
-
 	if key != "" {
 		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
