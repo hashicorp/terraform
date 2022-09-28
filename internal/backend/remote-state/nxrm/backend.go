@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 func New() backend.Backend {

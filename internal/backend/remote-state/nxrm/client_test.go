@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/backend"
+	"github.com/hashicorp/terraform/internal/backend"
 )
 
 func TestGetNXRMURL(t *testing.T) {

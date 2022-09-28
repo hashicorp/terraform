@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/states/remote"
-	"github.com/hashicorp/terraform/states/statemgr"
+	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/states/statemgr"
 )
 
 type RemoteClient struct {
