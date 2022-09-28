@@ -209,7 +209,6 @@ func TestBackendWithCustomerManagedKMSEncryption(t *testing.T) {
 }
 
 // setupBackend returns a new GCS backend.
-// func setupBackend(t *testing.T, bucket, prefix, key string, kmsDetails map[string]interface{}) backend.Backend {
 func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Backend {
 	t.Helper()
 

@@ -174,7 +174,6 @@ func (c *remoteClient) stateFile() *storage.ObjectHandle {
 	if len(c.encryptionKey) > 0 {
 		return h.Key(c.encryptionKey)
 	}
-	// TODO(SarahFrench) - Nothing needed for KMs here as it's added to Writer variables, not Object handlers
 	return h
 }
 
