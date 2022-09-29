@@ -1,5 +1,9 @@
 ## 1.3.2 (Unreleased)
 
+BUG FIXES:
+
+* Fixed a crash caused by Terraform incorrectly re-registering output value preconditions during the apply phase (rather than just reusing the already-planned checks from the plan phase). [GH-31890]
+
 ## 1.3.1 (September 28, 2022)
 
 NOTE:
