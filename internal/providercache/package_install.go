@@ -55,7 +55,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 
 	f, err := ioutil.TempFile("", "terraform-provider")
 	if err != nil {
-		return nil, fmt.Errorf("failed to open temporary file to download from %s", url)
+		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", url, err)
 	}
 	defer f.Close()
 	defer os.Remove(f.Name())
