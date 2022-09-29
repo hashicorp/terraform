@@ -4,6 +4,10 @@ BUG FIXES:
 
 * The module installer will now record in its manifest a correct module source URL after normalization when the URL given as input contains both a query string portion and a subdirectory portion. Terraform itself doesn't currently make use of this information and so this is just a cosmetic fix to make the recorded metadata more correct. [GH-31636]
 
+ENHANCEMENTS:
+
+* The "Failed to install provider" error message now includes the reason a provider could not be installed. [GH-31898]
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
