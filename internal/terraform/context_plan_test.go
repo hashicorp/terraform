@@ -6689,6 +6689,70 @@ resource "test_instance" "a" {
 	}
 }
 
+func TestContext2Plan_legacyProviderIgnoreAll(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_instance" "a" {
+  lifecycle {
+    ignore_changes = all
+  }
+  data = "foo"
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_instance": {
+				Attributes: map[string]*configschema.Attribute{
+					"id":   {Type: cty.String, Computed: true},
+					"data": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		plan := req.ProposedNewState.AsValueMap()
+		// Update both the computed id and the configured data.
+		// Legacy providers expect terraform to be able to ignore these.
+
+		plan["id"] = cty.StringVal("updated")
+		plan["data"] = cty.StringVal("updated")
+		resp.PlannedState = cty.ObjectVal(plan)
+		resp.LegacyTypeSystem = true
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"orig","data":"orig"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatal(diags.Err())
+	}
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Fatalf("expected NoOp plan, got %s\n", c.Action)
+		}
+	}
+}
+
 func TestContext2Plan_dataRemovalNoProvider(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
