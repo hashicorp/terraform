@@ -24,6 +24,11 @@ message Plan {
     // make decisions in Terraform Core during the applying of a plan.
     Mode ui_mode = 17;
 
+    // Errored is true for any plan whose creation was interrupted by an
+    // error. A plan with this flag set cannot be applied, and the changes
+    // it proposes are likely to be incomplete.
+    bool errored = 20;
+
     // The variables that were set when creating the plan. Each value is
     // a msgpack serialization of an HCL value.
     map<string, DynamicValue> variables = 2;
