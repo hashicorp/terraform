@@ -72,24 +72,41 @@ func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to 
 	e := dag.BasicEdge(from, to)
 	g.Connect(e)
 
+	// getComparableProvider inspects the node to try and get the most precise
+	// description of the provider being used to help determine if 2 nodes are
+	// from the same provider instance.
+	getComparableProvider := func(pc GraphNodeProviderConsumer) string {
+		ps := pc.Provider().String()
+
+		// we don't care about `exact` here, since we're only looking for any
+		// clue that the providers may differ.
+		p, _ := pc.ProvidedBy()
+		switch p := p.(type) {
+		case addrs.AbsProviderConfig:
+			ps = p.String()
+		case addrs.LocalProviderConfig:
+			ps = p.String()
+		}
+
+		return ps
+	}
+
 	pc, ok := from.(GraphNodeProviderConsumer)
 	if !ok {
 		return
 	}
-	fromProvider := pc.Provider()
+	fromProvider := getComparableProvider(pc)
 
 	pc, ok = to.(GraphNodeProviderConsumer)
 	if !ok {
 		return
 	}
-	toProvider := pc.Provider()
-
-	sameProvider := fromProvider.Equals(toProvider)
+	toProvider := getComparableProvider(pc)
 
 	// Check for cycles, and back out the edge if there are any.
 	// The cycles we are looking for only appears between providers, so don't
 	// waste time checking for cycles if both nodes use the same provider.
-	if !sameProvider && len(g.Cycles()) > 0 {
+	if fromProvider != toProvider && len(g.Cycles()) > 0 {
 		log.Printf("[DEBUG] DestroyEdgeTransformer: skipping inter-provider edge %s->%s which creates a cycle",
 			dag.VertexName(from), dag.VertexName(to))
 		g.RemoveEdge(e)
@@ -138,36 +155,29 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// Connect destroy dependencies as stored in the state
-	for _, ds := range destroyers {
-		for _, des := range ds {
-			ri, ok := des.(GraphNodeResourceInstance)
-			if !ok {
-				continue
-			}
+	// Go through and connect creators to destroyers. Going along with
+	// our example, this makes: A_d => A
+	for _, v := range g.Vertices() {
+		cn, ok := v.(GraphNodeCreator)
+		if !ok {
+			continue
+		}
 
-			for _, resAddr := range ri.StateDependencies() {
-				for _, desDep := range destroyersByResource[resAddr.String()] {
-					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
-						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
-						t.tryInterProviderDestroyEdge(g, desDep, des)
-					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
-					}
-				}
+		addr := cn.CreateAddr()
+		if addr == nil {
+			continue
+		}
 
-				// We can have some create or update nodes which were
-				// dependents of the destroy node. If they have no destroyer
-				// themselves, make the connection directly from the creator.
-				for _, createDep := range creators[resAddr.String()] {
-					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
-						log.Printf("[DEBUG] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
-						t.tryInterProviderDestroyEdge(g, createDep, des)
-					} else {
-						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
-					}
-				}
-			}
+		for _, d := range destroyers[addr.String()] {
+			// For illustrating our example
+			a_d := d.(dag.Vertex)
+			a := v
+
+			log.Printf(
+				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
+				dag.VertexName(a), dag.VertexName(a_d))
+
+			g.Connect(dag.BasicEdge(a, a_d))
 		}
 	}
 
@@ -192,29 +202,36 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 		}
 	}
 
-	// Go through and connect creators to destroyers. Going along with
-	// our example, this makes: A_d => A
-	for _, v := range g.Vertices() {
-		cn, ok := v.(GraphNodeCreator)
-		if !ok {
-			continue
-		}
+	// Connect destroy dependencies as stored in the state
+	for _, ds := range destroyers {
+		for _, des := range ds {
+			ri, ok := des.(GraphNodeResourceInstance)
+			if !ok {
+				continue
+			}
 
-		addr := cn.CreateAddr()
-		if addr == nil {
-			continue
-		}
+			for _, resAddr := range ri.StateDependencies() {
+				for _, desDep := range destroyersByResource[resAddr.String()] {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(desDep, des) {
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(des))
+						t.tryInterProviderDestroyEdge(g, desDep, des)
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(desDep), dag.VertexName(des))
+					}
+				}
 
-		for _, d := range destroyers[addr.String()] {
-			// For illustrating our example
-			a_d := d.(dag.Vertex)
-			a := v
-
-			log.Printf(
-				"[TRACE] DestroyEdgeTransformer: connecting creator %q with destroyer %q",
-				dag.VertexName(a), dag.VertexName(a_d))
-
-			g.Connect(dag.BasicEdge(a, a_d))
+				// We can have some create or update nodes which were
+				// dependents of the destroy node. If they have no destroyer
+				// themselves, make the connection directly from the creator.
+				for _, createDep := range creators[resAddr.String()] {
+					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(createDep, des) {
+						log.Printf("[DEBUG] DestroyEdgeTransformer2: %s has stored dependency of %s\n", dag.VertexName(createDep), dag.VertexName(des))
+						t.tryInterProviderDestroyEdge(g, createDep, des)
+					} else {
+						log.Printf("[TRACE] DestroyEdgeTransformer2: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(createDep), dag.VertexName(des))
+					}
+				}
+			}
 		}
 	}
 
