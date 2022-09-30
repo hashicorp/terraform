@@ -3748,3 +3748,82 @@ resource "test_object" "b" {
 	})
 	assertNoErrors(t, diags)
 }
+
+// make sure there are no cycles with changes around a provider configured via
+// managed resources.
+func TestContext2Plan_destroyWithResourceConfiguredProvider(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  in = "a"
+}
+
+provider "test" {
+  alias = "other"
+  in = test_object.a.out
+}
+
+resource "test_object" "b" {
+  provider = test.other
+  in = "a"
+}
+`})
+
+	testProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			Provider: providers.Schema{
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"in": {
+							Type:     cty.String,
+							Optional: true,
+						},
+					},
+				},
+			},
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"in": {
+								Type:     cty.String,
+								Optional: true,
+							},
+							"out": {
+								Type:     cty.Number,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+
+	// plan+apply to create the initial state
+	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// Resource changes which have dependencies across providers which
+	// themselves depend on resources can result in cycles.
+	// Because other_object transitively depends on the module resources
+	// through its provider, we trigger changes on both sides of this boundary
+	// to ensure we can create a valid plan.
+	//
+	// Try to replace both instances
+	addrA := mustResourceInstanceAddr("test_object.a")
+	addrB := mustResourceInstanceAddr(`test_object.b`)
+	opts.ForceReplace = []addrs.AbsResourceInstance{addrA, addrB}
+
+	_, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+}
