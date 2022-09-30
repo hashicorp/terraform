@@ -227,6 +227,11 @@ The -target option is not for routine use, and is provided only for exceptional 
 	if diags.HasErrors() {
 		// We can't proceed further with an invalid plan, because an invalid
 		// plan isn't applyable by definition.
+		if plan != nil {
+			// We'll explicitly mark our plan as errored so that it can't
+			// be accidentally applied even though it's incomplete.
+			plan.Errored = true
+		}
 		return plan, diags
 	}
 
