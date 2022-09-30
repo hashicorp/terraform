@@ -226,11 +226,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	// Customer-managed encryption
 	kmsName := data.Get("kms_encryption_key").(string)
 	if kmsName != "" {
-		kc, err := backend.ReadPathOrContents(kmsName)
-		if err != nil {
-			return fmt.Errorf("error loading KMS encryption key: %s", err)
-		}
-		b.kmsKeyName = kc
+		b.kmsKeyName = kmsName
 	}
 
 	return nil
