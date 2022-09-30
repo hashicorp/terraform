@@ -268,7 +268,7 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 	}
 
 	// KMS Client
-	ctx := context.TODO()
+	ctx := context.Background()
 	opts, err := testGetClientOptions(t)
 	if err != nil {
 		e := fmt.Errorf("testGetClientOptions() failed: %s", err)
@@ -293,7 +293,7 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 			t.Fatal(err)
 		}
 		// Create key ring that doesn't exist
-		t.Logf("KMS key ring `%s` not found: creating key ring",
+		t.Logf("Cloud KMS key ring `%s` not found: creating key ring",
 			fmt.Sprintf("projects/%s/locations/%s/keyRings/%s", keyDetails["project"], keyDetails["location"], keyDetails["ringName"]),
 		)
 		reqCreateKeyRing := &kmspb.CreateKeyRingRequest{
@@ -304,7 +304,7 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("KMS key ring `%s` created successfully", keyRing.Name)
+		t.Logf("Cloud KMS key ring `%s` created successfully", keyRing.Name)
 	}
 
 	// Get KMS key, create if doesn't exist (and give GCS service account permission to use)
@@ -319,7 +319,7 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 			t.Fatal(err)
 		}
 		// Create key that doesn't exist
-		t.Logf("KMS key `%s` not found: creating key",
+		t.Logf("Cloud KMS key `%s` not found: creating key",
 			fmt.Sprintf("%s/cryptoKeys/%s", keyRing.Name, keyDetails["keyName"]),
 		)
 		reqCreateKey := &kmspb.CreateCryptoKeyRequest{
@@ -333,18 +333,19 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Logf("KMS key `%s` created successfully", key.Name)
+		t.Logf("Cloud KMS key `%s` created successfully", key.Name)
 	}
 
 	// Get GCS Service account email, check has necessary permission on key
-	storageCtx := context.TODO()
-	sc, err := storage.NewClient(storageCtx, opts...) //reuse opts from KMS client
+	// Note: we cannot reuse the backend's storage client (like in the setupBackend function)
+	// because the KMS key needs to exist before the backend buckets are made in the test.
+	sc, err := storage.NewClient(ctx, opts...) //reuse opts from KMS client
 	if err != nil {
 		e := fmt.Errorf("storage.NewClient() failed: %v", err)
 		t.Fatal(e)
 	}
 	defer sc.Close()
-	gcsServiceAccount, err := sc.ServiceAccount(storageCtx, keyDetails["project"])
+	gcsServiceAccount, err := sc.ServiceAccount(ctx, keyDetails["project"])
 	if err != nil {
 		t.Fatal(err)
 	}
