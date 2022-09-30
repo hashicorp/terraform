@@ -31,12 +31,30 @@ func TestParsePlan_basicValid(t *testing.T) {
 				},
 			},
 		},
-		"setting all options": {
+		"setting all options with -out": {
 			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
 			&Plan{
 				DetailedExitCode: true,
 				InputEnabled:     false,
 				OutPath:          "saved.tfplan",
+				AlwaysOut:        false,
+				ViewType:         ViewHuman,
+				State:            &State{Lock: true},
+				Vars:             &Vars{},
+				Operation: &Operation{
+					PlanMode:    plans.DestroyMode,
+					Parallelism: 10,
+					Refresh:     true,
+				},
+			},
+		},
+		"setting all options with -always-out": {
+			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-always-out=saved.tfplan"},
+			&Plan{
+				DetailedExitCode: true,
+				InputEnabled:     false,
+				OutPath:          "saved.tfplan",
+				AlwaysOut:        true,
 				ViewType:         ViewHuman,
 				State:            &State{Lock: true},
 				Vars:             &Vars{},
@@ -90,6 +108,20 @@ func TestParsePlan_invalid(t *testing.T) {
 	}
 	if got.ViewType != ViewHuman {
 		t.Fatalf("wrong view type, got %#v, want %#v", got.ViewType, ViewHuman)
+	}
+}
+
+func TestParsePlan_conflictingOutPath(t *testing.T) {
+	got, diags := ParsePlan([]string{"-out=foo", "-always-out=bar"})
+	if len(diags) == 0 {
+		t.Fatal("expected diags but got none")
+	}
+	const wantSubstr = "Incompatible command line options: The -out=... and -always-out=... options are mutually-exclusive."
+	if got, want := diags.Err().Error(), wantSubstr; !strings.Contains(got, want) {
+		t.Fatalf("wrong diags\ngot:  %s\nwant: %s", got, want)
+	}
+	if got.ViewType != ViewHuman {
+		t.Fatalf("wrong view type\ngot:  %#v\nwant: %#v", got.ViewType, ViewHuman)
 	}
 }
 

@@ -19,8 +19,12 @@ type Plan struct {
 	// variable and backend config values. Default is true.
 	InputEnabled bool
 
-	// OutPath contains an optional path to store the plan file
-	OutPath string
+	// OutPath contains an optional path to store the plan file, while
+	// AlwaysOut means that we'll write to OutPath even if the plan is
+	// incomplete, so that it's still possible to inspect it with
+	// "terraform show". AlwaysOut is irrelevant if OutPath isn't set.
+	OutPath   string
+	AlwaysOut bool
 
 	// ViewType specifies which output format to use
 	ViewType ViewType
@@ -37,10 +41,13 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 		Vars:      &Vars{},
 	}
 
+	var outPath, alwaysOutPath string
+
 	cmdFlags := extendedFlagSet("plan", plan.State, plan.Operation, plan.Vars)
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
-	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
+	cmdFlags.StringVar(&outPath, "out", "", "out")
+	cmdFlags.StringVar(&alwaysOutPath, "always-out", "", "always-out")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")
@@ -51,6 +58,22 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 			"Failed to parse command-line flags",
 			err.Error(),
 		))
+	}
+
+	switch {
+	case outPath != "":
+		if alwaysOutPath != "" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Incompatible command line options",
+				"The -out=... and -always-out=... options are mutually-exclusive.",
+			))
+		}
+		plan.OutPath = outPath
+		plan.AlwaysOut = false
+	case alwaysOutPath != "":
+		plan.OutPath = alwaysOutPath
+		plan.AlwaysOut = true
 	}
 
 	args = cmdFlags.Args()
