@@ -18,19 +18,19 @@ setsubtract(a, b)
 
 ```
 > setsubtract(["a", "b", "c"], ["a", "c"])
-[
+toset([
   "b",
-]
+])
 ```
 
 ### Set Difference (Symmetric Difference)
 
 ```
 > setunion(setsubtract(["a", "b", "c"], ["a", "c", "d"]), setsubtract(["a", "c", "d"], ["a", "b", "c"]))
-[
+toset([
   "b",
   "d",
-]
+])
 ```
 
 ## Related Functions
