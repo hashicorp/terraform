@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * Fixed a crash caused by Terraform incorrectly re-registering output value preconditions during the apply phase (rather than just reusing the already-planned checks from the plan phase). [GH-31890]
+* Prevent errors when the provider reports that a deposed instance no longer exists [GH-31902]
 
 ## 1.3.1 (September 28, 2022)
 
