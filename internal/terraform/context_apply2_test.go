@@ -14,11 +14,13 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Test that the PreApply hook is called with the correct deposed key
@@ -917,6 +919,119 @@ resource "test_resource" "c" {
 	})
 }
 
+func TestContext2Apply_outputValuePrecondition(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			module "child" {
+				source = "./child"
+
+				input = var.input
+			}
+
+			output "result" {
+				value = module.child.result
+
+				precondition {
+					condition     = var.input != ""
+					error_message = "Input must not be empty."
+				}
+			}
+		`,
+		"child/main.tf": `
+			variable "input" {
+				type = string
+			}
+
+			output "result" {
+				value = var.input
+
+				precondition {
+					condition     = var.input != ""
+					error_message = "Input must not be empty."
+				}
+			}
+		`,
+	})
+
+	checkableObjects := []addrs.Checkable{
+		addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance),
+		addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance.Child("child", addrs.NoKey)),
+	}
+
+	t.Run("pass", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{})
+		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("beep"),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		assertNoDiagnostics(t, diags)
+
+		for _, addr := range checkableObjects {
+			result := plan.Checks.GetObjectResult(addr)
+			if result == nil {
+				t.Fatalf("no check result for %s in the plan", addr)
+			}
+			if got, want := result.Status, checks.StatusPass; got != want {
+				t.Fatalf("wrong check status for %s during planning\ngot:  %s\nwant: %s", addr, got, want)
+			}
+		}
+
+		state, diags := ctx.Apply(plan, m)
+		assertNoDiagnostics(t, diags)
+		for _, addr := range checkableObjects {
+			result := state.CheckResults.GetObjectResult(addr)
+			if result == nil {
+				t.Fatalf("no check result for %s in the final state", addr)
+			}
+			if got, want := result.Status, checks.StatusPass; got != want {
+				t.Errorf("wrong check status for %s after apply\ngot:  %s\nwant: %s", addr, got, want)
+			}
+		}
+	})
+
+	t.Run("fail", func(t *testing.T) {
+		// NOTE: This test actually catches a failure during planning and so
+		// cannot proceed to apply, so it's really more of a plan test
+		// than an apply test but better to keep all of these
+		// thematically-related test cases together.
+		ctx := testContext2(t, &ContextOpts{})
+		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+			Mode: plans.NormalMode,
+			SetVariables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal(""),
+					SourceType: ValueFromCLIArg,
+				},
+			},
+		})
+		if !diags.HasErrors() {
+			t.Fatalf("succeeded; want error")
+		}
+
+		const wantSummary = "Module output value precondition failed"
+		found := false
+		for _, diag := range diags {
+			if diag.Severity() == tfdiags.Error && diag.Description().Summary == wantSummary {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Fatalf("missing expected error\nwant summary: %s\ngot: %s", wantSummary, diags.Err().Error())
+		}
+	})
+}
+
 func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 	// This tests the less common situation where a condition fails due to
 	// a change in a resource other than the one the condition is attached to,
@@ -1200,6 +1315,25 @@ output "out" {
 
 	state, diags := ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
+
+	// Resource changes which have dependencies across providers which
+	// themselves depend on resources can result in cycles.
+	// Because other_object transitively depends on the module resources
+	// through its provider, we trigger changes on both sides of this boundary
+	// to ensure we can create a valid plan.
+	//
+	// Taint the object to make sure a replacement works in the plan.
+	otherObjAddr := mustResourceInstanceAddr("other_object.other")
+	otherObj := state.ResourceInstance(otherObjAddr)
+	otherObj.Current.Status = states.ObjectTainted
+	// Force a change which needs to be reverted.
+	testObjAddr := mustResourceInstanceAddr(`module.mod["a"].test_object.a`)
+	testObjA := state.ResourceInstance(testObjAddr)
+	testObjA.Current.AttrsJSON = []byte(`{"test_bool":null,"test_list":null,"test_map":null,"test_number":null,"test_string":"changed"}`)
+
+	_, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+	return
 
 	otherProvider.ConfigureProviderCalled = false
 	otherProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {

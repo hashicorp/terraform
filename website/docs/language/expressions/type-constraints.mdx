@@ -96,9 +96,9 @@ The three kinds of collection type in the Terraform language are:
   for single line maps. A newline between key/value pairs is sufficient
   in multi-line maps.
 
-  Note: although colons are valid delimiters between keys and values,
-  they are currently ignored by `terraform fmt` (whereas `terraform fmt`
-  will attempt vertically align equals signs).
+  Note: Although colons are valid delimiters between keys and values,
+  `terraform fmt` currently ignores them (whereas `terraform fmt`
+  attempts to vertically align equals signs).
 * `set(...)`: a collection of unique values that do not have any secondary
   identifiers or ordering.
 
@@ -259,8 +259,6 @@ In this case, Terraform will replace `any` with the exact type of the given
 value and thus perform no type conversion whatsoever.
 
 ## Optional Object Type Attributes
-
--> **Note:** Optional object type attributes are supported only in Terraform v1.3 and later.
 
 Terraform typically returns an error when it does not receive a value for specified object attributes. When you mark an attribute as optional, Terraform instead inserts a default value for the missing attribute. This allows the receiving module to describe an appropriate fallback behavior.
 

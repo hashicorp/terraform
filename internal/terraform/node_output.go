@@ -25,6 +25,14 @@ type nodeExpandOutput struct {
 	Config      *configs.Output
 	Destroy     bool
 	RefreshOnly bool
+
+	// Planning is set to true when this node is in a graph that was produced
+	// by the plan graph builder, as opposed to the apply graph builder.
+	// This quirk is just because we share the same node type between both
+	// phases but in practice there are a few small differences in the actions
+	// we need to take between plan and apply. See method DynamicExpand for
+	// details.
+	Planning bool
 }
 
 var (
@@ -59,9 +67,18 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 	// wants to know the addresses of the checkable objects so that it can
 	// treat them as unknown status if we encounter an error before actually
 	// visiting the checks.
+	//
+	// We must do this only during planning, because the apply phase will start
+	// with all of the same checkable objects that were registered during the
+	// planning phase. Consumers of our JSON plan and state formats expect
+	// that the set of checkable objects will be consistent between the plan
+	// and any state snapshots created during apply, and that only the statuses
+	// of those objects will have changed.
 	var checkableAddrs addrs.Set[addrs.Checkable]
-	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
-		checkableAddrs = addrs.MakeSet[addrs.Checkable]()
+	if n.Planning {
+		if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.Addr.InModule(n.Module)) {
+			checkableAddrs = addrs.MakeSet[addrs.Checkable]()
+		}
 	}
 
 	var g Graph

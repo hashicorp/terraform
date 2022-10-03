@@ -401,6 +401,129 @@ resource "test_resource" "b" {
 	}
 }
 
+func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
+	// When a resource is in a nested module we have two levels of expansion
+	// to do: first expand the module the resource is declared in, and then
+	// expand the resource itself.
+	//
+	// In earlier versions of Terraform we did that expansion as two levels
+	// of DynamicExpand, which led to a bug where we didn't have any central
+	// location from which to register all of the instances of a checkable
+	// resource.
+	//
+	// We now handle the full expansion all in one graph node and one dynamic
+	// subgraph, which avoids the problem. This is a regression test for the
+	// earlier bug. If this test is panicking with "duplicate checkable objects
+	// report" then that suggests the bug is reintroduced and we're now back
+	// to reporting each module instance separately again, which is incorrect.
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{},
+		},
+		ResourceTypes: map[string]providers.Schema{
+			"test": {
+				Block: &configschema.Block{},
+			},
+		},
+	}
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		resp.NewState = req.PriorState
+		return resp
+	}
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = cty.EmptyObjectVal
+		return resp
+	}
+	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
+		resp.NewState = req.PlannedState
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			module "child" {
+				source = "./child"
+				count = 2 # must be at least 2 for this test to be valid
+			}
+		`,
+		"child/child.tf": `
+			locals {
+				a = "a"
+			}
+
+			resource "test" "test1" {
+				lifecycle {
+					postcondition {
+						# It doesn't matter what this checks as long as it
+						# passes, because if we don't handle expansion properly
+						# then we'll crash before we even get to evaluating this.
+						condition = local.a == local.a
+						error_message = "Postcondition failed."
+					}
+				}
+			}
+
+			resource "test" "test2" {
+				count = 2
+
+				lifecycle {
+					postcondition {
+						# It doesn't matter what this checks as long as it
+						# passes, because if we don't handle expansion properly
+						# then we'll crash before we even get to evaluating this.
+						condition = local.a == local.a
+						error_message = "Postcondition failed."
+					}
+				}
+			}
+		`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	priorState := states.NewState()
+	plan, diags := ctx.Plan(m, priorState, DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	resourceInsts := []addrs.AbsResourceInstance{
+		mustResourceInstanceAddr("module.child[0].test.test1"),
+		mustResourceInstanceAddr("module.child[0].test.test2[0]"),
+		mustResourceInstanceAddr("module.child[0].test.test2[1]"),
+		mustResourceInstanceAddr("module.child[1].test.test1"),
+		mustResourceInstanceAddr("module.child[1].test.test2[0]"),
+		mustResourceInstanceAddr("module.child[1].test.test2[1]"),
+	}
+
+	for _, instAddr := range resourceInsts {
+		t.Run(fmt.Sprintf("results for %s", instAddr), func(t *testing.T) {
+			if rc := plan.Changes.ResourceInstance(instAddr); rc != nil {
+				if got, want := rc.Action, plans.Create; got != want {
+					t.Errorf("wrong action for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+				if got, want := rc.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+					t.Errorf("wrong action reason for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+			} else {
+				t.Errorf("no planned change for %s", instAddr)
+			}
+
+			if checkResult := plan.Checks.GetObjectResult(instAddr); checkResult != nil {
+				if got, want := checkResult.Status, checks.StatusPass; got != want {
+					t.Errorf("wrong check status for %s\ngot:  %s\nwant: %s", instAddr, got, want)
+				}
+			} else {
+				t.Errorf("no check result for %s", instAddr)
+			}
+		})
+	}
+}
+
 func TestContext2Plan_dataResourceChecksManagedResourceChange(t *testing.T) {
 	// This tests the situation where the remote system contains data that
 	// isn't valid per a data resource postcondition, but that the
@@ -3517,4 +3640,111 @@ resource "test_object" "b" {
 	if !strings.Contains(msg, "Cycle") {
 		t.Fatalf("no cycle error found:\n got: %s\n", msg)
 	}
+}
+
+// plan a destroy with no state where configuration could fail to evaluate
+// expansion indexes.
+func TestContext2Plan_emptyDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+locals {
+  enable = true
+  value  = local.enable ? module.example[0].out : null
+}
+
+module "example" {
+  count  = local.enable ? 1 : 0
+  source = "./example"
+}
+`,
+		"example/main.tf": `
+resource "test_resource" "x" {
+}
+
+output "out" {
+  value = test_resource.x
+}
+`,
+	})
+
+	p := testProvider("test")
+	state := states.NewState()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+
+	assertNoErrors(t, diags)
+}
+
+// A deposed instances which no longer exists during ReadResource creates NoOp
+// change, which should not effect the plan.
+func TestContext2Plan_deposedNoLongerExists(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "b" {
+  count = 1
+  test_string = "updated"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		s := req.PriorState.GetAttr("test_string").AsString()
+		if s == "current" {
+			resp.NewState = req.PriorState
+			return resp
+		}
+		// pretend the non-current instance has been deleted already
+		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return resp
+	}
+
+	// Here we introduce a cycle via state which only shows up in the apply
+	// graph where the actual destroy instances are connected in the graph.
+	// This could happen for example when a user has an existing state with
+	// stored dependencies, and changes the config in such a way that
+	// contradicts the stored dependencies.
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		states.DeposedKey("deposed"),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"current"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
 }

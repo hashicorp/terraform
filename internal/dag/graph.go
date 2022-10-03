@@ -230,6 +230,28 @@ func (g *Graph) Connect(edge Edge) {
 	s.Add(source)
 }
 
+// Subsume imports all of the nodes and edges from the given graph into the
+// reciever, leaving the given graph unchanged.
+//
+// If any of the nodes in the given graph are already present in the reciever
+// then the existing node will be retained and any new edges from the given
+// graph will be connected with it.
+//
+// If the given graph has edges in common with the reciever then they will be
+// ignored, because each pair of nodes can only be connected once.
+func (g *Graph) Subsume(other *Graph) {
+	// We're using Set.Filter just as a "visit each element" here, so we're
+	// not doing anything with the result (which will always be empty).
+	other.vertices.Filter(func(i interface{}) bool {
+		g.Add(i)
+		return false
+	})
+	other.edges.Filter(func(i interface{}) bool {
+		g.Connect(i.(Edge))
+		return false
+	})
+}
+
 // String outputs some human-friendly output for the graph structure.
 func (g *Graph) StringWithNodeTypes() string {
 	var buf bytes.Buffer

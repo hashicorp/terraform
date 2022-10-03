@@ -777,7 +777,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	// starting values.
 	// Here we operate on the marked values, so as to revert any changes to the
 	// marks as well as the value.
-	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal)
+	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
 		return plan, state, keyData, diags
@@ -881,7 +881,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// providers that we must accommodate the behavior for now, so for
 		// ignore_changes to work at all on these values, we will revert the
 		// ignored values once more.
-		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal)
+		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, schema)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
 			return plan, state, keyData, diags
@@ -1145,7 +1145,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	return plan, state, keyData, diags
 }
 
-func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (cty.Value, tfdiags.Diagnostics) {
+func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
 	// ignore_changes only applies when an object already exists, since we
 	// can't ignore changes to a thing we've not created yet.
 	if prior.IsNull() {
@@ -1158,9 +1158,23 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value) (ct
 	if len(ignoreChanges) == 0 && !ignoreAll {
 		return config, nil
 	}
+
 	if ignoreAll {
-		return prior, nil
+		// If we are trying to ignore all attribute changes, we must filter
+		// computed attributes out from the prior state to avoid sending them
+		// to the provider as if they were included in the configuration.
+		ret, _ := cty.Transform(prior, func(path cty.Path, v cty.Value) (cty.Value, error) {
+			attr := schema.AttributeByPath(path)
+			if attr != nil && attr.Computed && !attr.Optional {
+				return cty.NullVal(v.Type()), nil
+			}
+
+			return v, nil
+		})
+
+		return ret, nil
 	}
+
 	if prior.IsNull() || config.IsNull() {
 		// Ignore changes doesn't apply when we're creating for the first time.
 		// Proposed should never be null here, but if it is then we'll just let it be.
