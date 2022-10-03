@@ -3682,3 +3682,69 @@ output "out" {
 
 	assertNoErrors(t, diags)
 }
+
+// A deposed instances which no longer exists during ReadResource creates NoOp
+// change, which should not effect the plan.
+func TestContext2Plan_deposedNoLongerExists(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "b" {
+  count = 1
+  test_string = "updated"
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		s := req.PriorState.GetAttr("test_string").AsString()
+		if s == "current" {
+			resp.NewState = req.PriorState
+			return resp
+		}
+		// pretend the non-current instance has been deleted already
+		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return resp
+	}
+
+	// Here we introduce a cycle via state which only shows up in the apply
+	// graph where the actual destroy instances are connected in the graph.
+	// This could happen for example when a user has an existing state with
+	// stored dependencies, and changes the config in such a way that
+	// contradicts the stored dependencies.
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceDeposed(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		states.DeposedKey("deposed"),
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"old"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"current"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+}
