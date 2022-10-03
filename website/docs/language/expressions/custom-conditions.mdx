@@ -115,9 +115,18 @@ The following example shows use cases for preconditions and postconditions. The 
 
 ```hcl
 
+data "aws_ami" "example" {
+  owners = ["amazon"]
+
+  filter {
+    name   = "image-id"
+    values = ["ami-abc123"]
+  }
+}
+
 resource "aws_instance" "example" {
-  instance_type = "t2.micro"
-  ami           = "ami-abc123"
+  instance_type = "t3.micro"
+  ami           = data.aws_ami.example.id
 
   lifecycle {
     # The AMI ID must refer to an AMI that contains an operating system
