@@ -881,7 +881,10 @@ func (n *NodeAbstractResourceInstance) plan(
 		// providers that we must accommodate the behavior for now, so for
 		// ignore_changes to work at all on these values, we will revert the
 		// ignored values once more.
-		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, schema)
+		// A nil schema is passed to processIgnoreChanges to indicate that we
+		// don't want to fixup a config value according to the schema when
+		// ignoring "all", rather we are reverting provider imposed changes.
+		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
 			return plan, state, keyData, diags
@@ -1160,6 +1163,14 @@ func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, sch
 	}
 
 	if ignoreAll {
+		// Legacy providers need up to clean up their invalid plans and ensure
+		// no changes are passed though, but that also means making an invalid
+		// config with computed values. In that case we just don't supply a
+		// schema and return the prior val directly.
+		if schema == nil {
+			return prior, nil
+		}
+
 		// If we are trying to ignore all attribute changes, we must filter
 		// computed attributes out from the prior state to avoid sending them
 		// to the provider as if they were included in the configuration.
