@@ -31,6 +31,7 @@ type Backend struct {
 	prefix     string
 
 	encryptionKey []byte
+	kmsKeyName    string
 }
 
 func New() backend.Backend {
@@ -83,10 +84,23 @@ func New() backend.Backend {
 			},
 
 			"encryption_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A 32 byte base64 encoded 'customer supplied encryption key' used to encrypt all state.",
-				Default:     "",
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_ENCRYPTION_KEY",
+				}, nil),
+				Description:   "A 32 byte base64 encoded 'customer supplied encryption key' used when reading and writing state files in the bucket.",
+				ConflictsWith: []string{"kms_encryption_key"},
+			},
+
+			"kms_encryption_key": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_KMS_ENCRYPTION_KEY",
+				}, nil),
+				Description:   "A Cloud KMS key ('customer managed encryption key') used when reading and writing state files in the bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'.",
+				ConflictsWith: []string{"encryption_key"},
 			},
 		},
 	}
@@ -188,11 +202,8 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.storageClient = client
 
+	// Customer-supplied encryption
 	key := data.Get("encryption_key").(string)
-	if key == "" {
-		key = os.Getenv("GOOGLE_ENCRYPTION_KEY")
-	}
-
 	if key != "" {
 		kc, err := backend.ReadPathOrContents(key)
 		if err != nil {
@@ -210,6 +221,12 @@ func (b *Backend) configure(ctx context.Context) error {
 			return fmt.Errorf("Error decoding encryption key: %s", err)
 		}
 		b.encryptionKey = k
+	}
+
+	// Customer-managed encryption
+	kmsName := data.Get("kms_encryption_key").(string)
+	if kmsName != "" {
+		b.kmsKeyName = kmsName
 	}
 
 	return nil
