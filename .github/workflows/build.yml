@@ -562,7 +562,7 @@ jobs:
       prerelease: ${{ needs.get-product-version.outputs.product-version-pre }}
       os: linux
       arch: amd64
-      equivalence-testing-version: v0.1.0
+      equivalence-testing-version: v0.2.0
 
     steps:
       # The equivalence tests are executed after a new tag is pushed as this
@@ -645,7 +645,7 @@ jobs:
             --goldens=testing/equivalence-tests/outputs \
             --binary="$TERRAFORM_BINARY_PATH"
           
-          changed=$(git diff --quiet -- goldens || echo true)
+          changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
           if [[ $changed == "true" ]]; then
             echo "found changes, and pushing new golden files into branch ${{ steps.metadata.outputs.target-branch }}."
           
