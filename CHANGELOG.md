@@ -6,6 +6,7 @@ BUG FIXES:
 * Prevent errors when the provider reports that a deposed instance no longer exists [GH-31902]
 * Using `ignore_changes = all` could cause persistent diffs with legacy providers [GH-31914]
 * Fix cycles when resource dependencies cross over between independent provider configurations [GH-31917]
+* Improve handling of missing resource instances during `import` [GH-31878]
 
 ## 1.3.1 (September 28, 2022)
 
