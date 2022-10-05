@@ -109,7 +109,7 @@ type Backend interface {
 	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
 	// the responsibility of the caller to hold a Lock for the state manager
 	// belonging to this workspace before calling this method.
-	DeleteWorkspace(name string) error
+	DeleteWorkspace(name string, force bool) error
 
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.

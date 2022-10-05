@@ -165,7 +165,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	err = b.DeleteWorkspace(workspace)
+	err = b.DeleteWorkspace(workspace, force)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
