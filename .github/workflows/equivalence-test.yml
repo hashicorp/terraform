@@ -152,7 +152,7 @@ jobs:
           curl \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/liamcervante/terraform/actions/runs/${{ env.build-run-id }}/artifacts" > artifacts.json
+            "https://api.github.com/repos/hashicorp/terraform/actions/runs/${{ env.build-run-id }}/artifacts" > artifacts.json
           
           VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
           ARTIFACT="terraform_${VERSION#v}_${{ env.target-os }}_${{ env.target-arch }}.zip"
@@ -161,7 +161,7 @@ jobs:
           curl -L \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/liamcervante/terraform/actions/artifacts/$ARTIFACT_ID/zip" > "$ARTIFACT.zip"
+            "https://api.github.com/repos/hashicorp/terraform/actions/artifacts/$ARTIFACT_ID/zip" > "$ARTIFACT.zip"
 
       - name: "Unzip terraform binary"
         run: |
