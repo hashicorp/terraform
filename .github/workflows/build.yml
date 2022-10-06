@@ -82,10 +82,6 @@ jobs:
           # Separate out the prerelease part, if any
           # (version.go expects it to be in a separate variable)
           IFS='-' read -r BASE_VERSION PRERELEASE <<< "$VERSION"
-          
-          # Separate out major, minor and patch versions.
-          # (we need this later when running the equivalence tests)
-          IFS='.' read -r MAJOR_VERSION MINOR_VERSION PATCH_VERSION <<< "$BASE_VERSION"
 
           EXPERIMENTS_ENABLED=0
           if [[ "$PRERELEASE" == alpha* ]]; then
@@ -108,9 +104,6 @@ jobs:
           fi
           echo "::set-output name=product-version::${VERSION}"
           echo "::set-output name=product-version-base::${BASE_VERSION}"
-          echo "::set-output name=product-version-major::${MAJOR_VERSION}"
-          echo "::set-output name=product-version-minor::${MINOR_VERSION}"
-          echo "::set-output name=product-version-patch::${PATCH_VERSION}"
           echo "::set-output name=product-version-pre::${PRERELEASE}"
           echo "::set-output name=experiments::${EXPERIMENTS_ENABLED}"
           echo "::set-output name=go-ldflags::${LDFLAGS}"
@@ -546,115 +539,3 @@ jobs:
           name: terraform-cli-docs-source_${{ env.version }}.zip
           path: terraform-cli-docs-source_${{ env.version }}.zip
           if-no-files-found: error
-
-  equivalence-test:
-    name: "Run equivalence tests"
-    runs-on: ubuntu-latest
-    needs:
-      - get-product-version
-      - get-go-version
-      - build
-
-    env:
-      version: ${{needs.get-product-version.outputs.product-version}}
-      major-version: ${{ needs.get-product-version.outputs.product-version-major }}
-      minor-version: ${{ needs.get-product-version.outputs.product-version-minor }}
-      prerelease: ${{ needs.get-product-version.outputs.product-version-pre }}
-      os: linux
-      arch: amd64
-      equivalence-testing-version: v0.2.0
-
-    steps:
-      # The equivalence tests are executed after a new tag is pushed as this
-      # indicates a new release has happened.
-      #
-      # We work out which branch we want to update, install go, download the
-      # relevant binary, and run the equivalence tests. There is a special case
-      # when working out the branch, as alpha releases are published from the
-      # main branch.
-      #
-      # If we find changes, we push those changes back to the relevant release
-      # branch.
-
-      - name: "Configure metadata"
-        id: metadata
-        run: |
-          if [[ "${{ github.event.push.ref }}" =~ "refs/tags" ]]; then
-            echo "::set-output name=run-equivalence-tests::true"
-          else
-            echo "::set-output name=run-equivalence-tests::false"
-          fi
-          
-          if [[ "${{ env.prerelease }}" == *"alpha"* ]]; then
-            echo "::set-output name=target-branch::main"
-          else
-            echo "::set-output name=target-branch::v${{ env.major-version }}.${{ env.minor-version }}"
-          fi
-
-      - name: "Install Go toolchain"
-        if: ${{ steps.metadata.outputs.run-equivalence-tests == 'true' }}
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
-
-      - name: "Checkout repository at target branch ${{ steps.metadata.outputs.target-branch }}"
-        if: ${{ steps.metadata.outputs.run-equivalence-tests == 'true' }}
-        uses: actions/checkout@v3
-        with:
-          ref: ${{ steps.metadata.outputs.target-branch }}
-          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
-
-      - name: "Download Terraform binary"
-        if: ${{ steps.metadata.outputs.run-equivalence-tests == 'true' }}
-        uses: actions/download-artifact@v2
-        with:
-          name: terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip
-          path: .
-
-      - name: "Download and unzip equivalence-testing binary"
-        if: ${{ steps.metadata.outputs.run-equivalence-tests == 'true' }}
-        run: |
-          curl \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
-            "https:///api.github.com/repos/hashicorp/terraform-equivalence-testing/releases" > releases.json
-          
-          VERSION="${{ env.equivalence-testing-version }}"
-          ASSET="terraform-equivalence-testing_${VERSION}_${{ env.os }}_${{ env.arch }}.zip"
-          ASSET_ID=$(jq -r --arg VERSION "$VERSION" --arg ASSET "$ASSET" '.[] | select(.name == $VERSION) | .assets[] | select(.name == $ASSET) | .id' releases.json)
-          
-          curl -L \
-            -H "Accept: application/octet-stream" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
-            "https:///api.github.com/repos/hashicorp/terraform-equivalence-testing/releases/assets/$ASSET_ID" > "$ASSET"
-
-          unzip -p "$ASSET" terraform-equivalence-testing > terraform-equivalence-testing
-          chmod u+x ./terraform-equivalence-testing
-          
-          rm releases.json
-          rm $ASSET
-
-      - name: "Run and update equivalence tests"
-        if: ${{ steps.metadata.outputs.run-equivalence-tests == 'true' }}
-        run: |
-          unzip "./terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip"
-          TERRAFORM_BINARY_PATH="$(pwd)/terraform"
-
-          ./terraform-equivalence-testing update \
-            --tests=testing/equivalence-tests/tests \
-            --goldens=testing/equivalence-tests/outputs \
-            --binary="$TERRAFORM_BINARY_PATH"
-          
-          changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
-          if [[ $changed == "true" ]]; then
-            echo "found changes, and pushing new golden files into branch ${{ steps.metadata.outputs.target-branch }}."
-          
-            git config user.email "52939924+teamterraform@users.noreply.github.com"
-            git config user.name "The Terraform Team"
-          
-            git add ./testing/equivalence-tests/golden-files
-            git commit -m"Automated equivalence test golden file update for release ${{ env.version }}."
-            git push
-          else
-            echo "found no changes, so not pushing any updates."
-          fi
