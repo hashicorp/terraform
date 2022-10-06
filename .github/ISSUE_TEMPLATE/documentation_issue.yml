@@ -7,12 +7,10 @@ body:
       value: |
         # Thank you for opening a documentation change request.
 
-        The [hashicorp/terraform](https://github.com/hashicorp/terraform) `Documentation` issue type is
-        reserved for reports relating to the documentation on [https://www.terraform.io/docs]().
-        This issue type is monitored by the technical writers, it is not
-        monitored by the engineering team so if this issue is related to a problem or request for the
-        functionality of Terraform and you want engineering to take a look, please use the `Bug report`
-        or `Feature Request` issue types instead.
+        Please only use the [hashicorp/terraform](https://github.com/hashicorp/terraform) `Documentation` issue
+        type to report problems with the documentation on [https://www.terraform.io/docs]().
+        Only technical writers (not engineers) monitor this issue type. Report Terraform bugs or feature requests 
+        with the `Bug report` or `Feature Request` issue types instead to get engineering attention.
 
         For general usage questions, please see: https://www.terraform.io/community.html.
 
@@ -32,7 +30,7 @@ body:
     attributes:
       label: Affected Pages
       description: |
-          Please use this space to link to the pages relevant to your documentation change request.
+          Link to the pages relevant to your documentation change request.
       placeholder:
       value:
     validations:
@@ -53,11 +51,11 @@ body:
     attributes:
       label: Proposal
       description: |
-          Please let us know what documentation changes you think would resolve this issue and where
-          you would expect to find them. Are one or more page headings unclear? Do one or more pages
+          What documentation changes would fix this issue and where
+          you would expect to find them? Are one or more page headings unclear? Do one or more pages
           need additional context, examples, or warnings? Do we need a new page or section dedicated
           to a specific topic?  Your ideas help us understand what you and other users need from our
-          documentation and how we can best improve the content.
+          documentation and how we can improve the content.
       placeholder:
       value:
     validations:
@@ -68,7 +66,7 @@ body:
     attributes:
       label: References
       description: |
-        Are there any other GitHub issues, whether open or closed, that are related to the problem you've described above or to the suggested solution? If so, please create a list below that mentions each of them. For example:
+        Are there any other open or closed GitHub issues related to the problem or solution you described? If so, list them below. For example:
         ```
           - #6017
         ```
