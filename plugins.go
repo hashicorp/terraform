@@ -17,7 +17,7 @@ import (
 // older versions where both satisfy the provider version constraints.
 func globalPluginDirs() []string {
 	var ret []string
-	// Look in ~/.terraform.d/plugins/ , or its equivalent on non-UNIX
+	// Look in "${TF_HOME_DIR:-~/.terraform.d}/plugins/" , or its equivalent on non-UNIX
 	dir, err := cliconfig.ConfigDir()
 	if err != nil {
 		log.Printf("[ERROR] Error finding global config directory: %s", err)

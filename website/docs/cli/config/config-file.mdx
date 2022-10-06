@@ -42,7 +42,7 @@ general syntax; see the following section for information on the meaning
 of each of these settings:
 
 ```hcl
-plugin_cache_dir   = "$HOME/.terraform.d/plugin-cache"
+plugin_cache_dir   = "${TF_HOME_DIR:-$HOME/.terraform.d}/plugin-cache"
 disable_checkpoint = true
 ```
 
@@ -298,10 +298,10 @@ The set of directories Terraform can select as filesystem mirrors depends on
 the operating system where you are running Terraform:
 
 * **Windows:** `%APPDATA%/terraform.d/plugins` and `%APPDATA%/HashiCorp/Terraform/plugins`
-* **Mac OS X:** `$HOME/.terraform.d/plugins`,
+* **Mac OS X:** `${TF_HOME_DIR:-$HOME/.terraform.d}/plugins`,
   `~/Library/Application Support/io.terraform/plugins`, and
   `/Library/Application Support/io.terraform/plugins`
-* **Linux and other Unix-like systems**:`$HOME/.terraform.d/plugins` and
+* **Linux and other Unix-like systems**:`${TF_HOME_DIR:-$HOME/.terraform.d}/plugins` and
   `terraform/plugins` located within a valid
   [XDG Base Directory](https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html)
   data directory such as `$XDG_DATA_HOME/terraform/plugins`.
@@ -343,7 +343,7 @@ To enable the plugin cache, use the `plugin_cache_dir` setting in
 the CLI configuration file. For example:
 
 ```hcl
-plugin_cache_dir = "$HOME/.terraform.d/plugin-cache"
+plugin_cache_dir = "${TF_HOME_DIR:-$HOME/.terraform.d}/plugin-cache"
 ```
 
 This directory must already exist before Terraform will cache plugins;
@@ -359,7 +359,7 @@ variable can be used to enable caching or to override an existing cache
 directory within a particular shell session:
 
 ```bash
-export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+export TF_PLUGIN_CACHE_DIR="${TF_HOME_DIR:-$HOME/.terraform.d}/plugin-cache"
 ```
 
 When a plugin cache directory is enabled, the `terraform init` command will

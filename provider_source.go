@@ -93,7 +93,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	//   way to include them in bundles uploaded to Terraform Cloud, where
 	//   there has historically otherwise been no way to use custom providers.
 	// - The "plugins" subdirectory of the CLI config search directory.
-	//   (thats ~/.terraform.d/plugins on Unix systems, equivalents elsewhere)
+	//   (thats "${TF_HOME_DIR:-~/.terraform.d}/plugins" on Unix systems, equivalents elsewhere)
 	// - The "plugins" subdirectory of any platform-specific search paths,
 	//   following e.g. the XDG base directory specification on Unix systems,
 	//   Apple's guidelines on OS X, and "known folders" on Windows.

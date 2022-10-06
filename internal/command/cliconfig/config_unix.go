@@ -11,7 +11,12 @@ import (
 )
 
 func configFile() (string, error) {
-	dir, err := homeDir()
+	tfHomeDir, err := tfHomeDir()
+	if err != nil {
+		return filepath.Join(tfHomeDir, "terraformrc"), nil
+	}
+
+	dir, err := userHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -20,7 +25,12 @@ func configFile() (string, error) {
 }
 
 func configDir() (string, error) {
-	dir, err := homeDir()
+	tfHomeDir, err := tfHomeDir()
+	if err != nil {
+		return tfHomeDir, nil
+	}
+
+	dir, err := userHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -28,10 +38,17 @@ func configDir() (string, error) {
 	return filepath.Join(dir, ".terraform.d"), nil
 }
 
-func homeDir() (string, error) {
+func tfHomeDir() (string, error) {
+	if tfHome := os.Getenv("TF_HOME_DIR"); tfHome != "" {
+		return tfHome, nil
+	}
+	return "", errors.New("TF_HOME_DIR is not set")
+}
+
+func userHomeDir() (string, error) {
 	// First prefer the HOME environmental variable
 	if home := os.Getenv("HOME"); home != "" {
-		// FIXME: homeDir gets called from globalPluginDirs during init, before
+		// FIXME: userHomeDir gets called from globalPluginDirs during init, before
 		// the logging is set up.  We should move meta initializtion outside of
 		// init, but in the meantime we just need to silence this output.
 		//log.Printf("[DEBUG] Detected home directory from env var: %s", home)
