@@ -40,7 +40,7 @@ body:
     id: tf-problem
     attributes:
       label: What is the docs issue?
-      description: Please let us know what problems you faced using the documentation, or what suggestions you have for us regarding the documentation.
+      description: What problems or suggestions do you have about the documentation?
       placeholder:
       value:
     validations:
