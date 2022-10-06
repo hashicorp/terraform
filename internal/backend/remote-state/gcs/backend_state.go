@@ -81,6 +81,7 @@ func (b *Backend) client(name string) (*remoteClient, error) {
 		stateFilePath:  b.stateFile(name),
 		lockFilePath:   b.lockFile(name),
 		encryptionKey:  b.encryptionKey,
+		kmsKeyName:     b.kmsKeyName,
 	}, nil
 }
 
