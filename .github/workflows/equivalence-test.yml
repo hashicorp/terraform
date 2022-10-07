@@ -17,7 +17,8 @@ on:
       - completed
 
 permissions:
-  contents: read
+  actions: read
+  contents: write
 
 env:
   terraform-equivalence-testing-version: v0.2.0
@@ -151,7 +152,7 @@ jobs:
         run: |
           curl \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/hashicorp/terraform/actions/runs/${{ env.build-run-id }}/artifacts" > artifacts.json
           
           VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
@@ -160,7 +161,7 @@ jobs:
           
           curl -L \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/hashicorp/terraform/actions/artifacts/$ARTIFACT_ID/zip" > "$ARTIFACT.zip"
 
       - name: "Unzip terraform binary"
@@ -199,7 +200,6 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ env.target-branch }}
-          token: ${{ secrets.ELEVATED_GITHUB_TOKEN }} # Elevated token as we intend to push updates back.
 
       - name: "Download Terraform binary"
         uses: actions/download-artifact@v2
