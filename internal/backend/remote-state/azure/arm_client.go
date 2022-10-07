@@ -81,6 +81,8 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		MsiEndpoint: config.MsiEndpoint,
 
 		// OIDC
+		IDToken:             config.OIDCToken,
+		IDTokenFilePath:     config.OIDCTokenFilePath,
 		IDTokenRequestURL:   config.OIDCRequestURL,
 		IDTokenRequestToken: config.OIDCRequestToken,
 
