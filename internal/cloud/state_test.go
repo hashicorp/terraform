@@ -244,7 +244,7 @@ func TestDelete_SafeDelete(t *testing.T) {
 	if err = state.Delete(false); err != nil {
 		t.Fatalf("workspace safe-delete err: %s", err)
 	}
-	
+
 	workspace, err := state.tfeClient.Workspaces.ReadByID(context.Background(), workspaceId)
 	if workspace != nil || err != tfe.ErrResourceNotFound {
 		t.Fatalf("workspace %s not deleted", workspaceId)
