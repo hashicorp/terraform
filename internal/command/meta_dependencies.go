@@ -1,8 +1,10 @@
 package command
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -28,6 +30,29 @@ import (
 // that the root module directory is always the current working directory.
 const dependencyLockFilename = ".terraform.lock.hcl"
 
+// getDependencyLockFilePath gets the dependency lock file absolute path. If the
+// environment variable X_TF_DEPENDENCYLOCK_DIR is set, the lock file is
+// appended to it.
+func getDependencyLockFilePath() string {
+	lockFilePath := os.Getenv("X_TF_DEPENDENCYLOCK_DIR")
+	if lockFilePath == "" {
+		log.Printf("[DEBUG] no override for the dependency lockfilr dir:")
+		return dependencyLockFilename
+	}
+	lockFileAbsPath, err := filepath.Abs(lockFilePath)
+	if err != nil {
+		panic(fmt.Sprintf("failed to resolve absolute path to the lockfile folder: %s", err))
+	}
+
+	st, err := os.Stat(lockFileAbsPath)
+	if err != nil || !st.IsDir() {
+		panic(fmt.Sprintf("the lockfile folder does not exist: %s", err))
+
+	}
+	log.Printf("[DEBUG] dir for the  lock file: %s is overridden environment variable %s ", lockFileAbsPath, "X_TF_DEPENDENCYLOCK_DIR")
+	return filepath.Join(lockFileAbsPath, dependencyLockFilename)
+}
+
 // lockedDependencies reads the dependency lock information from the lock file
 // in the current working directory.
 //
@@ -47,12 +72,12 @@ func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
 	// with no locks. There is in theory a race condition here in that
 	// the file could be created or removed in the meantime, but we're not
 	// promising to support two concurrent dependency installation processes.
-	_, err := os.Stat(dependencyLockFilename)
+	_, err := os.Stat(getDependencyLockFilePath())
 	if os.IsNotExist(err) {
 		return m.annotateDependencyLocksWithOverrides(depsfile.NewLocks()), nil
 	}
 
-	ret, diags := depsfile.LoadLocksFromFile(dependencyLockFilename)
+	ret, diags := depsfile.LoadLocksFromFile(getDependencyLockFilePath())
 	return m.annotateDependencyLocksWithOverrides(ret), diags
 }
 
@@ -60,7 +85,7 @@ func (m *Meta) lockedDependencies() (*depsfile.Locks, tfdiags.Diagnostics) {
 // current working directory to contain the information recorded in the given
 // locks object.
 func (m *Meta) replaceLockedDependencies(new *depsfile.Locks) tfdiags.Diagnostics {
-	return depsfile.SaveLocksToFile(new, dependencyLockFilename)
+	return depsfile.SaveLocksToFile(new, getDependencyLockFilePath())
 }
 
 // annotateDependencyLocksWithOverrides modifies the given Locks object in-place

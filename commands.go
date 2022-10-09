@@ -280,12 +280,17 @@ func initCommands(
 		},
 
 		"version": func() (cli.Command, error) {
-			return &command.VersionCommand{
+			var original = &command.VersionCommand{
 				Meta:              meta,
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
 				Platform:          getproviders.CurrentPlatform,
 				CheckFunc:         commandVersionCheck,
+			}
+			return &command.HelsternwareVersionCommand{
+				VersionCommand:    original,
+				Version:           HelsternwareVersion,
+				VersionPrerelease: HelsternwareVersionPrerelease,
 			}, nil
 		},
 
