@@ -17,7 +17,7 @@ XC_EXCLUDE_OSARCH="!darwin/arm !darwin/386"
 
 # Delete the old dir
 echo "==> Removing old directory..."
-rm -f bin/*
+rm -rf bin/*
 rm -rf pkg/*
 mkdir -p bin/
 
