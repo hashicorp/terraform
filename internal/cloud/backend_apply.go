@@ -133,6 +133,19 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		}
 	}
 
+	// Retrieve the run to get task stages.
+	// Task Stages are calculated upfront so we only need to call this once for the run.
+	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)
+	if err != nil {
+		return r, err
+	}
+
+	if stage, ok := taskStages[tfe.PreApply]; ok {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, stage.ID, "Pre-apply Tasks"); err != nil {
+			return r, err
+		}
+	}
+
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "apply", r, w)
 	if err != nil {
 		return r, err
