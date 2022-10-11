@@ -1211,10 +1211,7 @@ func TestClodBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
 	defer bCleanup()
 
 	err := b.DeleteWorkspace("non-existent-workspace", false)
-	if err == nil {
-		t.Fatalf("expected deleting a workspace which does not exist to fail")
-	}
-	if !strings.Contains(err.Error(), "failed to retrieve workspace non-existent-workspace") {
-		t.Fatalf("expected deletion to fail with cannot find workspace error, but got %s", err.Error())
+	if err != nil {
+		t.Fatalf("expected deleting a workspace which does not exist to succeed")
 	}
 }

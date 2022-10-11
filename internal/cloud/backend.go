@@ -526,6 +526,10 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	if err == tfe.ErrResourceNotFound {
+		return nil // If the workspace does not exist, succeed
+	}
+
 	if err != nil {
 		return fmt.Errorf("failed to retrieve workspace %s: %v", name, err)
 	}
