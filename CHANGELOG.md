@@ -8,6 +8,7 @@ ENHANCEMENTS:
 
 * The "Failed to install provider" error message now includes the reason a provider could not be installed. [GH-31898]
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. [GH-24967]
+* backend/gcs: Add `storage_custom_endpoint` argument, to allow communication with the backend via a Private Service Connect endpoint. [GH-28856]
 
 EXPERIMENTS:
 
