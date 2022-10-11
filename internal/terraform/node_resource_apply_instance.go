@@ -113,11 +113,16 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
-		// This should not be possible, but we've got here in at least one
-		// case as discussed in the following issue:
-		//    https://github.com/hashicorp/terraform/issues/21258
-		// To avoid an outright crash here, we'll instead return an explicit
-		// error.
+		// If there is no config, and there is no change, then we have nothing
+		// to do and the change was left in the plan for informational
+		// purposes only.
+		changes := ctx.Changes()
+		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), states.CurrentGen)
+		if csrc == nil || csrc.Action == plans.NoOp {
+			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource node has no configuration attached",

@@ -1442,3 +1442,46 @@ resource "test_object" "x" {
 		t.Fatalf("apply: %s", diags.Err())
 	}
 }
+
+func TestContext2Apply_missingOrphanedResource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+# changed resource address to create a new object
+resource "test_object" "y" {
+  test_string = "y"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+
+	// report the prior value is missing
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		resp.NewState = cty.NullVal(req.PriorState.Type())
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"x"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.NormalMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
