@@ -210,7 +210,7 @@ Usage: terraform [global options] workspace delete [OPTIONS] NAME
 
 Options:
 
-  -force             Remove even a non-empty workspace.
+  -force             Remove even a workspace with resources under management.
 
   -lock=false        Don't hold a state lock during the operation. This is
                      dangerous if others might concurrently run commands
