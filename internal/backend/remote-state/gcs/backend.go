@@ -102,6 +102,15 @@ func New() backend.Backend {
 				Description:   "A Cloud KMS key ('customer managed encryption key') used when reading and writing state files in the bucket. Format should be 'projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}'.",
 				ConflictsWith: []string{"encryption_key"},
 			},
+
+			"storage_custom_endpoint": {
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_STORAGE_CUSTOM_ENDPOINT",
+					"GOOGLE_STORAGE_CUSTOM_ENDPOINT",
+				}, nil),
+			},
 		},
 	}
 
@@ -195,6 +204,12 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	opts = append(opts, option.WithUserAgent(httpclient.UserAgentString()))
+
+	// Custom endpoint for storage API
+	if storageEndpoint, ok := data.GetOk("storage_custom_endpoint"); ok {
+		endpoint := option.WithEndpoint(storageEndpoint.(string))
+		opts = append(opts, endpoint)
+	}
 	client, err := storage.NewClient(b.storageContext, opts...)
 	if err != nil {
 		return fmt.Errorf("storage.NewClient() failed: %v", err)
