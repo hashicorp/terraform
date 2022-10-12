@@ -183,6 +183,15 @@ message PrepareProviderConfig {
 }
 
 message UpgradeResourceState {
+    // Request is the message that is sent to the provider during the
+    // UpgradeResourceState RPC.
+    //
+    // This message intentionally does not include configuration data as any
+    // configuration-based or configuration-conditional changes should occur
+    // during the PlanResourceChange RPC. Additionally, the configuration is
+    // not guaranteed to exist (in the case of resource destruction), be wholly
+    // known, nor match the given prior state, which could lead to unexpected
+    // provider behaviors for practitioners.
     message Request {
         string type_name = 1;
 
@@ -240,6 +249,14 @@ message Configure {
 }
 
 message ReadResource {
+    // Request is the message that is sent to the provider during the
+    // ReadResource RPC.
+    //
+    // This message intentionally does not include configuration data as any
+    // configuration-based or configuration-conditional changes should occur
+    // during the PlanResourceChange RPC. Additionally, the configuration is
+    // not guaranteed to be wholly known nor match the given prior state, which
+    // could lead to unexpected provider behaviors for practitioners.
     message Request {
         string type_name = 1;
         DynamicValue current_state = 2;
