@@ -273,6 +273,10 @@ When authenticating using a Service Principal with OpenID Connect (OIDC) - the f
 
 * `oidc_request_token` - (Optional) The bearer token for the request to the OIDC provider. This can also be sourced from the `ARM_OIDC_REQUEST_TOKEN` or `ACTIONS_ID_TOKEN_REQUEST_TOKEN` environment variables.
 
+* `oidc_token` - (Optional) The ID token when authenticating using OpenID Connect (OIDC). This can also be sourced from the `ARM_OIDC_TOKEN` environment variable.
+
+* `oidc_token_file_path` - (Optional) The path to a file containing an ID token when authenticating using OpenID Connect (OIDC). This can also be sourced from the `ARM_OIDC_TOKEN_FILE_PATH` environment variable.
+
 * `use_oidc` - (Optional) Should OIDC authentication be used? This can also be sourced from the `ARM_USE_OIDC` environment variable.
 
 ***
