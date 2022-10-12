@@ -1,5 +1,9 @@
 ## 1.3.3 (Unreleased)
 
+BUG FIXES:
+
+* Fix error when removing a resource from configuration which has according to the provider has already been deleted. [GH-31850]
+
 ## 1.3.2 (October 06, 2022)
 
 BUG FIXES:
