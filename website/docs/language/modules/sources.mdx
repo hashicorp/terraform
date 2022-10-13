@@ -358,7 +358,7 @@ using one of the forms documented elsewhere on this page.
 If an HTTP/HTTPS URL requires authentication credentials, use a `.netrc`
 file to configure these. By default, Terraform will search for the `.netrc` file 
 in your HOME directory. However, that default filesystem location can be overriden 
-through the `NETRC` environment variable. For information on the `.netrc` format,
+by setting the `NETRC` environment variable. For information on the `.netrc` format,
 see [the documentation for using it in `curl`](https://everything.curl.dev/usingcurl/netrc).
 
 ### Fetching archives over HTTP
