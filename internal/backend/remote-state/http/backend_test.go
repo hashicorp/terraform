@@ -253,10 +253,10 @@ func TestMTLS(t *testing.T) {
 		certFile, keyFile := testCerts(t, ts)
 
 		conf := map[string]cty.Value{
-			"address": cty.StringVal(url),
-			"cacert":  cty.StringVal(certFile),
-			"cert":    cty.StringVal(certFile),
-			"key":     cty.StringVal(keyFile),
+			"address":           cty.StringVal(url),
+			"client_cacert_pem": cty.StringVal(certFile),
+			"client_cert_pem":   cty.StringVal(certFile),
+			"client_key_pem":    cty.StringVal(keyFile),
 		}
 		b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
 		if b == nil {

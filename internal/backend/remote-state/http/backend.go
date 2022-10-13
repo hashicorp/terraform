@@ -96,23 +96,23 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_RETRY_WAIT_MAX", 30),
 				Description: "The maximum time in seconds to wait between HTTP request attempts.",
 			},
-			"cacert": &schema.Schema{
+			"client_cacert_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CACERT", ""),
-				Description: "The cacert to use when validating the address.",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CACERT_PEM", ""),
+				Description: "The cacert pem file that the client uses to validate the server in TLS handshake",
 			},
-			"cert": &schema.Schema{
+			"client_cert_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CERT", ""),
-				Description: "The client certificate to present for mTLS access to an address.",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CERT_PEM", ""),
+				Description: "The certificate pem file that the client will present to server in TLS handshake",
 			},
-			"key": &schema.Schema{
+			"client_key_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_KEY", ""),
-				Description: "The key to use when presenting a client certificate for mTLS access to an address.",
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_KEY_PEM", ""),
+				Description: "The key pem file that the client uses to encrypt and sign when using the client cert",
 			},
 		},
 	}
@@ -178,24 +178,24 @@ func (b *Backend) configure(ctx context.Context) error {
 		tlsConfig.InsecureSkipVerify = true
 		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
 	}
-	cacert := data.Get("cacert").(string)
-	if cacert != "" {
-		cacert_data, err := os.ReadFile(cacert)
+	clientCACertPem := data.Get("client_cacert_pem").(string)
+	if clientCACertPem != "" {
+		cacertData, err := os.ReadFile(clientCACertPem)
 		if err != nil {
-			return fmt.Errorf("failed to read file %s: %w", cacert, err)
+			return fmt.Errorf("failed to read file %s: %w", clientCACertPem, err)
 		}
 		tlsConfig.RootCAs = x509.NewCertPool()
-		if !tlsConfig.RootCAs.AppendCertsFromPEM(cacert_data) {
-			return fmt.Errorf("failed to append certs from file %s: %w", cacert, err)
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(cacertData) {
+			return fmt.Errorf("failed to append certs from file %s: %w", clientCACertPem, err)
 		}
 		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
 	}
-	cert := data.Get("cert").(string)
-	key := data.Get("key").(string)
-	if cert != "" && key != "" {
-		certificate, err := tls.LoadX509KeyPair(cert, key)
+	clientCertPem := data.Get("client_cert_pem").(string)
+	clientKeyPem := data.Get("client_key_pem").(string)
+	if clientCertPem != "" && clientKeyPem != "" {
+		certificate, err := tls.LoadX509KeyPair(clientCertPem, clientKeyPem)
 		if err != nil {
-			return fmt.Errorf("cannot load certifcate from %s and %s: %w", cert, key, err)
+			return fmt.Errorf("cannot load certifcate from %s and %s: %w", clientCertPem, clientKeyPem, err)
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificate}
 		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
