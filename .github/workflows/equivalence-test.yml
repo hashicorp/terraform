@@ -113,7 +113,6 @@ jobs:
         run: |
           curl \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
             "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases" > releases.json
           
           VERSION="${{ env.terraform-equivalence-testing-version }}"
@@ -122,7 +121,6 @@ jobs:
 
           curl -L \
             -H "Accept: application/octet-stream" \
-            -H "Authorization: Bearer ${{ secrets.ELEVATED_GITHUB_TOKEN }}" \
             "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases/assets/$ASSET_ID" > "$ASSET"
 
       - name: "Unzip terraform-equivalence-testing binary"
