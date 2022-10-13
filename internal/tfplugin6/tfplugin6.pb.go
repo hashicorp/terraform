@@ -1819,6 +1819,15 @@ func (x *ValidateProviderConfig_Response) GetDiagnostics() []*Diagnostic {
 	return nil
 }
 
+// Request is the message that is sent to the provider during the
+// UpgradeResourceState RPC.
+//
+// This message intentionally does not include configuration data as any
+// configuration-based or configuration-conditional changes should occur
+// during the PlanResourceChange RPC. Additionally, the configuration is
+// not guaranteed to exist (in the case of resource destruction), be wholly
+// known, nor match the given prior state, which could lead to unexpected
+// provider behaviors for practitioners.
 type UpgradeResourceState_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2255,6 +2264,14 @@ func (x *ConfigureProvider_Response) GetDiagnostics() []*Diagnostic {
 	return nil
 }
 
+// Request is the message that is sent to the provider during the
+// ReadResource RPC.
+//
+// This message intentionally does not include configuration data as any
+// configuration-based or configuration-conditional changes should occur
+// during the PlanResourceChange RPC. Additionally, the configuration is
+// not guaranteed to be wholly known nor match the given prior state, which
+// could lead to unexpected provider behaviors for practitioners.
 type ReadResource_Request struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
