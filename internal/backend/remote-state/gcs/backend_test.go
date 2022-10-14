@@ -407,7 +407,7 @@ func bucketName(t *testing.T) string {
 	return strings.ToLower(name)
 }
 
-// getClientOptions returns the []option.ClientOption needed to configure Google API clients
+// testGetClientOptions returns the []option.ClientOption needed to configure Google API clients
 // that are required in acceptance tests but are not part of the gcs backend itself
 func testGetClientOptions(t *testing.T) ([]option.ClientOption, error) {
 	t.Helper()
