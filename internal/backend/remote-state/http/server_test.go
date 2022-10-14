@@ -133,8 +133,8 @@ func (h *httpServer) handleStatePOST(writer http.ResponseWriter, req *http.Reque
 		return
 	}
 
-	h.lock.RLock()
-	defer h.lock.RUnlock()
+	h.lock.Lock()
+	defer h.lock.Unlock()
 
 	h.data[resource] = string(data)
 	writer.WriteHeader(http.StatusOK)
@@ -146,8 +146,8 @@ func (h *httpServer) handleStateDELETE(writer http.ResponseWriter, req *http.Req
 	}
 	resource := h.getResource(req)
 
-	h.lock.RLock()
-	defer h.lock.RUnlock()
+	h.lock.Lock()
+	defer h.lock.Unlock()
 
 	delete(h.data, resource)
 	writer.WriteHeader(http.StatusOK)
