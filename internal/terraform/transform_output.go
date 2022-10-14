@@ -92,12 +92,13 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 
 		default:
 			node = &nodeExpandOutput{
-				Addr:        addr,
-				Module:      c.Path,
-				Config:      o,
-				Destroy:     t.removeRootOutputs,
-				RefreshOnly: t.RefreshOnly,
-				Planning:    t.Planning,
+				Addr:         addr,
+				Module:       c.Path,
+				Config:       o,
+				DestroyPlan:  t.removeRootOutputs,
+				DestroyApply: t.destroyApply,
+				RefreshOnly:  t.RefreshOnly,
+				Planning:     t.Planning,
 			}
 		}
 

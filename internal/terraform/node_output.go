@@ -20,11 +20,12 @@ import (
 // nodeExpandOutput is the placeholder for a non-root module output that has
 // not yet had its module path expanded.
 type nodeExpandOutput struct {
-	Addr        addrs.OutputValue
-	Module      addrs.Module
-	Config      *configs.Output
-	Destroy     bool
-	RefreshOnly bool
+	Addr         addrs.OutputValue
+	Module       addrs.Module
+	Config       *configs.Output
+	DestroyPlan  bool
+	DestroyApply bool
+	RefreshOnly  bool
 
 	// Planning is set to true when this node is in a graph that was produced
 	// by the plan graph builder, as opposed to the apply graph builder.
@@ -52,7 +53,7 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	if n.Destroy {
+	if n.DestroyPlan {
 		// if we're planning a destroy, we only need to handle the root outputs.
 		// The destroy plan doesn't evaluate any other config, so we can skip
 		// the rest of the outputs.
@@ -105,10 +106,11 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		}
 
 		o := &NodeApplyableOutput{
-			Addr:        absAddr,
-			Config:      n.Config,
-			Change:      change,
-			RefreshOnly: n.RefreshOnly,
+			Addr:         absAddr,
+			Config:       n.Config,
+			Change:       change,
+			RefreshOnly:  n.RefreshOnly,
+			DestroyApply: n.DestroyApply,
 		}
 		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
 		g.Add(o)
@@ -192,8 +194,11 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
-	// root outputs might be destroyable, and may not reference anything in
-	// that case
+	// DestroyNodes do not reference anything.
+	if n.Module.IsRoot() && n.DestroyApply {
+		return nil
+	}
+
 	return referencesForOutput(n.Config)
 }
 
@@ -208,6 +213,10 @@ type NodeApplyableOutput struct {
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
 	RefreshOnly bool
+
+	// DestroyApply indicates that we are applying a destroy plan, and do not
+	// need to account for conditional blocks.
+	DestroyApply bool
 }
 
 var (
@@ -321,19 +330,23 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 		}
 	}
 
-	checkRuleSeverity := tfdiags.Error
-	if n.RefreshOnly {
-		checkRuleSeverity = tfdiags.Warning
-	}
-	checkDiags := evalCheckRules(
-		addrs.OutputPrecondition,
-		n.Config.Preconditions,
-		ctx, n.Addr, EvalDataForNoInstanceKey,
-		checkRuleSeverity,
-	)
-	diags = diags.Append(checkDiags)
-	if diags.HasErrors() {
-		return diags // failed preconditions prevent further evaluation
+	// Checks are not evaluated during a destroy. The checks may fail, may not
+	// be valid, or may not have been registered at all.
+	if !n.DestroyApply {
+		checkRuleSeverity := tfdiags.Error
+		if n.RefreshOnly {
+			checkRuleSeverity = tfdiags.Warning
+		}
+		checkDiags := evalCheckRules(
+			addrs.OutputPrecondition,
+			n.Config.Preconditions,
+			ctx, n.Addr, EvalDataForNoInstanceKey,
+			checkRuleSeverity,
+		)
+		diags = diags.Append(checkDiags)
+		if diags.HasErrors() {
+			return diags // failed preconditions prevent further evaluation
+		}
 	}
 
 	// If there was no change recorded, or the recorded change was not wholly
