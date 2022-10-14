@@ -5,6 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"github.com/golang/mock/gomock"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/zclconf/go-cty/cty"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -15,15 +23,6 @@ import (
 	"sync"
 	"syscall"
 	"testing"
-
-	"github.com/golang/mock/gomock"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/zclconf/go-cty/cty"
 )
 
 const sampleState = `
