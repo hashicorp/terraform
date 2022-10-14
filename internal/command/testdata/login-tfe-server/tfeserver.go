@@ -17,8 +17,8 @@ const (
 // Handler is an implementation of net/http.Handler that provides a stub
 // TFE API server implementation with the following endpoints:
 //
-//     /ping            - API existence endpoint
-//     /account/details - current user endpoint
+//	/ping            - API existence endpoint
+//	/account/details - current user endpoint
 var Handler http.Handler
 
 type handler struct{}

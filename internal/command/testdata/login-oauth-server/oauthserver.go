@@ -16,9 +16,9 @@ import (
 // Handler is an implementation of net/http.Handler that provides a stub
 // OAuth server implementation with the following endpoints:
 //
-//     /authz  - authorization endpoint
-//     /token  - token endpoint
-//     /revoke - token revocation (logout) endpoint
+//	/authz  - authorization endpoint
+//	/token  - token endpoint
+//	/revoke - token revocation (logout) endpoint
 //
 // The authorization endpoint returns HTML per normal OAuth conventions, but
 // it also includes an HTTP header X-Redirect-To giving the same URL that the
