@@ -1,5 +1,7 @@
 package http
 
+//go:generate go run github.com/golang/mock/mockgen -package $GOPACKAGE -source $GOFILE -destination mock_$GOFILE
+
 import (
 	"context"
 	"crypto/tls"
