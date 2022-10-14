@@ -57,8 +57,6 @@ The properties within the discovery object are as follows:
     Both the `authz` and `token` properties are required when `authz_code` is
     present.
 
-  Other grant types may be supported in future versions of Terraform CLI,
-  and may impose different requirements on the `authz` and `token` properties.
   If not specified, `grant_types` defaults to `["authz_code"]`.
 
 * `authz` (Required if needed for a given grant type): the server's
