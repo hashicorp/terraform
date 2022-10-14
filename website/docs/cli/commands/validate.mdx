@@ -126,10 +126,12 @@ The nested objects in `diagnostics` have the following properties:
   rendering container, but leave the preformatted lines unwrapped.
 
   Some Terraform detail messages currently contain an approximation of bullet
-  lists using ASCII characters to mark the bullets. This is not a
-  contractural formatting convention, so renderers should avoid depending on
+  lists using ASCII characters to mark the bullets. This is not currently a
+  contractural formatting convention and so renderers should avoid depending on
   it and should instead treat those lines as either paragraphs or preformatted
-  text per the rules above.
+  text per the rules above. A future version of this format may define some
+  additional rules for processing other text conventions, but will do so within
+  the bounds of the rules above to achieve backward-compatibility.
 
 - `range` (object): An optional object referencing a portion of the configuration
   source code that the diagnostic message relates to. For errors, this will
@@ -193,7 +195,9 @@ object, has the following properties:
 
 A `start` position is inclusive while an `end` position is exclusive. The
 exact positions used for particular error messages are intended for human
-interpretation only.
+interpretation only and subject to change in future versions of Terraform due
+either to improvements to the error reporting or changes in implementation
+details of the language parser/evaluator.
 
 ### Expression Value
 
@@ -205,7 +209,8 @@ exactly which values are responsible for an error. The object has two properties
 - `traversal` (string): An HCL-like traversal string, such as
   `var.instance_count`. Complex index key values may be elided, so this will
   not always be valid, parseable HCL. The contents of this string are intended
-  to be human-readable.
+  to be human-readable and are subject to change in future versions of
+  Terraform.
 
 - `statement` (string): A short English-language fragment describing the value
   of the expression when the diagnostic was triggered. The contents of this
