@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"cloud.google.com/go/storage"
@@ -55,7 +54,10 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Google Cloud JSON Account Key",
-				Default:     "",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_CREDENTIALS",
+					"GOOGLE_CREDENTIALS",
+				}, nil),
 			},
 
 			"access_token": {
@@ -149,10 +151,6 @@ func (b *Backend) configure(ctx context.Context) error {
 		})
 	} else if v, ok := data.GetOk("credentials"); ok {
 		creds = v.(string)
-	} else if v := os.Getenv("GOOGLE_BACKEND_CREDENTIALS"); v != "" {
-		creds = v
-	} else {
-		creds = os.Getenv("GOOGLE_CREDENTIALS")
 	}
 
 	if tokenSource != nil {
