@@ -49,7 +49,7 @@ body:
       label: Proposal
       description: |
           What documentation changes would fix this issue and where
-          you would expect to find them? Are one or more page headings unclear? Do one or more pages
+         would you expect to find them? Are one or more page headings unclear? Do one or more pages
           need additional context, examples, or warnings? Do we need a new page or section dedicated
           to a specific topic?  Your ideas help us understand what you and other users need from our
           documentation and how we can improve the content.
