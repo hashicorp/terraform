@@ -19,7 +19,7 @@ PREVIEW_MODE=developer
 CURRENT_GIT_BRANCH=$VERCEL_GIT_COMMIT_REF
 
 # This is where content files live, relative to the website-preview dir. If omitted, "../content" will be used
-LOCAL_CONTENT_DIR=../docs
+LOCAL_CONTENT_DIR=
 
 from_cache=false
 
