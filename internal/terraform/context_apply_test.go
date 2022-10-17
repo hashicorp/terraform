@@ -12027,7 +12027,7 @@ output "out" {
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
 			"in": &InputValue{
-				Value: cty.MapVal(map[string]cty.Value{
+				Value: cty.ObjectVal(map[string]cty.Value{
 					"required": cty.StringVal("boop"),
 				}),
 				SourceType: ValueFromCaller,
