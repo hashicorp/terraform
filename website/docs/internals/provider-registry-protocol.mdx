@@ -294,11 +294,11 @@ A successful result is a JSON object with the following properties:
   _required_ for describing an individual provider package so that Terraform
   CLI can avoid downloading a package that will not be compatible with it.
 
-* `os` (required): this must currently echo back the `os` parameter from the
-  request. Other possibilities may come in later versions of this protocol.
+* `os` (required): this must echo back the `os` parameter from the
+  request.
 
-* `arch` (required): this must currently echo back the `arch` parameter from the
-  request. Other possibilities may come in later versions of this protocol.
+* `arch` (required): this must echo back the `arch` parameter from the
+  request. 
 
 * `filename` (required): the filename for this provider's zip archive as
   recorded in the "shasums" document, so that Terraform CLI can determine which
