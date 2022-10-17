@@ -17,7 +17,7 @@ PREVIEW_MODE=developer
 CURRENT_GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 # This is where content files live, relative to the website-preview dir. If omitted, "../content" will be used
-LOCAL_CONTENT_DIR=../docs
+LOCAL_CONTENT_DIR=
 
 should_pull=true
 
