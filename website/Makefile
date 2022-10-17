@@ -13,7 +13,7 @@ REPO ?= terraform
 DOCKER_CMD ?= docker
 
 CURRENT_GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD)
-LOCAL_CONTENT_DIR=
+LOCAL_CONTENT_DIR=../docs
 PWD=$$(pwd)
 
 DOCKER_IMAGE="hashicorp/dev-portal"
