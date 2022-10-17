@@ -68,6 +68,15 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			nullable  = false
 			type      = string
 		}
+		variable "complex_type_with_nested_default_optional" {
+			type = set(object({
+				name = string
+				schedules = set(object({
+					name = string
+					cold_storage_after = optional(number, 10)
+				}))
+  			}))
+		}
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -396,6 +405,59 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			"constrained_string_optional_default_bool",
 			cty.UnknownVal(cty.String),
 			cty.UnknownVal(cty.String),
+			``,
+		},
+
+		// complex types
+
+		{
+			"complex_type_with_nested_default_optional",
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+						cty.MapVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.StringVal("0"),
+						}),
+					}),
+				}),
+			}),
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.NumberIntVal(0),
+						}),
+					}),
+				}),
+			}),
 			``,
 		},
 
