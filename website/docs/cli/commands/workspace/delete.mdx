@@ -31,7 +31,7 @@ from getting into this situation.
 
 The command-line flags are all optional. The only supported flags are:
 
-* `-force` - Delete the workspace even if it has resources under management. Defaults to false.
+* `-force` - Delete the workspace even if it has resources under management. After deletion, Terraform can no longer track or manage the workspace's infrastructure. Defaults to false.
 * `-lock=false` - Don't hold a state lock during the operation. This is
   dangerous if others might concurrently run commands against the same
   workspace.
