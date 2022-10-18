@@ -53,13 +53,6 @@ func (n *nodeExpandOutput) temporaryValue() bool {
 }
 
 func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	if n.DestroyPlan {
-		// if we're planning a destroy, we only need to handle the root outputs.
-		// The destroy plan doesn't evaluate any other config, so we can skip
-		// the rest of the outputs.
-		return n.planDestroyRootOutput(ctx)
-	}
-
 	expander := ctx.InstanceExpander()
 	changes := ctx.Changes()
 
@@ -105,15 +98,29 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 			}
 		}
 
-		o := &NodeApplyableOutput{
-			Addr:         absAddr,
-			Config:       n.Config,
-			Change:       change,
-			RefreshOnly:  n.RefreshOnly,
-			DestroyApply: n.DestroyApply,
+		var node dag.Vertex
+		switch {
+		case module.IsRoot() && (n.DestroyPlan || n.DestroyApply):
+			node = &NodeDestroyableOutput{
+				Addr: absAddr,
+			}
+
+		case n.DestroyPlan:
+			// nothing is done here for non-root outputs
+			continue
+
+		default:
+			node = &NodeApplyableOutput{
+				Addr:         absAddr,
+				Config:       n.Config,
+				Change:       change,
+				RefreshOnly:  n.RefreshOnly,
+				DestroyApply: n.DestroyApply,
+			}
 		}
-		log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
-		g.Add(o)
+
+		log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
+		g.Add(node)
 	}
 	addRootNodeToGraph(&g)
 
@@ -121,27 +128,6 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		checkState := ctx.Checks()
 		checkState.ReportCheckableObjects(n.Addr.InModule(n.Module), checkableAddrs)
 	}
-
-	return &g, nil
-}
-
-// if we're planing a destroy operation, add a destroy node for any root output
-func (n *nodeExpandOutput) planDestroyRootOutput(ctx EvalContext) (*Graph, error) {
-	if !n.Module.IsRoot() {
-		return nil, nil
-	}
-	state := ctx.State()
-	if state == nil {
-		return nil, nil
-	}
-
-	var g Graph
-	o := &NodeDestroyableOutput{
-		Addr:   n.Addr.Absolute(addrs.RootModuleInstance),
-		Config: n.Config,
-	}
-	log.Printf("[TRACE] Expanding output: adding %s as %T", o.Addr.String(), o)
-	g.Add(o)
 
 	return &g, nil
 }
@@ -434,8 +420,7 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr   addrs.AbsOutputValue
-	Config *configs.Output // Config is the output in the config
+	Addr addrs.AbsOutputValue
 }
 
 var (

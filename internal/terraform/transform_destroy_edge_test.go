@@ -383,8 +383,7 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 				Config:   config,
 			},
 			&OutputTransformer{
-				Config:  config,
-				Changes: changes,
+				Config: config,
 			},
 			&DiffTransformer{
 				Concrete: concreteResourceInstance,

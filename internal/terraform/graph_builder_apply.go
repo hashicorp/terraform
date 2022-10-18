@@ -97,7 +97,6 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
 			Config:       b.Config,
-			Changes:      b.Changes,
 			destroyApply: b.Operation == walkDestroy,
 		},
 
