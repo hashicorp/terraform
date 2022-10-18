@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * Fix error when removing a resource from configuration which has according to the provider has already been deleted. [GH-31850]
+* Fix error when setting empty collections into variables with collections of nested objects with default values. [GH-32033]
 
 ## 1.3.2 (October 06, 2022)
 
