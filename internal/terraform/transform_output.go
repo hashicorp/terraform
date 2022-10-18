@@ -30,6 +30,10 @@ type OutputTransformer struct {
 	// Planning must be set to true only when we're building a planning graph.
 	// It must be set to false whenever we're building an apply graph.
 	Planning bool
+
+	// destroyApply indicates that this is being added to an apply graph, which
+	// is the result of a destroy plan.
+	destroyApply bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {

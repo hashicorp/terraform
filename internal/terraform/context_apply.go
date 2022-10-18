@@ -111,6 +111,18 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 		}
 	}
 
+	operation := walkApply
+	if plan.UIMode == plans.DestroyMode {
+		// FIXME: Due to differences in how objects must be handled in the
+		// graph and evaluated during a complete destroy, we must continue to
+		// use plans.DestroyMode to switch on this behavior. If all objects
+		// which require special destroy handling can be tracked in the plan,
+		// then this switch will no longer be needed and we can remove the
+		// walkDestroy operation mode.
+		// TODO: Audit that and remove walkDestroy as an operation mode.
+		operation = walkDestroy
+	}
+
 	graph, moreDiags := (&ApplyGraphBuilder{
 		Config:             config,
 		Changes:            plan.Changes,
@@ -119,20 +131,11 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 		Plugins:            c.plugins,
 		Targets:            plan.TargetAddrs,
 		ForceReplace:       plan.ForceReplaceAddrs,
+		Operation:          operation,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, walkApply, diags
-	}
-
-	operation := walkApply
-	if plan.UIMode == plans.DestroyMode {
-		// NOTE: This is a vestigial violation of the rule that we mustn't
-		// use plan.UIMode to affect apply-time behavior. It's a design error
-		// if anything downstream switches behavior when operation is set
-		// to walkDestroy, but we've not yet fully audited that.
-		// TODO: Audit that and remove walkDestroy as an operation mode.
-		operation = walkDestroy
 	}
 
 	return graph, operation, diags
