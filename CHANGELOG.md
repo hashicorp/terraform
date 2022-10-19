@@ -1,9 +1,9 @@
-## 1.3.3 (Unreleased)
+## 1.3.3 (October 19, 2022)
 
 BUG FIXES:
 
-* Fix error when removing a resource from configuration which has according to the provider has already been deleted. [GH-31850]
-* Fix error when setting empty collections into variables with collections of nested objects with default values. [GH-32033]
+* Fix error when removing a resource from configuration which has according to the provider has already been deleted. ([#31850](https://github.com/hashicorp/terraform/issues/31850))
+* Fix error when setting empty collections into variables with collections of nested objects with default values. ([#32033](https://github.com/hashicorp/terraform/issues/32033))
 
 ## 1.3.2 (October 06, 2022)
 
