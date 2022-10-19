@@ -1,5 +1,7 @@
 module github.com/hashicorp/terraform
 
+replace github.com/zclconf/go-cty => ../../liamcervante/go-cty
+
 require (
 	cloud.google.com/go v0.81.0
 	cloud.google.com/go/storage v1.10.0

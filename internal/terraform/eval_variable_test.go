@@ -70,12 +70,27 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 		}
 		variable "complex_type_with_nested_default_optional" {
 			type = set(object({
-				name = string
+				name      = string
 				schedules = set(object({
-					name = string
+					name               = string
 					cold_storage_after = optional(number, 10)
 				}))
   			}))
+		}
+		variable "complex_type_with_nested_complex_types" {
+			type = object({
+				name                       = string
+				nested_object              = object({
+					name  = string
+					value = optional(string, "foo")
+				})
+				nested_object_with_default = optional(object({
+					name  = string
+					value = optional(string, "bar")
+				}), {
+					name = "nested_object_with_default"
+				})
+			})
 		}
 	`
 	cfg := testModuleInline(t, map[string]string{
@@ -456,6 +471,27 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 							"cold_storage_after": cty.NumberIntVal(0),
 						}),
 					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"complex_type_with_nested_complex_types",
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("nested_object"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object"),
+					"value": cty.StringVal("foo"),
+				}),
+				"nested_object_with_default": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object_with_default"),
+					"value": cty.StringVal("bar"),
 				}),
 			}),
 			``,
