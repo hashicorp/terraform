@@ -16,10 +16,6 @@ import (
 type OutputTransformer struct {
 	Config *configs.Config
 
-	// If this is a planned destroy, root outputs are still in the configuration
-	// so we need to record that we wish to remove them
-	removeRootOutputs bool
-
 	// Refresh-only mode means that any failing output preconditions are
 	// reported as warnings rather than errors
 	RefreshOnly bool
@@ -28,9 +24,13 @@ type OutputTransformer struct {
 	// It must be set to false whenever we're building an apply graph.
 	Planning bool
 
-	// destroyApply indicates that this is being added to an apply graph, which
+	// If this is a planned destroy, root outputs are still in the configuration
+	// so we need to record that we wish to remove them
+	DestroyPlan bool
+
+	// DestroyApply indicates that this is being added to an apply graph, which
 	// is the result of a destroy plan.
-	destroyApply bool
+	DestroyApply bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -59,8 +59,8 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			Addr:         addr,
 			Module:       c.Path,
 			Config:       o,
-			DestroyPlan:  t.removeRootOutputs,
-			DestroyApply: t.destroyApply,
+			DestroyPlan:  t.DestroyPlan,
+			DestroyApply: t.DestroyApply,
 			RefreshOnly:  t.RefreshOnly,
 			Planning:     t.Planning,
 		}

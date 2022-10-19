@@ -110,9 +110,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:            b.Config,
-			RefreshOnly:       b.skipPlanChanges,
-			removeRootOutputs: b.Operation == walkPlanDestroy,
+			Config:      b.Config,
+			RefreshOnly: b.skipPlanChanges,
+			DestroyPlan: b.Operation == walkPlanDestroy,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share
