@@ -334,11 +334,11 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	// must coordinate with this by taking that action only when c.skipRefresh
 	// _is_ set. This coupling between the two is unfortunate but necessary
 	// to work within our current structure.
-	if !opts.SkipRefresh {
+	if !opts.SkipRefresh && !prevRunState.Empty() {
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
 		normalOpts := *opts
-		normalOpts.Mode = plans.NormalMode
-		refreshPlan, refreshDiags := c.plan(config, prevRunState, &normalOpts)
+		normalOpts.Mode = plans.RefreshOnlyMode
+		refreshPlan, refreshDiags := c.refreshOnlyPlan(config, prevRunState, &normalOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
