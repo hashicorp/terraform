@@ -10,10 +10,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	// TODO: replace crypto/openpgp since it is deprecated
-	// https://github.com/golang/go/issues/44226
-	//lint:file-ignore SA1019 openpgp is deprecated but there are no good alternatives yet
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 func TestPackageAuthenticationResult(t *testing.T) {
@@ -394,49 +391,6 @@ func TestSignatureAuthentication_success(t *testing.T) {
 	}
 }
 
-func TestNewSignatureAuthentication_success(t *testing.T) {
-	tests := map[string]struct {
-		signature string
-		keys      []SigningKey
-		result    PackageAuthenticationResult
-	}{
-		"official provider": {
-			testHashicorpSignatureGoodBase64,
-			[]SigningKey{
-				{
-					ASCIIArmor: HashicorpPublicKey,
-				},
-			},
-			PackageAuthenticationResult{
-				result: officialProvider,
-				KeyID:  testHashiCorpPublicKeyID,
-			},
-		},
-	}
-
-	for name, test := range tests {
-		t.Run(name, func(t *testing.T) {
-			// Location is unused
-			location := PackageLocalArchive("testdata/my-package.zip")
-
-			signature, err := base64.StdEncoding.DecodeString(test.signature)
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			auth := NewSignatureAuthentication([]byte(testProviderShaSums), signature, test.keys)
-			result, err := auth.AuthenticatePackage(location)
-
-			if result == nil || *result != test.result {
-				t.Errorf("wrong result: got %#v, want %#v", result, test.result)
-			}
-			if err != nil {
-				t.Errorf("wrong err: got %s, want nil", err)
-			}
-		})
-	}
-}
-
 // Signature authentication can fail for many reasons, most of which are due
 // to OpenPGP failures from malformed keys or signatures.
 func TestSignatureAuthentication_failure(t *testing.T) {
@@ -446,7 +400,7 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 		err       string
 	}{
 		"invalid key": {
-			testHashicorpSignatureGoodBase64,
+			testAuthorSignatureGoodBase64,
 			[]SigningKey{
 				{
 					ASCIIArmor: "invalid PGP armor value",
@@ -579,6 +533,22 @@ G7Zdrci1KEd943HhzDCsUFz4gJwbvUyiAYb2ddndpUBkYwCB/XrHWPOSnGxHgZoo
 =mYqJ
 -----END PGP PUBLIC KEY BLOCK-----`
 
+// testAuthorEccKeyArmor uses Curve 25519 and has test key ID D01ED5C4BB1ED36A014B0D376540DDA046E5E135
+const testAuthorEccKeyArmor = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEY1B7+hYJKwYBBAHaRw8BAQdAFRDpASP+iDY+QotOBP9DF5CfuhSBD8Dl0hSG
+D7plEsO0M1RlcnJhZm9ybSBUZXN0aW5nIDx0ZXJyYWZvcm0rdGVzdGluZ0BoYXNo
+aWNvcnAuY29tPoiTBBMWCgA7FiEE0B7VxLse02oBSw03ZUDdoEbl4TUFAmNQe/oC
+GwMFCwkIBwICIgIGFQoJCAsCBBYCAwECHgcCF4AACgkQZUDdoEbl4TWhwwD+N/BR
+pR9NhRFDm+JRhA3saKmpTSRo9yJnr6tRlumE4KQA/A2cOCDeezf6t3SXltoYUKIt
+EYmbLxgMDlffVkFyC8IMuDgEY1B7+hIKKwYBBAGXVQEFAQEHQJ7frE76Le1qI1Go
+dfrVIzEgAcYjDW6T01/V95wgqPIuAwEIB4h4BBgWCgAgFiEE0B7VxLse02oBSw03
+ZUDdoEbl4TUFAmNQe/oCGwwACgkQZUDdoEbl4TWvsAD/YSQAigAH5hq4OmK4gs0J
+O74RFokGZzbPtoIvutb8eYoA/1QxxyqE/8A4Z21azYEO0j563LRa8SkZcB5UPDy3
+7ngJ
+=Xb0o
+-----END PGP PUBLIC KEY BLOCK-----`
+
 // testAuthorKeyTrustSignatureArmor is a trust signature of the data in
 // testAuthorKeyArmor signed with HashicorpPartnersKey.
 const testAuthorKeyTrustSignatureArmor = `-----BEGIN PGP SIGNATURE-----
@@ -671,21 +641,6 @@ a8a42d13346347aff6c63a37cda9b2c6aa5cc384a55b2fe6d6adfa390e609c53  terraform-prov
 02a1675fd8de126a00460942aaae242e65ca3380b5bb192e8773ef3da9073fd2  terraform-provider-null_3.1.0_windows_amd64.zip
 `
 
-// testHashicorpSignatureGoodBase64 is a signature of testProviderShaSums signed with
-// HashicorpPublicKey, which represents the SHA256SUMS.sig file downloaded for
-// an official release.
-const testHashicorpSignatureGoodBase64 = `wsFcBAABCAAQBQJgga+GCRCwtEEJdoW2dgAA` +
-	`o0YQAAW911BGDr2WHLo5NwcZenwHyxL5DX9g+4BknKbc/WxRC1hD8Afi3eygZk1yR6eT4Gp2H` +
-	`yNOwCjGL1PTONBumMfj9udIeuX8onrJMMvjFHh+bORGxBi4FKr4V3b2ZV1IYOjWMEyyTGRDvw` +
-	`SCdxBkp3apH3s2xZLmRoAj84JZ4KaxGF7hlT0j4IkNyQKd2T5cCByN9DV80+x+HtzaOieFwJL` +
-	`97iyGj6aznXfKfslK6S4oIrVTwyLTrQbxSxA0LsdUjRPHnJamL3sFOG77qUEUoXG3r61yi5vW` +
-	`V4P5gCH/+C+VkfGHqaB1s0jHYLxoTEXtwthe66MydDBPe2Hd0J12u9ppOIeK3leeb4uiixWIi` +
-	`rNdpWyjr/LU1KKWPxsDqMGYJ9TexyWkXjEpYmIEiY1Rxar8jrLh+FqVAhxRJajjgSRu5pZj50` +
-	`CNeKmmbyolLhPCmICjYYU/xKPGXSyDFqonVVyMWCSpO+8F38OmwDQHIk5AWyc8hPOAZ+g5N95` +
-	`cfUAzEqlvmNvVHQIU40Y6/Ip2HZzzFCLKQkMP1aDakYHq5w4ZO/ucjhKuoh1HDQMuMnZSu4eo` +
-	`2nMTBzYZnUxwtROrJZF1t103avbmP2QE/GaPvLIQn7o5WMV3ZcPCJ+szzzby7H2e33WIynrY/` +
-	`95ensBxh7mGFbcQ1C59b5o7viwIaaY2`
-
 // entityString function is used for logging the signing key.
 func TestEntityString(t *testing.T) {
 	var tests = []struct {
@@ -702,6 +657,11 @@ func TestEntityString(t *testing.T) {
 			"testAuthorKeyArmor",
 			testReadArmoredEntity(t, testAuthorKeyArmor),
 			"37A6AB3BCF2C170A Terraform Testing (plugin/discovery/) <terraform+testing@hashicorp.com>",
+		},
+		{
+			"testAuthorEccKeyArmor",
+			testReadArmoredEntity(t, testAuthorEccKeyArmor),
+			"6540DDA046E5E135 Terraform Testing <terraform+testing@hashicorp.com>",
 		},
 		{
 			"HashicorpPublicKey",
