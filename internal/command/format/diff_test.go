@@ -411,11 +411,11 @@ new line
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + conn_info = {
-          + password = (sensitive)
+          + password = (sensitive value)
           + user     = "not-secret"
         }
       + id        = (known after apply)
-      + password  = (sensitive)
+      + password  = (sensitive value)
     }
 `,
 		},
@@ -3048,7 +3048,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + ami   = "ami-AFTER"
-      + disks = (sensitive)
+      + disks = (sensitive value)
       + id    = "i-02ae66f368e8518a9"
 
       + root_block_device {
@@ -3146,7 +3146,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       # Warning: this attribute value will be marked as sensitive and will not
       # display in UI output after applying this change.
-      ~ disks = (sensitive)
+      ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
 
       + root_block_device {
@@ -3197,7 +3197,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       # Warning: this attribute value will be marked as sensitive and will not
       # display in UI output after applying this change. The value is unchanged.
-      ~ disks = (sensitive)
+      ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
     }
 `,
@@ -3965,7 +3965,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = {
           + "disk_a" = {
-              + mount_point = (sensitive)
+              + mount_point = (sensitive value)
               + size        = "50GB"
             },
         }
@@ -5728,18 +5728,18 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
-      + ami        = (sensitive)
+      + ami        = (sensitive value)
       + id         = "i-02ae66f368e8518a9"
       + list_field = [
           + "hello",
-          + (sensitive),
+          + (sensitive value),
           + "!",
         ]
       + map_key    = {
           + "breakfast" = 800
-          + "dinner"    = (sensitive)
+          + "dinner"    = (sensitive value)
         }
-      + map_whole  = (sensitive)
+      + map_whole  = (sensitive value)
 
       + nested_block_list {
           # At least one attribute in this block is (or was) sensitive,
@@ -5882,29 +5882,29 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
   ~ resource "test_instance" "example" {
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change.
-      ~ ami         = (sensitive)
+      ~ ami         = (sensitive value)
         id          = "i-02ae66f368e8518a9"
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive),
+          - (sensitive value),
           + ".",
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
           # after applying this change.
-          ~ "dinner"    = (sensitive)
+          ~ "dinner"    = (sensitive value)
             # (1 unchanged element hidden)
         }
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change.
-      ~ map_whole   = (sensitive)
+      ~ map_whole   = (sensitive value)
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change.
-      ~ some_number = (sensitive)
+      ~ some_number = (sensitive value)
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change.
-      ~ special     = (sensitive)
+      ~ special     = (sensitive value)
 
       # Warning: this block will no longer be marked as sensitive
       # after applying this change.
@@ -6007,18 +6007,18 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
           - "hello",
-          + (sensitive),
+          + (sensitive value),
             "friends",
         ]
       ~ map_key    = {
           ~ "breakfast" = 800 -> 700
           # Warning: this attribute value will be marked as sensitive and will not
           # display in UI output after applying this change.
-          ~ "dinner"    = (sensitive)
+          ~ "dinner"    = (sensitive value)
         }
       # Warning: this attribute value will be marked as sensitive and will not
       # display in UI output after applying this change.
-      ~ map_whole  = (sensitive)
+      ~ map_whole  = (sensitive value)
 
       # Warning: this block will be marked as sensitive and will not
       # display in UI output after applying this change.
@@ -6143,15 +6143,15 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ ami        = (sensitive value)
         id         = "i-02ae66f368e8518a9"
       ~ list_field = [
-          - (sensitive),
-          + (sensitive),
+          - (sensitive value),
+          + (sensitive value),
             "friends",
         ]
       ~ map_key    = {
-          ~ "dinner"    = (sensitive)
+          ~ "dinner"    = (sensitive value)
             # (1 unchanged element hidden)
         }
-      ~ map_whole  = (sensitive)
+      ~ map_whole  = (sensitive value)
 
       ~ nested_block_map {
           # At least one attribute in this block is (or was) sensitive,
@@ -6289,29 +6289,29 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
   ~ resource "test_instance" "example" {
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change. The value is unchanged.
-      ~ ami         = (sensitive)
+      ~ ami         = (sensitive value)
         id          = "i-02ae66f368e8518a9"
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive),
+          - (sensitive value),
           + "!",
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
           # after applying this change. The value is unchanged.
-          ~ "dinner"    = (sensitive)
+          ~ "dinner"    = (sensitive value)
             # (1 unchanged element hidden)
         }
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change. The value is unchanged.
-      ~ map_whole   = (sensitive)
+      ~ map_whole   = (sensitive value)
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change. The value is unchanged.
-      ~ some_number = (sensitive)
+      ~ some_number = (sensitive value)
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change. The value is unchanged.
-      ~ special     = (sensitive)
+      ~ special     = (sensitive value)
 
       # Warning: this block will no longer be marked as sensitive
       # after applying this change.
@@ -6410,17 +6410,17 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			},
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
-      - ami        = (sensitive) -> null
+      - ami        = (sensitive value) -> null
       - id         = "i-02ae66f368e8518a9" -> null
       - list_field = [
           - "hello",
-          - (sensitive),
+          - (sensitive value),
         ] -> null
       - map_key    = {
           - "breakfast" = 800
-          - "dinner"    = (sensitive)
+          - "dinner"    = (sensitive value)
         } -> null
-      - map_whole  = (sensitive) -> null
+      - map_whole  = (sensitive value) -> null
 
       - nested_block_set {
           # At least one attribute in this block is (or was) sensitive,
@@ -6492,7 +6492,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			),
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
-      ~ ami = (sensitive) # forces replacement
+      ~ ami = (sensitive value) # forces replacement
         id  = "i-02ae66f368e8518a9"
 
       ~ nested_block_set { # forces replacement
@@ -6524,7 +6524,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			),
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
-      ~ ami = (sensitive) # forces replacement
+      ~ ami = (sensitive value) # forces replacement
         id  = "i-02ae66f368e8518a9"
     }
 `,
@@ -6567,7 +6567,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example must be replaced
 -/+ resource "test_instance" "example" {
       ~ conn_info = { # forces replacement
-          ~ password = (sensitive)
+          ~ password = (sensitive value)
             # (1 unchanged attribute hidden)
         }
         id        = "i-02ae66f368e8518a9"
@@ -6824,7 +6824,7 @@ func TestOutputChanges(t *testing.T) {
 			},
 			`
   ~ a = 1 -> 2
-  ~ b = (sensitive)
+  ~ b = (sensitive value)
   ~ c = false -> true`,
 		},
 	}
