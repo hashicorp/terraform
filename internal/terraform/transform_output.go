@@ -26,11 +26,11 @@ type OutputTransformer struct {
 
 	// If this is a planned destroy, root outputs are still in the configuration
 	// so we need to record that we wish to remove them
-	DestroyPlan bool
+	PlanDestroy bool
 
-	// DestroyApply indicates that this is being added to an apply graph, which
+	// ApplyDestroy indicates that this is being added to an apply graph, which
 	// is the result of a destroy plan.
-	DestroyApply bool
+	ApplyDestroy bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -59,8 +59,8 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 			Addr:         addr,
 			Module:       c.Path,
 			Config:       o,
-			DestroyPlan:  t.DestroyPlan,
-			DestroyApply: t.DestroyApply,
+			PlanDestroy:  t.PlanDestroy,
+			ApplyDestroy: t.ApplyDestroy,
 			RefreshOnly:  t.RefreshOnly,
 			Planning:     t.Planning,
 		}
