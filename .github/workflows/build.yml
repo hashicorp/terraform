@@ -64,7 +64,7 @@ jobs:
           echo "
           
           Raw version is ${RAW_VERSION}"
-          echo "::set-output name=raw-version::${RAW_VERSION}"
+          echo "raw-version=${RAW_VERSION}" >> $GITHUB_OUTPUT
       - name: Decide version number
         id: get-product-version
         shell: bash
