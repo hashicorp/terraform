@@ -440,6 +440,75 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 	}
 }
 
+// NoOp changes should not be participating in the destroy sequence
+func TestDestroyEdgeTransformer_noOp(t *testing.T) {
+	g := Graph{Path: addrs.RootModuleInstance}
+	g.Add(testDestroyNode("test_object.A"))
+	g.Add(testUpdateNode("test_object.B"))
+	g.Add(testDestroyNode("test_object.C"))
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.C").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A"),
+				mustConfigResourceAddr("test_object.B")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
+	tf := &DestroyEdgeTransformer{
+		// We only need a minimal object to indicate GraphNodeCreator change is
+		// a NoOp here.
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:      mustResourceInstanceAddr("test_object.B"),
+					ChangeSrc: plans.ChangeSrc{Action: plans.NoOp},
+				},
+			},
+		},
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := strings.TrimSpace(`
+test_object.A (destroy)
+  test_object.C (destroy)
+test_object.B
+test_object.C (destroy)`)
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
 	inst := NewNodeAbstractResourceInstance(instAddr)
