@@ -1,5 +1,5 @@
 ---
-page_title: 'Backend Type: gcs'
+page_title: "Backend Type: gcs"
 description: >-
   Terraform can store the state remotely, making it easier to version and work
   with in a team.
@@ -75,18 +75,18 @@ Terraform can impersonate a Google Service Account as described [here](https://c
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:** We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 
-- `bucket` - (Required) The name of the GCS bucket.  This name must be
-  globally unique.  For more information, see [Bucket Naming
+- `bucket` - (Required) The name of the GCS bucket. This name must be
+  globally unique. For more information, see [Bucket Naming
   Guidelines](https://cloud.google.com/storage/docs/bucketnaming.html#requirements).
 - `credentials` / `GOOGLE_BACKEND_CREDENTIALS` / `GOOGLE_CREDENTIALS` -
   (Optional) Local path to Google Cloud Platform account credentials in JSON
-  format.  If unset, [Google Application Default
+  format. If unset, [Google Application Default
   Credentials](https://developers.google.com/identity/protocols/application-default-credentials)
-  are used.  The provided credentials must have Storage Object Admin role on the bucket.
+  are used. The provided credentials must have Storage Object Admin role on the bucket.
   **Warning**: if using the Google Cloud Platform provider as well, it will
   also pick up the `GOOGLE_CREDENTIALS` environment variable.
 - `impersonate_service_account` - (Optional) The service account to impersonate for accessing the State Bucket.
