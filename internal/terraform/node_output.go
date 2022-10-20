@@ -23,8 +23,8 @@ type nodeExpandOutput struct {
 	Addr         addrs.OutputValue
 	Module       addrs.Module
 	Config       *configs.Output
-	DestroyPlan  bool
-	DestroyApply bool
+	PlanDestroy  bool
+	ApplyDestroy bool
 	RefreshOnly  bool
 
 	// Planning is set to true when this node is in a graph that was produced
@@ -100,12 +100,12 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		var node dag.Vertex
 		switch {
-		case module.IsRoot() && (n.DestroyPlan || n.DestroyApply):
+		case module.IsRoot() && (n.PlanDestroy || n.ApplyDestroy):
 			node = &NodeDestroyableOutput{
 				Addr: absAddr,
 			}
 
-		case n.DestroyPlan:
+		case n.PlanDestroy:
 			// nothing is done here for non-root outputs
 			continue
 
@@ -115,7 +115,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 				Config:       n.Config,
 				Change:       change,
 				RefreshOnly:  n.RefreshOnly,
-				DestroyApply: n.DestroyApply,
+				DestroyApply: n.ApplyDestroy,
 			}
 		}
 
@@ -181,7 +181,7 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
 	// DestroyNodes do not reference anything.
-	if n.Module.IsRoot() && n.DestroyApply {
+	if n.Module.IsRoot() && n.ApplyDestroy {
 		return nil
 	}
 
