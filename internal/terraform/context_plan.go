@@ -336,9 +336,9 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	// to work within our current structure.
 	if !opts.SkipRefresh && !prevRunState.Empty() {
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
-		normalOpts := *opts
-		normalOpts.Mode = plans.RefreshOnlyMode
-		refreshPlan, refreshDiags := c.refreshOnlyPlan(config, prevRunState, &normalOpts)
+		refreshOpts := *opts
+		refreshOpts.Mode = plans.RefreshOnlyMode
+		refreshPlan, refreshDiags := c.refreshOnlyPlan(config, prevRunState, &refreshOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
