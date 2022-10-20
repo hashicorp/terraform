@@ -1485,3 +1485,159 @@ resource "test_object" "y" {
 	_, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 }
+
+// Outputs should not cause evaluation errors during destroy
+// Check eval from both root level outputs and module outputs, which are
+// handled differently during apply.
+func TestContext2Apply_outputsNotToEvaluate(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+  cond = false
+}
+
+output "from_resource" {
+  value = module.mod.from_resource
+}
+
+output "from_data" {
+  value = module.mod.from_data
+}
+`,
+
+		"./mod/main.tf": `
+variable "cond" {
+  type = bool
+}
+
+module "mod" {
+  source = "../mod2/"
+  cond = var.cond
+}
+
+output "from_resource" {
+  value = module.mod.resource
+}
+
+output "from_data" {
+  value = module.mod.data
+}
+`,
+
+		"./mod2/main.tf": `
+variable "cond" {
+  type = bool
+}
+
+resource "test_object" "x" {
+  count = var.cond ? 0:1
+}
+
+data "test_object" "d" {
+  count = var.cond ? 0:1
+}
+
+output "resource" {
+  value = var.cond ? null : test_object.x.*.test_string[0]
+}
+
+output "data" {
+  value = one(data.test_object.d[*].test_string)
+}
+`})
+
+	p := simpleMockProvider()
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// apply the state
+	opts := SimplePlanOpts(plans.NormalMode, nil)
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// and destroy
+	opts = SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// and destroy again with no state
+	if !state.Empty() {
+		t.Fatal("expected empty state, got", state)
+	}
+
+	opts = SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+// don't evaluate conditions on outputs when destroying
+func TestContext2Apply_noOutputChecksOnDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+
+output "from_resource" {
+  value = module.mod.from_resource
+}
+`,
+
+		"./mod/main.tf": `
+resource "test_object" "x" {
+  test_string = "wrong val"
+}
+
+output "from_resource" {
+  value = test_object.x.test_string
+  precondition {
+    condition     = test_object.x.test_string == "ok"
+    error_message = "resource error"
+  }
+}
+`})
+
+	p := simpleMockProvider()
+
+	state := states.NewState()
+	mod := state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.NoKey))
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"wrong_val"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
