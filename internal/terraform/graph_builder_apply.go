@@ -46,6 +46,9 @@ type ApplyGraphBuilder struct {
 	// The apply step refers to these as part of verifying that the planned
 	// actions remain consistent between plan and apply.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// Plan Operation this graph will be used for.
+	Operation walkOperation
 }
 
 // See GraphBuilder
@@ -92,7 +95,10 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config, Changes: b.Changes},
+		&OutputTransformer{
+			Config:       b.Config,
+			ApplyDestroy: b.Operation == walkDestroy,
+		},
 
 		// Creates all the resource instances represented in the diff, along
 		// with dependency edges against the whole-resource nodes added by
@@ -136,7 +142,9 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ForcedCBDTransformer{},
 
 		// Destruction ordering
-		&DestroyEdgeTransformer{},
+		&DestroyEdgeTransformer{
+			Changes: b.Changes,
+		},
 		&CBDEdgeTransformer{
 			Config: b.Config,
 			State:  b.State,
