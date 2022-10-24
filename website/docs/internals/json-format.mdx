@@ -60,7 +60,7 @@ State does not have any significant metadata not included in the common [values 
   "terraform_version": "version.string"
 }
 ```
-
+The extra wrapping object is intentional. This approach allows us to extend this format if required.
 ## Plan Representation
 
 A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes Terraform plans to make to achieve that.
