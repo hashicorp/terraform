@@ -38,13 +38,6 @@ data "terraform_remote_state" "foo" {
   }
 }
 
-resource "template_file" "bar" {
-  template = "${greeting}"
-
-  vars {
-    greeting = "${data.terraform_remote_state.foo.greeting}"
-  }
-}
 # Terraform >= 0.12
 resource "template_file" "bar" {
   template = "${greeting}"
