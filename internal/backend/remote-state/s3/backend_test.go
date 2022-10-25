@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 var (
@@ -315,37 +318,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 	}
 }
 
-func TestBackendConfig_invalidKey(t *testing.T) {
-	testACC(t)
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region":         "us-west-1",
-		"bucket":         "tf-test",
-		"key":            "/leading-slash",
-		"encrypt":        true,
-		"dynamodb_table": "dynamoTable",
-	})
-
-	_, diags := New().PrepareConfig(cfg)
-	if !diags.HasErrors() {
-		t.Fatal("expected config validation error")
-	}
-
-	cfg = hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region":         "us-west-1",
-		"bucket":         "tf-test",
-		"key":            "trailing-slash/",
-		"encrypt":        true,
-		"dynamodb_table": "dynamoTable",
-	})
-
-	_, diags = New().PrepareConfig(cfg)
-	if !diags.HasErrors() {
-		t.Fatal("expected config validation error")
-	}
-}
-
 func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
-	testACC(t)
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 		"region":           "us-west-1",
 		"bucket":           "tf-test",
@@ -393,6 +366,274 @@ func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
 	diags := New().Configure(cfg)
 	if !diags.HasErrors() {
 		t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
+	}
+}
+
+func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
+	cases := map[string]struct {
+		config      cty.Value
+		expectedErr string
+	}{
+		"null bucket": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.NullVal(cty.String),
+				"key":    cty.StringVal("test"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `"bucket": required field is not set`,
+		},
+		"empty bucket": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal(""),
+				"key":    cty.StringVal("test"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `"bucket": required field is not set`,
+		},
+		"null key": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.NullVal(cty.String),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `"key": required field is not set`,
+		},
+		"empty key": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal(""),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `"key": required field is not set`,
+		},
+		"key with leading slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("/leading-slash"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `key must not start with '/'`,
+		},
+		"key with trailing slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("trailing-slash/"),
+				"region": cty.StringVal("us-west-2"),
+			}),
+			expectedErr: `key must not end with '/'`,
+		},
+		"null region": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"region": cty.NullVal(cty.String),
+			}),
+			expectedErr: `"region": required field is not set`,
+		},
+		"empty region": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"region": cty.StringVal(""),
+			}),
+			expectedErr: `"region": required field is not set`,
+		},
+		"workspace_key_prefix with leading slash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":               cty.StringVal("test"),
+				"key":                  cty.StringVal("test"),
+				"region":               cty.StringVal("us-west-2"),
+				"workspace_key_prefix": cty.StringVal("/env"),
+			}),
+			expectedErr: `workspace_key_prefix must not start or end with '/'`,
+		},
+		"workspace_key_prefix with trailing lash": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":               cty.StringVal("test"),
+				"key":                  cty.StringVal("test"),
+				"region":               cty.StringVal("us-west-2"),
+				"workspace_key_prefix": cty.StringVal("env/"),
+			}),
+			expectedErr: `workspace_key_prefix must not start or end with '/'`,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b := New()
+
+			// Validate
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil && tc.expectedErr != "" {
+				actualErr := valDiags.Err().Error()
+				if !strings.Contains(actualErr, tc.expectedErr) {
+					t.Fatalf("unexpected validation result: %v", valDiags.Err())
+				}
+			}
+		})
+	}
+}
+
+func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
+	cases := map[string]struct {
+		config      cty.Value
+		vars        map[string]string
+		expectedErr string
+	}{
+		"region env var AWS_REGION": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"region": cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"AWS_REGION": "us-west-2",
+			},
+		},
+		"region env var AWS_DEFAULT_REGION": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket": cty.StringVal("test"),
+				"key":    cty.StringVal("test"),
+				"region": cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"AWS_DEFAULT_REGION": "us-west-2",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b := New()
+
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil && tc.expectedErr != "" {
+				actualErr := valDiags.Err().Error()
+				if !strings.Contains(actualErr, tc.expectedErr) {
+					t.Fatalf("unexpected validation result: %v", valDiags.Err())
+				}
+			}
+		})
+	}
+}
+
+func TestBackendConfig_PrepareConfigDefaults(t *testing.T) {
+	cases := map[string]struct {
+		config   cty.Value
+		validate func(cty.Value, *testing.T)
+	}{
+		"workspace_key_prefix": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":               cty.StringVal("test"),
+				"key":                  cty.StringVal("test"),
+				"region":               cty.StringVal("us-west-2"),
+				"workspace_key_prefix": cty.NullVal(cty.String),
+			}),
+			validate: func(c cty.Value, t *testing.T) {
+				v := c.GetAttr("workspace_key_prefix")
+				if v.IsNull() {
+					t.Fatal(`expected value for "workspace_key_prefix", got null`)
+				} else if a, e := v.AsString(), "env:"; a != e {
+					t.Fatalf(`expected "workspace_key_prefix" to be "%v", got "%v"`, e, a)
+				}
+			},
+		},
+		"max_retries": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":      cty.StringVal("test"),
+				"key":         cty.StringVal("test"),
+				"region":      cty.StringVal("us-west-2"),
+				"max_retries": cty.NullVal(cty.Number),
+			}),
+			validate: func(c cty.Value, t *testing.T) {
+				v := c.GetAttr("max_retries")
+				if v.IsNull() {
+					t.Fatal(`expected value for "max_retries", got null`)
+				} else {
+					var a int
+					err := gocty.FromCtyValue(v, &a)
+					if err != nil {
+						t.Fatalf("unexpected value error: %v", err)
+					}
+					if e := 5; a != e {
+						t.Fatalf(`expected "max_retries" to be "%v", got "%v"`, e, a)
+					}
+				}
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b := New()
+
+			// Validate
+			val, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil {
+				t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			}
+			tc.validate(val, t)
+		})
+	}
+}
+
+func TestBackendConfig_prefixDefault(t *testing.T) {
+	config := cty.ObjectVal(map[string]cty.Value{
+		"bucket":               cty.StringVal("test"),
+		"key":                  cty.StringVal("test"),
+		"region":               cty.StringVal("us-west-2"),
+		"workspace_key_prefix": cty.NullVal(cty.String),
+	})
+
+	b := New()
+	val, diags := b.PrepareConfig(config)
+	if err := diags.Err(); err != nil {
+		t.Fatalf("unexpected validation result: %v", err)
+	}
+
+	v := val.GetAttr("workspace_key_prefix")
+	if v.IsNull() {
+		t.Fatal(`expected value for "workspace_key_prefix", got null`)
+	} else if v := v.AsString(); v != "env:" {
+		t.Fatalf(`expected "workspace_key_prefix" to be "env:", got %q`, v)
+	}
+}
+
+func TestBackendConfig_maxRetriesDefault(t *testing.T) {
+	config := cty.ObjectVal(map[string]cty.Value{
+		"bucket":      cty.StringVal("test"),
+		"key":         cty.StringVal("test"),
+		"region":      cty.StringVal("us-west-2"),
+		"max_retries": cty.NullVal(cty.Number),
+	})
+
+	b := New()
+	val, diags := b.PrepareConfig(config)
+	if err := diags.Err(); err != nil {
+		t.Fatalf("unexpected validation result: %v", err)
+	}
+
+	v := val.GetAttr("max_retries")
+	if v.IsNull() {
+		t.Fatal(`expected value for "max_retries", got null`)
+	} else {
+		var foo int
+		err := gocty.FromCtyValue(v, &foo)
+		if err != nil {
+			t.Fatalf("unexpected value error: %v", err)
+		}
+		if foo != 5 {
+			t.Fatalf(`expected "max_retries" to be 5, got %v`, foo)
+		}
 	}
 }
 
