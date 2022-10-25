@@ -318,38 +318,6 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 	}
 }
 
-func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
-	cfg := populateSchema(t, New().ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region":           "us-west-1",
-		"bucket":           "tf-test",
-		"encrypt":          true,
-		"key":              "state",
-		"dynamodb_table":   "dynamoTable",
-		"sse_customer_key": "key",
-	}))
-
-	_, diags := New().PrepareConfig(cfg)
-	if !diags.HasErrors() {
-		t.Fatal("expected error for invalid sse_customer_key length")
-	}
-}
-
-func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
-	cfg := populateSchema(t, New().ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region":           "us-west-1",
-		"bucket":           "tf-test",
-		"encrypt":          true,
-		"key":              "state",
-		"dynamodb_table":   "dynamoTable",
-		"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-	}))
-
-	_, diags := New().PrepareConfig(cfg)
-	if !diags.HasErrors() {
-		t.Fatal("expected error for failing to decode sse_customer_key")
-	}
-}
-
 func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 	cases := map[string]struct {
 		config      cty.Value
@@ -393,7 +361,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("/leading-slash"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `key must not start with '/'`,
+			expectedErr: `key must not start or end with '/'`,
 		},
 		"key with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -401,7 +369,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("trailing-slash/"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `key must not end with '/'`,
+			expectedErr: `key must not start or end with '/'`,
 		},
 		"null region": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -436,6 +404,24 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"workspace_key_prefix": cty.StringVal("env/"),
 			}),
 			expectedErr: `workspace_key_prefix must not start or end with '/'`,
+		},
+		"sse_customer_key invalid length": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":           cty.StringVal("test"),
+				"key":              cty.StringVal("test"),
+				"region":           cty.StringVal("us-west-2"),
+				"sse_customer_key": cty.StringVal("key"),
+			}),
+			expectedErr: `sse_customer_key must be 44 characters in length`,
+		},
+		"sse_customer_key invalid encoding": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":           cty.StringVal("test"),
+				"key":              cty.StringVal("test"),
+				"region":           cty.StringVal("us-west-2"),
+				"sse_customer_key": cty.StringVal("====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka"),
+			}),
+			expectedErr: `sse_customer_key must be base64 encoded`,
 		},
 		"encyrption key conflict": {
 			config: cty.ObjectVal(map[string]cty.Value{

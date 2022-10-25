@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -17,7 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // New creates a new backend for S3 remote state.
@@ -34,19 +37,6 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The path to the state file inside the bucket",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					// s3 will strip leading slashes from an object, so while this will
-					// technically be accepted by s3, it will break our workspace hierarchy.
-					if strings.HasPrefix(v.(string), "/") {
-						return nil, []error{errors.New("key must not start with '/'")}
-					}
-					// s3 will recognize objects with a trailing slash as a directory
-					// so they should not be valid keys
-					if strings.HasSuffix(v.(string), "/") {
-						return nil, []error{errors.New("key must not end with '/'")}
-					}
-					return nil, nil
-				},
 			},
 
 			"region": {
@@ -177,13 +167,6 @@ func New() backend.Backend {
 				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
 				DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
 				Sensitive:   true,
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					key := v.(string)
-					if key != "" && len(key) != 44 {
-						return nil, []error{errors.New("sse_customer_key must be 44 characters in length (256 bits, base64 encoded)")}
-					}
-					return nil, nil
-				},
 			},
 
 			"role_arn": {
@@ -246,13 +229,6 @@ func New() backend.Backend {
 				Optional:    true,
 				Description: "The prefix applied to the non-default state path inside the bucket.",
 				Default:     "env:",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					prefix := v.(string)
-					if strings.HasPrefix(prefix, "/") || strings.HasSuffix(prefix, "/") {
-						return nil, []error{errors.New("workspace_key_prefix must not start or end with '/'")}
-					}
-					return nil, nil
-				},
 			},
 
 			"force_path_style": {
@@ -274,6 +250,91 @@ func New() backend.Backend {
 	result := &Backend{Backend: s}
 	result.Backend.ConfigureFunc = result.configure
 	return result
+}
+
+func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return obj, diags
+	}
+
+	if val := obj.GetAttr("key"); val.IsNull() || val.AsString() == "" {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid key value",
+			`"key": required field is not set`,
+			cty.Path{cty.GetAttrStep{Name: "key"}},
+		))
+	} else if strings.HasPrefix(val.AsString(), "/") || strings.HasSuffix(val.AsString(), "/") {
+		// S3 will strip leading slashes from an object, so while this will
+		// technically be accepted by S3, it will break our workspace hierarchy.
+		// S3 will recognize objects with a trailing slash as a directory
+		// so they should not be valid keys
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid key value",
+			"key must not start or end with '/'",
+			cty.Path{cty.GetAttrStep{Name: "key"}},
+		))
+	}
+
+	if val := obj.GetAttr("region"); val.IsNull() {
+		if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Missing region value",
+				`"region": required field is not set`,
+				cty.Path{cty.GetAttrStep{Name: "region"}},
+			))
+		}
+	}
+
+	if val := obj.GetAttr("sse_customer_key"); !val.IsNull() {
+		s := val.AsString()
+		if len(s) != 44 {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid sse_customer_key value",
+				"sse_customer_key must be 44 characters in length",
+				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+			))
+		} else {
+			var err error
+			_, err = base64.StdEncoding.DecodeString(s)
+			if err != nil {
+				diags = diags.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Invalid sse_customer_key value",
+					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
+					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+				))
+			}
+		}
+	}
+
+	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
+		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid encryption configuration",
+				encryptionKeyConflictError,
+				cty.Path{},
+			))
+		}
+	}
+
+	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
+		if v := val.AsString(); strings.HasPrefix(v, "/") || strings.HasSuffix(v, "/") {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid workspace_key_prefix value",
+				"workspace_key_prefix must not start or end with '/'",
+				cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
+			))
+		}
+	}
+
+	return obj, diags
 }
 
 type Backend struct {
@@ -409,7 +470,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	return nil
 }
 
-const encryptionKeyConflictError = `Cannot have both kms_key_id and sse_customer_key set.
+const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
 
 The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
 while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
