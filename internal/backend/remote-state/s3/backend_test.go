@@ -17,11 +17,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 var (
@@ -319,14 +319,14 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 }
 
 func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+	cfg := populateSchema(t, New().ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 		"region":           "us-west-1",
 		"bucket":           "tf-test",
 		"encrypt":          true,
 		"key":              "state",
 		"dynamodb_table":   "dynamoTable",
 		"sse_customer_key": "key",
-	})
+	}))
 
 	_, diags := New().PrepareConfig(cfg)
 	if !diags.HasErrors() {
@@ -335,37 +335,18 @@ func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
 }
 
 func TestBackendConfig_invalidSSECustomerKeyEncoding(t *testing.T) {
-	testACC(t)
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+	cfg := populateSchema(t, New().ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 		"region":           "us-west-1",
 		"bucket":           "tf-test",
 		"encrypt":          true,
 		"key":              "state",
 		"dynamodb_table":   "dynamoTable",
 		"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-	})
+	}))
 
-	diags := New().Configure(cfg)
+	_, diags := New().PrepareConfig(cfg)
 	if !diags.HasErrors() {
 		t.Fatal("expected error for failing to decode sse_customer_key")
-	}
-}
-
-func TestBackendConfig_conflictingEncryptionSchema(t *testing.T) {
-	testACC(t)
-	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
-		"region":           "us-west-1",
-		"bucket":           "tf-test",
-		"key":              "state",
-		"encrypt":          true,
-		"dynamodb_table":   "dynamoTable",
-		"sse_customer_key": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
-		"kms_key_id":       "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-	})
-
-	diags := New().Configure(cfg)
-	if !diags.HasErrors() {
-		t.Fatal("expected error for simultaneous usage of kms_key_id and sse_customer_key")
 	}
 }
 
@@ -447,7 +428,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 			}),
 			expectedErr: `workspace_key_prefix must not start or end with '/'`,
 		},
-		"workspace_key_prefix with trailing lash": {
+		"workspace_key_prefix with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"bucket":               cty.StringVal("test"),
 				"key":                  cty.StringVal("test"),
@@ -456,14 +437,24 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 			}),
 			expectedErr: `workspace_key_prefix must not start or end with '/'`,
 		},
+		"encyrption key conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":               cty.StringVal("test"),
+				"key":                  cty.StringVal("test"),
+				"region":               cty.StringVal("us-west-2"),
+				"workspace_key_prefix": cty.StringVal("env/"),
+				"sse_customer_key":     cty.StringVal("1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o="),
+				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"),
+			}),
+			expectedErr: `Only one of "kms_key_id" and "sse_customer_key" can be set`,
+		},
 	}
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			b := New()
 
-			// Validate
-			_, valDiags := b.PrepareConfig(tc.config)
+			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 			if valDiags.Err() != nil && tc.expectedErr != "" {
 				actualErr := valDiags.Err().Error()
 				if !strings.Contains(actualErr, tc.expectedErr) {
@@ -515,7 +506,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				}
 			})
 
-			_, valDiags := b.PrepareConfig(tc.config)
+			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 			if valDiags.Err() != nil && tc.expectedErr != "" {
 				actualErr := valDiags.Err().Error()
 				if !strings.Contains(actualErr, tc.expectedErr) {
@@ -523,117 +514,6 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				}
 			}
 		})
-	}
-}
-
-func TestBackendConfig_PrepareConfigDefaults(t *testing.T) {
-	cases := map[string]struct {
-		config   cty.Value
-		validate func(cty.Value, *testing.T)
-	}{
-		"workspace_key_prefix": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"bucket":               cty.StringVal("test"),
-				"key":                  cty.StringVal("test"),
-				"region":               cty.StringVal("us-west-2"),
-				"workspace_key_prefix": cty.NullVal(cty.String),
-			}),
-			validate: func(c cty.Value, t *testing.T) {
-				v := c.GetAttr("workspace_key_prefix")
-				if v.IsNull() {
-					t.Fatal(`expected value for "workspace_key_prefix", got null`)
-				} else if a, e := v.AsString(), "env:"; a != e {
-					t.Fatalf(`expected "workspace_key_prefix" to be "%v", got "%v"`, e, a)
-				}
-			},
-		},
-		"max_retries": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"bucket":      cty.StringVal("test"),
-				"key":         cty.StringVal("test"),
-				"region":      cty.StringVal("us-west-2"),
-				"max_retries": cty.NullVal(cty.Number),
-			}),
-			validate: func(c cty.Value, t *testing.T) {
-				v := c.GetAttr("max_retries")
-				if v.IsNull() {
-					t.Fatal(`expected value for "max_retries", got null`)
-				} else {
-					var a int
-					err := gocty.FromCtyValue(v, &a)
-					if err != nil {
-						t.Fatalf("unexpected value error: %v", err)
-					}
-					if e := 5; a != e {
-						t.Fatalf(`expected "max_retries" to be "%v", got "%v"`, e, a)
-					}
-				}
-			},
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			b := New()
-
-			// Validate
-			val, valDiags := b.PrepareConfig(tc.config)
-			if valDiags.Err() != nil {
-				t.Fatalf("unexpected validation result: %v", valDiags.Err())
-			}
-			tc.validate(val, t)
-		})
-	}
-}
-
-func TestBackendConfig_prefixDefault(t *testing.T) {
-	config := cty.ObjectVal(map[string]cty.Value{
-		"bucket":               cty.StringVal("test"),
-		"key":                  cty.StringVal("test"),
-		"region":               cty.StringVal("us-west-2"),
-		"workspace_key_prefix": cty.NullVal(cty.String),
-	})
-
-	b := New()
-	val, diags := b.PrepareConfig(config)
-	if err := diags.Err(); err != nil {
-		t.Fatalf("unexpected validation result: %v", err)
-	}
-
-	v := val.GetAttr("workspace_key_prefix")
-	if v.IsNull() {
-		t.Fatal(`expected value for "workspace_key_prefix", got null`)
-	} else if v := v.AsString(); v != "env:" {
-		t.Fatalf(`expected "workspace_key_prefix" to be "env:", got %q`, v)
-	}
-}
-
-func TestBackendConfig_maxRetriesDefault(t *testing.T) {
-	config := cty.ObjectVal(map[string]cty.Value{
-		"bucket":      cty.StringVal("test"),
-		"key":         cty.StringVal("test"),
-		"region":      cty.StringVal("us-west-2"),
-		"max_retries": cty.NullVal(cty.Number),
-	})
-
-	b := New()
-	val, diags := b.PrepareConfig(config)
-	if err := diags.Err(); err != nil {
-		t.Fatalf("unexpected validation result: %v", err)
-	}
-
-	v := val.GetAttr("max_retries")
-	if v.IsNull() {
-		t.Fatal(`expected value for "max_retries", got null`)
-	} else {
-		var foo int
-		err := gocty.FromCtyValue(v, &foo)
-		if err != nil {
-			t.Fatalf("unexpected value error: %v", err)
-		}
-		if foo != 5 {
-			t.Fatalf(`expected "max_retries" to be 5, got %v`, foo)
-		}
 	}
 }
 
@@ -1036,4 +916,60 @@ func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 	if err != nil {
 		t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
 	}
+}
+
+func populateSchema(t *testing.T, schema *configschema.Block, value cty.Value) cty.Value {
+	ty := schema.ImpliedType()
+	var path cty.Path
+	val, err := unmarshal(value, ty, path)
+	if err != nil {
+		t.Fatalf("populating schema: %s", err)
+	}
+	return val
+}
+
+func unmarshal(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
+	switch {
+	case ty.IsPrimitiveType():
+		val, err := unmarshalPrimitive(value, ty, path)
+		if err != nil {
+			return cty.NilVal, err
+		}
+		return val, nil
+	case ty.IsObjectType():
+		return unmarshalObject(value, ty.AttributeTypes(), path)
+	default:
+		return cty.NilVal, path.NewErrorf("unsupported type %s", ty.FriendlyName())
+	}
+}
+
+func unmarshalPrimitive(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
+	return value, nil
+}
+
+func unmarshalObject(dec cty.Value, atys map[string]cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+	valueTy := dec.Type()
+
+	vals := make(map[string]cty.Value, len(atys))
+	path = append(path, nil)
+	for key, aty := range atys {
+		path[len(path)-1] = cty.IndexStep{
+			Key: cty.StringVal(key),
+		}
+
+		if !valueTy.HasAttribute(key) {
+			vals[key] = cty.NullVal(aty)
+		} else {
+			val, err := unmarshal(dec.GetAttr(key), aty, path)
+			if err != nil {
+				return cty.DynamicVal, err
+			}
+			vals[key] = val
+		}
+	}
+
+	return cty.ObjectVal(vals), nil
 }
