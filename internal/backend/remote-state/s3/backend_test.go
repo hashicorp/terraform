@@ -84,6 +84,49 @@ func TestBackendConfig(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_RegionEnvVar(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"bucket": "tf-test",
+		"key":    "state",
+	}
+
+	cases := map[string]struct {
+		vars map[string]string
+	}{
+		"AWS_REGION": {
+			vars: map[string]string{
+				"AWS_REGION": "us-west-1",
+			},
+		},
+
+		"AWS_DEFAULT_REGION": {
+			vars: map[string]string{
+				"AWS_DEFAULT_REGION": "us-west-1",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+			if *b.s3Client.Config.Region != "us-west-1" {
+				t.Fatalf("Incorrect region was populated")
+			}
+		})
+	}
+}
+
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
 
@@ -468,7 +511,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				"region": cty.NullVal(cty.String),
 			}),
 			vars: map[string]string{
-				"AWS_REGION": "us-west-2",
+				"AWS_REGION": "us-west-1",
 			},
 		},
 		"region env var AWS_DEFAULT_REGION": {
@@ -478,7 +521,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				"region": cty.NullVal(cty.String),
 			}),
 			vars: map[string]string{
-				"AWS_DEFAULT_REGION": "us-west-2",
+				"AWS_DEFAULT_REGION": "us-west-1",
 			},
 		},
 	}
