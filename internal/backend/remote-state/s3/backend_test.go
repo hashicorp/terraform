@@ -62,6 +62,9 @@ func TestBackendConfig(t *testing.T) {
 	if *b.s3Client.Config.Region != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
 	}
+	if *b.s3Client.Config.MaxRetries != 5 {
+		t.Fatalf("Default max_retries was not set")
+	}
 	if b.bucketName != "tf-test" {
 		t.Fatalf("Incorrect bucketName was populated")
 	}
@@ -307,7 +310,8 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				testCase.Config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
 			}
 
-			diags := New().Configure(hcl2shim.HCL2ValueFromConfigValue(testCase.Config))
+			b := New()
+			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(testCase.Config)))
 
 			if diags.HasErrors() {
 				for _, diag := range diags {
@@ -917,11 +921,15 @@ func populateSchema(t *testing.T, schema *configschema.Block, value cty.Value) c
 func unmarshal(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
 	switch {
 	case ty.IsPrimitiveType():
-		val, err := unmarshalPrimitive(value, ty, path)
-		if err != nil {
-			return cty.NilVal, err
-		}
-		return val, nil
+		return value, nil
+	// case ty.IsListType():
+	// 	return unmarshalList(value, ty.ElementType(), path)
+	case ty.IsSetType():
+		return unmarshalSet(value, ty.ElementType(), path)
+	case ty.IsMapType():
+		return unmarshalMap(value, ty.ElementType(), path)
+	// case ty.IsTupleType():
+	// 	return unmarshalTuple(value, ty.TupleElementTypes(), path)
 	case ty.IsObjectType():
 		return unmarshalObject(value, ty.AttributeTypes(), path)
 	default:
@@ -929,8 +937,45 @@ func unmarshal(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
 	}
 }
 
-func unmarshalPrimitive(value cty.Value, ty cty.Type, path cty.Path) (cty.Value, error) {
-	return value, nil
+func unmarshalSet(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+
+	length := dec.LengthInt()
+
+	if length == 0 {
+		return cty.SetValEmpty(ety), nil
+	}
+
+	vals := make([]cty.Value, 0, length)
+	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+		vals = append(vals, val)
+		return
+	})
+
+	return cty.SetVal(vals), nil
+}
+
+func unmarshalMap(dec cty.Value, ety cty.Type, path cty.Path) (cty.Value, error) {
+	if dec.IsNull() {
+		return dec, nil
+	}
+
+	length := dec.LengthInt()
+
+	if length == 0 {
+		return cty.MapValEmpty(ety), nil
+	}
+
+	vals := make(map[string]cty.Value, length)
+	dec.ForEachElement(func(key, val cty.Value) (stop bool) {
+		k := stringValue(key)
+		vals[k] = val
+		return
+	})
+
+	return cty.MapVal(vals), nil
 }
 
 func unmarshalObject(dec cty.Value, atys map[string]cty.Type, path cty.Path) (cty.Value, error) {
