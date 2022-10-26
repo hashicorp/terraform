@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -22,237 +22,11 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// New creates a new backend for S3 remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"bucket": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the S3 bucket",
-			},
-
-			"key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The path to the state file inside the bucket",
-			},
-
-			"region": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_REGION",
-					"AWS_DEFAULT_REGION",
-				}, nil),
-			},
-
-			"dynamodb_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the DynamoDB API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
-			},
-
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the S3 API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
-			},
-
-			"iam_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the IAM API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
-			},
-
-			"sts_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the STS API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
-			},
-
-			"encrypt": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable server side encryption of the state file",
-				Default:     false,
-			},
-
-			"acl": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Canned ACL to be applied to the state file",
-				Default:     "",
-			},
-
-			"access_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS access key",
-				Default:     "",
-			},
-
-			"secret_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS secret key",
-				Default:     "",
-			},
-
-			"kms_key_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The ARN of a KMS Key to use for encrypting the state",
-				Default:     "",
-			},
-
-			"dynamodb_table": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "DynamoDB table for state locking and consistency",
-				Default:     "",
-			},
-
-			"profile": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS profile name",
-				Default:     "",
-			},
-
-			"shared_credentials_file": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path to a shared credentials file",
-				Default:     "",
-			},
-
-			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "MFA token",
-				Default:     "",
-			},
-
-			"skip_credentials_validation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip the credentials validation via STS API.",
-				Default:     false,
-			},
-
-			"skip_region_validation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip static validation of region name.",
-				Default:     false,
-			},
-
-			"skip_metadata_api_check": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip the AWS Metadata API check.",
-				Default:     false,
-			},
-
-			"sse_customer_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
-				Sensitive:   true,
-			},
-
-			"role_arn": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The role to be assumed",
-				Default:     "",
-			},
-
-			"session_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				Default:     "",
-			},
-
-			"external_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-				Default:     "",
-			},
-
-			"assume_role_duration_seconds": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Seconds to restrict the assume role session duration.",
-			},
-
-			"assume_role_policy": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-				Default:     "",
-			},
-
-			"assume_role_policy_arns": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"assume_role_tags": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Assume role session tags.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"assume_role_transitive_tag_keys": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"workspace_key_prefix": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The prefix applied to the non-default state path inside the bucket.",
-				Default:     "env:",
-			},
-
-			"force_path_style": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Force s3 to use path style api.",
-				Default:     false,
-			},
-
-			"max_retries": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
-				Default:     5,
-			},
-		},
-	}
-
-	return &Backend{Backend: s}
+	return &Backend{}
 }
 
 type Backend struct {
-	*schema.Backend
-
-	// The fields below are set from configure
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
@@ -264,6 +38,177 @@ type Backend struct {
 	kmsKeyID              string
 	ddbTable              string
 	workspaceKeyPrefix    string
+}
+
+func (b *Backend) ConfigSchema() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"bucket": {
+				Type:        cty.String,
+				Required:    true,
+				Description: "The name of the S3 bucket",
+			},
+			"key": {
+				Type:        cty.String,
+				Required:    true,
+				Description: "The path to the state file inside the bucket",
+			},
+			"region": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
+			},
+			"dynamodb_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+			},
+			"endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the S3 API",
+			},
+			"iam_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+			},
+			"sts_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+			},
+			"encrypt": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Whether to enable server side encryption of the state file",
+			},
+			"acl": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Canned ACL to be applied to the state file",
+			},
+			"access_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS access key",
+			},
+			"secret_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS secret key",
+			},
+			"kms_key_id": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The ARN of a KMS Key to use for encrypting the state",
+			},
+			"dynamodb_table": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "DynamoDB table for state locking and consistency",
+			},
+			"profile": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS profile name",
+			},
+			"shared_credentials_file": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Path to a shared credentials file",
+			},
+			"token": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "MFA token",
+			},
+			"skip_credentials_validation": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Skip the credentials validation via STS API.",
+			},
+			"skip_region_validation": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip static validation of region name.",
+			},
+			"skip_metadata_api_check": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip the AWS Metadata API check.",
+			},
+			"sse_customer_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
+				Sensitive:   true,
+			},
+			"role_arn": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The role to be assumed",
+			},
+			"session_name": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			"external_id": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+			},
+
+			"assume_role_duration_seconds": {
+				Type:        cty.Number,
+				Optional:    true,
+				Description: "Seconds to restrict the assume role session duration.",
+			},
+
+			"assume_role_policy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+
+			"assume_role_policy_arns": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+
+			"assume_role_tags": {
+				Type:        cty.Map(cty.String),
+				Optional:    true,
+				Description: "Assume role session tags.",
+			},
+
+			"assume_role_transitive_tag_keys": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+			},
+
+			"workspace_key_prefix": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket.",
+			},
+
+			"force_path_style": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force s3 to use path style api.",
+			},
+
+			"max_retries": {
+				Type:        cty.Number,
+				Optional:    true,
+				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+			},
+		},
+	}
 }
 
 func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
