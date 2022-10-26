@@ -107,6 +107,7 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 			Concrete: concreteResourceInstance,
 			State:    b.State,
 			Changes:  b.Changes,
+			Config:   b.Config,
 		},
 
 		// Attach the state

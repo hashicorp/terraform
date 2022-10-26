@@ -81,6 +81,26 @@ func TestDiffTransformer_noOpChange(t *testing.T) {
 	// results changed even if the resource instance they are attached to
 	// didn't actually change directly itself.
 
+	// aws_instance.foo has a precondition, so should be included in the final
+	// graph. aws_instance.bar has no conditions, so there is nothing to
+	// execute during apply and it should not be included in the graph.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "aws_instance" "bar" {
+}
+
+resource "aws_instance" "foo" {
+  test_string = "ok"
+
+  lifecycle {
+	precondition {
+		condition     = self.test_string != ""
+		error_message = "resource error"
+	}
+  }
+}
+`})
+
 	g := Graph{Path: addrs.RootModuleInstance}
 
 	beforeVal, err := plans.NewDynamicValue(cty.StringVal(""), cty.String)
@@ -89,6 +109,7 @@ func TestDiffTransformer_noOpChange(t *testing.T) {
 	}
 
 	tf := &DiffTransformer{
+		Config: m,
 		Changes: &plans.Changes{
 			Resources: []*plans.ResourceInstanceChangeSrc{
 				{
@@ -96,6 +117,24 @@ func TestDiffTransformer_noOpChange(t *testing.T) {
 						Mode: addrs.ManagedResourceMode,
 						Type: "aws_instance",
 						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					ProviderAddr: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("aws"),
+						Module:   addrs.RootModule,
+					},
+					ChangeSrc: plans.ChangeSrc{
+						// A "no-op" change has the no-op action and has the
+						// same object as both Before and After.
+						Action: plans.NoOp,
+						Before: beforeVal,
+						After:  beforeVal,
+					},
+				},
+				{
+					Addr: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "aws_instance",
+						Name: "bar",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
 						Provider: addrs.NewDefaultProvider("aws"),
