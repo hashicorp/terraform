@@ -72,6 +72,10 @@ func TestBackendConfig(t *testing.T) {
 		t.Fatalf("Incorrect keyName was populated")
 	}
 
+	checkClientEndpoint(t, b.s3Client.Config, "")
+
+	checkClientEndpoint(t, b.dynClient.Config, "")
+
 	credentials, err := b.s3Client.Config.Credentials.Get()
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
@@ -81,6 +85,12 @@ func TestBackendConfig(t *testing.T) {
 	}
 	if credentials.SecretAccessKey == "" {
 		t.Fatalf("No Secret Access Key was populated")
+	}
+}
+
+func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
+	if a := aws.StringValue(config.Endpoint); a != expected {
+		t.Errorf("expected endpoint %q, got %q", expected, a)
 	}
 }
 
@@ -122,6 +132,122 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 
 			if *b.s3Client.Config.Region != "us-west-1" {
 				t.Fatalf("Incorrect region was populated")
+			}
+		})
+	}
+}
+
+func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region": "us-west-1",
+		"bucket": "tf-test",
+		"key":    "state",
+	}
+
+	vars := map[string]string{
+		"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
+	}
+	for k, v := range vars {
+		os.Setenv(k, v)
+	}
+	t.Cleanup(func() {
+		for k := range vars {
+			os.Unsetenv(k)
+		}
+	})
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	checkClientEndpoint(t, b.dynClient.Config, "dynamo.test")
+}
+
+func TestBackendConfig_S3Endpoint(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region": "us-west-1",
+		"bucket": "tf-test",
+		"key":    "state",
+	}
+
+	vars := map[string]string{
+		"AWS_S3_ENDPOINT": "s3.test",
+	}
+	for k, v := range vars {
+		os.Setenv(k, v)
+	}
+	t.Cleanup(func() {
+		for k := range vars {
+			os.Unsetenv(k)
+		}
+	})
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	checkClientEndpoint(t, b.s3Client.Config, "s3.test")
+}
+
+func TestBackendConfig_STSEndpoint(t *testing.T) {
+	testACC(t)
+
+	testCases := []struct {
+		Config           map[string]interface{}
+		Description      string
+		MockStsEndpoints []*awsbase.MockEndpoint
+	}{
+		{
+			Config: map[string]interface{}{
+				"bucket":       "tf-test",
+				"key":          "state",
+				"region":       "us-west-1",
+				"role_arn":     awsbase.MockStsAssumeRoleArn,
+				"session_name": awsbase.MockStsAssumeRoleSessionName,
+			},
+			Description: "role_arn",
+			MockStsEndpoints: []*awsbase.MockEndpoint{
+				{
+					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+						"Action":          []string{"AssumeRole"},
+						"DurationSeconds": []string{"900"},
+						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"Version":         []string{"2011-06-15"},
+					}.Encode()},
+					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+				},
+				{
+					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+
+		t.Run(testCase.Description, func(t *testing.T) {
+			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
+			defer closeSts()
+
+			if err != nil {
+				t.Fatalf("unexpected error creating mock STS server: %s", err)
+			}
+
+			if mockStsSession != nil && mockStsSession.Config != nil {
+				os.Setenv("AWS_STS_ENDPOINT", aws.StringValue(mockStsSession.Config.Endpoint))
+				t.Cleanup(func() {
+					os.Unsetenv("AWS_STS_ENDPOINT")
+				})
+			}
+
+			b := New()
+			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(testCase.Config)))
+
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					t.Errorf("unexpected error: %s", diag.Description().Summary)
+				}
 			}
 		})
 	}

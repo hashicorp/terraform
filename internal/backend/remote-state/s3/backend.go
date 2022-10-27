@@ -343,14 +343,14 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		CallerName:                "S3 Backend",
 		CredsFilename:             stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:              logging.IsDebugOrHigher(),
-		IamEndpoint:               stringAttr(obj, "iam_endpoint"),
+		IamEndpoint:               stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
 		MaxRetries:                intAttrDefault(obj, "max_retries", 5),
 		Profile:                   stringAttr(obj, "profile"),
 		Region:                    stringAttr(obj, "region"),
 		SecretKey:                 stringAttr(obj, "secret_key"),
 		SkipCredsValidation:       boolAttr(obj, "skip_credentials_validation"),
 		SkipMetadataApiCheck:      boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:               stringAttr(obj, "sts_endpoint"),
+		StsEndpoint:               stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
 		Token:                     stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
@@ -401,13 +401,20 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
-	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
-		Endpoint: aws.String(stringAttr(obj, "dynamodb_endpoint")),
-	}))
-	b.s3Client = s3.New(sess.Copy(&aws.Config{
-		Endpoint:         aws.String(stringAttr(obj, "endpoint")),
-		S3ForcePathStyle: aws.Bool(boolAttr(obj, "force_path_style")),
-	}))
+	var dynamoConfig aws.Config
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
+		dynamoConfig.Endpoint = aws.String(v)
+	}
+	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
+
+	var s3Config aws.Config
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
+		s3Config.Endpoint = aws.String(v)
+	}
+	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
+		s3Config.S3ForcePathStyle = aws.Bool(v)
+	}
+	b.s3Client = s3.New(sess.Copy(&s3Config))
 
 	return diags
 }
@@ -438,6 +445,27 @@ func stringAttrDefault(obj cty.Value, name, def string) string {
 		return def
 	} else {
 		return v
+	}
+}
+
+func stringAttrDefaultEnvVar(obj cty.Value, name string, envvars ...string) string {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, name, envvars...); !ok {
+		return ""
+	} else {
+		return v
+	}
+}
+
+func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (string, bool) {
+	if v, ok := stringAttrOk(obj, name); !ok {
+		for _, envvar := range envvars {
+			if v := os.Getenv(envvar); v != "" {
+				return v, true
+			}
+		}
+		return "", false
+	} else {
+		return v, true
 	}
 }
 
