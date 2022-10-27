@@ -266,6 +266,12 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				encryptionKeyConflictError,
 				cty.Path{},
 			))
+		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid encryption configuration",
+				encryptionKeyConflictEnvVarError,
+			))
 		}
 	}
 
@@ -334,23 +340,21 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 				))
 			}
 		}
-	} else {
-		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
-			if len(customerKey) != 44 {
+	} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+		if len(customerKey) != 44 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid AWS_SSE_CUSTOMER_KEY value",
+				`The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
+			))
+		} else {
+			var err error
+			if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid AWS_SSE_CUSTOMER_KEY value",
-					"AWS_SSE_CUSTOMER_KEY must be 44 characters in length",
+					fmt.Sprintf(`The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded: %s`, err),
 				))
-			} else {
-				var err error
-				if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
-					diags = diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
-						"Invalid AWS_SSE_CUSTOMER_KEY value",
-						fmt.Sprintf("AWS_SSE_CUSTOMER_KEY must be base64 encoded: %s", err),
-					))
-				}
 			}
 		}
 	}
@@ -532,6 +536,12 @@ func intAttrDefault(obj cty.Value, name string, def int) int {
 
 const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
 
-The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
-while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
+The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
+while "sse_customer_key" is used for encryption with customer-managed keys (SSE-C).
+Please choose one or the other.`
+
+const encryptionKeyConflictEnvVarError = `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set.
+
+The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
+while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`

@@ -584,7 +584,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"bucket":               cty.StringVal("test"),
 				"key":                  cty.StringVal("test"),
 				"region":               cty.StringVal("us-west-2"),
-				"workspace_key_prefix": cty.StringVal("env/"),
+				"workspace_key_prefix": cty.StringVal("env"),
 				"sse_customer_key":     cty.StringVal("1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o="),
 				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"),
 			}),
@@ -641,6 +641,19 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 			vars: map[string]string{
 				"AWS_DEFAULT_REGION": "us-west-1",
 			},
+		},
+		"encyrption key conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":               cty.StringVal("test"),
+				"key":                  cty.StringVal("test"),
+				"region":               cty.StringVal("us-west-2"),
+				"workspace_key_prefix": cty.StringVal("env"),
+				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"),
+			}),
+			vars: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
+			},
+			expectedErr: `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set`,
 		},
 	}
 
@@ -789,11 +802,11 @@ func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
 	}{
 		"invalid length": {
 			customerKey: "test",
-			expectedErr: `AWS_SSE_CUSTOMER_KEY must be 44 characters in length`,
+			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
 		},
 		"invalid encoding": {
 			customerKey: "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-			expectedErr: `AWS_SSE_CUSTOMER_KEY must be base64 encoded`,
+			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded`,
 		},
 		"valid": {
 			customerKey: "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
