@@ -217,6 +217,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		return obj, diags
 	}
 
+	if val := obj.GetAttr("bucket"); val.IsNull() || val.AsString() == "" {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid bucket value",
+			// `The "bucket" attribute value must not be empty.`,
+			`"bucket": required field is not set`,
+			cty.Path{cty.GetAttrStep{Name: "bucket"}},
+		))
+	}
+
 	if val := obj.GetAttr("key"); val.IsNull() || val.AsString() == "" {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
@@ -237,7 +247,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		))
 	}
 
-	if val := obj.GetAttr("region"); val.IsNull() {
+	if val := obj.GetAttr("region"); val.IsNull() || val.AsString() == "" {
 		if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,

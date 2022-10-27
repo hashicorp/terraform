@@ -614,11 +614,17 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 			b := New()
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
-			if valDiags.Err() != nil && tc.expectedErr != "" {
-				actualErr := valDiags.Err().Error()
-				if !strings.Contains(actualErr, tc.expectedErr) {
-					t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			if tc.expectedErr != "" {
+				if valDiags.Err() != nil {
+					actualErr := valDiags.Err().Error()
+					if !strings.Contains(actualErr, tc.expectedErr) {
+						t.Fatalf("unexpected validation result: %v", valDiags.Err())
+					}
+				} else {
+					t.Fatal("expected an error, got none")
 				}
+			} else if valDiags.Err() != nil {
+				t.Fatalf("expected no error, got %s", valDiags.Err())
 			}
 		})
 	}
@@ -666,11 +672,17 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 			})
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
-			if valDiags.Err() != nil && tc.expectedErr != "" {
-				actualErr := valDiags.Err().Error()
-				if !strings.Contains(actualErr, tc.expectedErr) {
-					t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			if tc.expectedErr != "" {
+				if valDiags.Err() != nil {
+					actualErr := valDiags.Err().Error()
+					if !strings.Contains(actualErr, tc.expectedErr) {
+						t.Fatalf("unexpected validation result: %v", valDiags.Err())
+					}
+				} else {
+					t.Fatal("expected an error, got none")
 				}
+			} else if valDiags.Err() != nil {
+				t.Fatalf("expected no error, got %s", valDiags.Err())
 			}
 		})
 	}
