@@ -611,6 +611,9 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			oldEnv := stashEnv()
+			defer popEnv(oldEnv)
+
 			b := New()
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
@@ -660,16 +663,14 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			oldEnv := stashEnv()
+			defer popEnv(oldEnv)
+
 			b := New()
 
 			for k, v := range tc.vars {
 				os.Setenv(k, v)
 			}
-			t.Cleanup(func() {
-				for k := range tc.vars {
-					os.Unsetenv(k)
-				}
-			})
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
 			if tc.expectedErr != "" {
@@ -1184,4 +1185,23 @@ func unmarshalObject(dec cty.Value, atys map[string]cty.Type, path cty.Path) (ct
 	}
 
 	return cty.ObjectVal(vals), nil
+}
+
+func stashEnv() []string {
+	env := os.Environ()
+	os.Clearenv()
+	return env
+}
+
+func popEnv(env []string) {
+	os.Clearenv()
+
+	for _, e := range env {
+		p := strings.SplitN(e, "=", 2)
+		k, v := p[0], ""
+		if len(p) > 1 {
+			v = p[1]
+		}
+		os.Setenv(k, v)
+	}
 }
