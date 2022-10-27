@@ -258,29 +258,6 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
-	if val := obj.GetAttr("sse_customer_key"); !val.IsNull() {
-		s := val.AsString()
-		if len(s) != 44 {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid sse_customer_key value",
-				"sse_customer_key must be 44 characters in length",
-				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
-			))
-		} else {
-			var err error
-			_, err = base64.StdEncoding.DecodeString(s)
-			if err != nil {
-				diags = diags.Append(tfdiags.AttributeValue(
-					tfdiags.Error,
-					"Invalid sse_customer_key value",
-					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
-					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
-				))
-			}
-		}
-	}
-
 	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
 		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
 			diags = diags.Append(tfdiags.AttributeValue(
@@ -337,9 +314,45 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
 
-	if customerKeyString, ok := stringAttrOk(obj, "sse_customer_key"); ok {
-		// Validation is handled in PrepareConfig, so ignore it here
-		b.customerEncryptionKey, _ = base64.StdEncoding.DecodeString(customerKeyString)
+	// WarnOnEmptyString(), LenEquals(44), IsBase64Encoded()
+	if customerKey, ok := stringAttrOk(obj, "sse_customer_key"); ok {
+		if len(customerKey) != 44 {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid sse_customer_key value",
+				"sse_customer_key must be 44 characters in length",
+				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+			))
+		} else {
+			var err error
+			if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
+				diags = diags.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Invalid sse_customer_key value",
+					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
+					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+				))
+			}
+		}
+	} else {
+		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+			if len(customerKey) != 44 {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					"AWS_SSE_CUSTOMER_KEY must be 44 characters in length",
+				))
+			} else {
+				var err error
+				if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Error,
+						"Invalid AWS_SSE_CUSTOMER_KEY value",
+						fmt.Sprintf("AWS_SSE_CUSTOMER_KEY must be base64 encoded: %s", err),
+					))
+				}
+			}
+		}
 	}
 
 	cfg := &awsbase.Config{
