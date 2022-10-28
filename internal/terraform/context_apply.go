@@ -25,6 +25,10 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
+	// FIXME: refresh plans still store outputs as changes, so we can't use
+	// Empty()
+	possibleRefresh := len(plan.Changes.Resources) == 0
+
 	graph, operation, diags := c.applyGraph(plan, config, true)
 	if diags.HasErrors() {
 		return nil, diags
@@ -77,7 +81,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 	// cleanup is going to be needed to make the plan state match what apply
 	// would do. For now we can copy the checks over which were overwritten
 	// during the apply walk.
-	if len(plan.Changes.Resources) == 0 {
+	if possibleRefresh {
 		newState.CheckResults = plan.Checks.DeepCopy()
 	}
 
