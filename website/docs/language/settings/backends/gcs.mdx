@@ -46,7 +46,7 @@ resource "local_file" "foo" {
 
 # Terraform <= 0.11
 resource "local_file" "foo" {
-  content  = "${data.terraform_remote_state.foo.outputs.greeting}"
+  content  = "${data.terraform_remote_state.foo.greeting}"
   filename = "${path.module}/outputs.txt"
 }
 ```
