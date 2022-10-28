@@ -38,12 +38,16 @@ data "terraform_remote_state" "foo" {
   }
 }
 
-resource "template_file" "bar" {
-  template = "${greeting}"
+# Terraform >= 0.12
+resource "local_file" "foo" {
+  content  = data.terraform_remote_state.foo.outputs.greeting
+  filename = "${path.module}/outputs.txt"
+}
 
-  vars {
-    greeting = "${data.terraform_remote_state.foo.greeting}"
-  }
+# Terraform <= 0.11
+resource "local_file" "foo" {
+  content  = "${data.terraform_remote_state.foo.greeting}"
+  filename = "${path.module}/outputs.txt"
 }
 ```
 
