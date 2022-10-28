@@ -69,6 +69,18 @@ Note that the -target option is not suitable for routine use, and is provided on
 		))
 	}
 
+	// FIXME: we cannot check for an empty plan for refresh-only, because root
+	// outputs are always stored as changes. The final condition of the state
+	// also depends on some cleanup which happens during the apply walk. It
+	// would probably make more sense if applying a refresh-only plan were
+	// simply just returning the planned state and checks, but some extra
+	// cleanup is going to be needed to make the plan state match what apply
+	// would do. For now we can copy the checks over which were overwritten
+	// during the apply walk.
+	if len(plan.Changes.Resources) == 0 {
+		newState.CheckResults = plan.Checks.DeepCopy()
+	}
+
 	return newState, diags
 }
 

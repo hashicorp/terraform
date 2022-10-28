@@ -1641,3 +1641,75 @@ output "from_resource" {
 	_, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 }
+
+// -refresh-only should update checks
+func TestContext2Apply_refreshApplyUpdatesChecks(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+  lifecycle {
+    postcondition {
+      condition = self.test_string == "ok"
+      error_message = "wrong val"
+    }
+  }
+}
+
+output "from_resource" {
+  value = test_object.x.test_string
+  precondition {
+	condition     = test_object.x.test_string == "ok"
+	error_message = "wrong val"
+  }
+}
+`})
+
+	p := simpleMockProvider()
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("ok"),
+		}),
+	}
+
+	state := states.NewState()
+	mod := state.EnsureModule(addrs.RootModuleInstance)
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"wrong val"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	mod.SetOutputValue("from_resource", cty.StringVal("wrong val"), false)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.RefreshOnlyMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	resCheck := state.CheckResults.GetObjectResult(mustResourceInstanceAddr("test_object.x"))
+	if resCheck.Status != checks.StatusPass {
+		t.Fatalf("unexpected check %s: %s\n", resCheck.Status, resCheck.FailureMessages)
+	}
+
+	outAddr := addrs.AbsOutputValue{
+		Module: addrs.RootModuleInstance,
+		OutputValue: addrs.OutputValue{
+			Name: "from_resource",
+		},
+	}
+	outCheck := state.CheckResults.GetObjectResult(outAddr)
+	if outCheck.Status != checks.StatusPass {
+		t.Fatalf("unexpected check %s: %s\n", outCheck.Status, outCheck.FailureMessages)
+	}
+}
