@@ -173,7 +173,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 		// If quiet is true, don't output the command
 		req.UIOutput.Output("local-exec: Executing: Suppressed by quiet=true")
 	} else {
-		req.UIOutput.Output(fmt.Sprintf("local-exec: Executing: %s", command))
+		req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
 	}
 
 	// Start the command
