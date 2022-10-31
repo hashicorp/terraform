@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
@@ -295,7 +296,19 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, repeatData, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
+	var repeatData instances.RepetitionData
+	if n.Config != nil {
+		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+		repeatData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+	}
+
+	// If there is no change, there was nothing to apply, and we don't need to
+	// re-write the state, but we do need to re-evaluate postconditions.
+	if diffApply.Action == plans.NoOp {
+		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
@@ -370,15 +383,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
+	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+}
+
+func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
+
 	checkDiags := evalCheckRules(
 		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr(), repeatData,
 		tfdiags.Error,
 	)
-	diags = diags.Append(checkDiags)
-
-	return diags
+	return diags.Append(checkDiags)
 }
 
 // checkPlannedChange produces errors if the _actual_ expected value is not
