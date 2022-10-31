@@ -132,8 +132,8 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		return cty.UnknownVal(cfg.Type), diags
 	}
 
-	// Apply defaults from the variable's type constraint to the given value,
-	// unless the given value is null. We do not apply defaults to top-level
+	// Apply defaults from the variable's type constraint to the converted value,
+	// unless the converted value is null. We do not apply defaults to top-level
 	// null values, as doing so could prevent assigning null to a nullable
 	// variable.
 	if cfg.TypeDefaults != nil && !val.IsNull() {
