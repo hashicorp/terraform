@@ -8,6 +8,49 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+func TestBase36Encode(t *testing.T) {
+	tests := []struct {
+		String cty.Value
+		Want   cty.Value
+		Err    bool
+	}{
+		{
+			cty.StringVal("this-is-a-test-role-123"),
+			cty.StringVal("3RTNWHNTGJWKXO3AZ8RE3AL39Y0SX8F09LPV"),
+			false,
+		},
+		{
+			cty.StringVal("abc123-_"),
+			cty.StringVal("1HBAY8J4QS76N"),
+			false,
+		},
+		{
+			cty.StringVal("123"),
+			cty.StringVal("1X3QR"),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("base36encode(%#v)", test.String), func(t *testing.T) {
+			got, err := Base36Encode(test.String)
+
+			if test.Err {
+				if err == nil {
+					t.Fatal("succeeded; want error")
+				}
+				return
+			} else if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if !got.RawEquals(test.Want) {
+				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
 func TestBase64Decode(t *testing.T) {
 	tests := []struct {
 		String cty.Value

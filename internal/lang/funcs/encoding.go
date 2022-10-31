@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"math/big"
 	"net/url"
 	"unicode/utf8"
 
@@ -13,6 +14,55 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"golang.org/x/text/encoding/ianaindex"
 )
+
+// Base36EncodeFunc constructs a function that encodes a string to a base36 sequence.
+var Base36EncodeFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.String),
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		s := args[0].AsString()
+
+		// Convert to a byte slice
+		b := []byte(s)
+
+		var base36cipher = []byte{
+			'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+			'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}
+
+		var bigRadix = big.NewInt(36)
+		var bigZero = big.NewInt(0)
+
+		x := new(big.Int)
+		x.SetBytes(b)
+
+		answer := make([]byte, 0, len(b)*136/100)
+		for x.Cmp(bigZero) > 0 {
+			mod := new(big.Int)
+			x.DivMod(x, bigRadix, mod)
+			answer = append(answer, base36cipher[mod.Int64()])
+		}
+
+		// Special case for leading zero bytes. They are encoded to the same integer
+		for _, i := range b {
+			if i != 0 {
+				break
+			}
+			answer = append(answer, base36cipher[0])
+		}
+
+		// Reverse byte slice
+		for i, j := 0, len(answer)-1; i < j; i, j = i+1, j-1 {
+			answer[i], answer[j] = answer[j], answer[i]
+		}
+
+		return cty.StringVal(string(answer)), nil
+	},
+})
 
 // Base64DecodeFunc constructs a function that decodes a string containing a base64 sequence.
 var Base64DecodeFunc = function.New(&function.Spec{
@@ -183,6 +233,11 @@ var URLEncodeFunc = function.New(&function.Spec{
 		return cty.StringVal(url.QueryEscape(args[0].AsString())), nil
 	},
 })
+
+// Base36Encode applies Base36 encoding to a string.
+func Base36Encode(str cty.Value) (cty.Value, error) {
+	return Base36EncodeFunc.Call([]cty.Value{str})
+}
 
 // Base64Decode decodes a string containing a base64 sequence.
 //
