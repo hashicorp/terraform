@@ -271,7 +271,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -294,12 +294,6 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	diags = diags.Append(n.preApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
-	}
-
-	var repeatData instances.RepetitionData
-	if n.Config != nil {
-		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
-		repeatData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 	}
 
 	// If there is no change, there was nothing to apply, and we don't need to
