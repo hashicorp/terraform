@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -16,6 +18,28 @@ type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	State    *states.State
 	Changes  *plans.Changes
+	Config   *configs.Config
+}
+
+// return true if the given resource instance has either Preconditions or
+// Postconditions defined in the configuration.
+func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bool {
+	// unit tests may have no config
+	if t.Config == nil {
+		return false
+	}
+
+	cfg := t.Config.DescendentForInstance(addr.Module)
+	if cfg == nil {
+		return false
+	}
+
+	res := cfg.Module.ResourceByAddr(addr.ConfigResource().Resource)
+	if res == nil {
+		return false
+	}
+
+	return len(res.Preconditions) > 0 || len(res.Postconditions) > 0
 }
 
 func (t *DiffTransformer) Transform(g *Graph) error {
@@ -69,7 +93,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			// run any condition checks associated with the object, to
 			// make sure that they still hold when considering the
 			// results of other changes.
-			update = true
+			update = t.hasConfigConditions(addr)
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
