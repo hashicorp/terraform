@@ -25,6 +25,10 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
+	// FIXME: refresh plans still store outputs as changes, so we can't use
+	// Empty()
+	possibleRefresh := len(plan.Changes.Resources) == 0
+
 	graph, operation, diags := c.applyGraph(plan, config, true)
 	if diags.HasErrors() {
 		return nil, diags
@@ -67,6 +71,18 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 	
 Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
 		))
+	}
+
+	// FIXME: we cannot check for an empty plan for refresh-only, because root
+	// outputs are always stored as changes. The final condition of the state
+	// also depends on some cleanup which happens during the apply walk. It
+	// would probably make more sense if applying a refresh-only plan were
+	// simply just returning the planned state and checks, but some extra
+	// cleanup is going to be needed to make the plan state match what apply
+	// would do. For now we can copy the checks over which were overwritten
+	// during the apply walk.
+	if possibleRefresh {
+		newState.CheckResults = plan.Checks.DeepCopy()
 	}
 
 	return newState, diags
