@@ -201,12 +201,12 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 		},
 	})
 
-	s, diags := ctx.Refresh(m, states.NewState(), &PlanOpts{Mode: plans.NormalMode})
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{Mode: plans.RefreshOnlyMode})
 	if diags.HasErrors() {
 		t.Fatalf("refresh errors: %s", diags.Err())
 	}
 
-	checkStateString(t, s, `
+	checkStateString(t, plan.PriorState, `
 <no state>
 `)
 }
