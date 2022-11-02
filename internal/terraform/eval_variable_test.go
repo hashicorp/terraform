@@ -68,6 +68,30 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			nullable  = false
 			type      = string
 		}
+		variable "complex_type_with_nested_default_optional" {
+			type = set(object({
+				name      = string
+				schedules = set(object({
+					name               = string
+					cold_storage_after = optional(number, 10)
+				}))
+  			}))
+		}
+		variable "complex_type_with_nested_complex_types" {
+			type = object({
+				name                       = string
+				nested_object              = object({
+					name  = string
+					value = optional(string, "foo")
+				})
+				nested_object_with_default = optional(object({
+					name  = string
+					value = optional(string, "bar")
+				}), {
+					name = "nested_object_with_default"
+				})
+			})
+		}
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -396,6 +420,80 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			"constrained_string_optional_default_bool",
 			cty.UnknownVal(cty.String),
 			cty.UnknownVal(cty.String),
+			``,
+		},
+
+		// complex types
+
+		{
+			"complex_type_with_nested_default_optional",
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"name": cty.StringVal("daily"),
+						}),
+						cty.MapVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.StringVal("0"),
+						}),
+					}),
+				}),
+			}),
+			cty.SetVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test1"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("test2"),
+					"schedules": cty.SetVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("daily"),
+							"cold_storage_after": cty.NumberIntVal(10),
+						}),
+						cty.ObjectVal(map[string]cty.Value{
+							"name":               cty.StringVal("weekly"),
+							"cold_storage_after": cty.NumberIntVal(0),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"complex_type_with_nested_complex_types",
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("nested_object"),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("object"),
+				"nested_object": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object"),
+					"value": cty.StringVal("foo"),
+				}),
+				"nested_object_with_default": cty.ObjectVal(map[string]cty.Value{
+					"name":  cty.StringVal("nested_object_with_default"),
+					"value": cty.StringVal("bar"),
+				}),
+			}),
 			``,
 		},
 
