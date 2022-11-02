@@ -10,6 +10,9 @@ BUG FIXES:
 * Prevent unnecessary evaluation and planning of resources during the pre-destroy refresh [GH-32051]
 * AzureRM Backend: support for generic OIDC authentication via the `oidc_token` and `oidc_token_file_path` properties [GH-31966]
 * Input and Module Variables: Convert variable types before attempting to apply default values. [GH-32027]
+* When installing remote module packages delivered in tar format, Terraform now limits the tar header block size to 1MiB to avoid unbounded memory usage for maliciously-crafted module packages. [GH-32135]
+* Terraform will now reject excessively-complex regular expression patterns passed to the `regex`, `regexall`, and `replace` functions, to avoid unbounded memory usage for maliciously-crafted patterns. This change should not affect any reasonable patterns intended for practical use. [GH-32135]
+* Terraform on Windows now rejects invalid environment variables whose values contain the NUL character when propagating environment variables to a child process such as a provider plugin. Previously Terraform would incorrectly treat that character as a separator between two separate environment variables. [GH-32135]
 
 ## 1.3.3 (October 19, 2022)
 
