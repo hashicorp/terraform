@@ -1,18 +1,18 @@
-## 1.3.4 (Unreleased)
+## 1.3.4 (November 02, 2022)
 
 BUG FIXES:
 
-* Fix invalid refresh-only plan caused by data sources being deferred to apply [GH-32111]
-* Optimize the handling of condition checks during apply to prevent performance regressions with large numbers of instances [GH-32123]
-* Output preconditions should not be evaluated during destroy [GH-32051]
-* Fix crash from `console` when outputs contain preconditions [GH-32051]
-* Destroy with no state would still attempt to evaluate some values [GH-32051]
-* Prevent unnecessary evaluation and planning of resources during the pre-destroy refresh [GH-32051]
-* AzureRM Backend: support for generic OIDC authentication via the `oidc_token` and `oidc_token_file_path` properties [GH-31966]
-* Input and Module Variables: Convert variable types before attempting to apply default values. [GH-32027]
-* When installing remote module packages delivered in tar format, Terraform now limits the tar header block size to 1MiB to avoid unbounded memory usage for maliciously-crafted module packages. [GH-32135]
-* Terraform will now reject excessively-complex regular expression patterns passed to the `regex`, `regexall`, and `replace` functions, to avoid unbounded memory usage for maliciously-crafted patterns. This change should not affect any reasonable patterns intended for practical use. [GH-32135]
-* Terraform on Windows now rejects invalid environment variables whose values contain the NUL character when propagating environment variables to a child process such as a provider plugin. Previously Terraform would incorrectly treat that character as a separator between two separate environment variables. [GH-32135]
+* Fix invalid refresh-only plan caused by data sources being deferred to apply ([#32111](https://github.com/hashicorp/terraform/issues/32111))
+* Optimize the handling of condition checks during apply to prevent performance regressions with large numbers of instances ([#32123](https://github.com/hashicorp/terraform/issues/32123))
+* Output preconditions should not be evaluated during destroy ([#32051](https://github.com/hashicorp/terraform/issues/32051))
+* Fix crash from `console` when outputs contain preconditions ([#32051](https://github.com/hashicorp/terraform/issues/32051))
+* Destroy with no state would still attempt to evaluate some values ([#32051](https://github.com/hashicorp/terraform/issues/32051))
+* Prevent unnecessary evaluation and planning of resources during the pre-destroy refresh ([#32051](https://github.com/hashicorp/terraform/issues/32051))
+* AzureRM Backend: support for generic OIDC authentication via the `oidc_token` and `oidc_token_file_path` properties ([#31966](https://github.com/hashicorp/terraform/issues/31966))
+* Input and Module Variables: Convert variable types before attempting to apply default values. ([#32027](https://github.com/hashicorp/terraform/issues/32027))
+* When installing remote module packages delivered in tar format, Terraform now limits the tar header block size to 1MiB to avoid unbounded memory usage for maliciously-crafted module packages. ([#32135](https://github.com/hashicorp/terraform/issues/32135))
+* Terraform will now reject excessively-complex regular expression patterns passed to the `regex`, `regexall`, and `replace` functions, to avoid unbounded memory usage for maliciously-crafted patterns. This change should not affect any reasonable patterns intended for practical use. ([#32135](https://github.com/hashicorp/terraform/issues/32135))
+* Terraform on Windows now rejects invalid environment variables whose values contain the NUL character when propagating environment variables to a child process such as a provider plugin. Previously Terraform would incorrectly treat that character as a separator between two separate environment variables. ([#32135](https://github.com/hashicorp/terraform/issues/32135))
 
 ## 1.3.3 (October 19, 2022)
 
