@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* Fix invalid refresh-only plan caused by data sources being deferred to apply [GH-32111]
 * Optimize the handling of condition checks during apply to prevent performance regressions with large numbers of instances [GH-32123]
 * Output preconditions should not be evaluated during destroy [GH-32051]
 * Fix crash from `console` when outputs contain preconditions [GH-32051]
