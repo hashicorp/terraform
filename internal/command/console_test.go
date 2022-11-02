@@ -172,8 +172,8 @@ func TestConsole_variables(t *testing.T) {
 	commands := map[string]string{
 		"var.foo\n":          "\"bar\"\n",
 		"var.snack\n":        "\"popcorn\"\n",
-		"var.secret_snack\n": "(sensitive)\n",
-		"local.snack_bar\n":  "[\n  \"popcorn\",\n  (sensitive),\n]\n",
+		"var.secret_snack\n": "(sensitive value)\n",
+		"local.snack_bar\n":  "[\n  \"popcorn\",\n  (sensitive value),\n]\n",
 	}
 
 	args := []string{}
