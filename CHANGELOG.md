@@ -1,10 +1,13 @@
 ## 1.3.4 (Unreleased)
 
+BUG FIXES:
+
 * Output preconditions should not be evaluated during destroy [GH-32051]
 * Fix crash from `console` when outputs contain preconditions [GH-32051]
 * Destroy with no state would still attempt to evaluate some values [GH-32051]
 * Prevent unnecessary evaluation and planning of resources during the pre-destroy refresh [GH-32051]
 * AzureRM Backend: support for generic OIDC authentication via the `oidc_token` and `oidc_token_file_path` properties [GH-31966]
+* Input and Module Variables: Convert variable types before attempting to apply default values. [GH-32027]
 
 ## 1.3.3 (October 19, 2022)
 
