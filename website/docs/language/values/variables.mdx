@@ -218,8 +218,8 @@ Terraform will perform the following actions:
 
   # some_resource.a will be created
   + resource "some_resource" "a" {
-      + name    = (sensitive)
-      + address = (sensitive)
+      + name    = (sensitive value)
+      + address = (sensitive value)
     }
 
 Plan: 1 to add, 0 to change, 0 to destroy.
@@ -262,7 +262,7 @@ If a resource attribute is used as, or part of, the provider-defined resource id
   + resource "random_pet" "animal" {
       + id        = (known after apply)
       + length    = 2
-      + prefix    = (sensitive)
+      + prefix    = (sensitive value)
       + separator = "-"
     }
 

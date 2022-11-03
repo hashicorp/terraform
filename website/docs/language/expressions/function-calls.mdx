@@ -63,11 +63,11 @@ the `keys()` function will result in a list that is sensitive:
 ```shell
 > local.baz
 {
-  "a" = (sensitive)
+  "a" = (sensitive value)
   "b" = "dog"
 }
 > keys(local.baz)
-(sensitive)
+(sensitive value)
 ```
 
 ## When Terraform Calls Functions

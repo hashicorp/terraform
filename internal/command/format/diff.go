@@ -274,7 +274,10 @@ type blockBodyDiffResult struct {
 	skippedBlocks     int
 }
 
-const forcesNewResourceCaption = " [red]# forces replacement[reset]"
+const (
+	forcesNewResourceCaption = " [red]# forces replacement[reset]"
+	sensitiveCaption         = "(sensitive value)"
+)
 
 // writeBlockBodyDiff writes attribute or block differences
 // and returns true if any differences were found and written
@@ -398,7 +401,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	}
 
 	if attrS.NestedType != nil {
-		p.writeNestedAttrDiff(name, attrS.NestedType, old, new, nameLen, indent, path, action, showJustNew)
+		p.writeNestedAttrDiff(name, attrS, old, new, nameLen, indent, path, action, showJustNew)
 		return false
 	}
 
@@ -416,7 +419,7 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 	p.buf.WriteString(" = ")
 
 	if attrS.Sensitive {
-		p.buf.WriteString("(sensitive value)")
+		p.buf.WriteString(sensitiveCaption)
 		if p.pathForcesNewResource(path) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
@@ -441,8 +444,10 @@ func (p *blockBodyDiffPrinter) writeAttrDiff(name string, attrS *configschema.At
 // writeNestedAttrDiff is responsible for formatting Attributes with NestedTypes
 // in the diff.
 func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
-	name string, objS *configschema.Object, old, new cty.Value,
+	name string, attrWithNestedS *configschema.Attribute, old, new cty.Value,
 	nameLen, indent int, path cty.Path, action plans.Action, showJustNew bool) {
+
+	objS := attrWithNestedS.NestedType
 
 	p.buf.WriteString("\n")
 	p.writeSensitivityWarning(old, new, indent, action, false)
@@ -454,8 +459,12 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 	p.buf.WriteString(p.color.Color("[reset]"))
 	p.buf.WriteString(strings.Repeat(" ", nameLen-len(name)))
 
-	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
-		p.buf.WriteString(" = (sensitive value)")
+	// Then schema of the attribute itself can be marked sensitive, or the values assigned
+	sensitive := attrWithNestedS.Sensitive || old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive)
+	if sensitive {
+		p.buf.WriteString(" = ")
+		p.buf.WriteString(sensitiveCaption)
+
 		if p.pathForcesNewResource(path) {
 			p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 		}
@@ -474,6 +483,12 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString("\n")
 		p.buf.WriteString(strings.Repeat(" ", indent+2))
 		p.buf.WriteString("}")
+
+		if !new.IsKnown() {
+			p.buf.WriteString(" -> (known after apply)")
+		} else if new.IsNull() {
+			p.buf.WriteString(p.color.Color("[dark_gray] -> null[reset]"))
+		}
 
 	case configschema.NestingList:
 		p.buf.WriteString(" = [")
@@ -558,6 +573,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 
 		if !new.IsKnown() {
 			p.buf.WriteString(" -> (known after apply)")
+		} else if new.IsNull() {
+			p.buf.WriteString(p.color.Color("[dark_gray] -> null[reset]"))
 		}
 
 	case configschema.NestingSet:
@@ -636,6 +653,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 
 		if !new.IsKnown() {
 			p.buf.WriteString(" -> (known after apply)")
+		} else if new.IsNull() {
+			p.buf.WriteString(p.color.Color("[dark_gray] -> null[reset]"))
 		}
 
 	case configschema.NestingMap:
@@ -711,6 +730,8 @@ func (p *blockBodyDiffPrinter) writeNestedAttrDiff(
 		p.buf.WriteString("}")
 		if !new.IsKnown() {
 			p.buf.WriteString(" -> (known after apply)")
+		} else if new.IsNull() {
+			p.buf.WriteString(p.color.Color("[dark_gray] -> null[reset]"))
 		}
 	}
 }
@@ -725,7 +746,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiffs(name string, blockS *config
 
 	// If either the old or the new value is marked,
 	// Display a special diff because it is irrelevant
-	// to list all obfuscated attributes as (sensitive)
+	// to list all obfuscated attributes as (sensitive value)
 	if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
 		p.writeSensitiveNestedBlockDiff(name, old, new, indent, blankBefore, path)
 		return 0
@@ -1008,7 +1029,7 @@ func (p *blockBodyDiffPrinter) writeNestedBlockDiff(name string, label *string, 
 func (p *blockBodyDiffPrinter) writeValue(val cty.Value, action plans.Action, indent int) {
 	// Could check specifically for the sensitivity marker
 	if val.HasMark(marks.Sensitive) {
-		p.buf.WriteString("(sensitive)")
+		p.buf.WriteString(sensitiveCaption)
 		return
 	}
 
@@ -1176,7 +1197,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 	// values are known and non-null.
 	if old.IsKnown() && new.IsKnown() && !old.IsNull() && !new.IsNull() && typesEqual {
 		if old.HasMark(marks.Sensitive) || new.HasMark(marks.Sensitive) {
-			p.buf.WriteString("(sensitive)")
+			p.buf.WriteString(sensitiveCaption)
 			if p.pathForcesNewResource(path) {
 				p.buf.WriteString(p.color.Color(forcesNewResourceCaption))
 			}
@@ -1547,7 +1568,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 				case plans.Create, plans.NoOp:
 					v := new.Index(kV)
 					if v.HasMark(marks.Sensitive) {
-						p.buf.WriteString("(sensitive)")
+						p.buf.WriteString(sensitiveCaption)
 					} else {
 						p.writeValue(v, action, indent+4)
 					}
@@ -1557,7 +1578,7 @@ func (p *blockBodyDiffPrinter) writeValueDiff(old, new cty.Value, indent int, pa
 					p.writeValueDiff(oldV, newV, indent+4, path)
 				default:
 					if oldV.HasMark(marks.Sensitive) || newV.HasMark(marks.Sensitive) {
-						p.buf.WriteString("(sensitive)")
+						p.buf.WriteString(sensitiveCaption)
 					} else {
 						p.writeValueDiff(oldV, newV, indent+4, path)
 					}
