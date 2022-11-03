@@ -213,8 +213,14 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			for _, resAddr := range ri.StateDependencies() {
 				for _, desDep := range destroyersByResource[resAddr.String()] {
 					if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(c, desDep) {
-						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(c), dag.VertexName(desDep))
-						g.Connect(dag.BasicEdge(c, desDep))
+						log.Printf("[TRACE] DestroyEdgeTransformer: %s has stored dependency of %s\n", dag.VertexName(desDep), dag.VertexName(c))
+						e := dag.BasicEdge(desDep, c)
+						g.Connect(e)
+						// There is a possibility of having cyclic graph here, for example in the case of force-replacement.
+						// Force-replacement case, which will already have an edge A_d => A, will get A => A_d here.
+						if len(g.Cycles()) > 0 {
+							g.Remove(e)
+						}
 					} else {
 						log.Printf("[TRACE] DestroyEdgeTransformer: skipping %s => %s inter-module-instance dependency\n", dag.VertexName(c), dag.VertexName(desDep))
 					}
