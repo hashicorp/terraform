@@ -3,6 +3,9 @@
 BUG FIXES:
 
 * The module installer will now record in its manifest a correct module source URL after normalization when the URL given as input contains both a query string portion and a subdirectory portion. Terraform itself doesn't currently make use of this information and so this is just a cosmetic fix to make the recorded metadata more correct. [GH-31636]
+* Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff ([#32004](https://github.com/hashicorp/terraform/pull/32004))
+* Nested attributes now more consistently display when they become unknown or null values in the plan diff ([#32004](https://github.com/hashicorp/terraform/pull/32004))
+* Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` ([#32004](https://github.com/hashicorp/terraform/pull/32004))
 
 ENHANCEMENTS:
 
