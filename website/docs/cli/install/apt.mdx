@@ -51,7 +51,7 @@ To configure your repository:
 
    ```bash
    $ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-       https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
+       https://apt.releases.hashicorp.com $(cat /etc/os-release | grep VERSION_CODENAME | cut -f 2 -d '=') main" | \
        sudo tee /etc/apt/sources.list.d/hashicorp.list
    ```
 
