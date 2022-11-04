@@ -908,6 +908,10 @@ func (m *MockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 	panic("not implemented")
 }
 
+func (m *MockRuns) ForceExecute(ctx context.Context, runID string) error {
+	panic("implement me")
+}
+
 func (m *MockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
 	m.Lock()
 	defer m.Unlock()
