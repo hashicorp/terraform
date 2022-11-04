@@ -6,6 +6,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
+* `terraform init` will now ignore entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. This therefore avoids the long-standing problem that when installing a new provider for the first time from the cache we can't determine the full set of checksums to include in the lock file. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. [GH-32129]
 * The "Failed to install provider" error message now includes the reason a provider could not be installed. [GH-31898]
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. [GH-24967]
 * backend/gcs: Add `storage_custom_endpoint` argument, to allow communication with the backend via a Private Service Connect endpoint. [GH-28856]
