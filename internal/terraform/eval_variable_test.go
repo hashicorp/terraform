@@ -584,46 +584,46 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			}),
 			``,
 		},
-		//{
-		//	"complex_type_with_empty_default_and_nested_optional",
-		//	cty.ListVal([]cty.Value{
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"name": cty.StringVal("abc"),
-		//			"optional_list": cty.ListVal([]cty.Value{
-		//				cty.ObjectVal(map[string]cty.Value{
-		//					"string":          cty.StringVal("child"),
-		//					"optional_string": cty.NullVal(cty.String),
-		//				}),
-		//			}),
-		//		}),
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"name": cty.StringVal("def"),
-		//			"optional_list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
-		//				"string":          cty.String,
-		//				"optional_string": cty.String,
-		//			}))),
-		//		}),
-		//	}),
-		//	cty.ListVal([]cty.Value{
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"name": cty.StringVal("abc"),
-		//			"optional_list": cty.ListVal([]cty.Value{
-		//				cty.ObjectVal(map[string]cty.Value{
-		//					"string":          cty.StringVal("child"),
-		//					"optional_string": cty.NullVal(cty.String),
-		//				}),
-		//			}),
-		//		}),
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"name": cty.StringVal("def"),
-		//			"optional_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
-		//				"string":          cty.String,
-		//				"optional_string": cty.String,
-		//			})),
-		//		}),
-		//	}),
-		//	``,
-		//},
+		{
+			"complex_type_with_empty_default_and_nested_optional",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					}))),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
 		{
 			"object_with_nested_object_with_required_and_optional_attributes",
 			cty.EmptyObjectVal,
@@ -665,55 +665,55 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			}),
 			``,
 		},
-		//{
-		//	"list_with_nested_object_with_required_and_optional_attributes",
-		//	cty.ListVal([]cty.Value{
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"nested_object": cty.ObjectVal(map[string]cty.Value{
-		//				"string":          cty.StringVal("string"),
-		//				"optional_string": cty.NullVal(cty.String),
-		//			}),
-		//		}),
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
-		//				"string":          cty.String,
-		//				"optional_string": cty.String,
-		//			})),
-		//		}),
-		//	}),
-		//	cty.ListVal([]cty.Value{
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"nested_object": cty.ObjectVal(map[string]cty.Value{
-		//				"string":          cty.StringVal("string"),
-		//				"optional_string": cty.StringVal("optional"),
-		//			}),
-		//		}),
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
-		//				"string":          cty.String,
-		//				"optional_string": cty.String,
-		//			})),
-		//		}),
-		//	}),
-		//	``,
-		//},
-		//{
-		//	"list_with_nested_list_of_any",
-		//	cty.NilVal,
-		//	cty.ListVal([]cty.Value{
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"a": cty.StringVal("a"),
-		//			"b": cty.NullVal(cty.List(cty.Number)),
-		//		}),
-		//		cty.ObjectVal(map[string]cty.Value{
-		//			"a": cty.StringVal("b"),
-		//			"b": cty.ListVal([]cty.Value{
-		//				cty.NumberIntVal(1),
-		//			}),
-		//		}),
-		//	}),
-		//	``,
-		//},
+		{
+			"list_with_nested_object_with_required_and_optional_attributes",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.NullVal(cty.String),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.StringVal("optional"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_list_of_any",
+			cty.NilVal,
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.NullVal(cty.List(cty.Number)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"b": cty.ListVal([]cty.Value{
+						cty.NumberIntVal(1),
+					}),
+				}),
+			}),
+			``,
+		},
 
 		// sensitive
 		{
