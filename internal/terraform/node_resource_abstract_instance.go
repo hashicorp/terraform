@@ -96,15 +96,21 @@ func (n *NodeAbstractResourceInstance) References() []*addrs.Reference {
 	return nil
 }
 
-// StateDependencies returns the dependencies saved in the state.
+// StateDependencies returns the dependencies which will be saved in the state
+// for managed resources, or the most current dependencies for data resources.
 func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResource {
+	// Managed resources prefer the stored dependencies, to avoid possible
+	// conflicts in ordering when refactoring configuration.
 	if s := n.instanceState; s != nil {
 		if s.Current != nil {
 			return s.Current.Dependencies
 		}
 	}
 
-	return nil
+	// If there are no stored dependencies, this is either a newly created
+	// managed resource, or a data source, and we can use the most recently
+	// calculated dependencies.
+	return n.Dependencies
 }
 
 // GraphNodeProviderConsumer
