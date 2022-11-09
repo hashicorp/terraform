@@ -3676,11 +3676,19 @@ output "out" {
 		},
 	})
 
-	_, diags := ctx.Plan(m, state, &PlanOpts{
+	plan, diags := ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.DestroyMode,
 	})
 
 	assertNoErrors(t, diags)
+
+	// ensure that the given states are valid and can be serialized
+	if plan.PrevRunState == nil {
+		t.Fatal("nil plan.PrevRunState")
+	}
+	if plan.PriorState == nil {
+		t.Fatal("nil plan.PriorState")
+	}
 }
 
 // A deposed instances which no longer exists during ReadResource creates NoOp
