@@ -92,6 +92,94 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})
 			})
 		}
+		// https://github.com/hashicorp/terraform/issues/32152
+		// This variable was originally added to test that optional attribute
+		// metadata is stripped from empty default collections. Essentially, you
+		// should be able to mix and match custom and default values for the
+		// optional_list attribute.
+        variable "complex_type_with_empty_default_and_nested_optional" {
+			type = list(object({
+				name          = string
+				optional_list = optional(list(object({
+					string          = string
+					optional_string = optional(string)
+				})), [])
+			}))
+        }
+ 		// https://github.com/hashicorp/terraform/issues/32160#issuecomment-1302783910
+		// These variables were added to test the specific use case from this
+		// GitHub comment.
+		variable "empty_object_with_optional_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}))
+			})
+			default = {}
+		}
+		variable "populated_object_with_optional_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}))
+			})
+			default = {
+				thing = {}
+			}
+		}
+		variable "empty_object_with_default_nested_object_with_optional_bool" {
+			type = object({
+				thing = optional(object({
+					flag = optional(bool, false)
+				}), {})
+			})
+			default = {}
+		}
+		// https://github.com/hashicorp/terraform/issues/32160
+		// This variable was originally added to test that optional objects do
+		// get created containing only their defaults. Instead they should be
+		// left empty. We do not expect nested_object to be created just because
+		// optional_string has a default value.
+		variable "object_with_nested_object_with_required_and_optional_attributes" {
+			type = object({
+				nested_object = optional(object({
+					string          = string
+					optional_string = optional(string, "optional")
+				}))
+			})
+		}
+		// https://github.com/hashicorp/terraform/issues/32157
+		// Similar to above, we want to see that merging combinations of the
+		// nested_object into a single collection doesn't crash because of
+		// inconsistent elements.
+		variable "list_with_nested_object_with_required_and_optional_attributes" {
+			type = list(object({
+				nested_object = optional(object({
+					string          = string
+					optional_string = optional(string, "optional")
+				}))
+			}))
+		}
+		// https://github.com/hashicorp/terraform/issues/32109
+		// This variable was originally introduced to test the behaviour of 
+		// the dynamic type constraint. You should be able to use the 'any' 
+		// constraint and introduce empty, null, and populated values into the
+		// list.
+		variable "list_with_nested_list_of_any" {
+			type = list(object({
+				a = string
+				b = optional(list(any))
+			}))
+			default = [
+				{
+					a = "a"
+				},
+				{
+					a = "b"
+					b = [1]
+				}
+			]
+		}
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -492,6 +580,136 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				"nested_object_with_default": cty.ObjectVal(map[string]cty.Value{
 					"name":  cty.StringVal("nested_object_with_default"),
 					"value": cty.StringVal("bar"),
+				}),
+			}),
+			``,
+		},
+		{
+			"complex_type_with_empty_default_and_nested_optional",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					}))),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("abc"),
+					"optional_list": cty.ListVal([]cty.Value{
+						cty.ObjectVal(map[string]cty.Value{
+							"string":          cty.StringVal("child"),
+							"optional_string": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("def"),
+					"optional_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
+		{
+			"object_with_nested_object_with_required_and_optional_attributes",
+			cty.EmptyObjectVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+					"string":          cty.String,
+					"optional_string": cty.String,
+				})),
+			}),
+			``,
+		},
+		{
+			"empty_object_with_optional_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.NullVal(cty.Object(map[string]cty.Type{
+					"flag": cty.Bool,
+				})),
+			}),
+			``,
+		},
+		{
+			"populated_object_with_optional_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.ObjectVal(map[string]cty.Value{
+					"flag": cty.False,
+				}),
+			}),
+			``,
+		},
+		{
+			"empty_object_with_default_nested_object_with_optional_bool",
+			cty.NilVal,
+			cty.ObjectVal(map[string]cty.Value{
+				"thing": cty.ObjectVal(map[string]cty.Value{
+					"flag": cty.False,
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_object_with_required_and_optional_attributes",
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.NullVal(cty.String),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.ObjectVal(map[string]cty.Value{
+						"string":          cty.StringVal("string"),
+						"optional_string": cty.StringVal("optional"),
+					}),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"nested_object": cty.NullVal(cty.Object(map[string]cty.Type{
+						"string":          cty.String,
+						"optional_string": cty.String,
+					})),
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_list_of_any",
+			cty.NilVal,
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("a"),
+					"b": cty.NullVal(cty.List(cty.Number)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"a": cty.StringVal("b"),
+					"b": cty.ListVal([]cty.Value{
+						cty.NumberIntVal(1),
+					}),
 				}),
 			}),
 			``,
