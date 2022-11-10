@@ -1,5 +1,11 @@
 ## 1.3.5 (Unreleased)
 
+BUG FIXES:
+
+* Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. [GH-32178]
+* Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. [GH-32178]
+* Fix inconsistent behaviour in empty vs null collections. [GH-32178]
+
 ## 1.3.4 (November 02, 2022)
 
 BUG FIXES:
