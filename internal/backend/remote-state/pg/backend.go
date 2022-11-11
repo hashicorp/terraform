@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/lib/pq"
+	"github.com/lib/pq/auth/kerberos"
 )
 
 const (
@@ -75,6 +76,7 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	b.connStr = data.Get("conn_str").(string)
 	b.schemaName = pq.QuoteIdentifier(data.Get("schema_name").(string))
+	pq.RegisterGSSProvider(func() (pq.GSS, error) { return kerberos.NewGSS() })
 
 	db, err := sql.Open("postgres", b.connStr)
 	if err != nil {
