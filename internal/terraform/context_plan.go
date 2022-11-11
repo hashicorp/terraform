@@ -33,6 +33,16 @@ type PlanOpts struct {
 	// instance using its corresponding provider.
 	SkipRefresh bool
 
+	// PreDestroyRefresh indicated that this is being passed to a plan used to
+	// refresh the state immediately before a destroy plan.
+	// FIXME: This is a temporary fix to allow the pre-destroy refresh to
+	// succeed. The refreshing operation during destroy must be a special case,
+	// which can allow for missing instances in the state, and avoid blocking
+	// on failing condition tests. The destroy plan itself should be
+	// responsible for this special case of refreshing, and the separate
+	// pre-destroy plan removed entirely.
+	PreDestroyRefresh bool
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
@@ -337,8 +347,16 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	if !opts.SkipRefresh && !prevRunState.Empty() {
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
 		refreshOpts := *opts
-		refreshOpts.Mode = plans.RefreshOnlyMode
-		refreshPlan, refreshDiags := c.refreshOnlyPlan(config, prevRunState, &refreshOpts)
+		refreshOpts.Mode = plans.NormalMode
+		refreshOpts.PreDestroyRefresh = true
+
+		// FIXME: A normal plan is required here to refresh the state, because
+		// the state and configuration may not match during a destroy, and a
+		// normal refresh plan can fail with evaluation errors. In the future
+		// the destroy plan should take care of refreshing instances itself,
+		// where the special cases of evaluation and skipping condition checks
+		// can be done.
+		refreshPlan, refreshDiags := c.plan(config, prevRunState, &refreshOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -558,6 +576,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Targets:            opts.Targets,
 			ForceReplace:       opts.ForceReplace,
 			skipRefresh:        opts.SkipRefresh,
+			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
