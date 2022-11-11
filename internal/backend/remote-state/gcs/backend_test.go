@@ -370,7 +370,7 @@ func setupKmsKey(t *testing.T, keyDetails map[string]string) string {
 }
 
 // teardownBackend deletes all states from be except the default state.
-func teardownBackend(t *testing.T, be backend.Backend, prefix string) {
+func teardownBackend(t *testing.T, be backend.Backend) {
 	t.Helper()
 	gcsBE, ok := be.(*Backend)
 	if !ok {
