@@ -3827,3 +3827,103 @@ resource "test_object" "b" {
 	_, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Plan_destroyPartialState(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+}
+
+output "out" {
+  value = module.mod.out
+}
+
+module "mod" {
+  source = "./mod"
+}
+`,
+
+		"./mod/main.tf": `
+resource "test_object" "a" {
+  count = 2
+
+  lifecycle {
+    precondition {
+	  # test_object_b has already been destroyed, so referencing the first
+      # instance must not fail during a destroy plan.
+      condition = test_object.b[0].test_string == "invalid"
+      error_message = "should not block destroy"
+    }
+    precondition {
+      # this failing condition should bot block a destroy plan
+      condition = !local.continue
+      error_message = "should not block destroy"
+    }
+  }
+}
+
+resource "test_object" "b" {
+  count = 2
+}
+
+locals {
+  continue = true
+}
+
+output "out" {
+  # the reference to test_object.b[0] may not be valid during a destroy plan,
+  # but should not fail.
+  value = local.continue ? test_object.a[1].test_string != "invalid"  && test_object.b[0].test_string != "invalid" : false
+
+  precondition {
+    # test_object_b has already been destroyed, so referencing the first
+    # instance must not fail during a destroy plan.
+    condition = test_object.b[0].test_string == "invalid"
+    error_message = "should not block destroy"
+  }
+  precondition {
+    # this failing condition should bot block a destroy plan
+    condition = test_object.a[0].test_string == "invalid"
+    error_message = "should not block destroy"
+  }
+}
+`})
+
+	p := simpleMockProvider()
+
+	// This state could be the result of a failed destroy, leaving only 2
+	// remaining instances. We want to be able to continue the destroy to
+	// remove everything without blocking on invalid references or failing
+	// conditions.
+	state := states.NewState()
+	mod := state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.NoKey))
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a[0]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"current"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a[1]").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectTainted,
+			AttrsJSON:    []byte(`{"test_string":"current"}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+}
