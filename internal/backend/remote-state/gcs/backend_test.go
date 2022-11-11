@@ -39,6 +39,13 @@ const (
 
 var keyRingLocation = os.Getenv("GOOGLE_REGION")
 
+// This map should have keys added that match the backend's configuration variables
+// - (e.g. bucket, credentials, impersonate_service_account - see https://developer.hashicorp.com/terraform/language/settings/backends/gcs )
+// - Ommitting a key is the same as it missing from the backend config
+// - Only include a key set to a zero value is you want to test that config
+// - You can set ENVs in tests to supply some backend configuration values
+type testBucketConfig map[string]interface{}
+
 func TestStateFile(t *testing.T) {
 	t.Parallel()
 
@@ -72,8 +79,12 @@ func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be, noPrefix)
+
+	beConfig := testBucketConfig{
+		"bucket": bucket,
+	}
+	be := setupBackend(t, beConfig)
+	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -91,8 +102,13 @@ func TestRemoteClientWithEncryption(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be, noPrefix)
+
+	beConfig := testBucketConfig{
+		"bucket":         bucket,
+		"encryption_key": encryptionKey,
+	}
+	be := setupBackend(t, beConfig)
+	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -111,8 +127,12 @@ func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
 	bucket := bucketName(t)
-	be := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be, noPrefix)
+
+	beConfig := testBucketConfig{
+		"bucket": bucket,
+	}
+	be := setupBackend(t, beConfig)
+	defer teardownBackend(t, be)
 
 	remoteClient := func() (remote.Client, error) {
 		ss, err := be.StateMgr(backend.DefaultStateName)
@@ -145,10 +165,13 @@ func TestBackend(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be0, noPrefix)
+	bucketConfig := testBucketConfig{
+		"bucket": bucket,
+	}
+	be0 := setupBackend(t, bucketConfig)
+	defer teardownBackend(t, be0) // will tear down be0 and be1
 
-	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey, noKmsKeyName)
+	be1 := setupBackend(t, bucketConfig)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -161,10 +184,18 @@ func TestBackendWithPrefix(t *testing.T) {
 	prefix := "test/prefix"
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, prefix, noEncryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be0, prefix)
+	be0Config := testBucketConfig{
+		"bucket": bucket,
+		"prefix": prefix,
+	}
+	be0 := setupBackend(t, be0Config)
+	defer teardownBackend(t, be0) // will tear down be0 and be1
 
-	be1 := setupBackend(t, bucket, prefix+"/", noEncryptionKey, noKmsKeyName)
+	be1Config := testBucketConfig{
+		"bucket": bucket,
+		"prefix": prefix + "/",
+	}
+	be1 := setupBackend(t, be1Config)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -174,10 +205,14 @@ func TestBackendWithCustomerSuppliedEncryption(t *testing.T) {
 
 	bucket := bucketName(t)
 
-	be0 := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
-	defer teardownBackend(t, be0, noPrefix)
+	beConfig := testBucketConfig{
+		"bucket":         bucket,
+		"encryption_key": encryptionKey,
+	}
+	be0 := setupBackend(t, beConfig)
+	defer teardownBackend(t, be0) // will tear down be0 and be1
 
-	be1 := setupBackend(t, bucket, noPrefix, encryptionKey, noKmsKeyName)
+	be1 := setupBackend(t, beConfig)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
@@ -199,17 +234,21 @@ func TestBackendWithCustomerManagedKMSEncryption(t *testing.T) {
 
 	kmsName := setupKmsKey(t, kmsDetails)
 
-	be0 := setupBackend(t, bucket, noPrefix, noEncryptionKey, kmsName)
-	defer teardownBackend(t, be0, noPrefix)
+	beConfig := testBucketConfig{
+		"bucket":             bucket,
+		"kms_encryption_key": kmsName,
+	}
+	be0 := setupBackend(t, beConfig)
+	defer teardownBackend(t, be0) // will tear down be0 and be1
 
-	be1 := setupBackend(t, bucket, noPrefix, noEncryptionKey, kmsName)
+	be1 := setupBackend(t, beConfig)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
 }
 
 // setupBackend returns a new GCS backend.
-func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Backend {
+func setupBackend(t *testing.T, config testBucketConfig) backend.Backend {
 	t.Helper()
 
 	projectID := os.Getenv("GOOGLE_PROJECT")
@@ -219,24 +258,12 @@ func setupBackend(t *testing.T, bucket, prefix, key, kmsName string) backend.Bac
 			"the TF_ACC and GOOGLE_PROJECT environment variables are set.")
 	}
 
-	config := map[string]interface{}{
-		"bucket": bucket,
-		"prefix": prefix,
-	}
-	// Only add encryption keys to config if non-zero value set
-	// If not set here, default values are supplied in `TestBackendConfig` by `PrepareConfig` function call
-	if len(key) > 0 {
-		config["encryption_key"] = key
-	}
-	if len(kmsName) > 0 {
-		config["kms_encryption_key"] = kmsName
-	}
-
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config))
 	be := b.(*Backend)
 
+	bucketName := config["bucket"].(string)
 	// create the bucket if it doesn't exist
-	bkt := be.storageClient.Bucket(bucket)
+	bkt := be.storageClient.Bucket(bucketName)
 	_, err := bkt.Attrs(be.storageContext)
 	if err != nil {
 		if err != storage.ErrBucketNotExist {
