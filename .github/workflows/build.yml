@@ -119,7 +119,7 @@ jobs:
       go-version: ${{ steps.get-go-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Determine Go version
         id: get-go-version
         uses: ./.github/actions/go-version
@@ -132,7 +132,7 @@ jobs:
       filepath: ${{ steps.generate-metadata-file.outputs.filepath }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Generate package metadata
         id: generate-metadata-file
         uses: hashicorp/actions-generate-metadata@v1
@@ -140,7 +140,7 @@ jobs:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -178,10 +178,10 @@ jobs:
       GO_LDFLAGS: ${{ needs.get-product-version.outputs.go-ldflags }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -213,7 +213,7 @@ jobs:
           go build -ldflags "${GO_LDFLAGS}" -o dist/ .
           zip -r -j out/${{ env.PKG_NAME }}_${FULL_VERSION}_${{ matrix.goos }}_${{ matrix.goarch }}.zip dist/
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PKG_NAME }}_${{ env.FULL_VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: out/${{ env.PKG_NAME }}_${{ env.FULL_VERSION }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -240,7 +240,7 @@ jobs:
 
     steps:
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{ env.version }}_${{ env.os }}_${{ env.arch }}.zip
@@ -268,12 +268,12 @@ jobs:
           echo "RPM_PACKAGE=$(basename out/*.rpm)" >> $GITHUB_ENV
           echo "DEB_PACKAGE=$(basename out/*.deb)" >> $GITHUB_ENV
       - name: "Save .rpm package"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ env.RPM_PACKAGE }}
           path: out/${{ env.RPM_PACKAGE }}
       - name: "Save .deb package"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ env.DEB_PACKAGE }}
           path: out/${{ env.DEB_PACKAGE }}
@@ -307,7 +307,7 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build Docker images
         uses: hashicorp/actions-docker-build@v1
         with:
@@ -350,10 +350,10 @@ jobs:
       build_script: ./internal/command/e2etest/make-archive.sh
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -369,7 +369,7 @@ jobs:
           # that "terraform version" is returning that version number.
           bash ./internal/command/e2etest/make-archive.sh
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
           path: internal/command/e2etest/build/terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
@@ -403,13 +403,13 @@ jobs:
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
       - name: "Download e2etest package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: e2etestpkg
         with:
           name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
           path: .
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -449,13 +449,13 @@ jobs:
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
       - name: "Download e2etest package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: e2etestpkg
         with:
           name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
           path: .
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -494,13 +494,13 @@ jobs:
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
       - name: "Download e2etest package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: e2etestpkg
         with:
           name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
           path: .
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -527,14 +527,14 @@ jobs:
       version: ${{needs.get-product-version.outputs.product-version}}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       # FIXME: We should include some sort of pre-validation step here, to
       # confirm that the doc content is mechanically valid so that the
       # publishing pipeline will be able to render all content without errors.
       - name: "Create documentation source bundle"
         run: |
           (cd website && zip -9 -r ../terraform-cli-docs-source_${{ env.version }}.zip .)
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: terraform-cli-docs-source_${{ env.version }}.zip
           path: terraform-cli-docs-source_${{ env.version }}.zip
