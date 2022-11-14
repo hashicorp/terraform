@@ -5,6 +5,7 @@ BUG FIXES:
 * Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. [GH-32178]
 * Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. [GH-32178]
 * Fix inconsistent behaviour in empty vs null collections. [GH-32178]
+* Prevent file uploads from creating unneeded temporary files when the payload size is known [GH-32206]
 
 ## 1.3.4 (November 02, 2022)
 
