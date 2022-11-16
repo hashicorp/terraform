@@ -150,6 +150,14 @@ type Meta struct {
 	// flag is set, to reinforce that experiments are not for production use.
 	AllowExperimentalFeatures bool
 
+	// FakeBackendForTesting is a testing-only setting to force the Meta.Backend
+	// method to return a particular value, skipping the usual interactions
+	// with the working directory state.
+	//
+	// [Meta.Backend] will return this value exactly if set to anything other
+	// than nil. DO NOT SET THIS OUTSIDE OF TESTS.
+	FakeBackendForTesting backend.Enhanced
+
 	//----------------------------------------------------------
 	// Protected: commands can set these
 	//----------------------------------------------------------

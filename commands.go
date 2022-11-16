@@ -295,6 +295,12 @@ func initCommands(
 			}, nil
 		},
 
+		"web": func() (cli.Command, error) {
+			return &command.WebCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"workspace": func() (cli.Command, error) {
 			return &command.WorkspaceCommand{
 				Meta: meta,

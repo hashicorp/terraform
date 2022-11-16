@@ -82,6 +82,11 @@ type BackendWithRemoteTerraformVersion interface {
 // the final resolved backend configuration after dealing with overrides from
 // the "terraform init" command line, etc.
 func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics) {
+	if m.FakeBackendForTesting != nil {
+		// For use in test cases only.
+		return m.FakeBackendForTesting, nil
+	}
+
 	var diags tfdiags.Diagnostics
 
 	// If no opts are set, then initialize

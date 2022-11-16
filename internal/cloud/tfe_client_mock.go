@@ -858,19 +858,25 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 		r.Plan.Status = tfe.PlanRunning
 	}
 
-	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
-	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
-		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
-			r.Actions.IsCancelable = false
-			r.Actions.IsConfirmable = true
-			r.HasChanges = true
-			r.Permissions.CanApply = true
-		}
+	var logs []byte
+	// We'll look up logs if possible but not all of our mocks are complete
+	// enough to do this, which is fine for tests that don't actually care
+	// about logs.
+	if m.client.Plans != nil && r.Plan != nil && r.Plan.LogReadURL != "" {
+		logs, _ = ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
+		if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
+			if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
+				r.Actions.IsCancelable = false
+				r.Actions.IsConfirmable = true
+				r.HasChanges = true
+				r.Permissions.CanApply = true
+			}
 
-		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) {
-			r.Actions.IsCancelable = false
-			r.HasChanges = false
-			r.Status = tfe.RunErrored
+			if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) {
+				r.Actions.IsCancelable = false
+				r.HasChanges = false
+				r.Status = tfe.RunErrored
+			}
 		}
 	}
 
@@ -1238,6 +1244,9 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueApply: true,
 			CanQueueRun:   true,
+		},
+		Organization: &tfe.Organization{
+			Name: organization,
 		},
 	}
 	if options.AutoApply != nil {
