@@ -6,6 +6,10 @@ BUG FIXES:
 * Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. [GH-32178]
 * Fix inconsistent behaviour in empty vs null collections. [GH-32178]
 * Prevent file uploads from creating unneeded temporary files when the payload size is known [GH-32206]
+* Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff [GH-32004]
+* Nested attributes now more consistently display when they become unknown or null values in the plan diff [GH-32004]
+* Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` [GH32004]
+
 
 ## 1.3.4 (November 02, 2022)
 
