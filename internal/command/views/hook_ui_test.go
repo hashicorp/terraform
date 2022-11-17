@@ -24,7 +24,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
-	h.resources = map[string]uiResourceState{
+	h.resourcesApplying = map[string]uiResourceState{
 		"test_instance.foo": {
 			Op:    uiResourceCreate,
 			Start: time.Now(),
@@ -57,7 +57,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 	}
 
 	// stop the background writer
-	uiState := h.resources[addr.String()]
+	uiState := h.resourcesApplying[addr.String()]
 	close(uiState.DoneCh)
 	<-uiState.done
 
@@ -82,7 +82,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	view := NewView(streams)
 	h := NewUiHook(view)
 	h.periodicUiTimer = 1 * time.Second
-	h.resources = map[string]uiResourceState{
+	h.resourcesApplying = map[string]uiResourceState{
 		"test_instance.foo": {
 			Op:    uiResourceModify,
 			Start: time.Now(),
@@ -117,7 +117,7 @@ func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	time.Sleep(3100 * time.Millisecond)
 
 	// stop the background writer
-	uiState := h.resources[addr.String()]
+	uiState := h.resourcesApplying[addr.String()]
 	close(uiState.DoneCh)
 	<-uiState.done
 
@@ -145,7 +145,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
-	h.resources = map[string]uiResourceState{
+	h.resourcesApplying = map[string]uiResourceState{
 		"test_instance.foo": {
 			Op:    uiResourceDestroy,
 			Start: time.Now(),
@@ -179,7 +179,7 @@ func TestUiHookPreApply_destroy(t *testing.T) {
 	}
 
 	// stop the background writer
-	uiState := h.resources[addr.String()]
+	uiState := h.resourcesApplying[addr.String()]
 	close(uiState.DoneCh)
 	<-uiState.done
 
@@ -204,7 +204,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 	view := NewView(streams)
 	view.Configure(&arguments.View{NoColor: false})
 	h := NewUiHook(view)
-	h.resources = map[string]uiResourceState{
+	h.resourcesApplying = map[string]uiResourceState{
 		"test_instance.foo[\"[red]\"]": {
 			Op:    uiResourceCreate,
 			Start: time.Now(),
@@ -256,7 +256,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
-	h.resources = map[string]uiResourceState{
+	h.resourcesApplying = map[string]uiResourceState{
 		"data.google_compute_zones.available": {
 			Op:    uiResourceDestroy,
 			Start: time.Now(),
@@ -404,12 +404,23 @@ test_instance.foo (winrm): bar
 	}
 }
 
-// Test the PreRefresh hook in the normal path where the resource exists with
-// an ID key and value in the state.
-func TestPreRefresh(t *testing.T) {
+// Test the Refresh hooks in the normal path where the resource exists with
+// an ID key and value in the state, and the refresh completes fast enough
+// to not be worth mentioning explicitly.
+func TestRefresh_fast(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
+
+	// We're testing the case where the refresh completes fast enough to
+	// not warrant a resource-specific message, so we'll set an excessive
+	// polling timer that we should never reach even if the test ends up
+	// running a bit slowly for some reason.
+	longDuration, err := time.ParseDuration("5h")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.periodicUiTimer = longDuration
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -423,26 +434,117 @@ func TestPreRefresh(t *testing.T) {
 	})
 
 	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 	if action != terraform.HookActionContinue {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
+
+	// We also need to mark the end of the refresh so that the background
+	// monitoring goroutine will exit.
+	action, err = h.PostRefresh(addr, states.CurrentGen, priorState, priorState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
 	result := done(t)
 
-	if got, want := result.Stdout(), "test_instance.foo: Refreshing state... [id=test]\n"; got != want {
+	// This refresh was "fast" so we see only the umbrella output about
+	// general refreshing, and no mention of this resource instance in
+	// particular.
+	if got, want := result.Stdout(), "Refreshing state for existing objects...\n"; got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+// Test the Refresh hooks in the normal path where the resource exists with
+// an ID key and value in the state, but the refresh takes long enough to
+// warrant a "still reading" notification.
+func TestRefresh_slow(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	// To avoid making this test have an excessive delay in it, we'll set
+	// the polling duration relatively short.
+	shortDuration, err := time.ParseDuration("400ms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pauseDuration, err := time.ParseDuration("500ms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.periodicUiTimer = shortDuration
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	priorState := cty.ObjectVal(map[string]cty.Value{
+		"id":  cty.StringVal("test"),
+		"bar": cty.ListValEmpty(cty.String),
+	})
+
+	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	// Allow the polling timer to elapse once.
+	time.Sleep(pauseDuration)
+
+	// We also need to mark the end of the refresh so that the background
+	// monitoring goroutine will exit.
+	action, err = h.PostRefresh(addr, states.CurrentGen, priorState, priorState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	result := done(t)
+
+	// This refresh was "slow" so we see both the umbrella output about
+	// general refreshing and also the note that this particular instance was
+	// slow.
+	wantSubstrs := []string{
+		`test_instance.foo: Still reading... [id=test`,
+		`Refreshing state for existing objects...`,
+	}
+	for _, substr := range wantSubstrs {
+		if got, want := result.Stdout(), substr; !strings.Contains(got, want) {
+			t.Fatalf("missing expected output\nwant substring: %s\nactual output:\n%s", want, got)
+		}
 	}
 }
 
 // Test that PreRefresh still works if no ID key and value can be determined
 // from state.
-func TestPreRefresh_noID(t *testing.T) {
+func TestPreRefresh_fast_noID(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	h := NewUiHook(view)
+
+	// We're testing the case where the refresh completes fast enough to
+	// not warrant a resource-specific message, so we'll set an excessive
+	// polling timer that we should never reach even if the test ends up
+	// running a bit slowly for some reason.
+	longDuration, err := time.ParseDuration("5h")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.periodicUiTimer = longDuration
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -464,8 +566,74 @@ func TestPreRefresh_noID(t *testing.T) {
 	}
 	result := done(t)
 
-	if got, want := result.Stdout(), "test_instance.foo: Refreshing state...\n"; got != want {
+	if got, want := result.Stdout(), "Refreshing state for existing objects...\n"; got != want {
 		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
+// Test that PreRefresh still works if no ID key and value can be determined
+// from state, when the operation takes long enough to say "still reading".
+func TestRefresh_slow_noID(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view)
+
+	// To avoid making this test have an excessive delay in it, we'll set
+	// the polling duration relatively short.
+	shortDuration, err := time.ParseDuration("400ms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	pauseDuration, err := time.ParseDuration("500ms")
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.periodicUiTimer = shortDuration
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	priorState := cty.ObjectVal(map[string]cty.Value{
+		"bar": cty.ListValEmpty(cty.String),
+	})
+
+	action, err := h.PreRefresh(addr, states.CurrentGen, priorState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	// Allow the polling timer to elapse once.
+	time.Sleep(pauseDuration)
+
+	// We also need to mark the end of the refresh so that the background
+	// monitoring goroutine will exit.
+	action, err = h.PostRefresh(addr, states.CurrentGen, priorState, priorState)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+
+	result := done(t)
+
+	// This refresh was "slow" so we see both the umbrella output about
+	// general refreshing and also the note that this particular instance was
+	// slow.
+	wantSubstrs := []string{
+		`test_instance.foo: Still reading... [`,
+		`Refreshing state for existing objects...`,
+	}
+	for _, substr := range wantSubstrs {
+		if got, want := result.Stdout(), substr; !strings.Contains(got, want) {
+			t.Fatalf("missing expected output\nwant substring: %s\nactual output:\n%s", want, got)
+		}
 	}
 }
 

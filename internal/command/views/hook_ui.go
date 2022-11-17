@@ -24,9 +24,10 @@ const maxIdLen = 80
 
 func NewUiHook(view *View) *UiHook {
 	return &UiHook{
-		view:            view,
-		periodicUiTimer: defaultPeriodicUiTimer,
-		resources:       make(map[string]uiResourceState),
+		view:                view,
+		periodicUiTimer:     defaultPeriodicUiTimer,
+		resourcesApplying:   make(map[string]uiResourceState),
+		resourcesRefreshing: make(map[string]uiResourceState),
 	}
 }
 
@@ -38,8 +39,13 @@ type UiHook struct {
 
 	periodicUiTimer time.Duration
 
-	resources     map[string]uiResourceState
-	resourcesLock sync.Mutex
+	resourcesApplying     map[string]uiResourceState
+	resourcesApplyingLock sync.Mutex
+
+	resourcesRefreshingStartedManaged bool
+	resourcesRefreshingStartedData    bool
+	resourcesRefreshing               map[string]uiResourceState
+	resourcesRefreshingLock           sync.Mutex
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
@@ -129,9 +135,9 @@ func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation,
 		done:     make(chan struct{}),
 	}
 
-	h.resourcesLock.Lock()
-	h.resources[key] = uiState
-	h.resourcesLock.Unlock()
+	h.resourcesApplyingLock.Lock()
+	h.resourcesApplying[key] = uiState
+	h.resourcesApplyingLock.Unlock()
 
 	// Start goroutine that shows progress
 	if op != uiResourceNoOp {
@@ -184,14 +190,14 @@ func (h *UiHook) stillApplying(state uiResourceState) {
 func (h *UiHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, applyerr error) (terraform.HookAction, error) {
 	id := addr.String()
 
-	h.resourcesLock.Lock()
-	state := h.resources[id]
+	h.resourcesApplyingLock.Lock()
+	state := h.resourcesApplying[id]
 	if state.DoneCh != nil {
 		close(state.DoneCh)
 	}
 
-	delete(h.resources, id)
-	h.resourcesLock.Unlock()
+	delete(h.resourcesApplying, id)
+	h.resourcesApplyingLock.Unlock()
 
 	var stateIdSuffix string
 	if k, v := format.ObjectValueID(newState); k != "" && v != "" {
@@ -262,20 +268,108 @@ func (h *UiHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string
 }
 
 func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
-	var stateIdSuffix string
-	if k, v := format.ObjectValueID(priorState); k != "" && v != "" {
-		stateIdSuffix = fmt.Sprintf(" [%s=%s]", k, v)
+	h.resourcesRefreshingLock.Lock()
+	defer h.resourcesRefreshingLock.Unlock()
+
+	// Our goal here is to be mostly quiet about refreshing unless a particular
+	// object takes a long time to refresh, in which case we'll mention it to
+	// reduce anxiety about whether Terraform is wedged.
+	//
+	// However, since the overall refreshing process can still take some time
+	// even if the individuals steps are all relatively short we will still
+	// emit a single overall message the first time we're called, so there's
+	// at least one announcement that Terraform is working on something.
+	switch addr.Resource.Resource.Mode {
+	case addrs.ManagedResourceMode:
+		if !h.resourcesRefreshingStartedManaged {
+			h.println("Refreshing state for existing objects...")
+		}
+		h.resourcesRefreshingStartedManaged = true
+	case addrs.DataResourceMode:
+		if !h.resourcesRefreshingStartedData {
+			h.println("Reading data resources...")
+		}
+		h.resourcesRefreshingStartedData = true
 	}
 
-	addrStr := addr.String()
-	if depKey, ok := gen.(states.DeposedKey); ok {
-		addrStr = fmt.Sprintf("%s (deposed object %s)", addrStr, depKey)
+	op := uiResourceRead
+	dispAddr := addr.String()
+	if gen != states.CurrentGen {
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, gen)
 	}
+	idKey, idValue := format.ObjectValueIDOrName(priorState)
+	uiState := uiResourceState{
+		DispAddr: dispAddr,
+		IDKey:    idKey,
+		IDValue:  idValue,
+		Op:       op,
+		Start:    time.Now().Round(time.Second),
+		DoneCh:   make(chan struct{}),
+		done:     make(chan struct{}),
+	}
+	h.resourcesRefreshing[dispAddr] = uiState
 
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Refreshing state...%s"),
-		addrStr, stateIdSuffix))
+	// This background goroutine will run until we see a matching PostRefresh
+	// notification. If it runs for long enough then it'll print out a
+	// notification so the user can see if a particular object is taking an
+	// excessively long time to refresh.
+	go h.stillRefreshing(uiState)
+
 	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
+	h.resourcesRefreshingLock.Lock()
+
+	dispAddr := addr.String()
+	if gen != states.CurrentGen {
+		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, gen)
+	}
+	if uiState, ok := h.resourcesRefreshing[dispAddr]; ok {
+		close(uiState.DoneCh)
+		delete(h.resourcesApplying, dispAddr)
+		// Wait for the background goroutine to exit.
+		<-uiState.done
+	}
+
+	h.resourcesRefreshingLock.Unlock()
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) stillRefreshing(uiState uiResourceState) {
+	// This channel allows PostRefresh to know that this background goroutine
+	// has exited before continuing, just to keep everything sensibly
+	// synchronized.
+	defer close(uiState.done)
+
+	for {
+		select {
+		case <-uiState.DoneCh:
+			// This is signalled from PostRefresh, reporting that the
+			// operation is complete and so we should stop monitoring it.
+			return
+
+		case <-time.After(h.periodicUiTimer):
+			// If a specific refresh operation runs long enough then we'll
+			// chatter about it so that the user can see what specifically is
+			// causing the delay.
+		}
+
+		idSuffix := ""
+		if uiState.IDKey != "" {
+			idSuffix = fmt.Sprintf("%s=%s, ", uiState.IDKey, truncateId(uiState.IDValue, maxIdLen))
+		}
+
+		// We just assume everything's a read in here, because we should only
+		// have been launched by PreRefresh.
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: %s [%s%s elapsed][reset]"),
+			uiState.DispAddr,
+			"Still reading...",
+			idSuffix,
+			time.Now().Round(time.Second).Sub(uiState.Start),
+		))
+	}
 }
 
 func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
