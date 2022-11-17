@@ -1,15 +1,15 @@
-## 1.3.5 (Unreleased)
+## 1.3.5 (November 17, 2022)
 
 BUG FIXES:
 
-* Prevent crash while serializing the plan for an empty destroy operation [GH-32207]
-* Allow a destroy plan to refresh instances while taking into account that some may no longer exist [GH-32208]
-* Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. [GH-32178]
-* Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. [GH-32178]
-* Fix inconsistent behaviour in empty vs null collections. [GH-32178]
-* Prevent file uploads from creating unneeded temporary files when the payload size is known [GH-32206]
-* Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff [GH-32004]
-* Nested attributes now more consistently display when they become unknown or null values in the plan diff [GH-32004]
+* Prevent crash while serializing the plan for an empty destroy operation ([#32207](https://github.com/hashicorp/terraform/issues/32207))
+* Allow a destroy plan to refresh instances while taking into account that some may no longer exist ([#32208](https://github.com/hashicorp/terraform/issues/32208))
+* Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Fix inconsistent behaviour in empty vs null collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
+* Prevent file uploads from creating unneeded temporary files when the payload size is known ([#32206](https://github.com/hashicorp/terraform/issues/32206))
+* Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
+* Nested attributes now more consistently display when they become unknown or null values in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
 * Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` [GH32004]
 
 
