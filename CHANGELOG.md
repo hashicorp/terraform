@@ -2,6 +2,8 @@
 
 BUG FIXES:
 
+* Prevent crash while serializing the plan for an empty destroy operation [GH-32207]
+* Allow a destroy plan to refresh instances while taking into account that some may no longer exist [GH-32208]
 * Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. [GH-32178]
 * Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. [GH-32178]
 * Fix inconsistent behaviour in empty vs null collections. [GH-32178]
