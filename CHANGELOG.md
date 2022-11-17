@@ -12,7 +12,7 @@ BUG FIXES:
 * Prevent file uploads from creating unneeded temporary files when the payload size is known ([#32206](https://github.com/hashicorp/terraform/issues/32206))
 * Nested attributes marked sensitive by schema no longer reveal sub-attributes in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
 * Nested attributes now more consistently display when they become unknown or null values in the plan diff ([#32004](https://github.com/hashicorp/terraform/issues/32004))
-* Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` [GH32004]
+* Sensitive values are now always displayed as `(sensitive value)` instead of sometimes as `(sensitive)` ([#32004](https://github.com/hashicorp/terraform/issues/32004))
 
 
 ## 1.3.4 (November 02, 2022)
