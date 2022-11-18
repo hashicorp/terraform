@@ -299,7 +299,7 @@ jobs:
       - build
     strategy:
       matrix:
-        arch: ["amd64"]
+        arch: ["amd64", "arm64"]
       fail-fast: false
 
     env:
