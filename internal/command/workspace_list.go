@@ -74,10 +74,9 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 		c.jsonOutput(states, env)
 	} else {
 		c.defaultOutput(states, env)
-	}
-
-	if isOverridden {
-		c.Ui.Output(envIsOverriddenNote)
+		if isOverridden {
+			c.Ui.Output(envIsOverriddenNote)
+		}
 	}
 
 	return 0
