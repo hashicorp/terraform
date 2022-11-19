@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -14,11 +15,19 @@ type WorkspaceListCommand struct {
 	LegacyName bool
 }
 
+type Workspace struct {
+	Name     string
+	Selected bool
+}
+
 func (c *WorkspaceListCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 	envCommandShowWarning(c.Ui, c.LegacyName)
 
 	cmdFlags := c.Meta.defaultFlagSet("workspace list")
+	var isJson bool
+	cmdFlags.BoolVar(&isJson, "json", false, "json")
+
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
@@ -61,10 +70,35 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	}
 
 	env, isOverridden := c.WorkspaceOverridden()
+	if isJson {
+		c.jsonOutput(states, env)
+	} else {
+		c.defaultOutput(states, env)
+	}
 
+	if isOverridden {
+		c.Ui.Output(envIsOverriddenNote)
+	}
+
+	return 0
+}
+
+func (c *WorkspaceListCommand) jsonOutput(states []string, current string) {
+	workspaces := make([]Workspace, len(states))
+	for i, state := range states {
+		workspaces[i] = Workspace{
+			Name:     state,
+			Selected: state == current,
+		}
+	}
+	j, _ := json.Marshal(workspaces)
+	c.Ui.Output(string(j))
+}
+
+func (c *WorkspaceListCommand) defaultOutput(states []string, current string) {
 	var out bytes.Buffer
 	for _, s := range states {
-		if s == env {
+		if s == current {
 			out.WriteString("* ")
 		} else {
 			out.WriteString("  ")
@@ -73,12 +107,6 @@ func (c *WorkspaceListCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(out.String())
-
-	if isOverridden {
-		c.Ui.Output(envIsOverriddenNote)
-	}
-
-	return 0
 }
 
 func (c *WorkspaceListCommand) AutocompleteArgs() complete.Predictor {
@@ -94,6 +122,10 @@ func (c *WorkspaceListCommand) Help() string {
 Usage: terraform [global options] workspace list
 
   List Terraform workspaces.
+
+  Options:
+
+  -json                	  If set, prints output in json format
 
 `
 	return strings.TrimSpace(helpText)
