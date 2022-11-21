@@ -31,10 +31,6 @@ type NodeAbstractResourceInstance struct {
 
 	// These are set via the AttachState method.
 	instanceState *states.ResourceInstance
-	// storedProviderConfig is the provider address retrieved from the
-	// state, but since it is only stored in the whole Resource rather than the
-	// ResourceInstance, we extract it out here.
-	storedProviderConfig addrs.AbsProviderConfig
 
 	Dependencies []addrs.ConfigResource
 
@@ -107,43 +103,6 @@ func (n *NodeAbstractResourceInstance) StateDependencies() []addrs.ConfigResourc
 	}
 
 	return nil
-}
-
-// GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) ProvidedBy() (addrs.ProviderConfig, bool) {
-	// If we have a config we prefer that above all else
-	if n.Config != nil {
-		relAddr := n.Config.ProviderConfigAddr()
-		return addrs.LocalProviderConfig{
-			LocalName: relAddr.LocalName,
-			Alias:     relAddr.Alias,
-		}, false
-	}
-
-	// See if we have a valid provider config from the state.
-	if n.storedProviderConfig.Provider.Type != "" {
-		// An address from the state must match exactly, since we must ensure
-		// we refresh/destroy a resource with the same provider configuration
-		// that created it.
-		return n.storedProviderConfig, true
-	}
-
-	// No provider configuration found; return a default address
-	return addrs.AbsProviderConfig{
-		Provider: n.Provider(),
-		Module:   n.ModulePath(),
-	}, false
-}
-
-// GraphNodeProviderConsumer
-func (n *NodeAbstractResourceInstance) Provider() addrs.Provider {
-	if n.Config != nil {
-		return n.Config.Provider
-	}
-	if n.storedProviderConfig.Provider.Type != "" {
-		return n.storedProviderConfig.Provider
-	}
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ContainingResource().ImpliedProvider())
 }
 
 // GraphNodeResourceInstance
