@@ -235,7 +235,7 @@ in order to capture the filesystem context the remote workspace expects:
 		return nil, varDiags.Err()
 	}
 
-	runVariables := make([]*tfe.RunVariable, len(variables))
+	runVariables := make([]*tfe.RunVariable, 0, len(variables))
 	for name, value := range variables {
 		runVariables = append(runVariables, &tfe.RunVariable{
 			Key:   name,
