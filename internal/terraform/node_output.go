@@ -400,7 +400,8 @@ If you do intend to export this data, annotate the output value as sensitive by 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
-		n.setValue(state, changes, val)
+		// we only need to update the state, do not pass in the changes again
+		n.setValue(state, nil, val)
 	}
 
 	return diags
