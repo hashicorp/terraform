@@ -53,5 +53,10 @@ by GraphViz:
 $ terraform graph | dot -Tsvg > graph.svg
 ```
 
+Alternatively, `dot` can export to other image file formats by changing the flag input:
+```shellsession
+$ terraform graph | dot -Tpng > graph.png
+```
+
 Here is an example graph output:
 ![Graph Example](/img/docs/graph-example.png)
