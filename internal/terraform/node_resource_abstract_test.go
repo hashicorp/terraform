@@ -112,6 +112,73 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 	}
 }
 
+// Make sure ProvideBy returns the final resolved provider
+func TestNodeAbstractResourceSetProvider(t *testing.T) {
+	node := &NodeAbstractResource{
+
+		// Just enough NodeAbstractResource for the Provider function.
+		// (This would not be valid for some other functions.)
+		Addr: addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "terraform_remote_state",
+			Name: "baz",
+		}.InModule(addrs.RootModule),
+		Config: &configs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "terraform_remote_state",
+			Name: "baz",
+			// Just enough configs.Resource for the Provider method. Not
+			// actually valid for general use.
+			Provider: addrs.Provider{
+				Hostname:  addrs.DefaultProviderRegistryHost,
+				Namespace: "awesomecorp",
+				Type:      "happycloud",
+			},
+		},
+	}
+
+	p, exact := node.ProvidedBy()
+	if exact {
+		t.Fatalf("no exact provider should be found from this confniguration, got %q\n", p)
+	}
+
+	// the implied non-exact provider should be "terraform"
+	lpc, ok := p.(addrs.LocalProviderConfig)
+	if !ok {
+		t.Fatalf("expected LocalProviderConfig, got %#v\n", p)
+	}
+
+	if lpc.LocalName != "terraform" {
+		t.Fatalf("expected non-exact provider of 'terraform', got %q", lpc.LocalName)
+	}
+
+	// now set a resolved provider for the resource
+	resolved := addrs.AbsProviderConfig{
+		Provider: addrs.Provider{
+			Hostname:  addrs.DefaultProviderRegistryHost,
+			Namespace: "awesomecorp",
+			Type:      "happycloud",
+		},
+		Module: addrs.RootModule,
+		Alias:  "test",
+	}
+
+	node.SetProvider(resolved)
+	p, exact = node.ProvidedBy()
+	if !exact {
+		t.Fatalf("exact provider should be found, got %q\n", p)
+	}
+
+	apc, ok := p.(addrs.AbsProviderConfig)
+	if !ok {
+		t.Fatalf("expected AbsProviderConfig, got %#v\n", p)
+	}
+
+	if apc.String() != resolved.String() {
+		t.Fatalf("incorrect resolved config: got %#v, wanted %#v\n", apc, resolved)
+	}
+}
+
 func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 	mockProvider := mockProviderWithResourceTypeSchema("aws_instance", &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
