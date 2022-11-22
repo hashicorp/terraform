@@ -13,8 +13,8 @@ Usage: `terraform workspace delete [OPTIONS] NAME [DIR]`
 
 This command will delete the specified workspace.
 
-To delete a workspace, it must already exist, it must not have resources under management,
-and it must not be your current workspace. If the workspace has resources under management,
+To delete a workspace, it must already exist, it must not be tracking resources,
+and it must not be your current workspace. If the workspace is tracking resources,
 Terraform will not allow you to delete it unless the `-force` flag is specified.
 
 Workspaces with resources under management (RUM) are workspaces which manage resources that physically exist.
