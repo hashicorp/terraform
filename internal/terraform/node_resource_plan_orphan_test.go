@@ -137,12 +137,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 	if got := refreshState.ResourceInstance(addr); got != nil {
 		t.Errorf("refresh state has entry for %s; should've been removed", addr)
 	}
-	if got := changes.ResourceInstance(addr); got == nil {
-		t.Errorf("no entry for %s in the planned changes; should have a NoOp change", addr)
-	} else {
-		if got, want := got.Action, plans.NoOp; got != want {
-			t.Errorf("planned change for %s has wrong action\ngot:  %s\nwant: %s", addr, got, want)
-		}
+	if got := changes.ResourceInstance(addr); got != nil {
+		t.Errorf("there should be no change for the %s instance, got %s", addr, got.Action)
 	}
-
 }
