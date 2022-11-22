@@ -102,7 +102,8 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		switch {
 		case module.IsRoot() && (n.PlanDestroy || n.ApplyDestroy):
 			node = &NodeDestroyableOutput{
-				Addr: absAddr,
+				Addr:     absAddr,
+				Planning: n.Planning,
 			}
 
 		case n.PlanDestroy:
@@ -116,6 +117,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 				Change:       change,
 				RefreshOnly:  n.RefreshOnly,
 				DestroyApply: n.ApplyDestroy,
+				Planning:     n.Planning,
 			}
 		}
 
@@ -203,6 +205,8 @@ type NodeApplyableOutput struct {
 	// DestroyApply indicates that we are applying a destroy plan, and do not
 	// need to account for conditional blocks.
 	DestroyApply bool
+
+	Planning bool
 }
 
 var (
@@ -421,7 +425,8 @@ func (n *NodeApplyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.DotNo
 // NodeDestroyableOutput represents an output that is "destroyable":
 // its application will remove the output from the state.
 type NodeDestroyableOutput struct {
-	Addr addrs.AbsOutputValue
+	Addr     addrs.AbsOutputValue
+	Planning bool
 }
 
 var (
@@ -468,7 +473,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	}
 
 	changes := ctx.Changes()
-	if changes != nil {
+	if changes != nil && n.Planning {
 		change := &plans.OutputChange{
 			Addr:      n.Addr,
 			Sensitive: sensitiveBefore,
@@ -485,6 +490,7 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
 		log.Printf("[TRACE] NodeDestroyableOutput: Saving %s change for %s in changeset", change.Action, n.Addr)
+
 		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
@@ -509,7 +515,7 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 	// there and lookup the prior value in the state. This is used in
 	// preference to the state where present, since it *is* able to represent
 	// unknowns, while the state cannot.
-	if changes != nil {
+	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
 		sensitiveBefore := false
@@ -575,8 +581,13 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
 		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
-		changes.RemoveOutputChange(n.Addr) // remove any existing planned change, if present
-		changes.AppendOutputChange(cs)     // add the new planned change
+		changes.AppendOutputChange(cs) // add the new planned change
+	}
+
+	if changes != nil && !n.Planning {
+		// During apply there is no longer any change to track, so we must
+		// ensure the state is updated and not overridden by a change.
+		changes.RemoveOutputChange(n.Addr)
 	}
 
 	if val.IsKnown() && !val.IsNull() {
@@ -584,9 +595,22 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		// out here and then we'll save the real unknown value in the planned
 		// changeset below, if we have one on this graph walk.
 		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-		unmarkedVal, _ := val.UnmarkDeep()
+
+		sensitive := n.Config.Sensitive
+		unmarkedVal, valueMarks := val.UnmarkDeep()
+
+		// If the evaluate value contains sensitive marks, the output has no
+		// choice but to declare itself as "sensitive".
+		for mark := range valueMarks {
+			if mark == marks.Sensitive {
+				sensitive = true
+				break
+			}
+		}
+
 		stateVal := cty.UnknownAsNull(unmarkedVal)
-		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
+		state.SetOutputValue(n.Addr, stateVal, sensitive)
+
 	} else {
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)

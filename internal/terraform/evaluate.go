@@ -375,6 +375,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// so we only need to store these by instance key.
 	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
 	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
+		val := output.Value
+		if output.Sensitive {
+			val = val.Mark(marks.Sensitive)
+		}
+
 		_, callInstance := output.Addr.Module.CallInstance()
 		instance, ok := stateMap[callInstance.Key]
 		if !ok {
@@ -382,7 +387,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			stateMap[callInstance.Key] = instance
 		}
 
-		instance[output.Addr.OutputValue.Name] = output.Value
+		instance[output.Addr.OutputValue.Name] = val
 	}
 
 	// Get all changes that reside for this module call within our path.
@@ -426,10 +431,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			instance[cfg.Name] = outputState
-
-			if cfg.Sensitive {
-				instance[cfg.Name] = outputState.Mark(marks.Sensitive)
-			}
 		}
 
 		// any pending changes override the state state values
