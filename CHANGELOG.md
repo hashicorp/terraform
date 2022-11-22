@@ -1,5 +1,9 @@
 ## 1.3.6 (Unreleased)
 
+BUG FIXES:
+
+* Terraform could crash if an orphaned resource instance was deleted externally and had condition checks in the configuration [GH-32246]
+
 ## 1.3.5 (November 17, 2022)
 
 BUG FIXES:
