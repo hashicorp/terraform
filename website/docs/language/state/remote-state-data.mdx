@@ -7,7 +7,7 @@ description: >-
 
 # The `terraform_remote_state` Data Source
 
-[backends]: /language/settings/backends
+[backends]: /language/settings/backends/configuration
 
 The `terraform_remote_state` data source uses the latest state snapshot from a specified state backend to retrieve the root module output values
 from some other Terraform configuration.
@@ -35,7 +35,7 @@ limited to) the following:
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Alibaba Cloud DNS<br /><small>(for IP addresses and hostnames)</small> | [`alicloud_alidns_record` resource type](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/alidns_record)                            | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
 | Amazon Route53<br /><small>(for IP addresses and hostnames)</small>    | [`aws_route53_record` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record)                                 | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
-| Amazon S3                                                              | [`aws_s3_bucket_object` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_object)                             | [`aws_s3_bucket_object` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/s3_bucket_object)                                                                                                                                |
+| Amazon S3                                                              | [`aws_s3_object` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object)                             | [`aws_s3_object` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/s3_object)                                                                                                                                |
 | Amazon SSM Parameter Store                                             | [`aws_ssm_parameter` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssm_parameter)                                   | [`aws_ssm_parameter` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter)                                                                                                                                      |
 | Azure Automation                                                       | [`azurerm_automation_variable_string` resource type](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/automation_variable_string) | [`azurerm_automation_variable_string` data source](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/automation_variable_string)                                                                                                    |
 | Azure DNS<br /><small>(for IP addresses and hostnames)</small>         | [`azurerm_dns_a_record` resource type](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dns_a_record), etc                        | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
@@ -68,7 +68,7 @@ use of. For example:
   store or Consul service catalog can make that data also accessible via
   [Consul Template](https://github.com/hashicorp/consul-template)
   or the
-  [HashiCorp Nomad](https://www.nomadproject.io/docs/job-specification/template)
+  [HashiCorp Nomad](https://developer.hashicorp.com/nomad/docs/job-specification/template)
   `template` stanza.
 * If you use Kubernetes then you can
   [make Config Maps available to your Pods](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/).
@@ -153,7 +153,7 @@ The following arguments are supported:
 
   The `config` object can use any arguments that would be valid in the
   equivalent `terraform { backend "<TYPE>" { ... } }` block. See
-  [the documentation of your chosen backend](/language/settings/backends)
+  [the documentation of your chosen backend](/language/settings/backends/configuration)
   for details.
 
   -> **Note:** If the backend configuration requires a nested block, specify

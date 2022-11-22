@@ -1,0 +1,7 @@
+This is not a real provider executable. It's just here to give the installer
+something to copy in some of our installer test cases.
+
+This must be different than the file of the same name in the sibling directory
+"beep-provider", because we're using this to stand in for a valid package
+that was built for a different platform than the one whose checksum is recorded
+in the lock file.

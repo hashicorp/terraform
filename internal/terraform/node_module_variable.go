@@ -50,6 +50,7 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, error
 		}
 		g.Add(o)
 	}
+	addRootNodeToGraph(&g)
 	return &g, nil
 }
 

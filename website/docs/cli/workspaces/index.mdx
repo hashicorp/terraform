@@ -20,7 +20,7 @@ Every [initialized working directory](/cli/init) starts with one workspace named
 
 Use the [`terraform workspace list`](/cli/commands/workspace/list), [`terraform workspace new`](/cli/commands/workspace/new), and [`terraform workspace delete`](/cli/commands/workspace/delete) commands to manage the available workspaces in the current working directory.
 
-Use [the `terraform workspace select` command](/cli/commands/workspace/select) to change the currently selected workspace. For a given working directory, you can only select one workspace can be at a time. Most Terraform commands only interact with the currently selected workspace. This includes [provisioning](/cli/run) and [state manipulation](/cli/state).
+Use [the `terraform workspace select` command](/cli/commands/workspace/select) to change the currently selected workspace. For a given working directory, you can only select one workspace at a time. Most Terraform commands only interact with the currently selected workspace. This includes [provisioning](/cli/run) and [state manipulation](/cli/state).
 
 When you provision infrastructure in each workspace, you usually need to manually specify different [input variables](/language/values/variables) to differentiate each collection. For example, you might deploy test infrastructure to a different region.
 
@@ -81,6 +81,6 @@ Workspaces are also meant to be a shared resource. They are not private, unless 
 
 For local state, Terraform stores the workspace states in a directory called `terraform.tfstate.d`. This directory should be treated similarly to local-only `terraform.tfstate`. Some teams commit these files to version control, but we recommend using a remote backend instead when there are multiple collaborators.
 
-For [remote state](/language/state/remote), the workspaces are stored directly in the configured [backend](/language/settings/backends). For example, if you use [Consul](/language/settings/backends/consul), the workspaces are stored by appending the workspace name to the state path. To ensure that workspace names are stored correctly and safely in all backends, the name must be valid to use in a URL path segment without escaping.
+For [remote state](/language/state/remote), the workspaces are stored directly in the configured [backend](/language/settings/backends/configuration). For example, if you use [Consul](/language/settings/backends/consul), the workspaces are stored by appending the workspace name to the state path. To ensure that workspace names are stored correctly and safely in all backends, the name must be valid to use in a URL path segment without escaping.
 
 Terraform stores the current workspace name locally in the ignored `.terraform` directory. This allows multiple team members to work on different workspaces concurrently. Workspace names are also attached to associated remote workspaces in Terraform Cloud. For more details about workspace names in Terraform Cloud, refer to the [CLI Integration (recommended)](/cli/cloud/settings#arguments) and [remote backend](/language/settings/backends/remote#workspaces) and  documentation.

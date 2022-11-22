@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
@@ -113,11 +114,16 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
-		// This should not be possible, but we've got here in at least one
-		// case as discussed in the following issue:
-		//    https://github.com/hashicorp/terraform/issues/21258
-		// To avoid an outright crash here, we'll instead return an explicit
-		// error.
+		// If there is no config, and there is no change, then we have nothing
+		// to do and the change was left in the plan for informational
+		// purposes only.
+		changes := ctx.Changes()
+		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), states.CurrentGen)
+		if csrc == nil || csrc.Action == plans.NoOp {
+			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource node has no configuration attached",
@@ -265,7 +271,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -290,7 +296,13 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, repeatData, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
+	// If there is no change, there was nothing to apply, and we don't need to
+	// re-write the state, but we do need to re-evaluate postconditions.
+	if diffApply.Action == plans.NoOp {
+		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
@@ -365,15 +377,18 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// _after_ writing the state because we want to check against
 	// the result of the operation, and to fail on future operations
 	// until the user makes the condition succeed.
+	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+}
+
+func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
+
 	checkDiags := evalCheckRules(
 		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr(), repeatData,
 		tfdiags.Error,
 	)
-	diags = diags.Append(checkDiags)
-
-	return diags
+	return diags.Append(checkDiags)
 }
 
 // checkPlannedChange produces errors if the _actual_ expected value is not

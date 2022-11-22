@@ -67,7 +67,10 @@ func (b *EvalGraphBuilder) Steps() []GraphTransformer {
 		&RootVariableTransformer{Config: b.Config, RawValues: b.RootVariableValues},
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
-		&OutputTransformer{Config: b.Config},
+		&OutputTransformer{
+			Config:   b.Config,
+			Planning: true,
+		},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},

@@ -25,6 +25,8 @@ type nodeExpandPlannableResource struct {
 	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
 
+	preDestroyRefresh bool
+
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
@@ -170,6 +172,8 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
 		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, instAddrs)
 	}
+
+	addRootNodeToGraph(&g)
 
 	return &g, diags.ErrWithWarnings()
 }
@@ -326,6 +330,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
 		a.Dependencies = n.dependencies
+		a.preDestroyRefresh = n.preDestroyRefresh
 
 		return &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,

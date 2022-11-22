@@ -90,14 +90,6 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		given = defaultVal // must be set, because we checked above that the variable isn't required
 	}
 
-	// Apply defaults from the variable's type constraint to the given value,
-	// unless the given value is null. We do not apply defaults to top-level
-	// null values, as doing so could prevent assigning null to a nullable
-	// variable.
-	if cfg.TypeDefaults != nil && !given.IsNull() {
-		given = cfg.TypeDefaults.Apply(given)
-	}
-
 	val, err := convert.Convert(given, convertTy)
 	if err != nil {
 		log.Printf("[ERROR] prepareFinalInputVariableValue: %s has unsuitable type\n  got:  %s\n  want: %s", addr, given.Type(), convertTy)
@@ -138,6 +130,14 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		// We'll return a placeholder unknown value to avoid producing
 		// redundant downstream errors.
 		return cty.UnknownVal(cfg.Type), diags
+	}
+
+	// Apply defaults from the variable's type constraint to the converted value,
+	// unless the converted value is null. We do not apply defaults to top-level
+	// null values, as doing so could prevent assigning null to a nullable
+	// variable.
+	if cfg.TypeDefaults != nil && !val.IsNull() {
+		val = cfg.TypeDefaults.Apply(val)
 	}
 
 	// By the time we get here, we know:

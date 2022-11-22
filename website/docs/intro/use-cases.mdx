@@ -8,7 +8,7 @@ description: |-
 
 # Use Cases
 
-[HashiCorp Terraform](/intro/index.html) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
+[HashiCorp Terraform](/intro) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
 
 This page describes popular Terraform use cases and provides related resources that you can use to create Terraform configurations and workflows.
 
@@ -50,7 +50,7 @@ Terraform can help you enforce policies on the types of resources teams can prov
 
 - Try the [Control Costs with Policies](https://learn.hashicorp.com/tutorials/terraform/cost-estimation) tutorial to estimate the cost of infrastructure changes and define policy to limit it.
 
-- The [Sentinel documentation](/docs/cloud/sentinel/index.html) provides more in-depth information and a list of example policies that you can adapt for your use cases.
+- The [Sentinel documentation](/cloud-docs/policy-enforcement) provides more in-depth information and a list of example policies that you can adapt for your use cases.
 
 
 ## PaaS Application Setup
@@ -65,7 +65,7 @@ Try the [Deploy, Manage, and Scale an Application on Heroku](https://learn.hashi
 
 Terraform can interact with Software Defined Networks (SDNs) to automatically configure the network according to the needs of the applications running in it. This lets you move from a ticket-based workflow to an automated one, reducing deployment times.
 
-For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://www.consul.io/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
+For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://developer.hashicorp.com/consul/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
 
 ### Resources
 

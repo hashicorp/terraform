@@ -176,11 +176,7 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		})
 	}
 
-	// Root transform for a single root
-	t := &RootTransformer{}
-	if err := t.Transform(g); err != nil {
-		return nil, err
-	}
+	addRootNodeToGraph(g)
 
 	// Done!
 	return g, diags.Err()

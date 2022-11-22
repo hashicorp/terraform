@@ -44,7 +44,7 @@ terraform {
 The `cloud` block also has some special restrictions:
 
 - A configuration can only provide one `cloud` block.
-- A `cloud` block cannot be used with [state backends](/language/settings/backends).
+- A `cloud` block cannot be used with [state backends](/language/settings/backends/configuration).
   A configuration can use one or the other, but not both.
 - A `cloud` block cannot refer to named values (like input variables, locals, or
   data source attributes).
@@ -98,7 +98,7 @@ Use the following environment variables to configure the `cloud` block:
 
 - `TF_CLOUD_HOSTNAME` - The hostname of a Terraform Enterprise installation. Terraform reads this when `hostname` is omitted from the `cloud` block. If both are specified, the configuration takes precendence.
 
-- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. Terraform Cloud will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](https://www.terraform.io/cli/config/environment-variables#tf_workspace) for details.
+- `TF_WORKSPACE` - The name of a single Terraform Cloud workspace. Terraform reads this when `workspaces` is omitted from the `cloud` block. Terraform Cloud will not create a new workspace from this variable; the workspace must exist in the specified organization. You can set `TF_WORKSPACE` if the `cloud` block uses tags. However, the value of `TF_WORKSPACE` must be included in the set of tags. This variable also selects the workspace in your local environment. Refer to [TF_WORKSPACE](/cli/config/environment-variables#tf_workspace) for details.
 
 ## Excluding Files from Upload with .terraformignore
 
