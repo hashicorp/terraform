@@ -390,3 +390,8 @@ const lockTimeoutErr = `
 [reset][red]Lock timeout exceeded, sending interrupt to cancel the remote operation.
 [reset]
 `
+
+const taskStageHeader = `
+To view this run in a browser, visit:
+https://%s/app/%s/%s/runs/%s
+`
