@@ -27,10 +27,11 @@ type policyEvaluationSummary struct {
 type Symbol rune
 
 const (
-	Tick    Symbol = '\u2713'
-	Cross   Symbol = '\u00d7'
-	Warning Symbol = '\u24be'
-	Arrow   Symbol = '\u2192'
+	Tick          Symbol = '\u2713'
+	Cross         Symbol = '\u00d7'
+	Warning       Symbol = '\u24be'
+	Arrow         Symbol = '\u2192'
+	DownwardArrow Symbol = '\u21b3'
 )
 
 type taskStageReadFunc func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error)
@@ -211,8 +212,6 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, fetchTaskStage taskStageReadFunc) error {
 	return context.Poll(func(i int) (bool, error) {
 		stage, err := fetchTaskStage(b, context.StopContext)
-		//out, _ := json.Marshal(stage)
-		//output.Output(string(out))
 
 		if err != nil {
 			return false, generalError("Failed to retrieve task stage", err)
@@ -274,7 +273,7 @@ func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output
 			for i, out := range policyOutcomes.Items {
 				output.Output(fmt.Sprintf("%c Policy set %d: [bold]%s (%d)", Arrow, i+1, out.PolicySetName, len(out.Outcomes)))
 				for _, outcome := range out.Outcomes {
-					output.Output(fmt.Sprintf("  |%c Policy name: [bold]%s", Arrow, outcome.PolicyName))
+					output.Output(fmt.Sprintf("  %c Policy name: [bold]%s", DownwardArrow, outcome.PolicyName))
 					switch outcome.Status {
 					case "passed":
 						output.Output(fmt.Sprintf("     | [green][bold]%c Passed", Tick))
@@ -285,7 +284,11 @@ func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output
 							output.Output(fmt.Sprintf("     | [red][bold]%c Failed", Cross))
 						}
 					}
-					output.Output(fmt.Sprintf("     | [dim]%s", outcome.Description))
+					if outcome.Description != "" {
+						output.Output(fmt.Sprintf("     | [dim]%s", outcome.Description))
+					} else {
+						output.Output("     | [dim]No description available")
+					}
 				}
 			}
 		}
