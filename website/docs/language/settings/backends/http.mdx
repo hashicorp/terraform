@@ -15,7 +15,11 @@ endpoint should return a 423: Locked or 409: Conflict with the holding lock info
 taken, 200: OK for success. Any other status will be considered an error. The ID of the holding lock
 info will be added as a query parameter to state updates requests.
 
+This backend also optionally supports [workspaces](/language/state/workspaces).
+
 ## Example Usage
+
+With state locking :
 
 ```hcl
 terraform {
@@ -23,6 +27,19 @@ terraform {
     address = "http://myrest.api.com/foo"
     lock_address = "http://myrest.api.com/foo"
     unlock_address = "http://myrest.api.com/foo"
+  }
+}
+```
+
+With state locking and workspaces support :
+
+```hcl
+terraform {
+  backend "http" {
+    address = "http://myrest.api.com/foo"
+    lock_address = "http://myrest.api.com/foo"
+    unlock_address = "http://myrest.api.com/foo"
+    workspaces = true
   }
 }
 ```
@@ -55,6 +72,13 @@ The following configuration options / environment variables are supported:
   unlock REST endpoint. Defaults to disabled.
 - `unlock_method` / `TF_HTTP_UNLOCK_METHOD` - (Optional) The HTTP method to use
   when unlocking. Defaults to `UNLOCK`.
+- `workspaces` / `TF_HTTP_WORKSPACES` - (Optional) Wether to enable workspaces
+  use on the REST endpoint. Defaults to `false`. Overriden by setting
+  `workspaces_address`.
+- `workspaces_address` / `TF_HTTP_WORKSPACES_ADDRESS` - (Optional) The address of
+   the workspaces REST endpoint. Defaults to disabled.
+- `workspaces_method` / `TF_HTTP_WORKSPACES_METHOD` - (Optional) The HTTP method
+   to use when listing workspaces. Defaults to `OPTIONS`.
 - `username` / `TF_HTTP_USERNAME` - (Optional) The username for HTTP basic
   authentication
 - `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
