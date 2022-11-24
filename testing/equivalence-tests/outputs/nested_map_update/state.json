@@ -4,10 +4,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_map.nested_map",
+          "address": "tfcoremock_nested_map.nested_map",
           "mode": "managed",
           "name": "nested_map",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "maps": {
@@ -15,7 +15,7 @@
               "second_nested_map": {}
             }
           },
-          "type": "mock_nested_map",
+          "type": "tfcoremock_nested_map",
           "values": {
             "id": "502B0348-B796-4F6A-8694-A5A397237B85",
             "maps": {

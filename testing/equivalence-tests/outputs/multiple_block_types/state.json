@@ -4,10 +4,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_multiple_blocks.multiple_blocks",
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
           "mode": "managed",
           "name": "multiple_blocks",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "first_block": [
@@ -20,7 +20,7 @@
               {}
             ]
           },
-          "type": "mock_multiple_blocks",
+          "type": "tfcoremock_multiple_blocks",
           "values": {
             "first_block": [
               {

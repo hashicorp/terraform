@@ -1,16 +1,16 @@
 {
   "configuration": {
     "provider_config": {
-      "mock": {
-        "full_name": "registry.terraform.io/liamcervante/mock",
-        "name": "mock",
-        "version_constraint": "0.2.0"
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.0"
       }
     },
     "root_module": {
       "resources": [
         {
-          "address": "mock_multiple_blocks.multiple_blocks",
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
           "expressions": {
             "first_block": [
               {
@@ -47,9 +47,9 @@
           },
           "mode": "managed",
           "name": "multiple_blocks",
-          "provider_config_key": "mock",
+          "provider_config_key": "tfcoremock",
           "schema_version": 0,
-          "type": "mock_multiple_blocks"
+          "type": "tfcoremock_multiple_blocks"
         }
       ]
     }
@@ -59,10 +59,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_multiple_blocks.multiple_blocks",
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
           "mode": "managed",
           "name": "multiple_blocks",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "first_block": [
@@ -75,7 +75,7 @@
               {}
             ]
           },
-          "type": "mock_multiple_blocks",
+          "type": "tfcoremock_multiple_blocks",
           "values": {
             "first_block": [
               {
@@ -104,15 +104,14 @@
   },
   "prior_state": {
     "format_version": "1.0",
-    "terraform_version": "1.3.0",
     "values": {
       "root_module": {
         "resources": [
           {
-            "address": "mock_multiple_blocks.multiple_blocks",
+            "address": "tfcoremock_multiple_blocks.multiple_blocks",
             "mode": "managed",
             "name": "multiple_blocks",
-            "provider_name": "registry.terraform.io/liamcervante/mock",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
             "schema_version": 0,
             "sensitive_values": {
               "first_block": [
@@ -125,7 +124,7 @@
                 {}
               ]
             },
-            "type": "mock_multiple_blocks",
+            "type": "tfcoremock_multiple_blocks",
             "values": {
               "first_block": [
                 {
@@ -155,7 +154,7 @@
   },
   "resource_changes": [
     {
-      "address": "mock_multiple_blocks.multiple_blocks",
+      "address": "tfcoremock_multiple_blocks.multiple_blocks",
       "change": {
         "actions": [
           "update"
@@ -230,8 +229,8 @@
       },
       "mode": "managed",
       "name": "multiple_blocks",
-      "provider_name": "registry.terraform.io/liamcervante/mock",
-      "type": "mock_multiple_blocks"
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_multiple_blocks"
     }
   ]
 }

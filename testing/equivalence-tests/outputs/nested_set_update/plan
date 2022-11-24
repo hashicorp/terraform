@@ -1,4 +1,4 @@
-mock_nested_set.nested_set: Refreshing state... [id=510598F6-83FE-4090-8986-793293E90480]
+tfcoremock_nested_set.nested_set: Refreshing state... [id=510598F6-83FE-4090-8986-793293E90480]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -6,8 +6,8 @@ plan. Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # mock_nested_set.nested_set will be updated in-place
-  ~ resource "mock_nested_set" "nested_set" {
+  # tfcoremock_nested_set.nested_set will be updated in-place
+  ~ resource "tfcoremock_nested_set" "nested_set" {
         id   = "510598F6-83FE-4090-8986-793293E90480"
       ~ sets = [
           - [

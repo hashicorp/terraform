@@ -1,5 +1,5 @@
 {
-  "mock_nested_set": {
+  "tfcoremock_nested_set": {
     "attributes": {
       "sets": {
         "type": "set",

@@ -1,43 +1,43 @@
 [
   {
     "@level": "info",
-    "@message": "mock_nested_object.nested_object: Plan to create",
+    "@message": "tfcoremock_nested_object.nested_object: Plan to create",
     "@module": "terraform.ui",
     "change": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_object.nested_object",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_object.nested_object",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_object.nested_object",
+        "resource": "tfcoremock_nested_object.nested_object",
         "resource_key": null,
         "resource_name": "nested_object",
-        "resource_type": "mock_nested_object"
+        "resource_type": "tfcoremock_nested_object"
       }
     },
     "type": "planned_change"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_object.nested_object: Creating...",
+    "@message": "tfcoremock_nested_object.nested_object: Creating...",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_object.nested_object",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_object.nested_object",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_object.nested_object",
+        "resource": "tfcoremock_nested_object.nested_object",
         "resource_key": null,
         "resource_name": "nested_object",
-        "resource_type": "mock_nested_object"
+        "resource_type": "tfcoremock_nested_object"
       }
     },
     "type": "apply_start"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_object.nested_object: Creation complete after 0s [id=B2491EF0-9361-40FD-B25A-0332A1A5E052]",
+    "@message": "tfcoremock_nested_object.nested_object: Creation complete after 0s [id=B2491EF0-9361-40FD-B25A-0332A1A5E052]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
@@ -45,13 +45,13 @@
       "id_key": "id",
       "id_value": "B2491EF0-9361-40FD-B25A-0332A1A5E052",
       "resource": {
-        "addr": "mock_nested_object.nested_object",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_object.nested_object",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_object.nested_object",
+        "resource": "tfcoremock_nested_object.nested_object",
         "resource_key": null,
         "resource_name": "nested_object",
-        "resource_type": "mock_nested_object"
+        "resource_type": "tfcoremock_nested_object"
       }
     },
     "type": "apply_complete"

@@ -1,5 +1,5 @@
 {
-  "mock_nested_map": {
+  "tfcoremock_nested_map": {
     "attributes": {
       "maps": {
         "type": "map",

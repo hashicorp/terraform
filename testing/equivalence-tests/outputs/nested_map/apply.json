@@ -1,43 +1,43 @@
 [
   {
     "@level": "info",
-    "@message": "mock_nested_map.nested_map: Plan to create",
+    "@message": "tfcoremock_nested_map.nested_map: Plan to create",
     "@module": "terraform.ui",
     "change": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_map.nested_map",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_map.nested_map",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_map.nested_map",
+        "resource": "tfcoremock_nested_map.nested_map",
         "resource_key": null,
         "resource_name": "nested_map",
-        "resource_type": "mock_nested_map"
+        "resource_type": "tfcoremock_nested_map"
       }
     },
     "type": "planned_change"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_map.nested_map: Creating...",
+    "@message": "tfcoremock_nested_map.nested_map: Creating...",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_map.nested_map",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_map.nested_map",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_map.nested_map",
+        "resource": "tfcoremock_nested_map.nested_map",
         "resource_key": null,
         "resource_name": "nested_map",
-        "resource_type": "mock_nested_map"
+        "resource_type": "tfcoremock_nested_map"
       }
     },
     "type": "apply_start"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_map.nested_map: Creation complete after 0s [id=502B0348-B796-4F6A-8694-A5A397237B85]",
+    "@message": "tfcoremock_nested_map.nested_map: Creation complete after 0s [id=502B0348-B796-4F6A-8694-A5A397237B85]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
@@ -45,13 +45,13 @@
       "id_key": "id",
       "id_value": "502B0348-B796-4F6A-8694-A5A397237B85",
       "resource": {
-        "addr": "mock_nested_map.nested_map",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_map.nested_map",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_map.nested_map",
+        "resource": "tfcoremock_nested_map.nested_map",
         "resource_key": null,
         "resource_name": "nested_map",
-        "resource_type": "mock_nested_map"
+        "resource_type": "tfcoremock_nested_map"
       }
     },
     "type": "apply_complete"

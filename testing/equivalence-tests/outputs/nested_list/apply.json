@@ -1,43 +1,43 @@
 [
   {
     "@level": "info",
-    "@message": "mock_nested_list.nested_list: Plan to create",
+    "@message": "tfcoremock_nested_list.nested_list: Plan to create",
     "@module": "terraform.ui",
     "change": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_list.nested_list",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_list.nested_list",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_list.nested_list",
+        "resource": "tfcoremock_nested_list.nested_list",
         "resource_key": null,
         "resource_name": "nested_list",
-        "resource_type": "mock_nested_list"
+        "resource_type": "tfcoremock_nested_list"
       }
     },
     "type": "planned_change"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_list.nested_list: Creating...",
+    "@message": "tfcoremock_nested_list.nested_list: Creating...",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
       "resource": {
-        "addr": "mock_nested_list.nested_list",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_list.nested_list",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_list.nested_list",
+        "resource": "tfcoremock_nested_list.nested_list",
         "resource_key": null,
         "resource_name": "nested_list",
-        "resource_type": "mock_nested_list"
+        "resource_type": "tfcoremock_nested_list"
       }
     },
     "type": "apply_start"
   },
   {
     "@level": "info",
-    "@message": "mock_nested_list.nested_list: Creation complete after 0s [id=DA051126-BAD6-4EB2-92E5-F0250DAF0B92]",
+    "@message": "tfcoremock_nested_list.nested_list: Creation complete after 0s [id=DA051126-BAD6-4EB2-92E5-F0250DAF0B92]",
     "@module": "terraform.ui",
     "hook": {
       "action": "create",
@@ -45,13 +45,13 @@
       "id_key": "id",
       "id_value": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
       "resource": {
-        "addr": "mock_nested_list.nested_list",
-        "implied_provider": "mock",
+        "addr": "tfcoremock_nested_list.nested_list",
+        "implied_provider": "tfcoremock",
         "module": "",
-        "resource": "mock_nested_list.nested_list",
+        "resource": "tfcoremock_nested_list.nested_list",
         "resource_key": null,
         "resource_name": "nested_list",
-        "resource_type": "mock_nested_list"
+        "resource_type": "tfcoremock_nested_list"
       }
     },
     "type": "apply_complete"

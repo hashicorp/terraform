@@ -1,16 +1,16 @@
 {
   "configuration": {
     "provider_config": {
-      "mock": {
-        "full_name": "registry.terraform.io/liamcervante/mock",
-        "name": "mock",
-        "version_constraint": "0.2.0"
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.0"
       }
     },
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_object.nested_object",
+          "address": "tfcoremock_nested_object.nested_object",
           "expressions": {
             "id": {
               "constant_value": "B2491EF0-9361-40FD-B25A-0332A1A5E052"
@@ -30,9 +30,9 @@
           },
           "mode": "managed",
           "name": "nested_object",
-          "provider_config_key": "mock",
+          "provider_config_key": "tfcoremock",
           "schema_version": 0,
-          "type": "mock_nested_object"
+          "type": "tfcoremock_nested_object"
         }
       ]
     }
@@ -42,10 +42,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_object.nested_object",
+          "address": "tfcoremock_nested_object.nested_object",
           "mode": "managed",
           "name": "nested_object",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "parent_object": {
@@ -53,7 +53,7 @@
               "second_nested_object": {}
             }
           },
-          "type": "mock_nested_object",
+          "type": "tfcoremock_nested_object",
           "values": {
             "id": "B2491EF0-9361-40FD-B25A-0332A1A5E052",
             "parent_object": {
@@ -73,7 +73,7 @@
   },
   "resource_changes": [
     {
-      "address": "mock_nested_object.nested_object",
+      "address": "tfcoremock_nested_object.nested_object",
       "change": {
         "actions": [
           "create"
@@ -103,8 +103,8 @@
       },
       "mode": "managed",
       "name": "nested_object",
-      "provider_name": "registry.terraform.io/liamcervante/mock",
-      "type": "mock_nested_object"
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_nested_object"
     }
   ]
 }

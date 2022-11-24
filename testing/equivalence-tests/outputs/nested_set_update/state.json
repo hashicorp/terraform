@@ -4,10 +4,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_set.nested_set",
+          "address": "tfcoremock_nested_set.nested_set",
           "mode": "managed",
           "name": "nested_set",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "sets": [
@@ -22,7 +22,7 @@
               ]
             ]
           },
-          "type": "mock_nested_set",
+          "type": "tfcoremock_nested_set",
           "values": {
             "id": "510598F6-83FE-4090-8986-793293E90480",
             "sets": [

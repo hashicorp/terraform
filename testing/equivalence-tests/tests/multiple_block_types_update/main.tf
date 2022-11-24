@@ -1,15 +1,15 @@
 terraform {
   required_providers {
-    mock = {
-      source  = "liamcervante/mock"
-      version = "0.2.0"
+    tfcoremock = {
+      source  = "hashicorp/tfcoremock"
+      version = "0.1.0"
     }
   }
 }
 
-provider "mock" {}
+provider "tfcoremock" {}
 
-resource "mock_multiple_blocks" "multiple_blocks" {
+resource "tfcoremock_multiple_blocks" "multiple_blocks" {
   id = "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
 
   first_block {

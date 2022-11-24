@@ -4,10 +4,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_object.nested_object",
+          "address": "tfcoremock_nested_object.nested_object",
           "mode": "managed",
           "name": "nested_object",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "parent_object": {
@@ -15,7 +15,7 @@
               "second_nested_object": {}
             }
           },
-          "type": "mock_nested_object",
+          "type": "tfcoremock_nested_object",
           "values": {
             "id": "B2491EF0-9361-40FD-B25A-0332A1A5E052",
             "parent_object": {

@@ -1,4 +1,4 @@
-mock_nested_map.nested_map: Refreshing state... [id=502B0348-B796-4F6A-8694-A5A397237B85]
+tfcoremock_nested_map.nested_map: Refreshing state... [id=502B0348-B796-4F6A-8694-A5A397237B85]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -6,8 +6,8 @@ plan. Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # mock_nested_map.nested_map will be updated in-place
-  ~ resource "mock_nested_map" "nested_map" {
+  # tfcoremock_nested_map.nested_map will be updated in-place
+  ~ resource "tfcoremock_nested_map" "nested_map" {
         id   = "502B0348-B796-4F6A-8694-A5A397237B85"
       ~ maps = {
           ~ "first_nested_map"  = {

@@ -1,5 +1,5 @@
 {
-  "mock_multiple_blocks": {
+  "tfcoremock_multiple_blocks": {
     "blocks": {
       "first_block": {
         "attributes": {

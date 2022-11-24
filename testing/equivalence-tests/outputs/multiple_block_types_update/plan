@@ -1,4 +1,4 @@
-mock_multiple_blocks.multiple_blocks: Refreshing state... [id=DA051126-BAD6-4EB2-92E5-F0250DAF0B92]
+tfcoremock_multiple_blocks.multiple_blocks: Refreshing state... [id=DA051126-BAD6-4EB2-92E5-F0250DAF0B92]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
@@ -6,8 +6,8 @@ plan. Resource actions are indicated with the following symbols:
 
 Terraform will perform the following actions:
 
-  # mock_multiple_blocks.multiple_blocks will be updated in-place
-  ~ resource "mock_multiple_blocks" "multiple_blocks" {
+  # tfcoremock_multiple_blocks.multiple_blocks will be updated in-place
+  ~ resource "tfcoremock_multiple_blocks" "multiple_blocks" {
         id = "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
 
       ~ first_block {

@@ -1,16 +1,16 @@
 {
   "configuration": {
     "provider_config": {
-      "mock": {
-        "full_name": "registry.terraform.io/liamcervante/mock",
-        "name": "mock",
-        "version_constraint": "0.2.0"
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.0"
       }
     },
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_list.nested_list",
+          "address": "tfcoremock_nested_list.nested_list",
           "expressions": {
             "id": {
               "constant_value": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
@@ -31,9 +31,9 @@
           },
           "mode": "managed",
           "name": "nested_list",
-          "provider_config_key": "mock",
+          "provider_config_key": "tfcoremock",
           "schema_version": 0,
-          "type": "mock_nested_list"
+          "type": "tfcoremock_nested_list"
         }
       ]
     }
@@ -43,10 +43,10 @@
     "root_module": {
       "resources": [
         {
-          "address": "mock_nested_list.nested_list",
+          "address": "tfcoremock_nested_list.nested_list",
           "mode": "managed",
           "name": "nested_list",
-          "provider_name": "registry.terraform.io/liamcervante/mock",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "lists": [
@@ -61,7 +61,7 @@
               ]
             ]
           },
-          "type": "mock_nested_list",
+          "type": "tfcoremock_nested_list",
           "values": {
             "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
             "lists": [
@@ -82,15 +82,14 @@
   },
   "prior_state": {
     "format_version": "1.0",
-    "terraform_version": "1.3.0",
     "values": {
       "root_module": {
         "resources": [
           {
-            "address": "mock_nested_list.nested_list",
+            "address": "tfcoremock_nested_list.nested_list",
             "mode": "managed",
             "name": "nested_list",
-            "provider_name": "registry.terraform.io/liamcervante/mock",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
             "schema_version": 0,
             "sensitive_values": {
               "lists": [
@@ -104,7 +103,7 @@
                 ]
               ]
             },
-            "type": "mock_nested_list",
+            "type": "tfcoremock_nested_list",
             "values": {
               "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
               "lists": [
@@ -125,7 +124,7 @@
   },
   "resource_changes": [
     {
-      "address": "mock_nested_list.nested_list",
+      "address": "tfcoremock_nested_list.nested_list",
       "change": {
         "actions": [
           "update"
@@ -186,8 +185,8 @@
       },
       "mode": "managed",
       "name": "nested_list",
-      "provider_name": "registry.terraform.io/liamcervante/mock",
-      "type": "mock_nested_list"
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_nested_list"
     }
   ]
 }

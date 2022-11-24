@@ -1,15 +1,15 @@
 terraform {
   required_providers {
-    mock = {
-      source = "liamcervante/mock"
-      version = "0.2.0"
+    tfcoremock = {
+      source = "hashicorp/tfcoremock"
+      version = "0.1.0"
     }
   }
 }
 
-provider "mock" {}
+provider "tfcoremock" {}
 
-resource "mock_nested_set" "nested_set" {
+resource "tfcoremock_nested_set" "nested_set" {
   id = "510598F6-83FE-4090-8986-793293E90480"
 
   sets = [

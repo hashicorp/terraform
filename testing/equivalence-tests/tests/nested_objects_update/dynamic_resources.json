@@ -1,5 +1,5 @@
 {
-  "mock_nested_object": {
+  "tfcoremock_nested_object": {
     "attributes": {
       "parent_object": {
         "type": "object",
