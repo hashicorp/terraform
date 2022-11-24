@@ -1,0 +1,21 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "null_resource.null_resource",
+          "mode": "managed",
+          "name": "null_resource",
+          "provider_name": "registry.terraform.io/hashicorp/null",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "null_resource",
+          "values": {
+            "triggers": null
+          }
+        }
+      ]
+    }
+  }
+}

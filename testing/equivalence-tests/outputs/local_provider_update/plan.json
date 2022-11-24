@@ -1,0 +1,135 @@
+{
+  "configuration": {
+    "provider_config": {
+      "local": {
+        "full_name": "registry.terraform.io/hashicorp/local",
+        "name": "local",
+        "version_constraint": "2.2.3"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "local_file.local_file",
+          "expressions": {
+            "content": {
+              "references": [
+                "local.contents"
+              ]
+            },
+            "filename": {
+              "constant_value": "output.json"
+            }
+          },
+          "mode": "managed",
+          "name": "local_file",
+          "provider_config_key": "local",
+          "schema_version": 0,
+          "type": "local_file"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "local_file.local_file",
+          "mode": "managed",
+          "name": "local_file",
+          "provider_name": "registry.terraform.io/hashicorp/local",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "local_file",
+          "values": {
+            "content": "{\"goodbye\":\"world\"}",
+            "content_base64": null,
+            "directory_permission": "0777",
+            "file_permission": "0777",
+            "filename": "output.json",
+            "sensitive_content": null,
+            "source": null
+          }
+        }
+      ]
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "local_file.local_file",
+            "mode": "managed",
+            "name": "local_file",
+            "provider_name": "registry.terraform.io/hashicorp/local",
+            "schema_version": 0,
+            "sensitive_values": {},
+            "type": "local_file",
+            "values": {
+              "content": "{\"hello\":\"world\"}",
+              "content_base64": null,
+              "directory_permission": "0777",
+              "file_permission": "0777",
+              "filename": "output.json",
+              "id": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
+              "sensitive_content": null,
+              "source": null
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_changes": [
+    {
+      "action_reason": "replace_because_cannot_update",
+      "address": "local_file.local_file",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "after": {
+          "content": "{\"goodbye\":\"world\"}",
+          "content_base64": null,
+          "directory_permission": "0777",
+          "file_permission": "0777",
+          "filename": "output.json",
+          "sensitive_content": null,
+          "source": null
+        },
+        "after_sensitive": {
+          "sensitive_content": true
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before": {
+          "content": "{\"hello\":\"world\"}",
+          "content_base64": null,
+          "directory_permission": "0777",
+          "file_permission": "0777",
+          "filename": "output.json",
+          "id": "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e",
+          "sensitive_content": null,
+          "source": null
+        },
+        "before_sensitive": {
+          "sensitive_content": true
+        },
+        "replace_paths": [
+          [
+            "content"
+          ]
+        ]
+      },
+      "mode": "managed",
+      "name": "local_file",
+      "provider_name": "registry.terraform.io/hashicorp/local",
+      "type": "local_file"
+    }
+  ]
+}
