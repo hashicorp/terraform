@@ -190,7 +190,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		return b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
 	})
 	// call to runTaskwithPolicyEvaluation
-	err2 := b.runTasksWithPolicyEvaluation(ctx, output, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
+	err2 := b.taskStageWithPolicyEvaluation(ctx, output, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
 		options := tfe.TaskStageReadOptions{
 			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults, tfe.PolicyEvaluationsTaskResults},
 		}
@@ -209,7 +209,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 
 }
 
-func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, fetchTaskStage taskStageReadFunc) error {
+func (b *Cloud) taskStageWithPolicyEvaluation(context *IntegrationContext, output IntegrationOutputWriter, fetchTaskStage taskStageReadFunc) error {
 	return context.Poll(func(i int) (bool, error) {
 		stage, err := fetchTaskStage(b, context.StopContext)
 
@@ -245,27 +245,27 @@ func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output
 
 		var result, message string
 		// Currently only one policy evaluation supported : OPA
-		if stage.PolicyEvaluations[0].Status == tfe.PolicyEvaluationPassed {
-			message = "[dim] This result means that all OPA policies passed and the protected behaviour is allowed"
-			result = fmt.Sprintf("[green]%s", strings.ToUpper(string(tfe.PolicyEvaluationPassed)))
-			if stage.PolicyEvaluations[0].ResultCount.AdvisoryFailed > 0 {
-				result += " (with advisory)"
+		for _, polEvaluation := range stage.PolicyEvaluations {
+			if polEvaluation.Status == tfe.PolicyEvaluationPassed {
+				message = "[dim] This result means that all OPA policies passed and the protected behaviour is allowed"
+				result = fmt.Sprintf("[green]%s", strings.ToUpper(string(tfe.PolicyEvaluationPassed)))
+				if stage.PolicyEvaluations[0].ResultCount.AdvisoryFailed > 0 {
+					result += " (with advisory)"
+				}
+			} else {
+				message = "[dim] This result means that one or more OPA policies failed. More than likely, this was due to the discovery of violations by the main rule and other sub rules"
+				result = fmt.Sprintf("[red]%s", strings.ToUpper(string(tfe.PolicyEvaluationFailed)))
 			}
-		} else {
-			message = "[dim] This result means that one or more OPA policies failed. More than likely, this was due to the discovery of violations by the main rule and other sub rules"
-			result = fmt.Sprintf("[red]%s", strings.ToUpper(string(tfe.PolicyEvaluationFailed)))
-		}
 
-		output.Output(fmt.Sprintf("[bold]%c%c Overall Result: %s", Arrow, Arrow, result))
+			output.Output(fmt.Sprintf("[bold]%c%c Overall Result: %s", Arrow, Arrow, result))
 
-		output.Output(message)
+			output.Output(message)
 
-		total := getPolicyCount(stage.PolicyEvaluations[0].ResultCount)
+			total := getPolicyCount(stage.PolicyEvaluations[0].ResultCount)
 
-		output.Output(fmt.Sprintf("%d policies evaluated\n", total))
+			output.Output(fmt.Sprintf("%d policies evaluated\n", total))
 
-		for _, policyEvaluation := range stage.PolicyEvaluations {
-			policyOutcomes, err := b.client.PolicySetOutcomes.List(context.StopContext, policyEvaluation.ID, nil)
+			policyOutcomes, err := b.client.PolicySetOutcomes.List(context.StopContext, polEvaluation.ID, nil)
 			if err != nil {
 				return false, err
 			}
@@ -278,7 +278,7 @@ func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output
 					case "passed":
 						output.Output(fmt.Sprintf("     | [green][bold]%c Passed", Tick))
 					case "failed":
-						if outcome.EnforcementLevel == "advisory" {
+						if outcome.EnforcementLevel == tfe.EnforcementAdvisory {
 							output.Output(fmt.Sprintf("     | [blue][bold]%c Advisory", Warning))
 						} else {
 							output.Output(fmt.Sprintf("     | [red][bold]%c Failed", Cross))
@@ -291,6 +291,7 @@ func (b *Cloud) runTasksWithPolicyEvaluation(context *IntegrationContext, output
 					}
 				}
 			}
+
 		}
 
 		stage, err = fetchTaskStage(b, context.StopContext)
