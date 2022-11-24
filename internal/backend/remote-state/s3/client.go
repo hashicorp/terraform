@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,6 +40,7 @@ type RemoteClient struct {
 	acl                   string
 	kmsKeyID              string
 	ddbTable              string
+	ddbLockTTL            int
 }
 
 var (
@@ -226,12 +228,18 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 		info.ID = lockID
 	}
+	item := map[string]*dynamodb.AttributeValue{
+		"LockID": {S: aws.String(c.lockPath())},
+		"Info":   {S: aws.String(string(info.Marshal()))},
+	}
+
+	if c.ddbLockTTL != 0 {
+		ttl := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Unix()+int64(c.ddbLockTTL), 10))}
+		item["ttl"] = ttl
+	}
 
 	putParams := &dynamodb.PutItemInput{
-		Item: map[string]*dynamodb.AttributeValue{
-			"LockID": {S: aws.String(c.lockPath())},
-			"Info":   {S: aws.String(string(info.Marshal()))},
-		},
+		Item:                item,
 		TableName:           aws.String(c.ddbTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
