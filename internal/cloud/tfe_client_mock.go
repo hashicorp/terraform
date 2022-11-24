@@ -908,6 +908,10 @@ func (m *MockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 	panic("not implemented")
 }
 
+func (m *MockRuns) ForceExecute(ctx context.Context, runID string) error {
+	panic("implement me")
+}
+
 func (m *MockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
 	m.Lock()
 	defer m.Unlock()
@@ -1236,8 +1240,9 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		ExecutionMode: *options.ExecutionMode,
 		Operations:    *options.Operations,
 		Permissions: &tfe.WorkspacePermissions{
-			CanQueueApply: true,
-			CanQueueRun:   true,
+			CanQueueApply:  true,
+			CanQueueRun:    true,
+			CanForceDelete: tfe.Bool(true),
 		},
 	}
 	if options.AutoApply != nil {
@@ -1368,6 +1373,41 @@ func (m *MockWorkspaces) DeleteByID(ctx context.Context, workspaceID string) err
 	}
 	delete(m.workspaceIDs, workspaceID)
 	return nil
+}
+
+func (m *MockWorkspaces) SafeDelete(ctx context.Context, organization, workspace string) error {
+	w, ok := m.client.Workspaces.workspaceNames[workspace]
+
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	if w.Locked {
+		return errors.New("cannot safe delete locked workspace")
+	}
+
+	if w.ResourceCount > 0 {
+		return fmt.Errorf("cannot safe delete workspace with %d resources", w.ResourceCount)
+	}
+
+	return m.Delete(ctx, organization, workspace)
+}
+
+func (m *MockWorkspaces) SafeDeleteByID(ctx context.Context, workspaceID string) error {
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	if w.Locked {
+		return errors.New("cannot safe delete locked workspace")
+	}
+
+	if w.ResourceCount > 0 {
+		return fmt.Errorf("cannot safe delete workspace with %d resources", w.ResourceCount)
+	}
+
+	return m.DeleteByID(ctx, workspaceID)
 }
 
 func (m *MockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {

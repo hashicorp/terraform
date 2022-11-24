@@ -195,6 +195,6 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return nil, backend.ErrWorkspacesNotSupported
 }
 
-func (b *Backend) DeleteWorkspace(string) error {
+func (b *Backend) DeleteWorkspace(string, bool) error {
 	return backend.ErrWorkspacesNotSupported
 }

@@ -46,6 +46,11 @@ type DestroyEdgeTransformer struct {
 	// DiffTransformer which was intended to be the only transformer operating
 	// from the change set.
 	Changes *plans.Changes
+
+	// FIXME: Operation will not be needed here one we can better track
+	// inter-provider dependencies and remove the cycle checks in
+	// tryInterProviderDestroyEdge.
+	Operation walkOperation
 }
 
 // tryInterProviderDestroyEdge checks if we're inserting a destroy edge
@@ -80,6 +85,12 @@ destroyA ------------->  destroyB
 func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
 	e := dag.BasicEdge(from, to)
 	g.Connect(e)
+
+	// If this is a complete destroy operation, then there are no create/update
+	// nodes to worry about and we can accept the edge without deeper inspection.
+	if t.Operation == walkDestroy {
+		return
+	}
 
 	// getComparableProvider inspects the node to try and get the most precise
 	// description of the provider being used to help determine if 2 nodes are

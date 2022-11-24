@@ -180,7 +180,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
 			d := v.([]interface{})
 			if len(delegates) > 0 {
-				delegates = make([]string, len(d))
+				delegates = make([]string, 0, len(d))
 			}
 			for _, delegate := range d {
 				delegates = append(delegates, delegate.(string))
