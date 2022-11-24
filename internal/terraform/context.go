@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
-
-	_ "github.com/hashicorp/terraform/internal/logging"
 )
 
 // InputMode defines what sort of input will be asked for when Input

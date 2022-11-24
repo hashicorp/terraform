@@ -414,9 +414,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		}
 	}
 
-	if file.State.CheckResults != nil {
-		sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
-	}
+	sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
 
 	sV4.normalize()
 
@@ -576,6 +574,11 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 }
 
 func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
+	// normalize empty and nil sets in the serialized state
+	if in == nil || in.ConfigResults.Len() == 0 {
+		return nil
+	}
+
 	ret := make([]checkResultsV4, 0, in.ConfigResults.Len())
 
 	for _, configElem := range in.ConfigResults.Elems {

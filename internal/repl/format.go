@@ -18,7 +18,7 @@ func FormatValue(v cty.Value, indent int) string {
 		return "(known after apply)"
 	}
 	if v.HasMark(marks.Sensitive) {
-		return "(sensitive)"
+		return "(sensitive value)"
 	}
 	if v.IsNull() {
 		ty := v.Type()

@@ -85,3 +85,46 @@ func TestContextEval(t *testing.T) {
 		})
 	}
 }
+
+// ensure that we can execute a console when outputs have preconditions
+func TestContextEval_outputsWithPreconditions(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+  input  = "ok"
+}
+
+output "out" {
+  value = module.mod.out
+}
+`,
+
+		"./mod/main.tf": `
+variable "input" {
+  type = string
+}
+
+output "out" {
+  value = var.input
+
+  precondition {
+    condition     = var.input != ""
+    error_message = "error"
+  }
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Eval(m, states.NewState(), addrs.RootModuleInstance, &EvalOpts{
+		SetVariables: testInputValuesUnset(m.Module.Variables),
+	})
+	assertNoErrors(t, diags)
+}

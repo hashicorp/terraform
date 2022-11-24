@@ -28,6 +28,11 @@ type Plan struct {
 	// to the end-user, and so it must not be used to influence apply-time
 	// behavior. The actions during apply must be described entirely by
 	// the Changes field, regardless of how the plan was created.
+	//
+	// FIXME: destroy operations still rely on DestroyMode being set, because
+	// there is no other source of this information in the plan. New behavior
+	// should not be added based on this flag, and changing the flag should be
+	// checked carefully against existing destroy behaviors.
 	UIMode Mode
 
 	VariableValues    map[string]DynamicValue

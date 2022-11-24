@@ -33,6 +33,16 @@ type PlanOpts struct {
 	// instance using its corresponding provider.
 	SkipRefresh bool
 
+	// PreDestroyRefresh indicated that this is being passed to a plan used to
+	// refresh the state immediately before a destroy plan.
+	// FIXME: This is a temporary fix to allow the pre-destroy refresh to
+	// succeed. The refreshing operation during destroy must be a special case,
+	// which can allow for missing instances in the state, and avoid blocking
+	// on failing condition tests. The destroy plan itself should be
+	// responsible for this special case of refreshing, and the separate
+	// pre-destroy plan removed entirely.
+	PreDestroyRefresh bool
+
 	// SetVariables are the raw values for root module variables as provided
 	// by the user who is requesting the run, prior to any normalization or
 	// substitution of defaults. See the documentation for the InputValue
@@ -315,7 +325,6 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 
 func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	pendingPlan := &plans.Plan{}
 
 	if opts.Mode != plans.DestroyMode {
 		panic(fmt.Sprintf("called Context.destroyPlan with %s", opts.Mode))
@@ -334,11 +343,19 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	// must coordinate with this by taking that action only when c.skipRefresh
 	// _is_ set. This coupling between the two is unfortunate but necessary
 	// to work within our current structure.
-	if !opts.SkipRefresh {
+	if !opts.SkipRefresh && !prevRunState.Empty() {
 		log.Printf("[TRACE] Context.destroyPlan: calling Context.plan to get the effect of refreshing the prior state")
-		normalOpts := *opts
-		normalOpts.Mode = plans.NormalMode
-		refreshPlan, refreshDiags := c.plan(config, prevRunState, &normalOpts)
+		refreshOpts := *opts
+		refreshOpts.Mode = plans.NormalMode
+		refreshOpts.PreDestroyRefresh = true
+
+		// FIXME: A normal plan is required here to refresh the state, because
+		// the state and configuration may not match during a destroy, and a
+		// normal refresh plan can fail with evaluation errors. In the future
+		// the destroy plan should take care of refreshing instances itself,
+		// where the special cases of evaluation and skipping condition checks
+		// can be done.
+		refreshPlan, refreshDiags := c.plan(config, prevRunState, &refreshOpts)
 		if refreshDiags.HasErrors() {
 			// NOTE: Normally we'd append diagnostics regardless of whether
 			// there are errors, just in case there are warnings we'd want to
@@ -355,18 +372,17 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 			return nil, diags
 		}
 
-		// insert the refreshed state into the destroy plan result, and ignore
-		// the changes recorded from the refresh.
-		pendingPlan.PriorState = refreshPlan.PriorState.DeepCopy()
-		pendingPlan.PrevRunState = refreshPlan.PrevRunState.DeepCopy()
-		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
-
 		// We'll use the refreshed state -- which is the  "prior state" from
-		// the perspective of this "pending plan" -- as the starting state
+		// the perspective of this "destroy plan" -- as the starting state
 		// for our destroy-plan walk, so it can take into account if we
 		// detected during refreshing that anything was already deleted outside
 		// of Terraform.
-		priorState = pendingPlan.PriorState
+		priorState = refreshPlan.PriorState.DeepCopy()
+
+		// The refresh plan may have upgraded state for some resources, make
+		// sure we store the new version.
+		prevRunState = refreshPlan.PrevRunState.DeepCopy()
+		log.Printf("[TRACE] Context.destroyPlan: now _really_ creating a destroy plan")
 	}
 
 	destroyPlan, walkDiags := c.planWalk(config, priorState, opts)
@@ -376,10 +392,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	}
 
 	if !opts.SkipRefresh {
-		// If we didn't skip refreshing then we want the previous run state
-		// prior state to be the one we originally fed into the c.plan call
-		// above, not the refreshed version we used for the destroy walk.
-		destroyPlan.PrevRunState = pendingPlan.PrevRunState
+		// If we didn't skip refreshing then we want the previous run state to
+		// be the one we originally fed into the c.refreshOnlyPlan call above,
+		// not the refreshed version we used for the destroy planWalk.
+		destroyPlan.PrevRunState = prevRunState
 	}
 
 	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, destroyPlan)
@@ -558,6 +574,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Targets:            opts.Targets,
 			ForceReplace:       opts.ForceReplace,
 			skipRefresh:        opts.SkipRefresh,
+			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
