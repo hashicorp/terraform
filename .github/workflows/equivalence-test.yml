@@ -150,7 +150,6 @@ jobs:
         run: |
           curl \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             "https://api.github.com/repos/hashicorp/terraform/actions/runs/${{ env.build-run-id }}/artifacts" > artifacts.json
           
           VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
