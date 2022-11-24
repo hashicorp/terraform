@@ -1,0 +1,30 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # tfcoremock_nested_map.nested_map will be created
+  + resource "tfcoremock_nested_map" "nested_map" {
+      + id   = "502B0348-B796-4F6A-8694-A5A397237B85"
+      + maps = {
+          + "first_nested_map"  = {
+              + "first_key"  = "9E858021-953F-4DD3-8842-F2C782780422"
+              + "second_key" = "D55D0E1E-51D9-4BCE-9021-7D201906D3C0"
+            }
+          + "second_nested_map" = {
+              + "first_key"  = "6E80C701-A823-43FE-A520-699851EF9052"
+              + "second_key" = "79CBEBB1-1192-480A-B4A8-E816A1A9D2FC"
+            }
+        }
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

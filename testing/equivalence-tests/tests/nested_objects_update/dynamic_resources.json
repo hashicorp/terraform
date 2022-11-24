@@ -1,0 +1,40 @@
+{
+  "tfcoremock_nested_object": {
+    "attributes": {
+      "parent_object": {
+        "type": "object",
+        "required": true,
+        "object": {
+          "first_nested_object": {
+            "type": "object",
+            "required": true,
+            "object": {
+              "attribute_one": {
+                "type": "string",
+                "required": true
+              },
+              "attribute_two": {
+                "type": "string",
+                "required": true
+              }
+            }
+          },
+          "second_nested_object": {
+            "type": "object",
+            "required": true,
+            "object": {
+              "attribute_one": {
+                "type": "string",
+                "required": true
+              },
+              "attribute_two": {
+                "type": "string",
+                "required": true
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
