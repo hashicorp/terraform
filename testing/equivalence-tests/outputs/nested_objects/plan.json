@@ -4,7 +4,7 @@
       "tfcoremock": {
         "full_name": "registry.terraform.io/hashicorp/tfcoremock",
         "name": "tfcoremock",
-        "version_constraint": "0.1.0"
+        "version_constraint": "0.1.1"
       }
     },
     "root_module": {
