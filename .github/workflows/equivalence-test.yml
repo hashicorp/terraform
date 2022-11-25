@@ -188,8 +188,6 @@ jobs:
           VERSION="${{ env.terraform-version }}" # The Terraform artifacts don't have the `v` prefix.
           ARTIFACT="terraform_${VERSION#v}_${{ env.target-os }}_${{ env.target-arch }}.zip"
           
-          ls
-          
           # We actually have nested zip files, as the Github API downloads the
           # artifacts in a zip file and the Terraform build action embeds the
           # terraform binary in a zip file also.
