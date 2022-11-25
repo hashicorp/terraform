@@ -80,8 +80,6 @@ jobs:
           
           TERRAFORM_VERSION="v$VERSION"
           
-          echo $TERRAFORM_ARTIFACT_ID
-          
           echo "::set-output name=branch::${BRANCH}"
           echo "::set-output name=version::${VERSION}"
           echo "::set-output name=terraform-artifact-id::${TERRAFORM_ARTIFACT_ID}"
