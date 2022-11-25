@@ -177,7 +177,9 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 	taskResultState := tfe.Bool(false)
 	// Note: policyEvalState is a flag to keep track of whether the policy evaluation results have been printed
 	policyEvalState := tfe.Bool(false)
+	var errs multiErrors
 	var taskResultError, policyEvalError, overrideError error
+	var isTaskResultsRunning, isPolicyEvaluationRunning bool
 	return ctx.Poll(func(i int) (bool, error) {
 		options := tfe.TaskStageReadOptions{
 			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults, tfe.PolicyEvaluationsTaskResults},
@@ -188,14 +190,14 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		}
 
 		if !*taskResultState {
-			isTaskResultsRunning, taskResultError := b.runTasksWithTaskResults(output, stage.TaskResults, i, taskResultState)
+			isTaskResultsRunning, taskResultError = b.runTasksWithTaskResults(output, stage.TaskResults, i, taskResultState)
 			if isTaskResultsRunning {
 				return isTaskResultsRunning, taskResultError
 			}
 		}
 
 		if !*policyEvalState {
-			isPolicyEvaluationRunning, policyEvalError := b.taskStageWithPolicyEvaluation(ctx, output, stage.PolicyEvaluations, i, policyEvalState)
+			isPolicyEvaluationRunning, policyEvalError = b.taskStageWithPolicyEvaluation(ctx, output, stage.PolicyEvaluations, i, policyEvalState)
 			if isPolicyEvaluationRunning {
 				return isPolicyEvaluationRunning, policyEvalError
 			}
@@ -210,8 +212,8 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			break
 		}
 
-		err = constructTaskStageError(taskResultError, policyEvalError, overrideError)
-		return false, err
+		errs.Append(taskResultError, policyEvalError, overrideError)
+		return false, errs.Err()
 	})
 }
 
@@ -321,21 +323,4 @@ func (b *Cloud) processOverrides(context *IntegrationContext, output Integration
 
 func getPolicyCount(resultCount *tfe.PolicyResultCount) int {
 	return resultCount.AdvisoryFailed + resultCount.MandatoryFailed + resultCount.Errored + resultCount.Passed
-}
-
-func constructTaskStageError(taskResultErr, policyEvalErr, overrideErr error) error {
-	var combinedError string
-	if taskResultErr != nil {
-		combinedError = taskResultErr.Error()
-	}
-	if policyEvalErr != nil {
-		combinedError += policyEvalErr.Error()
-	}
-	if overrideErr != nil {
-		combinedError += overrideErr.Error()
-	}
-	if combinedError != "" {
-		return fmt.Errorf("Task stage error: %s", combinedError)
-	}
-	return nil
 }
