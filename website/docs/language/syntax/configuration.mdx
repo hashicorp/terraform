@@ -73,6 +73,15 @@ resource "aws_instance" "example" {
 }
 ```
 
+```hcl
+<required Type> [Optional lable1] [Optional label 2...] {
+  <argument> = <expression>
+  <argument2> = <expression2>
+  ...
+  [other possible blocks]
+}
+```
+
 A block has a _type_ (`resource` in this example). Each block type defines
 how many _labels_ must follow the type keyword. The `resource` block type
 expects two labels, which are `aws_instance` and `example` in the example above.
