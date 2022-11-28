@@ -34,6 +34,12 @@ func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId str
 }
 
 type taskStageSummarizer interface {
+	// Summarize takes an IntegrationContext, IntegrationOutputWriter for
+	// writing output and a pointer to a tfe.TaskStage object as arguments.
+	// This function summarizes and outputs the results of the task stage.
+	// It returns a boolean which signifies whether we should continue polling
+	// for results, an optional message string to print while it is polling
+	// and an error if any.
 	Summarize(*IntegrationContext, IntegrationOutputWriter, *tfe.TaskStage) (bool, *string, error)
 }
 
@@ -58,10 +64,10 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 	if err != nil {
 		return err
 	}
-	if s := newtaskResultSummarizer(b, ts); s != nil {
+	if s := newTaskResultSummarizer(b, ts); s != nil {
 		summarizers = append(summarizers, s)
 	}
-	if s := newpolicyEvaluationSummarizer(b, ts); s != nil {
+	if s := newPolicyEvaluationSummarizer(b, ts); s != nil {
 		summarizers = append(summarizers, s)
 	}
 

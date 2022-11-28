@@ -30,7 +30,7 @@ type policyEvaluationSummarizer struct {
 	counter  int
 }
 
-func newpolicyEvaluationSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummarizer {
+func newPolicyEvaluationSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummarizer {
 	if len(ts.PolicyEvaluations) == 0 {
 		return nil
 	}

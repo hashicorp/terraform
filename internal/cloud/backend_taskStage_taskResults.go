@@ -21,7 +21,7 @@ type taskResultSummarizer struct {
 	counter  int
 }
 
-func newtaskResultSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummarizer {
+func newTaskResultSummarizer(b *Cloud, ts *tfe.TaskStage) taskStageSummarizer {
 	if len(ts.TaskResults) == 0 {
 		return nil
 	}
