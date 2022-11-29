@@ -51,14 +51,12 @@ The properties within the discovery object are as follows:
   specific mechanism by which an OAuth server authenticates the request and
   issues an authorization token.
 
-  Terraform CLI currently only supports a single grant type:
+  Terraform CLI supports a single grant type:
 
   * `authz_code`: [authorization code grant](https://tools.ietf.org/html/rfc6749#section-4.1).
     Both the `authz` and `token` properties are required when `authz_code` is
     present.
 
-  Other grant types may be supported in future versions of Terraform CLI,
-  and may impose different requirements on the `authz` and `token` properties.
   If not specified, `grant_types` defaults to `["authz_code"]`.
 
 * `authz` (Required if needed for a given grant type): the server's

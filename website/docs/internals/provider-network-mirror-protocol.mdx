@@ -149,11 +149,7 @@ A successful result is a JSON object containing a single property `versions`,
 which must be a JSON object.
 
 Each of the property names of the `versions` object represents an available
-version number. The property values must be objects, but no properties are
-currently defined for those objects. Future versions of this protocol may
-define optional per-version properties for Terraform to use as installation
-hints, so implementations of the current version should leave those objects
-empty.
+version number. The property values must be objects, but no properties are defined for those objects. We recommend leaving those objects empty for forward compatibility.
 
 Return `404 Not Found` to signal that the mirror does not have a provider
 with the given address.

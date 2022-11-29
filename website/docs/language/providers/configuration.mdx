@@ -192,7 +192,7 @@ works the same way as the `version` argument in a
 constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
-**The `version` argument in provider configurations is deprecated.**
+~**Warning:** The `version` argument in provider configurations is deprecated, and we will remove it in a future Terraform version.
+
 In Terraform 0.13 and later, always declare provider version constraints in
-[the `required_providers` block](/language/providers/requirements). The `version`
-argument will be removed in a future version of Terraform.
+[the `required_providers` block](/language/providers/requirements). 
