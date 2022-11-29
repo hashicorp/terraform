@@ -2,12 +2,23 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
 )
 
 type taskStages map[tfe.Stage]*tfe.TaskStage
+
+type taskStageSummarizer interface {
+	// Summarize takes an IntegrationContext, IntegrationOutputWriter for
+	// writing output and a pointer to a tfe.TaskStage object as arguments.
+	// This function summarizes and outputs the results of the task stage.
+	// It returns a boolean which signifies whether we should continue polling
+	// for results, an optional message string to print while it is polling
+	// and an error if any.
+	Summarize(*IntegrationContext, IntegrationOutputWriter, *tfe.TaskStage) (bool, *string, error)
+}
 
 func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId string) (taskStages, error) {
 	taskStages := make(taskStages, 0)
@@ -29,4 +40,73 @@ func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId str
 	}
 
 	return taskStages, nil
+}
+
+func (b *Cloud) getTaskStageWithAllOptions(ctx *IntegrationContext, stageID string) (*tfe.TaskStage, error) {
+	options := tfe.TaskStageReadOptions{
+		Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults},
+	}
+	stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
+	if err != nil {
+		return nil, generalError("Failed to retrieve task stage", err)
+	} else {
+		return stage, nil
+	}
+}
+
+func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWriter, stageID string) error {
+	var errs multiErrors
+
+	// Create our summarizers
+	summarizers := make([]taskStageSummarizer, 0)
+	ts, err := b.getTaskStageWithAllOptions(ctx, stageID)
+	if err != nil {
+		return err
+	}
+	if s := newTaskResultSummarizer(b, ts); s != nil {
+		summarizers = append(summarizers, s)
+	}
+
+	return ctx.Poll(func(i int) (bool, error) {
+		options := tfe.TaskStageReadOptions{
+			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults},
+		}
+		stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
+		if err != nil {
+			return false, generalError("Failed to retrieve task stage", err)
+		}
+
+		switch stage.Status {
+		case tfe.TaskStagePending:
+			// Waiting for it to start
+			return true, nil
+		// Note: Terminal statuses need to print out one last time just in case
+		case tfe.TaskStageRunning, tfe.TaskStagePassed, tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
+			for _, s := range summarizers {
+				cont, msg, err := s.Summarize(ctx, output, stage)
+				if cont {
+					if msg != nil {
+						if i%4 == 0 {
+							if i > 0 {
+								output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+							}
+						}
+					}
+					return true, nil
+				}
+				if err != nil {
+					errs.Append(err)
+				}
+			}
+		case "unreachable":
+			return false, nil
+		default:
+			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)
+		}
+
+		if len(errs) > 0 {
+			return false, errs.Err()
+		}
+		return false, nil
+	})
 }

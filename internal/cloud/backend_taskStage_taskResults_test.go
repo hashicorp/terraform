@@ -82,16 +82,20 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 	integrationContext, writer := newMockIntegrationContext(b, t)
 
 	cases := map[string]struct {
-		taskResults     []*tfe.TaskResult
+		taskStage       func() *tfe.TaskStage
 		context         *IntegrationContext
 		writer          *testIntegrationOutput
 		expectedOutputs []string
 		isError         bool
 	}{
 		"all-succeeded": {
-			taskResults: []*tfe.TaskResult{
-				{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-				{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
 			},
 			writer:          writer,
 			context:         integrationContext,
@@ -99,9 +103,13 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			isError:         false,
 		},
 		"mandatory-failed": {
-			taskResults: []*tfe.TaskResult{
-				{ID: "1", TaskName: "Mandatory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "mandatory"},
-				{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
 			},
 			writer:          writer,
 			context:         integrationContext,
@@ -109,9 +117,13 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			isError:         true,
 		},
 		"advisory-failed": {
-			taskResults: []*tfe.TaskResult{
-				{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
-				{ID: "2", TaskName: "Advisory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "advisory"},
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "A-OK", Status: "passed", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "500 Error", Status: "failed", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
 			},
 			writer:          writer,
 			context:         integrationContext,
@@ -119,9 +131,13 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 			isError:         false,
 		},
 		"unreachable": {
-			taskResults: []*tfe.TaskResult{
-				{ID: "1", TaskName: "Mandatory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "mandatory"},
-				{ID: "2", TaskName: "Advisory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "advisory"},
+			taskStage: func() *tfe.TaskStage {
+				ts := &tfe.TaskStage{}
+				ts.TaskResults = []*tfe.TaskResult{
+					{ID: "1", TaskName: "Mandatory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "mandatory"},
+					{ID: "2", TaskName: "Advisory", Message: "", Status: "unreachable", WorkspaceTaskEnforcementLevel: "advisory"},
+				}
+				return ts
 			},
 			writer:          writer,
 			context:         integrationContext,
@@ -130,27 +146,24 @@ func TestCloud_runTasksWithTaskResults(t *testing.T) {
 		},
 	}
 
-	for caseName, c := range cases {
+	for _, c := range cases {
 		c.writer.output.Reset()
-		err := b.runTasksWithTaskResults(c.context, writer, func(b *Cloud, stopCtx context.Context) (*tfe.TaskStage, error) {
-			return &tfe.TaskStage{
-				TaskResults: c.taskResults,
-			}, nil
-		})
-
-		if c.isError && err == nil {
-			t.Fatalf("Expected %s to be error", caseName)
+		trs := taskResultSummarizer{
+			cloud: b,
 		}
-
-		if !c.isError && err != nil {
-			t.Errorf("Expected %s to not be error but received %s", caseName, err)
-		}
-
-		output := c.writer.output.String()
-		for _, expected := range c.expectedOutputs {
-			if !strings.Contains(output, expected) {
-				t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
+		c.context.Poll(func(i int) (bool, error) {
+			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
+			if cont {
+				return true, nil
 			}
-		}
+
+			output := c.writer.output.String()
+			for _, expected := range c.expectedOutputs {
+				if !strings.Contains(output, expected) {
+					t.Fatalf("Expected output to contain '%s' but it was:\n\n%s", expected, output)
+				}
+			}
+			return false, nil
+		})
 	}
 }

@@ -207,7 +207,7 @@ func (b *Cloud) waitTaskStage(stopCtx, cancelCtx context.Context, op *backend.Op
 		Op:            op,
 		Run:           r,
 	}
-	return b.runTasks(integration, integration.BeginOutput(outputTitle), stageID)
+	return b.runTaskStage(integration, integration.BeginOutput(outputTitle), stageID)
 }
 
 func (b *Cloud) costEstimate(stopCtx, cancelCtx context.Context, op *backend.Operation, r *tfe.Run) error {
