@@ -450,7 +450,7 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 
 				switch keyword {
 				case "override":
-					if r.Status != tfe.RunPolicyOverride {
+					if r.Status != tfe.RunPolicyOverride && r.Status != tfe.RunPostPlanAwaitingDecision {
 						if r.Status == tfe.RunDiscarded {
 							err = errRunDiscarded
 						} else {

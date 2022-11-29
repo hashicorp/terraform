@@ -6,9 +6,15 @@ import (
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 type taskStages map[tfe.Stage]*tfe.TaskStage
+
+const taskStageHeader = `
+To view this run in a browser, visit:
+https://%s/app/%s/%s/runs/%s
+`
 
 type taskStageSummarizer interface {
 	// Summarize takes an IntegrationContext, IntegrationOutputWriter for
@@ -104,7 +110,6 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 				}
 			}
 		case tfe.TaskStageAwaitingOverride:
-			// TODO: Add override functionality
 			for _, s := range summarizers {
 				cont, msg, err := s.Summarize(ctx, output, stage)
 				if cont {
@@ -121,6 +126,12 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 					errs.Append(err)
 				}
 			}
+			cont, err := b.processStageOverrides(ctx, output, stage.ID)
+			if err != nil {
+				errs.Append(err)
+			} else {
+				return cont, nil
+			}
 		case tfe.TaskStageUnreachable:
 			return false, nil
 		default:
@@ -132,4 +143,28 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		}
 		return false, nil
 	})
+}
+
+func (b *Cloud) processStageOverrides(context *IntegrationContext, output IntegrationOutputWriter, taskStageID string) (bool, error) {
+	opts := &terraform.InputOpts{
+		Id:          fmt.Sprintf("%c%c [bold]Override", Arrow, Arrow),
+		Query:       "\nDo you want to override the failed policy check?",
+		Description: "Only 'override' will be accepted to override.",
+	}
+	runUrl := fmt.Sprintf(taskStageHeader, b.hostname, b.organization, context.Op.Workspace, context.Run.ID)
+	err := b.confirm(context.StopContext, context.Op, opts, context.Run, "override")
+	if err != nil && err != errRunOverridden {
+		return false, fmt.Errorf(
+			fmt.Sprintf("Failed to override: %s\n%s\n", err.Error(), runUrl),
+		)
+	}
+
+	if err != errRunOverridden {
+		if _, err = b.client.TaskStages.Override(context.StopContext, taskStageID, tfe.TaskStageOverrideOptions{}); err != nil {
+			return false, generalError(fmt.Sprintf("Failed to override policy check.\n%s", runUrl), err)
+		}
+	} else {
+		output.Output(fmt.Sprintf("The run needs to be manually overridden or discarded.\n%s\n", runUrl))
+	}
+	return false, nil
 }
