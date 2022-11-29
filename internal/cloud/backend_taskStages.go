@@ -44,7 +44,7 @@ func (b *Cloud) runTaskStages(ctx context.Context, client *tfe.Client, runId str
 
 func (b *Cloud) getTaskStageWithAllOptions(ctx *IntegrationContext, stageID string) (*tfe.TaskStage, error) {
 	options := tfe.TaskStageReadOptions{
-		Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults},
+		Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults, tfe.PolicyEvaluationsTaskResults},
 	}
 	stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
 	if err != nil {
@@ -63,13 +63,18 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 	if err != nil {
 		return err
 	}
+
 	if s := newTaskResultSummarizer(b, ts); s != nil {
+		summarizers = append(summarizers, s)
+	}
+
+	if s := newPolicyEvaluationSummarizer(b, ts); s != nil {
 		summarizers = append(summarizers, s)
 	}
 
 	return ctx.Poll(func(i int) (bool, error) {
 		options := tfe.TaskStageReadOptions{
-			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults},
+			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults, tfe.PolicyEvaluationsTaskResults},
 		}
 		stage, err := b.client.TaskStages.Read(ctx.StopContext, stageID, &options)
 		if err != nil {
@@ -98,7 +103,25 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 					errs.Append(err)
 				}
 			}
-		case "unreachable":
+		case tfe.TaskStageAwaitingOverride:
+			// TODO: Add override functionality
+			for _, s := range summarizers {
+				cont, msg, err := s.Summarize(ctx, output, stage)
+				if cont {
+					if msg != nil {
+						if i%4 == 0 {
+							if i > 0 {
+								output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+							}
+						}
+					}
+					return true, nil
+				}
+				if err != nil {
+					errs.Append(err)
+				}
+			}
+		case tfe.TaskStageUnreachable:
 			return false, nil
 		default:
 			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)

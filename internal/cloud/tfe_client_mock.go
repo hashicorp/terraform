@@ -27,6 +27,7 @@ type MockClient struct {
 	CostEstimates         *MockCostEstimates
 	Organizations         *MockOrganizations
 	Plans                 *MockPlans
+	PolicySetOutcomes     *MockPolicySetOutcomes
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
 	StateVersions         *MockStateVersions
@@ -42,6 +43,7 @@ func NewMockClient() *MockClient {
 	c.CostEstimates = newMockCostEstimates(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
+	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
 	c.StateVersions = newMockStateVersions(c)
@@ -543,6 +545,134 @@ func (m *MockPlans) ReadJSONOutput(ctx context.Context, planID string) ([]byte, 
 	}
 
 	return []byte(planOutput), nil
+}
+
+type MockPolicySetOutcomes struct {
+	client *MockClient
+}
+
+func newMockPolicySetOutcomes(client *MockClient) *MockPolicySetOutcomes {
+	return &MockPolicySetOutcomes{
+		client: client,
+	}
+}
+
+func (m *MockPolicySetOutcomes) List(ctx context.Context, policyEvaluationID string, options *tfe.PolicySetOutcomeListOptions) (*tfe.PolicySetOutcomeList, error) {
+	switch policyEvaluationID {
+	case "pol-pass":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "passed",
+							PolicyName:       "policy-pass",
+							Description:      "This policy will pass",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-passes",
+					PolicySetDescription: "This policy set will always pass",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 0,
+						Passed:          1,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	case "pol-fail":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "failed",
+							PolicyName:       "policy-fail",
+							Description:      "This policy will fail",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-fails",
+					PolicySetDescription: "This policy set will always fail",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 1,
+						Passed:          0,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+
+	case "adv-fail":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "advisory",
+							Query:            "data.example.rule",
+							Status:           "failed",
+							PolicyName:       "policy-fail",
+							Description:      "This policy will fail",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-fails",
+					PolicySetDescription: "This policy set will always fail",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  1,
+						MandatoryFailed: 0,
+						Passed:          0,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	default:
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "passed",
+							PolicyName:       "policy-pass",
+							Description:      "This policy will pass",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-passes",
+					PolicySetDescription: "This policy set will always pass",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 0,
+						Passed:          1,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	}
+}
+
+func (m *MockPolicySetOutcomes) Read(ctx context.Context, policySetOutcomeID string) (*tfe.PolicySetOutcome, error) {
+	return nil, nil
 }
 
 type MockPolicyChecks struct {
