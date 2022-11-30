@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * Terraform could crash if an orphaned resource instance was deleted externally and had condition checks in the configuration [GH-32246]
+* Module output changes were being removed and re-added to the stored plan, impacting performance with large numbers of outputs [GH-32307]
 
 ## 1.3.5 (November 17, 2022)
 
