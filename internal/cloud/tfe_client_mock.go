@@ -28,6 +28,7 @@ type MockClient struct {
 	Organizations         *MockOrganizations
 	Plans                 *MockPlans
 	PolicySetOutcomes     *MockPolicySetOutcomes
+	TaskStages            *MockTaskStages
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
 	StateVersions         *MockStateVersions
@@ -43,6 +44,7 @@ func NewMockClient() *MockClient {
 	c.CostEstimates = newMockCostEstimates(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
+	c.TaskStages = newMockTaskStages(c)
 	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
@@ -545,6 +547,36 @@ func (m *MockPlans) ReadJSONOutput(ctx context.Context, planID string) ([]byte, 
 	}
 
 	return []byte(planOutput), nil
+}
+
+type MockTaskStages struct {
+	client *MockClient
+}
+
+func newMockTaskStages(client *MockClient) *MockTaskStages {
+	return &MockTaskStages{
+		client: client,
+	}
+}
+
+func (m *MockTaskStages) Override(ctx context.Context, taskStageID string, options tfe.TaskStageOverrideOptions) (*tfe.TaskStage, error) {
+	switch taskStageID {
+	case "ts-err":
+		return nil, errors.New("test error")
+
+	default:
+		return nil, nil
+	}
+}
+
+func (m *MockTaskStages) Read(ctx context.Context, taskStageID string, options *tfe.TaskStageReadOptions) (*tfe.TaskStage, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockTaskStages) List(ctx context.Context, runID string, options *tfe.TaskStageListOptions) (*tfe.TaskStageList, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 type MockPolicySetOutcomes struct {
