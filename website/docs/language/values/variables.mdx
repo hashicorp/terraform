@@ -112,18 +112,19 @@ allow Terraform to return a helpful error message if the wrong type is used.
 Type constraints are created from a mixture of type keywords and type
 constructors. The supported type keywords are:
 
-* `string`
-* `number`
-* `bool`
+- `string`
+- `number`
+- `bool`
+- `null`
 
 The type constructors allow you to specify complex types such as
 collections:
 
-* `list(<TYPE>)`
-* `set(<TYPE>)`
-* `map(<TYPE>)`
-* `object({<ATTR NAME> = <TYPE>, ... })`
-* `tuple([<TYPE>, ...])`
+- `list(<TYPE>)`
+- `set(<TYPE>)`
+- `map(<TYPE>)`
+- `object({<ATTR NAME> = <TYPE>, ... })`
+- `tuple([<TYPE>, ...])`
 
 The keyword `any` may be used to indicate that any type is acceptable. For
 more information on the meaning and behavior of these different types, as well
