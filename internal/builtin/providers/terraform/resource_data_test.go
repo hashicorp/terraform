@@ -11,10 +11,10 @@ import (
 
 func TestManagedDataValidate(t *testing.T) {
 	cfg := map[string]cty.Value{
-		"input":   cty.NullVal(cty.DynamicPseudoType),
-		"output":  cty.NullVal(cty.DynamicPseudoType),
-		"trigger": cty.NullVal(cty.DynamicPseudoType),
-		"id":      cty.NullVal(cty.String),
+		"input":            cty.NullVal(cty.DynamicPseudoType),
+		"output":           cty.NullVal(cty.DynamicPseudoType),
+		"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+		"id":               cty.NullVal(cty.String),
 	}
 
 	// empty
@@ -50,7 +50,7 @@ func TestManagedDataUpgradeState(t *testing.T) {
 	state := cty.ObjectVal(map[string]cty.Value{
 		"input":  cty.StringVal("input"),
 		"output": cty.StringVal("input"),
-		"trigger": cty.ListVal([]cty.Value{
+		"triggers_replace": cty.ListVal([]cty.Value{
 			cty.StringVal("a"), cty.StringVal("b"),
 		}),
 		"id": cty.StringVal("not-quite-unique"),
@@ -83,7 +83,7 @@ func TestManagedDataRead(t *testing.T) {
 		PriorState: cty.ObjectVal(map[string]cty.Value{
 			"input":  cty.StringVal("input"),
 			"output": cty.StringVal("input"),
-			"trigger": cty.ListVal([]cty.Value{
+			"triggers_replace": cty.ListVal([]cty.Value{
 				cty.StringVal("a"), cty.StringVal("b"),
 			}),
 			"id": cty.StringVal("not-quite-unique"),
@@ -112,74 +112,74 @@ func TestManagedDataPlan(t *testing.T) {
 		"create": {
 			prior: cty.NullVal(ty),
 			proposed: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.NullVal(cty.DynamicPseudoType),
-				"output":  cty.NullVal(cty.DynamicPseudoType),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.NullVal(cty.String),
+				"input":            cty.NullVal(cty.DynamicPseudoType),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.NullVal(cty.String),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.NullVal(cty.DynamicPseudoType),
-				"output":  cty.NullVal(cty.DynamicPseudoType),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.NullVal(cty.DynamicPseudoType),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 		},
 
 		"create-output": {
 			prior: cty.NullVal(ty),
 			proposed: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.NullVal(cty.DynamicPseudoType),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.NullVal(cty.String),
+				"input":            cty.StringVal("input"),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.NullVal(cty.String),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.UnknownVal(cty.String),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.StringVal("input"),
+				"output":           cty.UnknownVal(cty.String),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 		},
 
 		"update-input": {
 			prior: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			proposed: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.UnknownVal(cty.List(cty.String)),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.UnknownVal(cty.List(cty.String)),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.UnknownVal(cty.List(cty.String)),
-				"output":  cty.UnknownVal(cty.List(cty.String)),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.UnknownVal(cty.List(cty.String)),
+				"output":           cty.UnknownVal(cty.List(cty.String)),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 		},
 
 		"update-trigger": {
 			prior: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			proposed: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.StringVal("new-value"),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.StringVal("new-value"),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.UnknownVal(cty.String),
-				"trigger": cty.StringVal("new-value"),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.StringVal("input"),
+				"output":           cty.UnknownVal(cty.String),
+				"triggers_replace": cty.StringVal("new-value"),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 		},
 
@@ -187,7 +187,7 @@ func TestManagedDataPlan(t *testing.T) {
 			prior: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.StringVal("input"),
 				"output": cty.StringVal("input"),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("value"),
 				}),
 				"id": cty.StringVal("not-quite-unique"),
@@ -195,7 +195,7 @@ func TestManagedDataPlan(t *testing.T) {
 			proposed: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
 				"output": cty.StringVal("input"),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("new value"),
 				}),
 				"id": cty.StringVal("not-quite-unique"),
@@ -203,7 +203,7 @@ func TestManagedDataPlan(t *testing.T) {
 			planned: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
 				"output": cty.UnknownVal(cty.List(cty.String)),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("new value"),
 				}),
 				"id": cty.UnknownVal(cty.String),
@@ -248,74 +248,74 @@ func TestManagedDataApply(t *testing.T) {
 		"create": {
 			prior: cty.NullVal(ty),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.NullVal(cty.DynamicPseudoType),
-				"output":  cty.NullVal(cty.DynamicPseudoType),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.NullVal(cty.DynamicPseudoType),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 			state: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.NullVal(cty.DynamicPseudoType),
-				"output":  cty.NullVal(cty.DynamicPseudoType),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.NullVal(cty.DynamicPseudoType),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 		},
 
 		"create-output": {
 			prior: cty.NullVal(ty),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.UnknownVal(cty.String),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.StringVal("input"),
+				"output":           cty.UnknownVal(cty.String),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 			state: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 		},
 
 		"update-input": {
 			prior: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
-				"output":  cty.UnknownVal(cty.List(cty.String)),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
+				"output":           cty.UnknownVal(cty.List(cty.String)),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			state: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
-				"output":  cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
+				"output":           cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 		},
 
 		"update-trigger": {
 			prior: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.NullVal(cty.DynamicPseudoType),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 			planned: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.UnknownVal(cty.String),
-				"trigger": cty.StringVal("new-value"),
-				"id":      cty.UnknownVal(cty.String),
+				"input":            cty.StringVal("input"),
+				"output":           cty.UnknownVal(cty.String),
+				"triggers_replace": cty.StringVal("new-value"),
+				"id":               cty.UnknownVal(cty.String),
 			}),
 			state: cty.ObjectVal(map[string]cty.Value{
-				"input":   cty.StringVal("input"),
-				"output":  cty.StringVal("input"),
-				"trigger": cty.StringVal("new-value"),
-				"id":      cty.StringVal("not-quite-unique"),
+				"input":            cty.StringVal("input"),
+				"output":           cty.StringVal("input"),
+				"triggers_replace": cty.StringVal("new-value"),
+				"id":               cty.StringVal("not-quite-unique"),
 			}),
 		},
 
@@ -323,7 +323,7 @@ func TestManagedDataApply(t *testing.T) {
 			prior: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.StringVal("input"),
 				"output": cty.StringVal("input"),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("value"),
 				}),
 				"id": cty.StringVal("not-quite-unique"),
@@ -331,7 +331,7 @@ func TestManagedDataApply(t *testing.T) {
 			planned: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
 				"output": cty.UnknownVal(cty.List(cty.String)),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("new value"),
 				}),
 				"id": cty.UnknownVal(cty.String),
@@ -339,7 +339,7 @@ func TestManagedDataApply(t *testing.T) {
 			state: cty.ObjectVal(map[string]cty.Value{
 				"input":  cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
 				"output": cty.ListVal([]cty.Value{cty.StringVal("new-input")}),
-				"trigger": cty.MapVal(map[string]cty.Value{
+				"triggers_replace": cty.MapVal(map[string]cty.Value{
 					"key": cty.StringVal("new value"),
 				}),
 				"id": cty.StringVal("not-quite-unique"),

@@ -6,7 +6,7 @@ resource "terraform_data" "b" {
 }
 
 resource "terraform_data" "c" {
-  trigger = terraform_data.b
+  triggers_replace = terraform_data.b
 }
 
 resource "terraform_data" "d" {

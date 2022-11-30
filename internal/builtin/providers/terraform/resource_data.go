@@ -15,10 +15,10 @@ func dataStoreResourceSchema() providers.Schema {
 	return providers.Schema{
 		Block: &configschema.Block{
 			Attributes: map[string]*configschema.Attribute{
-				"input":   {Type: cty.DynamicPseudoType, Optional: true},
-				"output":  {Type: cty.DynamicPseudoType, Computed: true},
-				"trigger": {Type: cty.DynamicPseudoType, Optional: true},
-				"id":      {Type: cty.String, Computed: true},
+				"input":            {Type: cty.DynamicPseudoType, Optional: true},
+				"output":           {Type: cty.DynamicPseudoType, Computed: true},
+				"triggers_replace": {Type: cty.DynamicPseudoType, Optional: true},
+				"id":               {Type: cty.String, Computed: true},
 			},
 		},
 	}
@@ -66,7 +66,7 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 	planned := req.ProposedNewState.AsValueMap()
 
 	input := req.ProposedNewState.GetAttr("input")
-	trigger := req.ProposedNewState.GetAttr("trigger")
+	trigger := req.ProposedNewState.GetAttr("triggers_replace")
 
 	switch {
 	case req.PriorState.IsNull():
@@ -82,9 +82,9 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 		resp.PlannedState = cty.ObjectVal(planned)
 		return resp
 
-	case !req.PriorState.GetAttr("trigger").RawEquals(trigger):
+	case !req.PriorState.GetAttr("triggers_replace").RawEquals(trigger):
 		// trigger changed, so we need to replace the entire instance
-		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("trigger"))
+		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("triggers_replace"))
 		planned["id"] = cty.UnknownVal(cty.String)
 
 		// We need to check the input for the replacement instance to compute a
