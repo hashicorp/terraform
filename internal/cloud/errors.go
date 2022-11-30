@@ -71,8 +71,9 @@ func (e *multiErrors) Append(errs ...error) {
 		}
 		if errs, ok := err.(multiErrors); ok {
 			*e = append(*e, errs...)
+		} else {
+			*e = append(*e, err)
 		}
-		*e = append(*e, err)
 	}
 }
 
