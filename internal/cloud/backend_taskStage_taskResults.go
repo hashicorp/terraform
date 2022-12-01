@@ -62,18 +62,18 @@ func (trs *taskResultSummarizer) Summarize(context *IntegrationContext, output I
 func summarizeTaskResults(taskResults []*tfe.TaskResult) *taskResultSummary {
 	var pendingCount, errCount, errMandatoryCount, passedCount int
 	for _, task := range taskResults {
-		if task.Status == "unreachable" {
+		if task.Status == tfe.TaskUnreachable {
 			return &taskResultSummary{
 				unreachable: true,
 			}
-		} else if task.Status == "running" || task.Status == "pending" {
+		} else if task.Status == tfe.TaskRunning || task.Status == tfe.TaskPending {
 			pendingCount++
-		} else if task.Status == "passed" {
+		} else if task.Status == tfe.TaskPassed {
 			passedCount++
 		} else {
 			// Everything else is a failure
 			errCount++
-			if task.WorkspaceTaskEnforcementLevel == "mandatory" {
+			if task.WorkspaceTaskEnforcementLevel == tfe.Mandatory {
 				errMandatoryCount++
 			}
 		}

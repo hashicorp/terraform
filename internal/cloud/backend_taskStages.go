@@ -89,11 +89,10 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 					break
 				}
 				if !cont {
-					continue
+					return false, nil
 				}
 				// cont is true and we must continue to poll
 				if msg != nil {
-					// print msg every 4 seconds
 					if i%4 == 0 && i > 0 {
 						output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
 					}
