@@ -12,6 +12,7 @@ BUG FIXES:
 
 * The module installer will now record in its manifest a correct module source URL after normalization when the URL given as input contains both a query string portion and a subdirectory portion. Terraform itself doesn't currently make use of this information and so this is just a cosmetic fix to make the recorded metadata more correct. ([#31636](https://github.com/hashicorp/terraform/issues/31636))
 * config: The `yamldecode` function now correctly handles entirely-nil YAML documents. Previously it would incorrectly return an unknown value instead of a null value. It will now return a null value as documented. [GH-32151]
+* Ensure correct ordering between data sources and the deletion of managed resource dependencies [GH-32209]
 
 ENHANCEMENTS:
 
