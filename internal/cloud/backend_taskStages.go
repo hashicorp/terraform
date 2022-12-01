@@ -11,6 +11,11 @@ import (
 
 type taskStages map[tfe.Stage]*tfe.TaskStage
 
+const (
+	taskStageBackoffMin = 4000.0
+	taskStageBackoffMax = 12000.0
+)
+
 const taskStageHeader = `
 To view this run in a browser, visit:
 https://%s/app/%s/%s/runs/%s
@@ -78,7 +83,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		summarizers = append(summarizers, s)
 	}
 
-	return ctx.Poll(func(i int) (bool, error) {
+	return ctx.Poll(taskStageBackoffMin, taskStageBackoffMax, func(i int) (bool, error) {
 		options := tfe.TaskStageReadOptions{
 			Include: []tfe.TaskStageIncludeOpt{tfe.TaskStageTaskResults, tfe.PolicyEvaluationsTaskResults},
 		}
@@ -92,39 +97,57 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			// Waiting for it to start
 			return true, nil
 		// Note: Terminal statuses need to print out one last time just in case
-		case tfe.TaskStageRunning, tfe.TaskStagePassed, tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
+		case tfe.TaskStageRunning, tfe.TaskStagePassed:
 			for _, s := range summarizers {
 				cont, msg, err := s.Summarize(ctx, output, stage)
-				if cont {
-					if msg != nil {
-						if i%4 == 0 {
-							if i > 0 {
-								output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-							}
-						}
-					}
-					return true, nil
-				}
 				if err != nil {
 					errs.Append(err)
+					break
 				}
+				if !cont {
+					continue
+				}
+
+				// cont is true and we must continue to poll
+				if msg != nil {
+					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+				}
+				return true, nil
 			}
+		case tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
+			for _, s := range summarizers {
+				cont, msg, err := s.Summarize(ctx, output, stage)
+				if err != nil {
+					errs.Append(err)
+					break
+				}
+
+				if !cont {
+					continue
+				}
+
+				// cont is true and we must continue to poll
+				if msg != nil {
+					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+				}
+				return true, nil
+			}
+			return false, fmt.Errorf("Task Stage %s.", stage.Status)
 		case tfe.TaskStageAwaitingOverride:
 			for _, s := range summarizers {
 				cont, msg, err := s.Summarize(ctx, output, stage)
-				if cont {
-					if msg != nil {
-						if i%4 == 0 {
-							if i > 0 {
-								output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-							}
-						}
-					}
-					return true, nil
-				}
 				if err != nil {
 					errs.Append(err)
+					break
 				}
+				if !cont {
+					continue
+				}
+				// cont is true and we must continue to poll
+				if msg != nil {
+					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+				}
+				return true, nil
 			}
 			cont, err := b.processStageOverrides(ctx, output, stage.ID)
 			if err != nil {
