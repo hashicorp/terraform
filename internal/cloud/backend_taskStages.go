@@ -84,21 +84,23 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		case tfe.TaskStageRunning, tfe.TaskStagePassed, tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
 			for _, s := range summarizers {
 				cont, msg, err := s.Summarize(ctx, output, stage)
-				if cont {
-					if msg != nil {
-						if i%4 == 0 {
-							if i > 0 {
-								output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-							}
-						}
-					}
-					return true, nil
-				}
 				if err != nil {
 					errs.Append(err)
+					break
 				}
+				if !cont {
+					continue
+				}
+				// cont is true and we must continue to poll
+				if msg != nil {
+					// print msg every 4 seconds
+					if i%4 == 0 && i > 0 {
+						output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+					}
+				}
+				return true, nil
 			}
-		case "unreachable":
+		case tfe.TaskStageUnreachable:
 			return false, nil
 		default:
 			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)
