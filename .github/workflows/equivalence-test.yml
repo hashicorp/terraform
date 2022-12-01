@@ -61,14 +61,14 @@ jobs:
         run: |
           curl \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/liamcervante/terraform/actions/runs/${{ steps.build-run-id.outputs.build-run-id }}/artifacts" > artifacts.json
+            "https://api.github.com/repos/hashicorp/terraform/actions/runs/${{ steps.build-run-id.outputs.build-run-id }}/artifacts" > artifacts.json
           
           METADATA_ARTIFACT_ID=$(jq -r '.artifacts | .[] | select(.name == "metadata.json") | .id' artifacts.json)
           
           curl -L \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/liamcervante/terraform/actions/artifacts/$METADATA_ARTIFACT_ID/zip" > "metadata.json.zip"
+            "https://api.github.com/repos/hashicorp/terraform/actions/artifacts/$METADATA_ARTIFACT_ID/zip" > "metadata.json.zip"
           
           unzip metadata.json.zip
           
@@ -179,7 +179,7 @@ jobs:
           curl -L \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/liamcervante/terraform/actions/artifacts/${{ env.terraform-artifact-id }}/zip" > "$ARTIFACT.zip"
+            "https://api.github.com/repos/hashicorp/terraform/actions/artifacts/${{ env.terraform-artifact-id }}/zip" > "$ARTIFACT.zip"
 
       - name: "Unzip terraform binary"
         run: |
