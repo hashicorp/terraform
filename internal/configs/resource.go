@@ -37,6 +37,12 @@ type Resource struct {
 	// For all other resource modes, this field is nil.
 	Managed *ManagedResource
 
+	// SmokeTest is the smoke test scope that this resource belongs to, if any.
+	//
+	// If this resource belongs to a smoke test then it can only be
+	// referred to from elsewhere in the same smoke test.
+	SmokeTest *SmokeTest
+
 	DeclRange hcl.Range
 	TypeRange hcl.Range
 }

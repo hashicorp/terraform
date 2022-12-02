@@ -232,5 +232,16 @@ func checkModuleExperiments(m *Module) hcl.Diagnostics {
 		}
 	*/
 
+	if !m.ActiveExperiments.Has(experiments.SmokeTests) {
+		for _, st := range m.SmokeTests {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Smoke tests are experimental",
+				Detail:   "This feature is currently an opt-in experiment, subject to change in future releases based on feedback.\n\nActivate the feature for this module by adding smoke_tests to the set of active experiments.",
+				Subject:  st.DeclRange.Ptr(),
+			})
+		}
+	}
+
 	return diags
 }

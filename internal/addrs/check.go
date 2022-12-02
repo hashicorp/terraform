@@ -80,10 +80,12 @@ type CheckType int
 //go:generate go run golang.org/x/tools/cmd/stringer -type=CheckType check.go
 
 const (
-	InvalidCondition      CheckType = 0
-	ResourcePrecondition  CheckType = 1
-	ResourcePostcondition CheckType = 2
-	OutputPrecondition    CheckType = 3
+	InvalidCondition       CheckType = 0
+	ResourcePrecondition   CheckType = 1
+	ResourcePostcondition  CheckType = 2
+	OutputPrecondition     CheckType = 3
+	SmokeTestPrecondition  CheckType = 4
+	SmokeTestPostcondition CheckType = 5
 )
 
 // Description returns a human-readable description of the check type. This is
@@ -96,6 +98,10 @@ func (c CheckType) Description() string {
 		return "Resource postcondition"
 	case OutputPrecondition:
 		return "Module output value precondition"
+	case SmokeTestPrecondition:
+		return "Smoke test precondition"
+	case SmokeTestPostcondition:
+		return "Smoke test postcondition"
 	default:
 		// This should not happen
 		return "Condition"
@@ -142,6 +148,7 @@ const (
 	CheckableKindInvalid CheckableKind = 0
 	CheckableResource    CheckableKind = 'R'
 	CheckableOutputValue CheckableKind = 'O'
+	CheckableSmokeTest   CheckableKind = 'S'
 )
 
 // ConfigCheckable is an interfaces implemented by address types that represent
@@ -243,6 +250,37 @@ func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagn
 			return nil, diags
 		} else {
 			return OutputValue{Name: step.Name}.Absolute(path), diags
+		}
+
+	case CheckableSmokeTest:
+		if len(remain) != 2 {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Smoke test address must have only one attribute part after the keyword 'smoke_test', giving the name of the smoke test.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		if remain.RootName() != "smoke_test" {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Smoke test address must follow the module address with the keyword 'smoke_test'.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		}
+		if step, ok := remain[1].(hcl.TraverseAttr); !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid checkable address",
+				Detail:   "Smoke test address must have only one attribute part after the keyword 'smoke_test', giving the name of the smoke test.",
+				Subject:  remain.SourceRange().Ptr(),
+			})
+			return nil, diags
+		} else {
+			return SmokeTest{Name: step.Name}.Absolute(path), diags
 		}
 
 	default:

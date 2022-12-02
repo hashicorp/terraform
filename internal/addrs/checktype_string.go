@@ -12,11 +12,13 @@ func _() {
 	_ = x[ResourcePrecondition-1]
 	_ = x[ResourcePostcondition-2]
 	_ = x[OutputPrecondition-3]
+	_ = x[SmokeTestPrecondition-4]
+	_ = x[SmokeTestPostcondition-5]
 }
 
-const _CheckType_name = "InvalidConditionResourcePreconditionResourcePostconditionOutputPrecondition"
+const _CheckType_name = "InvalidConditionResourcePreconditionResourcePostconditionOutputPreconditionSmokeTestPreconditionSmokeTestPostcondition"
 
-var _CheckType_index = [...]uint8{0, 16, 36, 57, 75}
+var _CheckType_index = [...]uint8{0, 16, 36, 57, 75, 96, 118}
 
 func (i CheckType) String() string {
 	if i < 0 || i >= CheckType(len(_CheckType_index)-1) {

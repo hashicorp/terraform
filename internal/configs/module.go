@@ -44,6 +44,8 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
+	SmokeTests map[string]*SmokeTest
+
 	Moved []*Moved
 }
 
@@ -78,6 +80,8 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
+	SmokeTests []*SmokeTest
+
 	Moved []*Moved
 }
 
@@ -100,6 +104,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:        map[string]*ModuleCall{},
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		SmokeTests:         map[string]*SmokeTest{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 	}
 
@@ -340,7 +345,60 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+	}
 
+	for _, st := range file.SmokeTests {
+		// Any data resources declared inside a smoke test block live in the
+		// same namespace as top-level data resources, so we'll merge those
+		// here and generate specialized errors at this point if there are
+		// any colliding names between top-level and smoke test, between
+		// two different smoke tests, or within the same smoke test.
+		for _, r := range st.DataResources {
+			key := r.moduleUniqueKey()
+			if existing, exists := m.DataResources[key]; exists {
+				switch {
+				case existing.SmokeTest == nil:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
+						Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module, including within smoke tests.", existing.Type, existing.Name, existing.DeclRange),
+						Subject:  r.DeclRange.Ptr(),
+					})
+				case existing.SmokeTest.Name == st.Name:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
+						Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module.", existing.Type, existing.Name, existing.DeclRange),
+						Subject:  r.DeclRange.Ptr(),
+					})
+				default:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
+						Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s for smoke_test %q. Resource names must be unique per type in each module, including across all smoke tests.", existing.Type, existing.Name, existing.DeclRange, existing.SmokeTest.Name),
+						Subject:  r.DeclRange.Ptr(),
+					})
+				}
+				continue
+			}
+			m.DataResources[key] = r
+		}
+
+		if existing, exists := m.SmokeTests[st.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate smoke test name",
+				Detail:   fmt.Sprintf("A smoke test named %q was already declared at %s. Smoke test names must be unique within each module.", existing.Name, existing.DeclRange),
+				Subject:  st.DeclRange.Ptr(),
+			})
+			continue
+		}
+		m.SmokeTests[st.Name] = st
+	}
+
+	// We must now deal with the provider associations for the merged set of
+	// data resources, across both top-level ones and smoke test ones.
+	for _, r := range m.DataResources {
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
 			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())

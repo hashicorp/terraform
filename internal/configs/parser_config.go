@@ -155,6 +155,17 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
+		case "smoke_test":
+			cfg, cfgDiags := decodeSmokeTestBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if !diags.HasErrors() {
+				// We only append valid smoke tests, unlike most other block
+				// types, to minimize the amount of error noise they can make
+				// in the output given that they are typically rather tangential
+				// to the main point of the module.
+				file.SmokeTests = append(file.SmokeTests, cfg)
+			}
+
 		case "moved":
 			cfg, cfgDiags := decodeMovedBlock(block)
 			diags = append(diags, cfgDiags...)
@@ -248,6 +259,10 @@ var configFileSchema = &hcl.BodySchema{
 		{
 			Type:       "data",
 			LabelNames: []string{"type", "name"},
+		},
+		{
+			Type:       "smoke_test",
+			LabelNames: []string{"name"},
 		},
 		{
 			Type: "moved",
