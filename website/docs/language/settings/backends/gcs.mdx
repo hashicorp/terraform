@@ -113,11 +113,9 @@ The following configuration options are supported:
   format. If unset, the path uses [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials).  The provided credentials must have the Storage Object Admin role on the bucket.
   **Warning**: if using the Google Cloud Platform provider as well, it will
   also pick up the `GOOGLE_CREDENTIALS` environment variable.
-- `impersonate_service_account` - (Optional) The service account to impersonate for accessing the State Bucket.
+- `impersonate_service_account` / `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` / `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` - (Optional) The service account to impersonate for accessing the State Bucket.
   You must have `roles/iam.serviceAccountTokenCreator` role on that account for the impersonation to succeed.
   If you are using a delegation chain, you can specify that using the `impersonate_service_account_delegates` field.
-  Alternatively, this can be specified using the `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` environment
-  variable.
 - `impersonate_service_account_delegates` - (Optional) The delegation chain for an impersonating a service account as described [here](https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials#sa-credentials-delegated).
 - `access_token` - (Optional) A temporary \[OAuth 2.0 access token] obtained
   from the Google Authorization server, i.e. the `Authorization: Bearer` token
