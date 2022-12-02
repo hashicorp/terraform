@@ -186,6 +186,14 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// TargetsTransformer can determine which nodes to keep in the graph.
 		&DestroyEdgeTransformer{},
 
+		// Add nodes and edges for smoke tests. All nodes that represent
+		// side-effects that might affect smoke test results must have been
+		// added by earlier transformers, and this must come before the
+		// TransitiveReductionTransformer.
+		&smokeTestTransformer{
+			Config: b.Config,
+		},
+
 		&pruneUnusedNodesTransformer{
 			skip: b.Operation != walkPlanDestroy,
 		},

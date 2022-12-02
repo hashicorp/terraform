@@ -142,6 +142,14 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// node due to dependency edges, to avoid graph cycles during apply.
 		&ForcedCBDTransformer{},
 
+		// Add nodes and edges for smoke tests. All nodes that represent
+		// side-effects that might affect smoke test results must have been
+		// added by earlier transformers, and this must come before the
+		// TransitiveReductionTransformer.
+		&smokeTestTransformer{
+			Config: b.Config,
+		},
+
 		// Destruction ordering
 		&DestroyEdgeTransformer{
 			Changes:   b.Changes,
