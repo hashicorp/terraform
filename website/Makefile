@@ -28,6 +28,8 @@ DOCKER_RUN_FLAGS=-it \
 		--volume "$(PWD)/redirects.js:/app/redirects.js" \
 		--volume "next-dir:/app/website-preview/.next" \
 		--volume "$(PWD)/.env:/app/.env" \
+		--volume "$(PWD)/.env.development:/app/website-preview/.env.development" \
+		--volume "$(PWD)/.env.local:/app/website-preview/.env.local" \
 		-e "REPO=$(REPO)" \
 		-e "PREVIEW_FROM_REPO=$(REPO)" \
 		-e "IS_CONTENT_PREVIEW=true" \
