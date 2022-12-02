@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -11,34 +13,39 @@ import (
 type smokeTestTransformer struct {
 	// Config is the root of the configuration tree to add smoke tests from.
 	Config *configs.Config
+
+	ReportCheckableObjects bool
 }
 
 var _ GraphTransformer = (*smokeTestTransformer)(nil)
 
 func (t *smokeTestTransformer) Transform(g *Graph) error {
-	return t.transformForModule(g, t.Config)
+	allNodes := g.Vertices()
+
+	return t.transformForModule(g, t.Config, allNodes)
 }
 
-func (t *smokeTestTransformer) transformForModule(g *Graph, modCfg *configs.Config) error {
+func (t *smokeTestTransformer) transformForModule(g *Graph, modCfg *configs.Config, allNodes []dag.Vertex) error {
 	modAddr := modCfg.Path
-
-	allNodes := g.Vertices()
 
 	for _, st := range modCfg.Module.SmokeTests {
 		configAddr := st.Addr().InModule(modAddr)
 		preNode := &nodeExpandSmokeTest{
-			addr:   configAddr,
-			config: st,
+			typeName: "preconditions",
+			addr:     configAddr,
+			config:   st,
 			makeInstance: func(addr addrs.AbsSmokeTest, cfg *configs.SmokeTest) dag.Vertex {
 				return &nodeSmokeTestPre{
 					addr:   addr,
 					config: cfg,
 				}
 			},
+			reportObjects: t.ReportCheckableObjects,
 		}
 		postNode := &nodeExpandSmokeTest{
-			addr:   configAddr,
-			config: st,
+			typeName: "postconditions",
+			addr:     configAddr,
+			config:   st,
 			makeInstance: func(addr addrs.AbsSmokeTest, cfg *configs.SmokeTest) dag.Vertex {
 				return &nodeSmokeTestPost{
 					addr:   addr,
@@ -46,6 +53,7 @@ func (t *smokeTestTransformer) transformForModule(g *Graph, modCfg *configs.Conf
 				}
 			},
 		}
+		log.Printf("[TRACE] smokeTestTransformer: Nodes and edges for %s", configAddr)
 		g.Add(preNode)
 		g.Add(postNode)
 
@@ -68,23 +76,23 @@ func (t *smokeTestTransformer) transformForModule(g *Graph, modCfg *configs.Conf
 		// tidy this up.
 		for _, n := range allNodes {
 			g.Connect(dag.BasicEdge(postNode, n))
-
 			if n, isResource := n.(GraphNodeConfigResource); isResource {
 				resourceAddr := n.ResourceAddr()
 				if !resourceAddr.Module.Equal(modAddr) {
 					continue
 				}
 				resourceCfg := modCfg.Module.ResourceByAddr(resourceAddr.Resource)
-				if resourceCfg == nil || resourceCfg.SmokeTest == nil {
-					g.Connect(dag.BasicEdge(preNode, n))
+				if resourceCfg != nil && resourceCfg.SmokeTest != nil {
+					continue
 				}
 			}
+			g.Connect(dag.BasicEdge(preNode, n))
 		}
 		g.Connect(dag.BasicEdge(postNode, preNode))
 	}
 
 	for _, child := range modCfg.Children {
-		t.transformForModule(g, child)
+		t.transformForModule(g, child, allNodes)
 	}
 
 	return nil

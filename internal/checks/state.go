@@ -224,6 +224,48 @@ func (c *State) ObjectCheckStatus(addr addrs.Checkable) Status {
 	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
 }
 
+// ObjectCheckStatusByConditionType is like ObjectCheckStatus but it
+// restricts its analysis only to conditions of the given type.
+//
+// This can be useful when some condition types are prerequisites for others,
+// so that the downstream type can check whether its upstreams are failing
+// and skip its own work if so.
+func (c *State) ObjectCheckStatusByConditionType(addr addrs.Checkable, condType addrs.CheckType) Status {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	configAddr := addr.ConfigCheckable()
+
+	st, ok := c.statuses.GetOk(configAddr)
+	if !ok {
+		panic(fmt.Sprintf("request for status of unknown object %s", addr))
+	}
+	if st.objects.Elems == nil {
+		panic(fmt.Sprintf("request for status of %s before establishing the checkable objects for %s", addr, configAddr))
+	}
+	checks, ok := st.objects.GetOk(addr)
+	if !ok {
+		panic(fmt.Sprintf("request for status of unknown object %s", addr))
+	}
+
+	errorCount := 0
+	failCount := 0
+	unknownCount := 0
+	for _, status := range checks[condType] {
+		switch status {
+		case StatusPass:
+			// ok
+		case StatusFail:
+			failCount++
+		case StatusError:
+			errorCount++
+		default:
+			unknownCount++
+		}
+	}
+	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
+}
+
 // ObjectFailureMessages returns the zero or more failure messages reported
 // for the object with the given address.
 //

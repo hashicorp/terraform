@@ -191,7 +191,8 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// added by earlier transformers, and this must come before the
 		// TransitiveReductionTransformer.
 		&smokeTestTransformer{
-			Config: b.Config,
+			Config:                 b.Config,
+			ReportCheckableObjects: true, // we only do this during plan
 		},
 
 		&pruneUnusedNodesTransformer{
