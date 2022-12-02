@@ -47,14 +47,14 @@ jobs:
             # Quick sanity check, if the workflow_run that triggered this action
             # failed then we shouldn't carry on.
             if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
-              echo "::set-output name=check-run-equivalence-tests::false"
+              echo "check-run-equivalence-tests=false" >> $GITHUB_OUTPUT
               exit 0
             fi
           
             BUILD_RUN_ID=${{ github.event.workflow_run.id }}
           fi
           
-          echo "::set-output name=build-run-id::${BUILD_RUN_ID}"
+          echo "build-run-id=${BUILD_RUN_ID}" >> $GITHUB_OUTPUT
 
       - id: terraform-metadata
         name: "Get Terraform version and artifact metadata"
@@ -80,10 +80,10 @@ jobs:
           
           TERRAFORM_VERSION="v$VERSION"
           
-          echo "::set-output name=branch::${BRANCH}"
-          echo "::set-output name=version::${VERSION}"
-          echo "::set-output name=terraform-artifact-id::${TERRAFORM_ARTIFACT_ID}"
-          echo "::set-output name=terraform-version::${TERRAFORM_VERSION}"
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "terraform-artifact-id=${TERRAFORM_ARTIFACT_ID}" >> $GITHUB_OUTPUT
+          echo "terraform-version=${TERRAFORM_VERSION}" >> $GITHUB_OUTPUT
           
       - id: check-run-equivalence-tests
         name: "Check if we even should run the equivalence tests"
@@ -97,7 +97,7 @@ jobs:
           else
             RUN_EQUIVALENCE_TESTS=false
           fi
-          echo "::set-output name=check-run-equivalence-tests::${RUN_EQUIVALENCE_TESTS}"
+          echo "check-run-equivalence-tests=${RUN_EQUIVALENCE_TESTS}" >> $GITHUB_OUTPUT
 
       - id: target-branch
         name: "Get the target branch we should write the equivalence tests to"
@@ -124,7 +124,7 @@ jobs:
             TARGET_BRANCH=v${MAJOR_VERSION}.${MINOR_VERSION}
           fi
           
-          echo "::set-output name=target-branch::${TARGET_BRANCH}"
+          echo "target-branch=${TARGET_BRANCH}" >> $GITHUB_OUTPUT
 
   prepare-equivalence-tests:
     name: "Prepare equivalence testing binary"
