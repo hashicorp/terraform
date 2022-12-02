@@ -12,6 +12,13 @@ func (st SmokeTest) String() string {
 	return fmt.Sprintf("smoke_test.%s", st.Name)
 }
 
+func (st SmokeTest) InModule(modAddr Module) ConfigSmokeTest {
+	return ConfigSmokeTest{
+		Module:    modAddr,
+		SmokeTest: st,
+	}
+}
+
 func (st SmokeTest) Absolute(modAddr ModuleInstance) AbsSmokeTest {
 	return AbsSmokeTest{
 		Module:    modAddr,
@@ -27,6 +34,9 @@ type ConfigSmokeTest struct {
 var _ ConfigCheckable = ConfigSmokeTest{}
 
 func (st ConfigSmokeTest) String() string {
+	if len(st.Module) == 0 {
+		return st.SmokeTest.String()
+	}
 	return st.Module.String() + "." + st.SmokeTest.String()
 }
 
@@ -48,6 +58,9 @@ type AbsSmokeTest struct {
 var _ Checkable = AbsSmokeTest{}
 
 func (st AbsSmokeTest) String() string {
+	if len(st.Module) == 0 {
+		return st.SmokeTest.String()
+	}
 	return st.Module.String() + "." + st.SmokeTest.String()
 }
 

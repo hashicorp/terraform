@@ -49,6 +49,20 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 		into.Put(addr, st)
 	}
 
+	for _, test := range cfg.Module.SmokeTests {
+		addr := test.Addr().InModule(moduleAddr)
+		// All smoke_test blocks are automatically checkable objects, because
+		// they exist only to represent checks.
+		st := &configCheckableState{
+			checkTypes: map[addrs.CheckType]int{
+				addrs.SmokeTestPrecondition:  len(test.Preconditions),
+				addrs.SmokeTestPostcondition: len(test.Postconditions),
+				addrs.SmokeTestDataResource:  len(test.DataResources),
+			},
+		}
+		into.Put(addr, st)
+	}
+
 	// Must also visit child modules to collect everything
 	for _, child := range cfg.Children {
 		collectInitialStatuses(into, child)

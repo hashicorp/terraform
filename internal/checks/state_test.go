@@ -13,6 +13,7 @@ import (
 func TestChecksHappyPath(t *testing.T) {
 	const fixtureDir = "testdata/happypath"
 	loader, close := configload.NewLoaderForTests(t)
+	loader.AllowLanguageExperiments(true)
 	defer close()
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), nil)
 	_, instDiags := inst.InstallModules(context.Background(), fixtureDir, true, initwd.ModuleInstallHooksImpl{})
@@ -62,6 +63,7 @@ func TestChecksHappyPath(t *testing.T) {
 	childOutput := addrs.OutputValue{
 		Name: "b",
 	}.InModule(moduleChild)
+	smokeTestA := addrs.SmokeTest{Name: "a"}.InModule(addrs.RootModule)
 
 	// First some consistency checks to make sure our configuration is the
 	// shape we are relying on it to be.
@@ -76,6 +78,9 @@ func TestChecksHappyPath(t *testing.T) {
 	}
 	if addr := resourceNonExist; cfg.Module.ResourceByAddr(addr.Resource) != nil {
 		t.Fatalf("configuration includes %s, which is not supposed to exist", addr)
+	}
+	if cfg.Module.SmokeTests["a"] == nil {
+		t.Fatalf("configuration does not include %s", smokeTestA)
 	}
 
 	/////////////////////////////////////////////////////////////////////////
@@ -103,6 +108,10 @@ func TestChecksHappyPath(t *testing.T) {
 		t.Errorf("checks not detected for %s", addr)
 		missing++
 	}
+	if addr := smokeTestA; !checks.ConfigHasChecks(addr) {
+		t.Errorf("checks not detected for %s", addr)
+		missing++
+	}
 	if addr := resourceNoChecks; checks.ConfigHasChecks(addr) {
 		t.Errorf("checks detected for %s, even though it has none", addr)
 	}
@@ -124,6 +133,7 @@ func TestChecksHappyPath(t *testing.T) {
 			resourceC,
 			rootOutput,
 			childOutput,
+			smokeTestA,
 		)
 		gotConfigAddrs := checks.AllConfigAddrs()
 		if diff := cmp.Diff(wantConfigAddrs, gotConfigAddrs); diff != "" {
@@ -153,6 +163,7 @@ func TestChecksHappyPath(t *testing.T) {
 	resourceInstC0 := resourceC.Resource.Absolute(moduleChildInst).Instance(addrs.IntKey(0))
 	resourceInstC1 := resourceC.Resource.Absolute(moduleChildInst).Instance(addrs.IntKey(1))
 	childOutputInst := childOutput.OutputValue.Absolute(moduleChildInst)
+	smokeTestInstA := smokeTestA.SmokeTest.Absolute(addrs.RootModuleInstance)
 
 	checks.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
 	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusPass)
@@ -172,6 +183,11 @@ func TestChecksHappyPath(t *testing.T) {
 	checks.ReportCheckableObjects(rootOutput, addrs.MakeSet[addrs.Checkable](rootOutputInst))
 	checks.ReportCheckResult(rootOutputInst, addrs.OutputPrecondition, 0, StatusPass)
 
+	checks.ReportCheckableObjects(smokeTestA, addrs.MakeSet[addrs.Checkable](smokeTestInstA))
+	checks.ReportCheckResult(smokeTestInstA, addrs.SmokeTestPrecondition, 0, StatusPass)
+	checks.ReportCheckResult(smokeTestInstA, addrs.SmokeTestDataResource, 0, StatusPass)
+	checks.ReportCheckResult(smokeTestInstA, addrs.SmokeTestPostcondition, 0, StatusPass)
+
 	/////////////////////////////////////////////////////////////////////////
 
 	// This "section" is simulating what we might do to report the results
@@ -185,7 +201,7 @@ func TestChecksHappyPath(t *testing.T) {
 				t.Errorf("incorrect final aggregate check status for %s: %s, but want %s", configAddr, got, want)
 			}
 		}
-		if got, want := configCount, 5; got != want {
+		if got, want := configCount, 6; got != want {
 			t.Errorf("incorrect number of known config addresses %d; want %d", got, want)
 		}
 	}
@@ -198,6 +214,7 @@ func TestChecksHappyPath(t *testing.T) {
 			resourceInstC0,
 			resourceInstC1,
 			childOutputInst,
+			smokeTestInstA,
 		)
 		for _, addr := range objAddrs {
 			if got, want := checks.ObjectCheckStatus(addr), StatusPass; got != want {

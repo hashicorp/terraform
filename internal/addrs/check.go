@@ -86,6 +86,7 @@ const (
 	OutputPrecondition     CheckType = 3
 	SmokeTestPrecondition  CheckType = 4
 	SmokeTestPostcondition CheckType = 5
+	SmokeTestDataResource  CheckType = 6
 )
 
 // Description returns a human-readable description of the check type. This is
@@ -102,6 +103,8 @@ func (c CheckType) Description() string {
 		return "Smoke test precondition"
 	case SmokeTestPostcondition:
 		return "Smoke test postcondition"
+	case SmokeTestDataResource:
+		return "Smoke test data resource"
 	default:
 		// This should not happen
 		return "Condition"
