@@ -151,21 +151,37 @@ func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext
 		return checkResult{Status: status}, diags
 	}
 
-	errorMessageForDiags := errorMessage
-	if errorMessageForDiags == "" {
-		errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
+	// Different checkable object types have some different conventions about
+	// how they affect subsequent downstream operations, some of which announce
+	// failures as diagnostics while others report exclusively through the
+	// check state object.
+	failureAsDiagnostic := true
+	switch self.(type) {
+	case addrs.AbsSmokeTest:
+		// Smoke tests are a separate activity we deal with after we've
+		// completed any modifications to remote objects. We signal those
+		// only as check results and not as diagnostics because they often
+		// describe the failure of something outside of Terraform's direct
+		// control.
+		failureAsDiagnostic = false
 	}
-	diags = diags.Append(&hcl.Diagnostic{
-		// The caller gets to choose the severity of this one, because we
-		// treat condition failures as warnings in the presence of
-		// certain special planning options.
-		Severity:    severity,
-		Summary:     fmt.Sprintf("%s failed", typ.Description()),
-		Detail:      errorMessageForDiags,
-		Subject:     rule.Condition.Range().Ptr(),
-		Expression:  rule.Condition,
-		EvalContext: hclCtx,
-	})
+	if failureAsDiagnostic {
+		errorMessageForDiags := errorMessage
+		if errorMessageForDiags == "" {
+			errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			// The caller gets to choose the severity of this one, because we
+			// treat condition failures as warnings in the presence of
+			// certain special planning options.
+			Severity:    severity,
+			Summary:     fmt.Sprintf("%s failed", typ.Description()),
+			Detail:      errorMessageForDiags,
+			Subject:     rule.Condition.Range().Ptr(),
+			Expression:  rule.Condition,
+			EvalContext: hclCtx,
+		})
+	}
 
 	return checkResult{
 		Status:         status,

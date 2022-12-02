@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -147,20 +148,93 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+
+	// smokeTest will be non-nil if and only if this data resource belongs to
+	// a smoke_test block. If so, that activates some special behavior:
+	// - The plan phase would've forced deferring the read to the apply step,
+	//   so we'll always end up in here.
+	// - If the provider returns any errors when we ask it to read the data
+	//   source, we force them to be treated as warnings instead so that
+	//   the apply step can still run to completion.
+	// - We'll report the success or failure of the read as a check condition
+	//   status in the checks state, so that it'll contribute to the final
+	//   status of this smoke test.
+	smokeTest := n.Config.SmokeTest
+	reportResult := func(diags tfdiags.Diagnostics, checkStatusForErrors checks.Status) tfdiags.Diagnostics {
+		// Just a direct passthrough unless we're dealing with a smoke test.
+		return diags
+	}
+	if smokeTest != nil {
+		smokeTestAddr := addrs.SmokeTest{Name: smokeTest.Name}.Absolute(n.Addr.Module)
+		// If we belong to a smoke test then we should be able to find this
+		// data resource as one of the entries in the smoke test's data
+		// resources, and its index will be our condition index.
+		// FIXME: This is a pretty clumsy and inefficient way to determine this,
+		// though it'll be okay as long as smoke tests only have a reasonable
+		// number of data resources.
+		conditionIdx := -1 // -1 means "none"
+		for i, found := range smokeTest.DataResources {
+			if found == n.Config {
+				conditionIdx = i
+				break
+			}
+		}
+		if conditionIdx == -1 {
+			// If we get here then the configuration decoder did something
+			// wrong, because there should always be a back-reference from
+			// the smoke test to the data resource.
+			panic(fmt.Sprintf("data resource %s is not tracked by its containing smoke_test %q", n.Addr, smokeTest.Name))
+		}
+		// We have a more elaborate reportResult implementation when we're in
+		// smoke testing mode.
+		checkState := ctx.Checks()
+		reportResult = func(diags tfdiags.Diagnostics, checkStatusForErrors checks.Status) tfdiags.Diagnostics {
+			if !diags.HasErrors() {
+				checkState.ReportCheckResult(smokeTestAddr, addrs.SmokeTestDataResource, conditionIdx, checks.StatusPass)
+				return diags
+			}
+			if checkStatusForErrors == checks.StatusFail {
+				// If this is a situation where a read error signals check
+				// failure rather than check error then we need to downgrade
+				// all of the error diagnostics into warning diagnostics.
+				diags = tfdiags.WithErrorsAsWarnings(diags)
+				checkState.ReportCheckFailure(smokeTestAddr, addrs.SmokeTestDataResource, conditionIdx, fmt.Sprintf("Failed to read %s.", n.Addr.Resource.String()))
+				return diags
+			}
+			// For any other status we'll just report it and return the
+			// diagnostics. checks.StatusError is the only sensible status for
+			// us to use here.
+			checkState.ReportCheckResult(smokeTestAddr, addrs.SmokeTestDataResource, conditionIdx, checkStatusForErrors)
+			return diags
+		}
+
+		// If this smoke test also has preconditions then one of them might
+		// have failed already, in which case we won't read the data source
+		// at all. This is safe because only other data resources and
+		// postconditions from the same smoke test can refer to this and
+		// both of those will be inhibited by this existing failure.
+		precondStatus := checkState.ObjectCheckStatusByConditionType(smokeTestAddr, addrs.SmokeTestPrecondition)
+		if precondStatus == checks.StatusFail || precondStatus == checks.StatusError {
+			// If it's already failing then it can't get any more successful.
+			log.Printf("[TRACE] nodeSmokeTestPost: Skipping %s because %s preconditions failed", n.Addr, smokeTestAddr)
+			return reportResult(diags, checks.StatusError)
+		}
+	}
+
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
-		return diags
+		return reportResult(diags, checks.StatusError)
 	}
 
 	change, err := n.readDiff(ctx, providerSchema)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
-		return diags
+		return reportResult(diags, checks.StatusError)
 	}
 	// Stop early if we don't actually have a diff
 	if change == nil {
-		return diags
+		return reportResult(diags, checks.StatusError)
 	}
 	if change.Action != plans.Read && change.Action != plans.NoOp {
 		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", change.Action, n.Addr))
@@ -172,7 +246,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	state, repeatData, applyDiags := n.applyDataSource(ctx, change)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
-		return diags
+		return reportResult(diags, checks.StatusFail)
 	}
 
 	if state != nil {
@@ -183,7 +257,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		// extra details like precondition/postcondition checks.
 		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
 		if diags.HasErrors() {
-			return diags
+			return reportResult(diags, checks.StatusError)
 		}
 	}
 
@@ -204,7 +278,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	)
 	diags = diags.Append(checkDiags)
 
-	return diags
+	return reportResult(diags, checks.StatusError)
 }
 
 func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {

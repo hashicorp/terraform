@@ -444,6 +444,11 @@ const (
 	// depends on a managed resource instance which has its own changes
 	// pending.
 	ResourceInstanceReadBecauseDependencyPending ResourceInstanceChangeActionReason = '!'
+
+	// ResourceInstanceReadBecauseSmokeTest indicates that the resource
+	// must be read during apply (rather than during planning) because it
+	// is part of the description of a smoke test.
+	ResourceInstanceReadBecauseSmokeTest ResourceInstanceChangeActionReason = 'S'
 )
 
 // OutputChange describes a change to an output value.

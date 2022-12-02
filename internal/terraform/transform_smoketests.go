@@ -83,6 +83,9 @@ func (t *smokeTestTransformer) transformForModule(g *Graph, modCfg *configs.Conf
 				}
 				resourceCfg := modCfg.Module.ResourceByAddr(resourceAddr.Resource)
 				if resourceCfg != nil && resourceCfg.SmokeTest != nil {
+					// It's a resource that belongs to a smoke test, so it
+					// must be handled only after our preconditions node.
+					g.Connect(dag.BasicEdge(n, preNode))
 					continue
 				}
 			}

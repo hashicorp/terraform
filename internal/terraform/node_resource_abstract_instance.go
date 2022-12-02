@@ -1583,11 +1583,12 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 	configKnown := configVal.IsWhollyKnown()
 	depsPending := n.dependenciesHavePendingChanges(ctx)
+	forSmokeTest := config.SmokeTest != nil
 	// If our configuration contains any unknown values, or we depend on any
 	// unknown values then we must defer the read to the apply phase by
 	// producing a "Read" change for this resource, and a placeholder value for
 	// it in the state.
-	if depsPending || !configKnown {
+	if depsPending || !configKnown || forSmokeTest {
 		// We can't plan any changes if we're only refreshing, so the only
 		// value we can set here is whatever was in state previously.
 		if skipPlanChanges {
@@ -1601,6 +1602,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 		var reason plans.ResourceInstanceChangeActionReason
 		switch {
+		case forSmokeTest:
+			log.Printf("[TRACE] planDataSource: %s belongs to smoke_test %q, so deferring to apply phase", n.Addr, config.SmokeTest.Name)
+			reason = plans.ResourceInstanceReadBecauseSmokeTest
 		case !configKnown:
 			log.Printf("[TRACE] planDataSource: %s configuration not fully known yet, so deferring to apply phase", n.Addr)
 			reason = plans.ResourceInstanceReadBecauseConfigUnknown
