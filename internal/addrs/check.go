@@ -115,6 +115,7 @@ func (c CheckType) Description() string {
 // condition blocks.
 type Checkable interface {
 	UniqueKeyer
+	InModuleInstance
 
 	checkableSigil()
 
@@ -140,6 +141,7 @@ type Checkable interface {
 var (
 	_ Checkable = AbsResourceInstance{}
 	_ Checkable = AbsOutputValue{}
+	_ Checkable = AbsSmokeTest{}
 )
 
 // CheckableKind describes the different kinds of checkable objects.
@@ -164,6 +166,7 @@ const (
 // ready to decide how many checkable objects belong to each one.
 type ConfigCheckable interface {
 	UniqueKeyer
+	InModule
 
 	configCheckableSigil()
 
@@ -174,6 +177,7 @@ type ConfigCheckable interface {
 var (
 	_ ConfigCheckable = ConfigResource{}
 	_ ConfigCheckable = ConfigOutputValue{}
+	_ ConfigCheckable = ConfigSmokeTest{}
 )
 
 // ParseCheckableStr attempts to parse the given string as a Checkable address
