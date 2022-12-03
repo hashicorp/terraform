@@ -119,6 +119,9 @@ func NewCheckResults(source *checks.State) *CheckResults {
 // form, but determining the result of a particular object is useful in our
 // internal unit tests, and so this is here primarily for that purpose.
 func (r *CheckResults) GetObjectResult(objectAddr addrs.Checkable) *CheckResultObject {
+	if r == nil {
+		return nil
+	}
 	configAddr := objectAddr.ConfigCheckable()
 
 	aggr := r.ConfigResults.Get(configAddr)

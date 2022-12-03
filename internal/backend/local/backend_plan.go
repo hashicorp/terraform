@@ -161,6 +161,7 @@ func (b *Local) opPlan(
 		return
 	}
 	op.View.Plan(plan, schemas)
+	op.View.CheckStatusChanges(lr.InputState.CheckResults, plan.Checks)
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered

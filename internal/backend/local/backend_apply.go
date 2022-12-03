@@ -91,6 +91,7 @@ func (b *Local) opApply(
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		op.View.Plan(plan, schemas)
+		op.View.CheckStatusChanges(lr.InputState.CheckResults, plan.Checks)
 
 		if testHookStopPlanApply != nil {
 			testHookStopPlanApply()
@@ -195,6 +196,7 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+	op.View.CheckStatusChanges(lr.InputState.CheckResults, applyState.CheckResults)
 
 	// Store the final state
 	runningOp.State = applyState

@@ -77,6 +77,8 @@ func ResourceChange(
 			buf.WriteString("\n  # (config refers to values not yet known)")
 		case plans.ResourceInstanceReadBecauseDependencyPending:
 			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		case plans.ResourceInstanceReadBecauseSmokeTest:
+			buf.WriteString("\n  # (provides data for the smoke testing phase)")
 		}
 	case plans.Update:
 		switch language {
