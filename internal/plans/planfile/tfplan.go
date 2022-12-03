@@ -112,6 +112,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			objKind = addrs.CheckableResource
 		case planproto.CheckResults_OUTPUT_VALUE:
 			objKind = addrs.CheckableOutputValue
+		case planproto.CheckResults_SMOKE_TEST:
+			objKind = addrs.CheckableSmokeTest
 		default:
 			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
 		}
@@ -331,6 +333,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReadBecauseConfigUnknown
 	case planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING:
 		ret.ActionReason = plans.ResourceInstanceReadBecauseDependencyPending
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_SMOKE_TEST:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseSmokeTest
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoMoveTarget
 	default:
@@ -520,6 +524,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 				pcrs.Kind = planproto.CheckResults_RESOURCE
 			case addrs.CheckableOutputValue:
 				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
+			case addrs.CheckableSmokeTest:
+				pcrs.Kind = planproto.CheckResults_SMOKE_TEST
 			default:
 				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
 			}
@@ -707,6 +713,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN
 	case plans.ResourceInstanceReadBecauseDependencyPending:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING
+	case plans.ResourceInstanceReadBecauseSmokeTest:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_SMOKE_TEST
 	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET
 	default:

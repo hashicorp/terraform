@@ -151,6 +151,7 @@ enum ResourceInstanceActionReason {
     REPLACE_BY_TRIGGERS = 9;
     READ_BECAUSE_CONFIG_UNKNOWN = 10;
     READ_BECAUSE_DEPENDENCY_PENDING = 11;
+    READ_BECAUSE_SMOKE_TEST = 13;
     DELETE_BECAUSE_NO_MOVE_TARGET = 12;
 }
 
@@ -232,6 +233,7 @@ message CheckResults {
         UNSPECIFIED = 0;
         RESOURCE = 1;
         OUTPUT_VALUE = 2;
+        SMOKE_TEST = 3;
     }
 
     message ObjectResult {
