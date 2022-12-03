@@ -1,0 +1,54 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_list.list",
+          "mode": "managed",
+          "name": "list",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "list": []
+          },
+          "type": "tfcoremock_list",
+          "values": {
+            "id": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
+            "list": []
+          }
+        },
+        {
+          "address": "tfcoremock_map.map",
+          "mode": "managed",
+          "name": "map",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "map": {}
+          },
+          "type": "tfcoremock_map",
+          "values": {
+            "id": "50E1A46E-E64A-4C1F-881C-BA85A5440964",
+            "map": {}
+          }
+        },
+        {
+          "address": "tfcoremock_set.set",
+          "mode": "managed",
+          "name": "set",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "set": []
+          },
+          "type": "tfcoremock_set",
+          "values": {
+            "id": "046952C9-B832-4106-82C0-C217F7C73E18",
+            "set": []
+          }
+        }
+      ]
+    }
+  }
+}

@@ -509,6 +509,54 @@ test_object.C (destroy)`)
 	}
 }
 
+func TestDestroyEdgeTransformer_dataDependsOn(t *testing.T) {
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	addrA := mustResourceInstanceAddr("test_object.A")
+	instA := NewNodeAbstractResourceInstance(addrA)
+	a := &NodeDestroyResourceInstance{NodeAbstractResourceInstance: instA}
+	g.Add(a)
+
+	// B here represents a data sources, which is effectively an update during
+	// apply, but won't have dependencies stored in the state.
+	addrB := mustResourceInstanceAddr("test_object.B")
+	instB := NewNodeAbstractResourceInstance(addrB)
+	instB.Dependencies = append(instB.Dependencies, addrA.ConfigResource())
+	b := &NodeApplyableResourceInstance{NodeAbstractResourceInstance: instB}
+
+	g.Add(b)
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
+	tf := &DestroyEdgeTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+test_object.A (destroy)
+test_object.B
+  test_object.A (destroy)
+`)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
 func testDestroyNode(addrString string) GraphNodeDestroyer {
 	instAddr := mustResourceInstanceAddr(addrString)
 	inst := NewNodeAbstractResourceInstance(instAddr)

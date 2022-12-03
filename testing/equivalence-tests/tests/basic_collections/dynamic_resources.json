@@ -1,0 +1,35 @@
+{
+  "tfcoremock_list": {
+    "attributes": {
+      "list": {
+        "type": "list",
+        "optional": true,
+        "list": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "tfcoremock_set": {
+    "attributes": {
+      "set": {
+        "type": "set",
+        "optional": true,
+        "set": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "tfcoremock_map": {
+    "attributes": {
+      "map": {
+        "type": "map",
+        "optional": true,
+        "map": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

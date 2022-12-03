@@ -3,7 +3,7 @@
 UPGRADE NOTES:
 
 - config: The `textencodebase64` function when called with encoding "GB18030" will now encode the euro symbol € as the two-byte sequence `0xA2,0xE3`, as required by the GB18030 standard, before applying base64 encoding.
-- config: The `textencodebase64` function when called with encoding "GBK" or "CP936" will now encode the euro symbol € as the single byte `0x80` before applying base64 encoding. This matches the behavior on Windows when encoding to this Windows-specific character encoding.
+- config: The `textencodebase64` function when called with encoding "GBK" or "CP936" will now encode the euro symbol € as the single byte `0x80` before applying base64 encoding. This matches the behavior of the Windows API when encoding to this Windows-specific character encoding.
 - `terraform init`: When interpreting the hostname portion of a provider source address or the address of a module in a module registry, Terraform will now use _non-transitional_ IDNA2008 mapping rules instead of the transitional mapping rules previously used.
 
     This matches a change to [the WHATWG URL spec's rules for interpreting non-ASCII domain names](https://url.spec.whatwg.org/#concept-domain-to-ascii) which is being gradually adopted by web browsers. Terraform aims to follow the interpretation of hostnames used by web browsers for consistency. For some hostnames containing non-ASCII characters this may cause Terraform to now request a different "punycode" hostname when resolving.
@@ -11,6 +11,8 @@ UPGRADE NOTES:
 BUG FIXES:
 
 * The module installer will now record in its manifest a correct module source URL after normalization when the URL given as input contains both a query string portion and a subdirectory portion. Terraform itself doesn't currently make use of this information and so this is just a cosmetic fix to make the recorded metadata more correct. ([#31636](https://github.com/hashicorp/terraform/issues/31636))
+* config: The `yamldecode` function now correctly handles entirely-nil YAML documents. Previously it would incorrectly return an unknown value instead of a null value. It will now return a null value as documented. [GH-32151]
+* Ensure correct ordering between data sources and the deletion of managed resource dependencies [GH-32209]
 
 ENHANCEMENTS:
 

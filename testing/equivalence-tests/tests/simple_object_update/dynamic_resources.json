@@ -1,0 +1,24 @@
+{
+  "tfcoremock_object": {
+    "attributes": {
+      "object": {
+        "type": "object",
+        "optional": true,
+        "object": {
+          "string": {
+            "type": "string",
+            "optional": true
+          },
+          "boolean": {
+            "type": "boolean",
+            "optional": true
+          },
+          "number": {
+            "type": "number",
+            "optional": true
+          }
+        }
+      }
+    }
+  }
+}
