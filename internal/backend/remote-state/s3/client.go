@@ -233,18 +233,26 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 		"Info":   {S: aws.String(string(info.Marshal()))},
 	}
 
-	if c.ddbLockTTL != 0 {
-		ttl := &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(time.Now().Unix()+int64(c.ddbLockTTL), 10))}
-		item["ttl"] = ttl
-	}
-
 	putParams := &dynamodb.PutItemInput{
 		Item:                item,
 		TableName:           aws.String(c.ddbTable),
 		ConditionExpression: aws.String("attribute_not_exists(LockID)"),
 	}
-	_, err := c.dynClient.PutItem(putParams)
 
+	if c.ddbLockTTL != 0 {
+		ttlAttributeName := "ttl"
+		ttl := time.Now().Unix() + int64(c.ddbLockTTL)
+		item[ttlAttributeName] = &dynamodb.AttributeValue{N: aws.String(strconv.FormatInt(ttl, 10))}
+		putParams.ConditionExpression = aws.String(fmt.Sprintf("(attribute_not_exists(#exp)) OR (#exp < :exp)"))
+		putParams.ExpressionAttributeValues = map[string]*dynamodb.AttributeValue{
+			":exp": {N: aws.String(strconv.FormatInt(ttl, 10))},
+		}
+		putParams.ExpressionAttributeNames = map[string]*string{
+			"#exp": &ttlAttributeName,
+		}
+	}
+
+	_, err := c.dynClient.PutItem(putParams)
 	if err != nil {
 		lockInfo, infoErr := c.getLockInfo()
 		if infoErr != nil {

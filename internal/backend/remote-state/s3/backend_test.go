@@ -794,7 +794,7 @@ func updateDynamoDBTableWithTTL(t *testing.T, dynClient *dynamodb.DynamoDB, tabl
 	}
 	_, err := dynClient.UpdateTimeToLive(params)
 	if err != nil {
-		t.Logf("WARNING: Failed to update TTL for the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
+		t.Logf("WARNING: Failed to update TTL for the test DynamoDB table %q. (error was %s)", tableName, err)
 	}
 }
 
