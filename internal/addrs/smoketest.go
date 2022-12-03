@@ -33,6 +33,10 @@ type ConfigSmokeTest struct {
 
 var _ ConfigCheckable = ConfigSmokeTest{}
 
+func (st ConfigSmokeTest) ContainingModule() Module {
+	return st.Module
+}
+
 func (st ConfigSmokeTest) String() string {
 	if len(st.Module) == 0 {
 		return st.SmokeTest.String()
@@ -56,6 +60,10 @@ type AbsSmokeTest struct {
 }
 
 var _ Checkable = AbsSmokeTest{}
+
+func (st AbsSmokeTest) ContainingModuleInstance() ModuleInstance {
+	return st.Module
+}
 
 func (st AbsSmokeTest) String() string {
 	if len(st.Module) == 0 {

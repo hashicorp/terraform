@@ -62,6 +62,10 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 	}
 }
 
+func (v AbsOutputValue) ContainingModuleInstance() ModuleInstance {
+	return v.Module
+}
+
 func (v AbsOutputValue) Check(t CheckType, i int) Check {
 	return Check{
 		Container: v,
@@ -204,6 +208,10 @@ func (v ConfigOutputValue) String() string {
 		return v.OutputValue.String()
 	}
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.OutputValue.String())
+}
+
+func (v ConfigOutputValue) ContainingModule() Module {
+	return v.Module
 }
 
 func (v ConfigOutputValue) configCheckableSigil() {

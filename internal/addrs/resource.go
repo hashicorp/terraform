@@ -240,6 +240,10 @@ func (r AbsResourceInstance) ContainingResource() AbsResource {
 	}
 }
 
+func (r AbsResourceInstance) ContainingModuleInstance() ModuleInstance {
+	return r.Module
+}
+
 // ConfigResource returns the address of the configuration block that declared
 // this instance.
 func (r AbsResourceInstance) ConfigResource() ConfigResource {
@@ -379,6 +383,10 @@ func (r ConfigResource) Absolute(module ModuleInstance) AbsResource {
 		Module:   module,
 		Resource: r.Resource,
 	}
+}
+
+func (r ConfigResource) ContainingModule() Module {
+	return r.Module
 }
 
 // TargetContains implements Targetable by returning true if the given other

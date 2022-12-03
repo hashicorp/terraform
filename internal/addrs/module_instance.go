@@ -541,3 +541,13 @@ func (s ModuleInstanceStep) String() string {
 	}
 	return s.Name
 }
+
+// InModuleInstance is an interface implemented by objects that are able to
+// report that they are contained within a particular module instance.
+//
+// This is typically implemented for types whose names start with "Abs"
+// representing that they are fully-expanded objects that know exactly which
+// module instance they belong to.
+type InModuleInstance interface {
+	ContainingModuleInstance() ModuleInstance
+}

@@ -165,3 +165,13 @@ func (m Module) Ancestors() []Module {
 func (m Module) configMoveableSigil() {
 	// ModuleInstance is moveable
 }
+
+// InModule is an interface implemented by objects that are able to report
+// that they are contained within a particular module.
+//
+// This is typically implemented for types whose names start with "Config"
+// representing that they are pre-expansion addresses but they still know
+// which static module they belong to.
+type InModule interface {
+	ContainingModule() Module
+}
