@@ -56,6 +56,21 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"parseurl": {
+			{
+				`parseurl("https://username:password@example.com/search?q=items#top")`,
+				cty.MapVal(map[string]cty.Value{
+					"Password": cty.StringVal("password"),
+					"RawQuery": cty.StringVal("q=items"),
+					"Username": cty.StringVal("username"),
+					"Host":     cty.StringVal("google.com"),
+					"Fragment": cty.StringVal("yea"),
+					"Path":     cty.StringVal("/asdf"),
+					"Scheme":   cty.StringVal("https"),
+				}),
+			},
+		},
+
 		"abspath": {
 			{
 				`abspath(".")`,
