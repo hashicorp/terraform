@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -15,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/endpoints"
 
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials"
@@ -379,12 +380,13 @@ func (b *Backend) configure(ctx context.Context) error {
 	if endpoint == "" {
 		endpointsResponse, err := b.getOSSEndpointByRegion(accessKey, secretKey, securityToken, region)
 		if err != nil {
-			return err
-		}
-		for _, endpointItem := range endpointsResponse.Endpoints.Endpoint {
-			if endpointItem.Type == "openAPI" {
-				endpoint = endpointItem.Endpoint
-				break
+			log.Printf("[WARN] getting oss endpoint failed and using oss-%s.aliyuncs.com instead. Error: %#v.", region, err)
+		} else {
+			for _, endpointItem := range endpointsResponse.Endpoints.Endpoint {
+				if endpointItem.Type == "openAPI" {
+					endpoint = endpointItem.Endpoint
+					break
+				}
 			}
 		}
 		if endpoint == "" {
