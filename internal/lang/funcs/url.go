@@ -33,7 +33,8 @@ var ParseURLFunc = function.New(&function.Spec{
 
 		outMap["Password"] = cty.StringVal(password)
 		outMap["Username"] = cty.StringVal(url.User.Username())
-		outMap["Host"] = cty.StringVal(url.Host)
+		outMap["Hostname"] = cty.StringVal(url.Hostname())
+		outMap["Port"] = cty.StringVal(url.Port())
 		outMap["Fragment"] = cty.StringVal(url.Fragment)
 		outMap["Path"] = cty.StringVal(url.Path)
 		outMap["Scheme"] = cty.StringVal(url.Scheme)
