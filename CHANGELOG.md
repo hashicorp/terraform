@@ -23,6 +23,7 @@ ENHANCEMENTS:
 * backend/gcs: Update documentation for usage of `gcs` with `terraform_remote_state` ([#32065](https://github.com/hashicorp/terraform/issues/32065))
 * backed/gcs: Update storage package to v1.28.0 ([#29656](https://github.com/hashicorp/terraform/issues/29656))
 * When removing a workspace from the `cloud` backend `terraform workspace delete` will use Terraform Cloud's [Safe Delete](https://developer.hashicorp.com/terraform/cloud-docs/api-docs/workspaces#safe-delete-a-workspace) API if the `-force` flag is not provided. ([#31949](https://github.com/hashicorp/terraform/pull/31949))
+* backend/oss: More robustly handle endpoint retrieval error [GH-32295]
 
 EXPERIMENTS:
 
