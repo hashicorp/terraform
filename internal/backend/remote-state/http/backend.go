@@ -128,7 +128,7 @@ type Backend struct {
 }
 
 // configureTLS configures TLS when needed; if there are no conditions requiring TLS, no change is made.
-func (b *Backend) configureTLS(data *schema.ResourceData, client *retryablehttp.Client) error {
+func (b *Backend) configureTLS(client *retryablehttp.Client, data *schema.ResourceData) error {
 	// If there are no conditions needing to configure TLS, leave the client untouched
 	skipCertVerification := data.Get("skip_cert_verification").(bool)
 	clientCACertificatePem := data.Get("client_ca_certificate_pem").(string)
@@ -216,7 +216,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
 	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
 	rClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
-	if err = b.configureTLS(data, rClient); err != nil {
+	if err = b.configureTLS(rClient, data); err != nil {
 		return err
 	}
 
