@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 
 	"github.com/hashicorp/terraform/internal/backend"
@@ -128,6 +127,48 @@ type Backend struct {
 	client *httpClient
 }
 
+// configureTLS configures TLS when needed; if there are no conditions requiring TLS, no change is made.
+func (b *Backend) configureTLS(data *schema.ResourceData, client *retryablehttp.Client) error {
+	// If there are no conditions needing to configure TLS, leave the client untouched
+	skipCertVerification := data.Get("skip_cert_verification").(bool)
+	clientCACertificatePem := data.Get("client_ca_certificate_pem").(string)
+	clientCertificatePem := data.Get("client_certificate_pem").(string)
+	clientPrivateKeyPem := data.Get("client_private_key_pem").(string)
+	if !skipCertVerification && clientCACertificatePem == "" && clientCertificatePem == "" && clientPrivateKeyPem == "" {
+		return nil
+	}
+
+	// TLS configuration is needed; create an object and configure it
+	var tlsConfig tls.Config
+	client.HTTPClient.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
+
+	if skipCertVerification {
+		// ignores TLS verification
+		tlsConfig.InsecureSkipVerify = true
+	}
+	if clientCACertificatePem != "" {
+		// trust servers based on a CA
+		caCertificateData, err := os.ReadFile(clientCACertificatePem)
+		if err != nil {
+			return fmt.Errorf("failed to read file %s: %w", clientCACertificatePem, err)
+		}
+		tlsConfig.RootCAs = x509.NewCertPool()
+		if !tlsConfig.RootCAs.AppendCertsFromPEM(caCertificateData) {
+			return fmt.Errorf("failed to append certs from file %s: %w", clientCACertificatePem, err)
+		}
+	}
+	if clientCertificatePem != "" && clientPrivateKeyPem != "" {
+		// attach a client certificate to the TLS handshake (aka mTLS)
+		certificate, err := tls.LoadX509KeyPair(clientCertificatePem, clientPrivateKeyPem)
+		if err != nil {
+			return fmt.Errorf("cannot load certifcate from %s and %s: %w", clientCertificatePem, clientPrivateKeyPem, err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{certificate}
+	}
+
+	return nil
+}
+
 func (b *Backend) configure(ctx context.Context) error {
 	data := schema.FromContextBackendConfig(ctx)
 
@@ -170,43 +211,14 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	unlockMethod := data.Get("unlock_method").(string)
 
-	client := cleanhttp.DefaultPooledClient()
-
-	var tlsConfig tls.Config
-	if data.Get("skip_cert_verification").(bool) {
-		// ignores TLS verification
-		tlsConfig.InsecureSkipVerify = true
-		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
-	}
-	clientCACertificatePem := data.Get("client_ca_certificate_pem").(string)
-	if clientCACertificatePem != "" {
-		caCertificateData, err := os.ReadFile(clientCACertificatePem)
-		if err != nil {
-			return fmt.Errorf("failed to read file %s: %w", clientCACertificatePem, err)
-		}
-		tlsConfig.RootCAs = x509.NewCertPool()
-		if !tlsConfig.RootCAs.AppendCertsFromPEM(caCertificateData) {
-			return fmt.Errorf("failed to append certs from file %s: %w", clientCACertificatePem, err)
-		}
-		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
-	}
-	clientCertificatePem := data.Get("client_certificate_pem").(string)
-	clientPrivateKeyPem := data.Get("client_private_key_pem").(string)
-	if clientCertificatePem != "" && clientPrivateKeyPem != "" {
-		certificate, err := tls.LoadX509KeyPair(clientCertificatePem, clientPrivateKeyPem)
-		if err != nil {
-			return fmt.Errorf("cannot load certifcate from %s and %s: %w", clientCertificatePem, clientPrivateKeyPem, err)
-		}
-		tlsConfig.Certificates = []tls.Certificate{certificate}
-		client.Transport.(*http.Transport).TLSClientConfig = &tlsConfig
-	}
-
 	rClient := retryablehttp.NewClient()
-	rClient.HTTPClient = client
 	rClient.RetryMax = data.Get("retry_max").(int)
 	rClient.RetryWaitMin = time.Duration(data.Get("retry_wait_min").(int)) * time.Second
 	rClient.RetryWaitMax = time.Duration(data.Get("retry_wait_max").(int)) * time.Second
 	rClient.Logger = log.New(logging.LogOutput(), "", log.Flags())
+	if err = b.configureTLS(data, rClient); err != nil {
+		return err
+	}
 
 	b.client = &httpClient{
 		URL:          updateURL,
