@@ -1,6 +1,6 @@
-tfcoremock_set.set: Refreshing state... [id=046952C9-B832-4106-82C0-C217F7C73E18]
-tfcoremock_list.list: Refreshing state... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]
 tfcoremock_map.map: Refreshing state... [id=50E1A46E-E64A-4C1F-881C-BA85A5440964]
+tfcoremock_list.list: Refreshing state... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]
+tfcoremock_set.set: Refreshing state... [id=046952C9-B832-4106-82C0-C217F7C73E18]
 
 Terraform used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:

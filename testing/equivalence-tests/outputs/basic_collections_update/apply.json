@@ -19,24 +19,6 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_list.list: Plan to update",
-    "@module": "terraform.ui",
-    "change": {
-      "action": "update",
-      "resource": {
-        "addr": "tfcoremock_list.list",
-        "implied_provider": "tfcoremock",
-        "module": "",
-        "resource": "tfcoremock_list.list",
-        "resource_key": null,
-        "resource_name": "list",
-        "resource_type": "tfcoremock_list"
-      }
-    },
-    "type": "planned_change"
-  },
-  {
-    "@level": "info",
     "@message": "tfcoremock_set.set: Plan to update",
     "@module": "terraform.ui",
     "change": {
@@ -55,12 +37,10 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_list.list: Modifying... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
+    "@message": "tfcoremock_list.list: Plan to update",
     "@module": "terraform.ui",
-    "hook": {
+    "change": {
       "action": "update",
-      "id_key": "id",
-      "id_value": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
       "resource": {
         "addr": "tfcoremock_list.list",
         "implied_provider": "tfcoremock",
@@ -71,7 +51,7 @@
         "resource_type": "tfcoremock_list"
       }
     },
-    "type": "apply_start"
+    "type": "planned_change"
   },
   {
     "@level": "info",
@@ -136,11 +116,10 @@
   },
   {
     "@level": "info",
-    "@message": "tfcoremock_list.list: Modifications complete after 0s [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
+    "@message": "tfcoremock_list.list: Modifying... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
     "@module": "terraform.ui",
     "hook": {
       "action": "update",
-      "elapsed_seconds": 0,
       "id_key": "id",
       "id_value": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
       "resource": {
@@ -153,7 +132,7 @@
         "resource_type": "tfcoremock_list"
       }
     },
-    "type": "apply_complete"
+    "type": "apply_start"
   },
   {
     "@level": "info",
@@ -172,6 +151,27 @@
         "resource_key": null,
         "resource_name": "set",
         "resource_type": "tfcoremock_set"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_list.list: Modifications complete after 0s [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "update",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "id_value": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
+      "resource": {
+        "addr": "tfcoremock_list.list",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_list.list",
+        "resource_key": null,
+        "resource_name": "list",
+        "resource_type": "tfcoremock_list"
       }
     },
     "type": "apply_complete"
