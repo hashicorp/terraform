@@ -117,7 +117,7 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 				_, err = db.Query(fmt.Sprintf(`CREATE TABLE %s.%s (
 					id SERIAL PRIMARY KEY,
 					name TEXT,
-					data TEXT
+					data JSONB
 					)`, schemaName, statesTableName))
 				if err != nil {
 					t.Fatal(err)
@@ -137,7 +137,7 @@ func TestBackendConfigSkipOptions(t *testing.T) {
 				_, err = db.Query(fmt.Sprintf(`CREATE TABLE %s.%s (
 					id SERIAL PRIMARY KEY,
 					name TEXT,
-					data TEXT
+					data JSONB
 					)`, schemaName, statesTableName))
 				if err != nil {
 					t.Fatal(err)

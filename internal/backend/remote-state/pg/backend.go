@@ -112,7 +112,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		query = `CREATE TABLE IF NOT EXISTS %s.%s (
 			id bigint NOT NULL DEFAULT nextval('public.global_states_id_seq') PRIMARY KEY,
 			name text UNIQUE,
-			data text
+			data jsonb
 			)`
 		if _, err := db.Exec(fmt.Sprintf(query, b.schemaName, statesTableName)); err != nil {
 			return err
