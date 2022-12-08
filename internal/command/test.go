@@ -351,14 +351,6 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 
 	ret := make(map[string]*moduletest.Component)
 
-	// To collect test results we'll use an instance of the special "test"
-	// provider, which records the intention to make a test assertion during
-	// planning and then hopefully updates that to an actual assertion result
-	// during apply, unless an apply error causes the graph walk to exit early.
-	// For this to work correctly, we must ensure we're using the same provider
-	// instance for both plan and apply.
-	testProvider := moduletest.NewProvider()
-
 	// synthError is a helper to return early with a synthetic failing
 	// component, for problems that prevent us from even discovering what an
 	// appropriate component and assertion name might be.
@@ -383,7 +375,7 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	// here we're associating each set of diagnostics with the specific
 	// operation it belongs to.
 
-	providerFactories, diags := c.testSuiteProviders(suiteDirs, testProvider)
+	providerFactories, diags := c.testSuiteProviders(suiteDirs)
 	if diags.HasErrors() {
 		// It should be unusual to get in here, because testSuiteProviders
 		// should rely only on things guaranteed by prepareSuiteDir, but
@@ -431,12 +423,6 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 		)
 	}
 
-	// By the time we get here, the test provider will have gathered up all
-	// of the planned assertions and the final results for any assertions that
-	// were not blocked by an error. This also resets the provider so that
-	// the destroy operation below won't get tripped up on stale results.
-	ret = testProvider.Reset()
-
 	state, diags = c.testSuiteDestroy(ctx, state, suiteDirs, providerFactories)
 	if diags.HasErrors() {
 		synthError(
@@ -450,7 +436,7 @@ func (c *TestCommand) runTestSuite(ctx context.Context, suiteDirs testCommandSui
 	return ret, state
 }
 
-func (c *TestCommand) testSuiteProviders(suiteDirs testCommandSuiteDirs, testProvider *moduletest.Provider) (map[addrs.Provider]providers.Factory, tfdiags.Diagnostics) {
+func (c *TestCommand) testSuiteProviders(suiteDirs testCommandSuiteDirs) (map[addrs.Provider]providers.Factory, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	ret := make(map[addrs.Provider]providers.Factory)
 
@@ -484,12 +470,6 @@ func (c *TestCommand) testSuiteProviders(suiteDirs testCommandSuiteDirs, testPro
 		// and so they wouldn't actually guarantee anything useful.
 
 		ret[provider] = providerFactory(cached)
-	}
-
-	// We'll replace the test provider instance with the one our caller
-	// provided, so it'll be able to interrogate the test results directly.
-	ret[addrs.NewBuiltInProvider("test")] = func() (providers.Interface, error) {
-		return testProvider, nil
 	}
 
 	return ret, diags

@@ -15,7 +15,6 @@ import (
 	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest"
 	tfplugin "github.com/hashicorp/terraform/internal/plugin"
 	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
 	"github.com/hashicorp/terraform/internal/providercache"
@@ -336,9 +335,6 @@ func (m *Meta) internalProviders() map[string]providers.Factory {
 	return map[string]providers.Factory{
 		"terraform": func() (providers.Interface, error) {
 			return terraformProvider.NewProvider(), nil
-		},
-		"test": func() (providers.Interface, error) {
-			return moduletest.NewProvider(), nil
 		},
 	}
 }
