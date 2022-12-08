@@ -1,11 +1,15 @@
 package moduletest
 
 import (
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Assertion is the description of a single test assertion, whether
 // successful or unsuccessful.
+//
+// Deprecated: Will transition to using the check state models directly in
+// the future.
 type Assertion struct {
 	Outcome Status
 
@@ -26,12 +30,18 @@ type Assertion struct {
 
 // Component represents a component being tested, each of which can have
 // several associated test assertions.
+//
+// Deprecated: Will transition to using the check state models directly in
+// the future.
 type Component struct {
 	Assertions map[string]*Assertion
 }
 
 // Status is an enumeration of possible outcomes of a test assertion.
-type Status rune
+//
+// Deprecated: This is now just an alias for [checks.Status] and will be
+// removed in the future.
+type Status = checks.Status
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=Status assertion.go
 
@@ -39,28 +49,16 @@ const (
 	// Pending indicates that the test was registered (during planning)
 	// but didn't register an outcome during apply, perhaps due to being
 	// blocked by some other upstream failure.
-	Pending Status = '?'
+	Pending Status = checks.StatusUnknown
 
 	// Passed indicates that the test condition succeeded.
-	Passed Status = 'P'
+	Passed Status = checks.StatusPass
 
 	// Failed indicates that the test condition was valid but did not
 	// succeed.
-	Failed Status = 'F'
+	Failed Status = checks.StatusFail
 
 	// Error indicates that the test condition was invalid or that the
 	// test report failed in some other way.
-	Error Status = 'E'
+	Error Status = checks.StatusError
 )
-
-// SuiteCanPass returns true if a suite containing an assertion with this
-// status could possibly succeed. The suite as a whole succeeds only if all
-// of its assertions have statuses where SuiteCanPass returns true.
-func (s Status) SuiteCanPass() bool {
-	switch s {
-	case Failed, Error:
-		return false
-	default:
-		return true
-	}
-}

@@ -12,6 +12,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -67,7 +68,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	for _, suite := range results {
 		for _, component := range suite.Components {
 			for _, assertion := range component.Assertions {
-				if !assertion.Outcome.SuiteCanPass() {
+				if assertion.Outcome == checks.StatusFail || assertion.Outcome == checks.StatusError {
 					testsFailed = true
 				}
 			}
