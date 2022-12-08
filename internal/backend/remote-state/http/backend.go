@@ -137,6 +137,12 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, data *schema.Resour
 	if !skipCertVerification && clientCACertificatePem == "" && clientCertificatePem == "" && clientPrivateKeyPem == "" {
 		return nil
 	}
+	if clientCertificatePem != "" && clientPrivateKeyPem == "" {
+		return fmt.Errorf("client_certificate_pem is set but client_private_key_pem is not")
+	}
+	if clientPrivateKeyPem != "" && clientCertificatePem == "" {
+		return fmt.Errorf("client_private_key_pem is set but client_certificate_pem is not")
+	}
 
 	// TLS configuration is needed; create an object and configure it
 	var tlsConfig tls.Config
