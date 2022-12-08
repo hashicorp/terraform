@@ -161,7 +161,7 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, data *schema.Resour
 		// attach a client certificate to the TLS handshake (aka mTLS)
 		certificate, err := tls.LoadX509KeyPair(clientCertificatePem, clientPrivateKeyPem)
 		if err != nil {
-			return fmt.Errorf("cannot load certifcate from %s and %s: %w", clientCertificatePem, clientPrivateKeyPem, err)
+			return fmt.Errorf("cannot load certificate from %s and %s: %w", clientCertificatePem, clientPrivateKeyPem, err)
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificate}
 	}
