@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Generates certs required for testing:
+# Generates certs required for mTLS testing:
 # - ca.key and ca.cert.pem are self-signed, used as the source of truth for client and server to verify each other.
 # - client.key and client.crt are the client's key and cert (signed by the ca key and cert)
 # - server.key and server.crt are the server's key and cert (signed by the ca key and cert)
