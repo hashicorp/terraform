@@ -111,7 +111,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_PRIVATE_KEY_PEM", ""),
-				Description: "The key pem file that the client uses to encrypt and sign when using the client cert",
+				Description: "A path to a PEM-encoded private key, required if client_certificate_pem is specified.",
 			},
 		},
 	}
