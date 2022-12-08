@@ -105,7 +105,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CERTIFICATE_PEM", ""),
-				Description: "The certificate pem file that the client will present to server in TLS handshake",
+				Description: "A path to a PEM-encoded certificate file used by the server to verify the client during mutual TLS (mTLS) authentication.",
 			},
 			"client_private_key_pem": &schema.Schema{
 				Type:        schema.TypeString,
