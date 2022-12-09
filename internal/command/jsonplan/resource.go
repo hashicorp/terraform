@@ -78,7 +78,7 @@ type ResourceChange struct {
 	Deposed string `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
-	Change Change `json:"Change,omitempty"`
+	Change Change `json:"change,omitempty"`
 
 	// ActionReason is a keyword representing some optional extra context
 	// for why the actions in Change.Actions were chosen.
