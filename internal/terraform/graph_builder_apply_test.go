@@ -457,7 +457,7 @@ func TestApplyGraphBuilder_targetModule(t *testing.T) {
 // that resource is destroyed.
 func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
-	instanceSchema := schemas.Providers[addrs.NewDefaultProvider("test")].ResourceTypes["test_object"]
+	instanceSchema := schemas.Providers[addrs.NewOfficialProvider("test")].ResourceTypes["test_object"]
 
 	bBefore, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{
@@ -502,7 +502,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a_id"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -527,7 +527,7 @@ func TestApplyGraphBuilder_updateFromOrphan(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -562,7 +562,7 @@ test_object.b
 // a CBD resource is destroyed.
 func TestApplyGraphBuilder_updateFromCBDOrphan(t *testing.T) {
 	schemas := simpleTestSchemas()
-	instanceSchema := schemas.Providers[addrs.NewDefaultProvider("test")].ResourceTypes["test_object"]
+	instanceSchema := schemas.Providers[addrs.NewOfficialProvider("test")].ResourceTypes["test_object"]
 
 	bBefore, _ := plans.NewDynamicValue(
 		cty.ObjectVal(map[string]cty.Value{

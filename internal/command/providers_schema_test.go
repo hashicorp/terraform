@@ -49,7 +49,8 @@ func TestProvidersSchema_output(t *testing.T) {
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, map[string][]string{
-				"test": {"1.2.3"},
+				"hashicorp/test": {"1.2.3"},
+				"hashicorp/null": {"1.2.3"},
 			})
 			defer close()
 

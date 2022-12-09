@@ -44,7 +44,7 @@ func TestDiffTransformer(t *testing.T) {
 						Name: "foo",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("aws"),
+						Provider: addrs.NewOfficialProvider("aws"),
 						Module:   addrs.RootModule,
 					},
 					ChangeSrc: plans.ChangeSrc{
@@ -119,7 +119,7 @@ resource "aws_instance" "foo" {
 						Name: "foo",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("aws"),
+						Provider: addrs.NewOfficialProvider("aws"),
 						Module:   addrs.RootModule,
 					},
 					ChangeSrc: plans.ChangeSrc{
@@ -137,7 +137,7 @@ resource "aws_instance" "foo" {
 						Name: "bar",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("aws"),
+						Provider: addrs.NewOfficialProvider("aws"),
 						Module:   addrs.RootModule,
 					},
 					ChangeSrc: plans.ChangeSrc{

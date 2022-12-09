@@ -3,8 +3,8 @@ terraform {
     foo = {
       source = "hashicorp/foo"
     }
-    baz = {
-      source = "hashicorp/baz"
+    null = {
+      source = "hashicorp/null"
     }
   }
 }
@@ -13,6 +13,6 @@ module "mod" {
   source = "./mod"
   providers = {
     foo = foo
-    baz = baz
+    null = null
   }
 }

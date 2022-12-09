@@ -42,7 +42,7 @@ func TestNodeApplyableResourceExecute(t *testing.T) {
 					Name: "foo",
 				},
 				ResolvedProvider: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
+					Provider: addrs.NewOfficialProvider("test"),
 					Module:   addrs.RootModule,
 				},
 			},

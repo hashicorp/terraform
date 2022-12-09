@@ -30,10 +30,10 @@ func TestConfigProviderTypes(t *testing.T) {
 
 	got = cfg.ProviderTypes()
 	want := []addrs.Provider{
-		addrs.NewDefaultProvider("aws"),
-		addrs.NewDefaultProvider("null"),
-		addrs.NewDefaultProvider("template"),
-		addrs.NewDefaultProvider("test"),
+		addrs.NewOfficialProvider("aws"),
+		addrs.NewOfficialProvider("null"),
+		addrs.NewOfficialProvider("template"),
+		addrs.NewOfficialProvider("test"),
 	}
 	for _, problem := range deep.Equal(got, want) {
 		t.Error(problem)
@@ -58,7 +58,7 @@ func TestConfigProviderTypes_nested(t *testing.T) {
 	want := []addrs.Provider{
 		addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test"),
 		addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test"),
-		addrs.NewDefaultProvider("test"),
+		addrs.NewOfficialProvider("aws"),
 	}
 
 	for _, problem := range deep.Equal(got, want) {
@@ -75,23 +75,29 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 	t.Run("already absolute", func(t *testing.T) {
 		addr := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Alias:    "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		got, ok := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		if !ok {
+			t.Errorf("ResolveAbsProviderAddr failed; expected success")
+		}
 		if got, want := got.String(), addr.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
 	})
-	t.Run("local, implied mapping", func(t *testing.T) {
+	t.Run("local, backward-compatibility mapping", func(t *testing.T) {
 		addr := addrs.LocalProviderConfig{
-			LocalName: "implied",
+			LocalName: "aws",
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		got, ok := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		if !ok {
+			t.Errorf("ResolveAbsProviderAddr failed; expected success")
+		}
 		want := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewDefaultProvider("implied"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Alias:    "boop",
 		}
 		if got, want := got.String(), want.String(); got != want {
@@ -103,7 +109,10 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 			LocalName: "foo-test", // this is explicitly set in the config
 			Alias:     "boop",
 		}
-		got := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		got, ok := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		if !ok {
+			t.Errorf("ResolveAbsProviderAddr failed; expected success")
+		}
 		want := addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
 			Provider: addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test"),
@@ -111,6 +120,19 @@ func TestConfigResolveAbsProviderAddr(t *testing.T) {
 		}
 		if got, want := got.String(), want.String(); got != want {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+		}
+	})
+	t.Run("local, missing mapping", func(t *testing.T) {
+		addr := addrs.LocalProviderConfig{
+			// There is no "nonexist" declared in the config and this isn't
+			// one of the names we automatically infer for backward
+			// compatibility.
+			LocalName: "nonexist",
+			Alias:     "boop",
+		}
+		_, ok := cfg.ResolveAbsProviderAddr(addr, addrs.RootModule)
+		if ok {
+			t.Errorf("ResolveAbsProviderAddr succeeded; expected failure")
 		}
 	})
 }
@@ -132,12 +154,12 @@ func TestConfigProviderRequirements(t *testing.T) {
 		svchost.Hostname("tf.example.com"),
 		"awesomecorp", "happycloud",
 	)
-	nullProvider := addrs.NewDefaultProvider("null")
-	randomProvider := addrs.NewDefaultProvider("random")
-	impliedProvider := addrs.NewDefaultProvider("implied")
+	nullProvider := addrs.NewOfficialProvider("null")
+	randomProvider := addrs.NewOfficialProvider("random")
+	impliedProvider := addrs.NewOfficialProvider("vault")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
-	configuredProvider := addrs.NewDefaultProvider("configured")
-	grandchildProvider := addrs.NewDefaultProvider("grandchild")
+	configuredProvider := addrs.NewOfficialProvider("http")
+	grandchildProvider := addrs.NewOfficialProvider("consul")
 
 	got, diags := cfg.ProviderRequirements()
 	assertNoDiagnostics(t, diags)
@@ -177,11 +199,11 @@ func TestConfigProviderRequirementsShallow(t *testing.T) {
 		addrs.DefaultProviderRegistryHost,
 		"hashicorp", "tls",
 	)
-	nullProvider := addrs.NewDefaultProvider("null")
-	randomProvider := addrs.NewDefaultProvider("random")
-	impliedProvider := addrs.NewDefaultProvider("implied")
+	nullProvider := addrs.NewOfficialProvider("null")
+	randomProvider := addrs.NewOfficialProvider("random")
+	impliedProvider := addrs.NewOfficialProvider("vault")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
-	configuredProvider := addrs.NewDefaultProvider("configured")
+	configuredProvider := addrs.NewOfficialProvider("http")
 
 	got, diags := cfg.ProviderRequirementsShallow()
 	assertNoDiagnostics(t, diags)
@@ -217,12 +239,12 @@ func TestConfigProviderRequirementsByModule(t *testing.T) {
 		svchost.Hostname("tf.example.com"),
 		"awesomecorp", "happycloud",
 	)
-	nullProvider := addrs.NewDefaultProvider("null")
-	randomProvider := addrs.NewDefaultProvider("random")
-	impliedProvider := addrs.NewDefaultProvider("implied")
+	nullProvider := addrs.NewOfficialProvider("null")
+	randomProvider := addrs.NewOfficialProvider("random")
+	impliedProvider := addrs.NewOfficialProvider("vault")
 	terraformProvider := addrs.NewBuiltInProvider("terraform")
-	configuredProvider := addrs.NewDefaultProvider("configured")
-	grandchildProvider := addrs.NewDefaultProvider("grandchild")
+	configuredProvider := addrs.NewOfficialProvider("http")
+	grandchildProvider := addrs.NewOfficialProvider("consul")
 
 	got, diags := cfg.ProviderRequirementsByModule()
 	assertNoDiagnostics(t, diags)
@@ -286,11 +308,11 @@ func TestVerifyDependencySelections(t *testing.T) {
 		svchost.Hostname("tf.example.com"),
 		"awesomecorp", "happycloud",
 	)
-	nullProvider := addrs.NewDefaultProvider("null")
-	randomProvider := addrs.NewDefaultProvider("random")
-	impliedProvider := addrs.NewDefaultProvider("implied")
-	configuredProvider := addrs.NewDefaultProvider("configured")
-	grandchildProvider := addrs.NewDefaultProvider("grandchild")
+	nullProvider := addrs.NewOfficialProvider("null")
+	randomProvider := addrs.NewOfficialProvider("random")
+	impliedProvider := addrs.NewOfficialProvider("vault")
+	configuredProvider := addrs.NewOfficialProvider("http")
+	grandchildProvider := addrs.NewOfficialProvider("consul")
 
 	tests := map[string]struct {
 		PrepareLocks func(*depsfile.Locks)
@@ -301,12 +323,12 @@ func TestVerifyDependencySelections(t *testing.T) {
 				// Intentionally blank
 			},
 			[]string{
-				`provider registry.terraform.io/hashicorp/configured: required by this configuration but no version is selected`,
-				`provider registry.terraform.io/hashicorp/grandchild: required by this configuration but no version is selected`,
-				`provider registry.terraform.io/hashicorp/implied: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/consul: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/http: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/null: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/random: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/tls: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/vault: required by this configuration but no version is selected`,
 				`provider tf.example.com/awesomecorp/happycloud: required by this configuration but no version is selected`,
 			},
 		},
@@ -360,12 +382,12 @@ func TestVerifyDependencySelections(t *testing.T) {
 			},
 			[]string{
 				// We still catch all of the other ones, because only happycloud was overridden
-				`provider registry.terraform.io/hashicorp/configured: required by this configuration but no version is selected`,
-				`provider registry.terraform.io/hashicorp/grandchild: required by this configuration but no version is selected`,
-				`provider registry.terraform.io/hashicorp/implied: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/consul: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/http: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/null: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/random: required by this configuration but no version is selected`,
 				`provider registry.terraform.io/hashicorp/tls: required by this configuration but no version is selected`,
+				`provider registry.terraform.io/hashicorp/vault: required by this configuration but no version is selected`,
 			},
 		},
 	}
@@ -395,17 +417,32 @@ func TestConfigProviderForConfigAddr(t *testing.T) {
 	cfg, diags := testModuleConfigFromDir("testdata/valid-modules/providers-fqns")
 	assertNoDiagnostics(t, diags)
 
-	got := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
+	// A provider that is explicitly declared in the configuration.
+	got, ok := cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("foo-test"))
+	if !ok {
+		t.Errorf("ProviderForConfigAddr failed; want success")
+	}
 	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 	}
 
-	// now check a provider that isn't in the configuration. It should return a DefaultProvider.
-	got = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("bar-test"))
-	want = addrs.NewDefaultProvider("bar-test")
+	// A provider that isn't in the configuration but is one of
+	// our backward-compatibility implicit mappings.
+	got, ok = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("consul"))
+	if !ok {
+		t.Errorf("ProviderForConfigAddr failed; want success")
+	}
+	want = addrs.NewOfficialProvider("consul")
 	if !got.Equals(want) {
 		t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
+	}
+
+	// A provider that isn't in the configuration and isn't one of the
+	// backward-compatibility implicit mappings.
+	_, ok = cfg.ProviderForConfigAddr(addrs.NewDefaultLocalProviderConfig("nonexist"))
+	if ok {
+		t.Errorf("ProviderForConfigAddr succeeded; want failure")
 	}
 }
 
@@ -414,7 +451,7 @@ func TestConfigAddProviderRequirements(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	reqs := getproviders.Requirements{
-		addrs.NewDefaultProvider("null"): nil,
+		addrs.NewOfficialProvider("null"): nil,
 	}
 	diags = cfg.addProviderRequirements(reqs, true)
 	assertNoDiagnostics(t, diags)

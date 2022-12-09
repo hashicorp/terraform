@@ -200,7 +200,7 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 		"ReadState gets primary instance state": {
 			State: states.BuildState(func(s *states.SyncState) {
 				providerAddr := addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("aws"),
+					Provider: addrs.NewOfficialProvider("aws"),
 					Module:   addrs.RootModule,
 				}
 				oneAddr := addrs.Resource{
@@ -266,7 +266,7 @@ func TestNodeAbstractResource_ReadResourceInstanceStateDeposed(t *testing.T) {
 		"ReadStateDeposed gets deposed instance": {
 			State: states.BuildState(func(s *states.SyncState) {
 				providerAddr := addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("aws"),
+					Provider: addrs.NewOfficialProvider("aws"),
 					Module:   addrs.RootModule,
 				}
 				oneAddr := addrs.Resource{

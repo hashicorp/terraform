@@ -3,6 +3,17 @@
 # operation, so the count and for_each expressions here can only be literal
 # values and mustn't include any references or function calls.
 
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+    other = {
+      source = "hashicorp/other"
+    }
+  }
+}
+
 module "single" {
   source = "./child"
 }

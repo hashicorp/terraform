@@ -164,7 +164,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo", "nesting_list": [{"sensitive_value":"abc"}], "nesting_map": {"foo":{"foo":"x"}}, "nesting_set": [{"baz":"abc"}], "nesting_single": {"boop":"abc"}, "nesting_nesting": {"nesting_list":[{"sensitive_value":"abc"}]}, "value":"hello"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -198,7 +198,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 		},
 		State: stateSync,
 		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
-			addrs.NewDefaultProvider("test"): {
+			addrs.NewOfficialProvider("test"): {
 				Provider: &configschema.Block{},
 				ResourceTypes: map[string]*configschema.Block{
 					"test_resource": {
@@ -337,7 +337,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"foo", "to_mark_val":"tacos", "sensitive_value":"abc"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -350,7 +350,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Addr: mustResourceInstanceAddr("test_resource.foo"),
 		ProviderAddr: addrs.AbsProviderConfig{
 			Module:   addrs.RootModule,
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 		},
 		Change: plans.Change{
 			Action: plans.Update,
@@ -369,7 +369,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	// Set up our schemas
 	schemas := &Schemas{
 		Providers: map[addrs.Provider]*ProviderSchema{
-			addrs.NewDefaultProvider("test"): {
+			addrs.NewOfficialProvider("test"): {
 				Provider: &configschema.Block{},
 				ResourceTypes: map[string]*configschema.Block{
 					"test_resource": {
@@ -405,7 +405,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		Type: "test_resource",
 		Name: "foo",
 	}
-	schema, _ := schemas.ResourceTypeConfig(addrs.NewDefaultProvider("test"), addr.Mode, addr.Type)
+	schema, _ := schemas.ResourceTypeConfig(addrs.NewOfficialProvider("test"), addr.Mode, addr.Type)
 	// This encoding separates out the After's marks into its AfterValMarks
 	csrc, _ := change.Encode(schema.ImpliedType())
 	changesSync.AppendResourceInstanceChange(csrc)

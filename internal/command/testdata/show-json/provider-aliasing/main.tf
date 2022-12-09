@@ -32,3 +32,11 @@ module "sibling" {
     test.second = test
   }
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

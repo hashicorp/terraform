@@ -9,12 +9,12 @@ import (
 )
 
 func TestMemoizeSource(t *testing.T) {
-	provider := addrs.NewDefaultProvider("foo")
+	provider := addrs.NewOfficialProvider("foo")
 	version := MustParseVersion("1.0.0")
 	protocols := VersionList{MustParseVersion("5.0")}
 	platform := Platform{OS: "gameboy", Arch: "lr35902"}
 	meta := FakePackageMeta(provider, version, protocols, platform)
-	nonexistProvider := addrs.NewDefaultProvider("nonexist")
+	nonexistProvider := addrs.NewOfficialProvider("nonexist")
 	nonexistPlatform := Platform{OS: "gamegear", Arch: "z80"}
 
 	t.Run("AvailableVersions for existing provider", func(t *testing.T) {
@@ -66,7 +66,7 @@ func TestMemoizeSource(t *testing.T) {
 		}
 	})
 	t.Run("AvailableVersions with warnings", func(t *testing.T) {
-		warnProvider := addrs.NewDefaultProvider("warning")
+		warnProvider := addrs.NewOfficialProvider("warning")
 		meta := FakePackageMeta(warnProvider, version, protocols, platform)
 		mock := NewMockSource([]PackageMeta{meta}, map[addrs.Provider]Warnings{warnProvider: {"WARNING!"}})
 		source := NewMemoizeSource(mock)

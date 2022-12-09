@@ -19,5 +19,5 @@ resource "boop_instance" "yep" {
 resource "boop_whatever" "nope" {
 }
 
-data "beep" "boop" {
+data "http" "boop" {
 }

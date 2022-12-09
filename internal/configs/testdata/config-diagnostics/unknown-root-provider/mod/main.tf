@@ -1,10 +1,10 @@
 terraform {
   required_providers {
-    bar = {
+    null = {
       version = "~>1.0.0"
     }
   }
 }
 
-resource "bar_resource" "x" {
+resource "null_resource" "x" {
 }

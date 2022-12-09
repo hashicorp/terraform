@@ -223,7 +223,19 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 		return diags
 	}
 
-	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
+	providerFqn, ok := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())
+	if !ok {
+		// We shouldn't really be able to get here because an invalid provider
+		// reference should've been caught during configuration loading, but
+		// we'll handle it here again anyway just to be robust.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Resource for undeclared provider",
+			Detail:   fmt.Sprintf("There is no provider with the local name %q declared in this module's required_providers block.", cfg.ProviderConfigAddr().LocalName),
+			Subject:  &cfg.DeclRange,
+		})
+		return diags
+	}
 	schema, _, err := d.Evaluator.Plugins.ResourceTypeSchema(providerFqn, addr.Mode, addr.Type)
 	if err != nil {
 		// Prior validation should've taken care of a schema lookup error,

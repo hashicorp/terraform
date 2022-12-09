@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_instance" "a" {
   foo = "a"
 }

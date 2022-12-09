@@ -34,9 +34,7 @@ func TestStaticValidateReferences(t *testing.T) {
 		},
 		{
 			"beep.boop",
-			`Reference to undeclared resource: A managed resource "beep" "boop" has not been declared in the root module.
-
-Did you mean the data resource data.beep.boop?`,
+			`Reference to undeclared resource: A managed resource "beep" "boop" has not been declared in the root module.`,
 		},
 		{
 			"aws_instance.no_count[0]",
@@ -70,7 +68,7 @@ For example, to correlate with indices of a referring resource, use:
 	evaluator := &Evaluator{
 		Config: cfg,
 		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
-			addrs.NewDefaultProvider("aws"): {
+			addrs.NewOfficialProvider("aws"): {
 				ResourceTypes: map[string]*configschema.Block{
 					"aws_instance": {},
 				},

@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "A" {
   lifecycle {
     create_before_destroy = true

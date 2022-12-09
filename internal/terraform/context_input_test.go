@@ -48,7 +48,7 @@ func TestContext2Input_provider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: inp,
 	})
@@ -127,7 +127,7 @@ func TestContext2Input_providerMulti(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): func() (providers.Interface, error) {
+			addrs.NewOfficialProvider("aws"): func() (providers.Interface, error) {
 				return providerFactory()
 			},
 		},
@@ -171,7 +171,7 @@ func TestContext2Input_providerOnce(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -210,7 +210,7 @@ func TestContext2Input_providerId(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
@@ -268,7 +268,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
@@ -328,7 +328,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
@@ -372,7 +372,7 @@ func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
@@ -389,7 +389,7 @@ func TestContext2Input_submoduleTriggersInvalidCount(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})
@@ -438,7 +438,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("null"),
+				Provider: addrs.NewOfficialProvider("null"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -446,7 +446,7 @@ func TestContext2Input_dataSourceRequiresRefresh(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 		UIInput: input,
 	})

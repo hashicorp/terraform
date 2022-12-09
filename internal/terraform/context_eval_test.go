@@ -50,7 +50,7 @@ func TestContextEval(t *testing.T) {
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -119,7 +119,7 @@ output "out" {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 

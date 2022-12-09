@@ -11,3 +11,11 @@ resource "test_instance" "test" {
 output "test" {
   value = var.test_var
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

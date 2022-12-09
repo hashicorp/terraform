@@ -1,3 +1,3 @@
-resource "test_instance" "explicit" {
+resource "aws_instance" "explicit" {
   provider = bar-test
 }

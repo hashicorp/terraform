@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "terraform.io/test-only/test"
+    }
+  }
+}
+
 resource "test" "test" {
   lifecycle {
     precondition {

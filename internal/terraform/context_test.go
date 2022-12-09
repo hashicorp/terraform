@@ -150,13 +150,13 @@ terraform {
 	}
 }
 
-resource "implicit_thing" "a" {
+resource "null_thing" "a" {
 	provisioner "nonexist" {
 	}
 }
 
-resource "implicit_thing" "b" {
-	provider = implicit2
+resource "null_thing" "b" {
+	provider = http
 }
 `
 
@@ -196,12 +196,12 @@ resource "implicit_thing" "b" {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires provider registry.terraform.io/hashicorp/implicit, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					"This configuration requires provider registry.terraform.io/hashicorp/http, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires provider registry.terraform.io/hashicorp/implicit2, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					"This configuration requires provider registry.terraform.io/hashicorp/null, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,

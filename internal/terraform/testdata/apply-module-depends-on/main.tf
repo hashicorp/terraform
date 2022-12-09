@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 module "moda" {
   source = "./moda"
   depends_on = [test_instance.a, module.modb]

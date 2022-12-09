@@ -248,7 +248,7 @@ func TestValidate_json(t *testing.T) {
 			}
 
 			if !cmp.Equal(got, want) {
-				t.Errorf("wrong output:\n %v\n", cmp.Diff(got, want))
+				t.Errorf("wrong output:\n %v\n", cmp.Diff(want, got))
 				t.Errorf("raw output:\n%s\n", gotString)
 			}
 

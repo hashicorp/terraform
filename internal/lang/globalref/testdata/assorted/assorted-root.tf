@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 locals {
   a = "hello world"
   b = 2

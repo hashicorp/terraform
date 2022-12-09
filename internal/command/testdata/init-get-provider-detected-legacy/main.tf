@@ -1,13 +1,13 @@
 // This should result in installing hashicorp/foo
-provider foo {}
+provider null {}
 
-// This will try to install hashicorp/baz, fail, and then suggest
-// terraform-providers/baz
-provider baz {}
+// This will try to install hashicorp/http, fail, and then suggest
+// terraform-providers/http
+provider http {}
 
 // This will try to install hashicrop/frob, fail, find no suggestions, and
 // result in an error
-provider frob {}
+provider tls {}
 
 module "some-baz-stuff" {
   source = "./child"

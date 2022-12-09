@@ -272,7 +272,18 @@ func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.storedProviderConfig.Provider.Type != "" {
 		return n.storedProviderConfig.Provider
 	}
-	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
+	implied, ok := addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
+	if !ok {
+		// We shouldn't ever get here because an invalid implied provider
+		// should have been caught during configuration loading. Unfortunately
+		// we have some very old tests that construct bypass the configuration
+		// loader and construct stuff directly and so they can end up here.
+		// Therefore we will, for the moment, preserve our old behavior of
+		// treating any unqualified provider as if it's an official provider.
+		log.Printf("[WARN] NodeAbstractInstance.Provider: resource %s does not have a known provider address", n.Addr)
+		return addrs.NewOfficialProvider(n.Addr.Resource.ImpliedProvider())
+	}
+	return implied
 }
 
 // GraphNodeProvisionerConsumer

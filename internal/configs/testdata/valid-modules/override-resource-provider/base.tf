@@ -9,9 +9,9 @@ terraform {
   }
 }
 
-resource "test_instance" "explicit" {
+resource "aws_instance" "explicit" {
   provider = foo-test
 }
 
-// the provider for this resource should default to "hashicorp/test"
-resource "test_instance" "default" {}
+// the provider for this resource should default to "hashicorp/aws"
+resource "aws_instance" "default" {}

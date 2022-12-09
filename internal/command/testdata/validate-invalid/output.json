@@ -11,20 +11,20 @@
       "range": {
         "filename": "testdata/validate-invalid/main.tf",
         "start": {
-          "line": 1,
+          "line": 9,
           "column": 1,
-          "byte": 0
+          "byte": 93
         },
         "end": {
-          "line": 1,
+          "line": 9,
           "column": 8,
-          "byte": 7
+          "byte": 100
         }
       },
       "snippet": {
         "context": null,
         "code": "resorce \"test_instance\" \"foo\" { # Intentional typo to test error reporting",
-        "start_line": 1,
+        "start_line": 9,
         "highlight_start_offset": 0,
         "highlight_end_offset": 7,
         "values": []

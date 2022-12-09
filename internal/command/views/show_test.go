@@ -128,7 +128,7 @@ func TestShowJSON(t *testing.T) {
 
 			schemas := &terraform.Schemas{
 				Providers: map[addrs.Provider]*terraform.ProviderSchema{
-					addrs.NewDefaultProvider("test"): {
+					addrs.NewOfficialProvider("test"): {
 						ResourceTypes: map[string]*configschema.Block{
 							"test_resource": {
 								Attributes: map[string]*configschema.Attribute{
@@ -173,7 +173,7 @@ func testState() *states.State {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)

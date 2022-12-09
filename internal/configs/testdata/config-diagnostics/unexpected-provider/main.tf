@@ -1,7 +1,7 @@
 terraform {
   required_providers {
-    foo = {
-      source = "hashicorp/foo"
+    null = {
+      source = "hashicorp/null"
       version = "1.0.0"
     }
   }
@@ -10,6 +10,6 @@ terraform {
 module "mod" {
   source = "./mod"
   providers = {
-    foo = foo
+    null = null
   }
 }

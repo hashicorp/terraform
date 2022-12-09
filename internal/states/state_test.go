@@ -39,7 +39,7 @@ func TestState(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -97,7 +97,7 @@ func TestState(t *testing.T) {
 							},
 						},
 						ProviderConfig: addrs.AbsProviderConfig{
-							Provider: addrs.NewDefaultProvider("test"),
+							Provider: addrs.NewOfficialProvider("test"),
 							Module:   addrs.RootModule,
 						},
 					},
@@ -246,7 +246,7 @@ func TestStateDeepCopy(t *testing.T) {
 			CreateBeforeDestroy: true,
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -280,7 +280,7 @@ func TestStateDeepCopy(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -429,7 +429,7 @@ func TestState_MoveAbsResource(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -496,7 +496,7 @@ func TestState_MoveAbsResource(t *testing.T) {
 				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -512,7 +512,7 @@ func TestState_MoveAbsResource(t *testing.T) {
 				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -561,7 +561,7 @@ func TestState_MoveAbsResource(t *testing.T) {
 				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -607,7 +607,7 @@ func TestState_MoveAbsResource(t *testing.T) {
 				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -652,7 +652,7 @@ func TestState_MaybeMoveAbsResource(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -692,7 +692,7 @@ func TestState_MoveAbsResourceInstance(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -762,7 +762,7 @@ func TestState_MaybeMoveAbsResourceInstance(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -808,7 +808,7 @@ func TestState_MoveModuleInstance(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -855,7 +855,7 @@ func TestState_MaybeMoveModuleInstance(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -897,7 +897,7 @@ func TestState_MoveModule(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -916,7 +916,7 @@ func TestState_MoveModule(t *testing.T) {
 			AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -969,7 +969,7 @@ func TestState_MoveModule(t *testing.T) {
 				AttrsJSON:     []byte(`{"woozles":"confuzles"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)

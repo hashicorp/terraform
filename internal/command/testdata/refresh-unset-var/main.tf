@@ -5,3 +5,11 @@ provider "test" {}
 resource "test_instance" "foo" {
   ami = "${var.should_ask}"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

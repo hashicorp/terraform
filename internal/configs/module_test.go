@@ -31,7 +31,7 @@ func TestNewModule_provider_local_name(t *testing.T) {
 	}
 
 	// if there is not a local name for a provider, it should return the type name
-	localName = mod.LocalNameForProvider(addrs.NewDefaultProvider("nonexist"))
+	localName = mod.LocalNameForProvider(addrs.NewOfficialProvider("nonexist"))
 	if localName != "nonexist" {
 		t.Error("wrong local name returned for a non-local provider")
 	}
@@ -59,43 +59,43 @@ func TestNewModule_resource_providers(t *testing.T) {
 	// both the root and child module have two resources, one which should use
 	// the default implied provider and one explicitly using a provider set in
 	// required_providers
-	wantImplicit := addrs.NewDefaultProvider("test")
+	wantImplicit := addrs.NewOfficialProvider("aws")
 	wantFoo := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	wantBar := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
 
 	// root module
-	if !cfg.Module.ManagedResources["test_instance.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
+	if !cfg.Module.ManagedResources["aws_instance.explicit"].Provider.Equals(wantFoo) {
+		t.Fatalf("wrong provider for \"aws_instance.explicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["aws_instance.explicit"].Provider,
 			wantFoo,
 		)
 	}
-	if !cfg.Module.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
+	if !cfg.Module.ManagedResources["aws_instance.implicit"].Provider.Equals(wantImplicit) {
+		t.Fatalf("wrong provider for \"aws_instance.implicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["aws_instance.implicit"].Provider,
 			wantImplicit,
 		)
 	}
 
 	// a data source
-	if !cfg.Module.DataResources["data.test_resource.explicit"].Provider.Equals(wantFoo) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
+	if !cfg.Module.DataResources["data.aws_resource.explicit"].Provider.Equals(wantFoo) {
+		t.Fatalf("wrong provider for \"data.aws_instance.explicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["aws_instance.explicit"].Provider,
 			wantBar,
 		)
 	}
 
 	// child module
 	cm := cfg.Children["child"].Module
-	if !cm.ManagedResources["test_instance.explicit"].Provider.Equals(wantBar) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.explicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.explicit"].Provider,
+	if !cm.ManagedResources["aws_instance.explicit"].Provider.Equals(wantBar) {
+		t.Fatalf("wrong provider for \"module.child.aws_instance.explicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["aws_instance.explicit"].Provider,
 			wantBar,
 		)
 	}
-	if !cm.ManagedResources["test_instance.implicit"].Provider.Equals(wantImplicit) {
-		t.Fatalf("wrong provider for \"module.child.test_instance.implicit\"\ngot:  %s\nwant: %s",
-			cfg.Module.ManagedResources["test_instance.implicit"].Provider,
+	if !cm.ManagedResources["aws_instance.implicit"].Provider.Equals(wantImplicit) {
+		t.Fatalf("wrong provider for \"module.child.aws_instance.implicit\"\ngot:  %s\nwant: %s",
+			cfg.Module.ManagedResources["aws_instance.implicit"].Provider,
 			wantImplicit,
 		)
 	}
@@ -107,7 +107,10 @@ func TestProviderForLocalConfig(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 	lc := addrs.LocalProviderConfig{LocalName: "foo-test"}
-	got := mod.ProviderForLocalConfig(lc)
+	got, ok := mod.ProviderForLocalConfig(lc)
+	if !ok {
+		t.Fatalf("ProviderForLocalConfig failed; want success")
+	}
 	want := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test")
 	if !got.Equals(want) {
 		t.Fatalf("wrong result! got %#v, want %#v\n", got, want)
@@ -226,7 +229,7 @@ func TestModule_implied_provider(t *testing.T) {
 	// The three providers used in the config resources
 	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
 	whatever := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something")
-	bar := addrs.NewDefaultProvider("bar")
+	bar := addrs.NewOfficialProvider("null")
 
 	// Verify that the registry.acme.corp/acme/foo provider is defined in the
 	// module provider requirements with local name "foo"
@@ -261,8 +264,8 @@ func TestModule_implied_provider(t *testing.T) {
 	}{
 		{"foo_resource.a", foo},
 		{"data.foo_resource.b", foo},
-		{"bar_resource.c", bar},
-		{"data.bar_resource.d", bar},
+		{"null_resource.c", bar},
+		{"data.null_resource.d", bar},
 		{"whatever_resource.e", whatever},
 		{"data.whatever_resource.f", whatever},
 	}
@@ -292,7 +295,7 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 
 	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
 	whatever := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something")
-	bar := addrs.NewDefaultProvider("bar")
+	vault := addrs.NewOfficialProvider("vault")
 	tf := addrs.NewBuiltInProvider("terraform")
 
 	tests := []struct {
@@ -301,11 +304,14 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	}{
 		{"foo", foo},
 		{"whatever", whatever},
-		{"bar", bar},
+		{"vault", vault},
 		{"terraform", tf},
 	}
 	for _, test := range tests {
-		got := mod.ImpliedProviderForUnqualifiedType(test.Type)
+		got, ok := mod.ImpliedProviderForUnqualifiedType(test.Type)
+		if !ok {
+			t.Fatalf("ImpliedProviderForUnqualifiedType failed for %q; want success", test.Type)
+		}
 		if !got.Equals(test.Provider) {
 			t.Errorf("wrong result for %q: got %#v, want %#v\n", test.Type, got, test.Provider)
 		}

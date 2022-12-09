@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "network" {
   type = object({
     vpc_id     = string

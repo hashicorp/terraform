@@ -76,7 +76,7 @@ func TestRoundtrip(t *testing.T) {
 
 	locksIn := depsfile.NewLocks()
 	locksIn.SetProvider(
-		addrs.NewDefaultProvider("boop"),
+		addrs.NewOfficialProvider("boop"),
 		getproviders.MustParseVersion("1.0.0"),
 		getproviders.MustParseVersionConstraints(">= 1.0.0"),
 		[]getproviders.Hash{

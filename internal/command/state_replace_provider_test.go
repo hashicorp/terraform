@@ -25,7 +25,7 @@ func TestStateReplaceProvider(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -40,7 +40,7 @@ func TestStateReplaceProvider(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -312,7 +312,7 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -327,7 +327,7 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)

@@ -1,3 +1,10 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
 
 # This resource gets visited first on the apply walk, but since it DynamicExpands
 # to an empty subgraph it ends up being a no-op, leaving the module state

@@ -17,7 +17,7 @@ func TestContextImport_basic(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -68,7 +68,7 @@ resource "aws_instance" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -109,7 +109,7 @@ func TestContextImport_collision(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -127,7 +127,7 @@ func TestContextImport_collision(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -184,7 +184,7 @@ func TestContextImport_missingType(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -235,7 +235,7 @@ func TestContextImport_moduleProvider(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -270,7 +270,7 @@ func TestContextImport_providerModule(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -335,7 +335,7 @@ func TestContextImport_providerConfig(t *testing.T) {
 			m := testModule(t, test.module)
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+					addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 				},
 			})
 
@@ -394,8 +394,8 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 	m := testModule(t, "import-provider-resources")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(p),
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(pTest),
+			addrs.NewOfficialProvider("aws"):  testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(pTest),
 		},
 	})
 
@@ -450,7 +450,7 @@ data "aws_data_source" "bar" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -511,7 +511,7 @@ func TestContextImport_refreshNil(t *testing.T) {
 	m := testModule(t, "import-provider")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -558,7 +558,7 @@ func TestContextImport_module(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -599,7 +599,7 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -640,7 +640,7 @@ func TestContextImport_moduleDiff(t *testing.T) {
 	m := testModule(t, "import-module")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -719,7 +719,7 @@ func TestContextImport_multiState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -793,7 +793,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -822,6 +822,14 @@ func TestContextImport_nestedModuleImport(t *testing.T) {
 	p := testProvider("aws")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 locals {
   xs = toset(["foo"])
 }
@@ -846,6 +854,14 @@ output "y" {
 }
 `,
 		"b/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "y" {
   type = string
 }
@@ -887,7 +903,7 @@ resource "test_resource" "unused" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -923,6 +939,14 @@ func TestContextImport_newResourceUnknown(t *testing.T) {
 	p := testProvider("aws")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "one" {
 }
 
@@ -957,7 +981,7 @@ resource "test_resource" "test" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 

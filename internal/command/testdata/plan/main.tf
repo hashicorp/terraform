@@ -11,3 +11,11 @@ resource "test_instance" "foo" {
 data "test_data_source" "a" {
   id = "zzzzz"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

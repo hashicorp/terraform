@@ -17,3 +17,11 @@ module "child" {
     test = test.backup
   }
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

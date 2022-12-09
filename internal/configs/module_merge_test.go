@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -294,25 +295,27 @@ func TestModuleOverrideResourceFQNs(t *testing.T) {
 	mod, diags := testModuleFromDir("testdata/valid-modules/override-resource-provider")
 	assertNoDiagnostics(t, diags)
 
-	got := mod.ManagedResources["test_instance.explicit"]
+	got := mod.ManagedResources["aws_instance.explicit"]
 	wantProvider := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test")
 	wantProviderCfg := &ProviderConfigRef{
 		Name: "bar-test",
 		NameRange: hcl.Range{
 			Filename: "testdata/valid-modules/override-resource-provider/a_override.tf",
-			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 51},
-			End:      hcl.Pos{Line: 2, Column: 22, Byte: 59},
+			Start:    hcl.Pos{Line: 2, Column: 14, Byte: 50},
+			End:      hcl.Pos{Line: 2, Column: 22, Byte: 58},
 		},
 	}
 
 	if !got.Provider.Equals(wantProvider) {
 		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
 	}
-	assertResultDeepEqual(t, got.ProviderConfigRef, wantProviderCfg)
+	if diff := cmp.Diff(wantProviderCfg, got.ProviderConfigRef, cmp.AllowUnexported(ProviderConfigRef{})); diff != "" {
+		t.Fatalf("wrong provider config\n%s", diff)
+	}
 
 	// now verify that a resource with no provider config falls back to default
-	got = mod.ManagedResources["test_instance.default"]
-	wantProvider = addrs.NewDefaultProvider("test")
+	got = mod.ManagedResources["aws_instance.default"]
+	wantProvider = addrs.NewOfficialProvider("aws")
 	if !got.Provider.Equals(wantProvider) {
 		t.Fatalf("wrong provider %s, want %s", got.Provider, wantProvider)
 	}

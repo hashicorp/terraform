@@ -178,7 +178,7 @@ func TestProvidersLock_args(t *testing.T) {
 }
 
 func TestProvidersLockCalculateChangeType(t *testing.T) {
-	provider := addrs.NewDefaultProvider("provider")
+	provider := addrs.NewOfficialProvider("provider")
 	v2 := getproviders.MustParseVersion("2.0.0")
 	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
 

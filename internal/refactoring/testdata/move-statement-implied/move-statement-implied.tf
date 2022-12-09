@@ -2,6 +2,14 @@
 # conforms to the statements encoded in the resource names. It's for
 # TestImpliedMoveStatements only.
 
+terraform {
+  required_providers {
+    foo = {
+      source = "hashicorp/foo"
+    }
+  }
+}
+
 resource "foo" "formerly_count" {
   # but not count anymore
 }

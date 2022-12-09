@@ -18,3 +18,11 @@ provider "test" {
 }
 
 resource "test_instance" "test" {}
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

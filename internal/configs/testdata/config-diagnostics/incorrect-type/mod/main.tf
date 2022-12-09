@@ -9,6 +9,6 @@ terraform {
 resource "foo_resource" "a" {
 }
 
-// implied default provider baz
-resource "baz_resource" "a" {
+// implied default provider null
+resource "null_resource" "a" {
 }

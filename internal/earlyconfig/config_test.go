@@ -19,7 +19,7 @@ func TestConfigProviderRequirements(t *testing.T) {
 
 	impliedProvider := addrs.NewProvider(
 		addrs.DefaultProviderRegistryHost,
-		"hashicorp", "implied",
+		"hashicorp", "http",
 	)
 	nullProvider := addrs.NewProvider(
 		addrs.DefaultProviderRegistryHost,

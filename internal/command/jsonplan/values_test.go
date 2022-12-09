@@ -274,7 +274,7 @@ func TestMarshalPlanResources(t *testing.T) {
 							Name: "example",
 						}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 						ProviderAddr: addrs.AbsProviderConfig{
-							Provider: addrs.NewDefaultProvider("test"),
+							Provider: addrs.NewOfficialProvider("test"),
 							Module:   addrs.RootModule,
 						},
 						ChangeSrc: plans.ChangeSrc{
@@ -321,7 +321,7 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 				DeposedKey: "12345678",
 				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
+					Provider: addrs.NewOfficialProvider("test"),
 					Module:   addrs.RootModule,
 				},
 				ChangeSrc: plans.ChangeSrc{
@@ -342,7 +342,7 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): &terraform.ProviderSchema{
+			addrs.NewOfficialProvider("test"): &terraform.ProviderSchema{
 				ResourceTypes: map[string]*configschema.Block{
 					"test_thing": {
 						Attributes: map[string]*configschema.Attribute{

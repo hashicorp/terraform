@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    openstack = {
+      source = "hashicorp/openstack"
+    }
+  }
+}
+
 variable "foo" {
   default     = "bar"
   description = "bar"

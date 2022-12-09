@@ -223,7 +223,16 @@ func (r *Resource) merge(or *Resource, rps map[string]*RequiredProvider) hcl.Dia
 		if existing, exists := rps[or.ProviderConfigRef.Name]; exists {
 			r.Provider = existing.Type
 		} else {
-			r.Provider = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)
+			var ok bool
+			r.Provider, ok = addrs.ImpliedProviderForUnqualifiedType(r.ProviderConfigRef.Name)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource for undeclared provider",
+					Detail:   fmt.Sprintf("There is no provider with the local name %q declared in this module's required_providers block.", r.ProviderConfigRef.Name),
+					Subject:  &or.ProviderConfigRef.NameRange,
+				})
+			}
 		}
 	}
 

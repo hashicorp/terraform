@@ -1,7 +1,7 @@
 {
     "format_version": "1.0",
     "provider_schemas": {
-        "registry.terraform.io/hashicorp/test": {
+        "registry.terraform.io/hashicorp/null": {
             "provider": {
                 "version": 0,
                 "block": {

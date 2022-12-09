@@ -5,3 +5,11 @@ resource "test_instance" "tmpl" {
 output "template" {
 	value = "${test_instance.tmpl.foo}"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

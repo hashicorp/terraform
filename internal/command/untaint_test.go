@@ -24,7 +24,7 @@ func TestUntaint(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -69,7 +69,7 @@ func TestUntaint_lockedState(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -121,7 +121,7 @@ func TestUntaint_backup(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -176,7 +176,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -247,7 +247,7 @@ func TestUntaint_defaultState(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -294,7 +294,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -337,7 +337,7 @@ func TestUntaint_missing(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -375,7 +375,7 @@ func TestUntaint_missingAllow(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -431,7 +431,7 @@ func TestUntaint_stateOut(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -480,7 +480,7 @@ func TestUntaint_module(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -495,7 +495,7 @@ func TestUntaint_module(t *testing.T) {
 				Status:    states.ObjectTainted,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)

@@ -28,6 +28,14 @@ func TestContext2Plan_removedDuringRefresh(t *testing.T) {
 	// the object, since it's still present in the configuration.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 `,
@@ -75,7 +83,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -140,6 +148,14 @@ resource "test_object" "a" {
 func TestContext2Plan_noChangeDataSourceSensitiveNestedSet(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "bar" {
   sensitive = true
   default   = "baz"
@@ -203,7 +219,7 @@ data "test_data_source" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -221,6 +237,14 @@ func TestContext2Plan_orphanDataInstance(t *testing.T) {
 	// ensure the planned replacement of the data source is evaluated properly
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 data "test_object" "a" {
   for_each = { new = "ok" }
 }
@@ -246,7 +270,7 @@ output "out" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -268,6 +292,14 @@ output "out" {
 func TestContext2Plan_basicConfigurationAliases(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 provider "test" {
   alias = "z"
   test_string = "config"
@@ -311,7 +343,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -344,6 +376,14 @@ module "mod" {
 `,
 
 		"./mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "a" {
 }
 
@@ -384,7 +424,7 @@ resource "test_resource" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -449,6 +489,14 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 			}
 		`,
 		"child/child.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			locals {
 				a = "a"
 			}
@@ -483,7 +531,7 @@ func TestContext2Plan_resourceChecksInExpandedModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -617,6 +665,13 @@ func TestContext2Plan_dataResourceChecksManagedResourceChange(t *testing.T) {
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
 
 resource "test_resource" "a" {
 	valid = true
@@ -669,7 +724,7 @@ data "test_data_source" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -820,6 +875,13 @@ func TestContext2Plan_managedResourceChecksOtherManagedResourceChange(t *testing
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
 
 resource "test_resource" "a" {
   valid = true
@@ -888,7 +950,7 @@ resource "test_resource" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -905,6 +967,14 @@ resource "test_resource" "b" {
 func TestContext2Plan_destroyWithRefresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 `,
@@ -981,7 +1051,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1031,6 +1101,14 @@ resource "test_object" "a" {
 func TestContext2Plan_destroySkipRefresh(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 `,
@@ -1081,7 +1159,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1133,6 +1211,14 @@ resource "test_object" "a" {
 func TestContext2Plan_unmarkingSensitiveAttributeForOutput(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "foo" {
 }
 
@@ -1174,7 +1260,7 @@ output "result" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1201,6 +1287,14 @@ func TestContext2Plan_destroyNoProviderConfig(t *testing.T) {
 
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 locals {
   value = "ok"
 }
@@ -1221,7 +1315,7 @@ provider "test" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1236,6 +1330,14 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 	addrB := mustResourceInstanceAddr("test_object.b")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "b" {
 			}
 
@@ -1258,7 +1360,7 @@ func TestContext2Plan_movedResourceBasic(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1304,6 +1406,14 @@ func TestContext2Plan_movedResourceCollision(t *testing.T) {
 	addrZeroKey := mustResourceInstanceAddr("test_object.a[0]")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				# No "count" set, so test_object.a[0] will want
 				# to implicitly move to test_object.a, but will get
@@ -1326,7 +1436,7 @@ func TestContext2Plan_movedResourceCollision(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1410,6 +1520,14 @@ func TestContext2Plan_movedResourceCollisionDestroy(t *testing.T) {
 	addrZeroKey := mustResourceInstanceAddr("test_object.a[0]")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				# No "count" set, so test_object.a[0] will want
 				# to implicitly move to test_object.a, but will get
@@ -1432,7 +1550,7 @@ func TestContext2Plan_movedResourceCollisionDestroy(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1518,6 +1636,14 @@ func TestContext2Plan_movedResourceUntargeted(t *testing.T) {
 	addrB := mustResourceInstanceAddr("test_object.b")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "b" {
 			}
 
@@ -1540,7 +1666,7 @@ func TestContext2Plan_movedResourceUntargeted(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1710,6 +1836,14 @@ func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
 	addrB := mustResourceInstanceAddr("test_object.b")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "b" {
 			}
 
@@ -1732,7 +1866,7 @@ func TestContext2Plan_movedResourceRefreshOnly(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1785,6 +1919,14 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 	// refresh took effect but the configuration change wasn't considered.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				arg = "after"
 			}
@@ -1847,7 +1989,7 @@ func TestContext2Plan_refreshOnlyMode(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1917,6 +2059,14 @@ func TestContext2Plan_refreshOnlyMode_deposed(t *testing.T) {
 	// refresh took effect but the configuration change wasn't considered.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				arg = "after"
 			}
@@ -1983,7 +2133,7 @@ func TestContext2Plan_refreshOnlyMode_deposed(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2057,6 +2207,14 @@ func TestContext2Plan_refreshOnlyMode_orphan(t *testing.T) {
 	// refresh took effect but the configuration change wasn't considered.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				arg = "after"
 				count = 1
@@ -2124,7 +2282,7 @@ func TestContext2Plan_refreshOnlyMode_orphan(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2221,6 +2379,14 @@ output "root" {
 func TestContext2Plan_planDataSourceSensitiveNested(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_instance" "bar" {
 }
 
@@ -2306,7 +2472,7 @@ data "test_data_source" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2334,6 +2500,14 @@ func TestContext2Plan_forceReplace(t *testing.T) {
 	addrB := mustResourceInstanceAddr("test_object.b")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 			}
 			resource "test_object" "b" {
@@ -2355,7 +2529,7 @@ func TestContext2Plan_forceReplace(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2403,6 +2577,14 @@ func TestContext2Plan_forceReplaceIncompleteAddr(t *testing.T) {
 	addrBare := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				count = 2
 			}
@@ -2423,7 +2605,7 @@ func TestContext2Plan_forceReplaceIncompleteAddr(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2497,6 +2679,14 @@ module "two" {
 }
 `,
 		"mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "input" {
 }
 
@@ -2561,7 +2751,7 @@ output "output" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2609,6 +2799,14 @@ func TestContext2Plan_moduleExpandOrphansResourceInstance(t *testing.T) {
 			}
 		`,
 		"child/main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_object" "a" {
 				count = 1
 			}
@@ -2630,7 +2828,7 @@ func TestContext2Plan_moduleExpandOrphansResourceInstance(t *testing.T) {
 	p := simpleMockProvider()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2685,6 +2883,14 @@ func TestContext2Plan_moduleExpandOrphansResourceInstance(t *testing.T) {
 func TestContext2Plan_resourcePreconditionPostcondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "boop" {
   type = string
 }
@@ -2726,7 +2932,7 @@ resource "test_resource" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2944,6 +3150,14 @@ resource "test_resource" "a" {
 func TestContext2Plan_dataSourcePreconditionPostcondition(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "boop" {
   type = string
 }
@@ -2998,7 +3212,7 @@ resource "test_resource" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3218,7 +3432,7 @@ output "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3352,13 +3566,21 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
 	for _, tc := range testCases {
 		t.Run(tc.condition, func(t *testing.T) {
 			main := fmt.Sprintf(`
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test_resource" "a" {
 				value = var.boop
 				lifecycle {
@@ -3398,7 +3620,7 @@ func TestContext2Plan_preconditionSensitiveValues(t *testing.T) {
 	p := testProvider("test")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3455,6 +3677,14 @@ output "a" {
 func TestContext2Plan_triggeredBy(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
   count = 1
   test_string = "new"
@@ -3474,7 +3704,7 @@ resource "test_object" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3528,6 +3758,14 @@ func TestContext2Plan_dataSchemaChange(t *testing.T) {
 	// informational, decoding should be skipped altogether.
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 data "test_object" "a" {
   obj {
     # args changes from a list to a map
@@ -3577,7 +3815,7 @@ data "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3588,6 +3826,14 @@ data "test_object" "a" {
 func TestContext2Plan_applyGraphError(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 resource "test_object" "b" {
@@ -3625,7 +3871,7 @@ resource "test_object" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3658,6 +3904,14 @@ module "example" {
 }
 `,
 		"example/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "x" {
 }
 
@@ -3672,7 +3926,7 @@ output "out" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3696,6 +3950,14 @@ output "out" {
 func TestContext2Plan_deposedNoLongerExists(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "b" {
   count = 1
   test_string = "updated"
@@ -3747,7 +4009,7 @@ resource "test_object" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3762,6 +4024,14 @@ resource "test_object" "b" {
 func TestContext2Plan_destroyWithResourceConfiguredProvider(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
   in = "a"
 }
@@ -3810,7 +4080,7 @@ resource "test_object" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(testProvider),
 		},
 	})
 
@@ -3839,6 +4109,14 @@ resource "test_object" "b" {
 func TestContext2Plan_destroyPartialState(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 
@@ -3852,6 +4130,14 @@ module "mod" {
 `,
 
 		"./mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
   count = 2
 
@@ -3926,7 +4212,7 @@ output "out" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 

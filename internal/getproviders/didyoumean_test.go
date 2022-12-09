@@ -21,10 +21,10 @@ func TestMissingProviderSuggestion(t *testing.T) {
 
 		// testRegistrySource handles -/legacy as a valid legacy provider
 		// lookup mapping to legacycorp/legacy.
-		legacyAddr := addrs.NewDefaultProvider("legacy")
+		legacyAddr := addrs.NewOfficialProvider("legacy")
 		got := MissingProviderSuggestion(
 			ctx,
-			addrs.NewDefaultProvider("legacy"),
+			addrs.NewOfficialProvider("legacy"),
 			source,
 			Requirements{
 				legacyAddr: MustParseVersionConstraints(">= 1.0.0"),
@@ -52,7 +52,7 @@ func TestMissingProviderSuggestion(t *testing.T) {
 		// copy in some other namespace for v0.13 or later to use. Our naming
 		// suggestions ignore the v0.12-compatible one and suggest the
 		// other one.
-		moved := addrs.NewDefaultProvider("moved")
+		moved := addrs.NewOfficialProvider("moved")
 		want := addrs.Provider{
 			Hostname:  defaultRegistryHost,
 			Namespace: "acme",
@@ -104,7 +104,7 @@ func TestMissingProviderSuggestion(t *testing.T) {
 		// testRegistrySource handles -/invalid by returning an invalid
 		// provider address, which MissingProviderSuggestion should reject
 		// and behave as if there was no suggestion available.
-		want := addrs.NewDefaultProvider("invalid")
+		want := addrs.NewOfficialProvider("invalid")
 		got := MissingProviderSuggestion(
 			ctx,
 			want,

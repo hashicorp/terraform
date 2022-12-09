@@ -74,7 +74,7 @@ func testPlan(t *testing.T) *plans.Plan {
 		Addr:        addr,
 		PrevRunAddr: addr,
 		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 		ChangeSrc: plans.ChangeSrc{
@@ -93,7 +93,7 @@ func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
 		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+			addrs.NewOfficialProvider("test"): provider.ProviderSchema(),
 		},
 	}
 }
