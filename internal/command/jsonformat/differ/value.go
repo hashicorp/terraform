@@ -2,6 +2,7 @@ package differ
 
 import (
 	"encoding/json"
+
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 )
 

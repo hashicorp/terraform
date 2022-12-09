@@ -1,10 +1,11 @@
 package jsonformat
 
 import (
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/mitchellh/colorstring"
 )
 
 type Plan struct {
