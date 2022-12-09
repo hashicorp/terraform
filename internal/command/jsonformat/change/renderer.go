@@ -20,7 +20,8 @@ func (render NoWarningsRenderer) Warnings(change Change, indent int) []string {
 	return nil
 }
 
-// RenderOpts contains
+// RenderOpts contains options that can control how the Renderer.Render function
+// will render.
 //
 // For now, we haven't implemented any of the Renderer functionality, so we have
 // no options currently.
