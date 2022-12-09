@@ -1,0 +1,80 @@
+[
+  {
+    "@level": "info",
+    "@message": "tfcoremock_list.list: Plan to update",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "update",
+      "resource": {
+        "addr": "tfcoremock_list.list",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_list.list",
+        "resource_key": null,
+        "resource_name": "list",
+        "resource_type": "tfcoremock_list"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_list.list: Modifying... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "update",
+      "id_key": "id",
+      "id_value": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
+      "resource": {
+        "addr": "tfcoremock_list.list",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_list.list",
+        "resource_key": null,
+        "resource_name": "list",
+        "resource_type": "tfcoremock_list"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_list.list: Modifications complete after 0s [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "update",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "id_value": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
+      "resource": {
+        "addr": "tfcoremock_list.list",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_list.list",
+        "resource_key": null,
+        "resource_name": "list",
+        "resource_type": "tfcoremock_list"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 0 added, 1 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 0,
+      "change": 1,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]
