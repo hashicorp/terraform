@@ -2,7 +2,7 @@ package differ
 
 import "github.com/hashicorp/terraform/internal/command/jsonformat/change"
 
-func (v Value) CheckForSensitive() (change.Change, bool) {
+func (v Value) checkForSensitive() (change.Change, bool) {
 	beforeSensitive := v.isBeforeSensitive()
 	afterSensitive := v.isAfterSensitive()
 

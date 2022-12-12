@@ -28,7 +28,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(nil, strptr("1")),
 				action:   plans.Create,
-				replace:  false,
 			},
 			expected: "1",
 		},
@@ -36,7 +35,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(strptr("1"), nil),
 				action:   plans.Delete,
-				replace:  false,
 			},
 			expected: "1 -> null",
 		},
@@ -44,7 +42,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(strptr("1"), nil),
 				action:   plans.Delete,
-				replace:  false,
 			},
 			opts:     RenderOpts{overrideNullSuffix: true},
 			expected: "1",
@@ -53,7 +50,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(strptr("1"), nil),
 				action:   plans.Update,
-				replace:  false,
 			},
 			expected: "1 -> null",
 		},
@@ -61,7 +57,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(nil, strptr("1")),
 				action:   plans.Update,
-				replace:  false,
 			},
 			expected: "null -> 1",
 		},
@@ -69,7 +64,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Primitive(strptr("0"), strptr("1")),
 				action:   plans.Update,
-				replace:  false,
 			},
 			expected: "0 -> 1",
 		},
@@ -85,7 +79,6 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Sensitive("0", "1", true, true),
 				action:   plans.Update,
-				replace:  false,
 			},
 			expected: "(sensitive)",
 		},
@@ -97,6 +90,14 @@ func TestRenderers(t *testing.T) {
 			},
 			expected: "(sensitive) # forces replacement",
 		},
+		"computed_create": {
+			change: Change{
+				renderer: Computed(Change{}),
+				action:   plans.Create,
+			},
+			expected: "(known after apply)",
+		},
+		"computed_update": {},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

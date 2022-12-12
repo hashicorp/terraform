@@ -6,7 +6,7 @@ import (
 )
 
 func Sensitive(before, after interface{}, beforeSensitive, afterSensitive bool) Renderer {
-	return sensitiveRenderer{
+	return &sensitiveRenderer{
 		before:          before,
 		after:           after,
 		beforeSensitive: beforeSensitive,
