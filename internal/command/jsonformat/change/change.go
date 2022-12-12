@@ -55,3 +55,21 @@ func (change Change) Render(indent int, opts RenderOpts) string {
 func (change Change) Warnings(indent int) []string {
 	return change.renderer.Warnings(change, indent)
 }
+
+// nullSuffix returns the `-> null` suffix if the change is a delete action, and
+// it has not been overridden.
+func (change Change) nullSuffix(override bool) string {
+	if !override && change.action == plans.Delete {
+		return " [dark_gray]-> null[reset]"
+	}
+	return ""
+}
+
+// forcesReplacement returns the `# forces replacement` suffix if this change is
+// driving the entire resource to be replaced.
+func (change Change) forcesReplacement() string {
+	if change.replace {
+		return " [red]# forces replacement[reset]"
+	}
+	return ""
+}

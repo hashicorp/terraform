@@ -1,0 +1,76 @@
+package change
+
+import (
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/internal/plans"
+)
+
+func TestRenderers(t *testing.T) {
+	strptr := func(in string) *string {
+		return &in
+	}
+
+	colorize := colorstring.Colorize{
+		Colors:  colorstring.DefaultColors,
+		Disable: true,
+	}
+
+	tcs := map[string]struct {
+		change   Change
+		expected string
+	}{
+		"primitive_create": {
+			change: Change{
+				renderer: Primitive(nil, strptr("1")),
+				action:   plans.Create,
+				replace:  false,
+			},
+			expected: "1",
+		},
+		"primitive_delete": {
+			change: Change{
+				renderer: Primitive(strptr("1"), nil),
+				action:   plans.Delete,
+				replace:  false,
+			},
+			expected: "1 -> null",
+		},
+		"primitive_update_to_null": {
+			change: Change{
+				renderer: Primitive(strptr("1"), nil),
+				action:   plans.Update,
+				replace:  false,
+			},
+			expected: "1 -> null",
+		},
+		"primitive_update_from_null": {
+			change: Change{
+				renderer: Primitive(nil, strptr("1")),
+				action:   plans.Update,
+				replace:  false,
+			},
+			expected: "null -> 1",
+		},
+		"primitive_update": {
+			change: Change{
+				renderer: Primitive(strptr("0"), strptr("1")),
+				action:   plans.Update,
+				replace:  false,
+			},
+			expected: "0 -> 1",
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			actual := colorize.Color(tc.change.Render(0, RenderOpts{}))
+			if diff := cmp.Diff(tc.expected, actual); len(diff) > 0 {
+				t.Fatalf("\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", tc.expected, actual, diff)
+			}
+		})
+	}
+
+}
