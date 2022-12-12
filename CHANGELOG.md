@@ -19,6 +19,7 @@ BUG FIXES:
 
 ENHANCEMENTS:
 
+* `terraform_data` is a new builtin managed resource type, which can replace the use of `null_resource`, and can store data of any type [GH-31757]
 * `terraform init` will now ignore entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. This therefore avoids the long-standing problem that when installing a new provider for the first time from the cache we can't determine the full set of checksums to include in the lock file. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. ([#32129](https://github.com/hashicorp/terraform/issues/32129))
 * The "Failed to install provider" error message now includes the reason a provider could not be installed. ([#31898](https://github.com/hashicorp/terraform/issues/31898))
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. ([#24967](https://github.com/hashicorp/terraform/issues/24967))
