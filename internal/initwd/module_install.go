@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/apparentlymart/go-versions/versions"
 	"log"
 	"os"
 	"path"
@@ -387,9 +388,29 @@ func (i *ModuleInstaller) installRegistryModule(ctx context.Context, req *earlyc
 
 		// If we've found a pre-release version then we'll ignore it unless
 		// it was exactly requested.
-		if v.Prerelease() != "" && req.VersionConstraints.String() != v.String() {
-			log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
-			continue
+		if v.Prerelease() != "" {
+			// Switch over to another library to check these version
+			// constraints. This means our version constraint logic matches
+			// between providers and modules. But it does leave this function
+			// having to switch between the two libraries.
+			acceptableVersions, err := versions.MeetingConstraintsString(req.VersionConstraints.String())
+			if err != nil {
+				// This shouldn't really happen, as we validated the constraints
+				// string earlier. Let's return a nice error message anyway.
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Invalid version constraint string",
+					fmt.Sprintf("The requested version constraint (%s) could not be be parsed: %s", req.VersionConstraints.String(), err.Error()),
+				))
+				continue
+			}
+
+			// We validated the version string previously, so we are quite sure
+			// that MustParseVersion will not crash/panic.
+			if !acceptableVersions.Has(versions.MustParseVersion(v.String())) {
+				log.Printf("[TRACE] ModuleInstaller: %s ignoring %s because it is a pre-release and was not requested exactly", key, v)
+				continue
+			}
 		}
 
 		if latestVersion == nil || v.GreaterThan(latestVersion) {
