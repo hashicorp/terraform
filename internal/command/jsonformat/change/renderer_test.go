@@ -97,7 +97,16 @@ func TestRenderers(t *testing.T) {
 			},
 			expected: "(known after apply)",
 		},
-		"computed_update": {},
+		"computed_update": {
+			change: Change{
+				renderer: Computed(Change{
+					renderer: Primitive(strptr("0"), nil),
+					action:   plans.Delete,
+				}),
+				action: plans.Update,
+			},
+			expected: "0 -> (known after apply)",
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
