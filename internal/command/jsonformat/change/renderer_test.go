@@ -73,6 +73,30 @@ func TestRenderers(t *testing.T) {
 			},
 			expected: "0 -> 1",
 		},
+		"primitive_update_replace": {
+			change: Change{
+				renderer: Primitive(strptr("0"), strptr("1")),
+				action:   plans.Update,
+				replace:  true,
+			},
+			expected: "0 -> 1 # forces replacement",
+		},
+		"sensitive_update": {
+			change: Change{
+				renderer: Sensitive("0", "1", true, true),
+				action:   plans.Update,
+				replace:  false,
+			},
+			expected: "(sensitive)",
+		},
+		"sensitive_update_replace": {
+			change: Change{
+				renderer: Sensitive("0", "1", true, true),
+				action:   plans.Update,
+				replace:  true,
+			},
+			expected: "(sensitive) # forces replacement",
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

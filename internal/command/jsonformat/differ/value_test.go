@@ -76,6 +76,46 @@ func TestValue_Attribute(t *testing.T) {
 			expectedReplace: false,
 			validateChange:  change.ValidatePrimitive(nil, strptr("\"new\"")),
 		},
+		"primitive_create_sensitive": {
+			input: Value{
+				Before:         nil,
+				After:          "new",
+				AfterSensitive: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: []byte("\"string\""),
+			},
+			expectedAction:  plans.Create,
+			expectedReplace: false,
+			validateChange:  change.ValidateSensitive(nil, "new", false, true),
+		},
+		"primitive_delete_sensitive": {
+			input: Value{
+				Before:          "old",
+				BeforeSensitive: true,
+				After:           nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: []byte("\"string\""),
+			},
+			expectedAction:  plans.Delete,
+			expectedReplace: false,
+			validateChange:  change.ValidateSensitive("old", nil, true, false),
+		},
+		"primitive_update_sensitive": {
+			input: Value{
+				Before:          "old",
+				BeforeSensitive: true,
+				After:           "new",
+				AfterSensitive:  true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: []byte("\"string\""),
+			},
+			expectedAction:  plans.Update,
+			expectedReplace: false,
+			validateChange:  change.ValidateSensitive("old", "new", true, true),
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

@@ -33,3 +33,23 @@ func ValidatePrimitive(before, after *string) ValidateChangeFunc {
 		}
 	}
 }
+
+func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		sensitive, ok := change.renderer.(sensitiveRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if beforeSensitive != sensitive.beforeSensitive || afterSensitive != sensitive.afterSensitive {
+			t.Fatalf("before or after sensitive values don't match:\n\texpected; before: %t after: %t\n\tactual; before: %t, after: %t", beforeSensitive, afterSensitive, sensitive.beforeSensitive, sensitive.afterSensitive)
+		}
+
+		beforeDiff := cmp.Diff(sensitive.before, before)
+		afterDiff := cmp.Diff(sensitive.after, after)
+
+		if len(beforeDiff) > 0 || len(afterDiff) > 0 {
+			t.Fatalf("before diff: (%s), after diff: (%s)", beforeDiff, afterDiff)
+		}
+	}
+}

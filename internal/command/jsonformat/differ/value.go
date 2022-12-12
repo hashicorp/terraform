@@ -3,10 +3,12 @@ package differ
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/zclconf/go-cty/cty"
-	"reflect"
 
 	"github.com/hashicorp/terraform/internal/plans"
 
@@ -104,20 +106,6 @@ func (v Value) ComputeChange(changeType interface{}) change.Change {
 
 func (v Value) AsChange(renderer change.Renderer) change.Change {
 	return change.New(renderer, v.calculateChange(), v.replacePath())
-}
-
-func (v Value) isBeforeSensitive() bool {
-	if sensitive, ok := v.BeforeSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
-}
-
-func (v Value) isAfterSensitive() bool {
-	if sensitive, ok := v.AfterSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
 }
 
 func (v Value) replacePath() bool {
