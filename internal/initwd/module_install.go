@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/apparentlymart/go-versions/versions"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/apparentlymart/go-versions/versions"
 	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/earlyconfig"
