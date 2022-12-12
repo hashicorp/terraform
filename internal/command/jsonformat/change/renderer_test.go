@@ -22,6 +22,7 @@ func TestRenderers(t *testing.T) {
 	tcs := map[string]struct {
 		change   Change
 		expected string
+		opts     RenderOpts
 	}{
 		"primitive_create": {
 			change: Change{
@@ -38,6 +39,15 @@ func TestRenderers(t *testing.T) {
 				replace:  false,
 			},
 			expected: "1 -> null",
+		},
+		"primitive_delete_override": {
+			change: Change{
+				renderer: Primitive(strptr("1"), nil),
+				action:   plans.Delete,
+				replace:  false,
+			},
+			opts:     RenderOpts{overrideNullSuffix: true},
+			expected: "1",
 		},
 		"primitive_update_to_null": {
 			change: Change{
@@ -66,7 +76,7 @@ func TestRenderers(t *testing.T) {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-			actual := colorize.Color(tc.change.Render(0, RenderOpts{}))
+			actual := colorize.Color(tc.change.Render(0, tc.opts))
 			if diff := cmp.Diff(tc.expected, actual); len(diff) > 0 {
 				t.Fatalf("\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", tc.expected, actual, diff)
 			}
