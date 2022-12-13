@@ -3,7 +3,7 @@ package getmodules
 import (
 	"path"
 
-	getter "github.com/hashicorp/go-getter"
+	getter "github.com/hashicorp/go-getter/v2"
 )
 
 // SplitPackageSubdir detects whether the given address string has a

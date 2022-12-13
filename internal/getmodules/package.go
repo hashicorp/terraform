@@ -1,7 +1,7 @@
 package getmodules
 
 import (
-	getter "github.com/hashicorp/go-getter"
+	getter "github.com/hashicorp/go-getter/v2"
 )
 
 // NormalizePackageAddress uses the go-getter "detector" functionality in

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/apparentlymart/go-versions/versions"
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter/v2"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/tfdiags"

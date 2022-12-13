@@ -21,7 +21,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/hashicorp/go-getter"
+	"github.com/hashicorp/go-getter/v2"
 )
 
 const protocVersion = "3.15.6"
