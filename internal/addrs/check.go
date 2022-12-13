@@ -180,24 +180,10 @@ var (
 	_ ConfigCheckable = ConfigSmokeTest{}
 )
 
-// ParseCheckableStr attempts to parse the given string as a Checkable address
-// of the given kind.
-//
-// This should be the opposite of Checkable.String for any Checkable address
-// type, as long as "kind" is set to the value returned by the address's
-// CheckableKind method.
-//
-// We do not typically expect users to write out checkable addresses as input,
-// but we use them as part of some of our wire formats for persisting check
-// results between runs.
-func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagnostics) {
+// ParseCheckable attempts to parse the given absolute traversal as a Checkable
+// address of the given kind.
+func ParseCheckable(kind CheckableKind, traversal hcl.Traversal) (Checkable, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-
-	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(src), "", hcl.InitialPos)
-	diags = diags.Append(parseDiags)
-	if parseDiags.HasErrors() {
-		return nil, diags
-	}
 
 	path, remain, diags := parseModuleInstancePrefix(traversal)
 	if diags.HasErrors() {
@@ -293,4 +279,26 @@ func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagn
 	default:
 		panic(fmt.Sprintf("unsupported CheckableKind %s", kind))
 	}
+}
+
+// ParseCheckableStr attempts to parse the given string as a Checkable address
+// of the given kind.
+//
+// This should be the opposite of Checkable.String for any Checkable address
+// type, as long as "kind" is set to the value returned by the address's
+// CheckableKind method.
+//
+// We do not typically expect users to write out checkable addresses as input,
+// but we use them as part of some of our wire formats for persisting check
+// results between runs.
+func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(src), "", hcl.InitialPos)
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	return ParseCheckable(kind, traversal)
 }
