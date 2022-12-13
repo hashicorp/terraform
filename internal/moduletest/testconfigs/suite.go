@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -57,4 +58,39 @@ func LoadSuiteForModule(moduleDir string) (*Suite, tfdiags.Diagnostics) {
 	}
 
 	return ret, diags
+}
+
+// ProviderRequirements collects all of the declared provider dependencies
+// across all scenarios in the suite and returns them in the form expected
+// by Terraform's provider plugin installer.
+//
+// NOTE: This doesn't include requirements for any modules that the test
+// steps might refer to. If a caller needs to know the full set of requirements
+// to execute the test scenarios then it will need to also load the
+// configuration rooted at each designated module and incorporate their
+// own provider requirements.
+func (s *Suite) ProviderRequirements() getproviders.Requirements {
+	ret := make(getproviders.Requirements)
+	for _, scenario := range s.Scenarios {
+		for _, reqt := range scenario.ProviderReqs.RequiredProviders {
+			addr := reqt.Type
+
+			// The model of version constraints in the configs package is still
+			// the old one using a different upstream module to represent versions,
+			// so we'll need to shim that out here for now. The two parsers
+			// don't exactly agree in practice so this might produce new errors.
+			// TODO: Use the new parser throughout all provider version work so
+			// we can get the better error messages it produces in more situations.
+			constraints, err := getproviders.ParseVersionConstraints(reqt.Requirement.Required.String())
+			if err != nil {
+				// Since this is just a prototype we'll just ignore errors here
+				// for now and assume that we'll make the configs package
+				// use the new constraints model before we finalize this for real.
+				continue
+			}
+
+			ret[addr] = append(ret[addr], constraints...)
+		}
+	}
+	return ret
 }

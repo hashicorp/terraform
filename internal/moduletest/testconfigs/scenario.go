@@ -195,6 +195,46 @@ func LoadScenarioFile(filename string) (*Scenario, tfdiags.Diagnostics) {
 			step.Providers = defProviders
 		}
 	}
+	for _, pc := range ret.RealProviderConfigs {
+		if _, ok := ret.ProviderReqs.RequiredProviders[pc.Name]; !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for unknown provider",
+				Detail:   fmt.Sprintf("The required_providers block does not include an entry with the local name %q.", pc.Name),
+				Subject:  pc.NameRange.Ptr(),
+			})
+		}
+	}
+	for _, pc := range ret.MockProviderConfigs {
+		if _, ok := ret.ProviderReqs.RequiredProviders[pc.Addr.LocalName]; !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Mock instance for unknown provider",
+				Detail:   fmt.Sprintf("The required_providers block does not include an entry with the local name %q.", pc.Addr.LocalName),
+				Subject:  pc.DeclRange.Ptr(),
+			})
+		}
+	}
+	for _, s := range ret.Steps {
+		for _, pp := range s.Providers {
+			if _, ok := ret.ProviderReqs.RequiredProviders[pp.InChild.Name]; !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unknown provider",
+					Detail:   fmt.Sprintf("The required_providers block does not include an entry with the local name %q.", pp.InChild.Name),
+					Subject:  pp.InChild.NameRange.Ptr(),
+				})
+			}
+			if _, ok := ret.ProviderReqs.RequiredProviders[pp.InParent.Name]; !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Reference to unknown provider",
+					Detail:   fmt.Sprintf("The required_providers block does not include an entry with the local name %q.", pp.InParent.Name),
+					Subject:  pp.InParent.NameRange.Ptr(),
+				})
+			}
+		}
+	}
 
 	return ret, diags
 }

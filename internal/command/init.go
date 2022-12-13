@@ -506,6 +506,8 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		stateReqs := state.ProviderRequirements()
 		reqs = reqs.Merge(stateReqs)
 	}
+	// TODO: Also install providers needed for the working directory's
+	// test scenarios, if any, so that "terraform test" can work.
 
 	for providerAddr := range reqs {
 		if providerAddr.IsLegacy() {
