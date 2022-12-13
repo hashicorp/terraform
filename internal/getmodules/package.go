@@ -1,5 +1,9 @@
 package getmodules
 
+import (
+	getter "github.com/hashicorp/go-getter/v2"
+)
+
 // NormalizePackageAddress uses the go-getter "detector" functionality in
 // order to turn a user-supplied source address into a normalized address
 // which always includes a prefix naming a protocol to fetch with and may
@@ -63,7 +67,21 @@ func NormalizePackageAddress(given string) (packageAddr, subDir string, err erro
 			// now.
 			return "", "", err
 		}*/
+	req := &getter.Request{
+		Src: given,
+	}
+	for _, d := range goGetterGetters {
+		ok, err := getter.Detect(req, d)
+		if err != nil {
+			return "", "", err
+		}
+		if !ok {
+			continue
+		} else {
+			break
+		}
+	}
 
-	packageAddr, subDir = SplitPackageSubdir(given)
+	packageAddr, subDir = SplitPackageSubdir(req.Src)
 	return packageAddr, subDir, nil
 }
