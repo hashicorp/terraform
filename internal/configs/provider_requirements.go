@@ -27,6 +27,10 @@ type RequiredProviders struct {
 	DeclRange         hcl.Range
 }
 
+func DecodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
+	return decodeRequiredProvidersBlock(block)
+}
+
 func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Diagnostics) {
 	attrs, diags := block.Body.JustAttributes()
 	if diags.HasErrors() {

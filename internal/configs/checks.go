@@ -75,6 +75,10 @@ func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resourc
 	return diags
 }
 
+func DecodeCheckRuleBlock(block *hcl.Block) (*CheckRule, hcl.Diagnostics) {
+	return decodeCheckRuleBlock(block, false)
+}
+
 // decodeCheckRuleBlock decodes the contents of the given block as a check rule.
 //
 // Unlike most of our "decode..." functions, this one can be applied to blocks

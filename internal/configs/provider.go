@@ -34,6 +34,10 @@ type Provider struct {
 	providerType addrs.Provider
 }
 
+func DecodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
+	return decodeProviderBlock(block)
+}
+
 func decodeProviderBlock(block *hcl.Block) (*Provider, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 

@@ -627,6 +627,10 @@ type ProviderConfigRef struct {
 	providerType addrs.Provider
 }
 
+func DecodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConfigRef, hcl.Diagnostics) {
+	return decodeProviderConfigRef(expr, argName)
+}
+
 func decodeProviderConfigRef(expr hcl.Expression, argName string) (*ProviderConfigRef, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 
