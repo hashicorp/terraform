@@ -413,6 +413,10 @@ func (b *Cloud) discover() (*url.URL, error) {
 
 	host, err := b.services.Discover(hostname)
 	if err != nil {
+		if strings.HasPrefix(err.Error(), "Failed to request discovery document") {
+			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			return nil, err
+		}
 		return nil, err
 	}
 
