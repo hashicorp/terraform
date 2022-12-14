@@ -20,6 +20,9 @@ type ValueMap struct {
 	// AfterSensitive contains the after sensitive status of any
 	// elements/attributes of this map/object.
 	AfterSensitive map[string]interface{}
+
+	// ReplacePaths matches the same attributes in Value exactly.
+	ReplacePaths []interface{}
 }
 
 func (v Value) asMap() ValueMap {
@@ -29,6 +32,7 @@ func (v Value) asMap() ValueMap {
 		Unknown:         genericToMap(v.Unknown),
 		BeforeSensitive: genericToMap(v.BeforeSensitive),
 		AfterSensitive:  genericToMap(v.AfterSensitive),
+		ReplacePaths:    v.ReplacePaths,
 	}
 }
 
@@ -47,7 +51,24 @@ func (m ValueMap) getChild(key string) Value {
 		Unknown:         unknown,
 		BeforeSensitive: beforeSensitive,
 		AfterSensitive:  afterSensitive,
+		ReplacePaths:    m.processReplacePaths(key),
 	}
+}
+
+func (m ValueMap) processReplacePaths(key string) []interface{} {
+	var ret []interface{}
+	for _, p := range m.ReplacePaths {
+		path := p.([]interface{})
+
+		if len(path) == 0 {
+			continue
+		}
+
+		if path[0].(string) == key {
+			ret = append(ret, path[1:])
+		}
+	}
+	return ret
 }
 
 func getFromGenericMap(generic map[string]interface{}, key string) (interface{}, bool) {
