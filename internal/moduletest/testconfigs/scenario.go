@@ -41,7 +41,7 @@ func LoadScenarioFile(filename string) (*Scenario, tfdiags.Diagnostics) {
 		))
 		return ret, diags
 	}
-	baseName := filename[:len(filename)-len(ext)]
+	baseName := filepath.Base(filename[:len(filename)-len(ext)])
 
 	if !hclsyntax.ValidIdentifier(baseName) {
 		diags = diags.Append(tfdiags.Sourceless(

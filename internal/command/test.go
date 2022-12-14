@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/moduletest/testconfigs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -62,7 +63,30 @@ func (c *TestCommand) Run(rawArgs []string) int {
 }
 
 func (c *TestCommand) run(ctx context.Context, args arguments.Test) (results map[string]*moduletest.ScenarioResult, diags tfdiags.Diagnostics) {
-	return nil, nil
+	suite, diags := testconfigs.LoadSuiteForModule(".")
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	// TEMP: For now we'll just stub out fake results for all of the scenarios
+	// as a placeholder. In a real system (as opposed to this prototype)
+	// it should be the moduletest package's responsiblity to run tests and
+	// return results for them.
+	ret := make(map[string]*moduletest.ScenarioResult, len(suite.Scenarios))
+	for name, scenario := range suite.Scenarios {
+		ret[name] = &moduletest.ScenarioResult{
+			Name:   name,
+			Status: checks.StatusUnknown,
+		}
+		for _, stepName := range scenario.StepsOrder {
+			ret[name].Steps = append(ret[name].Steps, moduletest.StepResult{
+				Name:   stepName,
+				Status: checks.StatusUnknown,
+			})
+		}
+	}
+
+	return ret, diags
 }
 
 func (c *TestCommand) Help() string {
