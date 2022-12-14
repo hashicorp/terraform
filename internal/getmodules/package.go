@@ -1,7 +1,7 @@
 package getmodules
 
 import (
-	getter "github.com/hashicorp/go-getter/v2"
+	"errors"
 )
 
 // NormalizePackageAddress uses the go-getter "detector" functionality in
@@ -53,35 +53,17 @@ func NormalizePackageAddress(given string) (packageAddr, subDir string, err erro
 	// (Absolute filesystem paths _are_ valid though, for annoying historical
 	// reasons, and we treat them as remote packages even though "downloading"
 	// them just means a recursive copy of the source directory tree.)
-
-	// come back to this
-	/*ok, err := getter.Detect(&getter.Request{}, &getter.Getter{})
-
-	    // func Detect(src string, pwd string, ds []Detector) (string, error)
-		//result, err := getter.Detect(given, "", goGetterDetectors)
-		if err != nil {
-			// NOTE: go-getter's error messages are of very inconsistent quality
-			// and many are not suitable for an end-user audience, but they are all
-			// just strings and so we can't really do any sort of post-processing
-			// to improve them and thus we just accept some bad error messages for
-			// now.
-			return "", "", err
-		}*/
-	req := &getter.Request{
-		Src: given,
-	}
-	for _, d := range goGetterGetters {
-		ok, err := getter.Detect(req, d)
-		if err != nil {
-			return "", "", err
-		}
-		if !ok {
+	for _, d := range goGetterDetectors {
+		result, ok, err := d.Detect(given, "")
+		if ok && err == nil {
+			packageAddr, subDir = SplitPackageSubdir(result)
+			return packageAddr, subDir, nil
+		} else if !ok && err == nil {
 			continue
-		} else {
-			break
+		} else if err != nil {
+			return "", "", err
 		}
-	}
 
-	packageAddr, subDir = SplitPackageSubdir(req.Src)
-	return packageAddr, subDir, nil
+	}
+	return "", "", errors.New("detection failed")
 }
