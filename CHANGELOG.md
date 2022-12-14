@@ -1,5 +1,9 @@
 ## 1.3.7 (Unreleased)
 
+BUG FIXES:
+
+* Fix exact version constraint parsing for modules using prerelease versions [GH-32377]
+
 ## 1.3.6 (November 30, 2022)
 
 BUG FIXES:
