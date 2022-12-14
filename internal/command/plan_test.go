@@ -18,6 +18,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -272,6 +273,54 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	plan := testReadPlan(t, outPath)
 	if !plan.Changes.Empty() {
 		t.Fatalf("Expected empty plan to be written to plan file, got: %s", spew.Sdump(plan))
+	}
+}
+
+func TestPlan_outPathWithError(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-fail-condition"), td)
+	defer testChdir(t, td)()
+
+	outPath := filepath.Join(td, "test.plan")
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.NullVal(cty.EmptyObject),
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatal("expected non-zero exit status", output)
+	}
+
+	plan := testReadPlan(t, outPath) // will call t.Fatal itself if the file cannot be read
+	if !plan.Errored {
+		t.Fatal("plan should be marked with Errored")
+	}
+
+	if plan.Checks == nil {
+		t.Fatal("plan contains no checks")
+	}
+
+	// the checks should only contain one failure
+	results := plan.Checks.ConfigResults.Elements()
+	if len(results) != 1 {
+		t.Fatal("incorrect number of check results", len(results))
+	}
+	if results[0].Value.Status != checks.StatusFail {
+		t.Errorf("incorrect status, got %s", results[0].Value.Status)
 	}
 }
 
