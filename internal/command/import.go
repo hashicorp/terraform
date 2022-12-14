@@ -34,6 +34,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	var configPath string
+	var importRefresh bool
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.extendedFlagSet("import")
@@ -45,6 +46,7 @@ func (c *ImportCommand) Run(args []string) int {
 	cmdFlags.StringVar(&configPath, "config", pwd, "path")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
+	cmdFlags.BoolVar(&importRefresh, "refresh", true, "refresh")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -241,6 +243,8 @@ func (c *ImportCommand) Run(args []string) int {
 		// the input variables end up represented as plan options even though
 		// this particular operation isn't really a plan.
 		SetVariables: lr.PlanOpts.SetVariables,
+
+		SkipRefresh: !importRefresh,
 	})
 	diags = diags.Append(importDiags)
 	if diags.HasErrors() {

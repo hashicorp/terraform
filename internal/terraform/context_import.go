@@ -17,6 +17,12 @@ type ImportOpts struct {
 	// SetVariables are the variables set outside of the configuration,
 	// such as on the command line, in variables files, etc.
 	SetVariables InputValues
+
+	// SkipRefresh specifies to trust that the current values for managed
+	// resource instances in the prior state are accurate and to therefore
+	// disable the usual step of fetching updated values for each resource
+	// instance using its corresponding provider.
+	SkipRefresh bool
 }
 
 // ImportTarget is a single resource to import.
@@ -63,6 +69,7 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		RootVariableValues: variables,
 		Plugins:            c.plugins,
 		Operation:          walkImport,
+		skipRefresh:        opts.SkipRefresh,
 	}
 
 	// Build the graph

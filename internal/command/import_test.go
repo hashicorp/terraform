@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -22,7 +23,13 @@ func TestImport(t *testing.T) {
 
 	statePath := testTempFile(t)
 
-	p := testProvider()
+	p := importFixtureProvider()
+	readResourceCalls := 0
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		readResourceCalls++
+		resp.NewState = req.PriorState
+		return resp
+	}
 	ui := new(cli.MockUi)
 	view, _ := testView(t)
 	c := &ImportCommand{
@@ -30,29 +37,6 @@ func TestImport(t *testing.T) {
 			testingOverrides: metaOverridesForProvider(p),
 			Ui:               ui,
 			View:             view,
-		},
-	}
-
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_instance",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("yay"),
-				}),
-			},
-		},
-	}
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Block: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {Type: cty.String, Optional: true, Computed: true},
-					},
-				},
-			},
 		},
 	}
 
@@ -67,6 +51,10 @@ func TestImport(t *testing.T) {
 
 	if !p.ImportResourceStateCalled {
 		t.Fatal("ImportResourceState should be called")
+	}
+
+	if readResourceCalls != 2 {
+		t.Fatal("ReadResource should be called exactly twice")
 	}
 
 	testStateOutput(t, statePath, testImportStr)
@@ -970,6 +958,69 @@ func TestImport_targetIsModule(t *testing.T) {
 	if want := `Error: Invalid address`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
+}
+
+func TestImport_refreshFalse(t *testing.T) {
+	defer testChdir(t, testFixturePath("import-provider-implicit"))()
+
+	statePath := testTempFile(t)
+
+	p := importFixtureProvider()
+	readResourceCalls := 0
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) (resp providers.ReadResourceResponse) {
+		readResourceCalls++
+		resp.NewState = req.PriorState
+		return resp
+	}
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &ImportCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+			View:             view,
+		},
+	}
+	args := []string{
+		"-state", statePath,
+		"-refresh=false",
+		"test_instance.foo",
+		"bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+	if readResourceCalls != 1 {
+		t.Fatal("ReadResource should be called exactly once")
+	}
+}
+
+func importFixtureProvider() *terraform.MockProvider {
+	p := testProvider()
+	p.ImportResourceStateFn = nil
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_instance",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"id": cty.StringVal("yay"),
+				}),
+			},
+		},
+	}
+	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
+		ResourceTypes: map[string]providers.Schema{
+			"test_instance": {
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Optional: true, Computed: true},
+					},
+				},
+			},
+		},
+	}
+
+	return p
 }
 
 const testImportStr = `
