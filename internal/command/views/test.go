@@ -4,11 +4,12 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,7 +19,7 @@ import (
 // Test is the view interface for the "terraform test" command.
 type Test interface {
 	// Results presents the given test results.
-	Results(map[string]*moduletest.Suite) tfdiags.Diagnostics
+	Results(map[string]*moduletest.ScenarioResult) tfdiags.Diagnostics
 
 	// Diagnostics is for reporting warnings or errors that occurred with the
 	// mechanics of running tests. For this command in particular, some
@@ -49,7 +50,7 @@ type testHuman struct {
 	junitXMLFile string
 }
 
-func (v *testHuman) Results(results map[string]*moduletest.Suite) tfdiags.Diagnostics {
+func (v *testHuman) Results(results map[string]*moduletest.ScenarioResult) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: Due to how this prototype command evolved concurrently with
@@ -77,89 +78,80 @@ func (v *testHuman) Diagnostics(diags tfdiags.Diagnostics) {
 	v.showDiagnostics(diags)
 }
 
-func (v *testHuman) humanResults(results map[string]*moduletest.Suite) {
+func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) {
 	failCount := 0
-	width := v.streams.Stderr.Columns()
 
-	suiteNames := make([]string, 0, len(results))
-	for suiteName := range results {
-		suiteNames = append(suiteNames, suiteName)
+	scenarioNames := make([]string, 0, len(results))
+	for scenarioName := range results {
+		scenarioNames = append(scenarioNames, scenarioName)
 	}
-	sort.Strings(suiteNames)
-	for _, suiteName := range suiteNames {
-		suite := results[suiteName]
+	sort.Strings(scenarioNames)
+	for _, scenarioName := range scenarioNames {
+		scenario := results[scenarioName]
+		prefix, colorCode := v.presentationForStatus(scenario.Status)
+		v.eprintRuleHeading(colorCode, prefix, scenarioName)
 
-		componentNames := make([]string, 0, len(suite.Components))
-		for componentName := range suite.Components {
-			componentNames = append(componentNames, componentName)
+		if len(scenario.Steps) == 0 && scenario.Status == checks.StatusError {
+			failCount++
+			continue
 		}
-		for _, componentName := range componentNames {
-			component := suite.Components[componentName]
 
-			assertionNames := make([]string, 0, len(component.Assertions))
-			for assertionName := range component.Assertions {
-				assertionNames = append(assertionNames, assertionName)
+		for _, step := range scenario.Steps {
+			if step.IsImplied() && (step.Status == checks.StatusPass || step.Status == checks.StatusUnknown) {
+				// We don't mention implied steps at all if they passed
+				// or were skipped. They are implementation details that we
+				// mention only if we are describing an error for them.
+				continue
 			}
-			sort.Strings(assertionNames)
 
-			for _, assertionName := range assertionNames {
-				assertion := component.Assertions[assertionName]
-
-				fullName := fmt.Sprintf("%s.%s.%s", suiteName, componentName, assertionName)
-				if strings.HasPrefix(componentName, "(") {
-					// parenthesis-prefixed components are placeholders that
-					// the test harness generates to represent problems that
-					// prevented checking any assertions at all, so we'll
-					// just hide them and show the suite name.
-					fullName = suiteName
-				}
-				headingExtra := fmt.Sprintf("%s (%s)", fullName, assertion.Description)
-
-				switch assertion.Outcome {
-				case moduletest.Failed:
-					// Failed means that the assertion was successfully
-					// excecuted but that the assertion condition didn't hold.
-					v.eprintRuleHeading("yellow", "Failed", headingExtra)
-
-				case moduletest.Error:
-					// Error means that the system encountered an unexpected
-					// error when trying to evaluate the assertion.
-					v.eprintRuleHeading("red", "Error", headingExtra)
-
-				default:
-					// We don't do anything for moduletest.Passed or
-					// moduletest.Skipped. Perhaps in future we'll offer a
-					// -verbose option to include information about those.
-					continue
-				}
-				failCount++
-
-				if len(assertion.Message) > 0 {
-					dispMsg := format.WordWrap(assertion.Message, width)
-					v.streams.Eprintln(dispMsg)
-				}
-				if len(assertion.Diagnostics) > 0 {
-					// We'll do our own writing of the diagnostics in this
-					// case, rather than using v.Diagnostics, because we
-					// specifically want all of these diagnostics to go to
-					// Stderr along with all of the other output we've
-					// generated.
-					for _, diag := range assertion.Diagnostics {
-						diagStr := format.Diagnostic(diag, nil, v.colorize, width)
-						v.streams.Eprint(diagStr)
+			prefix, colorCode := v.presentationForStatus(step.Status)
+			v.streams.Eprintf(
+				"%s: %s\n",
+				v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+				step.Name,
+			)
+			if step.Status == checks.StatusFail || step.Status == checks.StatusError {
+				// In case of problems we'll describe all of the checkable
+				// objects individually, to help narrow down the cause of
+				// the failure.
+				for _, elem := range step.Checks.ConfigResults.Elems {
+					configAddr := elem.Key
+					configResult := elem.Value
+					if configResult.ObjectResults.Len() == 0 {
+						// If we don't have any object results then either
+						// this is an expanding object that expanded to zero
+						// instances or expansion failed altogether. Either
+						// way we'll just emit a single entry representing the
+						// static config object just so we'll say _something_
+						// about each checkable object.
+						prefix, colorCode := v.presentationForStatus(configResult.Status)
+						v.streams.Eprintf(
+							"  - %s: %s\n",
+							v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+							configAddr.String(),
+						)
+						if configResult.Status == checks.StatusFail || configResult.Status == checks.StatusError {
+							failCount++
+						}
+					}
+					for _, elem := range configResult.ObjectResults.Elems {
+						objAddr := elem.Key
+						objResult := elem.Value
+						prefix, colorCode := v.presentationForStatus(objResult.Status)
+						v.streams.Eprintf(
+							"  - %s: %s\n",
+							v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+							objAddr.String(),
+						)
+						for _, msg := range objResult.FailureMessages {
+							v.streams.Eprintf("    %s\n", msg)
+						}
+						if objResult.Status == checks.StatusFail || objResult.Status == checks.StatusError {
+							failCount++
+						}
 					}
 				}
 			}
-		}
-	}
-
-	if failCount > 0 {
-		// If we've printed at least one failure then we'll have printed at
-		// least one horizontal rule across the terminal, and so we'll balance
-		// that with another horizontal rule.
-		if width > 1 {
-			rule := strings.Repeat("─", width-1)
-			v.streams.Eprintln(v.colorize.Color("[dark_gray]" + rule))
 		}
 	}
 
@@ -179,7 +171,7 @@ func (v *testHuman) humanResults(results map[string]*moduletest.Suite) {
 	v.streams.Stderr.File.Sync()
 }
 
-func (v *testHuman) junitXMLResults(results map[string]*moduletest.Suite, filename string) tfdiags.Diagnostics {
+func (v *testHuman) junitXMLResults(results map[string]*moduletest.ScenarioResult, filename string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// "JUnit XML" is a file format that has become a de-facto standard for
@@ -241,80 +233,29 @@ func (v *testHuman) junitXMLResults(results map[string]*moduletest.Suite, filena
 	}
 
 	xmlSuites := TestSuites{}
-	suiteNames := make([]string, 0, len(results))
-	for suiteName := range results {
-		suiteNames = append(suiteNames, suiteName)
+	scenarioNames := make([]string, 0, len(results))
+	for scenarioName := range results {
+		scenarioNames = append(scenarioNames, scenarioName)
 	}
-	sort.Strings(suiteNames)
-	for _, suiteName := range suiteNames {
-		suite := results[suiteName]
+	sort.Strings(scenarioNames)
+	for _, scenarioName := range scenarioNames {
+		scenario := results[scenarioName]
 
 		xmlSuite := &TestSuite{
-			Name: suiteName,
+			Name: scenarioName,
 		}
 		xmlSuites.Suites = append(xmlSuites.Suites, xmlSuite)
 
-		componentNames := make([]string, 0, len(suite.Components))
-		for componentName := range suite.Components {
-			componentNames = append(componentNames, componentName)
+		for _, step := range scenario.Steps {
+			log.Printf("Should add JUnit representation of step %q", step.Name)
 		}
-		for _, componentName := range componentNames {
-			component := suite.Components[componentName]
-
-			assertionNames := make([]string, 0, len(component.Assertions))
-			for assertionName := range component.Assertions {
-				assertionNames = append(assertionNames, assertionName)
-			}
-			sort.Strings(assertionNames)
-
-			for _, assertionName := range assertionNames {
-				assertion := component.Assertions[assertionName]
-				xmlSuites.TotalCount++
-				xmlSuite.TotalCount++
-
-				xmlCase := &TestCase{
-					ComponentName: componentName,
-					AssertionName: assertionName,
-				}
-				xmlSuite.Cases = append(xmlSuite.Cases, xmlCase)
-
-				switch assertion.Outcome {
-				case moduletest.Pending:
-					// We represent "pending" cases -- cases blocked by
-					// upstream errors -- as if they were "skipped" in JUnit
-					// terms, because we didn't actually check them and so
-					// can't say whether they succeeded or not.
-					xmlSuite.SkippedCount++
-					xmlCase.Skipped = &Outcome{
-						Message: assertion.Message,
-					}
-				case moduletest.Failed:
-					xmlSuites.FailureCount++
-					xmlSuite.FailureCount++
-					xmlCase.Failure = &Outcome{
-						Message: assertion.Message,
-					}
-				case moduletest.Error:
-					xmlSuites.ErrorCount++
-					xmlSuite.ErrorCount++
-					xmlCase.Error = &Outcome{
-						Message: assertion.Message,
-					}
-
-					// We'll also include the diagnostics in the "stderr"
-					// portion of the output, so they'll hopefully be visible
-					// in a test log viewer in JUnit-XML-Consuming CI systems.
-					var buf strings.Builder
-					for _, diag := range assertion.Diagnostics {
-						diagStr := format.DiagnosticPlain(diag, nil, 68)
-						buf.WriteString(diagStr)
-					}
-					xmlCase.Stderr = buf.String()
-				}
-
-			}
-		}
+		// TODO: Implement the rest of this
 	}
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		"JUnit XML report not fully implemented",
+		"Support for the JUnit XML format is currently incomplete.",
+	))
 
 	xmlOut, err := xml.MarshalIndent(&xmlSuites, "", "  ")
 	if err != nil {
@@ -370,4 +311,22 @@ func (v *testHuman) eprintRuleHeading(color, prefix, extra string) {
 		buf.WriteString(v.colorize.Color(colorCode + strings.Repeat(lineCell, rightLineLen)))
 	}
 	v.streams.Eprintln(buf.String())
+}
+
+func (v *testHuman) presentationForStatus(status checks.Status) (prefix, color string) {
+	switch status {
+	case checks.StatusFail:
+		return "Fail", "red"
+	case checks.StatusError:
+		return "Error", "red"
+	case checks.StatusPass:
+		return "Pass", "green"
+	case checks.StatusUnknown:
+		return "Skipped", "dark_gray"
+	default:
+		// If this is a status we don't recognize then we'll just use reset
+		// as a no-op. We shouldn't get here because the above cases should
+		// be exhaustive for all of the possible checks.Status values.
+		return "Tested", "reset"
+	}
 }

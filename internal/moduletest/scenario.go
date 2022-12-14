@@ -64,3 +64,12 @@ type StepResult struct {
 	// problem.
 	Diagnostics tfdiags.Diagnostics
 }
+
+func (sr *StepResult) IsImplied() bool {
+	if len(sr.Name) == 0 {
+		// Should not be possible because this would not be a valid identifier,
+		// but we'll treat it as implied anyway to be robust about it.
+		return true
+	}
+	return sr.Name[0] == '<'
+}

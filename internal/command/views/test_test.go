@@ -16,7 +16,7 @@ func TestTest(t *testing.T) {
 		JUnitXMLFile: "",
 	})
 
-	results := map[string]*moduletest.Suite{}
+	results := map[string]*moduletest.ScenarioResult{}
 	view.Results(results)
 
 	output := close(t)
