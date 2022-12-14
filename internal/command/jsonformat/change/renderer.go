@@ -32,6 +32,14 @@ type RenderOpts struct {
 	// change, as such we provide this as an option instead of trying to
 	// calculate it inside a specific renderer.
 	overrideNullSuffix bool
+
+	// showUnchangedChildren instructs the Renderer to render all children of a
+	// given complex change, instead of hiding unchanged items and compressing
+	// them into a single line.
+	//
+	// This is generally decided by the parent change (mainly lists) and so is
+	// passed in as a private option.
+	showUnchangedChildren bool
 }
 
 // Clone returns a new RenderOpts object, that matches the original but can be

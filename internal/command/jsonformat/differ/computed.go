@@ -1,12 +1,10 @@
 package differ
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 )
 
-func (v Value) checkForComputed(ctyType cty.Type) (change.Change, bool) {
+func (v Value) checkForComputed(changeType interface{}) (change.Change, bool) {
 	unknown := v.isUnknown()
 
 	if !unknown {
@@ -30,7 +28,7 @@ func (v Value) checkForComputed(ctyType cty.Type) (change.Change, bool) {
 		Before:          v.Before,
 		BeforeSensitive: v.BeforeSensitive,
 	}
-	return v.AsChange(change.Computed(beforeValue.ComputeChangeForType(ctyType))), true
+	return v.AsChange(change.Computed(beforeValue.ComputeChange(changeType))), true
 }
 
 func (v Value) isUnknown() bool {

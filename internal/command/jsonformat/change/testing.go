@@ -1,6 +1,7 @@
 package change
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -10,16 +11,16 @@ import (
 
 type ValidateChangeFunc func(t *testing.T, change Change)
 
-func ValidateChange(t *testing.T, f ValidateChangeFunc, change Change, expectedAction plans.Action, expectedReplace bool) {
+func validateChange(t *testing.T, change Change, expectedAction plans.Action, expectedReplace bool) {
 	if change.replace != expectedReplace || change.action != expectedAction {
 		t.Fatalf("\nreplace:\n\texpected:%t\n\tactual:%t\naction:\n\texpected:%s\n\tactual:%s", expectedReplace, change.replace, expectedAction, change.action)
 	}
-
-	f(t, change)
 }
 
-func ValidatePrimitive(before, after *string) ValidateChangeFunc {
+func ValidatePrimitive(before, after *string, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
 		primitive, ok := change.renderer.(*primitiveRenderer)
 		if !ok {
 			t.Fatalf("invalid renderer type: %T", change.renderer)
@@ -34,8 +35,68 @@ func ValidatePrimitive(before, after *string) ValidateChangeFunc {
 	}
 }
 
-func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool) ValidateChangeFunc {
+func ValidateObject(attributes map[string]ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		object, ok := change.renderer.(*objectRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if !object.overrideNullSuffix {
+			t.Fatalf("created the wrong type of object renderer")
+		}
+
+		validateObject(t, object, attributes)
+	}
+}
+
+func ValidateNestedObject(attributes map[string]ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		object, ok := change.renderer.(*objectRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if object.overrideNullSuffix {
+			t.Fatalf("created the wrong type of object renderer")
+		}
+
+		validateObject(t, object, attributes)
+	}
+}
+
+func validateObject(t *testing.T, object *objectRenderer, attributes map[string]ValidateChangeFunc) {
+	if len(object.attributes) != len(attributes) {
+		t.Fatalf("expected %d attributes but found %d attributes", len(attributes), len(object.attributes))
+	}
+
+	var missing []string
+	for key, expected := range attributes {
+		actual, ok := object.attributes[key]
+		if !ok {
+			missing = append(missing, key)
+		}
+
+		if len(missing) > 0 {
+			continue
+		}
+
+		expected(t, actual)
+	}
+
+	if len(missing) > 0 {
+		t.Fatalf("missing the following attributes: %s", strings.Join(missing, ", "))
+	}
+}
+
+func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
 		sensitive, ok := change.renderer.(*sensitiveRenderer)
 		if !ok {
 			t.Fatalf("invalid renderer type: %T", change.renderer)
@@ -54,8 +115,10 @@ func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitiv
 	}
 }
 
-func ValidateComputed(before ValidateChangeFunc) ValidateChangeFunc {
+func ValidateComputed(before ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
 		computed, ok := change.renderer.(*computedRenderer)
 		if !ok {
 			t.Fatalf("invalid renderer type: %T", change.renderer)
