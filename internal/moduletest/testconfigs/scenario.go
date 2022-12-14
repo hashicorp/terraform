@@ -2,8 +2,6 @@ package testconfigs
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/hcl/v2"
@@ -25,7 +23,7 @@ type Scenario struct {
 	StepsOrder          []string
 }
 
-func LoadScenarioFile(filename string) (*Scenario, tfdiags.Diagnostics) {
+func loadScenarioFile(filename string, parser *configs.Parser) (*Scenario, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	ret := &Scenario{
@@ -53,36 +51,14 @@ func LoadScenarioFile(filename string) (*Scenario, tfdiags.Diagnostics) {
 	}
 	ret.Name = baseName
 
-	f, err := os.Open(filename)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot read test scenario file",
-			fmt.Sprintf("Error reading test scenario configuration from %s: %s.", filename, err),
-		))
-		return ret, diags
-	}
-	src, err := io.ReadAll(f)
-	if err != nil {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Cannot read test scenario file",
-			fmt.Sprintf("Error reading test scenario configuration from %s: %s.", filename, err),
-		))
-		return ret, diags
-	}
-
-	hclF, hclDiags := hclsyntax.ParseConfig(src, filename, hcl.InitialPos)
+	rootBody, hclDiags := parser.LoadHCLFile(filename)
 	diags = diags.Append(hclDiags)
-	if hclDiags.HasErrors() {
-		return ret, diags
-	}
 
 	ret.RealProviderConfigs = make(map[addrs.LocalProviderConfig]*configs.Provider)
 	ret.MockProviderConfigs = make(map[addrs.LocalProviderConfig]*MockProvider)
 	ret.Steps = make(map[string]*Step)
 
-	content, hclDiags := hclF.Body.Content(&scenarioFileSchema)
+	content, hclDiags := rootBody.Content(&scenarioFileSchema)
 	diags = diags.Append(hclDiags)
 	diags = diags.Append(checkScenarioConfigBlockOrder(content.Blocks))
 

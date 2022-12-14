@@ -27,6 +27,18 @@ type Step struct {
 	ExpectFailure  addrs.Set[addrs.Checkable]
 	Postconditions []*configs.CheckRule
 
+	// RootModule is the result of loading just the root module (in the
+	// directory given in ModuleDir) using the normal module loader in
+	// the configs package.
+	//
+	// We load this to allow for shallow initial analysis of things like
+	// whether the input variablse and provider configurations are valid
+	// for the module, but expanding this into a full configuration requires
+	// some extra work during init (to install the dependencies) and during
+	// load (to consult a manifest of what init installed), so we need to
+	// take those actions as separate steps from just loading the test config.
+	RootModule *configs.Module
+
 	DeclRange hcl.Range
 }
 
@@ -219,6 +231,10 @@ func decodeStepBlock(block *hcl.Block) (*Step, tfdiags.Diagnostics) {
 			panic(fmt.Sprintf("unhandled block type %q", block.Type))
 		}
 	}
+
+	// NOTE: The caller is responsible for populating ret.RootModule,
+	// since the caller knows which directory to look into if the
+	// configuration doesn't explicitly set the "module" argument.
 
 	return ret, diags
 }

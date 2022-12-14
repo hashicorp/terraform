@@ -63,7 +63,17 @@ func (c *TestCommand) Run(rawArgs []string) int {
 }
 
 func (c *TestCommand) run(ctx context.Context, args arguments.Test) (results map[string]*moduletest.ScenarioResult, diags tfdiags.Diagnostics) {
-	suite, diags := testconfigs.LoadSuiteForModule(".")
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		// It would be strange to get here so for prototype purposes we won't
+		// bother with a full diagnostic message.
+		// TODO: Make this a decent error message if we make a real version of this.
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	suite, moreDiags := testconfigs.LoadSuiteForModule(".", loader.Parser())
+	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}
