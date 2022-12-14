@@ -103,13 +103,8 @@ func (b *Local) opPlan(
 	// Record whether this plan includes any side-effects that could be applied.
 	runningOp.PlanEmpty = !plan.CanApply()
 
-	planErrored := false
-	if plan != nil {
-		planErrored = plan.Errored
-	}
-
 	// Save the plan to disk
-	if path := op.PlanOutPath; path != "" && plan != nil && (op.PlanOutAlways || !planErrored) {
+	if path := op.PlanOutPath; path != "" && plan != nil {
 		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.

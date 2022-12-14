@@ -230,7 +230,6 @@ type Operation struct {
 	PlanRefresh    bool   // PlanRefresh will do a refresh before a plan
 	PlanOutPath    string // PlanOutPath is the path to save the plan
 	PlanOutBackend *plans.Backend
-	PlanOutAlways  bool // Produce PlanOutPath even if plan is incomplete
 
 	// ConfigDir is the path to the directory containing the configuration's
 	// root module.

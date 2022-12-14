@@ -72,7 +72,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath, args.AlwaysOut)
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -139,7 +139,6 @@ func (c *PlanCommand) OperationRequest(
 	view views.Plan,
 	args *arguments.Operation,
 	planOutPath string,
-	planOutAlways bool,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -150,7 +149,6 @@ func (c *PlanCommand) OperationRequest(
 	opReq.Hooks = view.Hooks()
 	opReq.PlanRefresh = args.Refresh
 	opReq.PlanOutPath = planOutPath
-	opReq.PlanOutAlways = planOutAlways
 	opReq.Targets = args.Targets
 	opReq.ForceReplace = args.ForceReplace
 	opReq.Type = backend.OperationTypePlan
