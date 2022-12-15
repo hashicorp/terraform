@@ -111,6 +111,15 @@ func NewCheckResults(source *checks.State) *CheckResults {
 	return ret
 }
 
+func (r *CheckResults) AggregateStatus() checks.Status {
+	return checks.AggregateCheckStatusAddrsMap(
+		r.ConfigResults,
+		func(k addrs.ConfigCheckable, v *CheckResultAggregate) checks.Status {
+			return v.Status
+		},
+	)
+}
+
 // GetObjectResult looks up the result for a single object, or nil if there
 // is no such object.
 //

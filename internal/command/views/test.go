@@ -79,8 +79,6 @@ func (v *testHuman) Diagnostics(diags tfdiags.Diagnostics) {
 }
 
 func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) {
-	failCount := 0
-
 	scenarioNames := make([]string, 0, len(results))
 	for scenarioName := range results {
 		scenarioNames = append(scenarioNames, scenarioName)
@@ -92,7 +90,6 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 		v.eprintRuleHeading(colorCode, prefix, scenarioName)
 
 		if len(scenario.Steps) == 0 && scenario.Status == checks.StatusError {
-			failCount++
 			continue
 		}
 
@@ -114,56 +111,88 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 				// In case of problems we'll describe all of the checkable
 				// objects individually, to help narrow down the cause of
 				// the failure.
-				for _, elem := range step.Checks.ConfigResults.Elems {
-					configAddr := elem.Key
-					configResult := elem.Value
-					if configResult.ObjectResults.Len() == 0 {
-						// If we don't have any object results then either
-						// this is an expanding object that expanded to zero
-						// instances or expansion failed altogether. Either
-						// way we'll just emit a single entry representing the
-						// static config object just so we'll say _something_
-						// about each checkable object.
-						prefix, colorCode := v.presentationForStatus(configResult.Status)
-						v.streams.Eprintf(
-							"  - %s: %s\n",
-							v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
-							configAddr.String(),
-						)
-						if configResult.Status == checks.StatusFail || configResult.Status == checks.StatusError {
-							failCount++
+				if step.Checks != nil {
+					for _, elem := range step.Checks.ConfigResults.Elems {
+						configAddr := elem.Key
+						configResult := elem.Value
+						if configResult.ObjectResults.Len() == 0 {
+							// If we don't have any object results then either
+							// this is an expanding object that expanded to zero
+							// instances or expansion failed altogether. Either
+							// way we'll just emit a single entry representing the
+							// static config object just so we'll say _something_
+							// about each checkable object.
+							prefix, colorCode := v.presentationForStatus(configResult.Status)
+							v.streams.Eprintf(
+								"  - %s: %s\n",
+								v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+								configAddr.String(),
+							)
+						}
+						for _, elem := range configResult.ObjectResults.Elems {
+							objAddr := elem.Key
+							objResult := elem.Value
+							prefix, colorCode := v.presentationForStatus(objResult.Status)
+							v.streams.Eprintf(
+								"  - %s: %s\n",
+								v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+								objAddr.String(),
+							)
+							for _, msg := range objResult.FailureMessages {
+								v.streams.Eprintf("      %s\n", msg)
+							}
 						}
 					}
-					for _, elem := range configResult.ObjectResults.Elems {
-						objAddr := elem.Key
-						objResult := elem.Value
-						prefix, colorCode := v.presentationForStatus(objResult.Status)
-						v.streams.Eprintf(
-							"  - %s: %s\n",
-							v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
-							objAddr.String(),
-						)
-						for _, msg := range objResult.FailureMessages {
-							v.streams.Eprintf("    %s\n", msg)
-						}
-						if objResult.Status == checks.StatusFail || objResult.Status == checks.StatusError {
-							failCount++
-						}
+				}
+				for _, diag := range step.Diagnostics {
+					// TEMP: We'll just render the diagnostics in a similar
+					// way as an errored checkable object, for now.
+					var prefix, colorCode string
+					switch diag.Severity() {
+					case tfdiags.Error:
+						prefix = "Error"
+						colorCode = "red"
+					case tfdiags.Warning:
+						prefix = "Warning"
+						colorCode = "yellow"
+					default:
+						prefix = "Problem"
+						colorCode = "reset"
 					}
+					v.streams.Eprintf(
+						"  - %s: %s\n",
+						v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+						diag.Description().Summary,
+					)
 				}
 			}
 		}
 	}
 
-	if failCount == 0 {
+	overallStatus := checks.AggregateCheckStatusMap(
+		results,
+		func(k string, v *moduletest.ScenarioResult) checks.Status {
+			return v.Status
+		},
+	)
+
+	switch overallStatus {
+	case checks.StatusPass:
 		if len(results) > 0 {
 			// This is not actually an error, but it's convenient if all of our
 			// result output goes to the same stream for when this is running in
 			// automation that might be gathering this output via a pipe.
-			v.streams.Eprint(v.colorize.Color("[bold][green]Success![reset] All of the test assertions passed.\n\n"))
+			v.streams.Eprint(v.colorize.Color("\n[bold][green]Success![reset] All of the test assertions passed.\n\n"))
 		} else {
-			v.streams.Eprint(v.colorize.Color("[bold][yellow]No tests defined.[reset] This module doesn't have any test suites to run.\n\n"))
+			v.streams.Eprint(v.colorize.Color("\n[bold][yellow]No tests defined.[reset] This module doesn't have any test suites to run.\n\n"))
 		}
+	case checks.StatusFail:
+		v.streams.Eprint(v.colorize.Color("\n[bold][red]Fail:[reset] Not all of the test scenarios passed.\n\n"))
+	case checks.StatusError:
+		// We won't say anything for error because that'll get described
+		// by showing one or more error diagnostics.
+	case checks.StatusUnknown:
+		v.streams.Eprint(v.colorize.Color("\n[bold][yellow]Partial success:[reset] Some checks were skipped, but none failed.\n\n"))
 	}
 
 	// Try to flush any buffering that might be happening. (This isn't always

@@ -3,6 +3,7 @@ package checks
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -71,4 +72,188 @@ func StatusForCtyValue(v cty.Value) Status {
 		// weird is going on, like a marked condition result.
 		panic(fmt.Sprintf("cannot use %#v as check status", v))
 	}
+}
+
+// AggregateCheckStatusSlice is a helper for finding an approximate status that
+// describes the "strongest" status from a set of statuses which are presumably
+// from some child objects, represented as a slice.
+//
+// "Strongest" here means a prioritization order where errors trump failures,
+// failures trump passes, and passes trump unknowns. This prioritization order
+// reflects that if there's at least one failure then the overall status
+// cannot possibly be "pass" no matter if there are other sibling checks
+// passing.
+//
+// If the given set of objects is zero-length then the result is always
+// StatusPass, assuming that the absense of checks means an automatic pass.
+// Callers should check for this case separately if they need different
+// treatment of an empty set.
+//
+// The separate getStatus callback allows extracting status information
+// from each element of "objects" in turn without first allocating a separate
+// slice to copy them all into. If T is already [Status] then you can use
+// [AggregateCheckStatusIdentity] for getStatus.
+func AggregateCheckStatusSlice[T any](objects []T, getStatus func(T) Status) Status {
+	if len(objects) == 0 { // Easy path
+		return StatusPass
+	}
+
+	errorCount := 0
+	failCount := 0
+	unknownCount := 0
+
+	for _, obj := range objects {
+		status := getStatus(obj)
+		switch status {
+		case StatusPass:
+			// ok
+		case StatusFail:
+			failCount++
+		case StatusError:
+			errorCount++
+		default:
+			unknownCount++
+		}
+	}
+
+	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
+}
+
+// AggregateCheckStatusMap is a helper for finding an approximate status that
+// describes the "strongest" status from a set of statuses which are presumably
+// from some child objects, represented as a map.
+//
+// "Strongest" here means a prioritization order where errors trump failures,
+// failures trump passes, and passes trump unknowns. This prioritization order
+// reflects that if there's at least one failure then the overall status
+// cannot possibly be "pass" no matter if there are other sibling checks
+// passing.
+//
+// If the given set of objects is zero-length then the result is always
+// StatusPass, assuming that the absense of checks means an automatic pass.
+// Callers should check for this case separately if they need different
+// treatment of an empty set.
+//
+// The separate getStatus callback allows extracting status information
+// from each element of "objects" in turn without first allocating a separate
+// slice to copy them all into. If T is already [Status] then you can use
+// [AggregateCheckStatusIdentity] for getStatus.
+func AggregateCheckStatusMap[K comparable, V any](objects map[K]V, getStatus func(K, V) Status) Status {
+	if len(objects) == 0 { // Easy path
+		return StatusPass
+	}
+
+	errorCount := 0
+	failCount := 0
+	unknownCount := 0
+
+	for k, v := range objects {
+		status := getStatus(k, v)
+		switch status {
+		case StatusPass:
+			// ok
+		case StatusFail:
+			failCount++
+		case StatusError:
+			errorCount++
+		default:
+			unknownCount++
+		}
+	}
+
+	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
+}
+
+// AggregateCheckStatusAddrsMap is a helper for finding an approximate status that
+// describes the "strongest" status from a set of statuses which are presumably
+// from some child objects, represented as an addrs.Map.
+//
+// "Strongest" here means a prioritization order where errors trump failures,
+// failures trump passes, and passes trump unknowns. This prioritization order
+// reflects that if there's at least one failure then the overall status
+// cannot possibly be "pass" no matter if there are other sibling checks
+// passing.
+//
+// If the given set of objects is zero-length then the result is always
+// StatusPass, assuming that the absense of checks means an automatic pass.
+// Callers should check for this case separately if they need different
+// treatment of an empty set.
+//
+// The separate getStatus callback allows extracting status information
+// from each element of "objects" in turn without first allocating a separate
+// slice to copy them all into. If T is already [Status] then you can use
+// [AggregateCheckStatusIdentity] for getStatus.
+func AggregateCheckStatusAddrsMap[K addrs.UniqueKeyer, V any](objects addrs.Map[K, V], getStatus func(K, V) Status) Status {
+	if objects.Len() == 0 { // Easy path
+		return StatusPass
+	}
+
+	errorCount := 0
+	failCount := 0
+	unknownCount := 0
+
+	for _, elem := range objects.Elems {
+		status := getStatus(elem.Key, elem.Value)
+		switch status {
+		case StatusPass:
+			// ok
+		case StatusFail:
+			failCount++
+		case StatusError:
+			errorCount++
+		default:
+			unknownCount++
+		}
+	}
+
+	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
+}
+
+// AggregateCheckStatusAddrsSet is a helper for finding an approximate status that
+// describes the "strongest" status from a set of statuses which are presumably
+// from some child objects, represented as an addrs.Set.
+//
+// "Strongest" here means a prioritization order where errors trump failures,
+// failures trump passes, and passes trump unknowns. This prioritization order
+// reflects that if there's at least one failure then the overall status
+// cannot possibly be "pass" no matter if there are other sibling checks
+// passing.
+//
+// If the given set of objects is zero-length then the result is always
+// StatusPass, assuming that the absense of checks means an automatic pass.
+// Callers should check for this case separately if they need different
+// treatment of an empty set.
+//
+// The separate getStatus callback allows extracting status information
+// from each element of "objects" in turn without first allocating a separate
+// slice to copy them all into. If T is already [Status] then you can use
+// [AggregateCheckStatusIdentity] for getStatus.
+func AggregateCheckStatusAddrsSet[T addrs.UniqueKeyer](objects addrs.Set[T], getStatus func(T) Status) Status {
+	if len(objects) == 0 { // Easy path
+		return StatusPass
+	}
+
+	errorCount := 0
+	failCount := 0
+	unknownCount := 0
+
+	for _, obj := range objects {
+		status := getStatus(obj)
+		switch status {
+		case StatusPass:
+			// ok
+		case StatusFail:
+			failCount++
+		case StatusError:
+			errorCount++
+		default:
+			unknownCount++
+		}
+	}
+
+	return summarizeCheckStatuses(errorCount, failCount, unknownCount)
+}
+
+func AggregateCheckStatusIdentity(status Status) Status {
+	return status
 }
