@@ -29,7 +29,7 @@ func (renderer sensitiveRenderer) Render(change Change, indent int, opts RenderO
 func (renderer sensitiveRenderer) Warnings(change Change, indent int) []string {
 	if (renderer.beforeSensitive == renderer.afterSensitive) || renderer.before == nil || renderer.after == nil {
 		// Only display warnings for sensitive values if they are changing from
-		// being sensitive or to being sensitive or if they are not being
+		// being sensitive or to being sensitive and if they are not being
 		// destroyed or created.
 		return []string{}
 	}
