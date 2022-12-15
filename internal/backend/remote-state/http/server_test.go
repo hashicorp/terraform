@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 	"syscall"
@@ -23,8 +24,6 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -258,7 +257,9 @@ func TestMTLSServer_NoCertFails(t *testing.T) {
 
 	// Fire up a test server
 	ts, err := NewHttpTestServer(withHttpServerCallback(mockCallback))
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error creating test server: %v", err)
+	}
 	defer ts.Close()
 
 	// Configure the backend to the pre-populated sample state
@@ -268,13 +269,21 @@ func TestMTLSServer_NoCertFails(t *testing.T) {
 		"skip_cert_verification": cty.BoolVal(true),
 	}
 	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
-	require.NotNil(t, b, "nil backend")
+	if nil == b {
+		t.Fatal("nil backend")
+	}
 
 	// Now get a state manager and check that it fails to refresh the state
 	sm, err := b.StateMgr(backend.DefaultStateName)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, err)
+	}
 	err = sm.RefreshState()
-	require.Error(t, err)
+	if nil == err {
+		t.Error("expected error when refreshing state without a client cert")
+	} else if !strings.Contains(err.Error(), "remote error: tls: bad certificate") {
+		t.Errorf("expected the error to report missing tls credentials: %v", err)
+	}
 }
 
 func TestMTLSServer_WithCertPasses(t *testing.T) {
@@ -294,7 +303,9 @@ func TestMTLSServer_WithCertPasses(t *testing.T) {
 
 	// Fire up a test server
 	ts, err := NewHttpTestServer(withHttpServerCallback(mockCallback))
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error creating test server: %v", err)
+	}
 	defer ts.Close()
 
 	// Configure the backend to the pre-populated sample state, and with all the test certs lined up
@@ -308,16 +319,26 @@ func TestMTLSServer_WithCertPasses(t *testing.T) {
 		"client_private_key_pem":    cty.StringVal("testdata/certs/client.key"),
 	}
 	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
-	require.NotNil(t, b, "nil backend")
+	if nil == b {
+		t.Fatal("nil backend")
+	}
 
 	// Now get a state manager, fetch the state, and ensure that the "foo" output is not set
 	sm, err := b.StateMgr(backend.DefaultStateName)
-	require.NoError(t, err)
-	require.NoError(t, sm.RefreshState())
+	if err != nil {
+		t.Fatalf("unexpected error fetching StateMgr with %s: %v", backend.DefaultStateName, err)
+	}
+	if err = sm.RefreshState(); err != nil {
+		t.Fatalf("unexpected error calling RefreshState: %v", err)
+	}
 	state := sm.State()
-	require.NotNil(t, state, "nil state")
+	if nil == state {
+		t.Fatal("nil state")
+	}
 	stateFoo := state.OutputValue(addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance))
-	assert.Nil(t, stateFoo)
+	if stateFoo != nil {
+		t.Errorf("expected nil foo from state; got %v", stateFoo)
+	}
 
 	// Create a new state that has "foo" set to "bar" and ensure that state is as expected
 	state = states.BuildState(func(ss *states.SyncState) {
@@ -327,26 +348,46 @@ func TestMTLSServer_WithCertPasses(t *testing.T) {
 			false)
 	})
 	stateFoo = state.OutputValue(addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance))
-	require.NotNil(t, stateFoo)
-	assert.Equal(t, "bar", stateFoo.Value.AsString())
+	if nil == stateFoo {
+		t.Fatal("nil foo after building state with foo populated")
+	}
+	if foo := stateFoo.Value.AsString(); foo != "bar" {
+		t.Errorf("Expected built state foo value to be bar; got %s", foo)
+	}
 
 	// Ensure the change hasn't altered the current state manager state by checking "foo" and comparing states
 	curState := sm.State()
 	curStateFoo := curState.OutputValue(addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance))
-	assert.Nil(t, curStateFoo)
-	assert.NotEqual(t, state, curState)
+	if curStateFoo != nil {
+		t.Errorf("expected session manager state to be unaltered and still nil, but got: %v", curStateFoo)
+	}
+	if reflect.DeepEqual(state, curState) {
+		t.Errorf("expected %v != %v; but they were equal", state, curState)
+	}
 
 	// Write the new state, persist, and refresh
-	assert.NoError(t, sm.WriteState(state))
-	assert.NoError(t, sm.PersistState(nil))
-	assert.NoError(t, sm.RefreshState())
+	if err = sm.WriteState(state); err != nil {
+		t.Errorf("error writing state: %v", err)
+	}
+	if err = sm.PersistState(nil); err != nil {
+		t.Errorf("error persisting state: %v", err)
+	}
+	if err = sm.RefreshState(); err != nil {
+		t.Errorf("error refreshing state: %v", err)
+	}
 
 	// Get the state again and verify that is now the same as state and has the "foo" value set to "bar"
 	curState = sm.State()
-	assert.Equal(t, state, curState)
+	if !reflect.DeepEqual(state, curState) {
+		t.Errorf("expected %v == %v; but they were unequal", state, curState)
+	}
 	curStateFoo = curState.OutputValue(addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance))
-	require.NotNil(t, curStateFoo)
-	assert.Equal(t, "bar", curStateFoo.Value.AsString())
+	if nil == curStateFoo {
+		t.Fatal("nil foo")
+	}
+	if foo := curStateFoo.Value.AsString(); foo != "bar" {
+		t.Errorf("expected foo to be bar, but got: %s", foo)
+	}
 }
 
 // TestRunServer allows running the server for local debugging; it runs until ctl-c is received
@@ -355,7 +396,9 @@ func TestRunServer(t *testing.T) {
 		t.Skip("TEST_RUN_SERVER not set")
 	}
 	s, err := NewHttpTestServer()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error creating test server: %v", err)
+	}
 	defer s.Close()
 
 	t.Log(s.URL)
