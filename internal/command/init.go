@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -22,6 +24,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/terraform/internal/moduletest/testconfigs"
 	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -344,11 +348,6 @@ func (c *InitCommand) Run(args []string) int {
 }
 
 func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
-	if len(earlyRoot.ModuleCalls) == 0 {
-		// Nothing to do
-		return false, false, nil
-	}
-
 	if upgrade {
 		c.Ui.Output(c.Colorize().Color("[reset][bold]Upgrading modules..."))
 	} else {
@@ -377,6 +376,41 @@ func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrad
 				"Failed to read module manifest",
 				fmt.Sprintf("After installing modules, Terraform could not re-read the manifest of installed modules. This is a bug in Terraform. %s.", err),
 			))
+		}
+	}
+
+	// TEMP HACK: We'll also deal with installing the modules required for
+	// any test scenarios here, for want of some better place to do this.
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, installAbort, diags
+	}
+	suite, testSuiteDiags := testconfigs.LoadSuiteForModule(path, loader.Parser())
+	diags = diags.Append(testSuiteDiags)
+	if !testSuiteDiags.HasErrors() {
+		if len(suite.Scenarios) != 0 {
+			c.Ui.Output(c.Colorize().Color("[reset][bold]Initializing modules for testing scenarios..."))
+		}
+		for scenarioName, scenario := range suite.Scenarios {
+			for _, stepName := range scenario.StepsOrder {
+				step := scenario.Steps[stepName]
+				modulesCacheDir := filepath.Join(c.DataDir(), "test-scenarios", scenarioName, stepName, "modules")
+				err := os.MkdirAll(modulesCacheDir, os.ModePerm)
+				if err != nil {
+					diags = diags.Append(fmt.Errorf("failed to create local modules directory: %s", err))
+					return true, installAbort, diags
+				}
+				reg := c.registryClient()
+				inst := initwd.NewModuleInstaller(modulesCacheDir, reg)
+
+				// Installation can be aborted by interruption signals
+				ctx, done := c.InterruptibleContext()
+				defer done()
+
+				_, moreDiags := inst.InstallModules(ctx, step.ModuleDir, upgrade, hooks)
+				diags = diags.Append(moreDiags)
+			}
 		}
 	}
 
