@@ -310,13 +310,25 @@ func TestMTLSServer_WithCertPasses(t *testing.T) {
 
 	// Configure the backend to the pre-populated sample state, and with all the test certs lined up
 	url := ts.URL + "/state/sample"
+	caData, err := os.ReadFile("testdata/certs/ca.cert.pem")
+	if err != nil {
+		t.Fatalf("error reading ca certs: %v", err)
+	}
+	clientCertData, err := os.ReadFile("testdata/certs/client.crt")
+	if err != nil {
+		t.Fatalf("error reading client cert: %v", err)
+	}
+	clientKeyData, err := os.ReadFile("testdata/certs/client.key")
+	if err != nil {
+		t.Fatalf("error reading client key: %v", err)
+	}
 	conf := map[string]cty.Value{
 		"address":                   cty.StringVal(url),
 		"lock_address":              cty.StringVal(url),
 		"unlock_address":            cty.StringVal(url),
-		"client_ca_certificate_pem": cty.StringVal("testdata/certs/ca.cert.pem"),
-		"client_certificate_pem":    cty.StringVal("testdata/certs/client.crt"),
-		"client_private_key_pem":    cty.StringVal("testdata/certs/client.key"),
+		"client_ca_certificate_pem": cty.StringVal(string(caData)),
+		"client_certificate_pem":    cty.StringVal(string(clientCertData)),
+		"client_private_key_pem":    cty.StringVal(string(clientKeyData)),
 	}
 	b := backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
 	if nil == b {

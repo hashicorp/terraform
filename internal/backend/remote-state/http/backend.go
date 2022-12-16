@@ -4,11 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -99,19 +99,19 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CA_CERTIFICATE_PEM", ""),
-				Description: "A path to a PEM-encoded CA certificate file used by the client to verify server certificates during TLS authentication.",
+				Description: "A PEM-encoded CA certificate chain used by the client to verify server certificates during TLS authentication.",
 			},
 			"client_certificate_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_CERTIFICATE_PEM", ""),
-				Description: "A path to a PEM-encoded certificate file used by the server to verify the client during mutual TLS (mTLS) authentication.",
+				Description: "A PEM-encoded certificate used by the server to verify the client during mutual TLS (mTLS) authentication.",
 			},
 			"client_private_key_pem": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_PRIVATE_KEY_PEM", ""),
-				Description: "A path to a PEM-encoded private key, required if client_certificate_pem is specified.",
+				Description: "A PEM-encoded private key, required if client_certificate_pem is specified.",
 			},
 		},
 	}
@@ -154,20 +154,16 @@ func (b *Backend) configureTLS(client *retryablehttp.Client, data *schema.Resour
 	}
 	if clientCACertificatePem != "" {
 		// trust servers based on a CA
-		caCertificateData, err := os.ReadFile(clientCACertificatePem)
-		if err != nil {
-			return fmt.Errorf("failed to read file %s: %w", clientCACertificatePem, err)
-		}
 		tlsConfig.RootCAs = x509.NewCertPool()
-		if !tlsConfig.RootCAs.AppendCertsFromPEM(caCertificateData) {
-			return fmt.Errorf("failed to append certs from file %s: %w", clientCACertificatePem, err)
+		if !tlsConfig.RootCAs.AppendCertsFromPEM([]byte(clientCACertificatePem)) {
+			return errors.New("failed to append certs")
 		}
 	}
 	if clientCertificatePem != "" && clientPrivateKeyPem != "" {
 		// attach a client certificate to the TLS handshake (aka mTLS)
-		certificate, err := tls.LoadX509KeyPair(clientCertificatePem, clientPrivateKeyPem)
+		certificate, err := tls.X509KeyPair([]byte(clientCertificatePem), []byte(clientPrivateKeyPem))
 		if err != nil {
-			return fmt.Errorf("cannot load certificate from %s and %s: %w", clientCertificatePem, clientPrivateKeyPem, err)
+			return fmt.Errorf("cannot load client certificate: %w", err)
 		}
 		tlsConfig.Certificates = []tls.Certificate{certificate}
 	}
