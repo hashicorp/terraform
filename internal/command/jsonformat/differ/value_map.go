@@ -61,6 +61,9 @@ func (m ValueMap) processReplacePaths(key string) []interface{} {
 		path := p.([]interface{})
 
 		if len(path) == 0 {
+			// This means that the current value is causing a replacement but
+			// not its children, so we skip as we are returning the child's
+			// value.
 			continue
 		}
 

@@ -520,6 +520,24 @@ func TestRenderers(t *testing.T) {
     }
 `,
 		},
+		"map_update_sensitive_element_status": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Sensitive(0, 0, true, false),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      # Warning: this attribute value will no longer be marked as sensitive
+      # after applying this change. The value is unchanged.
+      ~ "element_one" = (sensitive)
+    }
+`,
+		},
 		"map_delete_sensitive_element": {
 			change: Change{
 				renderer: Map(map[string]Change{
@@ -569,6 +587,308 @@ func TestRenderers(t *testing.T) {
 {
       ~ "element_one" = 1 -> (known after apply)
     }
+`,
+		},
+		"list_create_empty": {
+			change: Change{
+				renderer: List([]Change{}),
+				action:   plans.Create,
+			},
+			expected: "[]",
+		},
+		"list_create": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Create,
+			},
+			expected: `
+[
+      + 1,
+    ]
+`,
+		},
+		"list_delete_empty": {
+			change: Change{
+				renderer: List([]Change{}),
+				action:   plans.Delete,
+			},
+			expected: "[] -> null",
+		},
+		"list_delete": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("1"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Delete,
+			},
+			expected: `
+[
+      - 1,
+    ] -> null
+`,
+		},
+		"list_create_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + 1,
+    ]
+`,
+		},
+		"list_update_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("1")),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 0 -> 1,
+    ]
+`,
+		},
+		"list_replace_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("0"), nil),
+						action:   plans.Delete,
+					},
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - 0,
+      + 1,
+    ]
+`,
+		},
+		"list_delete_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("0"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - 0,
+    ]
+`,
+		},
+		"list_update_forces_replacement": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("1")),
+						action:   plans.Update,
+					},
+				}),
+				action:  plans.Update,
+				replace: true,
+			},
+			expected: `
+[ # forces replacement
+      ~ 0 -> 1,
+    ]
+`,
+		},
+		"list_update_ignores_unchanged": {
+			change: Change{
+				renderer: NestedList([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("0")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("1"), strptr("1")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("2"), strptr("5")),
+						action:   plans.Update,
+					},
+					{
+						renderer: Primitive(strptr("3"), strptr("3")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("4"), strptr("4")),
+						action:   plans.NoOp,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 2 -> 5,
+        # (4 unchanged elements hidden)
+    ]
+`,
+		},
+		"list_update_ignored_unchanged_with_context": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("0")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("1"), strptr("1")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("2"), strptr("5")),
+						action:   plans.Update,
+					},
+					{
+						renderer: Primitive(strptr("3"), strptr("3")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("4"), strptr("4")),
+						action:   plans.NoOp,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+        # (1 unchanged element hidden)
+        1,
+      ~ 2 -> 5,
+        3,
+        # (1 unchanged element hidden)
+    ]
+`,
+		},
+		"list_create_sensitive_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Sensitive(nil, 1, false, true),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + (sensitive),
+    ]
+`,
+		},
+		"list_delete_sensitive_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Sensitive(1, nil, true, false),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - (sensitive),
+    ]
+`,
+		},
+		"list_update_sensitive_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Sensitive(nil, 1, false, true),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ (sensitive),
+    ]
+`,
+		},
+		"list_update_sensitive_element_status": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Sensitive(1, 1, false, true),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      # Warning: this attribute value will be marked as sensitive and will not
+      # display in UI output after applying this change. The value is unchanged.
+      ~ (sensitive),
+    ]
+`,
+		},
+		"list_create_computed_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Computed(Change{}),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + (known after apply),
+    ]
+`,
+		},
+		"list_update_computed_element": {
+			change: Change{
+				renderer: List([]Change{
+					{
+						renderer: Computed(Change{
+							renderer: Primitive(strptr("0"), nil),
+							action:   plans.Delete,
+						}),
+						action: plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 0 -> (known after apply),
+    ]
 `,
 		},
 	}

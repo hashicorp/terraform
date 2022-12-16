@@ -422,6 +422,34 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				validate(t, input.ComputeChange(attribute))
 			})
 
+			t.Run("list", func(t *testing.T) {
+				attribute := &jsonprovider.Attribute{
+					AttributeType: unmarshalType(t, cty.List(cty.Object(tc.attributes))),
+				}
+
+				input := wrapValueInSlice(tc.input)
+
+				if tc.validateObject != nil {
+					validate := change.ValidateList([]change.ValidateChangeFunc{
+						tc.validateObject,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateSingleChange != nil {
+					validate := change.ValidateList([]change.ValidateChangeFunc{
+						tc.validateSingleChange,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
+				}, collectionDefaultAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
 		})
 
 		t.Run(fmt.Sprintf("nested_%s", name), func(t *testing.T) {
@@ -494,6 +522,46 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}, collectionDefaultAction, false)
 				validate(t, input.ComputeChange(attribute))
 			})
+
+			t.Run("list", func(t *testing.T) {
+				attribute := &jsonprovider.Attribute{
+					AttributeNestedType: &jsonprovider.NestedType{
+						Attributes: func() map[string]*jsonprovider.Attribute {
+							attributes := make(map[string]*jsonprovider.Attribute)
+							for key, attribute := range tc.attributes {
+								attributes[key] = &jsonprovider.Attribute{
+									AttributeType: unmarshalType(t, attribute),
+								}
+							}
+							return attributes
+						}(),
+						NestingMode: "list",
+					},
+				}
+
+				input := wrapValueInSlice(tc.input)
+
+				if tc.validateNestedObject != nil {
+					validate := change.ValidateNestedList([]change.ValidateChangeFunc{
+						tc.validateNestedObject,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateSingleChange != nil {
+					validate := change.ValidateNestedList([]change.ValidateChangeFunc{
+						tc.validateSingleChange,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateNestedList([]change.ValidateChangeFunc{
+					change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
+				}, collectionDefaultAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
 		})
 	}
 }
@@ -504,9 +572,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 	// contexts of collections.
 
 	tcs := map[string]struct {
-		input          Value
-		attribute      cty.Type
-		validateChange change.ValidateChangeFunc
+		input               Value
+		attribute           cty.Type
+		validateChange      change.ValidateChangeFunc
+		validateListChanges []change.ValidateChangeFunc // Lists are special in some cases.
 	}{
 		"primitive_create": {
 			input: Value{
@@ -529,6 +598,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
 		},
 		"primitive_set_explicit_null": {
 			input: Value{
@@ -538,6 +611,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), nil, plans.Update, false),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, nil, plans.Create, false),
+			},
 		},
 		"primitive_unset_explicit_null": {
 			input: Value{
@@ -547,6 +624,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(nil, strptr("\"new\""), plans.Update, false),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(nil, nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
 		},
 		"primitive_create_sensitive": {
 			input: Value{
@@ -575,6 +656,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidateSensitive("old", "new", true, true, plans.Update, false),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidateSensitive("old", nil, true, false, plans.Delete, false),
+				change.ValidateSensitive(nil, "new", false, true, plans.Create, false),
+			},
 		},
 		"primitive_create_computed": {
 			input: Value{
@@ -593,6 +678,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidateComputed(change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false), plans.Update, false),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidateComputed(nil, plans.Create, false),
+			},
 		},
 		"primitive_update_replace": {
 			input: Value{
@@ -604,6 +693,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, true),
+			validateListChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, true),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
 		},
 		"noop": {
 			input: Value{
@@ -637,6 +730,24 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 					"element": tc.validateChange,
+				}, defaultCollectionsAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
+
+			t.Run("list", func(t *testing.T) {
+				input := wrapValueInSlice(tc.input)
+				attribute := &jsonprovider.Attribute{
+					AttributeType: unmarshalType(t, cty.List(tc.attribute)),
+				}
+
+				if tc.validateListChanges != nil {
+					validate := change.ValidateList(tc.validateListChanges, defaultCollectionsAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateList([]change.ValidateChangeFunc{
+					tc.validateChange,
 				}, defaultCollectionsAction, false)
 				validate(t, input.ComputeChange(attribute))
 			})
@@ -765,6 +876,108 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			},
 			validateChange: change.ValidateComputed(change.ValidateMap(nil, plans.Delete, false), plans.Update, false),
 		},
+		"list_create_empty": {
+			input: Value{
+				Before: nil,
+				After:  []interface{}{},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateList(nil, plans.Create, false),
+		},
+		"list_create_populated": {
+			input: Value{
+				Before: nil,
+				After:  []interface{}{"one", "two"},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(nil, strptr("\"one\""), plans.Create, false),
+				change.ValidatePrimitive(nil, strptr("\"two\""), plans.Create, false),
+			}, plans.Create, false),
+		},
+		"list_delete_empty": {
+			input: Value{
+				Before: []interface{}{},
+				After:  nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateList(nil, plans.Delete, false),
+		},
+		"list_delete_populated": {
+			input: Value{
+				Before: []interface{}{"one", "two"},
+				After:  nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"one\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(strptr("\"two\""), nil, plans.Delete, false),
+			}, plans.Delete, false),
+		},
+		"list_create_sensitive": {
+			input: Value{
+				Before:         nil,
+				After:          []interface{}{},
+				AfterSensitive: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateSensitive(nil, []interface{}{}, false, true, plans.Create, false),
+		},
+		"list_update_sensitive": {
+			input: Value{
+				Before:          []interface{}{"one"},
+				BeforeSensitive: true,
+				After:           []interface{}{},
+				AfterSensitive:  true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateSensitive([]interface{}{"one"}, []interface{}{}, true, true, plans.Update, false),
+		},
+		"list_delete_sensitive": {
+			input: Value{
+				Before:          []interface{}{},
+				BeforeSensitive: true,
+				After:           nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateSensitive([]interface{}{}, nil, true, false, plans.Delete, false),
+		},
+		"list_create_unknown": {
+			input: Value{
+				Before:  nil,
+				After:   []interface{}{},
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateComputed(nil, plans.Create, false),
+		},
+		"list_update_unknown": {
+			input: Value{
+				Before:  []interface{}{},
+				After:   []interface{}{"one"},
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.List(cty.String)),
+			},
+			validateChange: change.ValidateComputed(change.ValidateList(nil, plans.Delete, false), plans.Update, false),
+		},
 	}
 
 	for name, tc := range tcs {
@@ -785,10 +998,27 @@ func unmarshalType(t *testing.T, ctyType cty.Type) json.RawMessage {
 	return msg
 }
 
+// wrapValueInSlice does the same as wrapValueInMap, except it wraps it into a
+// slice internally.
+func wrapValueInSlice(input Value) Value {
+	return wrapValue(input, float64(0), func(value interface{}, unknown interface{}, explicit bool) interface{} {
+		switch value.(type) {
+		case nil:
+			if set, ok := unknown.(bool); (set && ok) || explicit {
+				return []interface{}{nil}
+
+			}
+			return []interface{}{}
+		default:
+			return []interface{}{value}
+		}
+	})
+}
+
 // wrapValueInMap access a single Value and returns a new Value that represents
 // a map with a single element. That single element is the input value.
 func wrapValueInMap(input Value) Value {
-	tomap := func(value interface{}, unknown interface{}, explicit bool) interface{} {
+	return wrapValue(input, "element", func(value interface{}, unknown interface{}, explicit bool) interface{} {
 		switch value.(type) {
 		case nil:
 			if set, ok := unknown.(bool); (set && ok) || explicit {
@@ -802,20 +1032,22 @@ func wrapValueInMap(input Value) Value {
 				"element": value,
 			}
 		}
-	}
+	})
+}
 
+func wrapValue(input Value, step interface{}, wrap func(interface{}, interface{}, bool) interface{}) Value {
 	return Value{
-		Before:          tomap(input.Before, nil, input.BeforeExplicit),
-		After:           tomap(input.After, input.Unknown, input.AfterExplicit),
-		Unknown:         tomap(input.Unknown, nil, false),
-		BeforeSensitive: tomap(input.BeforeSensitive, nil, false),
-		AfterSensitive:  tomap(input.AfterSensitive, nil, false),
+		Before:          wrap(input.Before, nil, input.BeforeExplicit),
+		After:           wrap(input.After, input.Unknown, input.AfterExplicit),
+		Unknown:         wrap(input.Unknown, nil, false),
+		BeforeSensitive: wrap(input.BeforeSensitive, nil, false),
+		AfterSensitive:  wrap(input.AfterSensitive, nil, false),
 		ReplacePaths: func() []interface{} {
 			var ret []interface{}
 			for _, path := range input.ReplacePaths {
 				old := path.([]interface{})
 				var updated []interface{}
-				updated = append(updated, "element")
+				updated = append(updated, step)
 				updated = append(updated, old...)
 				ret = append(ret, updated)
 			}
