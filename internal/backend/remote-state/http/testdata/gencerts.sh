@@ -8,7 +8,7 @@
 set -ex
 
 # I was doing this on M1 mac and needed newer openssl to add the SAN IP; please export OPENSSL when invoking as needed
-OPENSSL="${OPENSSL:-/opt/homebrew/Cellar/openssl@3/3.0.5/bin/openssl}"
+OPENSSL="${OPENSSL:-openssl}"
 
 # Nuke and recreate the certs dir
 rm -rf certs
