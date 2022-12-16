@@ -21,8 +21,7 @@ func (c *WorkspaceCommand) Run(args []string) int {
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
-	c.Ui.Output(c.Help())
-	return 0
+	return cli.RunResultHelp
 }
 
 func (c *WorkspaceCommand) Help() string {
