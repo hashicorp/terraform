@@ -1,6 +1,7 @@
 package moduletest
 
 import (
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -29,10 +30,15 @@ type StepResult struct {
 	// with ">" to allow distinguishing explicit vs. implied steps.
 	Name string
 
-	// Status is the aggregate status across all of the checks in this step.
+	// Status is the aggregate status across all of the checks in this step,
 	//
 	// If field Diagnostics includes at least one error diagnostic then Status
 	// is always checks.StatusError, regardless of the individual check results.
+	//
+	// This field also takes into account field [ExpectedFailures]: a failure
+	// that was expected is counted as if it were passing, and any passing
+	// object is treated as a failure, thereby essentially inverting the
+	// result of those checks when considered in aggregate.
 	//
 	// Status unknown represents that the step didn't run to completion but that
 	// any partial execution didn't encounter any failures or errors. For
@@ -54,6 +60,14 @@ type StepResult struct {
 	// wish to use more muted presentation when reporting them, or perhaps not
 	// mention them at all unless they return errors.
 	Checks *states.CheckResults
+
+	// ExpectedFailures augments field Checks with extra information about the
+	// objects that the test author listed in "expected_failures".
+	//
+	// All members of this map should be [checks.StatusFail] for the overall
+	// test step to be considered as passing. If any entries in this map are
+	// [checks.StatusPass] then the overall step status is [checks.StatusFail].
+	ExpectedFailures addrs.Map[addrs.Checkable, checks.Status]
 
 	// Diagnostics reports any diagnostics generated during this step.
 	//

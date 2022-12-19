@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -309,6 +310,11 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	}
 	// TODO: We also need to pass in provider configurations, once such a thing
 	// is possible to do.
+	// TODO: Make sure that everything listed in expected_failures refers to
+	// a static checkable object that we can see in the configuration, and
+	// reject the test step as invalid if not. The subsequent logic which
+	// checks whether the expected failures actually failed assumes that
+	// expected_failures can only refer to checkable objects that exist.
 	if varDefErrors {
 		// If we get here then the loop above should've added at least one
 		// error to result.Diagnostics, and so we'll bail out and return
@@ -331,7 +337,8 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	// us a partial result. If we reach the apply step below then we'll
 	// overwrite these with final results.
 	result.Checks = plan.Checks
-	result.Status = result.Checks.AggregateStatus()
+	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
+	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures)
 
 	if !stepConfig.ApplyPlan {
 		// If we're not actually applying the plan then we'll let the caller
@@ -358,12 +365,47 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	}
 
 	result.Checks = newState.CheckResults
-	result.Status = result.Checks.AggregateStatus()
+	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
+	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures)
 
 	// TODO: We also need to deal with any expected failures, which should
 	// allow the overall step to succeed even if they have StatusFail.
 
 	return cleanupCtx, diags
+}
+
+func (c *TestCommand) prepareExpectedFailuresReport(checkResults *states.CheckResults, expectedFail addrs.Set[addrs.Checkable]) addrs.Map[addrs.Checkable, checks.Status] {
+	var ret addrs.Map[addrs.Checkable, checks.Status]
+	if len(expectedFail) == 0 {
+		return ret
+	}
+	ret = addrs.MakeMap[addrs.Checkable, checks.Status]()
+	for _, addr := range expectedFail {
+		result := checkResults.GetObjectResult(addr)
+		status := checks.StatusUnknown
+		if result != nil {
+			status = result.Status
+		}
+		ret.Put(addr, status)
+	}
+	return ret
+}
+
+func (c *TestCommand) stepAggregateStatus(checkResults *states.CheckResults, expectedFails addrs.Map[addrs.Checkable, checks.Status]) checks.Status {
+	return checks.AggregateCheckStatusAddrsMap(
+		checkResults.ConfigResults,
+		func(k addrs.ConfigCheckable, aggrResult *states.CheckResultAggregate) checks.Status {
+			return checks.AggregateCheckStatusAddrsMap(
+				aggrResult.ObjectResults,
+				func(addr addrs.Checkable, result *states.CheckResultObject) checks.Status {
+					if expectedFails.Has(addr) {
+						return result.Status.ForExpectedFailure()
+					}
+					return result.Status
+				},
+			)
+		},
+	)
 }
 
 func (c *TestCommand) runScenarioCleanup(ctx context.Context, cleanupCtx *testCommandCleanupContext, result *moduletest.StepResult) tfdiags.Diagnostics {

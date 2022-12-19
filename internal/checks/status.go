@@ -39,6 +39,29 @@ const (
 	StatusError Status = 'E'
 )
 
+// ForExpectedFailure reinterprets the reciever in a context where failure is
+// expected, such as in a test step that is intentionally causing a condition
+// to fail in order to test the condition itself.
+//
+// This method swaps [StatusPass] for [StatusFail] and vice-versa. It also
+// treates [StatusUnknown] as [StatusError] because any test which is asserting
+// failure for a particular checkable object must produce a definitive result
+// for that object. [StatusError] also stays as [StatusError] because that
+// indicates that the check was totally invalid, and that's not the same thing
+// as the failure of a valid check.
+func (s Status) ForExpectedFailure() Status {
+	switch s {
+	case StatusPass:
+		return StatusFail
+	case StatusFail:
+		return StatusPass
+	case StatusUnknown:
+		return StatusError
+	default:
+		return s
+	}
+}
+
 // StatusForCtyValue returns the Status value corresponding to the given
 // cty Value, which must be one of either cty.True, cty.False, or
 // cty.UnknownVal(cty.Bool) or else this function will panic.

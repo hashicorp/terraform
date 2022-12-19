@@ -151,12 +151,30 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 						for _, elem := range configResult.ObjectResults.Elems {
 							objAddr := elem.Key
 							objResult := elem.Value
+
 							prefix, symbol, colorCode := v.presentationForStatus(objResult.Status)
+							if isExpectedFail := step.ExpectedFailures.Has(objAddr); isExpectedFail {
+								// For an expected failure we use an inverted
+								// presentation style where a failure is shown
+								// with a checkmark and a success is shown as
+								// a cross mark, along with some different
+								// messaging to indicate why those are appearing.
+								_, symbol, colorCode = v.presentationForStatus(objResult.Status.ForExpectedFailure())
+								switch objResult.Status {
+								case checks.StatusPass:
+									prefix = "Unexpected pass"
+								case checks.StatusUnknown:
+									prefix = "Error instead of expected failure"
+								case checks.StatusFail:
+									prefix = "Expected failure"
+								}
+							}
 							v.streams.Eprintf(
 								"  %s: %s\n",
 								v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
 								objAddr.String(),
 							)
+
 							for _, msg := range objResult.FailureMessages {
 								v.streams.Eprintf("      %s\n", msg)
 							}
