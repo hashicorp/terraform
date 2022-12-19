@@ -45,6 +45,30 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	ctx, cancel := c.InterruptibleContext()
 	defer cancel()
 
+	// We'll first make sure the module we're testing is even valid, since that
+	// will allow us to give quicker feedback than waiting for all of the
+	// scenarios to run and presumably end up hitting the same error.
+	//
+	// This is philosophically similar to catching complile-time errors before
+	// running tests in a ahead-of-time compiled language, although for us it
+	// isn't strictly necessary and is instead to just tighten the modify/test
+	// loop when using tests to support local development.
+	moreDiags := c.preValidate(ctx, args)
+	if moreDiags.HasErrors() {
+		// NOTE: This is intentionally different than the usual pattern for
+		// diagnostics where we'd normally append unconditionally and _then_
+		// check for errors, so that we can preserve any warnings.
+		//
+		// In this situation we're using this early validation check as a
+		// timesaver to catch problems that would typically make every test
+		// case fail, but if it only generates warnings then we're likely to
+		// see those same warnings for every test scenario anyway and so it'd
+		// just add noise to report them again here.
+		diags = diags.Append(moreDiags)
+		view.Diagnostics(diags)
+		return 1
+	}
+
 	results, moreDiags := c.run(ctx, args)
 	diags = diags.Append(moreDiags)
 
@@ -67,6 +91,33 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 	return 0
+}
+
+func (c *TestCommand) preValidate(ctx context.Context, args arguments.Test) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	cfg, cfgDiags := c.loadConfig(".")
+	diags = diags.Append(cfgDiags)
+
+	if diags.HasErrors() {
+		return diags
+	}
+
+	coreOpts, err := c.contextOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return diags
+	}
+
+	core, ctxDiags := terraform.NewContext(coreOpts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return diags
+	}
+
+	validateDiags := core.Validate(cfg)
+	diags = diags.Append(validateDiags)
+	return diags
 }
 
 func (c *TestCommand) run(ctx context.Context, args arguments.Test) (results map[string]*moduletest.ScenarioResult, diags tfdiags.Diagnostics) {
