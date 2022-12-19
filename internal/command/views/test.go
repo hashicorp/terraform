@@ -84,9 +84,28 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 		scenarioNames = append(scenarioNames, scenarioName)
 	}
 	sort.Strings(scenarioNames)
+
+	// To make the result easier to scan, we'll first print a short summary
+	// of just the test scenario statuses.
 	for _, scenarioName := range scenarioNames {
 		scenario := results[scenarioName]
-		prefix, colorCode := v.presentationForStatus(scenario.Status)
+		prefix, symbol, colorCode := v.presentationForStatus(scenario.Status)
+		v.streams.Eprintf(
+			"%s: %s\n",
+			v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
+			scenario.Name,
+		)
+	}
+
+	// If any of the scenarios failed or errored then we'll now repeat them
+	// with more detail about exactly what went wrong.
+	for _, scenarioName := range scenarioNames {
+		scenario := results[scenarioName]
+		if scenario.Status != checks.StatusFail && scenario.Status != checks.StatusError {
+			continue
+		}
+		prefix, _, colorCode := v.presentationForStatus(scenario.Status)
+		v.streams.Eprintln("")
 		v.eprintRuleHeading(colorCode, prefix, scenarioName)
 
 		if len(scenario.Steps) == 0 && scenario.Status == checks.StatusError {
@@ -101,7 +120,7 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 				continue
 			}
 
-			prefix, colorCode := v.presentationForStatus(step.Status)
+			prefix, _, colorCode := v.presentationForStatus(step.Status)
 			v.streams.Eprintf(
 				"%s: %s\n",
 				v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
@@ -122,7 +141,7 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 							// way we'll just emit a single entry representing the
 							// static config object just so we'll say _something_
 							// about each checkable object.
-							prefix, colorCode := v.presentationForStatus(configResult.Status)
+							prefix, _, colorCode := v.presentationForStatus(configResult.Status)
 							v.streams.Eprintf(
 								"  - %s: %s\n",
 								v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
@@ -132,10 +151,10 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 						for _, elem := range configResult.ObjectResults.Elems {
 							objAddr := elem.Key
 							objResult := elem.Value
-							prefix, colorCode := v.presentationForStatus(objResult.Status)
+							prefix, symbol, colorCode := v.presentationForStatus(objResult.Status)
 							v.streams.Eprintf(
-								"  - %s: %s\n",
-								v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+								"  %s: %s\n",
+								v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
 								objAddr.String(),
 							)
 							for _, msg := range objResult.FailureMessages {
@@ -147,21 +166,22 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 				for _, diag := range step.Diagnostics {
 					// TEMP: We'll just render the diagnostics in a similar
 					// way as an errored checkable object, for now.
-					var prefix, colorCode string
+					var prefix, symbol, colorCode string
 					switch diag.Severity() {
 					case tfdiags.Error:
-						prefix = "Error"
-						colorCode = "red"
+						prefix, symbol, colorCode = v.presentationForStatus(checks.StatusError)
 					case tfdiags.Warning:
 						prefix = "Warning"
 						colorCode = "yellow"
+						symbol = "!"
 					default:
 						prefix = "Problem"
+						symbol = "*"
 						colorCode = "reset"
 					}
 					v.streams.Eprintf(
-						"  - %s: %s\n",
-						v.colorize.Color(fmt.Sprintf("[%s]%s", colorCode, prefix)),
+						"  %s: %s\n",
+						v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
 						diag.Description().Summary,
 					)
 				}
@@ -342,20 +362,20 @@ func (v *testHuman) eprintRuleHeading(color, prefix, extra string) {
 	v.streams.Eprintln(buf.String())
 }
 
-func (v *testHuman) presentationForStatus(status checks.Status) (prefix, color string) {
+func (v *testHuman) presentationForStatus(status checks.Status) (prefix, symbol, color string) {
 	switch status {
 	case checks.StatusFail:
-		return "Fail", "red"
+		return "Fail", "\u2718", "red"
 	case checks.StatusError:
-		return "Error", "red"
+		return "Error", "\u203C", "red"
 	case checks.StatusPass:
-		return "Pass", "green"
+		return "Pass", "\u2713", "green"
 	case checks.StatusUnknown:
-		return "Skipped", "dark_gray"
+		return "Skipped", "…", "dark_gray"
 	default:
 		// If this is a status we don't recognize then we'll just use reset
 		// as a no-op. We shouldn't get here because the above cases should
 		// be exhaustive for all of the possible checks.Status values.
-		return "Tested", "reset"
+		return "Tested", "*", "reset"
 	}
 }
