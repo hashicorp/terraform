@@ -5,6 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -17,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // TestCommand is the implementation of "terraform test".
@@ -307,6 +309,19 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 				SourceType: terraform.ValueFromCaller,
 			}
 		}
+	}
+	if len(stepConfig.Postconditions) != 0 {
+		// TODO: Actually support test-step postconditions, allowing them to
+		// e.g. compare prior state to planned new state and other such things
+		// that expressions within a normal module wouldn't be allowed to do.
+		// For now we just reject them outright to avoid reporting success
+		// in situations where we didn't actually check them.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Test step postconditions not yet supported",
+			Detail:   "The testing prototype does not yet support per-step postconditions.",
+			Subject:  stepConfig.Postconditions[0].DeclRange.Ptr(),
+		})
 	}
 	// TODO: We also need to pass in provider configurations, once such a thing
 	// is possible to do.
