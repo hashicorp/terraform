@@ -13,6 +13,27 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+type SetChange struct {
+	Before SetChangeEntry
+	After  SetChangeEntry
+}
+
+type SetChangeEntry struct {
+	SingleChange change.ValidateChangeFunc
+	ObjectChange map[string]change.ValidateChangeFunc
+
+	Replace bool
+	Action  plans.Action
+}
+
+func (entry SetChangeEntry) Validate(obj func(attributes map[string]change.ValidateChangeFunc, action plans.Action, replace bool) change.ValidateChangeFunc) change.ValidateChangeFunc {
+	if entry.SingleChange != nil {
+		return entry.SingleChange
+	}
+
+	return obj(entry.ObjectChange, entry.Action, entry.Replace)
+}
+
 func TestValue_ObjectAttributes(t *testing.T) {
 	// This function holds a range of test cases creating, deleting and editing
 	// objects. It is built in such a way that it can automatically test these
@@ -28,6 +49,9 @@ func TestValue_ObjectAttributes(t *testing.T) {
 		validateChanges      map[string]change.ValidateChangeFunc
 		validateReplace      bool
 		validateAction       plans.Action
+		// Sets break changes out differently to the other collections, so they
+		// have their own entry.
+		validateSetChanges *SetChange
 	}{
 		"create": {
 			input: Value{
@@ -119,6 +143,18 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateNestedObject: change.ValidateComputed(change.ValidateNestedObject(map[string]change.ValidateChangeFunc{
 				"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
 			}, plans.Delete, false), plans.Update, false),
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					SingleChange: change.ValidateComputed(nil, plans.Create, false),
+				},
+			},
 		},
 		"create_attribute": {
 			input: Value{
@@ -135,6 +171,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Delete,
+					Replace:      false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"create_attribute_from_explicit_null": {
 			input: Value{
@@ -153,6 +203,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Delete,
+					Replace:      false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"delete_attribute": {
 			input: Value{
@@ -169,6 +233,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Create,
+					Replace:      false,
+				},
+			},
 		},
 		"delete_attribute_to_explicit_null": {
 			input: Value{
@@ -187,6 +265,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Create,
+					Replace:      false,
+				},
+			},
 		},
 		"update_attribute": {
 			input: Value{
@@ -205,6 +297,22 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"create_sensitive_attribute": {
 			input: Value{
@@ -224,6 +332,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Delete,
+					Replace:      false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateSensitive(nil, "new", false, true, plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"delete_sensitive_attribute": {
 			input: Value{
@@ -243,6 +365,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateSensitive("old", nil, true, false, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Create,
+					Replace:      false,
+				},
+			},
 		},
 		"update_sensitive_attribute": {
 			input: Value{
@@ -267,6 +403,22 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateSensitive("old", nil, true, false, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateSensitive(nil, "new", false, true, plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"create_computed_attribute": {
 			input: Value{
@@ -284,6 +436,20 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: nil,
+					Action:       plans.Delete,
+					Replace:      false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateComputed(nil, plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"update_computed_attribute": {
 			input: Value{
@@ -306,6 +472,22 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidateComputed(nil, plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"ignores_unset_fields": {
 			input: Value{
@@ -339,6 +521,22 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: true,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: true,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 		"update_replace_attribute": {
 			input: Value{
@@ -360,6 +558,22 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
+			validateSetChanges: &SetChange{
+				Before: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, true),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetChangeEntry{
+					ObjectChange: map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
 		},
 	}
 
@@ -446,6 +660,46 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				validate := change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
+				}, collectionDefaultAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
+
+			t.Run("set", func(t *testing.T) {
+				attribute := &jsonprovider.Attribute{
+					AttributeType: unmarshalType(t, cty.Set(cty.Object(tc.attributes))),
+				}
+
+				input := wrapValueInSlice(tc.input)
+
+				if tc.validateSetChanges != nil {
+					validate := change.ValidateSet(func() []change.ValidateChangeFunc {
+						var ret []change.ValidateChangeFunc
+						ret = append(ret, tc.validateSetChanges.Before.Validate(change.ValidateObject))
+						ret = append(ret, tc.validateSetChanges.After.Validate(change.ValidateObject))
+						return ret
+					}(), collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateObject != nil {
+					validate := change.ValidateSet([]change.ValidateChangeFunc{
+						tc.validateObject,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateSingleChange != nil {
+					validate := change.ValidateSet([]change.ValidateChangeFunc{
+						tc.validateSingleChange,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateSet([]change.ValidateChangeFunc{
 					change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
 				validate(t, input.ComputeChange(attribute))
@@ -562,6 +816,57 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}, collectionDefaultAction, false)
 				validate(t, input.ComputeChange(attribute))
 			})
+
+			t.Run("set", func(t *testing.T) {
+				attribute := &jsonprovider.Attribute{
+					AttributeNestedType: &jsonprovider.NestedType{
+						Attributes: func() map[string]*jsonprovider.Attribute {
+							attributes := make(map[string]*jsonprovider.Attribute)
+							for key, attribute := range tc.attributes {
+								attributes[key] = &jsonprovider.Attribute{
+									AttributeType: unmarshalType(t, attribute),
+								}
+							}
+							return attributes
+						}(),
+						NestingMode: "set",
+					},
+				}
+
+				input := wrapValueInSlice(tc.input)
+
+				if tc.validateSetChanges != nil {
+					validate := change.ValidateSet(func() []change.ValidateChangeFunc {
+						var ret []change.ValidateChangeFunc
+						ret = append(ret, tc.validateSetChanges.Before.Validate(change.ValidateNestedObject))
+						ret = append(ret, tc.validateSetChanges.After.Validate(change.ValidateNestedObject))
+						return ret
+					}(), collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateNestedObject != nil {
+					validate := change.ValidateSet([]change.ValidateChangeFunc{
+						tc.validateNestedObject,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				if tc.validateSingleChange != nil {
+					validate := change.ValidateSet([]change.ValidateChangeFunc{
+						tc.validateSingleChange,
+					}, collectionDefaultAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateSet([]change.ValidateChangeFunc{
+					change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
+				}, collectionDefaultAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
 		})
 	}
 }
@@ -572,10 +877,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 	// contexts of collections.
 
 	tcs := map[string]struct {
-		input               Value
-		attribute           cty.Type
-		validateChange      change.ValidateChangeFunc
-		validateListChanges []change.ValidateChangeFunc // Lists are special in some cases.
+		input                Value
+		attribute            cty.Type
+		validateChange       change.ValidateChangeFunc
+		validateSliceChanges []change.ValidateChangeFunc // Lists are special in some cases.
 	}{
 		"primitive_create": {
 			input: Value{
@@ -598,7 +903,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
 				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
 			},
@@ -611,7 +916,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), nil, plans.Update, false),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
 				change.ValidatePrimitive(nil, nil, plans.Create, false),
 			},
@@ -624,7 +929,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(nil, strptr("\"new\""), plans.Update, false),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidatePrimitive(nil, nil, plans.Delete, false),
 				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
 			},
@@ -656,7 +961,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidateSensitive("old", "new", true, true, plans.Update, false),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidateSensitive("old", nil, true, false, plans.Delete, false),
 				change.ValidateSensitive(nil, "new", false, true, plans.Create, false),
 			},
@@ -678,7 +983,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidateComputed(change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false), plans.Update, false),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
 				change.ValidateComputed(nil, plans.Create, false),
 			},
@@ -693,7 +998,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, true),
-			validateListChanges: []change.ValidateChangeFunc{
+			validateSliceChanges: []change.ValidateChangeFunc{
 				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, true),
 				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
 			},
@@ -740,13 +1045,31 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 					AttributeType: unmarshalType(t, cty.List(tc.attribute)),
 				}
 
-				if tc.validateListChanges != nil {
-					validate := change.ValidateList(tc.validateListChanges, defaultCollectionsAction, false)
+				if tc.validateSliceChanges != nil {
+					validate := change.ValidateList(tc.validateSliceChanges, defaultCollectionsAction, false)
 					validate(t, input.ComputeChange(attribute))
 					return
 				}
 
 				validate := change.ValidateList([]change.ValidateChangeFunc{
+					tc.validateChange,
+				}, defaultCollectionsAction, false)
+				validate(t, input.ComputeChange(attribute))
+			})
+
+			t.Run("set", func(t *testing.T) {
+				input := wrapValueInSlice(tc.input)
+				attribute := &jsonprovider.Attribute{
+					AttributeType: unmarshalType(t, cty.Set(tc.attribute)),
+				}
+
+				if tc.validateSliceChanges != nil {
+					validate := change.ValidateSet(tc.validateSliceChanges, defaultCollectionsAction, false)
+					validate(t, input.ComputeChange(attribute))
+					return
+				}
+
+				validate := change.ValidateSet([]change.ValidateChangeFunc{
 					tc.validateChange,
 				}, defaultCollectionsAction, false)
 				validate(t, input.ComputeChange(attribute))
@@ -977,6 +1300,108 @@ func TestValue_CollectionAttributes(t *testing.T) {
 				AttributeType: unmarshalType(t, cty.List(cty.String)),
 			},
 			validateChange: change.ValidateComputed(change.ValidateList(nil, plans.Delete, false), plans.Update, false),
+		},
+		"set_create_empty": {
+			input: Value{
+				Before: nil,
+				After:  []interface{}{},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSet(nil, plans.Create, false),
+		},
+		"set_create_populated": {
+			input: Value{
+				Before: nil,
+				After:  []interface{}{"one", "two"},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSet([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(nil, strptr("\"one\""), plans.Create, false),
+				change.ValidatePrimitive(nil, strptr("\"two\""), plans.Create, false),
+			}, plans.Create, false),
+		},
+		"set_delete_empty": {
+			input: Value{
+				Before: []interface{}{},
+				After:  nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSet(nil, plans.Delete, false),
+		},
+		"set_delete_populated": {
+			input: Value{
+				Before: []interface{}{"one", "two"},
+				After:  nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSet([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"one\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(strptr("\"two\""), nil, plans.Delete, false),
+			}, plans.Delete, false),
+		},
+		"set_create_sensitive": {
+			input: Value{
+				Before:         nil,
+				After:          []interface{}{},
+				AfterSensitive: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSensitive(nil, []interface{}{}, false, true, plans.Create, false),
+		},
+		"set_update_sensitive": {
+			input: Value{
+				Before:          []interface{}{"one"},
+				BeforeSensitive: true,
+				After:           []interface{}{},
+				AfterSensitive:  true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSensitive([]interface{}{"one"}, []interface{}{}, true, true, plans.Update, false),
+		},
+		"set_delete_sensitive": {
+			input: Value{
+				Before:          []interface{}{},
+				BeforeSensitive: true,
+				After:           nil,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateSensitive([]interface{}{}, nil, true, false, plans.Delete, false),
+		},
+		"set_create_unknown": {
+			input: Value{
+				Before:  nil,
+				After:   []interface{}{},
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateComputed(nil, plans.Create, false),
+		},
+		"set_update_unknown": {
+			input: Value{
+				Before:  []interface{}{},
+				After:   []interface{}{"one"},
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Set(cty.String)),
+			},
+			validateChange: change.ValidateComputed(change.ValidateSet(nil, plans.Delete, false), plans.Update, false),
 		},
 	}
 

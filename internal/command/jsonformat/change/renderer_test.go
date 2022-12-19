@@ -891,6 +891,272 @@ func TestRenderers(t *testing.T) {
     ]
 `,
 		},
+		"set_create_empty": {
+			change: Change{
+				renderer: Set([]Change{}),
+				action:   plans.Create,
+			},
+			expected: "[]",
+		},
+		"set_create": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Create,
+			},
+			expected: `
+[
+      + 1,
+    ]
+`,
+		},
+		"set_delete_empty": {
+			change: Change{
+				renderer: Set([]Change{}),
+				action:   plans.Delete,
+			},
+			expected: "[] -> null",
+		},
+		"set_delete": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("1"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Delete,
+			},
+			expected: `
+[
+      - 1,
+    ] -> null
+`,
+		},
+		"set_create_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + 1,
+    ]
+`,
+		},
+		"set_update_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("1")),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 0 -> 1,
+    ]
+`,
+		},
+		"set_replace_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("0"), nil),
+						action:   plans.Delete,
+					},
+					{
+						renderer: Primitive(nil, strptr("1")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - 0,
+      + 1,
+    ]
+`,
+		},
+		"set_delete_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("0"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - 0,
+    ]
+`,
+		},
+		"set_update_forces_replacement": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("1")),
+						action:   plans.Update,
+					},
+				}),
+				action:  plans.Update,
+				replace: true,
+			},
+			expected: `
+[ # forces replacement
+      ~ 0 -> 1,
+    ]
+`,
+		},
+		"set_update_ignores_unchanged": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Primitive(strptr("0"), strptr("0")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("1"), strptr("1")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("2"), strptr("5")),
+						action:   plans.Update,
+					},
+					{
+						renderer: Primitive(strptr("3"), strptr("3")),
+						action:   plans.NoOp,
+					},
+					{
+						renderer: Primitive(strptr("4"), strptr("4")),
+						action:   plans.NoOp,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 2 -> 5,
+        # (4 unchanged elements hidden)
+    ]
+`,
+		},
+		"set_create_sensitive_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Sensitive(nil, 1, false, true),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + (sensitive),
+    ]
+`,
+		},
+		"set_delete_sensitive_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Sensitive(1, nil, true, false),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      - (sensitive),
+    ]
+`,
+		},
+		"set_update_sensitive_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Sensitive(nil, 1, false, true),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ (sensitive),
+    ]
+`,
+		},
+		"set_update_sensitive_element_status": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Sensitive(1, 2, false, true),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      # Warning: this attribute value will be marked as sensitive and will not
+      # display in UI output after applying this change.
+      ~ (sensitive),
+    ]
+`,
+		},
+		"set_create_computed_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Computed(Change{}),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      + (known after apply),
+    ]
+`,
+		},
+		"set_update_computed_element": {
+			change: Change{
+				renderer: Set([]Change{
+					{
+						renderer: Computed(Change{
+							renderer: Primitive(strptr("0"), nil),
+							action:   plans.Delete,
+						}),
+						action: plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+[
+      ~ 0 -> (known after apply),
+    ]
+`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
