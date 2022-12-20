@@ -422,12 +422,59 @@ func (pc AbsProviderConfig) String() string {
 	return strings.Join(parts, ".")
 }
 
-// UniqueKey implements UniqueKeyer.
+// UniqueKey returns a unique key suitable for including the receiver in a
+// generic collection type such as `Map` or `Set`.
+//
+// As a special case, the [UniqueKey] for an AbsProviderConfig that belongs
+// to the root module is equal to the UniqueKey of the [RootProviderConfig]
+// address describing the same provider configuration. [Equivalent] will
+// return true if given an [AbsProviderConfig] and a [RootProviderConfig]
+// that both represent the same address.
+//
+// Non-root provider configurations never have keys equal to a
+// [RootProviderConfig].
 func (pc AbsProviderConfig) UniqueKey() UniqueKey {
-	return absProviderConfigKey(pc.String())
+	if pc.Module.IsRoot() {
+		return RootProviderConfig{pc.Provider, pc.Alias}.UniqueKey()
+	}
+	return absProviderConfigUniqueKey(pc.String())
 }
 
-type absProviderConfigKey string
+type absProviderConfigUniqueKey string
 
-// uniqueKeySigil implements UniqueKey.
-func (absProviderConfigKey) uniqueKeySigil() {}
+func (k absProviderConfigUniqueKey) uniqueKeySigil() {}
+
+// RootProviderConfig is essentially a special variant of AbsProviderConfig
+// for situations where only root module provider configurations are allowed.
+//
+// It represents the same configuration as a corresponding [AbsProviderConfig]
+// whose Module field is set to [RootModule].
+type RootProviderConfig struct {
+	Provider Provider
+	Alias    string
+}
+
+// AbsProviderConfig returns the [AbsProviderConfig] value that represents the
+// same provider configuration as the receiver.
+//
+// Specifically, it sets [AbsProviderConfig.Module] to [RootModule] and
+// preserves the two other corresponding fields between these two types.
+func (p RootProviderConfig) AbsProviderConfig() AbsProviderConfig {
+	return AbsProviderConfig{
+		Module:   RootModule,
+		Provider: p.Provider,
+		Alias:    p.Alias,
+	}
+}
+
+func (p RootProviderConfig) String() string {
+	return p.AbsProviderConfig().String()
+}
+
+// UniqueKey returns a comparable unique key for the reciever suitable for
+// use in generic collection types such as [Set] and [Map].
+func (p RootProviderConfig) UniqueKey() UniqueKey {
+	// A RootProviderConfig is inherently comparable and so can be its own key
+	return p
+}
+func (p RootProviderConfig) uniqueKeySigil() {}
