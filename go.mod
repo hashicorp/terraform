@@ -1,5 +1,7 @@
 module github.com/hashicorp/terraform
 
+replace github.com/hashicorp/hcl/v2 => ../../liamcervante/hcl
+
 require (
 	cloud.google.com/go/kms v1.6.0
 	cloud.google.com/go/storage v1.28.0
