@@ -708,7 +708,7 @@ data "test_data_source" "a" {
 	// This is primarily a plan-time test, since the special handling of
 	// data resources is a plan-time concern, but we'll still try applying the
 	// plan here just to make sure it's valid.
-	newState, diags := ctx.Apply(plan, m)
+	newState, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	if rs := newState.ResourceInstance(dataAddr); rs != nil {
@@ -3945,7 +3945,7 @@ resource "test_object" "b" {
 	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	assertNoErrors(t, diags)
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// Resource changes which have dependencies across providers which

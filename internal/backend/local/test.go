@@ -746,7 +746,7 @@ func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, confi
 		defer logging.PanicHandler()
 		defer done()
 		log.Printf("[DEBUG] TestFileRunner: starting apply for %s/%s", file.Name, run.Name)
-		updated, applyDiags = tfCtx.Apply(plan, config)
+		updated, applyDiags = tfCtx.Apply(plan, config, nil)
 		log.Printf("[DEBUG] TestFileRunner: completed apply for %s/%s", file.Name, run.Name)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, run, file, created, progress, start)
