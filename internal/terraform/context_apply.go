@@ -16,6 +16,11 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+// ApplyOpts are options that affect the details of how Terraform will apply a
+// previously-generated plan.
+type ApplyOpts struct {
+}
+
 // Apply performs the actions described by the given Plan object and returns
 // the resulting updated state.
 //
@@ -24,10 +29,20 @@ import (
 //
 // Even if the returned diagnostics contains errors, Apply always returns the
 // resulting state which is likely to have been partially-updated.
-func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State, tfdiags.Diagnostics) {
+//
+// The [opts] argument may be nil to indicate that no special options are
+// required. In that case, Apply will use a default set of options. Some
+// options in [PlanOpts] when creating a plan must be echoed with equivalent
+// settings during apply, so leaving opts as nil might not be valid for
+// certain combinations of plan-time options.
+func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
+
+	if opts == nil {
+		opts = &ApplyOpts{}
+	}
 
 	if plan.Errored {
 		var diags tfdiags.Diagnostics

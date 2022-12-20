@@ -735,7 +735,7 @@ check "error" {
 				test.providerHook(test.provider)
 			}
 
-			state, diags := ctx.Apply(plan, configs)
+			state, diags := ctx.Apply(plan, configs, nil)
 			if validateCheckDiagnostics(t, "apply", test.applyWarning, test.applyError, diags) {
 				return
 			}
@@ -792,7 +792,7 @@ check "check_should_not_panic" {
 	}), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
