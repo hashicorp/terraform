@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -161,7 +162,11 @@ func (b *Local) opPlan(
 		return
 	}
 	op.View.Plan(plan, schemas)
-	op.View.CheckStatusChanges(lr.InputState.CheckResults, plan.Checks)
+	var previousCheckResults *states.CheckResults
+	if lr.InputState != nil {
+		previousCheckResults = lr.InputState.CheckResults
+	}
+	op.View.CheckStatusChanges(previousCheckResults, plan.Checks)
 
 	// If we've accumulated any warnings along the way then we'll show them
 	// here just before we show the summary and next steps. If we encountered

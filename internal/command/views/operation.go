@@ -129,6 +129,13 @@ func (v *OperationHuman) CheckStatusChanges(old, new *states.CheckResults) {
 	}
 	var uiResults []UICheckResult
 
+	if old == nil {
+		old = &states.CheckResults{}
+	}
+	if new == nil {
+		new = &states.CheckResults{}
+	}
+
 	// statusPairs tracks all of the checkable objects that we can see
 	// in at least one of "old" and "new", capturing both the old and new
 	// status together for each one so that we can more easily produce

@@ -67,7 +67,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 		t.Logf(legacyDiffComparisonString(plan.Changes))
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	}
@@ -159,7 +159,7 @@ output "data" {
 		t.Fatal(diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -182,7 +182,7 @@ output "data" {
 		return resp
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -244,7 +244,7 @@ resource "test_instance" "a" {
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -352,7 +352,7 @@ resource "aws_instance" "bin" {
 		t.Fatalf("baz should depend on bam after refresh, but got %s", baz.Current.Dependencies)
 	}
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -436,7 +436,7 @@ resource "test_resource" "b" {
 	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -477,7 +477,7 @@ output "out" {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
@@ -540,7 +540,7 @@ resource "test_object" "y" {
 	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// FINAL PLAN:
@@ -597,7 +597,7 @@ resource "test_object" "x" {
 		t.Fatalf("plan: %s", diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -612,7 +612,7 @@ func TestContext2Apply_nullableVariables(t *testing.T) {
 	if diags.HasErrors() {
 		t.Fatalf("plan: %s", diags.Err())
 	}
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -675,7 +675,7 @@ resource "test_object" "s" {
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// destroy only a single instance not included in the moved statements
@@ -738,7 +738,7 @@ resource "test_object" "b" {
 	testObjA := plan.PriorState.Modules[""].Resources["test_object.a"].Instances[addrs.NoKey].Current
 	testObjA.Dependencies = append(testObjA.Dependencies, mustResourceInstanceAddr("test_object.b").ContainingResource().Config())
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if !diags.HasErrors() {
 		t.Fatal("expected cycle error from apply")
 	}
@@ -824,7 +824,7 @@ resource "test_resource" "c" {
 			resp.NewState = cty.ObjectVal(m)
 			return resp
 		}
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoErrors(t, diags)
 
 		wantResourceAttrs := map[string]struct{ value, output string }{
@@ -880,7 +880,7 @@ resource "test_resource" "c" {
 			resp.NewState = cty.ObjectVal(m)
 			return resp
 		}
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		if !diags.HasErrors() {
 			t.Fatal("succeeded; want errors")
 		}
@@ -985,7 +985,7 @@ func TestContext2Apply_outputValuePrecondition(t *testing.T) {
 			}
 		}
 
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoDiagnostics(t, diags)
 		for _, addr := range checkableObjects {
 			result := state.CheckResults.GetObjectResult(addr)
@@ -1138,7 +1138,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 			t.Fatalf("incorrect initial plan for instance B\nwant a 'create' change\ngot: %s", spew.Sdump(planB))
 		}
 
-		state, diags := ctx.Apply(plan, m)
+		state, diags := ctx.Apply(plan, m, nil)
 		assertNoErrors(t, diags)
 
 		stateA := state.ResourceInstance(instA)
@@ -1175,7 +1175,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 			t.Fatalf("incorrect initial plan for instance B\nwant a 'no-op' change\ngot: %s", spew.Sdump(planB))
 		}
 
-		_, diags = ctx.Apply(plan, m)
+		_, diags = ctx.Apply(plan, m, nil)
 		if !diags.HasErrors() {
 			t.Fatal("final apply succeeded, but should've failed with a postcondition error")
 		}
@@ -1313,7 +1313,7 @@ output "out" {
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// Resource changes which have dependencies across providers which
@@ -1437,7 +1437,7 @@ resource "test_object" "x" {
 		t.Fatalf("plan: %s", diags.Err())
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	if diags.HasErrors() {
 		t.Fatalf("apply: %s", diags.Err())
 	}
@@ -1482,7 +1482,7 @@ resource "test_object" "y" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1564,7 +1564,7 @@ output "data" {
 	plan, diags := ctx.Plan(m, states.NewState(), opts)
 	assertNoErrors(t, diags)
 
-	state, diags := ctx.Apply(plan, m)
+	state, diags := ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// and destroy
@@ -1572,7 +1572,7 @@ output "data" {
 	plan, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	// and destroy again with no state
@@ -1584,7 +1584,7 @@ output "data" {
 	plan, diags = ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1638,7 +1638,7 @@ output "from_resource" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }
 
@@ -1694,7 +1694,7 @@ output "from_resource" {
 	plan, diags := ctx.Plan(m, state, opts)
 	assertNoErrors(t, diags)
 
-	state, diags = ctx.Apply(plan, m)
+	state, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 
 	resCheck := state.CheckResults.GetObjectResult(mustResourceInstanceAddr("test_object.x"))
@@ -1781,6 +1781,6 @@ resource "test_object" "y" {
 		return resp
 	}
 
-	_, diags = ctx.Apply(plan, m)
+	_, diags = ctx.Apply(plan, m, nil)
 	assertNoErrors(t, diags)
 }

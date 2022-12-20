@@ -91,7 +91,11 @@ func (b *Local) opApply(
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		op.View.Plan(plan, schemas)
-		op.View.CheckStatusChanges(lr.InputState.CheckResults, plan.Checks)
+		var previousCheckResults *states.CheckResults
+		if lr.InputState != nil {
+			previousCheckResults = lr.InputState.CheckResults
+		}
+		op.View.CheckStatusChanges(previousCheckResults, plan.Checks)
 
 		if testHookStopPlanApply != nil {
 			testHookStopPlanApply()
@@ -181,7 +185,7 @@ func (b *Local) opApply(
 		defer logging.PanicHandler()
 		defer close(doneCh)
 		log.Printf("[INFO] backend/local: apply calling Apply")
-		applyState, applyDiags = lr.Core.Apply(plan, lr.Config)
+		applyState, applyDiags = lr.Core.Apply(plan, lr.Config, nil)
 	}()
 
 	if b.opWait(doneCh, stopCtx, cancelCtx, lr.Core, opState, op.View) {
@@ -196,7 +200,11 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
-	op.View.CheckStatusChanges(lr.InputState.CheckResults, applyState.CheckResults)
+	var previousCheckResults *states.CheckResults
+	if lr.InputState != nil {
+		previousCheckResults = lr.InputState.CheckResults
+	}
+	op.View.CheckStatusChanges(previousCheckResults, applyState.CheckResults)
 
 	// Store the final state
 	runningOp.State = applyState

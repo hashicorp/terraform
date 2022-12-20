@@ -71,7 +71,7 @@ func TestContext2ApplySmokeTests_noData(t *testing.T) {
 		core := testContext2(t, &ContextOpts{})
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("b"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -103,7 +103,7 @@ func TestContext2ApplySmokeTests_noData(t *testing.T) {
 		core := testContext2(t, &ContextOpts{})
 		plan := makePlan(t, core, cty.StringVal("not a"), cty.StringVal("b"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -136,7 +136,7 @@ func TestContext2ApplySmokeTests_noData(t *testing.T) {
 		core := testContext2(t, &ContextOpts{})
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("not b"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -169,7 +169,7 @@ func TestContext2ApplySmokeTests_noData(t *testing.T) {
 		core := testContext2(t, &ContextOpts{})
 		plan := makePlan(t, core, cty.StringVal("not a"), cty.StringVal("not b"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -334,7 +334,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -366,7 +366,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("not a"), cty.StringVal("b"), cty.StringVal("c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -399,7 +399,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("not b"), cty.StringVal("c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -432,7 +432,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("b"), cty.StringVal("not c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -465,7 +465,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("not a"), cty.StringVal("not b"), cty.StringVal("not c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.
@@ -502,7 +502,7 @@ func TestContext2ApplySmokeTests_withData(t *testing.T) {
 		core := testContext2(t, contextOpts)
 		plan := makePlan(t, core, cty.StringVal("a"), cty.StringVal("not b"), cty.StringVal("not c"))
 
-		state, diags := core.Apply(plan, cfg)
+		state, diags := core.Apply(plan, cfg, nil)
 		assertNoErrors(t, diags)
 
 		// We should now have a final result for our object.

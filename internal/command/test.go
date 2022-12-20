@@ -363,7 +363,7 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		return nil, diags
 	}
 
-	newState, moreDiags := core.Apply(plan, cfg)
+	newState, moreDiags := core.Apply(plan, cfg, nil)
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
 	cleanupCtx := &testCommandCleanupContext{
 		State:        newState,
@@ -469,7 +469,7 @@ func (c *TestCommand) runScenarioCleanup(ctx context.Context, cleanupCtx *testCo
 		return diags
 	}
 
-	_, moreDiags = core.Apply(plan, cleanupCtx.Config)
+	_, moreDiags = core.Apply(plan, cleanupCtx.Config, nil)
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		result.Status = checks.StatusError
