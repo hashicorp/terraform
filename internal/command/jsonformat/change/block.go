@@ -3,9 +3,10 @@ package change
 import (
 	"bytes"
 	"fmt"
+	"sort"
+
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/plans"
-	"sort"
 )
 
 var (
