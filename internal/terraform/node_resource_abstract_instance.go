@@ -598,11 +598,23 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		return state, diags
 	}
 
+	newState := objchange.NormalizeObjectFromLegacySDK(resp.NewState, schema)
+	if !newState.RawEquals(resp.NewState) {
+		// We had to fix up this object in some way, and we still need to
+		// accept any changes for compatibility, so all we can do is log a
+		// warning about the change.
+		log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks during refresh\n", n.ResolvedProvider.Provider)
+	}
+
+	ret := state.DeepCopy()
+	ret.Value = newState
+	ret.Private = resp.Private
+
 	// We have no way to exempt provider using the legacy SDK from this check,
 	// so we can only log inconsistencies with the updated state values.
 	// In most cases these are not errors anyway, and represent "drift" from
 	// external changes which will be handled by the subsequent plan.
-	if errs := objchange.AssertObjectCompatible(schema, priorVal, resp.NewState); len(errs) > 0 {
+	if errs := objchange.AssertObjectCompatible(schema, priorVal, ret.Value); len(errs) > 0 {
 		var buf strings.Builder
 		fmt.Fprintf(&buf, "[WARN] Provider %q produced an unexpected new value for %s during refresh.", n.ResolvedProvider.Provider.String(), absAddr)
 		for _, err := range errs {
@@ -610,10 +622,6 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		}
 		log.Print(buf.String())
 	}
-
-	ret := state.DeepCopy()
-	ret.Value = resp.NewState
-	ret.Private = resp.Private
 
 	// Call post-refresh hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
