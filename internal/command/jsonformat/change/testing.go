@@ -243,6 +243,20 @@ func ValidateBlock(attributes map[string]ValidateChangeFunc, blocks map[string][
 	}
 }
 
+func ValidateTypeChange(before, after ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		typeChange, ok := change.renderer.(*typeChangeRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		before(t, typeChange.before)
+		after(t, typeChange.after)
+	}
+}
+
 func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
 		validateChange(t, change, action, replace)

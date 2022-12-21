@@ -1471,6 +1471,44 @@ func TestRenderers(t *testing.T) {
         # (2 unchanged blocks hidden)
     }`,
 		},
+		"output_map_to_list": {
+			change: Change{
+				renderer: TypeChange(Change{
+					renderer: Map(map[string]Change{
+						"element_one": {
+							renderer: Primitive(strptr("0"), nil),
+							action:   plans.Delete,
+						},
+						"element_two": {
+							renderer: Primitive(strptr("1"), nil),
+							action:   plans.Delete,
+						},
+					}),
+					action: plans.Delete,
+				}, Change{
+					renderer: List([]Change{
+						{
+							renderer: Primitive(nil, strptr("0")),
+							action:   plans.Create,
+						},
+						{
+							renderer: Primitive(nil, strptr("1")),
+							action:   plans.Create,
+						},
+					}),
+					action: plans.Create,
+				}),
+			},
+			expected: `
+{
+      - "element_one" = 0
+      - "element_two" = 1
+    } -> [
+      + 0,
+      + 1,
+    ]
+`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
