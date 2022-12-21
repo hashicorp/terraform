@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/plans"
 	"reflect"
 
 	"github.com/zclconf/go-cty/cty"
@@ -29,6 +30,17 @@ func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprov
 		current = compareActions(current, element.GetAction())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
+}
+
+func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Change, plans.Action) {
+	var elements []change.Change
+	current := v.getDefaultActionForIteration()
+	v.processSet(true, func(value Value) {
+		element := value.ComputeChange(block)
+		elements = append(elements, element)
+		current = compareActions(current, element.GetAction())
+	})
+	return elements, current
 }
 
 func (v Value) processSet(propagateReplace bool, process func(value Value)) {

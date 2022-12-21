@@ -1157,6 +1157,320 @@ func TestRenderers(t *testing.T) {
     ]
 `,
 		},
+		"create_empty_block": {
+			change: Change{
+				renderer: Block(nil, nil),
+				action:   plans.Create,
+			},
+			expected: `
+{
+    }`,
+		},
+		"create_populated_block": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"string": {
+						renderer: Primitive(nil, strptr("\"root\"")),
+						action:   plans.Create,
+					},
+					"boolean": {
+						renderer: Primitive(nil, strptr("true")),
+						action:   plans.Create,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"one\"")),
+									action:   plans.Create,
+								},
+							}, nil),
+							action: plans.Create,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"two\"")),
+									action:   plans.Create,
+								},
+							}, nil),
+							action: plans.Create,
+						},
+					},
+				}),
+				action: plans.Create,
+			},
+			expected: `
+{
+      + boolean = true
+      + string  = "root"
+
+      + nested_block {
+          + string = "one"
+        }
+
+      + nested_block_two {
+          + string = "two"
+        }
+    }`,
+		},
+		"update_empty_block": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"string": {
+						renderer: Primitive(nil, strptr("\"root\"")),
+						action:   plans.Create,
+					},
+					"boolean": {
+						renderer: Primitive(nil, strptr("true")),
+						action:   plans.Create,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"one\"")),
+									action:   plans.Create,
+								},
+							}, nil),
+							action: plans.Create,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"two\"")),
+									action:   plans.Create,
+								},
+							}, nil),
+							action: plans.Create,
+						},
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      + boolean = true
+      + string  = "root"
+
+      + nested_block {
+          + string = "one"
+        }
+
+      + nested_block_two {
+          + string = "two"
+        }
+    }`,
+		},
+		"update_populated_block": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"string": {
+						renderer: Primitive(nil, strptr("\"root\"")),
+						action:   plans.Create,
+					},
+					"boolean": {
+						renderer: Primitive(strptr("false"), strptr("true")),
+						action:   plans.Update,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"one\"")),
+									action:   plans.NoOp,
+								},
+							}, nil),
+							action: plans.NoOp,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(nil, strptr("\"two\"")),
+									action:   plans.Create,
+								},
+							}, nil),
+							action: plans.Create,
+						},
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ boolean = false -> true
+      + string  = "root"
+
+      + nested_block_two {
+          + string = "two"
+        }
+        # (1 unchanged block hidden)
+    }`,
+		},
+		"clear_populated_block": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"string": {
+						renderer: Primitive(strptr("\"root\""), nil),
+						action:   plans.Delete,
+					},
+					"boolean": {
+						renderer: Primitive(strptr("true"), nil),
+						action:   plans.Delete,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"one\""), nil),
+									action:   plans.Delete,
+								},
+							}, nil),
+							action: plans.Delete,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"two\""), nil),
+									action:   plans.Delete,
+								},
+							}, nil),
+							action: plans.Delete,
+						},
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      - boolean = true -> null
+      - string  = "root" -> null
+
+      - nested_block {
+          - string = "one" -> null
+        }
+
+      - nested_block_two {
+          - string = "two" -> null
+        }
+    }`,
+		},
+		"delete_populated_block": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"string": {
+						renderer: Primitive(strptr("\"root\""), nil),
+						action:   plans.Delete,
+					},
+					"boolean": {
+						renderer: Primitive(strptr("true"), nil),
+						action:   plans.Delete,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"one\""), nil),
+									action:   plans.Delete,
+								},
+							}, nil),
+							action: plans.Delete,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"two\""), nil),
+									action:   plans.Delete,
+								},
+							}, nil),
+							action: plans.Delete,
+						},
+					},
+				}),
+				action: plans.Delete,
+			},
+			expected: `
+{
+      - boolean = true -> null
+      - string  = "root" -> null
+
+      - nested_block {
+          - string = "one" -> null
+        }
+
+      - nested_block_two {
+          - string = "two" -> null
+        }
+    }`,
+		},
+		"delete_empty_block": {
+			change: Change{
+				renderer: Block(nil, nil),
+				action:   plans.Delete,
+			},
+			expected: `
+{
+    }`,
+		},
+		"block_always_includes_important_attributes": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"id": {
+						renderer: Primitive(strptr("\"root\""), strptr("\"root\"")),
+						action:   plans.NoOp,
+					},
+					"boolean": {
+						renderer: Primitive(strptr("false"), strptr("false")),
+						action:   plans.NoOp,
+					},
+				}, map[string][]Change{
+					"nested_block": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"one\""), strptr("\"one\"")),
+									action:   plans.NoOp,
+								},
+							}, nil),
+							action: plans.NoOp,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"two\""), strptr("\"two\"")),
+									action:   plans.NoOp,
+								},
+							}, nil),
+							action: plans.NoOp,
+						},
+					},
+				}),
+				action: plans.NoOp,
+			},
+			expected: `
+{
+        id      = "root"
+        # (1 unchanged attribute hidden)
+        # (2 unchanged blocks hidden)
+    }`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

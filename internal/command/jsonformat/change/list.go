@@ -57,7 +57,7 @@ func (renderer listRenderer) Render(change Change, indent int, opts RenderOpts) 
 			}
 			if len(unchangedElements) > 0 {
 				lastElement := unchangedElements[len(unchangedElements)-1]
-				buf.WriteString(fmt.Sprintf("%s    %s,\n", change.indent(indent+1), lastElement.Render(indent+1, unchangedElementOpts)))
+				buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), lastElement.emptySymbol(), lastElement.Render(indent+1, unchangedElementOpts)))
 			}
 			unchangedElements = nil
 			renderNext = element.action != plans.NoOp
@@ -67,7 +67,7 @@ func (renderer listRenderer) Render(change Change, indent int, opts RenderOpts) 
 			buf.WriteString(fmt.Sprintf("%s%s\n", change.indent(indent+1), warning))
 		}
 		if element.action == plans.NoOp {
-			buf.WriteString(fmt.Sprintf("%s    %s,\n", change.indent(indent+1), element.Render(indent+1, unchangedElementOpts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), element.emptySymbol(), element.Render(indent+1, unchangedElementOpts)))
 		} else {
 			buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), format.DiffActionSymbol(element.action), element.Render(indent+1, elementOpts)))
 		}

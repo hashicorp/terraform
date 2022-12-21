@@ -20,7 +20,7 @@ import (
 // as jsonplan and jsonprovider).
 //
 // A Value can be converted into a change.Change, ready for rendering, with the
-// computeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
+// computeChangeForAttribute, ComputeChangeForOutput, and computeChangeForBlock
 // functions.
 type Value struct {
 
@@ -111,6 +111,8 @@ func (v Value) ComputeChange(changeType interface{}) change.Change {
 		return v.computeChangeForType(concrete)
 	case map[string]*jsonprovider.Attribute:
 		return v.computeAttributeChangeAsNestedObject(concrete)
+	case *jsonprovider.Block:
+		return v.computeChangeForBlock(concrete)
 	default:
 		panic(fmt.Sprintf("unrecognized change type: %T", changeType))
 	}
@@ -175,6 +177,10 @@ func (v Value) getDefaultActionForIteration() plans.Action {
 // to convert a NoOp default action into an Update based on the actions of a
 // values children.
 func compareActions(current, next plans.Action) plans.Action {
+	if next == plans.NoOp {
+		return current
+	}
+
 	if current != next {
 		return plans.Update
 	}
