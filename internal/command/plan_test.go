@@ -437,10 +437,10 @@ func TestPlan_state(t *testing.T) {
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("bar"),
 		"ami": cty.NullVal(cty.String),
-		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+		"network_interface": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 			"device_index": cty.String,
 			"description":  cty.String,
-		}))),
+		})),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
@@ -479,10 +479,10 @@ func TestPlan_stateDefault(t *testing.T) {
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("bar"),
 		"ami": cty.NullVal(cty.String),
-		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+		"network_interface": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 			"device_index": cty.String,
 			"description":  cty.String,
-		}))),
+		})),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
