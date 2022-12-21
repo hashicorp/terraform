@@ -555,3 +555,28 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
 }
+
+// RequiredExternalProviderConfigs returns a set of all of the external provider
+// configurations the receiver would require in order to be planned as a
+// root module.
+//
+// The result does not include any default provider configurations implied by
+// "resource" or "data" blocks that don't have associated "provider" block,
+// because those can potentially be satisfied by implied empty provider
+// configurations, for providers like hashicorp/null which don't have any
+// required configuration settings.
+func (c *Config) RequiredExternalProviderConfigs() addrs.Set[addrs.RootProviderConfig] {
+	ret := addrs.MakeSet[addrs.RootProviderConfig]()
+	if c.Module == nil || c.Module.ProviderRequirements == nil {
+		return ret
+	}
+	for _, reqt := range c.Module.ProviderRequirements.RequiredProviders {
+		for _, localAddr := range reqt.Aliases {
+			ret.Add(addrs.RootProviderConfig{
+				Provider: reqt.Type,
+				Alias:    localAddr.Alias,
+			})
+		}
+	}
+	return ret
+}

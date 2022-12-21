@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -15,6 +16,32 @@ import (
 // ApplyOpts are options that affect the details of how Terraform will apply a
 // previously-generated plan.
 type ApplyOpts struct {
+	// ExternalProviderConfigs are pre-configured provider instances to be
+	// passed in to the root module, with similar meaning to the "providers"
+	// argument in a "modules" block.
+	//
+	// The provider instances passed during apply must be functionally
+	// equivalent to the ones used to create the plan -- e.g. must use
+	// credentials with equivalent access, and be targeting the same network
+	// endpoints -- or the resulting behavior will be unpredictable.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+}
+
+// ApplyOpts returns an ApplyOpts that propagates any of the options that
+// are required to be equivalent between the plan phase and the apply phase.
+//
+// Callers are not required to use this method to produce their apply options
+// because in practice apply is often run in an entirely separate process from
+// plan, but this is here as a convenience for situations where apply happens
+// immediately after plan in the same process, such as in our internal test
+// cases.
+func (po *PlanOpts) ApplyOpts() *ApplyOpts {
+	if po == nil {
+		return nil
+	}
+	return &ApplyOpts{
+		ExternalProviderConfigs: po.ExternalProviderConfigs,
+	}
 }
 
 // Apply performs the actions described by the given Plan object and returns
@@ -33,23 +60,37 @@ type ApplyOpts struct {
 // certain combinations of plan-time options.
 func (c *Context) Apply(plan *plans.Plan, config *configs.Config, opts *ApplyOpts) (*states.State, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
+	var diags tfdiags.Diagnostics
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
+
+	graph, operation, moreDiags := c.applyGraph(plan, config, opts, true)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
 
 	if opts == nil {
 		opts = &ApplyOpts{}
 	}
 
-	graph, operation, diags := c.applyGraph(plan, config, true)
-	if diags.HasErrors() {
+	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviderConfigs)
+	diags = diags.Append(providerCfgDiags)
+	if providerCfgDiags.HasErrors() {
 		return nil, diags
+	}
+
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviderConfigs
 	}
 
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
-		Config:     config,
-		InputState: workingState,
-		Changes:    plan.Changes,
+		Config:                  config,
+		InputState:              workingState,
+		Changes:                 plan.Changes,
+		ExternalProviderConfigs: externalProviderConfigs,
 
 		// We need to propagate the check results from the plan phase,
 		// because that will tell us which checkable objects we're expecting
@@ -102,7 +143,7 @@ Note that the -target option is not suitable for routine use, and is provided on
 	return newState, diags
 }
 
-func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
+func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, opts *ApplyOpts, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	variables := InputValues{}
@@ -186,7 +227,7 @@ func (c *Context) ApplyGraphForUI(plan *plans.Plan, config *configs.Config) (*Gr
 
 	var diags tfdiags.Diagnostics
 
-	graph, _, moreDiags := c.applyGraph(plan, config, false)
+	graph, _, moreDiags := c.applyGraph(plan, config, nil, false)
 	diags = diags.Append(moreDiags)
 	return graph, diags
 }

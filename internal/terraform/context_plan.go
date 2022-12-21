@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -48,6 +49,30 @@ type PlanOpts struct {
 	// substitution of defaults. See the documentation for the InputValue
 	// type for more information on how to correctly populate this.
 	SetVariables InputValues
+
+	// ExternalProviderConfigs are pre-configured provider instances to be
+	// passed in to the root module, with similar meaning to the "providers"
+	// argument in a "modules" block.
+	//
+	// The given providers must be pre-configured and ready to use. Terraform
+	// core will not call ValidateProviderConfig or ConfigureProvider on
+	// these instances, and will instead assume that the caller already
+	// did so or arranged somehow else for these providers to be ready to use
+	// without explicit configuration.
+	//
+	// The keys of this map must all correlate with configuration addresses
+	// that the root module either explicitly declares a requirement for or
+	// just _implies_ a requirement for (by using a default provider
+	// configuration without actually defining it.)
+	//
+	// The values of this map should typically be instances of the same
+	// [providers.Interface] implementation that would be returned by the
+	// provider factories previously passed when creating the [Context],
+	// but that is not actually required. For example, it's reasonable to
+	// pass in special mock providers here when running tests for a shared
+	// module that would normally expect to have provider configurations
+	// passed to it from its caller.
+	ExternalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
 
 	// If Targets has a non-zero length then it activates targeted planning
 	// mode, where Terraform will take actions only for resource instances
@@ -104,6 +129,12 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 	// otherwise we're likely to just see a bunch of other errors related to
 	// incompatibilities, which could be overwhelming for the user.
 	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	providerCfgDiags := checkExternalProviders(config, opts.ExternalProviderConfigs)
+	diags = diags.Append(providerCfgDiags)
+	if providerCfgDiags.HasErrors() {
 		return nil, diags
 	}
 
@@ -214,7 +245,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 	diags = diags.Append(rDiags)
 
 	plan.RelevantAttributes = relevantAttrs
-	diags = diags.Append(c.checkApplyGraph(plan, config))
+	diags = diags.Append(c.checkApplyGraph(plan, config, opts))
 
 	return plan, diags
 }
@@ -223,13 +254,13 @@ The -target option is not for routine use, and is provided only for exceptional 
 // check for any errors that may arise once the planned changes are added to
 // the graph. This allows terraform to report errors (mostly cycles) during
 // plan that would otherwise only crop up during apply
-func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
+func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config, opts *PlanOpts) tfdiags.Diagnostics {
 	if plan.Changes.Empty() {
 		log.Println("[DEBUG] no planned changes, skipping apply graph check")
 		return nil
 	}
 	log.Println("[DEBUG] building apply graph to check for errors")
-	_, _, diags := c.applyGraph(plan, config, true)
+	_, _, diags := c.applyGraph(plan, config, opts.ApplyOpts(), true)
 	return diags
 }
 
@@ -513,14 +544,20 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
+	var externalProviderConfigs map[addrs.RootProviderConfig]providers.Interface
+	if opts != nil {
+		externalProviderConfigs = opts.ExternalProviderConfigs
+	}
+
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:      config,
-		InputState:  prevRunState,
-		Changes:     changes,
-		MoveResults: moveResults,
+		Config:                  config,
+		InputState:              prevRunState,
+		ExternalProviderConfigs: externalProviderConfigs,
+		Changes:                 changes,
+		MoveResults:             moveResults,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
