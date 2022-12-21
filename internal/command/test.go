@@ -2,10 +2,12 @@ package command
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -17,9 +19,11 @@ import (
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/testconfigs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/terraform/version"
 )
 
 // TestCommand is the implementation of "terraform test".
@@ -280,9 +284,17 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		return nil, diags
 	}
 
+	extProviderConfigs, moreDiags := c.externalProviderConfigsForStep(scenarioConfig, stepConfig, coreOpts.Providers)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+	defer c.terminateExternalProviderInstances(extProviderConfigs, &diags)
+
 	planOpts := &terraform.PlanOpts{
-		Mode:         stepConfig.PlanMode,
-		SetVariables: make(terraform.InputValues, len(stepConfig.RootModule.Variables)),
+		Mode:                    stepConfig.PlanMode,
+		SetVariables:            make(terraform.InputValues, len(stepConfig.RootModule.Variables)),
+		ExternalProviderConfigs: extProviderConfigs,
 	}
 	varDefErrors := false
 	for name, decl := range stepConfig.RootModule.Variables {
@@ -363,9 +375,18 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		return nil, diags
 	}
 
-	newState, moreDiags := core.Apply(plan, cfg, nil)
+	newState, moreDiags := core.Apply(plan, cfg, &terraform.ApplyOpts{
+		// TODO: Should we close and then re-open all of these, to make this
+		// more realistic for how a real plan and apply would behave?
+		// In theory it shouldn't matter but in practice there might be
+		// some weird lingering state in the provider that could change
+		// its behavior.
+		ExternalProviderConfigs: extProviderConfigs,
+	})
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
 	cleanupCtx := &testCommandCleanupContext{
+		Scenario:     scenarioConfig,
+		Step:         stepConfig,
 		State:        newState,
 		Config:       cfg,
 		SetVariables: planOpts.SetVariables,
@@ -387,6 +408,132 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	// allow the overall step to succeed even if they have StatusFail.
 
 	return cleanupCtx, diags
+}
+
+func (c *TestCommand) externalProviderConfigsForStep(scenarioConfig *testconfigs.Scenario, stepConfig *testconfigs.Step, factories map[addrs.Provider]providers.Factory) (map[addrs.RootProviderConfig]providers.Interface, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(map[addrs.RootProviderConfig]providers.Interface, len(stepConfig.Providers))
+
+	for _, passed := range stepConfig.Providers {
+		inScenarioAddr := passed.InParent.Addr()
+		providerDecl, declared := scenarioConfig.ProviderReqs.RequiredProviders[inScenarioAddr.LocalName]
+		if !declared {
+			// We shouldn't be able to get here if the config decoder did all
+			// of the validation it should have, but we'll handle it anyway
+			// to be robust.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared provider local name",
+				Detail:   fmt.Sprintf("The scenario's required_providers block does not declare a provider with local name %q.", inScenarioAddr.LocalName),
+				Subject:  passed.InParent.NameRange.Ptr(),
+			})
+			continue
+		}
+		providerAddr := providerDecl.Type
+		factory := factories[providerAddr]
+		if factory == nil {
+			// This suggests that something went wrong during 'terraform init',
+			// since it should've installed all of the requested providers and
+			// recorded its selections in the dependency lock file, and then
+			// our caller will use the dependency lock file to determine which
+			// factories to send us.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider not available",
+				Detail:   fmt.Sprintf("This test scenario depends on provider %s, which is not installed.\n\nTo install all providers required for this module, run the following command:\n    terraform init", providerAddr.ForDisplay()),
+				Subject:  providerDecl.DeclRange.Ptr(),
+			})
+			continue
+		}
+		inModuleAddr := addrs.RootProviderConfig{
+			Provider: providerAddr,
+			Alias:    passed.InChild.Alias,
+		}
+
+		inst, err := factory()
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider plugin initialization failed",
+				Detail:   fmt.Sprintf("Failed to launch the provider plugin for %s: %s.", inScenarioAddr.String(), err),
+				Subject:  providerDecl.DeclRange.Ptr(),
+			})
+			continue
+		}
+		schemaResp := inst.GetProviderSchema()
+		diags = diags.Append(schemaResp.Diagnostics)
+		if schemaResp.Diagnostics.HasErrors() {
+			continue
+		}
+
+		if _, isMock := scenarioConfig.MockProviderConfigs[inScenarioAddr]; isMock {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Mock provider instances not yet implemented",
+				Detail:   fmt.Sprintf("The scenario defines %s as a mock provider instance, which is not yet supported.", inScenarioAddr.String()),
+				Subject:  passed.InParent.NameRange.Ptr(),
+			})
+		} else if realConfig, isReal := scenarioConfig.RealProviderConfigs[inScenarioAddr]; isReal {
+			// For a real provider we'll want to properly configure it using
+			// the arguments written in the provider block.
+			configSchema := schemaResp.Provider.Block
+			decSpec := configSchema.DecoderSpec()
+			// NOTE: Unlike in a real Terraform module, a provider configuration
+			// for _testing_ must use only literal values, since test scenarios
+			// are supposed to be self-contained. Any settings that relate to
+			// who is running the test (credentials, etc) must be set using
+			// out-of-band techniques like environment variables; the in-scenario
+			// configuration is only for configuring behavior that ought to be
+			// true regardless of who is running the tests.
+			configVal, hclDiags := hcldec.Decode(realConfig.Config, decSpec, nil)
+			diags = diags.Append(hclDiags)
+			if hclDiags.HasErrors() {
+				continue
+			}
+			validResp := inst.ValidateProviderConfig(providers.ValidateProviderConfigRequest{
+				Config: configVal,
+			})
+			diags = diags.Append(validResp.Diagnostics)
+			if validResp.Diagnostics.HasErrors() {
+				continue
+			}
+			configResp := inst.ConfigureProvider(providers.ConfigureProviderRequest{
+				TerraformVersion: version.String(),
+				Config:           configVal,
+			})
+			diags = diags.Append(configResp.Diagnostics)
+			if configResp.Diagnostics.HasErrors() {
+				continue
+			}
+			ret[inModuleAddr] = inst
+		} else {
+			// We shouldn't be able to get here if the config decoder did all
+			// of the validation it should have, but we'll handle it anyway
+			// to be robust.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undefined provider",
+				Detail:   fmt.Sprintf("There is no real provider or mock provider configuration in this test scenario for %s.", inScenarioAddr.String()),
+				Subject:  passed.InParent.NameRange.Ptr(),
+			})
+		}
+	}
+
+	return ret, diags
+}
+
+func (c *TestCommand) terminateExternalProviderInstances(insts map[addrs.RootProviderConfig]providers.Interface, diagsPtr *tfdiags.Diagnostics) {
+	for addr, inst := range insts {
+		err := inst.Close()
+		if err != nil {
+			*diagsPtr = diagsPtr.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Failed to terminate provider plugin",
+				fmt.Sprintf("Error when asking %s to shut down: %s.", addr.String(), err),
+			))
+			continue
+		}
+	}
 }
 
 func (c *TestCommand) prepareExpectedFailuresReport(checkResults *states.CheckResults, expectedFail addrs.Set[addrs.Checkable]) addrs.Map[addrs.Checkable, checks.Status] {
@@ -452,11 +599,24 @@ func (c *TestCommand) runScenarioCleanup(ctx context.Context, cleanupCtx *testCo
 		return diags
 	}
 
+	// We'll use provider instances equivalent to the ones used to run the
+	// step that established this state, so that we'll have the best chance
+	// of succeeding.
+	extProviderConfigs, moreDiags := c.externalProviderConfigsForStep(
+		cleanupCtx.Scenario,
+		cleanupCtx.Step,
+		coreOpts.Providers,
+	)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return diags
+	}
+	defer c.terminateExternalProviderInstances(extProviderConfigs, &diags)
+
 	planOpts := &terraform.PlanOpts{
-		Mode:         plans.DestroyMode,
-		SetVariables: cleanupCtx.SetVariables,
-		// TODO: Must also set the passed in provider configurations, once
-		// that is possible to do.
+		Mode:                    plans.DestroyMode,
+		SetVariables:            cleanupCtx.SetVariables,
+		ExternalProviderConfigs: extProviderConfigs,
 	}
 	plan, moreDiags := core.Plan(cleanupCtx.Config, cleanupCtx.State, planOpts)
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
@@ -469,7 +629,14 @@ func (c *TestCommand) runScenarioCleanup(ctx context.Context, cleanupCtx *testCo
 		return diags
 	}
 
-	_, moreDiags = core.Apply(plan, cleanupCtx.Config, nil)
+	_, moreDiags = core.Apply(plan, cleanupCtx.Config, &terraform.ApplyOpts{
+		// TODO: Should we close and then re-open all of these, to make this
+		// more realistic for how a real plan and apply would behave?
+		// In theory it shouldn't matter but in practice there might be
+		// some weird lingering state in the provider that could change
+		// its behavior.
+		ExternalProviderConfigs: extProviderConfigs,
+	})
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		result.Status = checks.StatusError
@@ -485,6 +652,14 @@ func (c *TestCommand) runScenarioCleanup(ctx context.Context, cleanupCtx *testCo
 }
 
 type testCommandCleanupContext struct {
+	// Scenario is the configuration for the scenario that the step
+	// in [Step] belongs to.
+	Scenario *testconfigs.Scenario
+
+	// Step is the configuration for the step that established the
+	// other values in this object.
+	Step *testconfigs.Step
+
 	// State is the state from the most recent apply.
 	State *states.State
 
