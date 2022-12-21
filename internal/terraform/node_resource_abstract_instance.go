@@ -603,7 +603,7 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 		// We had to fix up this object in some way, and we still need to
 		// accept any changes for compatibility, so all we can do is log a
 		// warning about the change.
-		log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks during refresh\n", n.ResolvedProvider.Provider)
+		log.Printf("[WARN] Provider %q produced an invalid new value containing null blocks for %q during refresh\n", n.ResolvedProvider.Provider, n.Addr)
 	}
 
 	ret := state.DeepCopy()
