@@ -93,6 +93,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 	for key := range renderer.blocks {
 		blockKeys = append(blockKeys, key)
 	}
+	sort.Strings(blockKeys)
 
 	for _, key := range blockKeys {
 		blocks := renderer.blocks[key]
