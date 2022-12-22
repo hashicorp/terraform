@@ -1208,11 +1208,6 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 	}
 }
 
-func TestValue_Blocks(t *testing.T) {
-	// This function tests the creation and deletion of blocks specifically,
-	// rather than their manipulation.
-}
-
 func TestValue_PrimitiveAttributes(t *testing.T) {
 	// This function tests manipulating primitives: creating, deleting and
 	// updating. It also automatically tests these operations within the
