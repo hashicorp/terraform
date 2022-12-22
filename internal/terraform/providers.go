@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -113,5 +114,13 @@ type externalProviderWrapper struct {
 var _ providers.Interface = externalProviderWrapper{}
 
 func (pw externalProviderWrapper) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
+	log.Printf("[DEBUG] Skipping ConfigureProvider for external provider instance")
 	return providers.ConfigureProviderResponse{}
+}
+
+func (pw externalProviderWrapper) Close() error {
+	// It's not Terraform Core's responsibility to close a provider instance
+	// that was provided by an external caller.
+	log.Printf("[DEBUG] Skipping Close for external provider instance")
+	return nil
 }
