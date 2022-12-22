@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/moduletest/providermocks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -182,7 +183,24 @@ func loadScenarioFile(filename string, parser *configs.Parser) (*Scenario, tfdia
 		}
 	}
 	for _, pc := range ret.MockProviderConfigs {
-		if _, ok := ret.ProviderReqs.RequiredProviders[pc.Addr.LocalName]; !ok {
+		if reqt, ok := ret.ProviderReqs.RequiredProviders[pc.Addr.LocalName]; ok {
+			// We'll also load the mock provider config before we return, so
+			// we can give early feedback if it's either missing or invalid.
+			config, moreDiags := providermocks.LoadMockConfig(reqt.Type, pc.DefDir)
+			diags = diags.Append(moreDiags)
+			if !moreDiags.HasErrors() {
+				pc.Config = config
+			}
+			if config != nil {
+				// Propagate the mock provider file source blobs into our
+				// parser so that they will hopefully end up being available
+				// for use in diagnostic snippets, assuming that the diagnostic
+				// renderer is using the same parser.
+				for fn, src := range config.Sources {
+					parser.ForceFileSource(fn, src)
+				}
+			}
+		} else {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Mock instance for unknown provider",

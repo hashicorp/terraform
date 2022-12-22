@@ -463,16 +463,24 @@ func (c *TestCommand) externalProviderConfigsForStep(scenarioConfig *testconfigs
 		schemaResp := inst.GetProviderSchema()
 		diags = diags.Append(schemaResp.Diagnostics)
 		if schemaResp.Diagnostics.HasErrors() {
+			inst.Close()
 			continue
 		}
 
-		if _, isMock := scenarioConfig.MockProviderConfigs[inScenarioAddr]; isMock {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Mock provider instances not yet implemented",
-				Detail:   fmt.Sprintf("The scenario defines %s as a mock provider instance, which is not yet supported.", inScenarioAddr.String()),
-				Subject:  passed.InParent.NameRange.Ptr(),
-			})
+		if mockConfig, isMock := scenarioConfig.MockProviderConfigs[inScenarioAddr]; isMock {
+			// For mock providers we wrap up an unconfigured real instance
+			// inside a mock instance. The mock wrapper uses the real instance
+			// for all of the pre-config functionality such as config
+			// validation, but intercepts any operations that would normally
+			// require a configured provider and stubs them out locally
+			// instead.
+			mockInst, moreDiags := mockConfig.Config.Instantiate(inst)
+			diags = diags.Append(moreDiags)
+			if moreDiags.HasErrors() {
+				inst.Close()
+				continue
+			}
+			ret[inModuleAddr] = mockInst
 		} else if realConfig, isReal := scenarioConfig.RealProviderConfigs[inScenarioAddr]; isReal {
 			// For a real provider we'll want to properly configure it using
 			// the arguments written in the provider block.

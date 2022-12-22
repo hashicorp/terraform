@@ -198,9 +198,10 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 						colorCode = "reset"
 					}
 					v.streams.Eprintf(
-						"  %s: %s\n",
+						"  %s: %s; %s\n",
 						v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
 						diag.Description().Summary,
+						diag.Description().Detail,
 					)
 				}
 			}

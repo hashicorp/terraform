@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -18,6 +19,8 @@ type Suite struct {
 	ModuleDir string
 	Scenarios map[string]*Scenario
 }
+
+const scenarioFileSuffix = ".tftest"
 
 func LoadSuiteForModule(moduleDir string, parser *configs.Parser) (*Suite, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -43,6 +46,12 @@ func LoadSuiteForModule(moduleDir string, parser *configs.Parser) (*Suite, tfdia
 	}
 
 	for _, entry := range scenariosFiles {
+		if entry.IsDir() {
+			continue
+		}
+		if !strings.HasSuffix(entry.Name(), scenarioFileSuffix) {
+			continue
+		}
 		filename := filepath.Join(scenariosDir, entry.Name())
 		scenario, moreDiags := loadScenarioFile(filename, parser)
 		diags = diags.Append(moreDiags)

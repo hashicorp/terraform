@@ -8,13 +8,15 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/moduletest/providermocks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type MockProvider struct {
 	Addr addrs.LocalProviderConfig
 
-	DefFilename string
+	DefDir string
+	Config *providermocks.Config
 
 	DeclRange hcl.Range
 }
@@ -31,10 +33,21 @@ func decodeMockProviderBlock(block *hcl.Block) (*MockProvider, tfdiags.Diagnosti
 	content, hclDiags := block.Body.Content(&mockProviderBlockSchema)
 	diags = diags.Append(hclDiags)
 
+	sourceFilename := block.DefRange.Filename
+	sourceDir := filepath.Dir(sourceFilename)
+
 	if attr, ok := content.Attributes["config"]; ok {
-		hclDiags = gohcl.DecodeExpression(attr.Expr, nil, &ret.DefFilename)
+		hclDiags = gohcl.DecodeExpression(attr.Expr, nil, &ret.DefDir)
 		diags = diags.Append(hclDiags)
-		ret.DefFilename = filepath.Clean(ret.DefFilename)
+		// The definition directory is resolved relative to the file
+		// it's declared in.
+		ret.DefDir = filepath.Join(sourceDir, ret.DefDir)
+
+		// NOTE: We don't actually populate ret.Config here, because at
+		// the time of decoding a mock provider block we only know the
+		// local name of the provider. The main scenario decoder function
+		// (our caller) must populate Config before returning this to
+		// any external callers.
 	}
 	if attr, ok := content.Attributes["alias"]; ok {
 		hclDiags = gohcl.DecodeExpression(attr.Expr, nil, &ret.Addr.Alias)
