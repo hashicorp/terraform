@@ -99,45 +99,9 @@ func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (*ProviderSchema, 
 		return nil, fmt.Errorf("failed to retrieve schema from provider %q: %s", addr, resp.Diagnostics.Err())
 	}
 
-	s := &ProviderSchema{
-		Provider:      resp.Provider.Block,
-		ResourceTypes: make(map[string]*configschema.Block),
-		DataSources:   make(map[string]*configschema.Block),
-
-		ResourceTypeSchemaVersions: make(map[string]uint64),
-	}
-
-	if resp.Provider.Version < 0 {
-		// We're not using the version numbers here yet, but we'll check
-		// for validity anyway in case we start using them in future.
-		return nil, fmt.Errorf("provider %s has invalid negative schema version for its configuration blocks,which is a bug in the provider ", addr)
-	}
-
-	for t, r := range resp.ResourceTypes {
-		if err := r.Block.InternalValidate(); err != nil {
-			return nil, fmt.Errorf("provider %s has invalid schema for managed resource type %q, which is a bug in the provider: %q", addr, t, err)
-		}
-		s.ResourceTypes[t] = r.Block
-		s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
-		if r.Version < 0 {
-			return nil, fmt.Errorf("provider %s has invalid negative schema version for managed resource type %q, which is a bug in the provider", addr, t)
-		}
-	}
-
-	for t, d := range resp.DataSources {
-		if err := d.Block.InternalValidate(); err != nil {
-			return nil, fmt.Errorf("provider %s has invalid schema for data resource type %q, which is a bug in the provider: %q", addr, t, err)
-		}
-		s.DataSources[t] = d.Block
-		if d.Version < 0 {
-			// We're not using the version numbers here yet, but we'll check
-			// for validity anyway in case we start using them in future.
-			return nil, fmt.Errorf("provider %s has invalid negative schema version for data resource type %q, which is a bug in the provider", addr, t)
-		}
-	}
-
-	if resp.ProviderMeta.Block != nil {
-		s.ProviderMeta = resp.ProviderMeta.Block
+	s, err := resp.Schemas()
+	if err != nil {
+		return nil, fmt.Errorf("bad schema for %s: %w", addr, err)
 	}
 
 	cp.providerSchemas[addr] = s

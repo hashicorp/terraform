@@ -1,6 +1,8 @@
 package providers
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
@@ -14,12 +16,7 @@ import (
 // This type used to be known as terraform.ProviderSchema, but moved out here
 // as part of our ongoing efforts to shrink down the "terraform" package.
 // There's still a type alias at the old name, but we should prefer using
-// providers.Schema in new code. However, a consequence of this transitional
-// situation is that the "terraform" package still has the responsibility for
-// constructing a providers.Schemas object based on responses from the provider
-// API; hopefully we'll continue this refactor later so that functions in this
-// package totally encapsulate the unmarshalling and include this as part of
-// providers.GetProviderSchemaResponse.
+// providers.Schema in new code.
 type Schemas struct {
 	Provider      *configschema.Block
 	ProviderMeta  *configschema.Block
@@ -27,6 +24,55 @@ type Schemas struct {
 	DataSources   map[string]*configschema.Block
 
 	ResourceTypeSchemaVersions map[string]uint64
+}
+
+func (resp GetProviderSchemaResponse) Schemas() (*Schemas, error) {
+	if resp.Diagnostics.HasErrors() {
+		return nil, resp.Diagnostics.Err()
+	}
+
+	s := &Schemas{
+		Provider:      resp.Provider.Block,
+		ResourceTypes: make(map[string]*configschema.Block),
+		DataSources:   make(map[string]*configschema.Block),
+
+		ResourceTypeSchemaVersions: make(map[string]uint64),
+	}
+
+	if resp.Provider.Version < 0 {
+		// We're not using the version numbers here yet, but we'll check
+		// for validity anyway in case we start using them in future.
+		return nil, fmt.Errorf("invalid negative schema version for provider configuration blocks, which is a bug in the provider")
+	}
+
+	for t, r := range resp.ResourceTypes {
+		if err := r.Block.InternalValidate(); err != nil {
+			return nil, fmt.Errorf("invalid schema for managed resource type %q, which is a bug in the provider: %q", t, err)
+		}
+		s.ResourceTypes[t] = r.Block
+		s.ResourceTypeSchemaVersions[t] = uint64(r.Version)
+		if r.Version < 0 {
+			return nil, fmt.Errorf("invalid negative schema version for managed resource type %q, which is a bug in the provider", t)
+		}
+	}
+
+	for t, d := range resp.DataSources {
+		if err := d.Block.InternalValidate(); err != nil {
+			return nil, fmt.Errorf("invalid schema for data resource type %q, which is a bug in the provider: %q", t, err)
+		}
+		s.DataSources[t] = d.Block
+		if d.Version < 0 {
+			// We're not using the version numbers here yet, but we'll check
+			// for validity anyway in case we start using them in future.
+			return nil, fmt.Errorf("invalid negative schema version for data resource type %q, which is a bug in the provider", t)
+		}
+	}
+
+	if resp.ProviderMeta.Block != nil {
+		s.ProviderMeta = resp.ProviderMeta.Block
+	}
+
+	return s, nil
 }
 
 // SchemaForResourceType attempts to find a schema for the given mode and type.
