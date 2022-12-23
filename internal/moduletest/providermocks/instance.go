@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -315,12 +316,22 @@ func (p *mockProvider) PlanResourceChange(req providers.PlanResourceChangeReques
 	mppOut := make(mockProviderPrivate, 1)
 	mockResps := config.Responses[planRequest]
 
+	// HACK: We'll use the logic Terraform Core normally uses to create
+	// a plan for a deferred data resource to automatically insert
+	// unknown values as the proposed results for any computed attributes
+	// that aren't set in the configuration.
+	//
+	// This function isn't really designed for this purpose but it's
+	// close enough for prototyping.
+	proposedNewState := objchange.PlannedDataResourceObject(schema, req.ProposedNewState)
+
 	if len(mockResps) == 0 {
 		// If the mock author didn't define any plan responses at all then
 		// we'll just echo back Terraform Core's proposed new state, which
 		// is the result of Terraform Core's built-in behavior of merging
 		// the current config with the prior state.
-		resp.PlannedState = req.ProposedNewState
+
+		resp.PlannedState = proposedNewState
 		log.Printf("[DEBUG] mock %s: using built-in PlanResourceChange behavior for %s", p.Config.ForProvider, resourceType)
 		return resp
 	}
@@ -333,7 +344,7 @@ func (p *mockProvider) PlanResourceChange(req providers.PlanResourceChangeReques
 		"read_response":  mppIn.ObjectVal(readRequest),
 		"current_state":  req.PriorState,
 		"config":         req.Config,
-		"proposed_state": req.ProposedNewState,
+		"proposed_state": proposedNewState,
 	}
 	chosen, modObj, moreDiags := p.chooseMockResponse(planRequest, resourceType, mockResps, evalVars, schema)
 	resp.Diagnostics = resp.Diagnostics.Append(moreDiags)
@@ -341,14 +352,29 @@ func (p *mockProvider) PlanResourceChange(req providers.PlanResourceChangeReques
 		return resp
 	}
 
-	// FIXME: This isn't actually sufficient. We instead need to deep-merge the
-	// modObj data into the prior state so that we'll preserve anything that
-	// the configuration didn't set.
-	// (also FIXME: we've thrown away the information about whether the
-	// arguments were explicitly set in the content block, and so we won't
-	// be able to allow the mock to explicitly force something to be null
-	// without taking a different approach to resolving these.)
+	modObj = deepMergeConfiguredResponseAttrs(schema, proposedNewState, modObj)
 	resp.PlannedState = modObj
+
+	// Before we return we'll make sure our response actually obeys the
+	// resource change lifecycle rules, because otherwise Terraform Core will
+	// catch it and return a confusing error message that blames the real
+	// provider for what is actually a bug in the mock itself.
+	for _, err := range objchange.AssertPlanValid(schema, req.PriorState, req.Config, modObj) {
+		// FIXME: The AssertPlanValid errors were designed for real
+		// provider developers working in Go and so they tend to use Go
+		// syntax to describe values. This isn't really appropriate for
+		// error messages directed at folks writing HCL-based mock providers.
+		resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid mock plan response",
+			Detail: fmt.Sprintf(
+				"The values from the selected mock plan response are not compatible with the given configuration: %s.\n\nThe mock for %s configured in %s is not compatible with this test step.",
+				tfdiags.FormatError(err),
+				p.Config.ForProvider, p.Config.BaseDir,
+			),
+			Subject: chosen.DeclRange.Ptr(),
+		})
+	}
 
 	mppOut[planRequest] = chosen.Name
 	resp.PlannedPrivate = marshalMockProviderPrivate(mppOut)
@@ -403,14 +429,29 @@ func (p *mockProvider) ApplyResourceChange(req providers.ApplyResourceChangeRequ
 		return resp
 	}
 
-	// FIXME: This isn't actually sufficient. We instead need to deep-merge the
-	// modObj data into the prior state so that we'll preserve anything that
-	// the configuration didn't set.
-	// (also FIXME: we've thrown away the information about whether the
-	// arguments were explicitly set in the content block, and so we won't
-	// be able to allow the mock to explicitly force something to be null
-	// without taking a different approach to resolving these.)
-	resp.NewState = modObj
+	modObj = deepMergeConfiguredResponseAttrs(schema, cty.UnknownAsNull(req.PlannedState), modObj)
+	resp.NewState = cty.UnknownAsNull(modObj) // New state must not have any unknown values
+
+	// Before we return we'll make sure our response actually obeys the
+	// resource change lifecycle rules, because otherwise Terraform Core will
+	// catch it and return a confusing error message that blames the real
+	// provider for what is actually a bug in the mock itself.
+	for _, err := range objchange.AssertObjectCompatible(schema, req.PlannedState, modObj) {
+		// FIXME: The AssertObjectCompatible errors were designed for real
+		// provider developers working in Go and so they tend to use Go
+		// syntax to describe values. This isn't really appropriate for
+		// error messages directed at folks writing HCL-based mock providers.
+		resp.Diagnostics = resp.Diagnostics.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid mock apply response",
+			Detail: fmt.Sprintf(
+				"The values from the selected mock apply response are not compatible with the mocked plan: %s.\n\nThis is a bug in the mock of %s configured in %s.",
+				tfdiags.FormatError(err),
+				p.Config.ForProvider, p.Config.BaseDir,
+			),
+			Subject: chosen.DeclRange.Ptr(),
+		})
+	}
 
 	mppOut[planRequest] = mppIn[planRequest]
 	mppOut[applyRequest] = chosen.Name
@@ -544,6 +585,70 @@ func (p *mockProvider) chooseMockResponse(reqType requestType, resType ResourceT
 	return nil, cty.NilVal, diags
 }
 
+func deepMergeConfiguredResponseAttrs(schema *configschema.Block, base, configured cty.Value) cty.Value {
+	// HACK: We'll use the logic Terraform Core normally uses to create
+	// a proposed new state to pass into PlanResourceChange as a "close enough"
+	// way to merge the partial object returned by the mock response with
+	// the proposed new state we calculated earlier.
+	//
+	// This function isn't really designed for this purpose but it's close
+	// enough for prototyping.
+	//
+	// FIXME: we've thrown away the information about whether the
+	// arguments were explicitly set in the content block, and so we won't
+	// be able to allow the mock to explicitly force something to be null
+	// without taking a different approach to resolving these.
+
+	schema = hackSchemaBlockWithEverythingComputed(schema)
+	return objchange.ProposedNew(schema, base, configured)
+}
+
+// hackSchemaWithEverythingOptionalComputed is a hack to help us abuse the
+// [objchange.ProposedNew] function as a general "deep merge" sort of thing.
+//
+// It produces a copy of the given schema where all attributes are marked as
+// being Optional+Computed, which then causes ProposedNew to take the
+// "prior" value if the "config" is null, or take the "config" otherwise.
+func hackSchemaBlockWithEverythingComputed(given *configschema.Block) *configschema.Block {
+	ret := &configschema.Block{
+		Attributes: make(map[string]*configschema.Attribute, len(given.Attributes)),
+		BlockTypes: make(map[string]*configschema.NestedBlock, len(given.BlockTypes)),
+	}
+	for name, attr := range given.Attributes {
+		ret.Attributes[name] = hackSchemaAttributeWithEverythingComputed(attr)
+	}
+	for typeName, bt := range given.BlockTypes {
+		ret.BlockTypes[typeName] = hackSchemaNestedBlockWithEverythingComputed(bt)
+	}
+	return ret
+}
+
+func hackSchemaAttributeWithEverythingComputed(given *configschema.Attribute) *configschema.Attribute {
+	ret := *given // shallow copy
+	ret.Required = false
+	ret.Optional = true
+	ret.Computed = true
+	if ret.NestedType != nil {
+		ret.NestedType = hackSchemaObjectWithEverythingComputed(ret.NestedType)
+	}
+	return &ret
+}
+
+func hackSchemaNestedBlockWithEverythingComputed(given *configschema.NestedBlock) *configschema.NestedBlock {
+	ret := *given // shallow copy
+	ret.Block = *hackSchemaBlockWithEverythingComputed(&ret.Block)
+	return &ret
+}
+
+func hackSchemaObjectWithEverythingComputed(given *configschema.Object) *configschema.Object {
+	ret := *given // shallow copy
+	ret.Attributes = make(map[string]*configschema.Attribute, len(given.Attributes))
+	for name, attr := range given.Attributes {
+		ret.Attributes[name] = hackSchemaAttributeWithEverythingComputed(attr)
+	}
+	return &ret
+}
+
 type mockProviderPrivate map[requestType]string
 
 func (mpp mockProviderPrivate) NameVal(reqType requestType) cty.Value {
@@ -579,14 +684,14 @@ func unmarshalMockProviderPrivate(raw []byte) mockProviderPrivate {
 		return nil
 	}
 	ret := make(mockProviderPrivate, 3)
-	if len(parts[0]) != 0 {
-		ret[readRequest] = string(parts[0])
-	}
 	if len(parts[1]) != 0 {
-		ret[planRequest] = string(parts[1])
+		ret[readRequest] = string(parts[1])
 	}
 	if len(parts[2]) != 0 {
-		ret[applyRequest] = string(parts[2])
+		ret[planRequest] = string(parts[2])
+	}
+	if len(parts[3]) != 0 {
+		ret[applyRequest] = string(parts[3])
 	}
 	return ret
 }
