@@ -127,9 +127,8 @@ func (c *Config) exprFunctions(reqType requestType) map[string]function.Function
 	// we're going to lie to it here and tell it about a fake module that
 	// is just enough to get working functions.
 	fakeScope := &lang.Scope{
-		BaseDir:     c.BaseDir,
-		ConsoleMode: true,
-		PureOnly:    false,
+		BaseDir:  c.BaseDir,
+		PureOnly: false,
 	}
 	funcs := fakeScope.Functions()
 	if reqType == planRequest {

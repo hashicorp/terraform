@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
@@ -16,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/moduletest/testconfigs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -291,6 +294,11 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	}
 	defer c.terminateExternalProviderInstances(extProviderConfigs, &diags)
 
+	postCondEvalCtx := &testStepPostconditionEvalContext{
+		PriorState: state,
+		// We'll populate the rest gradually as we go.
+	}
+
 	planOpts := &terraform.PlanOpts{
 		Mode:                    stepConfig.PlanMode,
 		SetVariables:            make(terraform.InputValues, len(stepConfig.RootModule.Variables)),
@@ -322,21 +330,6 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 			}
 		}
 	}
-	if len(stepConfig.Postconditions) != 0 {
-		// TODO: Actually support test-step postconditions, allowing them to
-		// e.g. compare prior state to planned new state and other such things
-		// that expressions within a normal module wouldn't be allowed to do.
-		// For now we just reject them outright to avoid reporting success
-		// in situations where we didn't actually check them.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Test step postconditions not yet supported",
-			Detail:   "The testing prototype does not yet support per-step postconditions.",
-			Subject:  stepConfig.Postconditions[0].DeclRange.Ptr(),
-		})
-	}
-	// TODO: We also need to pass in provider configurations, once such a thing
-	// is possible to do.
 	// TODO: Make sure that everything listed in expected_failures refers to
 	// a static checkable object that we can see in the configuration, and
 	// reject the test step as invalid if not. The subsequent logic which
@@ -349,6 +342,7 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		result.Status = checks.StatusError
 		return nil, diags
 	}
+	postCondEvalCtx.PlanOpts = planOpts
 	plan, moreDiags := core.Plan(cfg, state, planOpts)
 	result.Diagnostics = result.Diagnostics.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -360,12 +354,14 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		return nil, diags
 	}
 
+	postCondEvalCtx.Plan = plan
+
 	// We'll update our result from just the plan for now, which might give
 	// us a partial result. If we reach the apply step below then we'll
 	// overwrite these with final results.
 	result.Checks = plan.Checks
 	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
-	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig)
+	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig, postCondEvalCtx)
 	diags = diags.Append(moreDiags)
 	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures, result.Postconditions)
 
@@ -402,9 +398,11 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 		return cleanupCtx, diags
 	}
 
+	postCondEvalCtx.NewState = newState
+
 	result.Checks = newState.CheckResults
 	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
-	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig)
+	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig, postCondEvalCtx)
 	diags = diags.Append(moreDiags)
 	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures, result.Postconditions)
 
@@ -565,7 +563,14 @@ func (c *TestCommand) prepareExpectedFailuresReport(checkResults *states.CheckRe
 	return ret
 }
 
-func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenario, stepConfig *testconfigs.Step) (*states.CheckResultObject, tfdiags.Diagnostics) {
+type testStepPostconditionEvalContext struct {
+	PriorState *states.State
+	PlanOpts   *terraform.PlanOpts
+	Plan       *plans.Plan
+	NewState   *states.State
+}
+
+func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenario, stepConfig *testconfigs.Step, evalCtx *testStepPostconditionEvalContext) (*states.CheckResultObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	if len(stepConfig.Postconditions) == 0 {
@@ -578,13 +583,148 @@ func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenari
 	// If we have at least one postcondition then we will generate a non-nil
 	// result that summarizes them all together, as if the test step itself
 	// were just another checkable object.
-
 	ret := &states.CheckResultObject{
-		Status: checks.StatusError,
-		FailureMessages: []string{
-			"Postconditions are not actually supported yet.",
-		},
+		Status: checks.StatusUnknown,
 	}
+
+	// For initial prototyping we'll focus only on checking output values.
+	// In later iterations it'd be interesting to also support other situations
+	// that are unique to the test step context, such as:
+	//    - The actions chosen for specific resources, so that e.g. an author
+	//      can assert that a particular update must not cause an object to
+	//      be replaced.
+	//    - The specific mock responses that were used to construct individual
+	//      resources in the state, if any, so authors can make sure their
+	//      mocks are being exercised in the way that they intended.
+	//      (The mock provider system stashes information about that in the
+	//      "Private" field in the state, so the providermocks package could
+	//      offer an API to get that information given a resource instance
+	//      object from evalCtx.NewState.)
+
+	hclCtx := &hcl.EvalContext{
+		Variables: make(map[string]cty.Value),
+	}
+
+	// HACK: Our "lang" package isn't designed to provide functions for use
+	// in languages other than the main Terraform language, so we'll need to
+	// goad it into giving us the functions by pretending we're trying to
+	// evaluate stuff in the main language.
+	scope := &lang.Scope{
+		BaseDir:  filepath.Dir(stepConfig.DeclRange.Filename),
+		PureOnly: false,
+	}
+	hclCtx.Functions = scope.Functions()
+
+	if evalCtx.PlanOpts != nil {
+		variableVals := make(map[string]cty.Value)
+		for name, def := range evalCtx.PlanOpts.SetVariables {
+			variableVals[name] = def.Value
+		}
+		hclCtx.Variables["variables"] = cty.ObjectVal(variableVals)
+	}
+	if evalCtx.NewState != nil {
+		outputVals := make(map[string]cty.Value)
+		for name, ov := range evalCtx.NewState.RootModule().OutputValues {
+			outputVals[name] = ov.Value
+		}
+		hclCtx.Variables["outputs"] = cty.ObjectVal(outputVals)
+	} else if evalCtx.Plan != nil {
+		// If we only planned but didn't apply then the plan is an alternative
+		// source of (possibly-incomplete) output values.
+		outputVals := make(map[string]cty.Value)
+		for _, ovc := range evalCtx.Plan.Changes.Outputs {
+			addr := ovc.Addr
+			if !addr.Module.IsRoot() {
+				continue
+			}
+			name := addr.OutputValue.Name
+			val, err := ovc.After.Decode(cty.DynamicPseudoType)
+			if err != nil {
+				// FIXME: Should handle this error properly
+				continue
+			}
+			outputVals[name] = val
+		}
+		hclCtx.Variables["outputs"] = cty.ObjectVal(outputVals)
+	}
+
+	statuses := make([]checks.Status, len(stepConfig.Postconditions))
+	for i, cond := range stepConfig.Postconditions {
+		resultVal, hclDiags := cond.Condition.Value(hclCtx)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			statuses[i] = checks.StatusError
+			continue
+		}
+
+		// The message expression must be valid regardless of whether the
+		// condition actually passes.
+		msgVal, hclDiags := cond.ErrorMessage.Value(hclCtx)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			statuses[i] = checks.StatusError
+			continue
+		}
+		var msg string
+		if err := gocty.FromCtyValue(msgVal, &msg); err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid condition error message",
+				Detail:      fmt.Sprintf("Error message expression produced an unsuitable result: %s.", tfdiags.FormatError(err)),
+				Subject:     cond.ErrorMessage.Range().Ptr(),
+				EvalContext: hclCtx,
+				Expression:  cond.ErrorMessage,
+			})
+		}
+
+		resultVal, err := convert.Convert(resultVal, cty.Bool)
+		const invalidCondResult = "Invalid condition result"
+		if err != nil {
+			statuses[i] = checks.StatusError
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     invalidCondResult,
+				Detail:      fmt.Sprintf("Condition expression produced an unsuitable result: %s.", tfdiags.FormatError(err)),
+				Subject:     cond.Condition.Range().Ptr(),
+				EvalContext: hclCtx,
+				Expression:  cond.Condition,
+			})
+			continue
+		}
+		if resultVal.IsNull() {
+			statuses[i] = checks.StatusError
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     invalidCondResult,
+				Detail:      "Condition expression produced an unsuitable result: must not be null.",
+				Subject:     cond.Condition.Range().Ptr(),
+				EvalContext: hclCtx,
+				Expression:  cond.Condition,
+			})
+			continue
+		}
+		statuses[i] = checks.StatusForCtyValue(resultVal)
+		if statuses[i] == checks.StatusFail {
+			// We need to evaluate the error message and insert it into our
+			// set of failure messages, then.
+			ret.FailureMessages = append(ret.FailureMessages, msg)
+			continue
+		}
+		if statuses[i] == checks.StatusUnknown {
+			statuses[i] = checks.StatusError
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     invalidCondResult,
+				Detail:      "Condition expression produced an unsuitable result: depends on values known only after apply, but this step did not apply the changes.",
+				Subject:     cond.Condition.Range().Ptr(),
+				EvalContext: hclCtx,
+				Expression:  cond.Condition,
+			})
+			continue
+		}
+	}
+
+	ret.Status = checks.AggregateCheckStatus(statuses...)
 
 	return ret, diags
 }
