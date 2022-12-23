@@ -352,6 +352,11 @@ func (p *mockProvider) PlanResourceChange(req providers.PlanResourceChangeReques
 		return resp
 	}
 
+	// FIXME: Really we only want to strip off our special "requires replace"
+	// mark, requiresReplaceMark, here. If there are any sensitive values
+	// in the response then we ought to keep them marked that way.
+	modObj, pathMarks := modObj.UnmarkDeepWithPaths()
+
 	modObj = deepMergeConfiguredResponseAttrs(schema, proposedNewState, modObj)
 	resp.PlannedState = modObj
 
@@ -378,6 +383,19 @@ func (p *mockProvider) PlanResourceChange(req providers.PlanResourceChangeReques
 
 	mppOut[planRequest] = chosen.Name
 	resp.PlannedPrivate = marshalMockProviderPrivate(mppOut)
+
+	for _, pathMark := range pathMarks {
+		if _, marked := pathMark.Marks[requiresReplaceMark]; marked {
+			resp.RequiresReplace = append(resp.RequiresReplace, pathMark.Path)
+			log.Printf(
+				"[DEBUG] mock %s: PlanResourceChange for %s, response %q requires replacement because of %s",
+				p.Config.ForProvider,
+				resourceType,
+				chosen.Name,
+				tfdiags.FormatCtyPath(pathMark.Path),
+			)
+		}
+	}
 
 	return resp
 }
@@ -482,7 +500,7 @@ func (p *mockProvider) chooseMockResponse(reqType requestType, resType ResourceT
 	log.Printf("[DEBUG] mock %s: choosing mock response to %s %s", p.Config.ForProvider, reqType.BlockTypeName(), resType)
 
 	var diags tfdiags.Diagnostics
-	evalCtx := p.Config.exprEvalContext(evalVars, reqType == planRequest)
+	evalCtx := p.Config.exprEvalContext(evalVars, reqType)
 
 	// We'll try to evaluate all of the conditions first so that we can
 	// immediately report diagnostics for all that are invalid, even if

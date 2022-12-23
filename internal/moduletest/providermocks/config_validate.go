@@ -78,7 +78,7 @@ func (c *Config) validateResourceTypeResponse(resType ResourceType, reqType requ
 		probeVars["config"] = cty.DynamicVal
 	}
 
-	probeCtx := c.exprEvalContext(probeVars, reqType == planRequest)
+	probeCtx := c.exprEvalContext(probeVars, reqType)
 
 	_, hclDiags := cfg.Condition.Value(probeCtx)
 	diags = diags.Append(hclDiags)
@@ -114,14 +114,14 @@ func (c *Config) validateResourceTypeResponse(resType ResourceType, reqType requ
 	return diags
 }
 
-func (c *Config) exprEvalContext(vars map[string]cty.Value, allowUnknown bool) *hcl.EvalContext {
+func (c *Config) exprEvalContext(vars map[string]cty.Value, reqType requestType) *hcl.EvalContext {
 	return &hcl.EvalContext{
 		Variables: vars,
-		Functions: c.exprFunctions(allowUnknown),
+		Functions: c.exprFunctions(reqType),
 	}
 }
 
-func (c *Config) exprFunctions(allowUnknown bool) map[string]function.Function {
+func (c *Config) exprFunctions(reqType requestType) map[string]function.Function {
 	// HACK: Our lang package isn't designed to provide just a disconnected
 	// set of functions for use in places other than module source code, so
 	// we're going to lie to it here and tell it about a fake module that
@@ -132,10 +132,12 @@ func (c *Config) exprFunctions(allowUnknown bool) map[string]function.Function {
 		PureOnly:    false,
 	}
 	funcs := fakeScope.Functions()
-	if allowUnknown {
+	if reqType == planRequest {
 		funcs["unknown"] = unknownValueFunc
+		funcs["requiresreplace"] = requiresReplaceFunc
 	} else {
 		funcs["unknown"] = unknownValueFuncStub
+		funcs["requiresreplace"] = requiresReplaceFuncStub
 	}
 	return funcs
 }
@@ -164,6 +166,39 @@ var unknownValueFunc = function.New(&function.Spec{
 	},
 })
 
+// requiresReplaceFunc is a mock-provider-specific function that marks any
+// given value with a special mark that a mock provider's plan function will
+// use to declare that a particular attribute's change requires replacement.
+var requiresReplaceFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Type:             cty.DynamicPseudoType,
+			Name:             "value",
+			AllowNull:        true,
+			AllowUnknown:     true,
+			AllowDynamicType: true,
+			AllowMarked:      true,
+		},
+		{
+			Type: cty.Bool,
+			Name: "requires_replace",
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return args[0].Type(), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		if !args[1].True() {
+			return args[0], nil
+		}
+		return args[0].Mark(requiresReplaceMark), nil
+	},
+})
+
+type requiresReplaceMarkType int
+
+var requiresReplaceMark requiresReplaceMarkType
+
 // unknownValueFuncStub is a function with the same signature as
 // unknownValueFunc but which immediately returns an error when called,
 // explaining that the unknown function is available only for plan responses.
@@ -178,6 +213,32 @@ var unknownValueFuncStub = function.New(&function.Spec{
 		return cty.DynamicPseudoType, fmt.Errorf("can only return unknown values in mocked plan responses")
 	},
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
-		return cty.UnknownVal(retType), nil
+		panic("should not get here")
+	},
+})
+
+// requiresReplaceFuncStub is a function with the same signature as
+// requiresReplaceFunc but which immediately returns an error when called,
+// explaining that the unknown function is available only for plan responses.
+var requiresReplaceFuncStub = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Type:             cty.DynamicPseudoType,
+			Name:             "value",
+			AllowNull:        true,
+			AllowUnknown:     true,
+			AllowDynamicType: true,
+			AllowMarked:      true,
+		},
+		{
+			Type: cty.Bool,
+			Name: "requires_replace",
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return cty.DynamicPseudoType, fmt.Errorf("can only mark changes as requiring replacement in mocked plan responses")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		panic("should not get here")
 	},
 })
