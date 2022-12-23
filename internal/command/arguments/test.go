@@ -9,7 +9,8 @@ import (
 
 // Test represents the command line arguments for the "terraform test" command.
 type Test struct {
-	Output TestOutput
+	MockOnly bool
+	Output   TestOutput
 }
 
 // TestOutput represents a subset of the arguments for "terraform test"
@@ -39,6 +40,7 @@ func ParseTest(args []string) (Test, tfdiags.Diagnostics) {
 	f.SetOutput(ioutil.Discard)
 	f.Usage = func() {}
 	f.StringVar(&ret.Output.JUnitXMLFile, "junit-xml", "", "Write a JUnit XML file describing the results")
+	f.BoolVar(&ret.MockOnly, "mock-only", false, "Skip any scenarios that use real provider configurations")
 
 	err := f.Parse(args)
 	if err != nil {

@@ -167,6 +167,16 @@ func (c *TestCommand) run(ctx context.Context, args arguments.Test) (results map
 	// than it being just inline here.
 	ret := make(map[string]*moduletest.ScenarioResult, len(suite.Scenarios))
 	for name, scenario := range suite.Scenarios {
+		if args.MockOnly && scenario.UsesRealProviders() {
+			ret[name] = &moduletest.ScenarioResult{
+				Name:   name,
+				Status: checks.StatusUnknown,
+				// TODO: We should probably include some sort of optional
+				// "status reason" thing here so that we can be clear
+				// that we skipped this because it uses real providers.
+			}
+			continue
+		}
 		result, moreDiags := c.runScenario(ctx, scenario)
 		diags = diags.Append(moreDiags)
 		ret[name] = result
@@ -877,6 +887,10 @@ Options:
                      This format is commonly supported by CI systems, and
                      they typically expect to be given a filename to search
                      for in the test workspace after the test run finishes.
+
+  -mock-only         Skip any test scenarios that use real provider
+                     configurations. Terraform will still run scenarios which
+                     exclusively use mock providers.
 
   -no-color          Don't include virtual terminal formatting sequences in
                      the output.

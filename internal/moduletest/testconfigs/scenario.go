@@ -24,6 +24,21 @@ type Scenario struct {
 	StepsOrder          []string
 }
 
+func (s *Scenario) UsesRealProviders() bool {
+	// FIXME: This isn't really a sufficient definition of "uses real providers"
+	// because it doesn't take into account that we still allow shared modules
+	// to declare provider configurations inline, even though we recommend
+	// against it.
+	//
+	// Perhaps we could say that modules which have inline provider
+	// configurations are just not suitable for this style of automated testing,
+	// but if we do that then we'll need to find some way to unambigously
+	// detect that situation and raise a clear error about it so that module
+	// authors can clearly see that it's intentionally not supported and not
+	// a bug in Terraform.
+	return len(s.RealProviderConfigs) != 0
+}
+
 func loadScenarioFile(filename string, parser *configs.Parser) (*Scenario, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
