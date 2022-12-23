@@ -365,7 +365,9 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	// overwrite these with final results.
 	result.Checks = plan.Checks
 	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
-	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures)
+	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig)
+	diags = diags.Append(moreDiags)
+	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures, result.Postconditions)
 
 	if !stepConfig.ApplyPlan {
 		// If we're not actually applying the plan then we'll let the caller
@@ -402,7 +404,9 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 
 	result.Checks = newState.CheckResults
 	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
-	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures)
+	result.Postconditions, moreDiags = c.evalStepPostconditions(scenarioConfig, stepConfig)
+	diags = diags.Append(moreDiags)
+	result.Status = c.stepAggregateStatus(result.Checks, result.ExpectedFailures, result.Postconditions)
 
 	// TODO: We also need to deal with any expected failures, which should
 	// allow the overall step to succeed even if they have StatusFail.
@@ -561,20 +565,51 @@ func (c *TestCommand) prepareExpectedFailuresReport(checkResults *states.CheckRe
 	return ret
 }
 
-func (c *TestCommand) stepAggregateStatus(checkResults *states.CheckResults, expectedFails addrs.Map[addrs.Checkable, checks.Status]) checks.Status {
-	return checks.AggregateCheckStatusAddrsMap(
-		checkResults.ConfigResults,
-		func(k addrs.ConfigCheckable, aggrResult *states.CheckResultAggregate) checks.Status {
-			return checks.AggregateCheckStatusAddrsMap(
-				aggrResult.ObjectResults,
-				func(addr addrs.Checkable, result *states.CheckResultObject) checks.Status {
-					if expectedFails.Has(addr) {
-						return result.Status.ForExpectedFailure()
-					}
-					return result.Status
-				},
-			)
+func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenario, stepConfig *testconfigs.Step) (*states.CheckResultObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if len(stepConfig.Postconditions) == 0 {
+		// a nil result represents that there aren't any postconditions at
+		// all, which our UI layer might use to avoid mentioning the
+		// postcondition result in that case.
+		return nil, diags
+	}
+
+	// If we have at least one postcondition then we will generate a non-nil
+	// result that summarizes them all together, as if the test step itself
+	// were just another checkable object.
+
+	ret := &states.CheckResultObject{
+		Status: checks.StatusError,
+		FailureMessages: []string{
+			"Postconditions are not actually supported yet.",
 		},
+	}
+
+	return ret, diags
+}
+
+func (c *TestCommand) stepAggregateStatus(checkResults *states.CheckResults, expectedFails addrs.Map[addrs.Checkable, checks.Status], postconds *states.CheckResultObject) checks.Status {
+	postcondStatus := checks.StatusPass // default if there aren't any postconditions
+	if postconds != nil {
+		postcondStatus = postconds.Status
+	}
+	return checks.AggregateCheckStatus(
+		checks.AggregateCheckStatusAddrsMap(
+			checkResults.ConfigResults,
+			func(k addrs.ConfigCheckable, aggrResult *states.CheckResultAggregate) checks.Status {
+				return checks.AggregateCheckStatusAddrsMap(
+					aggrResult.ObjectResults,
+					func(addr addrs.Checkable, result *states.CheckResultObject) checks.Status {
+						if expectedFails.Has(addr) {
+							return result.Status.ForExpectedFailure()
+						}
+						return result.Status
+					},
+				)
+			},
+		),
+		postcondStatus,
 	)
 }
 

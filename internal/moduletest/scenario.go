@@ -61,6 +61,20 @@ type StepResult struct {
 	// mention them at all unless they return errors.
 	Checks *states.CheckResults
 
+	// Postconditions describes the results of any additional postconditions
+	// declared as part of the test step itself, represented as if the
+	// test step as a whole were a checkable object with conditions.
+	//
+	// Postconditions is nil if the step didn't actually include any
+	// postconditions, so that e.g. the UI can skip mentioning them in that
+	// case.
+	//
+	// These are separate from [Checks] because they belong only to the
+	// test scenario and so would not affect the runtime behavior of the
+	// module under test. The results in [Checks] describe results that would
+	// also be relevant when using the same module in a non-testing context.
+	Postconditions *states.CheckResultObject
+
 	// ExpectedFailures augments field Checks with extra information about the
 	// objects that the test author listed in "expected_failures".
 	//

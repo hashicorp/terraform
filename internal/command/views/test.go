@@ -181,6 +181,16 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 						}
 					}
 				}
+				if step.Postconditions != nil {
+					prefix, symbol, colorCode := v.presentationForStatus(step.Postconditions.Status)
+					v.streams.Eprintf(
+						"  %s: test step postconditions\n",
+						v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
+					)
+					for _, msg := range step.Postconditions.FailureMessages {
+						v.streams.Eprintf("      %s\n", msg)
+					}
+				}
 				for _, diag := range step.Diagnostics {
 					// TEMP: We'll just render the diagnostics in a similar
 					// way as an errored checkable object, for now.
