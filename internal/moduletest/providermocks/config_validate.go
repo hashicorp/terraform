@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
+	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -77,7 +78,7 @@ func (c *Config) validateResourceTypeResponse(resType ResourceType, reqType requ
 		probeVars["config"] = cty.DynamicVal
 	}
 
-	probeCtx := c.exprEvalContext(probeVars)
+	probeCtx := c.exprEvalContext(probeVars, reqType == planRequest)
 
 	_, hclDiags := cfg.Condition.Value(probeCtx)
 	diags = diags.Append(hclDiags)
@@ -113,14 +114,14 @@ func (c *Config) validateResourceTypeResponse(resType ResourceType, reqType requ
 	return diags
 }
 
-func (c *Config) exprEvalContext(vars map[string]cty.Value) *hcl.EvalContext {
+func (c *Config) exprEvalContext(vars map[string]cty.Value, allowUnknown bool) *hcl.EvalContext {
 	return &hcl.EvalContext{
 		Variables: vars,
-		Functions: c.exprFunctions(),
+		Functions: c.exprFunctions(allowUnknown),
 	}
 }
 
-func (c *Config) exprFunctions() map[string]function.Function {
+func (c *Config) exprFunctions(allowUnknown bool) map[string]function.Function {
 	// HACK: Our lang package isn't designed to provide just a disconnected
 	// set of functions for use in places other than module source code, so
 	// we're going to lie to it here and tell it about a fake module that
@@ -130,9 +131,53 @@ func (c *Config) exprFunctions() map[string]function.Function {
 		ConsoleMode: true,
 		PureOnly:    false,
 	}
-	return fakeScope.Functions()
+	funcs := fakeScope.Functions()
+	if allowUnknown {
+		funcs["unknown"] = unknownValueFunc
+	} else {
+		funcs["unknown"] = unknownValueFuncStub
+	}
+	return funcs
 }
 
 var responseObjTy = cty.Object(map[string]cty.Type{
 	"name": cty.String,
+})
+
+// unknownValueFunc is a mock-provider-specific function that constructs an
+// unknown value with a specified type constraint. This is available only
+// for when constructing mock plan responses, since all of the other response
+// types require all values to be known.
+var unknownValueFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Type: typeexpr.TypeConstraintType,
+			Name: "type",
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		typeVal := args[0]
+		return typeexpr.TypeConstraintFromVal(typeVal), nil
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.UnknownVal(retType), nil
+	},
+})
+
+// unknownValueFuncStub is a function with the same signature as
+// unknownValueFunc but which immediately returns an error when called,
+// explaining that the unknown function is available only for plan responses.
+var unknownValueFuncStub = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Type: typeexpr.TypeConstraintType,
+			Name: "type",
+		},
+	},
+	Type: func(args []cty.Value) (cty.Type, error) {
+		return cty.DynamicPseudoType, fmt.Errorf("can only return unknown values in mocked plan responses")
+	},
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		return cty.UnknownVal(retType), nil
+	},
 })

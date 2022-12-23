@@ -482,7 +482,7 @@ func (p *mockProvider) chooseMockResponse(reqType requestType, resType ResourceT
 	log.Printf("[DEBUG] mock %s: choosing mock response to %s %s", p.Config.ForProvider, reqType.BlockTypeName(), resType)
 
 	var diags tfdiags.Diagnostics
-	evalCtx := p.Config.exprEvalContext(evalVars)
+	evalCtx := p.Config.exprEvalContext(evalVars, reqType == planRequest)
 
 	// We'll try to evaluate all of the conditions first so that we can
 	// immediately report diagnostics for all that are invalid, even if
