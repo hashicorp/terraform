@@ -3,15 +3,20 @@ package cloud
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -537,4 +542,39 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 	}()
 
 	return <-result
+}
+
+// This method will fetch the redacted plan output and marshal the response into
+// a struct the jsonformat.Renderer expects.
+//
+// Note: Apologies for the lengthy definition, this is a result of not being able to mock receiver methods
+var readRedactedPlan func(context.Context, string, string, string) (*jsonformat.Plan, error) = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+	client := retryablehttp.NewClient()
+	client.RetryMax = 10
+	client.Logger = logging.HCLogger()
+
+	u := fmt.Sprintf("https://%s/api/v2/plans/%s/json-output-redacted",
+		url.QueryEscape(hostname),
+		url.QueryEscape(planID),
+	)
+
+	req, err := retryablehttp.NewRequest("GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Accept", "application/json")
+
+	p := &jsonformat.Plan{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return p, err
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(p); err != nil {
+		return nil, err
+	}
+
+	return p, nil
 }

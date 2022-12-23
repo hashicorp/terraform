@@ -3,6 +3,7 @@ package cloud
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -309,31 +311,9 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, err
 	}
 
-	logs, err := b.client.Plans.Logs(stopCtx, r.Plan.ID)
+	err = b.renderPlanLogs(stopCtx, op, r)
 	if err != nil {
-		return r, generalError("Failed to retrieve logs", err)
-	}
-	reader := bufio.NewReaderSize(logs, 64*1024)
-
-	if b.CLI != nil {
-		for next := true; next; {
-			var l, line []byte
-
-			for isPrefix := true; isPrefix; {
-				l, isPrefix, err = reader.ReadLine()
-				if err != nil {
-					if err != io.EOF {
-						return r, generalError("Failed to read logs", err)
-					}
-					next = false
-				}
-				line = append(line, l...)
-			}
-
-			if next || len(line) > 0 {
-				b.CLI.Output(b.Colorize().Color(string(line)))
-			}
-		}
+		return r, err
 	}
 
 	// Retrieve the run to get its current status.
@@ -371,6 +351,128 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	return r, nil
+}
+
+// renderPlanLogs reads the streamed plan JSON logs and calls the JSON Plan renderer (jsonformat.RenderPlan) to
+// render the plan output. The plan output is fetched from the redacted output endpoint.
+func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *tfe.Run) error {
+	logs, err := b.client.Plans.Logs(ctx, run.Plan.ID)
+	if err != nil {
+		return err
+	}
+
+	reader := bufio.NewReaderSize(logs, 64*1024)
+
+	// Since the plan output is not read from the streamed logs and instead fetched
+	// from the redacted output endpoint, we need to defer any logs such that the
+	// plan output is rendered *first* before we write any subsequent logs after the plan output.
+	deferredLogs := []*jsonformat.JSONLog{}
+
+	// This variable helps us track the first instance we encounter a log of type plan_output.
+	// When the plan has started, we should be deferring subsequent logs until after the plan
+	// has been rendered.
+	planStarted := false
+
+	if b.CLI != nil {
+		for next := true; next; {
+			var l, line []byte
+			var err error
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				log := &jsonformat.JSONLog{}
+				if err := json.Unmarshal(line, log); err != nil || log == nil {
+					// If we can not parse the line as JSON, we will simply
+					// print the line. This maintains backwards compatibility for
+					// users who do not wish to enable structured output in their
+					// workspace.
+					b.CLI.Output(b.Colorize().Color(string(line)))
+					continue
+				}
+
+				// We will ignore outputs logs during the plan phase
+				if log.Type == jsonformat.LogOutputs {
+					continue
+				}
+
+				// We'll defer any log during a plan operation that is not
+				// plan output or outputs logs
+				if planStarted && log.Type != jsonformat.LogPlannedChange {
+					deferredLogs = append(deferredLogs, log)
+					continue
+				}
+
+				// If the log is plan output, we will indicate the plan has
+				// started and continue the loop.
+				if log.Type == jsonformat.LogPlannedChange {
+					planStarted = true
+					continue
+				}
+
+				if b.renderer != nil {
+					// Otherwise, we will print the log
+					err := b.renderer.RenderLog(log)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	// Get the run's current status and include the workspace. We will check if
+	// the run has errored and if structured output is enabled.
+	run, err = b.client.Runs.ReadWithOptions(ctx, run.ID, &tfe.RunReadOptions{
+		Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
+	})
+	if err != nil {
+		return err
+	}
+
+	// If the run was errored, canceled, or discarded we will not resume the rest
+	// of this logic and attempt to render the plan.
+	if run.Status == tfe.RunErrored || run.Status == tfe.RunCanceled ||
+		run.Status == tfe.RunDiscarded {
+		// We won't return an error here since we need to resume the logic that
+		// follows after rendering the logs (run tasks, cost estimation, etc.)
+		return nil
+	}
+
+	if run.Workspace.StructuredRunOutputEnabled && b.renderer != nil {
+		token, err := b.token()
+		if err != nil {
+			return err
+		}
+		// Fetch the redacted plan.
+		redacted, err := readRedactedPlan(ctx, b.hostname, token, run.Plan.ID)
+		if err != nil {
+			return err
+		}
+
+		// Render plan output.
+		b.renderer.RenderHumanPlan(*redacted, op.PlanMode)
+
+		// At this point we can resume writing the logs that succeeds the plan output.
+		for _, log := range deferredLogs {
+			err := b.renderer.RenderLog(log)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 const planDefaultHeader = `
