@@ -411,7 +411,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 
 	stateLocker := clistate.NewNoopLocker()
 	if m.stateLock {
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		view := views.NewStateLocker(m.viewType, m.View)
 		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
 	}
 
@@ -1007,7 +1007,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		view := views.NewStateLocker(m.viewType, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
@@ -1143,7 +1143,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 
 		if m.stateLock {
-			view := views.NewStateLocker(arguments.ViewHuman, m.View)
+			view := views.NewStateLocker(m.viewType, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 				diags = diags.Append(fmt.Errorf("Error locking state: %s", err))

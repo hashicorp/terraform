@@ -340,7 +340,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if m.stateLock {
 		lockCtx := context.Background()
 
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		view := views.NewStateLocker(m.viewType, m.View)
 		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
 		lockerSource := locker.WithContext(lockCtx)
