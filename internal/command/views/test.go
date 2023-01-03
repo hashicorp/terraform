@@ -207,10 +207,15 @@ func (v *testHuman) humanResults(results map[string]*moduletest.ScenarioResult) 
 						symbol = "*"
 						colorCode = "reset"
 					}
+					sourceInfo := ""
+					if subj := diag.Source().Subject; subj != nil {
+						sourceInfo = " at " + subj.StartString()
+					}
 					v.streams.Eprintf(
-						"  %s: %s; %s\n",
+						"  %s: %s%s; %s\n",
 						v.colorize.Color(fmt.Sprintf("[%s]%s %s", colorCode, symbol, prefix)),
 						diag.Description().Summary,
+						sourceInfo,
 						diag.Description().Detail,
 					)
 				}
