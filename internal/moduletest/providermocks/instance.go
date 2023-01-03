@@ -493,7 +493,32 @@ func (p *mockProvider) ImportResourceState(req providers.ImportResourceStateRequ
 func (p *mockProvider) ReadDataSource(req providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 	log.Printf("[DEBUG] mock %s: ReadDataSource for data.%s", p.Config.ForProvider, req.TypeName)
 
-	panic("not implemented")
+	var resp providers.ReadDataSourceResponse
+
+	resourceType := ResourceType{
+		Mode: addrs.DataResourceMode,
+		Type: req.TypeName,
+	}
+	schema, config, moreDiags := p.resourceTypeInfo(resourceType)
+	resp.Diagnostics = resp.Diagnostics.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return resp
+	}
+
+	mockResps := config.Responses[readRequest]
+	evalVars := map[string]cty.Value{
+		"config": req.Config,
+	}
+	_, modObj, moreDiags := p.chooseMockResponse(readRequest, resourceType, mockResps, evalVars, schema)
+	resp.Diagnostics = resp.Diagnostics.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return resp
+	}
+
+	modObj = deepMergeConfiguredResponseAttrs(schema, cty.UnknownAsNull(req.Config), modObj)
+	resp.State = cty.UnknownAsNull(modObj) // New state must not have any unknown values
+
+	return resp
 }
 
 func (p *mockProvider) chooseMockResponse(reqType requestType, resType ResourceType, candidates []*ResponseConfig, evalVars map[string]cty.Value, contentSchema *configschema.Block) (*ResponseConfig, cty.Value, tfdiags.Diagnostics) {

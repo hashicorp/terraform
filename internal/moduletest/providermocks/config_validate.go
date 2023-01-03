@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/ext/typeexpr"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -63,9 +64,14 @@ func (c *Config) validateResourceTypeResponse(resType ResourceType, reqType requ
 
 	switch reqType {
 	case readRequest:
-		probeVars["previous_plan_response"] = cty.UnknownVal(responseObjTy)
-		probeVars["previous_apply_response"] = cty.UnknownVal(responseObjTy)
-		probeVars["previous_state"] = cty.DynamicVal
+		switch resType.Mode {
+		case addrs.ManagedResourceMode:
+			probeVars["previous_plan_response"] = cty.UnknownVal(responseObjTy)
+			probeVars["previous_apply_response"] = cty.UnknownVal(responseObjTy)
+			probeVars["previous_state"] = cty.DynamicVal
+		case addrs.DataResourceMode:
+			probeVars["config"] = cty.DynamicVal
+		}
 	case planRequest:
 		probeVars["read_response"] = cty.UnknownVal(responseObjTy)
 		probeVars["current_state"] = cty.DynamicVal
