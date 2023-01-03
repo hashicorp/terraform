@@ -335,7 +335,12 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 			}
 		} else {
 			planOpts.SetVariables[name] = &terraform.InputValue{
-				Value:      cty.NullVal(cty.DynamicPseudoType),
+				// Terraform Core considers cty.NilVal to mean "not set",
+				// thereby allowing the defaults be used instead. This is
+				// different from a null value for any variable that does
+				// not set nullable = true, since an explicit null can
+				// override the default for a nullable variable.
+				Value:      cty.NilVal,
 				SourceType: terraform.ValueFromCaller,
 			}
 		}
