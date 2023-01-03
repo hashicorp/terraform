@@ -61,6 +61,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// object state for now.
 	c.Meta.parallelism = args.Operation.Parallelism
 
+	// The ViewType argument is used to determine how the command's messages are dispatched.
+	c.Meta.viewType = args.ViewType
+
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Prepare the backend with the backend-specific arguments

@@ -235,7 +235,7 @@ type Meta struct {
 	reconfigure      bool
 	migrateState     bool
 	compactWarnings  bool
-	viewType	 arguments.viewType
+	viewType         arguments.ViewType
 
 	// Used with commands which write state to allow users to write remote
 	// state even if the remote and local Terraform versions don't match.
@@ -541,11 +541,11 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// process will a)
+// process will a:
 // process any -no-color entries out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice, and update the Meta and Ui.
-// and b)
+// and b:
 // process any --json flag. If it is true, any outputs will be made in JSON format,
 // otherwise it will be in human-readable format.
 func (m *Meta) process(args []string) []string {

@@ -63,6 +63,9 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	// object state for now.
 	c.Meta.parallelism = args.Operation.Parallelism
 
+	// The ViewType argument is used to determine how the command's messages are dispatched.
+	c.Meta.viewType = args.ViewType
+
 	// Prepare the backend with the backend-specific arguments
 	be, beDiags := c.PrepareBackend(args.State)
 	diags = diags.Append(beDiags)
