@@ -63,6 +63,8 @@ func LoadSuiteForModule(moduleDir string, parser *configs.Parser) (*Suite, tfdia
 				// If the module argument isn't set explicitly then it
 				// defaults to testing the module whose test suite this is.
 				step.ModuleDir = moduleDir
+			} else {
+				step.ModuleDir = filepath.Join(scenariosDir, step.ModuleDir)
 			}
 
 			rootModule, hclDiags := parser.LoadConfigDir(step.ModuleDir)
@@ -119,6 +121,12 @@ func (s *Suite) staticValidate() tfdiags.Diagnostics {
 
 	for _, scenario := range s.Scenarios {
 		for _, step := range scenario.Steps {
+			if step.RootModule == nil {
+				// We can get here if the root module failed to load, in which
+				// case our caller should already have error diagnostics for it.
+				continue
+			}
+
 			declVars := step.RootModule.Variables
 			defnVars := step.VariableDefs
 

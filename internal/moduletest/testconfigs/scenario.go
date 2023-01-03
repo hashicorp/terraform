@@ -156,6 +156,12 @@ func loadScenarioFile(filename string, parser *configs.Parser) (*Scenario, tfdia
 		}
 	}
 
+	if diags.HasErrors() {
+		// We'll skip the normamlization steps below of the config is already
+		// invalid, because the normalization steps will probably crash.
+		return ret, diags
+	}
+
 	// Before we'll return we'll do some normalization of the steps to make
 	// life easier for the caller.
 	var defProviders []*configs.PassedProviderConfig
@@ -225,7 +231,13 @@ func loadScenarioFile(filename string, parser *configs.Parser) (*Scenario, tfdia
 		}
 	}
 	for _, s := range ret.Steps {
+		if s == nil {
+			continue
+		}
 		for _, pp := range s.Providers {
+			if pp == nil || pp.InChild == nil || pp.InParent == nil || ret.ProviderReqs == nil {
+				continue
+			}
 			if _, ok := ret.ProviderReqs.RequiredProviders[pp.InChild.Name]; !ok {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,

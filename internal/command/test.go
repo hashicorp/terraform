@@ -432,6 +432,10 @@ func (c *TestCommand) externalProviderConfigsForStep(scenarioConfig *testconfigs
 	ret := make(map[addrs.RootProviderConfig]providers.Interface, len(stepConfig.Providers))
 
 	for _, passed := range stepConfig.Providers {
+		if passed.InParent == nil || passed.InChild == nil {
+			diags = diags.Append(fmt.Errorf("scenario %q step %q has invalid provider configuration definition", scenarioConfig.Name, stepConfig.Name))
+			continue
+		}
 		inScenarioAddr := passed.InParent.Addr()
 		providerDecl, declared := scenarioConfig.ProviderReqs.RequiredProviders[inScenarioAddr.LocalName]
 		if !declared {
