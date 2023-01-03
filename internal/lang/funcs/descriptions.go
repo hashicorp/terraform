@@ -63,8 +63,11 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"bcrypt": {
-		Description:      "`bcrypt` computes a hash of the given string using the Blowfish cipher, returning a string in [the _Modular Crypt Format_](https://passlib.readthedocs.io/en/stable/modular_crypt_format.html) usually expected in the shadow password file on many Unix systems.",
-		ParamDescription: []string{"", "The `cost` argument is optional and will default to 10 if unspecified."},
+		Description: "`bcrypt` computes a hash of the given string using the Blowfish cipher, returning a string in [the _Modular Crypt Format_](https://passlib.readthedocs.io/en/stable/modular_crypt_format.html) usually expected in the shadow password file on many Unix systems.",
+		ParamDescription: []string{
+			"",
+			"The `cost` argument is optional and will default to 10 if unspecified.",
+		},
 	},
 	"can": {
 		Description:      "`can` evaluates the given expression and returns a boolean value indicating whether the expression produced a result without any errors.",
@@ -79,32 +82,48 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"chunklist": {
-		Description:      "`chunklist` splits a single list into fixed-size chunks, returning a list of lists.",
-		ParamDescription: []string{"", ""},
+		Description: "`chunklist` splits a single list into fixed-size chunks, returning a list of lists.",
+		ParamDescription: []string{
+			"",
+			"The maximum length of each chunk. All but the last element of the result is guaranteed to be of exactly this size.",
+		},
 	},
 	"cidrhost": {
-		Description:      "`cidrhost` calculates a full host IP address for a given host number within a given IP network address prefix.",
-		ParamDescription: []string{"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1).", "`hostnum` is a whole number that can be represented as a binary integer with no more than the number of digits remaining in the address after the given prefix."},
+		Description: "`cidrhost` calculates a full host IP address for a given host number within a given IP network address prefix.",
+		ParamDescription: []string{
+			"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1).",
+			"`hostnum` is a whole number that can be represented as a binary integer with no more than the number of digits remaining in the address after the given prefix.",
+		},
 	},
 	"cidrnetmask": {
-		Description:      "`cidrnetmask` converts an IPv4 address prefix given in CIDR notation into a subnet mask address.",
-		ParamDescription: []string{"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1)."},
+		Description: "`cidrnetmask` converts an IPv4 address prefix given in CIDR notation into a subnet mask address.",
+		ParamDescription: []string{
+			"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1).",
+		},
 	},
 	"cidrsubnet": {
-		Description:      "`cidrsubnet` calculates a subnet address within given IP network address prefix.",
-		ParamDescription: []string{"", "", ""},
+		Description: "`cidrsubnet` calculates a subnet address within given IP network address prefix.",
+		ParamDescription: []string{
+			"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1).",
+			"`newbits` is the number of additional bits with which to extend the prefix.",
+			"`netnum` is a whole number that can be represented as a binary integer with no more than `newbits` binary digits, which will be used to populate the additional bits added to the prefix."},
 	},
 	"cidrsubnets": {
-		Description:      "`cidrsubnets` calculates a sequence of consecutive IP address ranges within a particular CIDR prefix.",
-		ParamDescription: []string{"", ""},
+		Description: "`cidrsubnets` calculates a sequence of consecutive IP address ranges within a particular CIDR prefix.",
+		ParamDescription: []string{
+			"`prefix` must be given in CIDR notation, as defined in [RFC 4632 section 3.1](https://tools.ietf.org/html/rfc4632#section-3.1).",
+			"",
+		},
 	},
 	"coalesce": {
 		Description:      "`coalesce` takes any number of arguments and returns the first one that isn&#39;t null or an empty string.",
 		ParamDescription: []string{""},
 	},
 	"coalescelist": {
-		Description:      "`coalescelist` takes any number of list arguments and returns the first one that isn&#39;t empty.",
-		ParamDescription: []string{""},
+		Description: "`coalescelist` takes any number of list arguments and returns the first one that isn&#39;t empty.",
+		ParamDescription: []string{
+			"List or tuple values to test in the given order.",
+		},
 	},
 	"compact": {
 		Description:      "`compact` takes a list of strings and returns a new list with any empty string elements removed.",
@@ -199,16 +218,22 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"indent": {
-		Description:      "`indent` adds a given number of spaces to the beginnings of all but the first line in a given multi-line string.",
-		ParamDescription: []string{"", ""},
+		Description: "`indent` adds a given number of spaces to the beginnings of all but the first line in a given multi-line string.",
+		ParamDescription: []string{
+			"Number of spaces to add after each newline character.",
+			"",
+		},
 	},
 	"index": {
 		Description:      "`index` finds the element index for a given value in a list.",
 		ParamDescription: []string{"", ""},
 	},
 	"join": {
-		Description:      "`join` produces a string by concatenating together all elements of a given list of strings with the given delimiter.",
-		ParamDescription: []string{"", ""},
+		Description: "`join` produces a string by concatenating together all elements of a given list of strings with the given delimiter.",
+		ParamDescription: []string{
+			"Delimiter to insert between the given strings.",
+			"One or more lists of strings to join.",
+		},
 	},
 	"jsondecode": {
 		Description:      "`jsondecode` interprets a given string as JSON, returning a representation of the result of decoding that string.",
@@ -219,8 +244,10 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"keys": {
-		Description:      "`keys` takes a map and returns a list containing the keys from that map.",
-		ParamDescription: []string{""},
+		Description: "`keys` takes a map and returns a list containing the keys from that map.",
+		ParamDescription: []string{
+			"The map to extract keys from. May instead be an object-typed value, in which case the result is a tuple of the object attributes.",
+		},
 	},
 	"length": {
 		Description:      "`length` determines the length of a given list, map, or string.",
@@ -319,8 +346,10 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"setproduct": {
-		Description:      "The `setproduct` function finds all of the possible combinations of elements from all of the given sets by computing the [Cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).",
-		ParamDescription: []string{""},
+		Description: "The `setproduct` function finds all of the possible combinations of elements from all of the given sets by computing the [Cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).",
+		ParamDescription: []string{
+			"The sets to consider. Also accepts lists and tuples, and if all arguments are of list or tuple type then the result will preserve the input ordering",
+		},
 	},
 	"setsubtract": {
 		Description:      "The `setsubtract` function returns a new set containing the elements from the first set that are not present in the second set. In other words, it computes the [relative complement](https://en.wikipedia.org/wiki/Complement_\\(set_theory\\)#Relative_complement) of the second set.",
@@ -431,8 +460,11 @@ var descriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"trim": {
-		Description:      "`trim` removes the specified set of characters from the start and end of the given string.",
-		ParamDescription: []string{"", ""},
+		Description: "`trim` removes the specified set of characters from the start and end of the given string.",
+		ParamDescription: []string{
+			"",
+			"A string containing all of the characters to trim. Each character is taken separately, so the order of characters is insignificant.",
+		},
 	},
 	"trimprefix": {
 		Description:      "`trimprefix` removes the specified prefix from the start of the given string. If the string does not start with the prefix, the string is returned unchanged.",
