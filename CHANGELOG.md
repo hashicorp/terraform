@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * Fix exact version constraint parsing for modules using prerelease versions [GH-32377]
+* Prevent panic when a provider returns a null block value during refresh which is used as configuration via `ignore_changes` [GH-32428]
 
 ## 1.3.6 (November 30, 2022)
 
