@@ -370,6 +370,13 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	}
 
 	postCondEvalCtx.Plan = plan
+	if stepConfig.ApplyPlan {
+		// If we're going to apply this plan then we'll allow conditions
+		// to produce unknown results at this phase as long as they produce
+		// known results after apply. For a plan-only step the conditions
+		// must all have known results even during the plan step.
+		postCondEvalCtx.AllowUnknown = true
+	}
 
 	// We'll update our result from just the plan for now, which might give
 	// us a partial result. If we reach the apply step below then we'll
@@ -414,6 +421,7 @@ func (c *TestCommand) runScenarioStep(ctx context.Context, scenarioConfig *testc
 	}
 
 	postCondEvalCtx.NewState = newState
+	postCondEvalCtx.AllowUnknown = false // unknowns are never allowed after apply
 
 	result.Checks = newState.CheckResults
 	result.ExpectedFailures = c.prepareExpectedFailuresReport(result.Checks, stepConfig.ExpectFailure)
@@ -583,10 +591,11 @@ func (c *TestCommand) prepareExpectedFailuresReport(checkResults *states.CheckRe
 }
 
 type testStepPostconditionEvalContext struct {
-	PriorState *states.State
-	PlanOpts   *terraform.PlanOpts
-	Plan       *plans.Plan
-	NewState   *states.State
+	PriorState   *states.State
+	PlanOpts     *terraform.PlanOpts
+	Plan         *plans.Plan
+	NewState     *states.State
+	AllowUnknown bool
 }
 
 func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenario, stepConfig *testconfigs.Step, evalCtx *testStepPostconditionEvalContext) (*states.CheckResultObject, tfdiags.Diagnostics) {
@@ -676,26 +685,6 @@ func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenari
 			continue
 		}
 
-		// The message expression must be valid regardless of whether the
-		// condition actually passes.
-		msgVal, hclDiags := cond.ErrorMessage.Value(hclCtx)
-		diags = diags.Append(hclDiags)
-		if hclDiags.HasErrors() {
-			statuses[i] = checks.StatusError
-			continue
-		}
-		var msg string
-		if err := gocty.FromCtyValue(msgVal, &msg); err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Invalid condition error message",
-				Detail:      fmt.Sprintf("Error message expression produced an unsuitable result: %s.", tfdiags.FormatError(err)),
-				Subject:     cond.ErrorMessage.Range().Ptr(),
-				EvalContext: hclCtx,
-				Expression:  cond.ErrorMessage,
-			})
-		}
-
 		resultVal, err := convert.Convert(resultVal, cty.Bool)
 		const invalidCondResult = "Invalid condition result"
 		if err != nil {
@@ -722,7 +711,45 @@ func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenari
 			})
 			continue
 		}
+
 		statuses[i] = checks.StatusForCtyValue(resultVal)
+
+		// The message expression must be valid regardless of whether the
+		// condition actually passes.
+		msgVal, hclDiags := cond.ErrorMessage.Value(hclCtx)
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			statuses[i] = checks.StatusError
+			continue
+		}
+		var msg string
+		if msgVal.IsKnown() {
+			if err := gocty.FromCtyValue(msgVal, &msg); err != nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid condition error message",
+					Detail:      fmt.Sprintf("Error message expression produced an unsuitable result: %s.", tfdiags.FormatError(err)),
+					Subject:     cond.ErrorMessage.Range().Ptr(),
+					EvalContext: hclCtx,
+					Expression:  cond.ErrorMessage,
+				})
+			}
+		} else {
+			// We'll only complain about an unknown error message if the
+			// result is known, because we have a separate message complaining
+			// about an unknown result below and one error seems like enough.
+			if statuses[i] != checks.StatusUnknown {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     "Invalid condition error message",
+					Detail:      "Error message expression produced an unsuitable result: must refer only to known values.",
+					Subject:     cond.ErrorMessage.Range().Ptr(),
+					EvalContext: hclCtx,
+					Expression:  cond.ErrorMessage,
+				})
+			}
+		}
+
 		if statuses[i] == checks.StatusFail {
 			// We need to evaluate the error message and insert it into our
 			// set of failure messages, then.
@@ -730,15 +757,17 @@ func (c *TestCommand) evalStepPostconditions(scenarioConfig *testconfigs.Scenari
 			continue
 		}
 		if statuses[i] == checks.StatusUnknown {
-			statuses[i] = checks.StatusError
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     invalidCondResult,
-				Detail:      "Condition expression produced an unsuitable result: depends on values known only after apply, but this step did not apply the changes.",
-				Subject:     cond.Condition.Range().Ptr(),
-				EvalContext: hclCtx,
-				Expression:  cond.Condition,
-			})
+			if !evalCtx.AllowUnknown {
+				statuses[i] = checks.StatusError
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity:    hcl.DiagError,
+					Summary:     invalidCondResult,
+					Detail:      "Condition expression produced an unsuitable result: depends on values known only after apply, but this step did not apply the changes.",
+					Subject:     cond.Condition.Range().Ptr(),
+					EvalContext: hclCtx,
+					Expression:  cond.Condition,
+				})
+			}
 			continue
 		}
 	}
