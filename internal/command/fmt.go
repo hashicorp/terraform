@@ -281,7 +281,9 @@ func (c *FmtCommand) formatBody(body *hclwrite.Body, inBlocks []string) {
 	attrs := body.Attributes()
 	for name, attr := range attrs {
 		if len(inBlocks) == 1 && inBlocks[0] == "variable" && name == "type" {
-			cleanedExprTokens := c.formatTypeExpr(attr.Expr().BuildTokens(nil))
+			expr := attr.Expr()
+			c.typeExprAnyToInferred(expr)
+			cleanedExprTokens := c.formatTypeExpr(expr.BuildTokens(nil))
 			body.SetAttributeRaw(name, cleanedExprTokens)
 			continue
 		}
@@ -501,6 +503,16 @@ func (c *FmtCommand) formatTypeExpr(tokens hclwrite.Tokens) hclwrite.Tokens {
 	default:
 		return tokens
 	}
+}
+
+// typeExprAnyToInferred modifies the given type expression in-place so that
+// uses of the "any" placeholder are rewritten to use "inferred" instead.
+//
+// For now the two are equivalent but "inferred" is preferred because "any"
+// tends to confuse folks into thinking that it represents dynamic typing
+// rather than automatic type inference.
+func (c *FmtCommand) typeExprAnyToInferred(expr *hclwrite.Expression) {
+	expr.RenameVariablePrefix([]string{"any"}, []string{"inferred"})
 }
 
 func (c *FmtCommand) trimNewlines(tokens hclwrite.Tokens) hclwrite.Tokens {
