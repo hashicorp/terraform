@@ -1,9 +1,9 @@
-## 1.3.7 (Unreleased)
+## 1.3.7 (January 04, 2023)
 
 BUG FIXES:
 
-* Fix exact version constraint parsing for modules using prerelease versions [GH-32377]
-* Prevent panic when a provider returns a null block value during refresh which is used as configuration via `ignore_changes` [GH-32428]
+* Fix exact version constraint parsing for modules using prerelease versions ([#32377](https://github.com/hashicorp/terraform/issues/32377))
+* Prevent panic when a provider returns a null block value during refresh which is used as configuration via `ignore_changes` ([#32428](https://github.com/hashicorp/terraform/issues/32428))
 
 ## 1.3.6 (November 30, 2022)
 
