@@ -14,14 +14,14 @@ type descriptionEntry struct {
 	ParamDescription []string
 }
 
-// descriptionList is a consolidated list containing all descriptions for all
+// DescriptionList is a consolidated list containing all descriptions for all
 // functions available within Terraform. A functions description should point
 // to the matching entry in this list.
 //
 // We keep this as a single list, so we can quickly review descriptions within
 // a single file and copy the whole list to other projects, like
 // terraform-schema.
-var descriptionList = map[string]descriptionEntry{
+var DescriptionList = map[string]descriptionEntry{
 	"abs": {
 		Description:      "`abs` returns the absolute value of the given number. In other words, if the number is zero or positive then it is returned as-is, but if it is negative then it is multiplied by -1 to make it positive before returning it.",
 		ParamDescription: []string{""},
@@ -524,7 +524,7 @@ var descriptionList = map[string]descriptionEntry{
 // go-cty's WithNewDescriptions to replace the functions description and
 // parameter descriptions.
 func WithDescription(name string, f function.Function) function.Function {
-	desc, ok := descriptionList[name]
+	desc, ok := DescriptionList[name]
 	if !ok {
 		return f
 	}
