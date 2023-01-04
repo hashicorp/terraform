@@ -42,3 +42,7 @@ variable "nullable_default_null" {
   nullable = true
   default = null
 }
+
+variable "inferred" {
+  type = inferred
+}
