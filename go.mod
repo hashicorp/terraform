@@ -1,6 +1,8 @@
 module github.com/hashicorp/terraform
 
-replace github.com/hashicorp/hcl/v2 => ../../liamcervante/hcl
+// replace github.com/hashicorp/hcl/v2 => ../../liamcervante/hcl
+// TODO(liamcervante): Update HCL before merging this PR, that will make the
+//                     tests pass again.
 
 require (
 	cloud.google.com/go/kms v1.6.0
