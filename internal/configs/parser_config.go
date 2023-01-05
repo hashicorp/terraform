@@ -155,7 +155,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.DataResources = append(file.DataResources, cfg)
 			}
 
-		case "smoke_test":
+		case "smoke_test", "check", "assert", "assertion", "postcondition":
 			cfg, cfgDiags := decodeSmokeTestBlock(block, override)
 			diags = append(diags, cfgDiags...)
 			if !diags.HasErrors() {
@@ -261,11 +261,33 @@ var configFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"type", "name"},
 		},
 		{
+			Type: "moved",
+		},
+
+		// The following are all synonyms for prototyping purposes so that we
+		// can try out various different names for this idea of "smoke test"
+		// and see which ones resonate best. The rest of the prototype is
+		// calling this "smoke_test" so that term will leak out into the UI
+		// regardless of which name is used in configuration.
+		{
 			Type:       "smoke_test",
 			LabelNames: []string{"name"},
 		},
 		{
-			Type: "moved",
+			Type:       "check",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "assert",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "assertion",
+			LabelNames: []string{"name"},
+		},
+		{
+			Type:       "postcondition",
+			LabelNames: []string{"name"},
 		},
 	},
 }

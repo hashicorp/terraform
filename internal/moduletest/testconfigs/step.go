@@ -219,7 +219,7 @@ func decodeStepBlock(block *hcl.Block) (*Step, tfdiags.Diagnostics) {
 
 	for _, block := range content.Blocks {
 		switch block.Type {
-		case "postcondition":
+		case "postcondition", "assert", "check", "condition":
 			rule, hclDiags := configs.DecodeCheckRuleBlock(block)
 			diags = diags.Append(hclDiags)
 			if !diags.HasErrors() {
@@ -250,6 +250,9 @@ var stepBlockSchema = hcl.BodySchema{
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "postcondition"},
+		{Type: "assert"},    // synonym for "postcondition" for prototype purposes
+		{Type: "check"},     // synonym for "postcondition" for prototype purposes
+		{Type: "condition"}, // synonym for "postcondition" for prototype purposes
 	},
 }
 
