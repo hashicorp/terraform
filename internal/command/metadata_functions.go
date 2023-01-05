@@ -2,6 +2,9 @@ package command
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/internal/command/jsonfunction"
+	"github.com/hashicorp/terraform/internal/lang"
 )
 
 // MetadataFunctionsCommand is a Command implementation that prints out information
@@ -36,6 +39,18 @@ func (c *MetadataFunctionsCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+
+	scope := &lang.Scope{
+		ConsoleMode: true,
+		BaseDir:     ".", // TODO? might be omitted
+	}
+	funcs := scope.Functions()
+	jsonFunctions, err := jsonfunction.Marshal(funcs)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to marshal function signatures to json: %s", err))
+		return 1
+	}
+	c.Ui.Output(string(jsonFunctions))
 
 	return 0
 }
