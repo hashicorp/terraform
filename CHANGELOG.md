@@ -1,5 +1,9 @@
 ## 1.3.8 (Unreleased)
 
+BUG FIXES:
+
+* A variable only referenced by an output precondition error_message may be missing during evaluation [GH-32464]
+
 ## 1.3.7 (January 04, 2023)
 
 BUG FIXES:
