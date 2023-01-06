@@ -5,7 +5,7 @@
 /internal/backend/remote-state/artifactory       Unmaintained
 /internal/backend/remote-state/azure             @hashicorp/terraform-azure
 /internal/backend/remote-state/consul            @hashicorp/consul @remilapeyre
-/internal/backend/remote-state/cos               @likexian
+/internal/backend/remote-state/cos               @likexian @hellertang
 /internal/backend/remote-state/etcdv2            Unmaintained
 /internal/backend/remote-state/etcdv3            Unmaintained
 /internal/backend/remote-state/gcs               @hashicorp/terraform-google @hashicorp/terraform-ecosystem-strategic
