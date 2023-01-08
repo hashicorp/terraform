@@ -1,4 +1,4 @@
-# Terraform Core GitHub Bug Triage & Labeling
+# Terraform Core GitHub Bug Triage & Labeling 
 The Terraform Core team has adopted a more structured bug triage process than we previously used. Our goal is to respond to reports of issues quickly.
 
 When a bug report is filed, our goal is to either:
