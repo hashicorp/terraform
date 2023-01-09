@@ -22,6 +22,17 @@ func (v Value) computeAttributeChangeAsNestedObject(attributes map[string]*jsonp
 	return change.New(change.NestedObject(attributeChanges), changeType, v.replacePath())
 }
 
+// processObject steps through the children of value as if it is an object and
+// calls out to the provided computeChange function once it has collated the
+// diffs for each child attribute.
+//
+// We have to make this generic as attributes and nested objects process either
+// cty.Type or jsonprovider.Attribute children respectively. And we want to
+// reuse as much code as possible.
+//
+// Also, as it generic we cannot make this function a method on Value as you
+// can't create generic methods on structs. Instead, we make this a generic
+// function that receives the value as an argument.
 func processObject[T any](v Value, attributes map[string]T, computeChange func(Value, T) change.Change) (map[string]change.Change, plans.Action) {
 	attributeChanges := make(map[string]change.Change)
 	mapValue := v.asMap()
