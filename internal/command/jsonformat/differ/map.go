@@ -12,7 +12,7 @@ func (v Value) computeAttributeChangeAsMap(elementType cty.Type) change.Change {
 	current := v.getDefaultActionForIteration()
 	elements := make(map[string]change.Change)
 	v.processMap(func(key string, value Value) {
-		element := value.ComputeChange(elementType)
+		element := value.computeChangeForType(elementType)
 		elements[key] = element
 		current = compareActions(current, element.GetAction())
 	})
@@ -23,7 +23,10 @@ func (v Value) computeAttributeChangeAsNestedMap(attributes map[string]*jsonprov
 	current := v.getDefaultActionForIteration()
 	elements := make(map[string]change.Change)
 	v.processMap(func(key string, value Value) {
-		element := value.ComputeChange(attributes)
+		element := value.computeChangeForNestedAttribute(&jsonprovider.NestedType{
+			Attributes:  attributes,
+			NestingMode: "single",
+		})
 		elements[key] = element
 		current = compareActions(current, element.GetAction())
 	})
@@ -34,7 +37,7 @@ func (v Value) computeBlockChangesAsMap(block *jsonprovider.Block) ([]change.Cha
 	current := v.getDefaultActionForIteration()
 	var elements []change.Change
 	v.processMap(func(key string, value Value) {
-		element := value.ComputeChange(block)
+		element := value.ComputeChangeForBlock(block)
 		elements = append(elements, element)
 		current = compareActions(current, element.GetAction())
 	})

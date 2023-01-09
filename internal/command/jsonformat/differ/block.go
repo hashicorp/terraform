@@ -6,7 +6,15 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) computeChangeForBlock(block *jsonprovider.Block) change.Change {
+func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputedBlock(block); ok {
+		return computed
+	}
+
 	current := v.getDefaultActionForIteration()
 
 	blockValue := v.asMap()
@@ -14,7 +22,7 @@ func (v Value) computeChangeForBlock(block *jsonprovider.Block) change.Change {
 	attributes := make(map[string]change.Change)
 	for key, attr := range block.Attributes {
 		childValue := blockValue.getChild(key)
-		childChange := childValue.ComputeChange(attr)
+		childChange := childValue.ComputeChangeForAttribute(attr)
 		if childChange.GetAction() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
@@ -48,7 +56,7 @@ func (v Value) computeChangesForBlockType(blockType *jsonprovider.BlockType) ([]
 	case "map":
 		return v.computeBlockChangesAsMap(blockType.Block)
 	case "single", "group":
-		ch := v.ComputeChange(blockType.Block)
+		ch := v.ComputeChangeForBlock(blockType.Block)
 		return []change.Change{ch}, ch.GetAction()
 	default:
 		panic("unrecognized nesting mode: " + blockType.NestingMode)
