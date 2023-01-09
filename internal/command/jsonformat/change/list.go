@@ -67,7 +67,7 @@ func (renderer listRenderer) Render(change Change, indent int, opts RenderOpts) 
 			// minus 1 as the most recent unchanged element will be printed out
 			// in full.
 			if len(unchangedElements) > 1 {
-				buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), change.emptySymbol(), change.unchanged("element", len(unchangedElements)-1)))
+				buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), format.DiffActionSymbol(plans.NoOp), change.unchanged("element", len(unchangedElements)-1)))
 			}
 			// If our list of unchanged elements contains at least one entry,
 			// we're going to print out the most recent change in full. That's
@@ -95,11 +95,7 @@ func (renderer listRenderer) Render(change Change, indent int, opts RenderOpts) 
 		for _, warning := range element.Warnings(indent + 1) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", change.indent(indent+1), warning))
 		}
-		if element.action == plans.NoOp {
-			buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), element.emptySymbol(), element.Render(indent+1, unchangedElementOpts)))
-		} else {
-			buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), format.DiffActionSymbol(element.action), element.Render(indent+1, elementOpts)))
-		}
+		buf.WriteString(fmt.Sprintf("%s%s %s,\n", change.indent(indent+1), format.DiffActionSymbol(element.action), element.Render(indent+1, elementOpts)))
 	}
 
 	// If we were not displaying any context alongside our changes then the
@@ -109,9 +105,9 @@ func (renderer listRenderer) Render(change Change, indent int, opts RenderOpts) 
 	// If we were displaying context, then this will contain any unchanged
 	// elements since our last change, so we should also print it out.
 	if len(unchangedElements) > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), change.emptySymbol(), change.unchanged("element", len(unchangedElements))))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), format.DiffActionSymbol(plans.NoOp), change.unchanged("element", len(unchangedElements))))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s ]%s", change.indent(indent), change.emptySymbol(), change.nullSuffix(opts.overrideNullSuffix)))
+	buf.WriteString(fmt.Sprintf("%s%s ]%s", change.indent(indent), format.DiffActionSymbol(plans.NoOp), change.nullSuffix(opts.overrideNullSuffix)))
 	return buf.String()
 }

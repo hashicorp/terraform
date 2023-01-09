@@ -48,13 +48,13 @@ func processObject[T any](v Value, attributes map[string]T, computeChange func(V
 		// We use the generic ComputeChange here, as we don't know whether this
 		// is from a nested object or a `normal` object.
 		attributeChange := computeChange(attributeValue, attribute)
-		if attributeChange.GetAction() == plans.NoOp && attributeValue.Before == nil && attributeValue.After == nil {
+		if attributeChange.Action() == plans.NoOp && attributeValue.Before == nil && attributeValue.After == nil {
 			// We skip attributes of objects that are null both before and
 			// after. We don't even count these as unchanged attributes.
 			continue
 		}
 		attributeChanges[key] = attributeChange
-		currentAction = compareActions(currentAction, attributeChange.GetAction())
+		currentAction = compareActions(currentAction, attributeChange.Action())
 	}
 
 	return attributeChanges, currentAction

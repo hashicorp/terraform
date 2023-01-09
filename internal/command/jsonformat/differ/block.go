@@ -23,13 +23,13 @@ func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
 	for key, attr := range block.Attributes {
 		childValue := blockValue.getChild(key)
 		childChange := childValue.ComputeChangeForAttribute(attr)
-		if childChange.GetAction() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+		if childChange.Action() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
 		}
 
 		attributes[key] = childChange
-		current = compareActions(current, childChange.GetAction())
+		current = compareActions(current, childChange.Action())
 	}
 
 	blocks := make(map[string][]change.Change)
@@ -48,16 +48,16 @@ func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
 }
 
 func (v Value) computeChangesForBlockType(blockType *jsonprovider.BlockType) ([]change.Change, plans.Action) {
-	switch blockType.NestingMode {
-	case "set":
+	switch NestingMode(blockType.NestingMode) {
+	case nestingModeSet:
 		return v.computeBlockChangesAsSet(blockType.Block)
-	case "list":
+	case nestingModeList:
 		return v.computeBlockChangesAsList(blockType.Block)
-	case "map":
+	case nestingModeMap:
 		return v.computeBlockChangesAsMap(blockType.Block)
-	case "single", "group":
+	case nestingModeSingle, nestingModeGroup:
 		ch := v.ComputeChangeForBlock(blockType.Block)
-		return []change.Change{ch}, ch.GetAction()
+		return []change.Change{ch}, ch.Action()
 	default:
 		panic("unrecognized nesting mode: " + blockType.NestingMode)
 	}
