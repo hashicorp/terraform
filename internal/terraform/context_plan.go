@@ -71,14 +71,21 @@ type PlanOpts struct {
 	ForceReplace []addrs.AbsResourceInstance
 }
 
-// Plan generates an execution plan for the given context, and returns the
-// refreshed state.
+// Plan generates an execution plan by comparing the given configuration
+// with the given previous run state.
 //
-// The execution plan encapsulates the context and can be stored
-// in order to reinstantiate a context later for Apply.
+// The given planning options allow control of various other details of the
+// planning process that are not represented directly in the configuration.
+// You can use terraform.DefaultPlanOpts to generate a normal plan with no
+// special options.
 //
-// Plan also updates the diff of this context to be the diff generated
-// by the plan, so Apply can be called after.
+// If the returned diagnostics contains no errors then the returned plan is
+// applyable, although Terraform cannot guarantee that applying it will fully
+// succeed. If the returned diagnostics contains errors but this method
+// still returns a non-nil Plan then the plan describes the subset of actions
+// planned so far, which is not safe to apply but could potentially be used
+// by the UI layer to give extra context to support understanding of the
+// returned error messages.
 func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	defer c.acquireRun("plan")()
 	var diags tfdiags.Diagnostics
@@ -175,9 +182,10 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic(fmt.Sprintf("unsupported plan mode %s", opts.Mode))
 	}
 	diags = diags.Append(planDiags)
-	if diags.HasErrors() {
-		return nil, diags
-	}
+	// NOTE: We're intentionally not returning early when diags.HasErrors
+	// here because we'll still populate other metadata below on a best-effort
+	// basis to try to give the UI some extra context to return alongside the
+	// error messages.
 
 	// convert the variables into the format expected for the plan
 	varVals := make(map[string]plans.DynamicValue, len(opts.SetVariables))
@@ -210,10 +218,23 @@ The -target option is not for routine use, and is provided only for exceptional 
 		panic("nil plan but no errors")
 	}
 
-	relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
-	diags = diags.Append(rDiags)
+	if plan != nil {
+		relevantAttrs, rDiags := c.relevantResourceAttrsForPlan(config, plan)
+		diags = diags.Append(rDiags)
+		plan.RelevantAttributes = relevantAttrs
+	}
 
-	plan.RelevantAttributes = relevantAttrs
+	if diags.HasErrors() {
+		// We can't proceed further with an invalid plan, because an invalid
+		// plan isn't applyable by definition.
+		if plan != nil {
+			// We'll explicitly mark our plan as errored so that it can't
+			// be accidentally applied even though it's incomplete.
+			plan.Errored = true
+		}
+		return plan, diags
+	}
+
 	diags = diags.Append(c.checkApplyGraph(plan, config))
 
 	return plan, diags
@@ -266,7 +287,10 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		// Non-nil plan along with errors indicates a non-applyable partial
+		// plan that's only suitable to be shown to the user as extra context
+		// to help understand the errors.
+		return plan, diags
 	}
 
 	// The refreshed state ends up with some placeholder objects in it for
@@ -288,7 +312,10 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 	if diags.HasErrors() {
-		return nil, diags
+		// Non-nil plan along with errors indicates a non-applyable partial
+		// plan that's only suitable to be shown to the user as extra context
+		// to help understand the errors.
+		return plan, diags
 	}
 
 	// If the graph builder and graph nodes correctly obeyed our directive
@@ -388,7 +415,10 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 	destroyPlan, walkDiags := c.planWalk(config, priorState, opts)
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
-		return nil, diags
+		// Non-nil plan along with errors indicates a non-applyable partial
+		// plan that's only suitable to be shown to the user as extra context
+		// to help understand the errors.
+		return destroyPlan, diags
 	}
 
 	if !opts.SkipRefresh {
@@ -544,6 +574,12 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		// error message than a less-actionable warning.
 		diags = diags.Append(blockedMovesWarningDiag(moveResults))
 	}
+
+	// If we reach this point with error diagnostics then "changes" is a
+	// representation of the subset of changes we were able to plan before
+	// we encountered errors, which we'll return as part of a non-nil plan
+	// so that e.g. the UI can show what was planned so far in case that extra
+	// context helps the user to understand the error messages we're returning.
 
 	prevRunState = walker.PrevRunState.Close()
 	priorState := walker.RefreshState.Close()
