@@ -871,6 +871,343 @@ func TestValue_ObjectAttributes(t *testing.T) {
 	}
 }
 
+func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
+	// This function tests manipulating simple attributes and blocks within
+	// blocks. It automatically tests these operations within the contexts of
+	// different block types.
+
+	tcs := map[string]struct {
+		before      interface{}
+		after       interface{}
+		block       *jsonprovider.Block
+		validate    change.ValidateChangeFunc
+		validateSet []change.ValidateChangeFunc
+	}{
+		"create_attribute": {
+			before: map[string]interface{}{},
+			after: map[string]interface{}{
+				"attribute_one": "new",
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"attribute_one": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: change.ValidateBlock(map[string]change.ValidateChangeFunc{
+				"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			}, nil, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(nil, nil, plans.Delete, false),
+				change.ValidateBlock(map[string]change.ValidateChangeFunc{
+					"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+				}, nil, plans.Create, false),
+			},
+		},
+		"update_attribute": {
+			before: map[string]interface{}{
+				"attribute_one": "old",
+			},
+			after: map[string]interface{}{
+				"attribute_one": "new",
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"attribute_one": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: change.ValidateBlock(map[string]change.ValidateChangeFunc{
+				"attribute_one": change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			}, nil, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(map[string]change.ValidateChangeFunc{
+					"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				}, nil, plans.Delete, false),
+				change.ValidateBlock(map[string]change.ValidateChangeFunc{
+					"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+				}, nil, plans.Create, false),
+			},
+		},
+		"delete_attribute": {
+			before: map[string]interface{}{
+				"attribute_one": "old",
+			},
+			after: map[string]interface{}{},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"attribute_one": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: change.ValidateBlock(map[string]change.ValidateChangeFunc{
+				"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+			}, nil, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(map[string]change.ValidateChangeFunc{
+					"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				}, nil, plans.Delete, false),
+				change.ValidateBlock(nil, nil, plans.Create, false),
+			},
+		},
+		"create_block": {
+			before: map[string]interface{}{},
+			after: map[string]interface{}{
+				"block_one": map[string]interface{}{
+					"attribute_one": "new",
+				},
+			},
+			block: &jsonprovider.Block{
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"block_one": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attribute_one": {
+									AttributeType: unmarshalType(t, cty.String),
+								},
+							},
+						},
+						NestingMode: "single",
+					},
+				},
+			},
+			validate: change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+				"block_one": {
+					change.ValidateBlock(map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+					}, nil, plans.Create, false),
+				},
+			}, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(nil, nil, plans.Delete, false),
+				change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_one": {
+						change.ValidateBlock(map[string]change.ValidateChangeFunc{
+							"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+						}, nil, plans.Create, false),
+					},
+				}, plans.Create, false),
+			},
+		},
+		"update_block": {
+			before: map[string]interface{}{
+				"block_one": map[string]interface{}{
+					"attribute_one": "old",
+				},
+			},
+			after: map[string]interface{}{
+				"block_one": map[string]interface{}{
+					"attribute_one": "new",
+				},
+			},
+			block: &jsonprovider.Block{
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"block_one": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attribute_one": {
+									AttributeType: unmarshalType(t, cty.String),
+								},
+							},
+						},
+						NestingMode: "single",
+					},
+				},
+			},
+			validate: change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+				"block_one": {
+					change.ValidateBlock(map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+					}, nil, plans.Update, false),
+				},
+			}, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_one": {
+						change.ValidateBlock(map[string]change.ValidateChangeFunc{
+							"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+						}, nil, plans.Delete, false),
+					},
+				}, plans.Delete, false),
+				change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_one": {
+						change.ValidateBlock(map[string]change.ValidateChangeFunc{
+							"attribute_one": change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+						}, nil, plans.Create, false),
+					},
+				}, plans.Create, false),
+			},
+		},
+		"delete_block": {
+			before: map[string]interface{}{
+				"block_one": map[string]interface{}{
+					"attribute_one": "old",
+				},
+			},
+			after: map[string]interface{}{},
+			block: &jsonprovider.Block{
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"block_one": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attribute_one": {
+									AttributeType: unmarshalType(t, cty.String),
+								},
+							},
+						},
+						NestingMode: "single",
+					},
+				},
+			},
+			validate: change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+				"block_one": {
+					change.ValidateBlock(map[string]change.ValidateChangeFunc{
+						"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+					}, nil, plans.Delete, false),
+				},
+			}, plans.Update, false),
+			validateSet: []change.ValidateChangeFunc{
+				change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_one": {
+						change.ValidateBlock(map[string]change.ValidateChangeFunc{
+							"attribute_one": change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+						}, nil, plans.Delete, false),
+					},
+				}, plans.Delete, false),
+				change.ValidateBlock(nil, nil, plans.Create, false),
+			},
+		},
+	}
+	for name, tmp := range tcs {
+		tc := tmp
+
+		t.Run(name, func(t *testing.T) {
+			t.Run("single", func(t *testing.T) {
+				input := Value{
+					Before: map[string]interface{}{
+						"block_type": tc.before,
+					},
+					After: map[string]interface{}{
+						"block_type": tc.after,
+					},
+				}
+
+				block := &jsonprovider.Block{
+					BlockTypes: map[string]*jsonprovider.BlockType{
+						"block_type": {
+							Block:       tc.block,
+							NestingMode: "single",
+						},
+					},
+				}
+
+				validate := change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_type": {
+						tc.validate,
+					},
+				}, plans.Update, false)
+				validate(t, input.ComputeChange(block))
+			})
+			t.Run("map", func(t *testing.T) {
+				input := Value{
+					Before: map[string]interface{}{
+						"block_type": map[string]interface{}{
+							"one": tc.before,
+						},
+					},
+					After: map[string]interface{}{
+						"block_type": map[string]interface{}{
+							"one": tc.after,
+						},
+					},
+				}
+
+				block := &jsonprovider.Block{
+					BlockTypes: map[string]*jsonprovider.BlockType{
+						"block_type": {
+							Block:       tc.block,
+							NestingMode: "map",
+						},
+					},
+				}
+
+				validate := change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_type": {
+						tc.validate,
+					},
+				}, plans.Update, false)
+				validate(t, input.ComputeChange(block))
+			})
+			t.Run("list", func(t *testing.T) {
+				input := Value{
+					Before: map[string]interface{}{
+						"block_type": []interface{}{
+							tc.before,
+						},
+					},
+					After: map[string]interface{}{
+						"block_type": []interface{}{
+							tc.after,
+						},
+					},
+				}
+
+				block := &jsonprovider.Block{
+					BlockTypes: map[string]*jsonprovider.BlockType{
+						"block_type": {
+							Block:       tc.block,
+							NestingMode: "list",
+						},
+					},
+				}
+
+				validate := change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_type": {
+						tc.validate,
+					},
+				}, plans.Update, false)
+				validate(t, input.ComputeChange(block))
+			})
+			t.Run("set", func(t *testing.T) {
+				input := Value{
+					Before: map[string]interface{}{
+						"block_type": []interface{}{
+							tc.before,
+						},
+					},
+					After: map[string]interface{}{
+						"block_type": []interface{}{
+							tc.after,
+						},
+					},
+				}
+
+				block := &jsonprovider.Block{
+					BlockTypes: map[string]*jsonprovider.BlockType{
+						"block_type": {
+							Block:       tc.block,
+							NestingMode: "set",
+						},
+					},
+				}
+
+				validate := change.ValidateBlock(nil, map[string][]change.ValidateChangeFunc{
+					"block_type": func() []change.ValidateChangeFunc {
+						if tc.validateSet != nil {
+							return tc.validateSet
+						}
+						return []change.ValidateChangeFunc{tc.validate}
+					}(),
+				}, plans.Update, false)
+				validate(t, input.ComputeChange(block))
+			})
+		})
+	}
+}
+
 func TestValue_PrimitiveAttributes(t *testing.T) {
 	// This function tests manipulating primitives: creating, deleting and
 	// updating. It also automatically tests these operations within the

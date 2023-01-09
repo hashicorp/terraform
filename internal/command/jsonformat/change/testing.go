@@ -186,7 +186,60 @@ func ValidateSet(elements []ValidateChangeFunc, action plans.Action, replace boo
 		for ix := 0; ix < len(elements); ix++ {
 			elements[ix](t, set.elements[ix])
 		}
+	}
+}
 
+func ValidateBlock(attributes map[string]ValidateChangeFunc, blocks map[string][]ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		block, ok := change.renderer.(*blockRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if len(block.attributes) != len(attributes) || len(block.blocks) != len(blocks) {
+			t.Fatalf("expected %d attributes and %d blocks but found %d attributes and %d blocks", len(attributes), len(blocks), len(block.attributes), len(block.blocks))
+		}
+
+		var missingAttributes []string
+		var missingBlocks []string
+
+		for key, expected := range attributes {
+			actual, ok := block.attributes[key]
+			if !ok {
+				missingAttributes = append(missingAttributes, key)
+			}
+
+			if len(missingAttributes) > 0 {
+				continue
+			}
+
+			expected(t, actual)
+		}
+
+		for key, expected := range blocks {
+			actual, ok := block.blocks[key]
+			if !ok {
+				missingBlocks = append(missingBlocks, key)
+			}
+
+			if len(missingAttributes) > 0 || len(missingBlocks) > 0 {
+				continue
+			}
+
+			if len(expected) != len(actual) {
+				t.Fatalf("expected %d blocks for %s but found %d", len(expected), key, len(actual))
+			}
+
+			for ix := range expected {
+				expected[ix](t, actual[ix])
+			}
+		}
+
+		if len(missingAttributes) > 0 || len(missingBlocks) > 0 {
+			t.Fatalf("missing the following attributes: %s, and the following blocks: %s", strings.Join(missingAttributes, ", "), strings.Join(missingBlocks, ", "))
+		}
 	}
 }
 

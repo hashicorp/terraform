@@ -7,12 +7,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func (v Value) computeAttributeChangeAsList(elementType cty.Type) change.Change {
 	var elements []change.Change
 	current := v.getDefaultActionForIteration()
-	v.processList(elementType, func(value Value) {
+	v.processList(elementType.IsObjectType(), func(value Value) {
 		element := value.ComputeChange(elementType)
 		elements = append(elements, element)
 		current = compareActions(current, element.GetAction())
@@ -31,6 +32,17 @@ func (v Value) computeAttributeChangeAsNestedList(attributes map[string]*jsonpro
 	return change.New(change.NestedList(elements), current, v.replacePath())
 }
 
+func (v Value) computeBlockChangesAsList(block *jsonprovider.Block) ([]change.Change, plans.Action) {
+	var elements []change.Change
+	current := v.getDefaultActionForIteration()
+	v.processNestedList(func(value Value) {
+		element := value.ComputeChange(block)
+		elements = append(elements, element)
+		current = compareActions(current, element.GetAction())
+	})
+	return elements, current
+}
+
 func (v Value) processNestedList(process func(value Value)) {
 	sliceValue := v.asSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
@@ -38,7 +50,7 @@ func (v Value) processNestedList(process func(value Value)) {
 	}
 }
 
-func (v Value) processList(elementType cty.Type, process func(value Value)) {
+func (v Value) processList(isObjType bool, process func(value Value)) {
 	sliceValue := v.asSlice()
 
 	lcs := lcs(sliceValue.Before, sliceValue.After)
@@ -48,7 +60,7 @@ func (v Value) processList(elementType cty.Type, process func(value Value)) {
 		// longest common subsequence. We are going to just say that all of
 		// these have been deleted.
 		for beforeIx < len(sliceValue.Before) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.Before[beforeIx], lcs[lcsIx])) {
-			isObjectDiff := elementType.IsObjectType() && afterIx < len(sliceValue.After) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.After[afterIx], lcs[lcsIx]))
+			isObjectDiff := isObjType && afterIx < len(sliceValue.After) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.After[afterIx], lcs[lcsIx]))
 			if isObjectDiff {
 				process(sliceValue.getChild(beforeIx, afterIx, false))
 				beforeIx++

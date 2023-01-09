@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func (v Value) computeAttributeChangeAsSet(elementType cty.Type) change.Change {
@@ -29,6 +30,17 @@ func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprov
 		current = compareActions(current, element.GetAction())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
+}
+
+func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Change, plans.Action) {
+	var elements []change.Change
+	current := v.getDefaultActionForIteration()
+	v.processSet(true, func(value Value) {
+		element := value.ComputeChange(block)
+		elements = append(elements, element)
+		current = compareActions(current, element.GetAction())
+	})
+	return elements, current
 }
 
 func (v Value) processSet(propagateReplace bool, process func(value Value)) {
