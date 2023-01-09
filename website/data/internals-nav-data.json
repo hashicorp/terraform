@@ -29,10 +29,6 @@
     "path": "graph"
   },
   {
-    "title": "Resource Lifecycle",
-    "path": "lifecycle"
-  },
-  {
     "title": "Login Protocol",
     "path": "login-protocol"
   },
