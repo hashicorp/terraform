@@ -16,7 +16,7 @@ func (v Value) computeAttributeChangeAsSet(elementType cty.Type) change.Change {
 	v.processSet(false, func(value Value) {
 		element := value.computeChangeForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -30,7 +30,7 @@ func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprov
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -41,7 +41,7 @@ func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Cha
 	v.processSet(true, func(value Value) {
 		element := value.ComputeChangeForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return elements, current
 }

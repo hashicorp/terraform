@@ -55,10 +55,6 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 	buf.WriteString(fmt.Sprintf("{%s\n", change.forcesReplacement()))
 	for _, importantKey := range importantAttributes {
 		if attribute, ok := renderer.attributes[importantKey]; ok {
-			if attribute.action == plans.NoOp {
-				buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), attribute.emptySymbol(), renderer.maximumKeyLen, importantKey, attribute.Render(indent+1, opts)))
-				continue
-			}
 			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), format.DiffActionSymbol(attribute.action), renderer.maximumKeyLen, importantKey, attribute.Render(indent+1, opts)))
 		}
 	}
@@ -86,7 +82,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 	}
 
 	if unchangedAttributes > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), change.emptySymbol(), change.unchanged("attribute", unchangedAttributes)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), format.DiffActionSymbol(plans.NoOp), change.unchanged("attribute", unchangedAttributes)))
 	}
 
 	var blockKeys []string
@@ -118,9 +114,9 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 	}
 
 	if unchangedBlocks > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), change.emptySymbol(), change.unchanged("block", unchangedBlocks)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), format.DiffActionSymbol(plans.NoOp), change.unchanged("block", unchangedBlocks)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s }", change.indent(indent), change.emptySymbol()))
+	buf.WriteString(fmt.Sprintf("%s%s }", change.indent(indent), format.DiffActionSymbol(plans.NoOp)))
 	return buf.String()
 }

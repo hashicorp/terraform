@@ -9,15 +9,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-const (
-	jsonNumber = "number"
-	jsonObject = "object"
-	jsonArray  = "array"
-	jsonBool   = "bool"
-	jsonString = "string"
-	jsonNull   = "null"
-)
-
 func (v Value) ComputeChangeForOutput() change.Change {
 	if sensitive, ok := v.checkForSensitive(); ok {
 		return sensitive
@@ -30,7 +21,7 @@ func (v Value) ComputeChangeForOutput() change.Change {
 	beforeType := getJsonType(v.Before)
 	afterType := getJsonType(v.After)
 
-	valueToAttribute := func(v Value, jsonType string) change.Change {
+	valueToAttribute := func(v Value, jsonType JsonType) change.Change {
 		var res change.Change
 
 		switch jsonType {
@@ -75,7 +66,7 @@ func (v Value) ComputeChangeForOutput() change.Change {
 	return change.New(change.TypeChange(before, after), plans.Update, false)
 }
 
-func getJsonType(json interface{}) string {
+func getJsonType(json interface{}) JsonType {
 	switch json.(type) {
 	case []interface{}:
 		return jsonArray

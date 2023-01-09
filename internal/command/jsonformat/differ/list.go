@@ -16,7 +16,7 @@ func (v Value) computeAttributeChangeAsList(elementType cty.Type) change.Change 
 	v.processList(elementType.IsObjectType(), func(value Value) {
 		element := value.computeChangeForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.List(elements), current, v.replacePath())
 }
@@ -30,7 +30,7 @@ func (v Value) computeAttributeChangeAsNestedList(attributes map[string]*jsonpro
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.NestedList(elements), current, v.replacePath())
 }
@@ -41,7 +41,7 @@ func (v Value) computeBlockChangesAsList(block *jsonprovider.Block) ([]change.Ch
 	v.processNestedList(func(value Value) {
 		element := value.ComputeChangeForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return elements, current
 }

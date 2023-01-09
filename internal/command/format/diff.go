@@ -2014,6 +2014,8 @@ func DiffActionSymbol(action plans.Action) string {
 		return " [cyan]<=[reset]"
 	case plans.Update:
 		return "  [yellow]~[reset]"
+	case plans.NoOp:
+		return "   "
 	default:
 		return "  ?"
 	}
