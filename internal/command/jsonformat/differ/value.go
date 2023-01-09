@@ -2,14 +2,10 @@ package differ
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
-
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -18,7 +14,7 @@ import (
 // jsonprovider).
 //
 // A Value can be converted into a change.Change, ready for rendering, with the
-// computeChangeForAttribute, ComputeChangeForOutput, and computeChangeForBlock
+// ComputeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
@@ -98,37 +94,7 @@ func ValueFromJsonChange(change jsonplan.Change) Value {
 	}
 }
 
-// ComputeChange is a generic function that lets callers not worry about what
-// type of change they are processing. In general, this is the function external
-// users should call as it has some generic preprocessing applicable to all
-// types.
-//
-// It can accept blocks, attributes, go-cty types, and outputs, and will route
-// the request to the appropriate function.
-func (v Value) ComputeChange(changeType interface{}) change.Change {
-	if sensitive, ok := v.checkForSensitive(); ok {
-		return sensitive
-	}
-
-	if computed, ok := v.checkForComputed(changeType); ok {
-		return computed
-	}
-
-	switch concrete := changeType.(type) {
-	case *jsonprovider.Attribute:
-		return v.computeChangeForAttribute(concrete)
-	case cty.Type:
-		return v.computeChangeForType(concrete)
-	case map[string]*jsonprovider.Attribute:
-		return v.computeAttributeChangeAsNestedObject(concrete)
-	case *jsonprovider.Block:
-		return v.computeChangeForBlock(concrete)
-	default:
-		panic(fmt.Sprintf("unrecognized change type: %T", changeType))
-	}
-}
-
-func (v Value) AsChange(renderer change.Renderer) change.Change {
+func (v Value) asChange(renderer change.Renderer) change.Change {
 	return change.New(renderer, v.calculateChange(), v.replacePath())
 }
 

@@ -12,8 +12,8 @@ func strptr(str string) *string {
 	return &str
 }
 
-func (v Value) computeAttributeChangeAsPrimitive(ctyType cty.Type) change.Change {
-	return v.AsChange(change.Primitive(formatAsPrimitive(v.Before, ctyType), formatAsPrimitive(v.After, ctyType)))
+func (v Value) computeAttributeChangeAsPrimitive(ctype cty.Type) change.Change {
+	return v.asChange(change.Primitive(formatAsPrimitive(v.Before, ctype), formatAsPrimitive(v.After, ctype)))
 }
 
 func formatAsPrimitive(value interface{}, ctyType cty.Type) *string {

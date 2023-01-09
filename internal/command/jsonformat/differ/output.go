@@ -3,9 +3,10 @@ package differ
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/zclconf/go-cty/cty"
 )
 
 const (
@@ -18,6 +19,14 @@ const (
 )
 
 func (v Value) ComputeChangeForOutput() change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputedType(cty.DynamicPseudoType); ok {
+		return computed
+	}
+
 	beforeType := getJsonType(v.Before)
 	afterType := getJsonType(v.After)
 
@@ -34,9 +43,9 @@ func (v Value) ComputeChangeForOutput() change.Change {
 		case jsonNumber:
 			res = v.computeAttributeChangeAsPrimitive(cty.Number)
 		case jsonObject:
-			res = v.computeAttributeChangeAsMap(cty.NilType)
+			res = v.computeAttributeChangeAsMap(cty.DynamicPseudoType)
 		case jsonArray:
-			res = v.computeAttributeChangeAsList(cty.NilType)
+			res = v.computeAttributeChangeAsList(cty.DynamicPseudoType)
 		default:
 			panic("unrecognized json type: " + jsonType)
 		}
