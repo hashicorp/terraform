@@ -2,8 +2,9 @@ package change
 
 import (
 	"fmt"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"strings"
+
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -107,9 +108,9 @@ func (change Change) unchanged(keyword string, count int) string {
 	return fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword)
 }
 
-// escapeAttributeName checks if `name` contains any HCL syntax and returns it
-// surrounded by quotation marks if it does.
-func (change Change) escapeAttributeName(name string) string {
+// ensureValidAttributeName checks if `name` contains any HCL syntax and returns
+// it surrounded by quotation marks if it does.
+func (change Change) ensureValidAttributeName(name string) string {
 	if !hclsyntax.ValidIdentifier(name) {
 		return fmt.Sprintf("%q", name)
 	}

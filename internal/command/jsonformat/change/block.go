@@ -47,7 +47,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 	escapedAttributeKeys := make(map[string]string)
 	for key := range renderer.attributes {
 		attributeKeys = append(attributeKeys, key)
-		escapedKey := change.escapeAttributeName(key)
+		escapedKey := change.ensureValidAttributeName(key)
 		escapedAttributeKeys[key] = escapedKey
 		if maximumAttributeKeyLen < len(escapedKey) {
 			maximumAttributeKeyLen = len(escapedKey)
@@ -107,7 +107,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 			for _, warning := range block.Warnings(indent + 1) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", change.indent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %s %s\n", change.indent(indent+1), format.DiffActionSymbol(block.action), change.escapeAttributeName(key), block.Render(indent+1, opts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s %s\n", change.indent(indent+1), format.DiffActionSymbol(block.action), change.ensureValidAttributeName(key), block.Render(indent+1, opts)))
 		}
 	}
 

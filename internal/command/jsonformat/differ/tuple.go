@@ -1,8 +1,9 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 )
 
 func (v Value) computeAttributeChangeAsTuple(elementTypes []cty.Type) change.Change {

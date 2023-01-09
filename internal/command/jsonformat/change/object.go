@@ -47,7 +47,7 @@ func (renderer objectRenderer) Render(change Change, indent int, opts RenderOpts
 	escapedKeys := make(map[string]string)
 	for key := range renderer.attributes {
 		keys = append(keys, key)
-		escapedKey := change.escapeAttributeName(key)
+		escapedKey := change.ensureValidAttributeName(key)
 		escapedKeys[key] = escapedKey
 		if maximumKeyLen < len(escapedKey) {
 			maximumKeyLen = len(escapedKey)
