@@ -11,9 +11,9 @@ func (v Value) computeAttributeChangeAsTuple(elementTypes []cty.Type) change.Cha
 	sliceValue := v.asSlice()
 	for ix, elementType := range elementTypes {
 		childValue := sliceValue.getChild(ix, ix, false)
-		element := childValue.ComputeChange(elementType)
+		element := childValue.computeChangeForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	}
 	return change.New(change.List(elements), current, v.replacePath())
 }
