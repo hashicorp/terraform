@@ -103,6 +103,7 @@ func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext
 
 	if diags.HasErrors() {
 		log.Printf("[TRACE] evalCheckRule: %s: %s", typ, diags.Err().Error())
+		return checkResult{Status: checks.StatusError}, diags
 	}
 
 	if !resultVal.IsKnown() {

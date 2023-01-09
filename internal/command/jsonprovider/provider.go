@@ -18,9 +18,9 @@ type providers struct {
 }
 
 type Provider struct {
-	Provider          *schema            `json:"provider,omitempty"`
-	ResourceSchemas   map[string]*schema `json:"resource_schemas,omitempty"`
-	DataSourceSchemas map[string]*schema `json:"data_source_schemas,omitempty"`
+	Provider          *Schema            `json:"provider,omitempty"`
+	ResourceSchemas   map[string]*Schema `json:"resource_schemas,omitempty"`
+	DataSourceSchemas map[string]*Schema `json:"data_source_schemas,omitempty"`
 }
 
 func newProviders() *providers {
@@ -47,8 +47,8 @@ func marshalProvider(tps *terraform.ProviderSchema) *Provider {
 		return &Provider{}
 	}
 
-	var ps *schema
-	var rs, ds map[string]*schema
+	var ps *Schema
+	var rs, ds map[string]*Schema
 
 	if tps.Provider != nil {
 		ps = marshalSchema(tps.Provider)
