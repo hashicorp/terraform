@@ -193,8 +193,10 @@ To implement a new change type, you must implement the internal Renderer
 functionality. To do this you create a new implementation of the 
 `change/renderer.go`, make sure it accepts all the data you need, and implement
 the `Render` function (and any other additional render functions that may 
-exist). Some changes publish warnings that should be displayed alongside them, 
-if your new change has no warnings you can use the `NoWarningsRenderer` to avoid
+exist).
+
+Some changes publish warnings that should be displayed alongside them. 
+If your new change has no warnings you can use the `NoWarningsRenderer` to avoid
 implementing the additional `Warnings` function.
 
 If/when new Renderer types are implemented, additional `Render` like functions
