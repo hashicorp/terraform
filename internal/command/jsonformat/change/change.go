@@ -1,6 +1,10 @@
 package change
 
-import "github.com/hashicorp/terraform/internal/plans"
+import (
+	"strings"
+
+	"github.com/hashicorp/terraform/internal/plans"
+)
 
 // Change captures a change to a single block, element or attribute.
 //
@@ -72,4 +76,10 @@ func (change Change) forcesReplacement() string {
 		return " [red]# forces replacement[reset]"
 	}
 	return ""
+}
+
+// indent returns whitespace that is the required length for the specified
+// indent.
+func (change Change) indent(indent int) string {
+	return strings.Repeat("    ", indent)
 }

@@ -13,6 +13,11 @@ func (v Value) ComputeChangeForAttribute(attribute *jsonprovider.Attribute) chan
 }
 
 func (v Value) ComputeChangeForType(ctyType cty.Type) change.Change {
+
+	if sensitive, ok := v.CheckForSensitive(); ok {
+		return sensitive
+	}
+
 	switch {
 	case ctyType.IsPrimitiveType():
 		return v.computeAttributeChangeAsPrimitive(ctyType)

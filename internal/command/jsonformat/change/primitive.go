@@ -20,17 +20,17 @@ type primitiveRenderer struct {
 	after  *string
 }
 
-func (render primitiveRenderer) Render(result Change, indent int, opts RenderOpts) string {
+func (renderer primitiveRenderer) Render(result Change, indent int, opts RenderOpts) string {
 	var beforeValue, afterValue string
 
-	if render.before != nil {
-		beforeValue = *render.before
+	if renderer.before != nil {
+		beforeValue = *renderer.before
 	} else {
 		beforeValue = "[dark_gray]null[reset]"
 	}
 
-	if render.after != nil {
-		afterValue = *render.after
+	if renderer.after != nil {
+		afterValue = *renderer.after
 	} else {
 		afterValue = "[dark_gray]null[reset]"
 	}

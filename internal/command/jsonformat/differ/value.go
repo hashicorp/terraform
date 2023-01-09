@@ -118,20 +118,6 @@ func (v Value) AsChange(renderer change.Renderer) change.Change {
 	return change.New(renderer, v.calculateChange(), v.replacePath())
 }
 
-func (v Value) isBeforeSensitive() bool {
-	if sensitive, ok := v.BeforeSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
-}
-
-func (v Value) isAfterSensitive() bool {
-	if sensitive, ok := v.AfterSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
-}
-
 func (v Value) replacePath() bool {
 	if replace, ok := v.ReplacePaths.(bool); ok {
 		return replace
