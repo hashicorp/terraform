@@ -368,15 +368,15 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Object(map[string]Change{
 					"attribute_one": {
-						renderer: Primitive(strptr("1"), strptr("2")),
+						renderer: Primitive(1.0, 2.0, cty.Number),
 						action:   plans.Update,
 					},
 					"attribute:two": {
-						renderer: Primitive(strptr("2"), strptr("3")),
+						renderer: Primitive(2.0, 3.0, cty.Number),
 						action:   plans.Update,
 					},
 					"attribute_six": {
-						renderer: Primitive(strptr("3"), strptr("4")),
+						renderer: Primitive(3.0, 4.0, cty.Number),
 						action:   plans.Update,
 					},
 				}),
@@ -1506,15 +1506,15 @@ func TestRenderers(t *testing.T) {
 			change: Change{
 				renderer: Block(map[string]Change{
 					"attribute_one": {
-						renderer: Primitive(strptr("1"), strptr("2")),
+						renderer: Primitive(1.0, 2.0, cty.Number),
 						action:   plans.Update,
 					},
 					"attribute:two": {
-						renderer: Primitive(strptr("2"), strptr("3")),
+						renderer: Primitive(2.0, 3.0, cty.Number),
 						action:   plans.Update,
 					},
 					"attribute_six": {
-						renderer: Primitive(strptr("3"), strptr("4")),
+						renderer: Primitive(3.0, 4.0, cty.Number),
 						action:   plans.Update,
 					},
 				}, map[string][]Change{
@@ -1522,7 +1522,7 @@ func TestRenderers(t *testing.T) {
 						{
 							renderer: Block(map[string]Change{
 								"string": {
-									renderer: Primitive(strptr("\"one\""), strptr("\"four\"")),
+									renderer: Primitive("one", "four", cty.String),
 									action:   plans.Update,
 								},
 							}, nil),
@@ -1533,7 +1533,7 @@ func TestRenderers(t *testing.T) {
 						{
 							renderer: Block(map[string]Change{
 								"string": {
-									renderer: Primitive(strptr("\"two\""), strptr("\"three\"")),
+									renderer: Primitive("two", "three", cty.String),
 									action:   plans.Update,
 								},
 							}, nil),
