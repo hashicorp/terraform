@@ -20,7 +20,7 @@ func ValidateChange(t *testing.T, f ValidateChangeFunc, change Change, expectedA
 
 func ValidatePrimitive(before, after *string) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
-		primitive, ok := change.renderer.(primitiveRenderer)
+		primitive, ok := change.renderer.(*primitiveRenderer)
 		if !ok {
 			t.Fatalf("invalid renderer type: %T", change.renderer)
 		}
@@ -36,7 +36,7 @@ func ValidatePrimitive(before, after *string) ValidateChangeFunc {
 
 func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
-		sensitive, ok := change.renderer.(sensitiveRenderer)
+		sensitive, ok := change.renderer.(*sensitiveRenderer)
 		if !ok {
 			t.Fatalf("invalid renderer type: %T", change.renderer)
 		}
@@ -51,5 +51,27 @@ func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitiv
 		if len(beforeDiff) > 0 || len(afterDiff) > 0 {
 			t.Fatalf("before diff: (%s), after diff: (%s)", beforeDiff, afterDiff)
 		}
+	}
+}
+
+func ValidateComputed(before ValidateChangeFunc) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		computed, ok := change.renderer.(*computedRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if before == nil {
+			if computed.before.renderer != nil {
+				t.Fatalf("did not expect a before renderer, but found one")
+			}
+			return
+		}
+
+		if computed.before.renderer == nil {
+			t.Fatalf("expected a before renderer, but found none")
+		}
+
+		before(t, computed.before)
 	}
 }

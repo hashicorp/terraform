@@ -7,7 +7,7 @@ import (
 )
 
 func Primitive(before, after *string) Renderer {
-	return primitiveRenderer{
+	return &primitiveRenderer{
 		before: before,
 		after:  after,
 	}

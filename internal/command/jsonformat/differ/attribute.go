@@ -14,8 +14,12 @@ func (v Value) ComputeChangeForAttribute(attribute *jsonprovider.Attribute) chan
 
 func (v Value) ComputeChangeForType(ctyType cty.Type) change.Change {
 
-	if sensitive, ok := v.CheckForSensitive(); ok {
+	if sensitive, ok := v.checkForSensitive(); ok {
 		return sensitive
+	}
+
+	if computed, ok := v.checkForComputed(ctyType); ok {
+		return computed
 	}
 
 	switch {

@@ -23,9 +23,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Create,
-			expectedReplace: false,
-			validateChange:  change.ValidatePrimitive(nil, strptr("\"new\"")),
+			expectedAction: plans.Create,
+			validateChange: change.ValidatePrimitive(nil, strptr("\"new\"")),
 		},
 		"primitive_delete": {
 			input: Value{
@@ -34,9 +33,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Delete,
-			expectedReplace: false,
-			validateChange:  change.ValidatePrimitive(strptr("\"old\""), nil),
+			expectedAction: plans.Delete,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), nil),
 		},
 		"primitive_update": {
 			input: Value{
@@ -46,9 +44,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Update,
-			expectedReplace: false,
-			validateChange:  change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\"")),
+			expectedAction: plans.Update,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\"")),
 		},
 		"primitive_set_explicit_null": {
 			input: Value{
@@ -59,9 +56,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Update,
-			expectedReplace: false,
-			validateChange:  change.ValidatePrimitive(strptr("\"old\""), nil),
+			expectedAction: plans.Update,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), nil),
 		},
 		"primitive_unset_explicit_null": {
 			input: Value{
@@ -72,9 +68,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Update,
-			expectedReplace: false,
-			validateChange:  change.ValidatePrimitive(nil, strptr("\"new\"")),
+			expectedAction: plans.Update,
+			validateChange: change.ValidatePrimitive(nil, strptr("\"new\"")),
 		},
 		"primitive_create_sensitive": {
 			input: Value{
@@ -85,9 +80,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Create,
-			expectedReplace: false,
-			validateChange:  change.ValidateSensitive(nil, "new", false, true),
+			expectedAction: plans.Create,
+			validateChange: change.ValidateSensitive(nil, "new", false, true),
 		},
 		"primitive_delete_sensitive": {
 			input: Value{
@@ -98,9 +92,8 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Delete,
-			expectedReplace: false,
-			validateChange:  change.ValidateSensitive("old", nil, true, false),
+			expectedAction: plans.Delete,
+			validateChange: change.ValidateSensitive("old", nil, true, false),
 		},
 		"primitive_update_sensitive": {
 			input: Value{
@@ -112,9 +105,32 @@ func TestValue_Attribute(t *testing.T) {
 			attribute: &jsonprovider.Attribute{
 				AttributeType: []byte("\"string\""),
 			},
-			expectedAction:  plans.Update,
-			expectedReplace: false,
-			validateChange:  change.ValidateSensitive("old", "new", true, true),
+			expectedAction: plans.Update,
+			validateChange: change.ValidateSensitive("old", "new", true, true),
+		},
+		"primitive_create_computed": {
+			input: Value{
+				Before:  nil,
+				After:   nil,
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: []byte("\"string\""),
+			},
+			expectedAction: plans.Create,
+			validateChange: change.ValidateComputed(nil),
+		},
+		"primitive_update_computed": {
+			input: Value{
+				Before:  "old",
+				After:   nil,
+				Unknown: true,
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: []byte("\"string\""),
+			},
+			expectedAction: plans.Update,
+			validateChange: change.ValidateComputed(change.ValidatePrimitive(strptr("\"old\""), nil)),
 		},
 	}
 	for name, tc := range tcs {
