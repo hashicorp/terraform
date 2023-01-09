@@ -16,14 +16,14 @@ func (v Value) computeChangeForAttribute(attribute *jsonprovider.Attribute) chan
 }
 
 func (v Value) computeChangeForNestedAttribute(attribute *jsonprovider.NestedType) change.Change {
-	switch attribute.NestingMode {
-	case "single", "group":
+	switch NestingMode(attribute.NestingMode) {
+	case nestingModeSingle, nestingModeGroup:
 		return v.computeAttributeChangeAsNestedObject(attribute.Attributes)
-	case "map":
+	case nestingModeMap:
 		return v.computeAttributeChangeAsNestedMap(attribute.Attributes)
-	case "list":
+	case nestingModeList:
 		return v.computeAttributeChangeAsNestedList(attribute.Attributes)
-	case "set":
+	case nestingModeSet:
 		return v.computeAttributeChangeAsNestedSet(attribute.Attributes)
 	default:
 		panic("unrecognized nesting mode: " + attribute.NestingMode)
