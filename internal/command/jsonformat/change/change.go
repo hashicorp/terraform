@@ -61,8 +61,8 @@ func (change Change) Warnings(indent int) []string {
 	return change.renderer.Warnings(change, indent)
 }
 
-// GetAction returns the plans.Action that this change describes.
-func (change Change) GetAction() plans.Action {
+// Action returns the plans.Action that this change describes.
+func (change Change) Action() plans.Action {
 	return change.action
 }
 

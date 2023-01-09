@@ -6,7 +6,15 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) computeChangeForBlock(block *jsonprovider.Block) change.Change {
+func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputedBlock(block); ok {
+		return computed
+	}
+
 	current := v.getDefaultActionForIteration()
 
 	blockValue := v.asMap()
@@ -14,14 +22,14 @@ func (v Value) computeChangeForBlock(block *jsonprovider.Block) change.Change {
 	attributes := make(map[string]change.Change)
 	for key, attr := range block.Attributes {
 		childValue := blockValue.getChild(key)
-		childChange := childValue.ComputeChange(attr)
-		if childChange.GetAction() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+		childChange := childValue.ComputeChangeForAttribute(attr)
+		if childChange.Action() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
 		}
 
 		attributes[key] = childChange
-		current = compareActions(current, childChange.GetAction())
+		current = compareActions(current, childChange.Action())
 	}
 
 	blocks := make(map[string][]change.Change)
@@ -40,16 +48,16 @@ func (v Value) computeChangeForBlock(block *jsonprovider.Block) change.Change {
 }
 
 func (v Value) computeChangesForBlockType(blockType *jsonprovider.BlockType) ([]change.Change, plans.Action) {
-	switch blockType.NestingMode {
-	case "set":
+	switch NestingMode(blockType.NestingMode) {
+	case nestingModeSet:
 		return v.computeBlockChangesAsSet(blockType.Block)
-	case "list":
+	case nestingModeList:
 		return v.computeBlockChangesAsList(blockType.Block)
-	case "map":
+	case nestingModeMap:
 		return v.computeBlockChangesAsMap(blockType.Block)
-	case "single", "group":
-		ch := v.ComputeChange(blockType.Block)
-		return []change.Change{ch}, ch.GetAction()
+	case nestingModeSingle, nestingModeGroup:
+		ch := v.ComputeChangeForBlock(blockType.Block)
+		return []change.Change{ch}, ch.Action()
 	default:
 		panic("unrecognized nesting mode: " + blockType.NestingMode)
 	}

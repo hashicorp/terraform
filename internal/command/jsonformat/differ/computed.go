@@ -1,10 +1,30 @@
 package differ
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (v Value) checkForComputed(changeType interface{}) (change.Change, bool) {
+func (v Value) checkForComputedType(ctype cty.Type) (change.Change, bool) {
+	return v.checkForComputed(func(value Value) change.Change {
+		return value.computeChangeForType(ctype)
+	})
+}
+func (v Value) checkForComputedNestedAttribute(attribute *jsonprovider.NestedType) (change.Change, bool) {
+	return v.checkForComputed(func(value Value) change.Change {
+		return value.computeChangeForNestedAttribute(attribute)
+	})
+}
+
+func (v Value) checkForComputedBlock(block *jsonprovider.Block) (change.Change, bool) {
+	return v.checkForComputed(func(value Value) change.Change {
+		return value.ComputeChangeForBlock(block)
+	})
+}
+
+func (v Value) checkForComputed(computeChange func(value Value) change.Change) (change.Change, bool) {
 	unknown := v.isUnknown()
 
 	if !unknown {
@@ -17,7 +37,7 @@ func (v Value) checkForComputed(changeType interface{}) (change.Change, bool) {
 	v.AfterExplicit = true
 
 	if v.Before == nil {
-		return v.AsChange(change.Computed(change.Change{})), true
+		return v.asChange(change.Computed(change.Change{})), true
 	}
 
 	// If we get here, then we have a before value. We're going to model a
@@ -28,7 +48,7 @@ func (v Value) checkForComputed(changeType interface{}) (change.Change, bool) {
 		Before:          v.Before,
 		BeforeSensitive: v.BeforeSensitive,
 	}
-	return v.AsChange(change.Computed(beforeValue.ComputeChange(changeType))), true
+	return v.asChange(change.Computed(computeChange(beforeValue))), true
 }
 
 func (v Value) isUnknown() bool {

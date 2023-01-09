@@ -608,17 +608,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateObject != nil {
-					tc.validateObject(t, tc.input.ComputeChange(attribute))
+					tc.validateObject(t, tc.input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				if tc.validateSingleChange != nil {
-					tc.validateSingleChange(t, tc.input.ComputeChange(attribute))
+					tc.validateSingleChange(t, tc.input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace)
-				validate(t, tc.input.ComputeChange(attribute))
+				validate(t, tc.input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -632,7 +632,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 						"element": tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -640,14 +640,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 						"element": tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 					"element": change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -661,7 +661,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateList([]change.ValidateChangeFunc{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -669,14 +669,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateList([]change.ValidateChangeFunc{
 						tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateList([]change.ValidateChangeFunc{
 					change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -693,7 +693,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetChanges.After.Validate(change.ValidateObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -701,7 +701,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateSet([]change.ValidateChangeFunc{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -709,14 +709,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateSet([]change.ValidateChangeFunc{
 						tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateSet([]change.ValidateChangeFunc{
 					change.ValidateObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 		})
 
@@ -738,17 +738,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateNestedObject != nil {
-					tc.validateNestedObject(t, tc.input.ComputeChange(attribute))
+					tc.validateNestedObject(t, tc.input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				if tc.validateSingleChange != nil {
-					tc.validateSingleChange(t, tc.input.ComputeChange(attribute))
+					tc.validateSingleChange(t, tc.input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace)
-				validate(t, tc.input.ComputeChange(attribute))
+				validate(t, tc.input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -773,7 +773,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 						"element": tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -781,14 +781,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 						"element": tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 					"element": change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -813,7 +813,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateNestedList([]change.ValidateChangeFunc{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -821,14 +821,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateNestedList([]change.ValidateChangeFunc{
 						tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateNestedList([]change.ValidateChangeFunc{
 					change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -856,7 +856,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetChanges.After.Validate(change.ValidateNestedObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -864,7 +864,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateSet([]change.ValidateChangeFunc{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
@@ -872,14 +872,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := change.ValidateSet([]change.ValidateChangeFunc{
 						tc.validateSingleChange,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateSet([]change.ValidateChangeFunc{
 					change.ValidateNestedObject(tc.validateChanges, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 		})
 	}
@@ -1123,7 +1123,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						tc.validate,
 					},
 				}, plans.Update, false)
-				validate(t, input.ComputeChange(block))
+				validate(t, input.ComputeChangeForBlock(block))
 			})
 			t.Run("map", func(t *testing.T) {
 				input := Value{
@@ -1153,7 +1153,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						tc.validate,
 					},
 				}, plans.Update, false)
-				validate(t, input.ComputeChange(block))
+				validate(t, input.ComputeChangeForBlock(block))
 			})
 			t.Run("list", func(t *testing.T) {
 				input := Value{
@@ -1183,7 +1183,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						tc.validate,
 					},
 				}, plans.Update, false)
-				validate(t, input.ComputeChange(block))
+				validate(t, input.ComputeChangeForBlock(block))
 			})
 			t.Run("set", func(t *testing.T) {
 				input := Value{
@@ -1216,7 +1216,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						return []change.ValidateChangeFunc{tc.validate}
 					}(),
 				}, plans.Update, false)
-				validate(t, input.ComputeChange(block))
+				validate(t, input.ComputeChangeForBlock(block))
 			})
 		})
 	}
@@ -1442,7 +1442,7 @@ func TestValue_Outputs(t *testing.T) {
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-			tc.validateChange(t, tc.input.ComputeChange(cty.NilType))
+			tc.validateChange(t, tc.input.ComputeChangeForOutput())
 		})
 	}
 }
@@ -1587,6 +1587,33 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive("old", "old", plans.NoOp, false),
 		},
+		"dynamic": {
+			input: Value{
+				Before: "old",
+				After:  "new",
+			},
+			attribute:      cty.DynamicPseudoType,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
+		},
+		"dynamic_type_change": {
+			input: Value{
+				Before: "old",
+				After:  4.0,
+			},
+			attribute: cty.DynamicPseudoType,
+			validateChange: change.ValidateTypeChange(
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+				plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+			},
+		},
 	}
 	for name, tmp := range tcs {
 		tc := tmp
@@ -1598,7 +1625,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			t.Run("direct", func(t *testing.T) {
-				tc.validateChange(t, tc.input.ComputeChange(&jsonprovider.Attribute{
+				tc.validateChange(t, tc.input.ComputeChangeForAttribute(&jsonprovider.Attribute{
 					AttributeType: unmarshalType(t, tc.attribute),
 				}))
 			})
@@ -1612,7 +1639,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				validate := change.ValidateMap(map[string]change.ValidateChangeFunc{
 					"element": tc.validateChange,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -1623,14 +1650,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceChanges != nil {
 					validate := change.ValidateList(tc.validateSliceChanges, defaultCollectionsAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateList([]change.ValidateChangeFunc{
 					tc.validateChange,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -1641,14 +1668,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceChanges != nil {
 					validate := change.ValidateSet(tc.validateSliceChanges, defaultCollectionsAction, false)
-					validate(t, input.ComputeChange(attribute))
+					validate(t, input.ComputeChangeForAttribute(attribute))
 					return
 				}
 
 				validate := change.ValidateSet([]change.ValidateChangeFunc{
 					tc.validateChange,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeChange(attribute))
+				validate(t, input.ComputeChangeForAttribute(attribute))
 			})
 		})
 	}
@@ -1985,11 +2012,33 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			},
 			validateChange: change.ValidateComputed(change.ValidateSet(nil, plans.Delete, false), plans.Update, false),
 		},
+		"tuple_primitive": {
+			input: Value{
+				Before: []interface{}{
+					"one",
+					2.0,
+					"three",
+				},
+				After: []interface{}{
+					"one",
+					4.0,
+					"three",
+				},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Tuple([]cty.Type{cty.String, cty.Number, cty.String})),
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"one\""), strptr("\"one\""), plans.NoOp, false),
+				change.ValidatePrimitive(strptr("2"), strptr("4"), plans.Update, false),
+				change.ValidatePrimitive(strptr("\"three\""), strptr("\"three\""), plans.NoOp, false),
+			}, plans.Update, false),
+		},
 	}
 
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-			tc.validateChange(t, tc.input.ComputeChange(tc.attribute))
+			tc.validateChange(t, tc.input.ComputeChangeForAttribute(tc.attribute))
 		})
 	}
 }

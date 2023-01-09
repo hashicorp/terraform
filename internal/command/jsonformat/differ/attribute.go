@@ -8,46 +8,68 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (v Value) computeChangeForAttribute(attribute *jsonprovider.Attribute) change.Change {
+func (v Value) ComputeChangeForAttribute(attribute *jsonprovider.Attribute) change.Change {
 	if attribute.AttributeNestedType != nil {
 		return v.computeChangeForNestedAttribute(attribute.AttributeNestedType)
 	}
 	return v.computeChangeForType(unmarshalAttribute(attribute))
 }
 
-func (v Value) computeChangeForNestedAttribute(attribute *jsonprovider.NestedType) change.Change {
-	switch attribute.NestingMode {
-	case "single", "group":
-		return v.computeAttributeChangeAsNestedObject(attribute.Attributes)
-	case "map":
-		return v.computeAttributeChangeAsNestedMap(attribute.Attributes)
-	case "list":
-		return v.computeAttributeChangeAsNestedList(attribute.Attributes)
-	case "set":
-		return v.computeAttributeChangeAsNestedSet(attribute.Attributes)
+func (v Value) computeChangeForNestedAttribute(nested *jsonprovider.NestedType) change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputedNestedAttribute(nested); ok {
+		return computed
+	}
+
+	switch NestingMode(nested.NestingMode) {
+	case nestingModeSingle, nestingModeGroup:
+		return v.computeAttributeChangeAsNestedObject(nested.Attributes)
+	case nestingModeMap:
+		return v.computeAttributeChangeAsNestedMap(nested.Attributes)
+	case nestingModeList:
+		return v.computeAttributeChangeAsNestedList(nested.Attributes)
+	case nestingModeSet:
+		return v.computeAttributeChangeAsNestedSet(nested.Attributes)
 	default:
-		panic("unrecognized nesting mode: " + attribute.NestingMode)
+		panic("unrecognized nesting mode: " + nested.NestingMode)
 	}
 }
 
-func (v Value) computeChangeForType(ctyType cty.Type) change.Change {
-	if ctyType == cty.NilType {
-		return v.ComputeChangeForOutput()
+func (v Value) computeChangeForType(ctype cty.Type) change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputedType(ctype); ok {
+		return computed
 	}
 
 	switch {
-	case ctyType.IsPrimitiveType():
-		return v.computeAttributeChangeAsPrimitive(ctyType)
-	case ctyType.IsObjectType():
-		return v.computeAttributeChangeAsObject(ctyType.AttributeTypes())
-	case ctyType.IsMapType():
-		return v.computeAttributeChangeAsMap(ctyType.ElementType())
-	case ctyType.IsListType():
-		return v.computeAttributeChangeAsList(ctyType.ElementType())
-	case ctyType.IsSetType():
-		return v.computeAttributeChangeAsSet(ctyType.ElementType())
+	case ctype == cty.NilType, ctype == cty.DynamicPseudoType:
+		// Forward nil or dynamic types over to be processed as outputs.
+		// There is nothing particularly special about the way outputs are
+		// processed that make this unsafe, we could just as easily call this
+		// function computeChangeForDynamicValues(), but external callers will
+		// only be in this situation when processing outputs so this function
+		// is named for their benefit.
+		return v.ComputeChangeForOutput()
+	case ctype.IsPrimitiveType():
+		return v.computeAttributeChangeAsPrimitive(ctype)
+	case ctype.IsObjectType():
+		return v.computeAttributeChangeAsObject(ctype.AttributeTypes())
+	case ctype.IsMapType():
+		return v.computeAttributeChangeAsMap(ctype.ElementType())
+	case ctype.IsListType():
+		return v.computeAttributeChangeAsList(ctype.ElementType())
+	case ctype.IsTupleType():
+		return v.computeAttributeChangeAsTuple(ctype.TupleElementTypes())
+	case ctype.IsSetType():
+		return v.computeAttributeChangeAsSet(ctype.ElementType())
 	default:
-		panic("unrecognized type: " + ctyType.FriendlyName())
+		panic("unrecognized type: " + ctype.FriendlyName())
 	}
 }
 

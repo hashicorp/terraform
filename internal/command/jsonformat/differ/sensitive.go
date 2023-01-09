@@ -30,7 +30,7 @@ func (v Value) checkForSensitive(changeType interface{}) (change.Change, bool) {
 
 	inner := value.ComputeChange(changeType)
 
-	return change.New(change.Sensitive(inner, beforeSensitive, afterSensitive), inner.GetAction(), v.replacePath()), true
+	return change.New(change.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action(), v.replacePath()), true
 }
 
 func (v Value) isBeforeSensitive() bool {

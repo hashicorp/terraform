@@ -80,9 +80,9 @@ func (renderer objectRenderer) Render(change Change, indent int, opts RenderOpts
 	}
 
 	if unchangedAttributes > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), change.emptySymbol(), change.unchanged("attribute", unchangedAttributes)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", change.indent(indent+1), format.DiffActionSymbol(plans.NoOp), change.unchanged("attribute", unchangedAttributes)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s }%s", change.indent(indent), change.emptySymbol(), change.nullSuffix(opts.overrideNullSuffix)))
+	buf.WriteString(fmt.Sprintf("%s%s }%s", change.indent(indent), format.DiffActionSymbol(plans.NoOp), change.nullSuffix(opts.overrideNullSuffix)))
 	return buf.String()
 }

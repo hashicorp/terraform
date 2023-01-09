@@ -14,9 +14,9 @@ func (v Value) computeAttributeChangeAsSet(elementType cty.Type) change.Change {
 	var elements []change.Change
 	current := v.getDefaultActionForIteration()
 	v.processSet(false, func(value Value) {
-		element := value.ComputeChange(elementType)
+		element := value.computeChangeForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -25,9 +25,12 @@ func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprov
 	var elements []change.Change
 	current := v.getDefaultActionForIteration()
 	v.processSet(true, func(value Value) {
-		element := value.ComputeChange(attributes)
+		element := value.computeChangeForNestedAttribute(&jsonprovider.NestedType{
+			Attributes:  attributes,
+			NestingMode: "single",
+		})
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -36,9 +39,9 @@ func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Cha
 	var elements []change.Change
 	current := v.getDefaultActionForIteration()
 	v.processSet(true, func(value Value) {
-		element := value.ComputeChange(block)
+		element := value.ComputeChangeForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.GetAction())
+		current = compareActions(current, element.Action())
 	})
 	return elements, current
 }
