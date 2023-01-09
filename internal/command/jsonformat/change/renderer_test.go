@@ -1,12 +1,12 @@
 package change
 
 import (
-	"github.com/zclconf/go-cty/cty"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/plans"
 )
