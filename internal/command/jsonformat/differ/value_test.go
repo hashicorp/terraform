@@ -1965,6 +1965,28 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			},
 			validateChange: change.ValidateComputed(change.ValidateSet(nil, plans.Delete, false), plans.Update, false),
 		},
+		"tuple_primitive": {
+			input: Value{
+				Before: []interface{}{
+					"one",
+					2.0,
+					"three",
+				},
+				After: []interface{}{
+					"one",
+					4.0,
+					"three",
+				},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Tuple([]cty.Type{cty.String, cty.Number, cty.String})),
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"one\""), strptr("\"one\""), plans.NoOp, false),
+				change.ValidatePrimitive(strptr("2"), strptr("4"), plans.Update, false),
+				change.ValidatePrimitive(strptr("\"three\""), strptr("\"three\""), plans.NoOp, false),
+			}, plans.Update, false),
+		},
 	}
 
 	for name, tc := range tcs {
