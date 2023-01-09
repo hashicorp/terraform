@@ -22,13 +22,22 @@ func (render NoWarningsRenderer) Warnings(change Change, indent int) []string {
 
 // RenderOpts contains options that can control how the Renderer.Render function
 // will render.
-//
-// For now, we haven't implemented any of the Renderer functionality, so we have
-// no options currently.
-type RenderOpts struct{}
+type RenderOpts struct {
+
+	// overrideNullSuffix tells the Renderer not to display the `-> null` suffix
+	// that is normally displayed when an element, attribute, or block is
+	// deleted.
+	//
+	// The presence of this suffix is decided by the parent changes of a given
+	// change, as such we provide this as an option instead of trying to
+	// calculate it inside a specific renderer.
+	overrideNullSuffix bool
+}
 
 // Clone returns a new RenderOpts object, that matches the original but can be
 // edited without changing the original.
 func (opts RenderOpts) Clone() RenderOpts {
-	return RenderOpts{}
+	return RenderOpts{
+		overrideNullSuffix: opts.overrideNullSuffix,
+	}
 }
