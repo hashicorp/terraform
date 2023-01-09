@@ -1573,6 +1573,33 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"old\""), plans.NoOp, false),
 		},
+		"dynamic": {
+			input: Value{
+				Before: "old",
+				After:  "new",
+			},
+			attribute:      cty.DynamicPseudoType,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
+		},
+		"dynamic_type_change": {
+			input: Value{
+				Before: "old",
+				After:  4.0,
+			},
+			attribute: cty.DynamicPseudoType,
+			validateChange: change.ValidateTypeChange(
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+				plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+			},
+		},
 	}
 	for name, tmp := range tcs {
 		tc := tmp
@@ -1964,6 +1991,28 @@ func TestValue_CollectionAttributes(t *testing.T) {
 				AttributeType: unmarshalType(t, cty.Set(cty.String)),
 			},
 			validateChange: change.ValidateComputed(change.ValidateSet(nil, plans.Delete, false), plans.Update, false),
+		},
+		"tuple_primitive": {
+			input: Value{
+				Before: []interface{}{
+					"one",
+					2.0,
+					"three",
+				},
+				After: []interface{}{
+					"one",
+					4.0,
+					"three",
+				},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.Tuple([]cty.Type{cty.String, cty.Number, cty.String})),
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"one\""), strptr("\"one\""), plans.NoOp, false),
+				change.ValidatePrimitive(strptr("2"), strptr("4"), plans.Update, false),
+				change.ValidatePrimitive(strptr("\"three\""), strptr("\"three\""), plans.NoOp, false),
+			}, plans.Update, false),
 		},
 	}
 

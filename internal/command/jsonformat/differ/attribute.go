@@ -49,6 +49,12 @@ func (v Value) computeChangeForType(ctype cty.Type) change.Change {
 
 	switch {
 	case ctype == cty.NilType, ctype == cty.DynamicPseudoType:
+		// Forward nil or dynamic types over to be processed as outputs.
+		// There is nothing particularly special about the way outputs are
+		// processed that make this unsafe, we could just as easily call this
+		// function computeChangeForDynamicValues(), but external callers will
+		// only be in this situation when processing outputs so this function
+		// is named for their benefit.
 		return v.ComputeChangeForOutput()
 	case ctype.IsPrimitiveType():
 		return v.computeAttributeChangeAsPrimitive(ctype)
@@ -58,6 +64,8 @@ func (v Value) computeChangeForType(ctype cty.Type) change.Change {
 		return v.computeAttributeChangeAsMap(ctype.ElementType())
 	case ctype.IsListType():
 		return v.computeAttributeChangeAsList(ctype.ElementType())
+	case ctype.IsTupleType():
+		return v.computeAttributeChangeAsTuple(ctype.TupleElementTypes())
 	case ctype.IsSetType():
 		return v.computeAttributeChangeAsSet(ctype.ElementType())
 	default:
