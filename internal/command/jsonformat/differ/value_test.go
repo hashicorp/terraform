@@ -1208,7 +1208,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 	}
 }
 
-func TestValue_Output(t *testing.T) {
+func TestValue_Outputs(t *testing.T) {
 	tcs := map[string]struct {
 		input          Value
 		validateChange change.ValidateChangeFunc
@@ -1424,13 +1424,6 @@ func TestValue_Output(t *testing.T) {
 					change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
 				}, plans.Create, false), plans.Update, false),
 		},
-		"dynamic_type_simple": {
-			input: Value{
-				Before: "old",
-				After:  "new",
-			},
-			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
-		},
 	}
 
 	for name, tc := range tcs {
@@ -1579,6 +1572,33 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 			attribute:      cty.String,
 			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"old\""), plans.NoOp, false),
+		},
+		"dynamic": {
+			input: Value{
+				Before: "old",
+				After:  "new",
+			},
+			attribute:      cty.DynamicPseudoType,
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+			},
+		},
+		"dynamic_type_change": {
+			input: Value{
+				Before: "old",
+				After:  4.0,
+			},
+			attribute: cty.DynamicPseudoType,
+			validateChange: change.ValidateTypeChange(
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+				plans.Update, false),
+			validateSliceChanges: []change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("4"), plans.Create, false),
+			},
 		},
 	}
 	for name, tmp := range tcs {
