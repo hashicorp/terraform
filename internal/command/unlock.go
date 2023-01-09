@@ -88,7 +88,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 		desc := "Terraform will remove the lock on the remote state.\n" +
 			"This will allow local Terraform commands to modify this state, even though it\n" +
-			"may be still be in use. Only 'yes' will be accepted to confirm."
+			"may still be in use. Only 'yes' will be accepted to confirm."
 
 		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
 			Id:          "force-unlock",

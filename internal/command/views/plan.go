@@ -138,79 +138,89 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 		// the plan is "applyable" and, if so, whether it had refresh changes
 		// that we already would've presented above.
 
-		switch plan.UIMode {
-		case plans.RefreshOnlyMode:
-			if haveRefreshChanges {
-				// We already generated a sufficient prompt about what will
-				// happen if applying this change above, so we don't need to
-				// say anything more.
-				return
-			}
-
-			view.streams.Print(
-				view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure still matches the configuration.[reset]\n\n"),
-			)
-			view.streams.Println(format.WordWrap(
-				"Terraform has checked that the real remote objects still match the result of your most recent changes, and found no differences.",
-				view.outputColumns(),
-			))
-
-		case plans.DestroyMode:
+		if plan.Errored {
 			if haveRefreshChanges {
 				view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
 				view.streams.Println("")
 			}
 			view.streams.Print(
-				view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] No objects need to be destroyed.[reset]\n\n"),
+				view.colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] Terraform encountered an error while generating this plan.[reset]\n\n"),
 			)
-			view.streams.Println(format.WordWrap(
-				"Either you have not created any objects yet or the existing objects were already deleted outside of Terraform.",
-				view.outputColumns(),
-			))
-
-		default:
-			if haveRefreshChanges {
-				view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
-				view.streams.Println("")
-			}
-			view.streams.Print(
-				view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure matches the configuration.[reset]\n\n"),
-			)
-
-			if haveRefreshChanges {
-				if plan.CanApply() {
-					// In this case, applying this plan will not change any
-					// remote objects but _will_ update the state to match what
-					// we detected during refresh, so we'll reassure the user
-					// about that.
-					view.streams.Println(format.WordWrap(
-						"Your configuration already matches the changes detected above, so applying this plan will only update the state to include the changes detected above and won't change any real infrastructure.",
-						view.outputColumns(),
-					))
-				} else {
-					// In this case we detected changes during refresh but this isn't
-					// a planning mode where we consider those to be applyable. The
-					// user must re-run in refresh-only mode in order to update the
-					// state to match the upstream changes.
-					suggestion := "."
-					if !view.runningInAutomation {
-						// The normal message includes a specific command line to run.
-						suggestion = ":\n  terraform apply -refresh-only"
-					}
-					view.streams.Println(format.WordWrap(
-						"Your configuration already matches the changes detected above. If you'd like to update the Terraform state to match, create and apply a refresh-only plan"+suggestion,
-						view.outputColumns(),
-					))
+		} else {
+			switch plan.UIMode {
+			case plans.RefreshOnlyMode:
+				if haveRefreshChanges {
+					// We already generated a sufficient prompt about what will
+					// happen if applying this change above, so we don't need to
+					// say anything more.
+					return
 				}
-				return
-			}
 
-			// If we get down here then we're just in the simple situation where
-			// the plan isn't applyable at all.
-			view.streams.Println(format.WordWrap(
-				"Terraform has compared your real infrastructure against your configuration and found no differences, so no changes are needed.",
-				view.outputColumns(),
-			))
+				view.streams.Print(
+					view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure still matches the configuration.[reset]\n\n"),
+				)
+				view.streams.Println(format.WordWrap(
+					"Terraform has checked that the real remote objects still match the result of your most recent changes, and found no differences.",
+					view.outputColumns(),
+				))
+
+			case plans.DestroyMode:
+				if haveRefreshChanges {
+					view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
+					view.streams.Println("")
+				}
+				view.streams.Print(
+					view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] No objects need to be destroyed.[reset]\n\n"),
+				)
+				view.streams.Println(format.WordWrap(
+					"Either you have not created any objects yet or the existing objects were already deleted outside of Terraform.",
+					view.outputColumns(),
+				))
+
+			default:
+				if haveRefreshChanges {
+					view.streams.Print(format.HorizontalRule(view.colorize, view.outputColumns()))
+					view.streams.Println("")
+				}
+				view.streams.Print(
+					view.colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure matches the configuration.[reset]\n\n"),
+				)
+
+				if haveRefreshChanges {
+					if plan.CanApply() {
+						// In this case, applying this plan will not change any
+						// remote objects but _will_ update the state to match what
+						// we detected during refresh, so we'll reassure the user
+						// about that.
+						view.streams.Println(format.WordWrap(
+							"Your configuration already matches the changes detected above, so applying this plan will only update the state to include the changes detected above and won't change any real infrastructure.",
+							view.outputColumns(),
+						))
+					} else {
+						// In this case we detected changes during refresh but this isn't
+						// a planning mode where we consider those to be applyable. The
+						// user must re-run in refresh-only mode in order to update the
+						// state to match the upstream changes.
+						suggestion := "."
+						if !view.runningInAutomation {
+							// The normal message includes a specific command line to run.
+							suggestion = ":\n  terraform apply -refresh-only"
+						}
+						view.streams.Println(format.WordWrap(
+							"Your configuration already matches the changes detected above. If you'd like to update the Terraform state to match, create and apply a refresh-only plan"+suggestion,
+							view.outputColumns(),
+						))
+					}
+					return
+				}
+
+				// If we get down here then we're just in the simple situation where
+				// the plan isn't applyable at all.
+				view.streams.Println(format.WordWrap(
+					"Terraform has compared your real infrastructure against your configuration and found no differences, so no changes are needed.",
+					view.outputColumns(),
+				))
+			}
 		}
 		return
 	}
@@ -245,7 +255,11 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 	}
 
 	if len(rChanges) > 0 {
-		view.streams.Printf("\nTerraform will perform the following actions:\n\n")
+		if plan.Errored {
+			view.streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n\n")
+		} else {
+			view.streams.Printf("\nTerraform will perform the following actions:\n\n")
+		}
 
 		// Note: we're modifying the backing slice of this plan object in-place
 		// here. The ordering of resource changes in a plan is not significant,
@@ -286,23 +300,27 @@ func renderPlan(plan *plans.Plan, schemas *terraform.Schemas, view *View) {
 			))
 		}
 
-		// stats is similar to counts above, but:
-		// - it considers only resource changes
-		// - it simplifies "replace" into both a create and a delete
-		stats := map[plans.Action]int{}
-		for _, change := range rChanges {
-			switch change.Action {
-			case plans.CreateThenDelete, plans.DeleteThenCreate:
-				stats[plans.Create]++
-				stats[plans.Delete]++
-			default:
-				stats[change.Action]++
+		if plan.Errored {
+			view.streams.Printf("This plan is incomplete and therefore cannot be applied.\n\n")
+		} else {
+			// stats is similar to counts above, but:
+			// - it considers only resource changes
+			// - it simplifies "replace" into both a create and a delete
+			stats := map[plans.Action]int{}
+			for _, change := range rChanges {
+				switch change.Action {
+				case plans.CreateThenDelete, plans.DeleteThenCreate:
+					stats[plans.Create]++
+					stats[plans.Delete]++
+				default:
+					stats[change.Action]++
+				}
 			}
+			view.streams.Printf(
+				view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+				stats[plans.Create], stats[plans.Update], stats[plans.Delete],
+			)
 		}
-		view.streams.Printf(
-			view.colorize.Color("[reset][bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
-			stats[plans.Create], stats[plans.Update], stats[plans.Delete],
-		)
 	}
 
 	// If there is at least one planned change to the root module outputs
