@@ -1,11 +1,11 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func (v Value) computeAttributeChangeAsMap(elementType cty.Type) change.Change {
