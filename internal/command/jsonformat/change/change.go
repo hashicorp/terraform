@@ -1,6 +1,7 @@
 package change
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/plans"
@@ -60,6 +61,11 @@ func (change Change) Warnings(indent int) []string {
 	return change.renderer.Warnings(change, indent)
 }
 
+// GetAction returns the plans.Action that this change describes.
+func (change Change) GetAction() plans.Action {
+	return change.action
+}
+
 // nullSuffix returns the `-> null` suffix if the change is a delete action, and
 // it has not been overridden.
 func (change Change) nullSuffix(override bool) string {
@@ -82,4 +88,20 @@ func (change Change) forcesReplacement() string {
 // indent.
 func (change Change) indent(indent int) string {
 	return strings.Repeat("    ", indent)
+}
+
+// emptySymbol returns an empty string that is the same length as an action
+// symbol (eg. '  +', '+/-', ...). It is used to offset additional lines in
+// change renderer outputs alongside the indent function.
+func (change Change) emptySymbol() string {
+	return "   "
+}
+
+// unchanged prints out a description saying how many of 'keyword' have been
+// hidden because they are unchanged or noop actions.
+func (change Change) unchanged(keyword string, count int) string {
+	if count == 1 {
+		return fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", count, keyword)
+	}
+	return fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword)
 }

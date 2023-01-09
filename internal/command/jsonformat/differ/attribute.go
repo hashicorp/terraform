@@ -8,37 +8,34 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (v Value) ComputeChangeForAttribute(attribute *jsonprovider.Attribute) change.Change {
-	return v.ComputeChangeForType(unmarshalAttribute(attribute))
+func (v Value) computeChangeForAttribute(attribute *jsonprovider.Attribute) change.Change {
+	if attribute.AttributeNestedType != nil {
+		return v.computeChangeForNestedAttribute(attribute.AttributeNestedType)
+	}
+	return v.computeChangeForType(unmarshalAttribute(attribute))
 }
 
-func (v Value) ComputeChangeForType(ctyType cty.Type) change.Change {
-
-	if sensitive, ok := v.checkForSensitive(); ok {
-		return sensitive
+func (v Value) computeChangeForNestedAttribute(attribute *jsonprovider.NestedType) change.Change {
+	switch attribute.NestingMode {
+	case "single", "group":
+		return v.computeAttributeChangeAsNestedObject(attribute.Attributes)
+	default:
+		panic("unrecognized nesting mode: " + attribute.NestingMode)
 	}
+}
 
-	if computed, ok := v.checkForComputed(ctyType); ok {
-		return computed
-	}
-
+func (v Value) computeChangeForType(ctyType cty.Type) change.Change {
 	switch {
 	case ctyType.IsPrimitiveType():
 		return v.computeAttributeChangeAsPrimitive(ctyType)
+	case ctyType.IsObjectType():
+		return v.computeAttributeChangeAsObject(ctyType.AttributeTypes())
 	default:
 		panic("not implemented")
 	}
 }
 
 func unmarshalAttribute(attribute *jsonprovider.Attribute) cty.Type {
-	if attribute.AttributeNestedType != nil {
-		children := make(map[string]cty.Type)
-		for key, child := range attribute.AttributeNestedType.Attributes {
-			children[key] = unmarshalAttribute(child)
-		}
-		return cty.Object(children)
-	}
-
 	ctyType, err := ctyjson.UnmarshalType(attribute.AttributeType)
 	if err != nil {
 		panic("could not unmarshal attribute type: " + err.Error())

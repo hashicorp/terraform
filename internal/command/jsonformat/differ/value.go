@@ -18,7 +18,7 @@ import (
 // jsonprovider).
 //
 // A Value can be converted into a change.Change, ready for rendering, with the
-// ComputeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
+// computeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
@@ -99,16 +99,26 @@ func ValueFromJsonChange(change jsonplan.Change) Value {
 }
 
 // ComputeChange is a generic function that lets callers no worry about what
-// type of change they are processing.
+// type of change they are processing. In general, this is the function external
+// users should call as it has some generic preprocessing applicable to all
+// types.
 //
 // It can accept blocks, attributes, go-cty types, and outputs, and will route
 // the request to the appropriate function.
 func (v Value) ComputeChange(changeType interface{}) change.Change {
+	if sensitive, ok := v.checkForSensitive(); ok {
+		return sensitive
+	}
+
+	if computed, ok := v.checkForComputed(changeType); ok {
+		return computed
+	}
+
 	switch concrete := changeType.(type) {
 	case *jsonprovider.Attribute:
-		return v.ComputeChangeForAttribute(concrete)
+		return v.computeChangeForAttribute(concrete)
 	case cty.Type:
-		return v.ComputeChangeForType(concrete)
+		return v.computeChangeForType(concrete)
 	default:
 		panic(fmt.Sprintf("unrecognized change type: %T", changeType))
 	}
@@ -138,6 +148,43 @@ func (v Value) calculateChange() plans.Action {
 	}
 
 	return plans.Update
+}
+
+// getDefaultActionForIteration is used to guess what the change could be for
+// complex attributes (collections and objects) and blocks.
+//
+// You can't really tell the difference between a NoOp and an Update just by
+// looking at the attribute itself as you need to inspect the children.
+//
+// This function returns a Delete or a Create action if the before or after
+// values were null, and returns a NoOp for all other cases. It should be used
+// in conjunction with compareActions to calculate the actual action based on
+// the actions of the children.
+func (v Value) getDefaultActionForIteration() plans.Action {
+	if v.Before == nil && v.After == nil {
+		return plans.NoOp
+	}
+
+	if v.Before == nil {
+		return plans.Create
+	}
+	if v.After == nil {
+		return plans.Delete
+	}
+	return plans.NoOp
+}
+
+// compareActions will compare current and next, and return plans.Update if they
+// are different, and current if they are the same.
+//
+// This function should be used in conjunction with getDefaultActionForIteration
+// to convert a NoOp default action into an Update based on the actions of a
+// values children.
+func compareActions(current, next plans.Action) plans.Action {
+	if current != next {
+		return plans.Update
+	}
+	return current
 }
 
 func unmarshalGeneric(raw json.RawMessage) interface{} {
