@@ -71,7 +71,11 @@ func (renderer mapRenderer) Render(change Change, indent int, opts RenderOpts) s
 			comma = ","
 		}
 
-		buf.WriteString(fmt.Sprintf("%s%s \"%s\"%-*s = %s%s\n", change.indent(indent+1), format.DiffActionSymbol(element.action), key, renderer.maximumKeyLen-len(key), "", element.Render(indent+1, elementOpts), comma))
+		// When we add padding for the keys, we want the length to be an
+		// additional 2 characters, as we are going to add quotation marks ("")
+		// around the key when it is rendered.
+		keyLenWithOffset := renderer.maximumKeyLen + 2
+		buf.WriteString(fmt.Sprintf("%s%s %-*q = %s%s\n", change.indent(indent+1), format.DiffActionSymbol(element.action), keyLenWithOffset, key, element.Render(indent+1, elementOpts), comma))
 	}
 
 	if unchangedElements > 0 {

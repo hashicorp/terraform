@@ -2,21 +2,20 @@ package change
 
 import (
 	"fmt"
-	"reflect"
+
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func Sensitive(before, after interface{}, beforeSensitive, afterSensitive bool) Renderer {
+func Sensitive(change Change, beforeSensitive, afterSensitive bool) Renderer {
 	return &sensitiveRenderer{
-		before:          before,
-		after:           after,
+		change:          change,
 		beforeSensitive: beforeSensitive,
 		afterSensitive:  afterSensitive,
 	}
 }
 
 type sensitiveRenderer struct {
-	before interface{}
-	after  interface{}
+	change Change
 
 	beforeSensitive bool
 	afterSensitive  bool
@@ -27,7 +26,7 @@ func (renderer sensitiveRenderer) Render(change Change, indent int, opts RenderO
 }
 
 func (renderer sensitiveRenderer) Warnings(change Change, indent int) []string {
-	if (renderer.beforeSensitive == renderer.afterSensitive) || renderer.before == nil || renderer.after == nil {
+	if (renderer.beforeSensitive == renderer.afterSensitive) || renderer.change.action == plans.Create || renderer.change.action == plans.Delete {
 		// Only display warnings for sensitive values if they are changing from
 		// being sensitive or to being sensitive and if they are not being
 		// destroyed or created.
@@ -41,7 +40,7 @@ func (renderer sensitiveRenderer) Warnings(change Change, indent int) []string {
 		warning = fmt.Sprintf("  # [yellow]Warning[reset]: this attribute value will be marked as sensitive and will not\n%s  # display in UI output after applying this change.", change.indent(indent))
 	}
 
-	if reflect.DeepEqual(renderer.before, renderer.after) {
+	if renderer.change.action == plans.NoOp {
 		return []string{fmt.Sprintf("%s The value is unchanged.", warning)}
 	}
 	return []string{warning}

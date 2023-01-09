@@ -7,7 +7,7 @@ import (
 )
 
 func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
-	if sensitive, ok := v.checkForSensitive(); ok {
+	if sensitive, ok := v.checkForSensitiveBlock(block); ok {
 		return sensitive
 	}
 

@@ -16,7 +16,7 @@ func (v Value) ComputeChangeForAttribute(attribute *jsonprovider.Attribute) chan
 }
 
 func (v Value) computeChangeForNestedAttribute(nested *jsonprovider.NestedType) change.Change {
-	if sensitive, ok := v.checkForSensitive(); ok {
+	if sensitive, ok := v.checkForSensitiveNestedAttribute(nested); ok {
 		return sensitive
 	}
 
@@ -39,7 +39,7 @@ func (v Value) computeChangeForNestedAttribute(nested *jsonprovider.NestedType) 
 }
 
 func (v Value) computeChangeForType(ctype cty.Type) change.Change {
-	if sensitive, ok := v.checkForSensitive(); ok {
+	if sensitive, ok := v.checkForSensitiveType(ctype); ok {
 		return sensitive
 	}
 
