@@ -21,6 +21,8 @@ func (v Value) computeChangeForNestedAttribute(attribute *jsonprovider.NestedTyp
 		return v.computeAttributeChangeAsNestedObject(attribute.Attributes)
 	case "map":
 		return v.computeAttributeChangeAsNestedMap(attribute.Attributes)
+	case "list":
+		return v.computeAttributeChangeAsNestedList(attribute.Attributes)
 	default:
 		panic("unrecognized nesting mode: " + attribute.NestingMode)
 	}
@@ -34,8 +36,10 @@ func (v Value) computeChangeForType(ctyType cty.Type) change.Change {
 		return v.computeAttributeChangeAsObject(ctyType.AttributeTypes())
 	case ctyType.IsMapType():
 		return v.computeAttributeChangeAsMap(ctyType.ElementType())
+	case ctyType.IsListType():
+		return v.computeAttributeChangeAsList(ctyType.ElementType())
 	default:
-		panic("not implemented")
+		panic("unrecognized type: " + ctyType.FriendlyName())
 	}
 }
 

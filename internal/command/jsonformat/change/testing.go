@@ -126,6 +126,50 @@ func ValidateMap(elements map[string]ValidateChangeFunc, action plans.Action, re
 	}
 }
 
+func ValidateList(elements []ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		list, ok := change.renderer.(*listRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if !list.displayContext {
+			t.Fatalf("created the wrong type of list renderer")
+		}
+
+		validateList(t, list, elements)
+	}
+}
+
+func ValidateNestedList(elements []ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		list, ok := change.renderer.(*listRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if list.displayContext {
+			t.Fatalf("created the wrong type of list renderer")
+		}
+
+		validateList(t, list, elements)
+	}
+}
+
+func validateList(t *testing.T, list *listRenderer, elements []ValidateChangeFunc) {
+	if len(list.elements) != len(elements) {
+		t.Fatalf("expected %d elements but found %d elements", len(elements), len(list.elements))
+	}
+
+	for ix := 0; ix < len(elements); ix++ {
+		elements[ix](t, list.elements[ix])
+	}
+}
+
 func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
 		validateChange(t, change, action, replace)
