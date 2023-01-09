@@ -83,6 +83,22 @@ func (b *Local) opApply(
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
+			// If Terraform Core generated a partial plan despite the errors
+			// then we'll make a best effort to render it. Terraform Core
+			// promises that if it returns a non-nil plan along with errors
+			// then the plan won't necessarily contain all of the needed
+			// actions but that any it does include will be properly-formed.
+			// plan.Errored will be true in this case, which our plan
+			// renderer can rely on to tailor its messaging.
+			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
+				schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+				// If schema loading returns errors then we'll just give up and
+				// ignore them to avoid distracting from the plan-time errors we're
+				// mainly trying to report here.
+				if !moreDiags.HasErrors() {
+					op.View.Plan(plan, schemas)
+				}
+			}
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -162,6 +178,15 @@ func (b *Local) opApply(
 		}
 	} else {
 		plan = lr.Plan
+		if plan.Errored {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot apply incomplete plan",
+				"Terraform encountered an error when generating this plan, so it cannot be applied.",
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		}
 		for _, change := range plan.Changes.Resources {
 			if change.Action != plans.NoOp {
 				op.View.PlannedChange(change)
