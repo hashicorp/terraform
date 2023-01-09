@@ -317,6 +317,48 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateAction:  plans.NoOp,
 			validateReplace: false,
 		},
+		"object_update_replace_self": {
+			input: Value{
+				Before: map[string]interface{}{
+					"attribute_one": "old",
+				},
+				After: map[string]interface{}{
+					"attribute_one": "new",
+				},
+				ReplacePaths: []interface{}{
+					[]interface{}{},
+				},
+			},
+			attributes: map[string]cty.Type{
+				"attribute_one": cty.String,
+			},
+			validateChanges: map[string]change.ValidateChangeFunc{
+				"attribute_one": change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+			},
+			validateAction:  plans.Update,
+			validateReplace: true,
+		},
+		"object_update_replace_attribute": {
+			input: Value{
+				Before: map[string]interface{}{
+					"attribute_one": "old",
+				},
+				After: map[string]interface{}{
+					"attribute_one": "new",
+				},
+				ReplacePaths: []interface{}{
+					[]interface{}{"attribute_one"},
+				},
+			},
+			attributes: map[string]cty.Type{
+				"attribute_one": cty.String,
+			},
+			validateChanges: map[string]change.ValidateChangeFunc{
+				"attribute_one": change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, true),
+			},
+			validateAction:  plans.Update,
+			validateReplace: false,
+		},
 	}
 
 	for name, tc := range tcs {
@@ -483,6 +525,19 @@ func TestValue_Attribute(t *testing.T) {
 				AttributeType: []byte("\"string\""),
 			},
 			validateChange: change.ValidateComputed(change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false), plans.Update, false),
+		},
+		"primitive_update_replace": {
+			input: Value{
+				Before: "old",
+				After:  "new",
+				ReplacePaths: []interface{}{
+					[]interface{}{}, // An empty path suggests this attribute should be true.
+				},
+			},
+			attribute: &jsonprovider.Attribute{
+				AttributeType: unmarshalType(t, cty.String),
+			},
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, true),
 		},
 	}
 	for name, tc := range tcs {

@@ -82,7 +82,7 @@ type Value struct {
 	// ReplacePaths generally contains nested slices that describe paths to
 	// elements or attributes that are causing the overall resource to be
 	// replaced.
-	ReplacePaths interface{}
+	ReplacePaths []interface{}
 }
 
 // ValueFromJsonChange unmarshals the raw []byte values in the jsonplan.Change
@@ -94,7 +94,7 @@ func ValueFromJsonChange(change jsonplan.Change) Value {
 		Unknown:         unmarshalGeneric(change.AfterUnknown),
 		BeforeSensitive: unmarshalGeneric(change.BeforeSensitive),
 		AfterSensitive:  unmarshalGeneric(change.AfterSensitive),
-		ReplacePaths:    unmarshalGeneric(change.ReplacePaths),
+		ReplacePaths:    decodePaths(unmarshalGeneric(change.ReplacePaths)),
 	}
 }
 
@@ -129,8 +129,10 @@ func (v Value) AsChange(renderer change.Renderer) change.Change {
 }
 
 func (v Value) replacePath() bool {
-	if replace, ok := v.ReplacePaths.(bool); ok {
-		return replace
+	for _, path := range v.ReplacePaths {
+		if len(path.([]interface{})) == 0 {
+			return true
+		}
 	}
 	return false
 }
@@ -197,4 +199,11 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out
+}
+
+func decodePaths(paths interface{}) []interface{} {
+	if paths == nil {
+		return nil
+	}
+	return paths.([]interface{})
 }
