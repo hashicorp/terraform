@@ -62,6 +62,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		Checks:           &states.CheckResults{},
 	}
 
+	plan.Errored = rawPlan.Errored
+
 	switch rawPlan.UiMode {
 	case planproto.Mode_NORMAL:
 		plan.UIMode = plans.NormalMode
@@ -460,6 +462,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
+
+	rawPlan.Errored = plan.Errored
 
 	switch plan.UIMode {
 	case plans.NormalMode:

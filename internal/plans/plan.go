@@ -42,6 +42,11 @@ type Plan struct {
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
 
+	// Errored is true if the Changes information is incomplete because
+	// the planning operation failed. An errored plan cannot be applied,
+	// but can be cautiously inspected for debugging purposes.
+	Errored bool
+
 	// Checks captures a snapshot of the (probably-incomplete) check results
 	// at the end of the planning process.
 	//
@@ -92,6 +97,13 @@ type Plan struct {
 // locations in the UI code.
 func (p *Plan) CanApply() bool {
 	switch {
+	case p.Errored:
+		// An errored plan can never be applied, because it is incomplete.
+		// Such a plan is only useful for describing the subset of actions
+		// planned so far in case they are useful for understanding the
+		// causes of the errors.
+		return false
+
 	case !p.Changes.Empty():
 		// "Empty" means that everything in the changes is a "NoOp", so if
 		// not empty then there's at least one non-NoOp change.
