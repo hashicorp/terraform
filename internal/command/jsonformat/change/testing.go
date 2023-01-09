@@ -93,6 +93,39 @@ func validateObject(t *testing.T, object *objectRenderer, attributes map[string]
 	}
 }
 
+func ValidateMap(elements map[string]ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		m, ok := change.renderer.(*mapRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if len(m.elements) != len(elements) {
+			t.Fatalf("expected %d elements but found %d elements", len(elements), len(m.elements))
+		}
+
+		var missing []string
+		for key, expected := range elements {
+			actual, ok := m.elements[key]
+			if !ok {
+				missing = append(missing, key)
+			}
+
+			if len(missing) > 0 {
+				continue
+			}
+
+			expected(t, actual)
+		}
+
+		if len(missing) > 0 {
+			t.Fatalf("missing the following elements: %s", strings.Join(missing, ", "))
+		}
+	}
+}
+
 func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
 		validateChange(t, change, action, replace)

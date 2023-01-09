@@ -351,6 +351,226 @@ func TestRenderers(t *testing.T) {
     }
 `,
 		},
+		"map_create_empty": {
+			change: Change{
+				renderer: Map(map[string]Change{}),
+				action:   plans.Create,
+			},
+			expected: "{}",
+		},
+		"map_create": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(nil, strptr("new")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Create,
+			},
+			expected: `
+{
+      + "element_one" = new
+    }
+`,
+		},
+		"map_delete_empty": {
+			change: Change{
+				renderer: Map(map[string]Change{}),
+				action:   plans.Delete,
+			},
+			expected: "{} -> null",
+		},
+		"map_delete": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(strptr("old"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Delete,
+			},
+			expected: `
+{
+      - "element_one" = old
+    } -> null
+`,
+		},
+		"map_create_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(nil, strptr("new")),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      + "element_one" = new
+    }
+`,
+		},
+		"map_update_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(strptr("old"), strptr("new")),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ "element_one" = old -> new
+    }
+`,
+		},
+		"map_delete_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(strptr("old"), nil),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      - "element_one" = old -> null
+    }
+`,
+		},
+		"map_update_forces_replacement": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(strptr("old"), strptr("new")),
+						action:   plans.Update,
+					},
+				}),
+				action:  plans.Update,
+				replace: true,
+			},
+			expected: `
+{ # forces replacement
+      ~ "element_one" = old -> new
+    }
+`,
+		},
+		"map_ignore_unchanged_elements": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Primitive(nil, strptr("new")),
+						action:   plans.Create,
+					},
+					"element_two": {
+						renderer: Primitive(strptr("old"), strptr("old")),
+						action:   plans.NoOp,
+					},
+					"element_three": {
+						renderer: Primitive(strptr("old"), strptr("new")),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      + "element_one"   = new
+      ~ "element_three" = old -> new
+        # (1 unchanged element hidden)
+    }
+`,
+		},
+		"map_create_sensitive_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Sensitive(nil, 1, false, true),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      + "element_one" = (sensitive)
+    }
+`,
+		},
+		"map_update_sensitive_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Sensitive(0, 1, true, true),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ "element_one" = (sensitive)
+    }
+`,
+		},
+		"map_delete_sensitive_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Sensitive(0, nil, true, false),
+						action:   plans.Delete,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      - "element_one" = (sensitive) -> null
+    }
+`,
+		},
+		"map_create_computed_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Computed(Change{}),
+						action:   plans.Create,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      + "element_one" = (known after apply)
+    }
+`,
+		},
+		"map_update_computed_element": {
+			change: Change{
+				renderer: Map(map[string]Change{
+					"element_one": {
+						renderer: Computed(Change{
+							renderer: Primitive(strptr("1"), nil),
+							action:   plans.Delete,
+						}),
+						action: plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ "element_one" = 1 -> (known after apply)
+    }
+`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

@@ -98,7 +98,7 @@ func ValueFromJsonChange(change jsonplan.Change) Value {
 	}
 }
 
-// ComputeChange is a generic function that lets callers no worry about what
+// ComputeChange is a generic function that lets callers not worry about what
 // type of change they are processing. In general, this is the function external
 // users should call as it has some generic preprocessing applicable to all
 // types.
@@ -119,6 +119,8 @@ func (v Value) ComputeChange(changeType interface{}) change.Change {
 		return v.computeChangeForAttribute(concrete)
 	case cty.Type:
 		return v.computeChangeForType(concrete)
+	case map[string]*jsonprovider.Attribute:
+		return v.computeAttributeChangeAsNestedObject(concrete)
 	default:
 		panic(fmt.Sprintf("unrecognized change type: %T", changeType))
 	}
