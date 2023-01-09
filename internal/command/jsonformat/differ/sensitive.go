@@ -10,7 +10,7 @@ func (v Value) checkForSensitive() (change.Change, bool) {
 		return change.Change{}, false
 	}
 
-	return v.AsChange(change.Sensitive(v.Before, v.After, beforeSensitive, afterSensitive)), true
+	return v.asChange(change.Sensitive(v.Before, v.After, beforeSensitive, afterSensitive)), true
 }
 
 func (v Value) isBeforeSensitive() bool {
