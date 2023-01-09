@@ -35,9 +35,9 @@ type plan struct {
 	PlannedValues    stateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
-	ResourceDrift      []resourceChange  `json:"resource_drift,omitempty"`
-	ResourceChanges    []resourceChange  `json:"resource_changes,omitempty"`
-	OutputChanges      map[string]change `json:"output_changes,omitempty"`
+	ResourceDrift      []ResourceChange  `json:"resource_drift,omitempty"`
+	ResourceChanges    []ResourceChange  `json:"resource_changes,omitempty"`
+	OutputChanges      map[string]Change `json:"output_changes,omitempty"`
 	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
 	Config             json.RawMessage   `json:"configuration,omitempty"`
 	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
@@ -59,7 +59,7 @@ type resourceAttr struct {
 }
 
 // Change is the representation of a proposed change for an object.
-type change struct {
+type Change struct {
 	// Actions are the actions that will be taken on the object selected by the
 	// properties below. Valid actions values are:
 	//    ["no-op"]
@@ -265,11 +265,11 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 	return nil
 }
 
-func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]resourceChange, error) {
-	var ret []resourceChange
+func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
+	var ret []ResourceChange
 
 	for _, rc := range resources {
-		var r resourceChange
+		var r ResourceChange
 		addr := rc.Addr
 		r.Address = addr.String()
 		if !addr.Equal(rc.PrevRunAddr) {
@@ -360,7 +360,7 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 			return nil, err
 		}
 
-		r.Change = change{
+		r.Change = Change{
 			Actions:         actionString(rc.Action.String()),
 			Before:          json.RawMessage(before),
 			After:           json.RawMessage(after),
@@ -376,7 +376,10 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 
 		key := addr.Resource.Key
 		if key != nil {
-			r.Index = key
+			value := key.Value()
+			if r.Index, err = ctyjson.Marshal(value, value.Type()); err != nil {
+				return nil, err
+			}
 		}
 
 		switch addr.Resource.Resource.Mode {
@@ -440,7 +443,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		return nil
 	}
 
-	p.OutputChanges = make(map[string]change, len(changes.Outputs))
+	p.OutputChanges = make(map[string]Change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
 		changeV, err := oc.Decode()
 		if err != nil {
@@ -496,7 +499,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
 
-		c := change{
+		c := Change{
 			Actions:         actionString(oc.Action.String()),
 			Before:          json.RawMessage(before),
 			After:           json.RawMessage(after),
