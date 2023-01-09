@@ -389,6 +389,41 @@ func TestAssertPlanValid(t *testing.T) {
 			},
 		},
 
+		// but don't panic on a null list just in case
+		"nested list, null in config": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"b": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"c": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				}))),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"b": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"c": cty.String,
+				})),
+			}),
+			nil,
+		},
+
 		// blocks can be unknown when using dynamic
 		"nested list, unknown nested dynamic": {
 			&configschema.Block{
@@ -1671,7 +1706,7 @@ func TestAssertPlanValid(t *testing.T) {
 
 			t.Logf(
 				"\nprior:  %sconfig:  %splanned: %s",
-				dump.Value(test.Planned),
+				dump.Value(test.Prior),
 				dump.Value(test.Config),
 				dump.Value(test.Planned),
 			)

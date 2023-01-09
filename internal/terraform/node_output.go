@@ -278,19 +278,21 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 }
 
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
+	var refs []*addrs.Reference
+
 	impRefs, _ := lang.ReferencesInExpr(c.Expr)
 	expRefs, _ := lang.References(c.DependsOn)
-	l := len(impRefs) + len(expRefs)
-	if l == 0 {
-		return nil
-	}
-	refs := make([]*addrs.Reference, 0, l)
+
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
+
 	for _, check := range c.Preconditions {
-		checkRefs, _ := lang.ReferencesInExpr(check.Condition)
-		refs = append(refs, checkRefs...)
+		condRefs, _ := lang.ReferencesInExpr(check.Condition)
+		refs = append(refs, condRefs...)
+		errRefs, _ := lang.ReferencesInExpr(check.ErrorMessage)
+		refs = append(refs, errRefs...)
 	}
+
 	return refs
 }
 

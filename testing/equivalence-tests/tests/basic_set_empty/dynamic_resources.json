@@ -1,0 +1,13 @@
+{
+  "tfcoremock_set": {
+    "attributes": {
+      "set": {
+        "type": "set",
+        "optional": true,
+        "set": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
