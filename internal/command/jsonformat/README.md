@@ -115,6 +115,20 @@ collection. With the `BeforeExplicit` and `AfterExplicit` values we can tell the
 difference between whether this value was removed from a collection or this 
 value was set to null in a collection.
 
+*Quick note on the go-cty Value and Type objects:* The `Before` and `After` 
+fields are actually go-cty values, but we cannot convert them directly because 
+of the  Terraform Cloud redacted endpoint. The redacted endpoint turns sensitive
+values into strings regardless of their types. Because of this, we cannot just 
+do a direct conversion using the ctyjson package. We would have to iterate 
+through the schema first, find the sensitive values and their mapped types, 
+update the types inside the schema to strings, and then go back and do the 
+overall conversion. This isn't including any of the more complicated parts 
+around what happens if something was sensitive before and isn't sensitive after 
+or vice versa. This would mean the type would need to change between the before 
+and after value. It is in fact just easier to iterate through the values as 
+generic JSON interfaces, and obfuscate the sensitive values as we never need to 
+print them anyway.
+
 ##### Iterating through values
 
 The `differ` package will recursively create child `Value` objects for the 

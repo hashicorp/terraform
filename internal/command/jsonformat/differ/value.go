@@ -7,12 +7,24 @@ import (
 )
 
 // Value contains the unmarshalled generic interface{} types that are output by
-// the JSON structured run output functions in the various json packages (such
-// as jsonplan and jsonprovider).
+// the JSON functions in the various json packages (such as jsonplan and
+// jsonprovider).
 //
 // A Value can be converted into a change.Change, ready for rendering, with the
 // ComputeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
 // functions.
+//
+// The Before and After fields are actually go-cty values, but we cannot convert
+// them directly because of the Terraform Cloud redacted endpoint. The redacted
+// endpoint turns sensitive values into strings regardless of their types.
+// Because of this, we cannot just do a direct conversion using the ctyjson
+// package. We would have to iterate through the schema first, find the
+// sensitive values and their mapped types, update the types inside the schema
+// to strings, and then go back and do the overall conversion. This isn't
+// including any of the more complicated parts around what happens if something
+// was sensitive before and isn't sensitive after or vice versa. This would mean
+// the type would need to change between the before and after value. It is in
+// fact just easier to iterate through the values as generic JSON interfaces.
 type Value struct {
 	// BeforeExplicit refers to whether the Before value is explicit or
 	// implicit. It is explicit if it has been specified by the user, and
