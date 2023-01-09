@@ -17,7 +17,7 @@ const (
 	jsonNull   = "null"
 )
 
-func (v Value) computeChangeForDynamicType() change.Change {
+func (v Value) computeChangeForOutput() change.Change {
 	beforeType := getJsonType(v.Before)
 	afterType := getJsonType(v.After)
 

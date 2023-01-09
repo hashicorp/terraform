@@ -18,7 +18,7 @@ import (
 // jsonprovider).
 //
 // A Value can be converted into a change.Change, ready for rendering, with the
-// computeChangeForAttribute, computeChangeForDynamicType, and computeChangeForBlock
+// computeChangeForAttribute, computeChangeForOutput, and computeChangeForBlock
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert

@@ -1208,7 +1208,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 	}
 }
 
-func TestValue_Dynamic(t *testing.T) {
+func TestValue_Output(t *testing.T) {
 	tcs := map[string]struct {
 		input          Value
 		attribute      cty.Type
