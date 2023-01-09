@@ -1784,3 +1784,51 @@ resource "test_object" "y" {
 	_, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 }
+
+// ensure all references from preconditions are tracked through plan and apply
+func TestContext2Apply_preconditionErrorMessageRef(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "nested" {
+  source = "./mod"
+}
+
+output "nested_a" {
+  value = module.nested.a
+}
+`,
+
+		"mod/main.tf": `
+variable "boop" {
+  default = "boop"
+}
+
+variable "msg" {
+  default = "Incorrect boop."
+}
+
+output "a" {
+  value     = "x"
+
+  precondition {
+    condition     = var.boop == "boop"
+    error_message = var.msg
+  }
+}
+`,
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}

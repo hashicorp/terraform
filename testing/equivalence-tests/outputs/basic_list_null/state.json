@@ -1,0 +1,22 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_list.list",
+          "mode": "managed",
+          "name": "list",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "tfcoremock_list",
+          "values": {
+            "id": "985820B3-ACF9-4F00-94AD-F81C5EA33663",
+            "list": null
+          }
+        }
+      ]
+    }
+  }
+}

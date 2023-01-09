@@ -3379,16 +3379,28 @@ func TestContext2Plan_preconditionErrors(t *testing.T) {
 			`, tc.condition)
 			m := testModuleInline(t, map[string]string{"main.tf": main})
 
-			_, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+			plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
 			if !diags.HasErrors() {
 				t.Fatal("succeeded; want errors")
 			}
+
+			if !plan.Errored {
+				t.Fatal("plan failed to record error")
+			}
+
 			diag := diags[0]
 			if got, want := diag.Description().Summary, tc.wantSummary; got != want {
 				t.Errorf("unexpected summary\n got: %s\nwant: %s", got, want)
 			}
 			if got, want := diag.Description().Detail, tc.wantDetail; !strings.Contains(got, want) {
 				t.Errorf("unexpected summary\ngot: %s\nwant to contain %q", got, want)
+			}
+
+			for _, kv := range plan.Checks.ConfigResults.Elements() {
+				// All these are configuration or evaluation errors
+				if kv.Value.Status != checks.StatusError {
+					t.Errorf("incorrect status, got %s", kv.Value.Status)
+				}
 			}
 		})
 	}
