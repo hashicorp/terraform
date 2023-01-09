@@ -2,14 +2,10 @@ package differ
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
-
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 

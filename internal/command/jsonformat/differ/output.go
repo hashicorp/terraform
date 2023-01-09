@@ -3,9 +3,10 @@ package differ
 import (
 	"fmt"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/zclconf/go-cty/cty"
 )
 
 const (
