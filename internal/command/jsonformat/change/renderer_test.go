@@ -351,6 +351,32 @@ func TestRenderers(t *testing.T) {
     }
 `,
 		},
+		"object_escapes_attribute_keys": {
+			change: Change{
+				renderer: Object(map[string]Change{
+					"attribute_one": {
+						renderer: Primitive(strptr("1"), strptr("2")),
+						action:   plans.Update,
+					},
+					"attribute:two": {
+						renderer: Primitive(strptr("2"), strptr("3")),
+						action:   plans.Update,
+					},
+					"attribute_six": {
+						renderer: Primitive(strptr("3"), strptr("4")),
+						action:   plans.Update,
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ "attribute:two" = 2 -> 3
+      ~ attribute_one   = 1 -> 2
+      ~ attribute_six   = 3 -> 4
+    }
+`,
+		},
 		"map_create_empty": {
 			change: Change{
 				renderer: Map(map[string]Change{}),
@@ -1425,6 +1451,62 @@ func TestRenderers(t *testing.T) {
 			},
 			expected: `
 {
+    }`,
+		},
+		"block_escapes_keys": {
+			change: Change{
+				renderer: Block(map[string]Change{
+					"attribute_one": {
+						renderer: Primitive(strptr("1"), strptr("2")),
+						action:   plans.Update,
+					},
+					"attribute:two": {
+						renderer: Primitive(strptr("2"), strptr("3")),
+						action:   plans.Update,
+					},
+					"attribute_six": {
+						renderer: Primitive(strptr("3"), strptr("4")),
+						action:   plans.Update,
+					},
+				}, map[string][]Change{
+					"nested_block:one": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"one\""), strptr("\"four\"")),
+									action:   plans.Update,
+								},
+							}, nil),
+							action: plans.Update,
+						},
+					},
+					"nested_block_two": {
+						{
+							renderer: Block(map[string]Change{
+								"string": {
+									renderer: Primitive(strptr("\"two\""), strptr("\"three\"")),
+									action:   plans.Update,
+								},
+							}, nil),
+							action: plans.Update,
+						},
+					},
+				}),
+				action: plans.Update,
+			},
+			expected: `
+{
+      ~ "attribute:two" = 2 -> 3
+      ~ attribute_one   = 1 -> 2
+      ~ attribute_six   = 3 -> 4
+
+      ~ "nested_block:one" {
+          ~ string = "one" -> "four"
+        }
+
+      ~ nested_block_two {
+          ~ string = "two" -> "three"
+        }
     }`,
 		},
 		"block_always_includes_important_attributes": {
