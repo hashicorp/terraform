@@ -1208,6 +1208,231 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 	}
 }
 
+func TestValue_Outputs(t *testing.T) {
+	tcs := map[string]struct {
+		input          Value
+		validateChange change.ValidateChangeFunc
+	}{
+		"primitive_create": {
+			input: Value{
+				Before: nil,
+				After:  "new",
+			},
+			validateChange: change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+		},
+		"map_create": {
+			input: Value{
+				Before: nil,
+				After: map[string]interface{}{
+					"element_one": "new_one",
+					"element_two": "new_two",
+				},
+			},
+			validateChange: change.ValidateMap(map[string]change.ValidateChangeFunc{
+				"element_one": change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+				"element_two": change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+			}, plans.Create, false),
+		},
+		"list_create": {
+			input: Value{
+				Before: nil,
+				After: []interface{}{
+					"new_one",
+					"new_two",
+				},
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+				change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+			}, plans.Create, false),
+		},
+		"primitive_update": {
+			input: Value{
+				Before: "old",
+				After:  "new",
+			},
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), strptr("\"new\""), plans.Update, false),
+		},
+		"map_update": {
+			input: Value{
+				Before: map[string]interface{}{
+					"element_one": "old_one",
+					"element_two": "old_two",
+				},
+				After: map[string]interface{}{
+					"element_one": "new_one",
+					"element_two": "new_two",
+				},
+			},
+			validateChange: change.ValidateMap(map[string]change.ValidateChangeFunc{
+				"element_one": change.ValidatePrimitive(strptr("\"old_one\""), strptr("\"new_one\""), plans.Update, false),
+				"element_two": change.ValidatePrimitive(strptr("\"old_two\""), strptr("\"new_two\""), plans.Update, false),
+			}, plans.Update, false),
+		},
+		"list_update": {
+			input: Value{
+				Before: []interface{}{
+					"old_one",
+					"old_two",
+				},
+				After: []interface{}{
+					"new_one",
+					"new_two",
+				},
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+				change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+			}, plans.Update, false),
+		},
+		"primitive_delete": {
+			input: Value{
+				Before: "old",
+				After:  nil,
+			},
+			validateChange: change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+		},
+		"map_delete": {
+			input: Value{
+				Before: map[string]interface{}{
+					"element_one": "old_one",
+					"element_two": "old_two",
+				},
+				After: nil,
+			},
+			validateChange: change.ValidateMap(map[string]change.ValidateChangeFunc{
+				"element_one": change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+				"element_two": change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+			}, plans.Delete, false),
+		},
+		"list_delete": {
+			input: Value{
+				Before: []interface{}{
+					"old_one",
+					"old_two",
+				},
+				After: nil,
+			},
+			validateChange: change.ValidateList([]change.ValidateChangeFunc{
+				change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+				change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+			}, plans.Delete, false),
+		},
+		"primitive_to_list": {
+			input: Value{
+				Before: "old",
+				After: []interface{}{
+					"new_one",
+					"new_two",
+				},
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+					change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+				}, plans.Create, false), plans.Update, false),
+		},
+		"primitive_to_map": {
+			input: Value{
+				Before: "old",
+				After: map[string]interface{}{
+					"element_one": "new_one",
+					"element_two": "new_two",
+				},
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidatePrimitive(strptr("\"old\""), nil, plans.Delete, false),
+				change.ValidateMap(map[string]change.ValidateChangeFunc{
+					"element_one": change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+					"element_two": change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+				}, plans.Create, false), plans.Update, false),
+		},
+		"list_to_primitive": {
+			input: Value{
+				Before: []interface{}{
+					"old_one",
+					"old_two",
+				},
+				After: "new",
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+					change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+				}, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+				plans.Update, false),
+		},
+		"list_to_map": {
+			input: Value{
+				Before: []interface{}{
+					"old_one",
+					"old_two",
+				},
+				After: map[string]interface{}{
+					"element_one": "new_one",
+					"element_two": "new_two",
+				},
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+					change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+				}, plans.Delete, false),
+				change.ValidateMap(map[string]change.ValidateChangeFunc{
+					"element_one": change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+					"element_two": change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+				}, plans.Create, false), plans.Update, false),
+		},
+		"map_to_primitive": {
+			input: Value{
+				Before: map[string]interface{}{
+					"element_one": "old_one",
+					"element_two": "old_two",
+				},
+				After: "new",
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidateMap(map[string]change.ValidateChangeFunc{
+					"element_one": change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+					"element_two": change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+				}, plans.Delete, false),
+				change.ValidatePrimitive(nil, strptr("\"new\""), plans.Create, false),
+				plans.Update, false),
+		},
+		"map_to_list": {
+			input: Value{
+				Before: map[string]interface{}{
+					"element_one": "old_one",
+					"element_two": "old_two",
+				},
+				After: []interface{}{
+					"new_one",
+					"new_two",
+				},
+			},
+			validateChange: change.ValidateTypeChange(
+				change.ValidateMap(map[string]change.ValidateChangeFunc{
+					"element_one": change.ValidatePrimitive(strptr("\"old_one\""), nil, plans.Delete, false),
+					"element_two": change.ValidatePrimitive(strptr("\"old_two\""), nil, plans.Delete, false),
+				}, plans.Delete, false),
+				change.ValidateList([]change.ValidateChangeFunc{
+					change.ValidatePrimitive(nil, strptr("\"new_one\""), plans.Create, false),
+					change.ValidatePrimitive(nil, strptr("\"new_two\""), plans.Create, false),
+				}, plans.Create, false), plans.Update, false),
+		},
+	}
+
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			tc.validateChange(t, tc.input.ComputeChange(cty.NilType))
+		})
+	}
+}
+
 func TestValue_PrimitiveAttributes(t *testing.T) {
 	// This function tests manipulating primitives: creating, deleting and
 	// updating. It also automatically tests these operations within the

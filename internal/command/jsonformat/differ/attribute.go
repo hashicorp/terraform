@@ -31,6 +31,10 @@ func (v Value) computeChangeForNestedAttribute(attribute *jsonprovider.NestedTyp
 }
 
 func (v Value) computeChangeForType(ctyType cty.Type) change.Change {
+	if ctyType == cty.NilType {
+		return v.ComputeChangeForOutput()
+	}
+
 	switch {
 	case ctyType.IsPrimitiveType():
 		return v.computeAttributeChangeAsPrimitive(ctyType)
