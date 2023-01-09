@@ -24,9 +24,6 @@ func NestedList(elements []Change) Renderer {
 type listRenderer struct {
 	NoWarningsRenderer
 
-	// displayContext tells the renderer to display additional information about
-	// the before and after index values within a given list. For example, index
-	//
 	displayContext bool
 	elements       []Change
 }

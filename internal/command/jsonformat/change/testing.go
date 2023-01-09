@@ -170,6 +170,26 @@ func validateList(t *testing.T, list *listRenderer, elements []ValidateChangeFun
 	}
 }
 
+func ValidateSet(elements []ValidateChangeFunc, action plans.Action, replace bool) ValidateChangeFunc {
+	return func(t *testing.T, change Change) {
+		validateChange(t, change, action, replace)
+
+		set, ok := change.renderer.(*setRenderer)
+		if !ok {
+			t.Fatalf("invalid renderer type: %T", change.renderer)
+		}
+
+		if len(set.elements) != len(elements) {
+			t.Fatalf("expected %d elements but found %d elements", len(elements), len(set.elements))
+		}
+
+		for ix := 0; ix < len(elements); ix++ {
+			elements[ix](t, set.elements[ix])
+		}
+
+	}
+}
+
 func ValidateSensitive(before, after interface{}, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateChangeFunc {
 	return func(t *testing.T, change Change) {
 		validateChange(t, change, action, replace)
