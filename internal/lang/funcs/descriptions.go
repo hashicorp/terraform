@@ -15,7 +15,7 @@ type descriptionEntry struct {
 }
 
 // DescriptionList is a consolidated list containing all descriptions for all
-// functions available within Terraform. A functions description should point
+// functions available within Terraform. A function's description should point
 // to the matching entry in this list.
 //
 // We keep this as a single list, so we can quickly review descriptions within
@@ -521,7 +521,7 @@ var DescriptionList = map[string]descriptionEntry{
 }
 
 // WithDescription looks up the description for a given function and uses
-// go-cty's WithNewDescriptions to replace the functions description and
+// go-cty's WithNewDescriptions to replace the function's description and
 // parameter descriptions.
 func WithDescription(name string, f function.Function) function.Function {
 	desc, ok := DescriptionList[name]

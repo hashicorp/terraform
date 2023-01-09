@@ -15,7 +15,7 @@ func TestFunctionDescriptions(t *testing.T) {
 	allFunctions := scope.Functions()
 
 	if len(allFunctions) != len(funcs.DescriptionList) {
-		t.Fatalf("DescriptionList length expected: %d, got %d", len(allFunctions), len(funcs.DescriptionList))
+		t.Errorf("DescriptionList length expected: %d, got %d", len(allFunctions), len(funcs.DescriptionList))
 	}
 
 	for name := range allFunctions {
