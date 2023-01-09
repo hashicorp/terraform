@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -104,4 +106,13 @@ func (change Change) unchanged(keyword string, count int) string {
 		return fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", count, keyword)
 	}
 	return fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword)
+}
+
+// ensureValidAttributeName checks if `name` contains any HCL syntax and returns
+// it surrounded by quotation marks if it does.
+func (change Change) ensureValidAttributeName(name string) string {
+	if !hclsyntax.ValidIdentifier(name) {
+		return fmt.Sprintf("%q", name)
+	}
+	return name
 }

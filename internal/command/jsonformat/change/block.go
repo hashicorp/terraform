@@ -25,45 +25,43 @@ func importantAttribute(attr string) bool {
 }
 
 func Block(attributes map[string]Change, blocks map[string][]Change) Renderer {
-	maximumKeyLen := 0
-	for key := range attributes {
-		if len(key) > maximumKeyLen {
-			maximumKeyLen = len(key)
-		}
-	}
-
 	return &blockRenderer{
-		attributes:    attributes,
-		blocks:        blocks,
-		maximumKeyLen: maximumKeyLen,
+		attributes: attributes,
+		blocks:     blocks,
 	}
 }
 
 type blockRenderer struct {
 	NoWarningsRenderer
 
-	attributes    map[string]Change
-	blocks        map[string][]Change
-	maximumKeyLen int
+	attributes map[string]Change
+	blocks     map[string][]Change
 }
 
 func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts) string {
 	unchangedAttributes := 0
 	unchangedBlocks := 0
 
+	maximumAttributeKeyLen := 0
+	var attributeKeys []string
+	escapedAttributeKeys := make(map[string]string)
+	for key := range renderer.attributes {
+		attributeKeys = append(attributeKeys, key)
+		escapedKey := change.ensureValidAttributeName(key)
+		escapedAttributeKeys[key] = escapedKey
+		if maximumAttributeKeyLen < len(escapedKey) {
+			maximumAttributeKeyLen = len(escapedKey)
+		}
+	}
+	sort.Strings(attributeKeys)
+
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("{%s\n", change.forcesReplacement()))
 	for _, importantKey := range importantAttributes {
 		if attribute, ok := renderer.attributes[importantKey]; ok {
-			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), format.DiffActionSymbol(attribute.action), renderer.maximumKeyLen, importantKey, attribute.Render(indent+1, opts)))
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), format.DiffActionSymbol(attribute.action), maximumAttributeKeyLen, importantKey, attribute.Render(indent+1, opts)))
 		}
 	}
-
-	var attributeKeys []string
-	for key := range renderer.attributes {
-		attributeKeys = append(attributeKeys, key)
-	}
-	sort.Strings(attributeKeys)
 
 	for _, key := range attributeKeys {
 		if importantAttribute(key) {
@@ -78,7 +76,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 		for _, warning := range attribute.Warnings(indent + 1) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", change.indent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), format.DiffActionSymbol(attribute.action), renderer.maximumKeyLen, key, attribute.Render(indent+1, opts)))
+		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", change.indent(indent+1), format.DiffActionSymbol(attribute.action), maximumAttributeKeyLen, escapedAttributeKeys[key], attribute.Render(indent+1, opts)))
 	}
 
 	if unchangedAttributes > 0 {
@@ -109,7 +107,7 @@ func (renderer blockRenderer) Render(change Change, indent int, opts RenderOpts)
 			for _, warning := range block.Warnings(indent + 1) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", change.indent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %s %s\n", change.indent(indent+1), format.DiffActionSymbol(block.action), key, block.Render(indent+1, opts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s %s\n", change.indent(indent+1), format.DiffActionSymbol(block.action), change.ensureValidAttributeName(key), block.Render(indent+1, opts)))
 		}
 	}
 
