@@ -10,7 +10,7 @@ import (
 )
 
 func (v Value) ComputeChangeForOutput() change.Change {
-	if sensitive, ok := v.checkForSensitive(cty.DynamicPseudoType); ok {
+	if sensitive, ok := v.checkForSensitiveType(cty.DynamicPseudoType); ok {
 		return sensitive
 	}
 

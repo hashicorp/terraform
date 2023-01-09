@@ -1,8 +1,31 @@
 package differ
 
-import "github.com/hashicorp/terraform/internal/command/jsonformat/change"
+import (
+	"github.com/zclconf/go-cty/cty"
 
-func (v Value) checkForSensitive(changeType interface{}) (change.Change, bool) {
+	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+)
+
+func (v Value) checkForSensitiveType(ctype cty.Type) (change.Change, bool) {
+	return v.checkForSensitive(func(value Value) change.Change {
+		return value.computeChangeForType(ctype)
+	})
+}
+
+func (v Value) checkForSensitiveNestedAttribute(attribute *jsonprovider.NestedType) (change.Change, bool) {
+	return v.checkForSensitive(func(value Value) change.Change {
+		return value.computeChangeForNestedAttribute(attribute)
+	})
+}
+
+func (v Value) checkForSensitiveBlock(block *jsonprovider.Block) (change.Change, bool) {
+	return v.checkForSensitive(func(value Value) change.Change {
+		return value.ComputeChangeForBlock(block)
+	})
+}
+
+func (v Value) checkForSensitive(computeChange func(value Value) change.Change) (change.Change, bool) {
 	beforeSensitive := v.isBeforeSensitive()
 	afterSensitive := v.isAfterSensitive()
 
@@ -28,7 +51,7 @@ func (v Value) checkForSensitive(changeType interface{}) (change.Change, bool) {
 		ReplacePaths:    v.ReplacePaths,
 	}
 
-	inner := value.ComputeChange(changeType)
+	inner := computeChange(value)
 
 	return change.New(change.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action(), v.replacePath()), true
 }

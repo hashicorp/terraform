@@ -48,7 +48,7 @@ func renderPrimitiveValue(value interface{}, t cty.Type) string {
 
 	switch {
 	case t == cty.String:
-		return fmt.Sprintf("\"%s\"", value.(string))
+		return fmt.Sprintf("%q", value.(string))
 	case t == cty.Bool:
 		if value.(bool) {
 			return "true"
