@@ -3,6 +3,7 @@ package differ
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
@@ -524,8 +525,10 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				After: map[string]interface{}{
 					"attribute_one": "new",
 				},
-				ReplacePaths: []interface{}{
-					[]interface{}{},
+				ReplacePaths: replace.ForcesReplacement{
+					ReplacePaths: [][]interface{}{
+						{},
+					},
 				},
 			},
 			attributes: map[string]cty.Type{
@@ -561,8 +564,10 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				After: map[string]interface{}{
 					"attribute_one": "new",
 				},
-				ReplacePaths: []interface{}{
-					[]interface{}{"attribute_one"},
+				ReplacePaths: replace.ForcesReplacement{
+					ReplacePaths: [][]interface{}{
+						{"attribute_one"},
+					},
 				},
 			},
 			attributes: map[string]cty.Type{
@@ -1569,8 +1574,10 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			input: Change{
 				Before: "old",
 				After:  "new",
-				ReplacePaths: []interface{}{
-					[]interface{}{}, // An empty path suggests this attribute should be true.
+				ReplacePaths: replace.ForcesReplacement{
+					ReplacePaths: [][]interface{}{
+						{}, // An empty path suggests replace should be true.
+					},
 				},
 			},
 			attribute:    cty.String,
@@ -2093,22 +2100,21 @@ func wrapChangeInMap(input Change) Change {
 }
 
 func wrapChange(input Change, step interface{}, wrap func(interface{}, interface{}, bool) interface{}) Change {
+
+	replacePaths := replace.ForcesReplacement{}
+	for _, path := range input.ReplacePaths.ReplacePaths {
+		var updated []interface{}
+		updated = append(updated, step)
+		updated = append(updated, path...)
+		replacePaths.ReplacePaths = append(replacePaths.ReplacePaths, updated)
+	}
+
 	return Change{
 		Before:          wrap(input.Before, nil, input.BeforeExplicit),
 		After:           wrap(input.After, input.Unknown, input.AfterExplicit),
 		Unknown:         wrap(input.Unknown, nil, false),
 		BeforeSensitive: wrap(input.BeforeSensitive, nil, false),
 		AfterSensitive:  wrap(input.AfterSensitive, nil, false),
-		ReplacePaths: func() []interface{} {
-			var ret []interface{}
-			for _, path := range input.ReplacePaths {
-				old := path.([]interface{})
-				var updated []interface{}
-				updated = append(updated, step)
-				updated = append(updated, old...)
-				ret = append(ret, updated)
-			}
-			return ret
-		}(),
+		ReplacePaths:    replacePaths,
 	}
 }

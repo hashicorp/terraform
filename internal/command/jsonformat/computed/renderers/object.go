@@ -34,11 +34,15 @@ type objectRenderer struct {
 
 func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.attributes) == 0 {
-		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	}
 
 	attributeOpts := opts.Clone()
 	attributeOpts.OverrideNullSuffix = renderer.overrideNullSuffix
+	// If the object is in a set then there is a good chance it has been told
+	// to override forces replacement, but we know that the children of objects
+	// never need to do this so we just set this false explicitly regardless.
+	attributeOpts.OverrideForcesReplacement = false
 
 	// We need to keep track of our keys in two ways. The first is the order in
 	// which we will display them. The second is a mapping to their safely
@@ -59,7 +63,7 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 
 	unchangedAttributes := 0
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
 	for _, key := range keys {
 		attribute := renderer.attributes[key]
 

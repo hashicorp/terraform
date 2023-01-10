@@ -45,7 +45,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		current = compareActions(current, next)
 	}
 
-	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.replacePath())
+	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeDiffsForBlockType(blockType *jsonprovider.BlockType) ([]computed.Diff, plans.Action) {

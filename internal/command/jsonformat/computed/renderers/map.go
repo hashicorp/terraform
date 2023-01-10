@@ -34,7 +34,7 @@ type mapRenderer struct {
 
 func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.elements) == 0 {
-		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	}
 
 	unchangedElements := 0
@@ -53,7 +53,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
 	for _, key := range keys {
 		element := renderer.elements[key]
 

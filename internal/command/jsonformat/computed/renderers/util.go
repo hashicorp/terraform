@@ -31,8 +31,8 @@ func nullSuffix(override bool, action plans.Action) string {
 
 // forcesReplacement returns the `# forces replacement` suffix if this change is
 // driving the entire resource to be replaced.
-func forcesReplacement(replace bool) string {
-	if replace {
+func forcesReplacement(replace bool, override bool) string {
+	if replace || override {
 		return " [red]# forces replacement[reset]"
 	}
 	return ""

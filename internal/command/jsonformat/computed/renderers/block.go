@@ -58,7 +58,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	sort.Strings(attributeKeys)
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
 	for _, importantKey := range importantAttributes {
 		if attribute, ok := renderer.attributes[importantKey]; ok {
 			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), format.DiffActionSymbol(attribute.Action), maximumAttributeKeyLen, importantKey, attribute.RenderHuman(indent+1, opts)))

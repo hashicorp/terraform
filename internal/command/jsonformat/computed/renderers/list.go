@@ -32,7 +32,7 @@ type listRenderer struct {
 
 func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.elements) == 0 {
-		return fmt.Sprintf("[]%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+		return fmt.Sprintf("[]%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	}
 
 	elementOpts := opts.Clone()
@@ -49,7 +49,7 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 	renderNext := false
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(diff.Replace)))
+	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
 	for _, element := range renderer.elements {
 		if element.Action == plans.NoOp && !renderNext && !opts.ShowUnchangedChildren {
 			unchangedElements = append(unchangedElements, element)

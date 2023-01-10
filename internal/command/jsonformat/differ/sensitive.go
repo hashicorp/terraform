@@ -56,7 +56,7 @@ func (change Change) checkForSensitive(computedDiff func(value Change) computed.
 
 	inner := computedDiff(value)
 
-	return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action, change.replacePath()), true
+	return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action, change.ReplacePaths.ForcesReplacement()), true
 }
 
 func (change Change) isBeforeSensitive() bool {

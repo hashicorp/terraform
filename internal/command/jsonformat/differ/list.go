@@ -21,7 +21,7 @@ func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.D
 		elements = append(elements, element)
 		current = compareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.List(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -35,7 +35,7 @@ func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jso
 		elements = append(elements, element)
 		current = compareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.NestedList(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
@@ -52,7 +52,7 @@ func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]compu
 func (change Change) processNestedList(process func(value Change)) {
 	sliceValue := change.asSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
-		process(sliceValue.getChild(ix, ix, false))
+		process(sliceValue.getChild(ix, ix))
 	}
 }
 
@@ -68,26 +68,26 @@ func (change Change) processList(isObjType bool, process func(value Change)) {
 		for beforeIx < len(sliceValue.Before) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.Before[beforeIx], lcs[lcsIx])) {
 			isObjectDiff := isObjType && afterIx < len(sliceValue.After) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.After[afterIx], lcs[lcsIx]))
 			if isObjectDiff {
-				process(sliceValue.getChild(beforeIx, afterIx, false))
+				process(sliceValue.getChild(beforeIx, afterIx))
 				beforeIx++
 				afterIx++
 				continue
 			}
 
-			process(sliceValue.getChild(beforeIx, len(sliceValue.After), false))
+			process(sliceValue.getChild(beforeIx, len(sliceValue.After)))
 			beforeIx++
 		}
 
 		// Now, step through all the after values until hit the next item in the
 		// LCS. We are going to say that all of these have been created.
 		for afterIx < len(sliceValue.After) && (lcsIx >= len(lcs) || !reflect.DeepEqual(sliceValue.After[afterIx], lcs[lcsIx])) {
-			process(sliceValue.getChild(len(sliceValue.Before), afterIx, false))
+			process(sliceValue.getChild(len(sliceValue.Before), afterIx))
 			afterIx++
 		}
 
 		// Finally, add the item in common as unchanged.
 		if lcsIx < len(lcs) {
-			process(sliceValue.getChild(beforeIx, afterIx, false))
+			process(sliceValue.getChild(beforeIx, afterIx))
 			beforeIx++
 			afterIx++
 			lcsIx++

@@ -32,13 +32,13 @@ func (renderer primitiveRenderer) RenderHuman(diff computed.Diff, indent int, op
 
 	switch diff.Action {
 	case plans.Create:
-		return fmt.Sprintf("%s%s", afterValue, forcesReplacement(diff.Replace))
+		return fmt.Sprintf("%s%s", afterValue, forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	case plans.Delete:
-		return fmt.Sprintf("%s%s%s", beforeValue, nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+		return fmt.Sprintf("%s%s%s", beforeValue, nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	case plans.NoOp:
-		return fmt.Sprintf("%s%s", beforeValue, forcesReplacement(diff.Replace))
+		return fmt.Sprintf("%s%s", beforeValue, forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	default:
-		return fmt.Sprintf("%s [yellow]->[reset] %s%s", beforeValue, afterValue, forcesReplacement(diff.Replace))
+		return fmt.Sprintf("%s [yellow]->[reset] %s%s", beforeValue, afterValue, forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	}
 }
 

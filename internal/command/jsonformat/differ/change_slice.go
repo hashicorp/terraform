@@ -1,5 +1,7 @@
 package differ
 
+import "github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+
 // ChangeSlice is a Change that represents a Tuple, Set, or List type, and has
 // converted the relevant interfaces into slices for easier access.
 type ChangeSlice struct {
@@ -21,7 +23,7 @@ type ChangeSlice struct {
 	AfterSensitive []interface{}
 
 	// ReplacePaths matches the same attributes in Change exactly.
-	ReplacePaths []interface{}
+	ReplacePaths replace.ForcesReplacement
 }
 
 func (change Change) asSlice() ChangeSlice {
@@ -35,7 +37,7 @@ func (change Change) asSlice() ChangeSlice {
 	}
 }
 
-func (s ChangeSlice) getChild(beforeIx, afterIx int, propagateReplace bool) Change {
+func (s ChangeSlice) getChild(beforeIx, afterIx int) Change {
 	before, beforeExplicit := getFromGenericSlice(s.Before, beforeIx)
 	after, afterExplicit := getFromGenericSlice(s.After, afterIx)
 	unknown, _ := getFromGenericSlice(s.Unknown, afterIx)
@@ -50,34 +52,8 @@ func (s ChangeSlice) getChild(beforeIx, afterIx int, propagateReplace bool) Chan
 		Unknown:         unknown,
 		BeforeSensitive: beforeSensitive,
 		AfterSensitive:  afterSensitive,
-		ReplacePaths:    s.processReplacePaths(beforeIx, propagateReplace),
+		ReplacePaths:    s.ReplacePaths.GetChildWithIndex(beforeIx),
 	}
-}
-
-func (s ChangeSlice) processReplacePaths(ix int, propagateReplace bool) []interface{} {
-	var ret []interface{}
-	for _, p := range s.ReplacePaths {
-		path := p.([]interface{})
-
-		if len(path) == 0 {
-			// This means that the current value is causing a replacement but
-			// not its children. Normally, we'd skip this as we do with maps
-			// but sets display the replace suffix on all their children even
-			// if they themselves are specified, so we want to pass this on.
-			if propagateReplace {
-				ret = append(ret, path)
-			}
-			// If we don't want to propagate the replace we just skip over this
-			// entry. If we do, we've added it to the returned set of paths
-			// already, so we still want to skip over the rest of this.
-			continue
-		}
-
-		if int(path[0].(float64)) == ix {
-			ret = append(ret, path[1:])
-		}
-	}
-	return ret
 }
 
 func getFromGenericSlice(generic []interface{}, ix int) (interface{}, bool) {

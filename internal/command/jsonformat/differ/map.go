@@ -19,7 +19,7 @@ func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Di
 		elements[key] = element
 		current = compareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -33,7 +33,7 @@ func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*json
 		elements[key] = element
 		current = compareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {

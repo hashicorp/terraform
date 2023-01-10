@@ -69,6 +69,14 @@ type RenderHumanOpts struct {
 	// deleted.
 	OverrideNullSuffix bool
 
+	// OverrideForcesReplacement tells the Renderer to display the
+	// `# forces replacement` suffix, even if a diff doesn't have the Replace
+	// field set.
+	//
+	// Some renderers (like the Set renderer) don't display the suffix
+	// themselves but force their child diffs to display it instead.
+	OverrideForcesReplacement bool
+
 	// ShowUnchangedChildren instructs the Renderer to render all children of a
 	// given complex change, instead of hiding unchanged items and compressing
 	// them into a single line.
@@ -79,7 +87,8 @@ type RenderHumanOpts struct {
 // edited without changing the original.
 func (opts RenderHumanOpts) Clone() RenderHumanOpts {
 	return RenderHumanOpts{
-		OverrideNullSuffix:    opts.OverrideNullSuffix,
-		ShowUnchangedChildren: opts.ShowUnchangedChildren,
+		OverrideNullSuffix:        opts.OverrideNullSuffix,
+		ShowUnchangedChildren:     opts.ShowUnchangedChildren,
+		OverrideForcesReplacement: opts.OverrideForcesReplacement,
 	}
 }
