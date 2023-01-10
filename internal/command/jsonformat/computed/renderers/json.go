@@ -2,10 +2,11 @@ package renderers
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/zclconf/go-cty/cty"
 	"strings"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/jsondiff"
 	"github.com/hashicorp/terraform/internal/plans"

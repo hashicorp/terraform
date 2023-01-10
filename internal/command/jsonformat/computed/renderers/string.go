@@ -3,12 +3,14 @@ package renderers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/zclconf/go-cty/cty"
-	"strings"
 )
 
 type evaluatedString struct {
