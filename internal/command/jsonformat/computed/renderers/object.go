@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*objectRenderer)(nil)
+
 func Object(attributes map[string]computed.Diff) computed.DiffRenderer {
 	return &objectRenderer{
 		attributes:         attributes,

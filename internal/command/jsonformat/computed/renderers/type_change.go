@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 )
 
+var _ computed.DiffRenderer = (*typeChangeRenderer)(nil)
+
 func TypeChange(before, after computed.Diff) computed.DiffRenderer {
 	return &typeChangeRenderer{
 		before: before,
