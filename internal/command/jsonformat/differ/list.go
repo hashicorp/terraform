@@ -1,20 +1,24 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
+	"reflect"
+
+
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 )
 
-func (v Value) computeAttributeChangeAsList(elementType cty.Type) change.Change {
-	sliceValue := v.asSlice()
+func (change Change) computeAttributeChangeAsList(elementType cty.Type) computed.Diff {
+	sliceValue := change.asSlice()
 
-	processIndices := func(beforeIx, afterIx int) (change.Change, plans.Action) {
-		element := sliceValue.getChild(beforeIx, afterIx, false).computeChangeForType(elementType)
-		return element, element.Action()
+	processIndices := func(beforeIx, afterIx int) (computed.Diff, plans.Action) {
+		element := sliceValue.getChild(beforeIx, afterIx, false).computeDiffForType(elementType)
+		return element, element.Action
 	}
 
 	isObjType := func(_ interface{}) bool {
@@ -22,36 +26,36 @@ func (v Value) computeAttributeChangeAsList(elementType cty.Type) change.Change 
 	}
 
 	elements, current := collections.TransformSlice(sliceValue.Before, sliceValue.After, processIndices, isObjType)
-	return change.New(change.List(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.List(elements), current, change.replacePath())
 }
 
-func (v Value) computeAttributeChangeAsNestedList(attributes map[string]*jsonprovider.Attribute) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processNestedList(func(value Value) {
-		element := value.computeChangeForNestedAttribute(&jsonprovider.NestedType{
+func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jsonprovider.Attribute) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processNestedList(func(value Change) {
+		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = collections.CompareActions(current, element.Action())
+		current = collections.CompareActions(current, element.Action)
 	})
-	return change.New(change.NestedList(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.NestedList(elements), current, change.replacePath())
 }
 
-func (v Value) computeBlockChangesAsList(block *jsonprovider.Block) ([]change.Change, plans.Action) {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processNestedList(func(value Value) {
-		element := value.ComputeChangeForBlock(block)
+func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processNestedList(func(value Change) {
+		element := value.ComputeDiffForBlock(block)
 		elements = append(elements, element)
-		current = collections.CompareActions(current, element.Action())
+		current = collections.CompareActions(current, element.Action)
 	})
 	return elements, current
 }
 
-func (v Value) processNestedList(process func(value Value)) {
-	sliceValue := v.asSlice()
+func (change Change) processNestedList(process func(value Change)) {
+	sliceValue := change.asSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
 		process(sliceValue.getChild(ix, ix, false))
 	}

@@ -1,51 +1,52 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) computeAttributeChangeAsMap(elementType cty.Type) change.Change {
-	mapValue := v.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (change.Change, plans.Action) {
-		element := mapValue.getChild(key).computeChangeForType(elementType)
-		return element, element.Action()
+func (change Change) computeAttributeChangeAsMap(elementType cty.Type) computed.Diff {
+	mapValue := change.asMap()
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
+		element := mapValue.getChild(key).computeDiffForType(elementType)
+		return element, element.Action
 	})
-	return change.New(change.Map(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (v Value) computeAttributeChangeAsNestedMap(attributes map[string]*jsonprovider.Attribute) change.Change {
-	mapValue := v.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (change.Change, plans.Action) {
-		element := mapValue.getChild(key).computeChangeForNestedAttribute(&jsonprovider.NestedType{
+func (change Change) computeAttributeChangeAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff{
+	mapValue := change.asMap()
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
+		element := mapValue.getChild(key).computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
-		return element, element.Action()
+		return element, element.Action
 	})
-	return change.New(change.Map(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (v Value) computeBlockChangesAsMap(block *jsonprovider.Block) ([]change.Change, plans.Action) {
-	mapValue := v.asMap()
-	elements, action := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (change.Change, plans.Action) {
-		element := mapValue.getChild(key).ComputeChangeForBlock(block)
-		return element, element.Action()
+func (change Change) computeBlockChangesAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+	mapValue := change.asMap()
+	elements, action := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
+		element := mapValue.getChild(key).ComputeDiffForBlock(block)
+		return element, element.Action
 	})
 
-	var ret []change.Change
+	var ret []computed.Diff
 	for _, element := range elements {
 		ret = append(ret, element)
 	}
 	return ret, action
 }
 
-func (v Value) processMap(process func(key string, value Value)) {
-	mapValue := v.asMap()
+func (change Change) processMap(process func(key string, value Change)) {
+	mapValue := change.asMap()
 
 	handled := make(map[string]bool)
 	for key := range mapValue.Before {

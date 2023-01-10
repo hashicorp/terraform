@@ -1,8 +1,8 @@
 package differ
 
-// ValueMap is a Value that represents a Map or an Object type, and has
+// ChangeMap is a Change that represents a Map or an Object type, and has
 // converted the relevant interfaces into maps for easier access.
-type ValueMap struct {
+type ChangeMap struct {
 	// Before contains the value before the proposed change.
 	Before map[string]interface{}
 
@@ -21,29 +21,29 @@ type ValueMap struct {
 	// elements/attributes of this map/object.
 	AfterSensitive map[string]interface{}
 
-	// ReplacePaths matches the same attributes in Value exactly.
+	// ReplacePaths matches the same attributes in Change exactly.
 	ReplacePaths []interface{}
 }
 
-func (v Value) asMap() ValueMap {
-	return ValueMap{
-		Before:          genericToMap(v.Before),
-		After:           genericToMap(v.After),
-		Unknown:         genericToMap(v.Unknown),
-		BeforeSensitive: genericToMap(v.BeforeSensitive),
-		AfterSensitive:  genericToMap(v.AfterSensitive),
-		ReplacePaths:    v.ReplacePaths,
+func (change Change) asMap() ChangeMap {
+	return ChangeMap{
+		Before:          genericToMap(change.Before),
+		After:           genericToMap(change.After),
+		Unknown:         genericToMap(change.Unknown),
+		BeforeSensitive: genericToMap(change.BeforeSensitive),
+		AfterSensitive:  genericToMap(change.AfterSensitive),
+		ReplacePaths:    change.ReplacePaths,
 	}
 }
 
-func (m ValueMap) getChild(key string) Value {
+func (m ChangeMap) getChild(key string) Change {
 	before, beforeExplicit := getFromGenericMap(m.Before, key)
 	after, afterExplicit := getFromGenericMap(m.After, key)
 	unknown, _ := getFromGenericMap(m.Unknown, key)
 	beforeSensitive, _ := getFromGenericMap(m.BeforeSensitive, key)
 	afterSensitive, _ := getFromGenericMap(m.AfterSensitive, key)
 
-	return Value{
+	return Change{
 		BeforeExplicit:  beforeExplicit,
 		AfterExplicit:   afterExplicit,
 		Before:          before,
@@ -55,7 +55,7 @@ func (m ValueMap) getChild(key string) Value {
 	}
 }
 
-func (m ValueMap) processReplacePaths(key string) []interface{} {
+func (m ChangeMap) processReplacePaths(key string) []interface{} {
 	var ret []interface{}
 	for _, p := range m.ReplacePaths {
 		path := p.([]interface{})
