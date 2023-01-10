@@ -2,6 +2,8 @@ package renderers
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -22,8 +24,9 @@ type sensitiveBlockRenderer struct {
 }
 
 func (renderer sensitiveBlockRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	//TODO implement me
-	panic("implement me")
+	cachedLinePrefix := fmt.Sprintf("%s%s ", formatIndent(indent), format.DiffActionSymbol(plans.NoOp))
+	return fmt.Sprintf("{%s\n%s  # At least one attribute in this block is (or was) sensitive,\n%s  # so its contents will not be displayed.\n%s}",
+		forcesReplacement(diff.Replace), cachedLinePrefix, cachedLinePrefix, cachedLinePrefix)
 }
 
 func (renderer sensitiveBlockRenderer) WarningsHuman(diff computed.Diff, indent int) []string {

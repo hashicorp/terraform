@@ -115,8 +115,14 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 		case renderer.blocks.IsSingleBlock(key):
 			renderBlock(renderer.blocks.SingleBlocks[key], "")
 		case renderer.blocks.IsMapBlock(key):
-			for key, block := range renderer.blocks.MapBlocks[key] {
-				renderBlock(block, fmt.Sprintf("%q", key))
+			var keys []string
+			for key := range renderer.blocks.MapBlocks[key] {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+
+			for _, innerKey := range keys {
+				renderBlock(renderer.blocks.MapBlocks[key][innerKey], fmt.Sprintf(" %q", innerKey))
 			}
 		case renderer.blocks.IsSetBlock(key):
 			for _, block := range renderer.blocks.SetBlocks[key] {
