@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*mapRenderer)(nil)
+
 func Map(elements map[string]computed.Diff) computed.DiffRenderer {
 	maximumKeyLen := 0
 	for key := range elements {

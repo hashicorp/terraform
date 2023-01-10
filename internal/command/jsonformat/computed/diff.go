@@ -18,7 +18,7 @@ type Diff struct {
 	// update, etc.).
 	Action plans.Action
 
-	// replace tells the Change that it should add the `# forces replacement`
+	// Replace tells the Change that it should add the `# forces replacement`
 	// suffix.
 	//
 	// Every single change could potentially add this suffix, so we embed it in

@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
 	"github.com/hashicorp/terraform/internal/plans"
 )
+
+var _ computed.DiffRenderer = (*sensitiveRenderer)(nil)
 
 func Sensitive(change computed.Diff, beforeSensitive, afterSensitive bool) computed.DiffRenderer {
 	return &sensitiveRenderer{
