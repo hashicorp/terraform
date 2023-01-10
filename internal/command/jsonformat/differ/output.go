@@ -3,40 +3,43 @@ package differ
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) ComputeChangeForOutput() change.Change {
-	if sensitive, ok := v.checkForSensitiveType(cty.DynamicPseudoType); ok {
+func (change Change) ComputeDiffForOutput() computed.Diff {
+	if sensitive, ok := change.checkForSensitiveType(cty.DynamicPseudoType); ok {
 		return sensitive
 	}
 
-	if computed, ok := v.checkForComputedType(cty.DynamicPseudoType); ok {
-		return computed
+	if unknown, ok := change.checkForUnknownType(cty.DynamicPseudoType); ok {
+		return unknown
 	}
 
-	beforeType := getJsonType(v.Before)
-	afterType := getJsonType(v.After)
+	beforeType := getJsonType(change.Before)
+	afterType := getJsonType(change.After)
 
-	valueToAttribute := func(v Value, jsonType JsonType) change.Change {
-		var res change.Change
+	valueToAttribute := func(v Change, jsonType JsonType) computed.Diff {
+		var res computed.Diff
 
 		switch jsonType {
 		case jsonNull:
-			res = v.computeAttributeChangeAsPrimitive(cty.NilType)
+			res = v.computeAttributeDiffAsPrimitive(cty.NilType)
 		case jsonBool:
-			res = v.computeAttributeChangeAsPrimitive(cty.Bool)
+			res = v.computeAttributeDiffAsPrimitive(cty.Bool)
 		case jsonString:
-			res = v.computeAttributeChangeAsPrimitive(cty.String)
+			res = v.computeAttributeDiffAsPrimitive(cty.String)
 		case jsonNumber:
-			res = v.computeAttributeChangeAsPrimitive(cty.Number)
+			res = v.computeAttributeDiffAsPrimitive(cty.Number)
 		case jsonObject:
-			res = v.computeAttributeChangeAsMap(cty.DynamicPseudoType)
+			res = v.computeAttributeDiffAsMap(cty.DynamicPseudoType)
 		case jsonArray:
-			res = v.computeAttributeChangeAsList(cty.DynamicPseudoType)
+			res = v.computeAttributeDiffAsList(cty.DynamicPseudoType)
 		default:
 			panic("unrecognized json type: " + jsonType)
 		}
@@ -49,21 +52,21 @@ func (v Value) ComputeChangeForOutput() change.Change {
 		if targetType == jsonNull {
 			targetType = afterType
 		}
-		return valueToAttribute(v, targetType)
+		return valueToAttribute(change, targetType)
 	}
 
-	before := valueToAttribute(Value{
-		Before:          v.Before,
-		BeforeSensitive: v.BeforeSensitive,
+	before := valueToAttribute(Change{
+		Before:          change.Before,
+		BeforeSensitive: change.BeforeSensitive,
 	}, beforeType)
 
-	after := valueToAttribute(Value{
-		After:          v.After,
-		AfterSensitive: v.AfterSensitive,
-		Unknown:        v.Unknown,
+	after := valueToAttribute(Change{
+		After:          change.After,
+		AfterSensitive: change.AfterSensitive,
+		Unknown:        change.Unknown,
 	}, afterType)
 
-	return change.New(change.TypeChange(before, after), plans.Update, false)
+	return computed.NewDiff(renderers.TypeChange(before, after), plans.Update, false)
 }
 
 func getJsonType(json interface{}) JsonType {

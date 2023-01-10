@@ -3,18 +3,20 @@ package differ
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 )
 
-func (v Value) computeAttributeChangeAsTuple(elementTypes []cty.Type) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	sliceValue := v.asSlice()
+func (change Change) computeAttributeDiffAsTuple(elementTypes []cty.Type) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	sliceValue := change.asSlice()
 	for ix, elementType := range elementTypes {
 		childValue := sliceValue.getChild(ix, ix, false)
-		element := childValue.computeChangeForType(elementType)
+		element := childValue.computeDiffForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	}
-	return change.New(change.List(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.List(elements), current, change.replacePath())
 }

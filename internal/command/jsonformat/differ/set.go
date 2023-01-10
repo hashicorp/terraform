@@ -3,51 +3,54 @@ package differ
 import (
 	"reflect"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) computeAttributeChangeAsSet(elementType cty.Type) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processSet(false, func(value Value) {
-		element := value.computeChangeForType(elementType)
+func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processSet(false, func(value Change) {
+		element := value.computeDiffForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
-	return change.New(change.Set(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.Set(elements), current, change.replacePath())
 }
 
-func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprovider.Attribute) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processSet(true, func(value Value) {
-		element := value.computeChangeForNestedAttribute(&jsonprovider.NestedType{
+func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*jsonprovider.Attribute) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processSet(true, func(value Change) {
+		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
-	return change.New(change.Set(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.Set(elements), current, change.replacePath())
 }
 
-func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Change, plans.Action) {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processSet(true, func(value Value) {
-		element := value.ComputeChangeForBlock(block)
+func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processSet(true, func(value Change) {
+		element := value.ComputeDiffForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
 	return elements, current
 }
 
-func (v Value) processSet(propagateReplace bool, process func(value Value)) {
-	sliceValue := v.asSlice()
+func (change Change) processSet(propagateReplace bool, process func(value Change)) {
+	sliceValue := change.asSlice()
 
 	foundInBefore := make(map[int]int)
 	foundInAfter := make(map[int]int)

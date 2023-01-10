@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-// Value contains the unmarshalled generic interface{} types that are output by
+// Change contains the unmarshalled generic interface{} types that are output by
 // the JSON functions in the various json packages (such as jsonplan and
 // jsonprovider).
 //
-// A Value can be converted into a change.Change, ready for rendering, with the
-// ComputeChangeForAttribute, ComputeChangeForOutput, and ComputeChangeForBlock
+// A Change can be converted into a computed.Diff, ready for rendering, with the
+// ComputeDiffForAttribute, ComputeDiffForOutput, and ComputeDiffForBlock
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
@@ -28,7 +29,7 @@ import (
 // was sensitive before and isn't sensitive after or vice versa. This would mean
 // the type would need to change between the before and after value. It is in
 // fact just easier to iterate through the values as generic JSON interfaces.
-type Value struct {
+type Change struct {
 
 	// BeforeExplicit matches AfterExplicit except references the Before value.
 	BeforeExplicit bool
@@ -83,8 +84,8 @@ type Value struct {
 
 // ValueFromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
-func ValueFromJsonChange(change jsonplan.Change) Value {
-	return Value{
+func ValueFromJsonChange(change jsonplan.Change) Change {
+	return Change{
 		Before:          unmarshalGeneric(change.Before),
 		After:           unmarshalGeneric(change.After),
 		Unknown:         unmarshalGeneric(change.AfterUnknown),
@@ -94,12 +95,12 @@ func ValueFromJsonChange(change jsonplan.Change) Value {
 	}
 }
 
-func (v Value) asChange(renderer change.Renderer) change.Change {
-	return change.New(renderer, v.calculateChange(), v.replacePath())
+func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
+	return computed.NewDiff(renderer, change.calculateChange(), change.replacePath())
 }
 
-func (v Value) replacePath() bool {
-	for _, path := range v.ReplacePaths {
+func (change Change) replacePath() bool {
+	for _, path := range change.ReplacePaths {
 		if len(path.([]interface{})) == 0 {
 			return true
 		}
@@ -107,15 +108,15 @@ func (v Value) replacePath() bool {
 	return false
 }
 
-func (v Value) calculateChange() plans.Action {
-	if (v.Before == nil && !v.BeforeExplicit) && (v.After != nil || v.AfterExplicit) {
+func (change Change) calculateChange() plans.Action {
+	if (change.Before == nil && !change.BeforeExplicit) && (change.After != nil || change.AfterExplicit) {
 		return plans.Create
 	}
-	if (v.After == nil && !v.AfterExplicit) && (v.Before != nil || v.BeforeExplicit) {
+	if (change.After == nil && !change.AfterExplicit) && (change.Before != nil || change.BeforeExplicit) {
 		return plans.Delete
 	}
 
-	if reflect.DeepEqual(v.Before, v.After) && v.AfterExplicit == v.BeforeExplicit && v.isAfterSensitive() == v.isBeforeSensitive() {
+	if reflect.DeepEqual(change.Before, change.After) && change.AfterExplicit == change.BeforeExplicit && change.isAfterSensitive() == change.isBeforeSensitive() {
 		return plans.NoOp
 	}
 
@@ -132,15 +133,15 @@ func (v Value) calculateChange() plans.Action {
 // values were null, and returns a NoOp for all other cases. It should be used
 // in conjunction with compareActions to calculate the actual action based on
 // the actions of the children.
-func (v Value) getDefaultActionForIteration() plans.Action {
-	if v.Before == nil && v.After == nil {
+func (change Change) getDefaultActionForIteration() plans.Action {
+	if change.Before == nil && change.After == nil {
 		return plans.NoOp
 	}
 
-	if v.Before == nil {
+	if change.Before == nil {
 		return plans.Create
 	}
-	if v.After == nil {
+	if change.After == nil {
 		return plans.Delete
 	}
 	return plans.NoOp

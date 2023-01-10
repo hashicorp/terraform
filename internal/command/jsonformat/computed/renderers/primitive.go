@@ -1,14 +1,18 @@
-package change
+package renderers
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func Primitive(before, after interface{}, ctype cty.Type) Renderer {
+var _ computed.DiffRenderer = (*primitiveRenderer)(nil)
+
+func Primitive(before, after interface{}, ctype cty.Type) computed.DiffRenderer {
 	return &primitiveRenderer{
 		before: before,
 		after:  after,
@@ -24,19 +28,19 @@ type primitiveRenderer struct {
 	ctype  cty.Type
 }
 
-func (renderer primitiveRenderer) Render(change Change, indent int, opts RenderOpts) string {
+func (renderer primitiveRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	beforeValue := renderPrimitiveValue(renderer.before, renderer.ctype)
 	afterValue := renderPrimitiveValue(renderer.after, renderer.ctype)
 
-	switch change.action {
+	switch diff.Action {
 	case plans.Create:
-		return fmt.Sprintf("%s%s", afterValue, change.forcesReplacement())
+		return fmt.Sprintf("%s%s", afterValue, forcesReplacement(diff.Replace))
 	case plans.Delete:
-		return fmt.Sprintf("%s%s%s", beforeValue, change.nullSuffix(opts.overrideNullSuffix), change.forcesReplacement())
+		return fmt.Sprintf("%s%s%s", beforeValue, nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
 	case plans.NoOp:
-		return fmt.Sprintf("%s%s", beforeValue, change.forcesReplacement())
+		return fmt.Sprintf("%s%s", beforeValue, forcesReplacement(diff.Replace))
 	default:
-		return fmt.Sprintf("%s [yellow]->[reset] %s%s", beforeValue, afterValue, change.forcesReplacement())
+		return fmt.Sprintf("%s [yellow]->[reset] %s%s", beforeValue, afterValue, forcesReplacement(diff.Replace))
 	}
 }
 

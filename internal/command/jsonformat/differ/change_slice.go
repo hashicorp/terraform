@@ -1,6 +1,8 @@
 package differ
 
-type ValueSlice struct {
+// ChangeSlice is a Change that represents a Tuple, Set, or List type, and has
+// converted the relevant interfaces into slices for easier access.
+type ChangeSlice struct {
 	// Before contains the value before the proposed change.
 	Before []interface{}
 
@@ -18,29 +20,29 @@ type ValueSlice struct {
 	//this list/set.
 	AfterSensitive []interface{}
 
-	// ReplacePaths matches the same attributes in Value exactly.
+	// ReplacePaths matches the same attributes in Change exactly.
 	ReplacePaths []interface{}
 }
 
-func (v Value) asSlice() ValueSlice {
-	return ValueSlice{
-		Before:          genericToSlice(v.Before),
-		After:           genericToSlice(v.After),
-		Unknown:         genericToSlice(v.Unknown),
-		BeforeSensitive: genericToSlice(v.BeforeSensitive),
-		AfterSensitive:  genericToSlice(v.AfterSensitive),
-		ReplacePaths:    v.ReplacePaths,
+func (change Change) asSlice() ChangeSlice {
+	return ChangeSlice{
+		Before:          genericToSlice(change.Before),
+		After:           genericToSlice(change.After),
+		Unknown:         genericToSlice(change.Unknown),
+		BeforeSensitive: genericToSlice(change.BeforeSensitive),
+		AfterSensitive:  genericToSlice(change.AfterSensitive),
+		ReplacePaths:    change.ReplacePaths,
 	}
 }
 
-func (s ValueSlice) getChild(beforeIx, afterIx int, propagateReplace bool) Value {
+func (s ChangeSlice) getChild(beforeIx, afterIx int, propagateReplace bool) Change {
 	before, beforeExplicit := getFromGenericSlice(s.Before, beforeIx)
 	after, afterExplicit := getFromGenericSlice(s.After, afterIx)
 	unknown, _ := getFromGenericSlice(s.Unknown, afterIx)
 	beforeSensitive, _ := getFromGenericSlice(s.BeforeSensitive, beforeIx)
 	afterSensitive, _ := getFromGenericSlice(s.AfterSensitive, afterIx)
 
-	return Value{
+	return Change{
 		BeforeExplicit:  beforeExplicit,
 		AfterExplicit:   afterExplicit,
 		Before:          before,
@@ -52,7 +54,7 @@ func (s ValueSlice) getChild(beforeIx, afterIx int, propagateReplace bool) Value
 	}
 }
 
-func (s ValueSlice) processReplacePaths(ix int, propagateReplace bool) []interface{} {
+func (s ChangeSlice) processReplacePaths(ix int, propagateReplace bool) []interface{} {
 	var ret []interface{}
 	for _, p := range s.ReplacePaths {
 		path := p.([]interface{})
