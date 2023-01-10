@@ -3,58 +3,61 @@ package differ
 import (
 	"reflect"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) computeAttributeChangeAsList(elementType cty.Type) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processList(elementType.IsObjectType(), func(value Value) {
-		element := value.computeChangeForType(elementType)
+func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processList(elementType.IsObjectType(), func(value Change) {
+		element := value.computeDiffForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
-	return change.New(change.List(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.List(elements), current, change.replacePath())
 }
 
-func (v Value) computeAttributeChangeAsNestedList(attributes map[string]*jsonprovider.Attribute) change.Change {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processNestedList(func(value Value) {
-		element := value.computeChangeForNestedAttribute(&jsonprovider.NestedType{
+func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jsonprovider.Attribute) computed.Diff {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processNestedList(func(value Change) {
+		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
-	return change.New(change.NestedList(elements), current, v.replacePath())
+	return computed.NewDiff(renderers.NestedList(elements), current, change.replacePath())
 }
 
-func (v Value) computeBlockChangesAsList(block *jsonprovider.Block) ([]change.Change, plans.Action) {
-	var elements []change.Change
-	current := v.getDefaultActionForIteration()
-	v.processNestedList(func(value Value) {
-		element := value.ComputeChangeForBlock(block)
+func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+	var elements []computed.Diff
+	current := change.getDefaultActionForIteration()
+	change.processNestedList(func(value Change) {
+		element := value.ComputeDiffForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = compareActions(current, element.Action)
 	})
 	return elements, current
 }
 
-func (v Value) processNestedList(process func(value Value)) {
-	sliceValue := v.asSlice()
+func (change Change) processNestedList(process func(value Change)) {
+	sliceValue := change.asSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
 		process(sliceValue.getChild(ix, ix, false))
 	}
 }
 
-func (v Value) processList(isObjType bool, process func(value Value)) {
-	sliceValue := v.asSlice()
+func (change Change) processList(isObjType bool, process func(value Change)) {
+	sliceValue := change.asSlice()
 
 	lcs := lcs(sliceValue.Before, sliceValue.After)
 	var beforeIx, afterIx, lcsIx int

@@ -3,68 +3,71 @@ package differ
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (v Value) checkForSensitiveType(ctype cty.Type) (change.Change, bool) {
-	return v.checkForSensitive(func(value Value) change.Change {
-		return value.computeChangeForType(ctype)
+func (change Change) checkForSensitiveType(ctype cty.Type) (computed.Diff, bool) {
+	return change.checkForSensitive(func(value Change) computed.Diff {
+		return value.computeDiffForType(ctype)
 	})
 }
 
-func (v Value) checkForSensitiveNestedAttribute(attribute *jsonprovider.NestedType) (change.Change, bool) {
-	return v.checkForSensitive(func(value Value) change.Change {
-		return value.computeChangeForNestedAttribute(attribute)
+func (change Change) checkForSensitiveNestedAttribute(attribute *jsonprovider.NestedType) (computed.Diff, bool) {
+	return change.checkForSensitive(func(value Change) computed.Diff {
+		return value.computeDiffForNestedAttribute(attribute)
 	})
 }
 
-func (v Value) checkForSensitiveBlock(block *jsonprovider.Block) (change.Change, bool) {
-	return v.checkForSensitive(func(value Value) change.Change {
-		return value.ComputeChangeForBlock(block)
+func (change Change) checkForSensitiveBlock(block *jsonprovider.Block) (computed.Diff, bool) {
+	return change.checkForSensitive(func(value Change) computed.Diff {
+		return value.ComputeDiffForBlock(block)
 	})
 }
 
-func (v Value) checkForSensitive(computeChange func(value Value) change.Change) (change.Change, bool) {
-	beforeSensitive := v.isBeforeSensitive()
-	afterSensitive := v.isAfterSensitive()
+func (change Change) checkForSensitive(computedDiff func(value Change) computed.Diff) (computed.Diff, bool) {
+	beforeSensitive := change.isBeforeSensitive()
+	afterSensitive := change.isAfterSensitive()
 
 	if !beforeSensitive && !afterSensitive {
-		return change.Change{}, false
+		return computed.Diff{}, false
 	}
 
 	// We are still going to give the change the contents of the actual change.
-	// So we create a new Value with everything matching the current value,
+	// So we create a new Change with everything matching the current value,
 	// except for the sensitivity.
 	//
 	// The change can choose what to do with this information, in most cases
 	// it will just be ignored in favour of printing `(sensitive value)`.
 
-	value := Value{
-		BeforeExplicit:  v.BeforeExplicit,
-		AfterExplicit:   v.AfterExplicit,
-		Before:          v.Before,
-		After:           v.After,
-		Unknown:         v.Unknown,
+	value := Change{
+		BeforeExplicit:  change.BeforeExplicit,
+		AfterExplicit:   change.AfterExplicit,
+		Before:          change.Before,
+		After:           change.After,
+		Unknown:         change.Unknown,
 		BeforeSensitive: false,
 		AfterSensitive:  false,
-		ReplacePaths:    v.ReplacePaths,
+		ReplacePaths:    change.ReplacePaths,
 	}
 
-	inner := computeChange(value)
+	inner := computedDiff(value)
 
-	return change.New(change.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action(), v.replacePath()), true
+	return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action, change.replacePath()), true
 }
 
-func (v Value) isBeforeSensitive() bool {
-	if sensitive, ok := v.BeforeSensitive.(bool); ok {
+func (change Change) isBeforeSensitive() bool {
+	if sensitive, ok := change.BeforeSensitive.(bool); ok {
 		return sensitive
 	}
 	return false
 }
 
-func (v Value) isAfterSensitive() bool {
-	if sensitive, ok := v.AfterSensitive.(bool); ok {
+func (change Change) isAfterSensitive() bool {
+	if sensitive, ok := change.AfterSensitive.(bool); ok {
 		return sensitive
 	}
 	return false

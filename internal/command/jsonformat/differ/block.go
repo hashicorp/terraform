@@ -1,41 +1,42 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
-	if sensitive, ok := v.checkForSensitiveBlock(block); ok {
+func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Diff {
+	if sensitive, ok := change.checkForSensitiveBlock(block); ok {
 		return sensitive
 	}
 
-	if computed, ok := v.checkForComputedBlock(block); ok {
+	if computed, ok := change.checkForUnknownBlock(block); ok {
 		return computed
 	}
 
-	current := v.getDefaultActionForIteration()
+	current := change.getDefaultActionForIteration()
 
-	blockValue := v.asMap()
+	blockValue := change.asMap()
 
-	attributes := make(map[string]change.Change)
+	attributes := make(map[string]computed.Diff)
 	for key, attr := range block.Attributes {
 		childValue := blockValue.getChild(key)
-		childChange := childValue.ComputeChangeForAttribute(attr)
-		if childChange.Action() == plans.NoOp && childValue.Before == nil && childValue.After == nil {
+		childChange := childValue.ComputeDiffForAttribute(attr)
+		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
 		}
 
 		attributes[key] = childChange
-		current = compareActions(current, childChange.Action())
+		current = compareActions(current, childChange.Action)
 	}
 
-	blocks := make(map[string][]change.Change)
+	blocks := make(map[string][]computed.Diff)
 	for key, blockType := range block.BlockTypes {
 		childValue := blockValue.getChild(key)
-		childChanges, next := childValue.computeChangesForBlockType(blockType)
+		childChanges, next := childValue.computeDiffsForBlockType(blockType)
 		if next == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
@@ -44,20 +45,20 @@ func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
 		current = compareActions(current, next)
 	}
 
-	return change.New(change.Block(attributes, blocks), current, v.replacePath())
+	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.replacePath())
 }
 
-func (v Value) computeChangesForBlockType(blockType *jsonprovider.BlockType) ([]change.Change, plans.Action) {
+func (change Change) computeDiffsForBlockType(blockType *jsonprovider.BlockType) ([]computed.Diff, plans.Action) {
 	switch NestingMode(blockType.NestingMode) {
 	case nestingModeSet:
-		return v.computeBlockChangesAsSet(blockType.Block)
+		return change.computeBlockDiffsAsSet(blockType.Block)
 	case nestingModeList:
-		return v.computeBlockChangesAsList(blockType.Block)
+		return change.computeBlockDiffsAsList(blockType.Block)
 	case nestingModeMap:
-		return v.computeBlockChangesAsMap(blockType.Block)
+		return change.computeBlockDiffsAsMap(blockType.Block)
 	case nestingModeSingle, nestingModeGroup:
-		ch := v.ComputeChangeForBlock(blockType.Block)
-		return []change.Change{ch}, ch.Action()
+		diff := change.ComputeDiffForBlock(blockType.Block)
+		return []computed.Diff{diff}, diff.Action
 	default:
 		panic("unrecognized nesting mode: " + blockType.NestingMode)
 	}
