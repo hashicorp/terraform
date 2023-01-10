@@ -2,11 +2,10 @@ package differ
 
 import (
 	"encoding/json"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )

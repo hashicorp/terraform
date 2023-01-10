@@ -3,14 +3,13 @@ package differ
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"testing"
-
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
