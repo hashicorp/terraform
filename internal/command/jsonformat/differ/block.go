@@ -33,9 +33,16 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		current = compareActions(current, childChange.Action)
 	}
 
-	blocks := make(map[string][]computed.Diff)
+	blocks := renderers.Blocks{
+		SingleBlocks: make(map[string]computed.Diff),
+		ListBlocks:   make(map[string][]computed.Diff),
+		SetBlocks:    make(map[string][]computed.Diff),
+		MapBlocks:    make(map[string]map[string]computed.Diff),
+	}
+
 	for key, blockType := range block.BlockTypes {
 		childValue := blockValue.getChild(key)
+
 		childChanges, next := childValue.computeDiffsForBlockType(blockType)
 		if next == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
