@@ -10,32 +10,29 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeChangeAsMap(elementType cty.Type) computed.Diff {
+func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Diff {
 	mapValue := change.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
-		element := mapValue.getChild(key).computeDiffForType(elementType)
-		return element, element.Action
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+		return mapValue.getChild(key).computeDiffForType(elementType)
 	})
 	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (change Change) computeAttributeChangeAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff{
+func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	mapValue := change.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
-		element := mapValue.getChild(key).computeDiffForNestedAttribute(&jsonprovider.NestedType{
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+		return mapValue.getChild(key).computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
-		return element, element.Action
 	})
 	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (change Change) computeBlockChangesAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
 	mapValue := change.asMap()
-	elements, action := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, plans.Action) {
-		element := mapValue.getChild(key).ComputeDiffForBlock(block)
-		return element, element.Action
+	elements, action := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+		return mapValue.getChild(key).ComputeDiffForBlock(block)
 	})
 
 	var ret []computed.Diff

@@ -1,8 +1,9 @@
 package differ
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 

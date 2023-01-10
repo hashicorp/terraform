@@ -27,6 +27,10 @@ type primitiveRenderer struct {
 }
 
 func (renderer primitiveRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
+	if renderer.ctype == cty.String {
+		return renderer.renderStringDiff(diff, indent, opts)
+	}
+
 	beforeValue := renderPrimitiveValue(renderer.before, renderer.ctype)
 	afterValue := renderPrimitiveValue(renderer.after, renderer.ctype)
 
@@ -43,14 +47,11 @@ func (renderer primitiveRenderer) RenderHuman(diff computed.Diff, indent int, op
 }
 
 func renderPrimitiveValue(value interface{}, t cty.Type) string {
-	switch value.(type) {
-	case nil:
+	if value == nil {
 		return "[dark_gray]null[reset]"
 	}
 
 	switch {
-	case t == cty.String:
-		return fmt.Sprintf("%q", value.(string))
 	case t == cty.Bool:
 		if value.(bool) {
 			return "true"

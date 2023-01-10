@@ -1,24 +1,20 @@
 package differ
 
 import (
-	"reflect"
-
-
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeChangeAsList(elementType cty.Type) computed.Diff {
+func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.Diff {
 	sliceValue := change.asSlice()
 
-	processIndices := func(beforeIx, afterIx int) (computed.Diff, plans.Action) {
-		element := sliceValue.getChild(beforeIx, afterIx, false).computeDiffForType(elementType)
-		return element, element.Action
+	processIndices := func(beforeIx, afterIx int) computed.Diff {
+		return sliceValue.getChild(beforeIx, afterIx, false).computeDiffForType(elementType)
 	}
 
 	isObjType := func(_ interface{}) bool {

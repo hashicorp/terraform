@@ -1,10 +1,13 @@
 package collections
 
-import "github.com/hashicorp/terraform/internal/plans"
+import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/plans"
+)
 
-type ProcessKey[Output any] func(key string) (Output, plans.Action)
+type ProcessKey func(key string) computed.Diff
 
-func TransformMap[Input, Output any](before, after map[string]Input, process ProcessKey[Output]) (map[string]Output, plans.Action) {
+func TransformMap[Input any](before, after map[string]Input, process ProcessKey) (map[string]computed.Diff, plans.Action) {
 	current := plans.NoOp
 	if before != nil && after == nil {
 		current = plans.Delete
@@ -13,11 +16,10 @@ func TransformMap[Input, Output any](before, after map[string]Input, process Pro
 		current = plans.Create
 	}
 
-	elements := make(map[string]Output)
+	elements := make(map[string]computed.Diff)
 	for key := range before {
-		var action plans.Action
-		elements[key], action = process(key)
-		current = CompareActions(current, action)
+		elements[key] = process(key)
+		current = CompareActions(current, elements[key].Action)
 	}
 
 	for key := range after {
@@ -25,9 +27,8 @@ func TransformMap[Input, Output any](before, after map[string]Input, process Pro
 			// Then we've already processed this key in the before.
 			continue
 		}
-		var action plans.Action
-		elements[key], action = process(key)
-		current = CompareActions(current, action)
+		elements[key] = process(key)
+		current = CompareActions(current, elements[key].Action)
 	}
 
 	return elements, current
