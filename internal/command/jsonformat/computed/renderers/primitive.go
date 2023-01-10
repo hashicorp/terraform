@@ -3,7 +3,6 @@ package renderers
 import (
 	"fmt"
 
-
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
