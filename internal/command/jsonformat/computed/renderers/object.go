@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
 )
+
+var _ computed.DiffRenderer = (*objectRenderer)(nil)
 
 func Object(attributes map[string]computed.Diff) computed.DiffRenderer {
 	return &objectRenderer{

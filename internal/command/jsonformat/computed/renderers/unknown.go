@@ -8,6 +8,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*unknownRenderer)(nil)
+
 func Unknown(before computed.Diff) computed.DiffRenderer {
 	return &unknownRenderer{
 		before: before,

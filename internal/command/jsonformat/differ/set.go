@@ -3,6 +3,7 @@ package differ
 import (
 	"reflect"
 
+
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
