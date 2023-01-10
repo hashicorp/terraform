@@ -1,7 +1,3 @@
-**Note: the implementations discussed here are incomplete, check the chain of
-PRs in the various PRs modifying this package to see each new thing being
-implemented.**
-
 # jsonformat
 
 This package contains functionality around formatting and displaying the JSON
@@ -24,7 +20,7 @@ following sections.
 
 There are two subpackages within the `jsonformat` renderer package. The `differ`
 package compares the `before` and `after` values of the given plan and produces
-`Change` objects from the `change` package.
+`Diff` objects from the `computed` package.
 
 This approach is aimed at ensuring the process by which the plan difference is
 calculated is separated from the rendering itself. In this way it should be 
@@ -33,20 +29,20 @@ concerned with the complex diff calculations.
 
 #### The `differ` package
 
-The `differ` package operates on `Value` objects. These are produced from
+The `differ` package operates on `Change` objects. These are produced from
 `jsonplan.Change` objects (which are produced by the `terraform show` command).
 Each `jsonplan.Change` object represents a single resource within the overall
 Terraform configuration.
 
-The differ package will iterate through the `Value` objects and produce a single
-`Change` that represents a processed summary of the changes described by the
-`Value`. You will see that the produced changes are nested so a change to a list
-attribute will contain a slice of changes, this is discussed in the 
-"[The change package](#the-change-package)" section.
+The `differ` package will iterate through the `Change` objects and produce a 
+single `Diff` that represents a processed summary of the changes described by 
+the `Change`. You will see that the produced changes are nested so a change to a
+list attribute will contain a slice of changes, this is discussed in the 
+"[The computed package](#the-computed-package)" section.
 
-##### The `Value` object
+##### The `Change` object
 
-The `Value` objects contains raw Golang representations of JSON objects (generic
+The `Change` objects contain raw Golang representations of JSON objects (generic
 `interface{}` fields). These are produced by parsing the `json.RawMessage` 
 objects within the provided changes.
 
@@ -59,15 +55,15 @@ The fields the differ cares about from the provided changes are:
 - `AfterSensitive`: If the value is sensitive after the change.
 - `ReplacePaths`: If the change is causing the overall resource to be replaced.
 
-In addition, the values define two additional meta fields that they set and
+In addition, the changes define two additional meta fields that they set and
 manipulate internally:
 
 - `BeforeExplicit`: If the value in `Before` is explicit or an implied result due to a change elsewhere.
 - `AfterExplicit`: If the value in `After` is explicit or an implied result due to a change elsewhere.
 
 The actual concrete type of each of the generic fields is determined by the 
-overall schema. The values are also recursive, this means as we iterate through 
-the `Value` we create relevant child values based on the schema for the given 
+overall schema. The changes are also recursive, this means as we iterate through 
+the `Change` we create relevant child values based on the schema for the given 
 resource.
 
 For example, the initial change is always a `block` type which means the 
@@ -78,7 +74,7 @@ mapping each attribute and block to their relevant values. The
 unknown and sensitive status, or it could simply be a `boolean` which generally
 means the entire block and all children are sensitive or computed.
 
-In total, a `Value` can represent the following types:
+In total, a `Change` can represent the following types:
 
 - `Attribute`
   - `map`: Values will typically be `map[string]interface{}`.
@@ -129,13 +125,13 @@ and after value. It is in fact just easier to iterate through the values as
 generic JSON interfaces, and obfuscate the sensitive values as we never need to 
 print them anyway.
 
-##### Iterating through values
+##### Iterating through changes
 
-The `differ` package will recursively create child `Value` objects for the 
+The `differ` package will recursively create child `Change` objects for the 
 complex objects.
 
-There are two key subtypes of a `Value`: `SliceValue` and `MapValue`. 
-`SliceValue` values are used by list, set, and tuple attributes. `MapValue` 
+There are two key subtypes of a `Change`: `SliceChange` and `MapChange`. 
+`SliceChange` values are used by list, set, and tuple attributes. `MapChange` 
 values are used by map and object attributes, and blocks. For what it is worth 
 outputs and dynamic types can end up using both, but they're kind of special as 
 the processing for dynamic types works out the type from the JSON struct and 
@@ -143,43 +139,43 @@ then just passes it into the relevant real types for actual processing.
 
 The two subtypes implement `GetChild` functions that retrieve a child change
 for a relevant index (`int` for slice, `string` for map). These functions build
-an entirely populated `Value` object, and the package will then recursively 
+an entirely populated `Change` object, and the package will then recursively 
 compute the change for the child (and all other children). When a complex change
 has all the children changes, it then passes that into the relevant complex 
-change type.
+diff type.
 
-#### The `change` package
+#### The `computed` package
 
-A `Change` should contain all the relevant information it needs to render 
+A computed `Diff` should contain all the relevant information it needs to render 
 itself.
 
-The `Change` itself contains the action (eg. `Create`, `Delete`, `Update`), and
+The `Diff` itself contains the action (eg. `Create`, `Delete`, `Update`), and
 whether this change is causing the overall resource to be replaced (read from 
 the `ReplacePaths` field discussed in the previous section). The actual content 
-of the changes is passed directly into the internal renderer field. The internal
+of the diffs is passed directly into the internal renderer field. The internal
 renderer is then an implementation that knows the actual content of the changes
 and what they represent.
 
-For example to instantiate a change resulting from updating a list of 
+For example to instantiate a diff resulting from updating a list of 
 primitives:
 
 ```go
-    listChange := change.New(change.List([]change.Change{
-        change.New(change.Primitive(0.0, 0.0, cty.Number), plans.NoOp, false),
-        change.New(change.Primitive(1.0, nil, cty.Number), plans.Delete, false),
-        change.New(change.Primitive(nil, 4.0, cty.Number), plans.Create, false), 
-        change.New(change.Primitive(2.0, 2.0, cty.Number), plans.NoOp, false)
+    listDiff := computed.NewDiff(renderers.List([]computed.Diff{
+        computed.NewDiff(renderers.Primitive(0.0, 0.0, cty.Number), plans.NoOp, false),
+        computed.NewDiff(renderers.Primitive(1.0, nil, cty.Number), plans.Delete, false),
+        computed.NewDiff(renderers.Primitive(nil, 4.0, cty.Number), plans.Create, false),
+        computed.NewDiff(renderers.Primitive(2.0, 2.0, cty.Number), plans.NoOp, false)
     }, plans.Update, false))
 ```
 
-##### The `Render` function
+##### The `RenderHuman` function
 
 Currently, there is only one way to render a change, and it is implemented via
-the `Render` function. In the future, there may be additional rendering 
-capabilities, but for now the `Render` function just passes the call directly 
-onto the internal renderer.
+the `RenderHuman` function. In the future, there may be additional rendering 
+capabilities, but for now the `RenderHuman` function just passes the call 
+directly onto the internal renderer.
 
-Rendering the change with: `listChange.Render(0, RenderOpts{})` would
+Rendering the above diff with: `listDiff.RenderHuman(0, RenderOpts{})` would
 produce:
 
 ```text
@@ -193,7 +189,7 @@ produce:
 
 Note, the render function itself doesn't print out metadata about its own change
 (eg. there's no `~` symbol in front of the opening bracket). The expectation is
-that parent changes control how child changes are rendered (so are responsible)
+that parent changes control how child changes are rendered, so are responsible
 for deciding on their opening indentation, whether they have a key (as in maps, 
 objects, and blocks), or how the action symbol is displayed.
 
@@ -201,13 +197,13 @@ In the above example, the primitive renderer would print out only `1 -> null`
 while the surrounding list renderer is providing the indentation, the symbol and
 the line ending commas.
 
-##### Implementing new change types
+##### Implementing new diff types
 
-To implement a new change type, you must implement the internal Renderer 
+To implement a new diff type, you must implement the internal Renderer 
 functionality. To do this you create a new implementation of the 
-`change/renderer.go`, make sure it accepts all the data you need, and implement
-the `Render` function (and any other additional render functions that may 
-exist).
+`computed.DiffRenderer`, make sure it accepts all the data you need, and 
+implement the `RenderHuman` function (and any other additional render functions 
+that may exist).
 
 Some changes publish warnings that should be displayed alongside them. 
 If your new change has no warnings you can use the `NoWarningsRenderer` to avoid
@@ -219,12 +215,13 @@ will be added. You should implement all of these with your new change type.
 ##### Implementing new renderer types for changes
 
 As of January 2023, there is only a single type of renderer (the human-readable)
-renderer. As such, the `Change` structure provides a single `Render` function.
+renderer. As such, the `Diff` structure provides a single `RenderHuman` 
+function.
 
 To implement a new renderer:
 
-1. Add a new render function onto the internal `Renderer` interface.
-2. Add a new render function onto the Change struct that passes the call onto
+1. Add a new render function onto the internal `DiffRenderer` interface.
+2. Add a new render function onto the `Diff` struct that passes the call onto
    the internal renderer.
 3. Implement the new function on all the existing internal interfaces.
 
@@ -238,9 +235,9 @@ In the future, we may wish to add in different kinds of renderer, such as a
 compact renderer, or an interactive renderer. To do this, you'll need to modify
 the Renderer struct or create a new type of Renderer.
 
-The logic around creating the `Change` structures will be shared (ie. calling 
+The logic around creating the `Diff` structures will be shared (ie. calling 
 into the differ package should be consistent across renderers). But when it 
-comes to rendering the changes, I'd expect the `Change` structures to implement
+comes to rendering the changes, I'd expect the `Diff` structures to implement
 additional functions that allow them to internally organise the data as required
 and return a relevant object. For the existing human-readable renderer that is 
 simply a string, but for a future interactive renderer it might be a model from
