@@ -41,19 +41,3 @@ func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) ([]comput
 	}
 	return ret, action
 }
-
-func (change Change) processMap(process func(key string, value Change)) {
-	mapValue := change.asMap()
-
-	handled := make(map[string]bool)
-	for key := range mapValue.Before {
-		handled[key] = true
-		process(key, mapValue.getChild(key))
-	}
-	for key := range mapValue.After {
-		if _, ok := handled[key]; ok {
-			continue
-		}
-		process(key, mapValue.getChild(key))
-	}
-}
