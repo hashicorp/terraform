@@ -2,6 +2,7 @@ package differ
 
 import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -29,7 +30,7 @@ func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
 		}
 
 		attributes[key] = childChange
-		current = compareActions(current, childChange.Action())
+		current = collections.CompareActions(current, childChange.Action())
 	}
 
 	blocks := make(map[string][]change.Change)
@@ -41,7 +42,7 @@ func (v Value) ComputeChangeForBlock(block *jsonprovider.Block) change.Change {
 			continue
 		}
 		blocks[key] = childChanges
-		current = compareActions(current, next)
+		current = collections.CompareActions(current, next)
 	}
 
 	return change.New(change.Block(attributes, blocks), current, v.replacePath())

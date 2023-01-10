@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"reflect"
 
 	"github.com/zclconf/go-cty/cty"
@@ -16,7 +17,7 @@ func (v Value) computeAttributeChangeAsSet(elementType cty.Type) change.Change {
 	v.processSet(false, func(value Value) {
 		element := value.computeChangeForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = collections.CompareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -30,7 +31,7 @@ func (v Value) computeAttributeChangeAsNestedSet(attributes map[string]*jsonprov
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = collections.CompareActions(current, element.Action())
 	})
 	return change.New(change.Set(elements), current, v.replacePath())
 }
@@ -41,7 +42,7 @@ func (v Value) computeBlockChangesAsSet(block *jsonprovider.Block) ([]change.Cha
 	v.processSet(true, func(value Value) {
 		element := value.ComputeChangeForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action())
+		current = collections.CompareActions(current, element.Action())
 	})
 	return elements, current
 }

@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/change"
@@ -54,7 +55,7 @@ func processObject[T any](v Value, attributes map[string]T, computeChange func(V
 			continue
 		}
 		attributeChanges[key] = attributeChange
-		currentAction = compareActions(currentAction, attributeChange.Action())
+		currentAction = collections.CompareActions(currentAction, attributeChange.Action())
 	}
 
 	return attributeChanges, currentAction
