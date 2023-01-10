@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*primitiveRenderer)(nil)
+
 func Primitive(before, after interface{}, ctype cty.Type) computed.DiffRenderer {
 	return &primitiveRenderer{
 		before: before,

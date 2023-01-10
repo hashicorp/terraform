@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*setRenderer)(nil)
+
 func Set(elements []computed.Diff) computed.DiffRenderer {
 	return &setRenderer{
 		elements: elements,

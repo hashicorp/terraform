@@ -12,6 +12,8 @@ import (
 )
 
 var (
+	_ computed.DiffRenderer = (*blockRenderer)(nil)
+
 	importantAttributes = []string{
 		"id",
 	}

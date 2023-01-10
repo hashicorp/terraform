@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
+var _ computed.DiffRenderer = (*listRenderer)(nil)
+
 func List(elements []computed.Diff) computed.DiffRenderer {
 	return &listRenderer{
 		displayContext: true,
