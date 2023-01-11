@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -412,6 +413,24 @@ func (b *Cloud) discover() (*url.URL, error) {
 		return nil, err
 	}
 
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			log.Printf("[DEBUG] Service discovery redirected to %s", req.URL)
+			if len(via) > 3 {
+				return errors.New("too many redirects") // this error will never actually be seen
+			}
+			return nil
+		},
+	}
+	retryableClient := retryablehttp.NewClient()
+	retryableClient.HTTPClient = client
+	retryableClient.RetryMax = 5
+	retryableClient.CheckRetry = retryablehttp.DeadlineExceededErrorPropogatedRetryPolicy
+
+	b.services.Transport = retryableClient.HTTPClient.Transport
+
+	log.Printf("[DEBUG] Before calling Discover...")
 	host, err := b.services.Discover(hostname)
 	if err != nil {
 		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
