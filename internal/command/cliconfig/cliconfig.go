@@ -38,6 +38,17 @@ type Config struct {
 	// avoid repeatedly re-downloading over the Internet.
 	PluginCacheDir string `hcl:"plugin_cache_dir"`
 
+	// PluginCacheMayBreakDependencyLockFile is an interim accommodation for
+	// those who wish to use the Plugin Cache Dir even in cases where doing so
+	// will cause the dependency lock file to be incomplete.
+	//
+	// This is likely to become a silent no-op in future Terraform versions but
+	// is here in recognition of the fact that the dependency lock file is not
+	// yet a good fit for all Terraform workflows and folks in that category
+	// would prefer to have the plugin cache dir's behavior to take priority
+	// over the requirements of the dependency lock file.
+	PluginCacheMayBreakDependencyLockFile bool `hcl:"plugin_cache_may_break_dependency_lock_file"`
+
 	Hosts map[string]*ConfigHost `hcl:"host"`
 
 	Credentials        map[string]map[string]interface{}   `hcl:"credentials"`
