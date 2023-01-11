@@ -36,17 +36,17 @@ func newProviders() *providers {
 //
 // This is a format that can be read by the structured plan renderer.
 func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
-	providers := newProviders()
-
+	schemas := make(map[string]*Provider, len(s.Providers))
 	for k, v := range s.Providers {
-		providers.Schemas[k.String()] = marshalProvider(v)
+		schemas[k.String()] = marshalProvider(v)
 	}
-
-	return providers.Schemas
+	return schemas
 }
 
 func Marshal(s *terraform.Schemas) ([]byte, error) {
-	ret, err := json.Marshal(MarshalForRenderer(s))
+	providers := newProviders()
+	providers.Schemas = MarshalForRenderer(s)
+	ret, err := json.Marshal(providers)
 	return ret, err
 }
 

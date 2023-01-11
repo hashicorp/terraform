@@ -124,12 +124,12 @@ func (r Renderer) RenderHumanPlan(plan Plan) {
 		}
 	}
 
-	fmt.Fprintln(
+	fmt.Fprintf(
 		r.Streams.Stdout.File,
-		fmt.Sprintf("\nPlan: %d to add, %d to change, %d to destroy.",
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-			counts[plans.Update],
-			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]))
+		"\nPlan: %d to add, %d to change, %d to destroy.\n",
+		counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+		counts[plans.Update],
+		counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
 
 	diff := r.renderHumanDiffOutputs(diffs.outputs)
 	if len(diff) > 0 {
