@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * A variable only referenced by an output precondition error_message may be missing during evaluation [GH-32464]
+* Removing a NestingSingle block from configuration results in an invalid plan [GH-32463]
 
 ## 1.3.7 (January 04, 2023)
 
