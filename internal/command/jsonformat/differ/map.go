@@ -29,15 +29,9 @@ func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*json
 	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
 	mapValue := change.asMap()
-	elements, action := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+	return collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
 		return mapValue.getChild(key).ComputeDiffForBlock(block)
 	})
-
-	var ret []computed.Diff
-	for _, element := range elements {
-		ret = append(ret, element)
-	}
-	return ret, action
 }
