@@ -5,6 +5,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -17,7 +18,7 @@ func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Di
 	change.processSet(func(value Change) {
 		element := value.computeDiffForType(elementType)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action)
+		current = collections.CompareActions(current, element.Action)
 	})
 	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.ForcesReplacement())
 }
@@ -31,7 +32,7 @@ func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*json
 			NestingMode: "single",
 		})
 		elements = append(elements, element)
-		current = compareActions(current, element.Action)
+		current = collections.CompareActions(current, element.Action)
 	})
 	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.ForcesReplacement())
 }
@@ -46,7 +47,7 @@ func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]comput
 	change.processSet(func(value Change) {
 		element := value.ComputeDiffForBlock(block)
 		elements = append(elements, element)
-		current = compareActions(current, element.Action)
+		current = collections.CompareActions(current, element.Action)
 	})
 	return elements, current
 }

@@ -28,7 +28,7 @@ func importantAttribute(attr string) bool {
 	return false
 }
 
-func Block(attributes map[string]computed.Diff, blocks map[string][]computed.Diff) computed.DiffRenderer {
+func Block(attributes map[string]computed.Diff, blocks Blocks) computed.DiffRenderer {
 	return &blockRenderer{
 		attributes: attributes,
 		blocks:     blocks,
@@ -39,7 +39,7 @@ type blockRenderer struct {
 	NoWarningsRenderer
 
 	attributes map[string]computed.Diff
-	blocks     map[string][]computed.Diff
+	blocks     Blocks
 }
 
 func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
@@ -87,31 +87,51 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("attribute", unchangedAttributes)))
 	}
 
-	var blockKeys []string
-	for key := range renderer.blocks {
-		blockKeys = append(blockKeys, key)
-	}
-	sort.Strings(blockKeys)
-
+	blockKeys := renderer.blocks.GetAllKeys()
 	for _, key := range blockKeys {
-		blocks := renderer.blocks[key]
 
 		foundChangedBlock := false
-		for _, block := range blocks {
-			if block.Action == plans.NoOp && !opts.ShowUnchangedChildren {
+		renderBlock := func(diff computed.Diff, mapKey string) {
+			if diff.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 				unchangedBlocks++
-				continue
+				return
 			}
 
 			if !foundChangedBlock && len(renderer.attributes) > 0 {
+				// We always want to put an extra new line between the
+				// attributes and blocks, and between groups of blocks.
 				buf.WriteString("\n")
 				foundChangedBlock = true
 			}
 
-			for _, warning := range block.WarningsHuman(indent + 1) {
+			for _, warning := range diff.WarningsHuman(indent + 1) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %s %s\n", formatIndent(indent+1), format.DiffActionSymbol(block.Action), ensureValidAttributeName(key), block.RenderHuman(indent+1, opts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(diff.Action), ensureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, opts)))
+
+		}
+
+		switch {
+		case renderer.blocks.IsSingleBlock(key):
+			renderBlock(renderer.blocks.SingleBlocks[key], "")
+		case renderer.blocks.IsMapBlock(key):
+			var keys []string
+			for key := range renderer.blocks.MapBlocks[key] {
+				keys = append(keys, key)
+			}
+			sort.Strings(keys)
+
+			for _, innerKey := range keys {
+				renderBlock(renderer.blocks.MapBlocks[key][innerKey], fmt.Sprintf(" %q", innerKey))
+			}
+		case renderer.blocks.IsSetBlock(key):
+			for _, block := range renderer.blocks.SetBlocks[key] {
+				renderBlock(block, "")
+			}
+		case renderer.blocks.IsListBlock(key):
+			for _, block := range renderer.blocks.ListBlocks[key] {
+				renderBlock(block, "")
+			}
 		}
 	}
 

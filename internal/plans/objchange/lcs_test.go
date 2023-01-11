@@ -107,7 +107,7 @@ func TestLongestCommonSubsequence(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%#v,%#v", test.xs, test.ys), func(t *testing.T) {
-			got := LongestCommonSubsequence(test.xs, test.ys)
+			got := LongestCommonSubsequence(test.xs, test.ys, ValueEqual)
 
 			wrong := func() {
 				t.Fatalf(

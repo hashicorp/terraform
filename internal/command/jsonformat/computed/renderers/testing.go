@@ -180,7 +180,14 @@ func validateSliceType(t *testing.T, actual []computed.Diff, expected []Validate
 	}
 }
 
-func ValidateBlock(attributes map[string]ValidateDiffFunction, blocks map[string][]ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateBlock(
+	attributes map[string]ValidateDiffFunction,
+	singleBlocks map[string]ValidateDiffFunction,
+	listBlocks map[string][]ValidateDiffFunction,
+	mapBlocks map[string]map[string]ValidateDiffFunction,
+	setBlocks map[string][]ValidateDiffFunction,
+	action plans.Action,
+	replace bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
 		validateDiff(t, diff, action, replace)
 
@@ -191,7 +198,10 @@ func ValidateBlock(attributes map[string]ValidateDiffFunction, blocks map[string
 		}
 
 		validateKeys(t, block.attributes, attributes)
-		validateKeys(t, block.blocks, blocks)
+		validateKeys(t, block.blocks.SingleBlocks, singleBlocks)
+		validateKeys(t, block.blocks.ListBlocks, listBlocks)
+		validateKeys(t, block.blocks.MapBlocks, mapBlocks)
+		validateKeys(t, block.blocks.SetBlocks, setBlocks)
 
 		for key, expected := range attributes {
 			if actual, ok := block.attributes[key]; ok {
@@ -199,14 +209,50 @@ func ValidateBlock(attributes map[string]ValidateDiffFunction, blocks map[string
 			}
 		}
 
-		for key, expected := range blocks {
-			if actual, ok := block.blocks[key]; ok {
+		for key, expected := range singleBlocks {
+			expected(t, block.blocks.SingleBlocks[key])
+		}
+
+		for key, expected := range listBlocks {
+			if actual, ok := block.blocks.ListBlocks[key]; ok {
 				if len(actual) != len(expected) {
 					t.Errorf("expected %d blocks within %s but found %d elements", len(expected), key, len(actual))
+				}
+				for ix := range expected {
+					expected[ix](t, actual[ix])
+				}
+			}
+		}
 
-					for ix := range expected {
-						expected[ix](t, actual[ix])
-					}
+		for key, expected := range setBlocks {
+			if actual, ok := block.blocks.SetBlocks[key]; ok {
+				if len(actual) != len(expected) {
+					t.Errorf("expected %d blocks within %s but found %d elements", len(expected), key, len(actual))
+				}
+				for ix := range expected {
+					expected[ix](t, actual[ix])
+				}
+			}
+		}
+
+		for key, expected := range setBlocks {
+			if actual, ok := block.blocks.SetBlocks[key]; ok {
+				if len(actual) != len(expected) {
+					t.Errorf("expected %d blocks within %s but found %d elements", len(expected), key, len(actual))
+				}
+				for ix := range expected {
+					expected[ix](t, actual[ix])
+				}
+			}
+		}
+
+		for key, expected := range mapBlocks {
+			if actual, ok := block.blocks.MapBlocks[key]; ok {
+				if len(actual) != len(expected) {
+					t.Errorf("expected %d blocks within %s but found %d elements", len(expected), key, len(actual))
+				}
+				for dKey := range expected {
+					expected[dKey](t, actual[dKey])
 				}
 			}
 		}
