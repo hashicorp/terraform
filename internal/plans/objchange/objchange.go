@@ -69,10 +69,15 @@ func PlannedDataResourceObject(schema *configschema.Block, config cty.Value) cty
 
 func proposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value {
 	if config.IsNull() || !config.IsKnown() {
-		// This is a weird situation, but we'll allow it anyway to free
-		// callers from needing to specifically check for these cases.
+		// A block config should never be null at this point. The only nullable
+		// block type is NestingSingle, which will return early before coming
+		// back here. We'll allow the null here anyway to free callers from
+		// needing to specifically check for these cases, and any mismatch will
+		// be caught in validation, so just take the prior value rather than
+		// the invalid null.
 		return prior
 	}
+
 	if (!prior.Type().IsObjectType()) || (!config.Type().IsObjectType()) {
 		panic("ProposedNew only supports object-typed values")
 	}
@@ -106,7 +111,17 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 
 	switch schema.Nesting {
 
-	case configschema.NestingSingle, configschema.NestingGroup:
+	case configschema.NestingSingle:
+		// A NestingSingle configuration block value can be null, and since it
+		// cannot be computed we can always take the configuration value.
+		if config.IsNull() {
+			newV = config
+			break
+		}
+
+		// Otherwise use the same assignment rules as NestingGroup
+		fallthrough
+	case configschema.NestingGroup:
 		newV = ProposedNew(&schema.Block, prior, config)
 
 	case configschema.NestingList:
