@@ -47,7 +47,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
 			diffs, action := childValue.computeBlockDiffsAsSet(blockType.Block)
-			if action == plans.NoOp && childValue.Before == childValue.After {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
 			}
@@ -57,7 +57,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			current = collections.CompareActions(current, action)
 		case nestingModeList:
 			diffs, action := childValue.computeBlockDiffsAsList(blockType.Block)
-			if action == plans.NoOp && childValue.Before == childValue.After {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
 			}
@@ -67,7 +67,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			current = collections.CompareActions(current, action)
 		case nestingModeMap:
 			diffs, action := childValue.computeBlockDiffsAsMap(blockType.Block)
-			if action == plans.NoOp && childValue.Before == childValue.After {
+			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
 			}
@@ -77,7 +77,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			current = collections.CompareActions(current, action)
 		case nestingModeSingle, nestingModeGroup:
 			diff := childValue.ComputeDiffForBlock(blockType.Block)
-			if diff.Action == plans.NoOp && childValue.Before == childValue.After {
+			if diff.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
 			}

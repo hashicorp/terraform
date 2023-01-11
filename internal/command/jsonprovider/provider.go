@@ -31,14 +31,22 @@ func newProviders() *providers {
 	}
 }
 
-func Marshal(s *terraform.Schemas) ([]byte, error) {
+// MarshalForRenderer converts the provided internation representation of the
+// schema into the public structured JSON versions.
+//
+// This is a format that can be read by the structured plan renderer.
+func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
 	providers := newProviders()
 
 	for k, v := range s.Providers {
 		providers.Schemas[k.String()] = marshalProvider(v)
 	}
 
-	ret, err := json.Marshal(providers)
+	return providers.Schemas
+}
+
+func Marshal(s *terraform.Schemas) ([]byte, error) {
+	ret, err := json.Marshal(MarshalForRenderer(s))
 	return ret, err
 }
 

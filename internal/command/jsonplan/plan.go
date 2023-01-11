@@ -174,7 +174,7 @@ func Marshal(
 				}
 			}
 		}
-		output.ResourceDrift, err = output.marshalResourceChanges(driftedResources, schemas)
+		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
 		}
@@ -186,15 +186,14 @@ func Marshal(
 
 	// output.ResourceChanges
 	if p.Changes != nil {
-		output.ResourceChanges, err = output.marshalResourceChanges(p.Changes.Resources, schemas)
+		output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling resource changes: %s", err)
 		}
 	}
 
 	// output.OutputChanges
-	err = output.marshalOutputChanges(p.Changes)
-	if err != nil {
+	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
 	}
 
@@ -281,7 +280,13 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 	return nil
 }
 
-func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
+// MarshalResourceChanges converts the provided internal representation of
+// ResourceInstanceChangeSrc objects into the public structured JSON changes.
+//
+// This function is referenced directly from the structured renderer tests, to
+// ensure parity between the renderers. It probably shouldn't be used anywhere
+// else.
+func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
 	var ret []ResourceChange
 
 	for _, rc := range resources {
@@ -453,17 +458,23 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 	return ret, nil
 }
 
-func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
+// MarshalOutputChanges converts the provided internal representation of
+// Changes objects into the .
+//
+// This function is referenced directly from the structured renderer tests, to
+// ensure parity between the renderers. It probably shouldn't be used anywhere
+// else.
+func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
-		return nil
+		return nil, nil
 	}
 
-	p.OutputChanges = make(map[string]Change, len(changes.Outputs))
+	outputChanges := make(map[string]Change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
 		changeV, err := oc.Decode()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// We drop the marks from the change, as decoding is only an
 		// intermediate step to re-encode the values as json
@@ -476,14 +487,14 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
 				if err != nil {
-					return err
+					return nil, err
 				}
 				afterUnknown = cty.False
 			} else {
@@ -493,7 +504,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 				} else {
 					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
 					if err != nil {
-						return err
+						return nil, err
 					}
 				}
 				afterUnknown = unknownAsBool(changeV.After)
@@ -510,7 +521,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		}
 		sensitive, err := ctyjson.Marshal(outputSensitive, outputSensitive.Type())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
@@ -524,10 +535,10 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 			AfterSensitive:  json.RawMessage(sensitive),
 		}
 
-		p.OutputChanges[oc.Addr.OutputValue.Name] = c
+		outputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
-	return nil
+	return outputChanges, nil
 }
 
 func (p *plan) marshalCheckResults(results *states.CheckResults) error {

@@ -128,17 +128,21 @@ func (r Renderer) RenderHumanPlan(plan Plan) {
 			counts[plans.Update],
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete]))
 
-	willPrintOutputChanges := false
-	for key, output := range diffs.outputs {
-		if output.Action != plans.NoOp {
-			if !willPrintOutputChanges {
-				fmt.Fprint(r.Streams.Stdout.File, "\nChanges to Outputs:\n")
-			}
-			willPrintOutputChanges = true
+	diff := r.renderHumanDiffOutputs(diffs.outputs)
+	if len(diff) > 0 {
+		fmt.Fprint(r.Streams.Stdout.File, "\nChanges to Outputs:\n")
+		fmt.Fprintln(r.Streams.Stdout.File, r.Colorize.Color(diff))
+	}
+}
 
-			fmt.Fprintln(r.Streams.Stdout.File, r.Colorize.Color(fmt.Sprintf("%s %s = %s", format.DiffActionSymbol(output.Action), key, output.RenderHuman(0, computed.RenderHumanOpts{}))))
+func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) string {
+	var buf bytes.Buffer
+	for key, output := range outputs {
+		if output.Action != plans.NoOp {
+			buf.WriteString(r.Colorize.Color(fmt.Sprintf("%s %s = %s\n", format.DiffActionSymbol(output.Action), key, output.RenderHuman(0, computed.RenderHumanOpts{}))))
 		}
 	}
+	return buf.String()
 }
 
 func (r Renderer) renderHumanDiff(diff diff, cause string) (string, bool) {

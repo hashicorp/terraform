@@ -2,6 +2,11 @@ package jsonformat
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -6704,7 +6709,25 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				prevRunAddr = addr
 			}
 
-			change := &plans.ResourceInstanceChange{
+			beforeDynamicValue, err := plans.NewDynamicValue(beforeVal, ty)
+			if err != nil {
+				t.Fatalf("failed to create dynamic before value: " + err.Error())
+			}
+
+			afterDynamicValue, err := plans.NewDynamicValue(afterVal, ty)
+			if err != nil {
+				t.Fatalf("failed to create dynamic after value: " + err.Error())
+			}
+
+			src := &plans.ResourceInstanceChangeSrc{
+				ChangeSrc: plans.ChangeSrc{
+					Action:         tc.Action,
+					Before:         beforeDynamicValue,
+					BeforeValMarks: tc.BeforeValMarks,
+					After:          afterDynamicValue,
+					AfterValMarks:  tc.AfterValMarks,
+				},
+
 				Addr:        addr,
 				PrevRunAddr: prevRunAddr,
 				DeposedKey:  tc.DeposedKey,
@@ -6712,18 +6735,39 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					Provider: addrs.NewDefaultProvider("test"),
 					Module:   addrs.RootModule,
 				},
-				Change: plans.Change{
-					Action: tc.Action,
-					Before: beforeVal.MarkWithPaths(tc.BeforeValMarks),
-					After:  afterVal.MarkWithPaths(tc.AfterValMarks),
-				},
 				ActionReason:    tc.ActionReason,
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			output := ResourceChange(change, tc.Schema, color, DiffLanguageProposedChange)
+			tfschemas := &terraform.Schemas{
+				Providers: map[addrs.Provider]*providers.Schemas{
+					src.ProviderAddr.Provider: {
+						ResourceTypes: map[string]*configschema.Block{
+							src.Addr.Resource.Resource.Type: tc.Schema,
+						},
+						DataSources: map[string]*configschema.Block{
+							src.Addr.Resource.Resource.Type: tc.Schema,
+						},
+					},
+				},
+			}
+			jsonchanges, err := jsonplan.MarshalResourceChanges([]*plans.ResourceInstanceChangeSrc{src}, tfschemas)
+			if err != nil {
+				t.Errorf("failed to marshal resource changes: " + err.Error())
+				return
+			}
+
+			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
+			renderer := Renderer{Colorize: color}
+			diff := diff{
+				change: jsonchanges[0],
+				diff: differ.
+					FromJsonChange(jsonchanges[0].Change).
+					ComputeDiffForBlock(jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
+			}
+			output, _ := renderer.renderHumanDiff(diff, proposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
-				t.Errorf("wrong output\n%s", diff)
+				t.Errorf("wrong output\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", tc.ExpectedOutput, output, diff)
 			}
 		})
 	}
@@ -6831,7 +6875,21 @@ func TestOutputChanges(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			output := OutputChanges(tc.changes, color)
+			changes := &plans.Changes{
+				Outputs: tc.changes,
+			}
+
+			outputs, err := jsonplan.MarshalOutputChanges(changes)
+			if err != nil {
+				t.Fatalf("failed to marshal output changes")
+			}
+
+			renderer := Renderer{Colorize: color}
+			diffs := precomputeDiffs(Plan{
+				OutputChanges: outputs,
+			})
+
+			output := renderer.renderHumanDiffOutputs(diffs.outputs)
 			if output != tc.output {
 				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)
 			}
