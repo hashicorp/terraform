@@ -16,6 +16,6 @@ func (change Change) ComputeDiffForOutput() computed.Diff {
 		return unknown
 	}
 
-	jsonOpts := renderers.DefaultJsonOpts()
+	jsonOpts := renderers.RendererJsonOpts()
 	return jsonOpts.Transform(change.Before, change.After)
 }
