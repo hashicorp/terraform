@@ -3,6 +3,7 @@ package providercache
 import (
 	"context"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -35,6 +36,12 @@ type Installer struct {
 	// both the disk space and the download time for a particular provider
 	// version between different configurations on the same system.
 	globalCacheDir *Dir
+
+	// globalCacheDirMayBreakDependencyLockFile allows a temporary exception to
+	// the rule that an entry in globalCacheDir can normally only be used if
+	// its validity is already confirmed by an entry in the dependency lock
+	// file.
+	globalCacheDirMayBreakDependencyLockFile bool
 
 	// builtInProviderTypes is an optional set of types that should be
 	// considered valid to appear in the special terraform.io/builtin/...
@@ -101,6 +108,19 @@ func (i *Installer) SetGlobalCacheDir(cacheDir *Dir) {
 		panic(fmt.Sprintf("global cache directory %s must not match the installation target directory %s", cacheDir.baseDir, i.targetDir.baseDir))
 	}
 	i.globalCacheDir = cacheDir
+}
+
+// SetGlobalCacheDirMayBreakDependencyLockFile activates or deactivates our
+// temporary exception to the rule that the global cache directory can be used
+// only when entries are confirmed by existing entries in the dependency lock
+// file.
+//
+// If this is set then if we install a provider for the first time from the
+// cache then the dependency lock file will include only the checksum from
+// the package in the global cache, which means the lock file won't be portable
+// to Terraform running on another operating system or CPU architecture.
+func (i *Installer) SetGlobalCacheDirMayBreakDependencyLockFile(mayBreak bool) {
+	i.globalCacheDirMayBreakDependencyLockFile = mayBreak
 }
 
 // HasGlobalCacheDir returns true if someone has previously called
@@ -373,6 +393,41 @@ NeedProvider:
 						// package then we'll just treat it as a checksum failure.
 						acceptablePackage = false
 					}
+				}
+
+				if !acceptablePackage && i.globalCacheDirMayBreakDependencyLockFile {
+					// The "may break dependency lock file" setting effectively
+					// means that we'll accept any matching package that's
+					// already in the cache, regardless of whether it matches
+					// what's in the dependency lock file.
+					//
+					// That means two less-ideal situations might occur:
+					// - If this provider is not currently tracked in the lock
+					//   file at all then after installation the lock file will
+					//   only accept the package that was already present in
+					//   the cache as a valid checksum. That means the generated
+					//   lock file won't be portable to other operating systems
+					//   or CPU architectures.
+					// - If the provider _is_ currently tracked in the lock file
+					//   but the checksums there don't match what was in the
+					//   cache then the LinkFromOtherCache call below will
+					//   fail with a checksum error, and the user will need to
+					//   either manually remove the entry from the lock file
+					//   or remove the mismatching item from the cache,
+					//   depending on which of these they prefer to use as the
+					//   source of truth for the expected contents of the
+					//   package.
+					//
+					// If the lock file already includes this provider and the
+					// cache entry matches one of the locked checksums then
+					// there's no problem, but in that case we wouldn't enter
+					// this branch because acceptablePackage would already be
+					// true from the check above.
+					log.Printf(
+						"[WARN] plugin_cache_may_break_dependency_lock_file: Using global cache dir package for %s v%s even though it doesn't match this configuration's dependency lock file",
+						provider.String(), version.String(),
+					)
+					acceptablePackage = true
 				}
 
 				// TODO: Should we emit an event through the events object

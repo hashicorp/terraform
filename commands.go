@@ -95,6 +95,8 @@ func initCommands(
 		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 
+		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
+
 		ShutdownCh: makeShutdownCh(),
 
 		ProviderSource:       providerSrc,
