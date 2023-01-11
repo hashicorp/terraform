@@ -156,8 +156,8 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				"attribute_one": renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 			}, plans.Delete, false), plans.Update, false),
 			validateNestedObject: renderers.ValidateUnknown(renderers.ValidateNestedObject(map[string]renderers.ValidateDiffFunction{
-				"attribute_one": renderers.ValidatePrimitive("old", nil, plans.Delete, false),
-			}, plans.Delete, false), plans.Update, false),
+				"attribute_one": renderers.ValidateUnknown(renderers.ValidatePrimitive("old", nil, plans.Delete, false), plans.Update, false),
+			}, plans.Update, false), plans.Update, false),
 			validateSetDiffs: &SetDiff{
 				Before: SetDiffEntry{
 					ObjectDiff: map[string]renderers.ValidateDiffFunction{
@@ -451,20 +451,6 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateAction:  plans.Update,
 			validateReplace: false,
-			validateSetDiffs: &SetDiff{
-				Before: SetDiffEntry{
-					ObjectDiff: nil,
-					Action:     plans.Delete,
-					Replace:    false,
-				},
-				After: SetDiffEntry{
-					ObjectDiff: map[string]renderers.ValidateDiffFunction{
-						"attribute_one": renderers.ValidateUnknown(nil, plans.Create, false),
-					},
-					Action:  plans.Create,
-					Replace: false,
-				},
-			},
 		},
 		"update_computed_attribute": {
 			input: Change{

@@ -4,16 +4,17 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/mitchellh/colorstring"
 	"sort"
 	"strings"
 
+	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 

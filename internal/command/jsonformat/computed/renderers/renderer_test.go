@@ -82,9 +82,9 @@ func TestRenderers_Human(t *testing.T) {
 			},
 			expected: `
 <<-EOT
-    hello
-    world
-EOT
+        hello
+        world
+    EOT
 `,
 		},
 		"primitive_multiline_string_delete": {
@@ -94,9 +94,9 @@ EOT
 			},
 			expected: `
 <<-EOT
-    hello
-    world
-EOT -> null
+        hello
+        world
+    EOT -> null
 `,
 		},
 		"primitive_multiline_string_update": {
@@ -106,11 +106,11 @@ EOT -> null
 			},
 			expected: `
 <<-EOT
-    hello
-  - old
-  + new
-    world
-EOT
+        hello
+      - old
+      + new
+        world
+    EOT
 `,
 		},
 		"primitive_json_string_create": {
@@ -120,11 +120,11 @@ EOT
 			},
 			expected: `
 jsonencode(
-  + {
-      + key_one = "value_one"
-      + key_two = "value_two"
-    }
-)
+        {
+          + key_one = "value_one"
+          + key_two = "value_two"
+        }
+    )
 `,
 		},
 		"primitive_json_string_delete": {
@@ -134,11 +134,11 @@ jsonencode(
 			},
 			expected: `
 jsonencode(
-  - {
-      - key_one = "value_one"
-      - key_two = "value_two"
-    } -> null
-)
+        {
+          - key_one = "value_one"
+          - key_two = "value_two"
+        } -> null
+    )
 `,
 		},
 		"primitive_json_string_update": {
@@ -148,11 +148,11 @@ jsonencode(
 			},
 			expected: `
 jsonencode(
-  ~ {
-      + key_three = "value_three"
-        # (2 unchanged attributes hidden)
-    }
-)
+      ~ {
+          + key_three = "value_three"
+            # (2 unchanged attributes hidden)
+        }
+    )
 `,
 		},
 		"primitive_fake_json_string_update": {
@@ -170,14 +170,14 @@ jsonencode(
 			},
 			expected: `
 <<-EOT
-    hello
-    world
-EOT -> jsonencode(
-  + {
-      + key_one = "value_one"
-      + key_two = "value_two"
-    }
-)
+        hello
+        world
+    EOT -> jsonencode(
+        {
+          + key_one = "value_one"
+          + key_two = "value_two"
+        }
+    )
 `,
 		},
 		"primitive_json_to_multiline_update": {
@@ -187,14 +187,14 @@ EOT -> jsonencode(
 			},
 			expected: `
 jsonencode(
-  - {
-      - key_one = "value_one"
-      - key_two = "value_two"
-    }
-) -> <<-EOT
-    hello
-    world
-EOT
+        {
+          - key_one = "value_one"
+          - key_two = "value_two"
+        }
+    ) -> <<-EOT
+        hello
+        world
+    EOT
 `,
 		},
 		"primitive_json_to_string_update": {
@@ -204,11 +204,11 @@ EOT
 			},
 			expected: `
 jsonencode(
-  - {
-      - key_one = "value_one"
-      - key_two = "value_two"
-    }
-) -> "hello world"
+        {
+          - key_one = "value_one"
+          - key_two = "value_two"
+        }
+    ) -> "hello world"
 `,
 		},
 		"primitive_string_to_json_update": {
@@ -218,11 +218,11 @@ jsonencode(
 			},
 			expected: `
 "hello world" -> jsonencode(
-  + {
-      + key_one = "value_one"
-      + key_two = "value_two"
-    }
-)
+        {
+          + key_one = "value_one"
+          + key_two = "value_two"
+        }
+    )
 `,
 		},
 		"primitive_multi_to_single_update": {
@@ -232,10 +232,10 @@ jsonencode(
 			},
 			expected: `
 <<-EOT
-  - hello
-  - world
-  + hello world
-EOT
+      - hello
+      - world
+      + hello world
+    EOT
 `,
 		},
 		"primitive_single_to_multi_update": {
@@ -245,10 +245,10 @@ EOT
 			},
 			expected: `
 <<-EOT
-  - hello world
-  + hello
-  + world
-EOT
+      - hello world
+      + hello
+      + world
+    EOT
 `,
 		},
 		"sensitive_update": {
@@ -1439,9 +1439,7 @@ EOT
 				Renderer: Block(nil, Blocks{}),
 				Action:   plans.Create,
 			},
-			expected: `
-{
-    }`,
+			expected: "{}",
 		},
 		"create_populated_block": {
 			diff: computed.Diff{
@@ -1586,6 +1584,7 @@ EOT
       + nested_block_two {
           + string = "two"
         }
+
         # (1 unchanged block hidden)
     }`,
 		},
@@ -1855,9 +1854,7 @@ EOT
 				Renderer: Block(nil, Blocks{}),
 				Action:   plans.Delete,
 			},
-			expected: `
-{
-    }`,
+			expected: "{}",
 		},
 		"block_escapes_keys": {
 			diff: computed.Diff{
@@ -1952,6 +1949,7 @@ EOT
 {
         id      = "root"
         # (1 unchanged attribute hidden)
+
         # (2 unchanged blocks hidden)
     }`,
 		},

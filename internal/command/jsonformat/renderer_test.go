@@ -2,21 +2,22 @@ package jsonformat
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mitchellh/colorstring"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/mitchellh/colorstring"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 func TestResourceChange_primitiveTypes(t *testing.T) {
