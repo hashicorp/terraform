@@ -4,9 +4,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
@@ -58,7 +56,7 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 
 	inner := computedDiff(value)
 
-	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), inner.Action, change.replacePath()), true
+	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), inner.Action, change.ReplacePaths.ForcesReplacement()), true
 }
 
 func (change Change) isBeforeSensitive() bool {

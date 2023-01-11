@@ -88,5 +88,5 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		}
 	}
 
-	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.replacePath())
+	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.ForcesReplacement())
 }

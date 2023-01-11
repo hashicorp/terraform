@@ -35,7 +35,7 @@ type objectRenderer struct {
 
 func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.attributes) == 0 {
-		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 	}
 
 	attributeOpts := opts.Clone()
@@ -60,7 +60,7 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 
 	unchangedAttributes := 0
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
 	for _, key := range keys {
 		attribute := renderer.attributes[key]
 

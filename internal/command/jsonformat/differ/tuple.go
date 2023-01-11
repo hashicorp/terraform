@@ -13,10 +13,10 @@ func (change Change) computeAttributeDiffAsTuple(elementTypes []cty.Type) comput
 	current := change.getDefaultActionForIteration()
 	sliceValue := change.asSlice()
 	for ix, elementType := range elementTypes {
-		childValue := sliceValue.getChild(ix, ix, false)
+		childValue := sliceValue.getChild(ix, ix)
 		element := childValue.computeDiffForType(elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	}
-	return computed.NewDiff(renderers.List(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.ForcesReplacement())
 }

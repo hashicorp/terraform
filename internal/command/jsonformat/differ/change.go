@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -79,7 +79,7 @@ type Change struct {
 	// ReplacePaths generally contains nested slices that describe paths to
 	// elements or attributes that are causing the overall resource to be
 	// replaced.
-	ReplacePaths []interface{}
+	ReplacePaths replace.ForcesReplacement
 }
 
 // ValueFromJsonChange unmarshals the raw []byte values in the jsonplan.Change
@@ -91,21 +91,12 @@ func ValueFromJsonChange(change jsonplan.Change) Change {
 		Unknown:         unmarshalGeneric(change.AfterUnknown),
 		BeforeSensitive: unmarshalGeneric(change.BeforeSensitive),
 		AfterSensitive:  unmarshalGeneric(change.AfterSensitive),
-		ReplacePaths:    decodePaths(unmarshalGeneric(change.ReplacePaths)),
+		ReplacePaths:    replace.Parse(change.ReplacePaths),
 	}
 }
 
 func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
-	return computed.NewDiff(renderer, change.calculateChange(), change.replacePath())
-}
-
-func (change Change) replacePath() bool {
-	for _, path := range change.ReplacePaths {
-		if len(path.([]interface{})) == 0 {
-			return true
-		}
-	}
-	return false
+	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) calculateChange() plans.Action {
@@ -157,11 +148,4 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 		panic("unrecognized json type: " + err.Error())
 	}
 	return out
-}
-
-func decodePaths(paths interface{}) []interface{} {
-	if paths == nil {
-		return nil
-	}
-	return paths.([]interface{})
 }

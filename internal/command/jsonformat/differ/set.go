@@ -15,18 +15,18 @@ import (
 func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Diff {
 	var elements []computed.Diff
 	current := change.getDefaultActionForIteration()
-	change.processSet(false, func(value Change) {
+	change.processSet(func(value Change) {
 		element := value.computeDiffForType(elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Set(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	var elements []computed.Diff
 	current := change.getDefaultActionForIteration()
-	change.processSet(true, func(value Change) {
+	change.processSet(func(value Change) {
 		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
@@ -34,13 +34,17 @@ func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*json
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Set(elements), current, change.replacePath())
+	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+	// TODO(liamcervante): In the upcoming block PR, block sets should override
+	// the forces replacement setting. We can't do that here, so make sure it
+	// gets carried over into the diff renderer logic when set and list blocks
+	// are given separate behaviour.
 	var elements []computed.Diff
 	current := change.getDefaultActionForIteration()
-	change.processSet(true, func(value Change) {
+	change.processSet(func(value Change) {
 		element := value.ComputeDiffForBlock(block)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
@@ -48,7 +52,7 @@ func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]comput
 	return elements, current
 }
 
-func (change Change) processSet(propagateReplace bool, process func(value Change)) {
+func (change Change) processSet(process func(value Change)) {
 	sliceValue := change.asSlice()
 
 	foundInBefore := make(map[int]int)
@@ -66,7 +70,7 @@ func (change Change) processSet(propagateReplace bool, process func(value Change
 				continue
 			}
 
-			child := sliceValue.getChild(ix, jx, propagateReplace)
+			child := sliceValue.getChild(ix, jx)
 			if reflect.DeepEqual(child.Before, child.After) && child.isBeforeSensitive() == child.isAfterSensitive() && child.Unknown == nil {
 				matched = true
 				foundInBefore[ix] = jx
@@ -88,11 +92,11 @@ func (change Change) processSet(propagateReplace bool, process func(value Change
 
 	for ix := 0; ix < len(sliceValue.Before); ix++ {
 		if jx := foundInBefore[ix]; jx >= 0 {
-			child := sliceValue.getChild(ix, jx, propagateReplace)
+			child := sliceValue.getChild(ix, jx)
 			process(child)
 			continue
 		}
-		child := sliceValue.getChild(ix, len(sliceValue.After), propagateReplace)
+		child := sliceValue.getChild(ix, len(sliceValue.After))
 		process(child)
 	}
 
@@ -101,7 +105,7 @@ func (change Change) processSet(propagateReplace bool, process func(value Change
 			// Then this value was handled in the previous for loop.
 			continue
 		}
-		child := sliceValue.getChild(len(sliceValue.Before), jx, propagateReplace)
+		child := sliceValue.getChild(len(sliceValue.Before), jx)
 		process(child)
 	}
 }

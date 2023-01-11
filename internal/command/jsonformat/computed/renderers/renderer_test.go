@@ -1264,6 +1264,30 @@ EOT
     ]
 `,
 		},
+		"nested_set_update_forces_replacement": {
+			diff: computed.Diff{
+				Renderer: NestedSet([]computed.Diff{
+					{
+						Renderer: Object(map[string]computed.Diff{
+							"attribute_one": {
+								Renderer: Primitive(0.0, 1.0, cty.Number),
+								Action:   plans.Update,
+							},
+						}),
+						Action: plans.Update,
+					},
+				}),
+				Action:  plans.Update,
+				Replace: true,
+			},
+			expected: `
+[
+      ~ { # forces replacement
+          ~ attribute_one = 0 -> 1
+        },
+    ]
+`,
+		},
 		"set_update_ignores_unchanged": {
 			diff: computed.Diff{
 				Renderer: Set([]computed.Diff{

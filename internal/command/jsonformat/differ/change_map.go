@@ -1,5 +1,7 @@
 package differ
 
+import "github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+
 // ChangeMap is a Change that represents a Map or an Object type, and has
 // converted the relevant interfaces into maps for easier access.
 type ChangeMap struct {
@@ -22,7 +24,7 @@ type ChangeMap struct {
 	AfterSensitive map[string]interface{}
 
 	// ReplacePaths matches the same attributes in Change exactly.
-	ReplacePaths []interface{}
+	ReplacePaths replace.ForcesReplacement
 }
 
 func (change Change) asMap() ChangeMap {
@@ -51,27 +53,8 @@ func (m ChangeMap) getChild(key string) Change {
 		Unknown:         unknown,
 		BeforeSensitive: beforeSensitive,
 		AfterSensitive:  afterSensitive,
-		ReplacePaths:    m.processReplacePaths(key),
+		ReplacePaths:    m.ReplacePaths.GetChildWithKey(key),
 	}
-}
-
-func (m ChangeMap) processReplacePaths(key string) []interface{} {
-	var ret []interface{}
-	for _, p := range m.ReplacePaths {
-		path := p.([]interface{})
-
-		if len(path) == 0 {
-			// This means that the current value is causing a replacement but
-			// not its children, so we skip as we are returning the child's
-			// value.
-			continue
-		}
-
-		if path[0].(string) == key {
-			ret = append(ret, path[1:])
-		}
-	}
-	return ret
 }
 
 func getFromGenericMap(generic map[string]interface{}, key string) (interface{}, bool) {
