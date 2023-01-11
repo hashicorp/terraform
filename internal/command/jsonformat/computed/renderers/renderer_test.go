@@ -259,7 +259,7 @@ EOT
 				}, true, true),
 				Action: plans.Update,
 			},
-			expected: "(sensitive)",
+			expected: "(sensitive value)",
 		},
 		"sensitive_update_replace": {
 			diff: computed.Diff{
@@ -271,7 +271,7 @@ EOT
 				Action:  plans.Update,
 				Replace: true,
 			},
-			expected: "(sensitive) # forces replacement",
+			expected: "(sensitive value) # forces replacement",
 		},
 		"computed_create": {
 			diff: computed.Diff{
@@ -465,7 +465,7 @@ EOT
 			},
 			expected: `
 {
-      + attribute_one = (sensitive)
+      + attribute_one = (sensitive value)
     }
 `,
 		},
@@ -484,7 +484,7 @@ EOT
 			},
 			expected: `
 {
-      ~ attribute_one = (sensitive)
+      ~ attribute_one = (sensitive value)
     }
 `,
 		},
@@ -503,7 +503,7 @@ EOT
 			},
 			expected: `
 {
-      - attribute_one = (sensitive)
+      - attribute_one = (sensitive value)
     }
 `,
 		},
@@ -720,7 +720,7 @@ EOT
 			},
 			expected: `
 {
-      + "element_one" = (sensitive)
+      + "element_one" = (sensitive value)
     }
 `,
 		},
@@ -739,7 +739,7 @@ EOT
 			},
 			expected: `
 {
-      ~ "element_one" = (sensitive)
+      ~ "element_one" = (sensitive value)
     }
 `,
 		},
@@ -760,7 +760,7 @@ EOT
 {
       # Warning: this attribute value will no longer be marked as sensitive
       # after applying this change. The value is unchanged.
-      ~ "element_one" = (sensitive)
+      ~ "element_one" = (sensitive value)
     }
 `,
 		},
@@ -779,7 +779,7 @@ EOT
 			},
 			expected: `
 {
-      - "element_one" = (sensitive) -> null
+      - "element_one" = (sensitive value) -> null
     }
 `,
 		},
@@ -1034,7 +1034,7 @@ EOT
 			},
 			expected: `
 [
-      + (sensitive),
+      + (sensitive value),
     ]
 `,
 		},
@@ -1053,7 +1053,7 @@ EOT
 			},
 			expected: `
 [
-      - (sensitive),
+      - (sensitive value),
     ]
 `,
 		},
@@ -1072,7 +1072,7 @@ EOT
 			},
 			expected: `
 [
-      ~ (sensitive),
+      ~ (sensitive value),
     ]
 `,
 		},
@@ -1093,7 +1093,7 @@ EOT
 [
       # Warning: this attribute value will be marked as sensitive and will not
       # display in UI output after applying this change. The value is unchanged.
-      ~ (sensitive),
+      ~ (sensitive value),
     ]
 `,
 		},
@@ -1336,7 +1336,7 @@ EOT
 			},
 			expected: `
 [
-      + (sensitive),
+      + (sensitive value),
     ]
 `,
 		},
@@ -1355,7 +1355,7 @@ EOT
 			},
 			expected: `
 [
-      - (sensitive),
+      - (sensitive value),
     ]
 `,
 		},
@@ -1374,7 +1374,7 @@ EOT
 			},
 			expected: `
 [
-      ~ (sensitive),
+      ~ (sensitive value),
     ]
 `,
 		},
@@ -1395,7 +1395,7 @@ EOT
 [
       # Warning: this attribute value will be marked as sensitive and will not
       # display in UI output after applying this change.
-      ~ (sensitive),
+      ~ (sensitive value),
     ]
 `,
 		},

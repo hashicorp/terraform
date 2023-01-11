@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/mitchellh/colorstring"
+	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -131,18 +133,26 @@ func (r Renderer) RenderHumanPlan(plan Plan) {
 	diff := r.renderHumanDiffOutputs(diffs.outputs)
 	if len(diff) > 0 {
 		fmt.Fprint(r.Streams.Stdout.File, "\nChanges to Outputs:\n")
-		fmt.Fprintln(r.Streams.Stdout.File, r.Colorize.Color(diff))
+		fmt.Fprintf(r.Streams.Stdout.File, "%s\n", r.Colorize.Color(diff))
 	}
 }
 
 func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) string {
-	var buf bytes.Buffer
-	for key, output := range outputs {
+	var rendered []string
+
+	var keys []string
+	for key := range outputs {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		output := outputs[key]
 		if output.Action != plans.NoOp {
-			buf.WriteString(r.Colorize.Color(fmt.Sprintf("%s %s = %s\n", format.DiffActionSymbol(output.Action), key, output.RenderHuman(0, computed.RenderHumanOpts{}))))
+			rendered = append(rendered, r.Colorize.Color(fmt.Sprintf("%s %s = %s", format.DiffActionSymbol(output.Action), key, output.RenderHuman(0, computed.RenderHumanOpts{}))))
 		}
 	}
-	return buf.String()
+	return strings.Join(rendered, "\n")
 }
 
 func (r Renderer) renderHumanDiff(diff diff, cause string) (string, bool) {

@@ -690,8 +690,8 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + bbb = "new_value"
-              - ccc = 5 -> null
-                # (1 unchanged element hidden)
+              - ccc = 5
+                # (1 unchanged attribute hidden)
             }
         )
     }`,
@@ -720,8 +720,8 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + "b:bb" = "new_value"
-              - "c:c"  = "old_value" -> null
-                # (1 unchanged element hidden)
+              - "c:c"  = "old_value"
+                # (1 unchanged attribute hidden)
             }
         )
     }`,
@@ -847,7 +847,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + bbb = "new_value"
-                # (1 unchanged element hidden)
+                # (1 unchanged attribute hidden)
             } # forces replacement
         )
     }`,
@@ -1020,7 +1020,7 @@ func TestResourceChange_JSON(t *testing.T) {
       ~ json_field = jsonencode(
           ~ {
               + second = "222"
-                # (1 unchanged element hidden)
+                # (1 unchanged attribute hidden)
             }
         )
     }`,
@@ -1744,8 +1744,7 @@ func TestResourceChange_primitiveTuple(t *testing.T) {
       ~ tuple_field = [
             # (1 unchanged element hidden)
             "bbbb",
-          - "dddd",
-          + "cccc",
+          ~ "dddd" -> "cccc",
             "eeee",
             # (1 unchanged element hidden)
         ]
@@ -2090,7 +2089,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       ~ set_field = [
           - "bbbb",
-          ~ (known after apply),
+          + (known after apply),
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
@@ -3165,23 +3164,23 @@ func TestResourceChange_nestedSet(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = [
+          - {
+              - mount_point = "/var/diska" -> null
+            },
           + {
               + mount_point = "/var/diska"
               + size        = "50GB"
-            },
-          - {
-              - mount_point = "/var/diska" -> null
             },
             # (1 unchanged element hidden)
         ]
         id    = "i-02ae66f368e8518a9"
 
+      - root_block_device {
+          - volume_type = "gp2" -> null
+        }
       + root_block_device {
           + new_field   = "new_value"
           + volume_type = "gp2"
-        }
-      - root_block_device {
-          - volume_type = "gp2" -> null
         }
     }`,
 		},
@@ -3239,11 +3238,11 @@ func TestResourceChange_nestedSet(t *testing.T) {
         ]
         id    = "i-02ae66f368e8518a9"
 
-      + root_block_device { # forces replacement
-          + volume_type = "different"
-        }
       - root_block_device { # forces replacement
           - volume_type = "gp2" -> null
+        }
+      + root_block_device { # forces replacement
+          + volume_type = "different"
         }
     }`,
 		},
@@ -3327,8 +3326,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
-      + disks = [
-        ]
+      + disks = []
         id    = "i-02ae66f368e8518a9"
     }`,
 		},
@@ -3378,12 +3376,12 @@ func TestResourceChange_nestedSet(t *testing.T) {
         ]
         id    = "i-02ae66f368e8518a9"
 
+      - root_block_device {
+          - volume_type = "gp2" -> null
+        }
       + root_block_device {
           + new_field   = "new_value"
           + volume_type = "gp2"
-        }
-      - root_block_device {
-          - volume_type = "gp2" -> null
         }
     }`,
 		},
@@ -4918,7 +4916,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
-      - disks = (sensitive value)
+      - disks = (sensitive value) -> null
         id    = "i-02ae66f368e8518a9"
     }`,
 		},
@@ -5079,7 +5077,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
-      - disks = (sensitive value)
+      - disks = (sensitive value) -> null
         id    = "i-02ae66f368e8518a9"
     }`,
 		},
@@ -5240,7 +5238,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be updated in-place
   ~ resource "test_instance" "example" {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
-      - disks = (sensitive value)
+      - disks = (sensitive value) -> null
         id    = "i-02ae66f368e8518a9"
     }`,
 		},
@@ -5763,11 +5761,12 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # so its contents will not be displayed.
         }
 
-      # Warning: this block will no longer be marked as sensitive
-      # after applying this change.
-      ~ nested_block_set {
+      - nested_block_set {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
+        }
+      + nested_block_set {
+          + an_attr = "changed"
         }
     }`,
 		},
@@ -6001,7 +6000,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
         }
       ~ map_whole  = (sensitive value)
 
-      ~ nested_block_map {
+      ~ nested_block_map "foo" {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
@@ -6141,8 +6140,9 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ list_field  = [
             # (1 unchanged element hidden)
             "friends",
-          - (sensitive value),
-          + "!",
+          # Warning: this attribute value will no longer be marked as sensitive
+          # after applying this change. The value is unchanged.
+          ~ (sensitive value),
         ]
       ~ map_key     = {
           # Warning: this attribute value will no longer be marked as sensitive
@@ -6340,7 +6340,11 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
       ~ ami = (sensitive value) # forces replacement
         id  = "i-02ae66f368e8518a9"
 
-      ~ nested_block_set { # forces replacement
+      - nested_block_set { # forces replacement
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+      + nested_block_set { # forces replacement
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }

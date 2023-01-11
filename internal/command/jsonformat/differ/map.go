@@ -26,7 +26,7 @@ func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*json
 			NestingMode: "single",
 		})
 	})
-	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.NestedMap(elements), current, change.ReplacePaths.ForcesReplacement())
 }
 
 func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {

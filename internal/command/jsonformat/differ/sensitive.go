@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -56,7 +57,14 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 
 	inner := computedDiff(value)
 
-	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), inner.Action, change.ReplacePaths.ForcesReplacement()), true
+	action := inner.Action
+	if action == plans.NoOp && beforeSensitive != afterSensitive {
+		// Let's override this, since it means the sensitive status has changed
+		// rather than the actual content of the value.
+		action = plans.Update
+	}
+
+	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.ForcesReplacement()), true
 }
 
 func (change Change) isBeforeSensitive() bool {
