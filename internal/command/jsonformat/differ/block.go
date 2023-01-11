@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -30,7 +31,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		}
 
 		attributes[key] = childChange
-		current = compareActions(current, childChange.Action)
+		current = collections.CompareActions(current, childChange.Action)
 	}
 
 	blocks := renderers.Blocks{
@@ -53,7 +54,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			for _, diff := range diffs {
 				blocks.AddSetBlock(key, diff)
 			}
-			current = compareActions(current, action)
+			current = collections.CompareActions(current, action)
 		case nestingModeList:
 			diffs, action := childValue.computeBlockDiffsAsList(blockType.Block)
 			if action == plans.NoOp && childValue.Before == childValue.After {
@@ -63,7 +64,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			for _, diff := range diffs {
 				blocks.AddListBlock(key, diff)
 			}
-			current = compareActions(current, action)
+			current = collections.CompareActions(current, action)
 		case nestingModeMap:
 			diffs, action := childValue.computeBlockDiffsAsMap(blockType.Block)
 			if action == plans.NoOp && childValue.Before == childValue.After {
@@ -73,7 +74,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			for dKey, diff := range diffs {
 				blocks.AddMapBlock(key, dKey, diff)
 			}
-			current = compareActions(current, action)
+			current = collections.CompareActions(current, action)
 		case nestingModeSingle, nestingModeGroup:
 			diff := childValue.ComputeDiffForBlock(blockType.Block)
 			if diff.Action == plans.NoOp && childValue.Before == childValue.After {
@@ -81,7 +82,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 				continue
 			}
 			blocks.AddSingleBlock(key, diff)
-			current = compareActions(current, diff.Action)
+			current = collections.CompareActions(current, diff.Action)
 		default:
 			panic("unrecognized nesting mode: " + blockType.NestingMode)
 		}

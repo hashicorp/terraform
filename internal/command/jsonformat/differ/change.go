@@ -147,23 +147,6 @@ func (change Change) getDefaultActionForIteration() plans.Action {
 	return plans.NoOp
 }
 
-// compareActions will compare current and next, and return plans.Update if they
-// are different, and current if they are the same.
-//
-// This function should be used in conjunction with getDefaultActionForIteration
-// to convert a NoOp default action into an Update based on the actions of a
-// values children.
-func compareActions(current, next plans.Action) plans.Action {
-	if next == plans.NoOp {
-		return current
-	}
-
-	if current != next {
-		return plans.Update
-	}
-	return current
-}
-
 func unmarshalGeneric(raw json.RawMessage) interface{} {
 	if raw == nil {
 		return nil

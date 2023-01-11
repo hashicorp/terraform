@@ -1835,7 +1835,7 @@ func ctyCollectionValues(val cty.Value) []cty.Value {
 // in the form of Create, Delete, or Update actions (for objects).
 func ctySequenceDiff(old, new []cty.Value) []*plans.Change {
 	var ret []*plans.Change
-	lcs := objchange.LongestCommonSubsequence(old, new)
+	lcs := objchange.LongestCommonSubsequence(old, new, objchange.ValueEqual)
 	var oldI, newI, lcsI int
 	for oldI < len(old) || newI < len(new) || lcsI < len(lcs) {
 		// We first process items in the old and new sequences which are not

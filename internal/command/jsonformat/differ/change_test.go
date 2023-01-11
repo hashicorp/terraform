@@ -1219,7 +1219,7 @@ func TestValue_Outputs(t *testing.T) {
 			},
 			validateDiff: renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 		},
-		"map_create": {
+		"object_create": {
 			input: Change{
 				Before: nil,
 				After: map[string]interface{}{
@@ -1227,7 +1227,7 @@ func TestValue_Outputs(t *testing.T) {
 					"element_two": "new_two",
 				},
 			},
-			validateDiff: renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+			validateDiff: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 				"element_one": renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
 				"element_two": renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 			}, plans.Create, false),
@@ -1252,7 +1252,7 @@ func TestValue_Outputs(t *testing.T) {
 			},
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, false),
 		},
-		"map_update": {
+		"object_update": {
 			input: Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
@@ -1263,7 +1263,7 @@ func TestValue_Outputs(t *testing.T) {
 					"element_two": "new_two",
 				},
 			},
-			validateDiff: renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+			validateDiff: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 				"element_one": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
 				"element_two": renderers.ValidatePrimitive("old_two", "new_two", plans.Update, false),
 			}, plans.Update, false),
@@ -1293,7 +1293,7 @@ func TestValue_Outputs(t *testing.T) {
 			},
 			validateDiff: renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 		},
-		"map_delete": {
+		"object_delete": {
 			input: Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
@@ -1301,7 +1301,7 @@ func TestValue_Outputs(t *testing.T) {
 				},
 				After: nil,
 			},
-			validateDiff: renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+			validateDiff: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 				"element_one": renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
 				"element_two": renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
 			}, plans.Delete, false),
@@ -1334,7 +1334,7 @@ func TestValue_Outputs(t *testing.T) {
 					renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 				}, plans.Create, false), plans.Update, false),
 		},
-		"primitive_to_map": {
+		"primitive_to_object": {
 			input: Change{
 				Before: "old",
 				After: map[string]interface{}{
@@ -1344,7 +1344,7 @@ func TestValue_Outputs(t *testing.T) {
 			},
 			validateDiff: renderers.ValidateTypeChange(
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false),
-				renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 					"element_one": renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
 					"element_two": renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 				}, plans.Create, false), plans.Update, false),
@@ -1365,7 +1365,7 @@ func TestValue_Outputs(t *testing.T) {
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 				plans.Update, false),
 		},
-		"list_to_map": {
+		"list_to_object": {
 			input: Change{
 				Before: []interface{}{
 					"old_one",
@@ -1381,12 +1381,12 @@ func TestValue_Outputs(t *testing.T) {
 					renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
 					renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
 				}, plans.Delete, false),
-				renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 					"element_one": renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
 					"element_two": renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 				}, plans.Create, false), plans.Update, false),
 		},
-		"map_to_primitive": {
+		"object_to_primitive": {
 			input: Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
@@ -1395,14 +1395,14 @@ func TestValue_Outputs(t *testing.T) {
 				After: "new",
 			},
 			validateDiff: renderers.ValidateTypeChange(
-				renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 					"element_one": renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
 					"element_two": renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
 				}, plans.Delete, false),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 				plans.Update, false),
 		},
-		"map_to_list": {
+		"object_to_list": {
 			input: Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
@@ -1414,7 +1414,7 @@ func TestValue_Outputs(t *testing.T) {
 				},
 			},
 			validateDiff: renderers.ValidateTypeChange(
-				renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 					"element_one": renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
 					"element_two": renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
 				}, plans.Delete, false),

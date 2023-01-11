@@ -75,6 +75,182 @@ func TestRenderers_Human(t *testing.T) {
 			},
 			expected: "0 -> 1 # forces replacement",
 		},
+		"primitive_multiline_string_create": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "hello\nworld", cty.String),
+				Action:   plans.Create,
+			},
+			expected: `
+<<-EOT
+    hello
+    world
+EOT
+`,
+		},
+		"primitive_multiline_string_delete": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello\nworld", nil, cty.String),
+				Action:   plans.Delete,
+			},
+			expected: `
+<<-EOT
+    hello
+    world
+EOT -> null
+`,
+		},
+		"primitive_multiline_string_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello\nold\nworld", "hello\nnew\nworld", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+    hello
+  - old
+  + new
+    world
+EOT
+`,
+		},
+		"primitive_json_string_create": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", cty.String),
+				Action:   plans.Create,
+			},
+			expected: `
+jsonencode(
+  + {
+      + key_one = "value_one"
+      + key_two = "value_two"
+    }
+)
+`,
+		},
+		"primitive_json_string_delete": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", nil, cty.String),
+				Action:   plans.Delete,
+			},
+			expected: `
+jsonencode(
+  - {
+      - key_one = "value_one"
+      - key_two = "value_two"
+    } -> null
+)
+`,
+		},
+		"primitive_json_string_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", "{\"key_one\": \"value_one\",\"key_two\":\"value_two\",\"key_three\":\"value_three\"}", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+jsonencode(
+  ~ {
+      + key_three = "value_three"
+        # (2 unchanged attributes hidden)
+    }
+)
+`,
+		},
+		"primitive_fake_json_string_update": {
+			diff: computed.Diff{
+				// This isn't valid JSON, our renderer should be okay with it.
+				Renderer: Primitive("{\"key_one\": \"value_one\",\"key_two\":\"value_two\"", "{\"key_one\": \"value_one\",\"key_two\":\"value_two\",\"key_three\":\"value_three\"", cty.String),
+				Action:   plans.Update,
+			},
+			expected: "\"{\\\"key_one\\\": \\\"value_one\\\",\\\"key_two\\\":\\\"value_two\\\"\" -> \"{\\\"key_one\\\": \\\"value_one\\\",\\\"key_two\\\":\\\"value_two\\\",\\\"key_three\\\":\\\"value_three\\\"\"",
+		},
+		"primitive_multiline_to_json_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello\nworld", "{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+    hello
+    world
+EOT -> jsonencode(
+  + {
+      + key_one = "value_one"
+      + key_two = "value_two"
+    }
+)
+`,
+		},
+		"primitive_json_to_multiline_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", "hello\nworld", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+jsonencode(
+  - {
+      - key_one = "value_one"
+      - key_two = "value_two"
+    }
+) -> <<-EOT
+    hello
+    world
+EOT
+`,
+		},
+		"primitive_json_to_string_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", "hello world", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+jsonencode(
+  - {
+      - key_one = "value_one"
+      - key_two = "value_two"
+    }
+) -> "hello world"
+`,
+		},
+		"primitive_string_to_json_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello world", "{\"key_one\": \"value_one\",\"key_two\":\"value_two\"}", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+"hello world" -> jsonencode(
+  + {
+      + key_one = "value_one"
+      + key_two = "value_two"
+    }
+)
+`,
+		},
+		"primitive_multi_to_single_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello\nworld", "hello world", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+  - hello
+  - world
+  + hello world
+EOT
+`,
+		},
+		"primitive_single_to_multi_update": {
+			diff: computed.Diff{
+				Renderer: Primitive("hello world", "hello\nworld", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+  - hello world
+  + hello
+  + world
+EOT
+`,
+		},
 		"sensitive_update": {
 			diff: computed.Diff{
 				Renderer: Sensitive(computed.Diff{
