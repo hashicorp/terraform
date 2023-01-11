@@ -86,7 +86,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s", str.String, forcesReplacement(diff.Replace))
+			return fmt.Sprintf("%q%s", str.String, forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -106,7 +106,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s%s", str.String, nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace))
+			return fmt.Sprintf("%q%s%s", str.String, nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -139,7 +139,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !beforeString.IsMultiline && !afterString.IsMultiline {
-			return fmt.Sprintf("%q [yellow]->[reset] %q%s", beforeString.String, afterString.String, forcesReplacement(diff.Replace))
+			return fmt.Sprintf("%q [yellow]->[reset] %q%s", beforeString.String, afterString.String, forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
 		}
 
 		beforeLines := strings.Split(beforeString.String, "\n")
@@ -168,7 +168,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 	// We return early if we find non-multiline strings or JSON strings, so we
 	// know here that we just render the lines slice properly.
 	return fmt.Sprintf("<<-EOT%s\n%s\n%sEOT%s",
-		forcesReplacement(diff.Replace),
+		forcesReplacement(diff.Replace, opts.OverrideForcesReplacement),
 		strings.Join(lines, "\n"),
 		formatIndent(indent),
 		nullSuffix(opts.OverrideNullSuffix, diff.Action))
@@ -191,7 +191,7 @@ func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, ind
 	} else {
 		// We only show the replace suffix if we didn't print something out
 		// about whitespace changes.
-		replace = forcesReplacement(diff.Replace)
+		replace = forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)
 	}
 
 	renderedJsonDiff := jsonDiff.RenderHuman(indent, opts)

@@ -91,7 +91,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	for _, key := range blockKeys {
 
 		foundChangedBlock := false
-		renderBlock := func(diff computed.Diff, mapKey string) {
+		renderBlock := func(diff computed.Diff, mapKey string, opts computed.RenderHumanOpts) {
 			if diff.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 				unchangedBlocks++
 				return
@@ -113,7 +113,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 
 		switch {
 		case renderer.blocks.IsSingleBlock(key):
-			renderBlock(renderer.blocks.SingleBlocks[key], "")
+			renderBlock(renderer.blocks.SingleBlocks[key], "", opts)
 		case renderer.blocks.IsMapBlock(key):
 			var keys []string
 			for key := range renderer.blocks.MapBlocks[key] {
@@ -122,15 +122,19 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			sort.Strings(keys)
 
 			for _, innerKey := range keys {
-				renderBlock(renderer.blocks.MapBlocks[key][innerKey], fmt.Sprintf(" %q", innerKey))
+				renderBlock(renderer.blocks.MapBlocks[key][innerKey], fmt.Sprintf(" %q", innerKey), opts)
 			}
 		case renderer.blocks.IsSetBlock(key):
+
+			setOpts := opts.Clone()
+			setOpts.OverrideForcesReplacement = diff.Replace
+
 			for _, block := range renderer.blocks.SetBlocks[key] {
-				renderBlock(block, "")
+				renderBlock(block, "", opts)
 			}
 		case renderer.blocks.IsListBlock(key):
 			for _, block := range renderer.blocks.ListBlocks[key] {
-				renderBlock(block, "")
+				renderBlock(block, "", opts)
 			}
 		}
 	}

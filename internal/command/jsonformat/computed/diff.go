@@ -87,8 +87,13 @@ type RenderHumanOpts struct {
 // edited without changing the original.
 func (opts RenderHumanOpts) Clone() RenderHumanOpts {
 	return RenderHumanOpts{
-		OverrideNullSuffix:        opts.OverrideNullSuffix,
-		ShowUnchangedChildren:     opts.ShowUnchangedChildren,
-		OverrideForcesReplacement: opts.OverrideForcesReplacement,
+		OverrideNullSuffix:    opts.OverrideNullSuffix,
+		ShowUnchangedChildren: opts.ShowUnchangedChildren,
+
+		// OverrideForcesReplacement is a special case in that it doesn't
+		// cascade. So each diff should decide independently whether it's direct
+		// children should override their internal Replace logic, instead of
+		// an ancestor making the switch and affecting the entire tree.
+		OverrideForcesReplacement: false,
 	}
 }
