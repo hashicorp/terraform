@@ -37,8 +37,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + id = (known after apply)
-    }
-`,
+    }`,
 		},
 		"creation (null string)": {
 			Action: plans.Create,
@@ -56,8 +55,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + string = "null"
-    }
-`,
+    }`,
 		},
 		"creation (null string with extra whitespace)": {
 			Action: plans.Create,
@@ -75,8 +73,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be created
   + resource "test_instance" "example" {
       + string = "null "
-    }
-`,
+    }`,
 		},
 		"creation (object with quoted keys)": {
 			Action: plans.Create,
@@ -103,8 +100,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
           + "quoted:key" = "some-value"
           + unquoted     = "value"
         }
-    }
-`,
+    }`,
 		},
 		"deletion": {
 			Action: plans.Delete,
@@ -122,8 +118,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
-    }
-`,
+    }`,
 		},
 		"deletion of deposed object": {
 			Action:     plans.Delete,
@@ -143,8 +138,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
   # (left over from a partially-failed replacement of this instance)
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
-    }
-`,
+    }`,
 		},
 		"deletion (empty string)": {
 			Action: plans.Delete,
@@ -164,8 +158,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 			ExpectedOutput: `  # test_instance.example will be destroyed
   - resource "test_instance" "example" {
       - id = "i-02ae66f368e8518a9" -> null
-    }
-`,
+    }`,
 		},
 		"string in-place update": {
 			Action: plans.Update,
@@ -189,8 +182,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"update with quoted key": {
 			Action: plans.Update,
@@ -218,8 +210,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
         id         = "i-02ae66f368e8518a9"
       ~ "saml:aud" = "https://example.com/saml" -> "https://saml.example.com"
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"string force-new update": {
 			Action:       plans.DeleteThenCreate,
@@ -246,8 +237,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 -/+ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
         id  = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"string in-place update (null values)": {
 			Action: plans.Update,
@@ -274,8 +264,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
   ~ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER"
         id  = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update of multi-line string field": {
 			Action: plans.Update,
@@ -286,8 +275,7 @@ func TestResourceChange_primitiveTypes(t *testing.T) {
 long
 multi-line
 string
-field
-`),
+field`),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
@@ -295,8 +283,7 @@ field
 extremely long
 multi-line
 string
-field
-`),
+field`),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -316,8 +303,7 @@ field
             string
             field
         EOT
-    }
-`,
+    }`,
 		},
 		"addition of multi-line string field": {
 			Action: plans.Update,
@@ -329,8 +315,7 @@ field
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 				"more_lines": cty.StringVal(`original
-new line
-`),
+new line`),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -346,22 +331,19 @@ new line
             original
             new line
         EOT
-    }
-`,
+    }`,
 		},
 		"force-new update of multi-line string field": {
 			Action: plans.DeleteThenCreate,
 			Mode:   addrs.ManagedResourceMode,
 			Before: cty.ObjectVal(map[string]cty.Value{
-				"id": cty.StringVal("i-02ae66f368e8518a9"),
-				"more_lines": cty.StringVal(`original
-`),
+				"id":         cty.StringVal("i-02ae66f368e8518a9"),
+				"more_lines": cty.StringVal(`original`),
 			}),
 			After: cty.ObjectVal(map[string]cty.Value{
 				"id": cty.UnknownVal(cty.String),
 				"more_lines": cty.StringVal(`original
-new line
-`),
+new line`),
 			}),
 			Schema: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -379,8 +361,7 @@ new line
             original
           + new line
         EOT
-    }
-`,
+    }`,
 		},
 
 		// Sensitive
@@ -421,8 +402,7 @@ new line
         }
       + id        = (known after apply)
       + password  = (sensitive value)
-    }
-`,
+    }`,
 		},
 		"update with equal sensitive field": {
 			Action: plans.Update,
@@ -450,8 +430,7 @@ new line
       ~ id       = "blah" -> (known after apply)
       ~ str      = "before" -> "after"
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 
 		// tainted objects
@@ -480,8 +459,7 @@ new line
 -/+ resource "test_instance" "example" {
       ~ ami = "ami-BEFORE" -> "ami-AFTER" # forces replacement
       ~ id  = "i-02ae66f368e8518a9" -> (known after apply)
-    }
-`,
+    }`,
 		},
 		"force replacement with empty before value": {
 			Action:       plans.DeleteThenCreate,
@@ -508,8 +486,7 @@ new line
 -/+ resource "test_instance" "example" {
       + forced = "example" # forces replacement
         name   = "name"
-    }
-`,
+    }`,
 		},
 		"force replacement with empty before value legacy": {
 			Action:       plans.DeleteThenCreate,
@@ -536,8 +513,7 @@ new line
 -/+ resource "test_instance" "example" {
       + forced = "example" # forces replacement
         name   = "name"
-    }
-`,
+    }`,
 		},
 		"read during apply because of unknown configuration": {
 			Action:       plans.Read,
@@ -558,8 +534,7 @@ new line
   # (config refers to values not yet known)
  <= data "test_instance" "example" {
         name = "name"
-    }
-`,
+    }`,
 		},
 		"read during apply because of pending changes to upstream dependency": {
 			Action:       plans.Read,
@@ -580,8 +555,7 @@ new line
   # (depends on a resource or a module with changes pending)
  <= data "test_instance" "example" {
         name = "name"
-    }
-`,
+    }`,
 		},
 		"read during apply for unspecified reason": {
 			Action: plans.Read,
@@ -600,8 +574,7 @@ new line
 			ExpectedOutput: `  # data.test_instance.example will be read during apply
  <= data "test_instance" "example" {
         name = "name"
-    }
-`,
+    }`,
 		},
 		"show all identifying attributes even if unchanged": {
 			Action: plans.Update,
@@ -646,8 +619,7 @@ new line
             "name" = "bob"
         }
         # (2 unchanged attributes hidden)
-    }
-`,
+    }`,
 		},
 	}
 
@@ -692,8 +664,7 @@ func TestResourceChange_JSON(t *testing.T) {
               + str  = "value"
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update of object": {
 			Action: plans.Update,
@@ -723,8 +694,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 # (1 unchanged element hidden)
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update of object with quoted keys": {
 			Action: plans.Update,
@@ -754,8 +724,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 # (1 unchanged element hidden)
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update (from empty tuple)": {
 			Action: plans.Update,
@@ -785,8 +754,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update (to empty tuple)": {
 			Action: plans.Update,
@@ -816,8 +784,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update (tuple of different types)": {
 			Action: plans.Update,
@@ -851,8 +818,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"force-new update": {
 			Action:       plans.DeleteThenCreate,
@@ -884,8 +850,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 # (1 unchanged element hidden)
             } # forces replacement
         )
-    }
-`,
+    }`,
 		},
 		"in-place update (whitespace change)": {
 			Action: plans.Update,
@@ -915,8 +880,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 bbb = "another"
             }
         )
-    }
-`,
+    }`,
 		},
 		"force-new update (whitespace change)": {
 			Action:       plans.DeleteThenCreate,
@@ -949,8 +913,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 bbb = "another"
             }
         )
-    }
-`,
+    }`,
 		},
 		"creation (empty)": {
 			Action: plans.Create,
@@ -971,8 +934,7 @@ func TestResourceChange_JSON(t *testing.T) {
   + resource "test_instance" "example" {
       + id         = (known after apply)
       + json_field = jsonencode({})
-    }
-`,
+    }`,
 		},
 		"JSON list item removal": {
 			Action: plans.Update,
@@ -1002,8 +964,7 @@ func TestResourceChange_JSON(t *testing.T) {
               - "third",
             ]
         )
-    }
-`,
+    }`,
 		},
 		"JSON list item addition": {
 			Action: plans.Update,
@@ -1033,8 +994,7 @@ func TestResourceChange_JSON(t *testing.T) {
               + "third",
             ]
         )
-    }
-`,
+    }`,
 		},
 		"JSON list object addition": {
 			Action: plans.Update,
@@ -1063,8 +1023,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 # (1 unchanged element hidden)
             }
         )
-    }
-`,
+    }`,
 		},
 		"JSON object with nested list": {
 			Action: plans.Update,
@@ -1099,8 +1058,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"JSON list of objects - adding item": {
 			Action: plans.Update,
@@ -1133,8 +1091,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 },
             ]
         )
-    }
-`,
+    }`,
 		},
 		"JSON list of objects - removing item": {
 			Action: plans.Update,
@@ -1170,8 +1127,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 },
             ]
         )
-    }
-`,
+    }`,
 		},
 		"JSON object with list of objects": {
 			Action: plans.Update,
@@ -1206,8 +1162,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"JSON object double nested lists": {
 			Action: plans.Update,
@@ -1242,8 +1197,7 @@ func TestResourceChange_JSON(t *testing.T) {
                 ]
             }
         )
-    }
-`,
+    }`,
 		},
 		"in-place update from object to tuple": {
 			Action: plans.Update,
@@ -1281,8 +1235,7 @@ func TestResourceChange_JSON(t *testing.T) {
               + "something",
             ]
         )
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -1367,8 +1320,7 @@ func TestResourceChange_listObject(t *testing.T) {
             },
         ]
       ~ id       = "i-02ae66f368e8518a9" -> (known after apply)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -1406,8 +1358,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - first addition": {
 			Action: plans.Update,
@@ -1439,8 +1390,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -1487,8 +1437,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"force-new update - insertion": {
 			Action:       plans.DeleteThenCreate,
@@ -1530,8 +1479,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
             "cccc",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -1575,8 +1523,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"creation - empty list": {
 			Action: plans.Create,
@@ -1600,8 +1547,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       + ami        = "ami-STATIC"
       + id         = (known after apply)
       + list_field = []
-    }
-`,
+    }`,
 		},
 		"in-place update - full to empty": {
 			Action: plans.Update,
@@ -1637,8 +1583,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
           - "cccc",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - null to empty": {
 			Action: plans.Update,
@@ -1666,8 +1611,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
       ~ id         = "i-02ae66f368e8518a9" -> (known after apply)
       + list_field = []
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"update to unknown element": {
 			Action: plans.Update,
@@ -1708,8 +1652,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
             "cccc",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"update - two new unknown elements": {
 			Action: plans.Update,
@@ -1757,8 +1700,7 @@ func TestResourceChange_primitiveList(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -1807,8 +1749,7 @@ func TestResourceChange_primitiveTuple(t *testing.T) {
             "eeee",
             # (1 unchanged element hidden)
         ]
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -1846,8 +1787,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - first insertion": {
 			Action: plans.Update,
@@ -1879,8 +1819,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           + "new-element",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -1918,8 +1857,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"force-new update - insertion": {
 			Action:       plans.DeleteThenCreate,
@@ -1960,8 +1898,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (2 unchanged elements hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -1999,8 +1936,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"creation - empty set": {
 			Action: plans.Create,
@@ -2024,8 +1960,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       + ami       = "ami-STATIC"
       + id        = (known after apply)
       + set_field = []
-    }
-`,
+    }`,
 		},
 		"in-place update - full to empty set": {
 			Action: plans.Update,
@@ -2059,8 +1994,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           - "bbbb",
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - null to empty set": {
 			Action: plans.Update,
@@ -2088,8 +2022,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
       ~ id        = "i-02ae66f368e8518a9" -> (known after apply)
       + set_field = []
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update to unknown": {
 			Action: plans.Update,
@@ -2123,8 +2056,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
           - "bbbb",
         ] -> (known after apply)
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update to unknown element": {
 			Action: plans.Update,
@@ -2162,8 +2094,7 @@ func TestResourceChange_primitiveSet(t *testing.T) {
             # (1 unchanged element hidden)
         ]
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -2203,8 +2134,7 @@ func TestResourceChange_map(t *testing.T) {
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - first insertion": {
 			Action: plans.Update,
@@ -2238,8 +2168,7 @@ func TestResourceChange_map(t *testing.T) {
           + "new-key" = "new-element"
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -2279,8 +2208,7 @@ func TestResourceChange_map(t *testing.T) {
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"force-new update - insertion": {
 			Action:       plans.DeleteThenCreate,
@@ -2321,8 +2249,7 @@ func TestResourceChange_map(t *testing.T) {
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -2360,8 +2287,7 @@ func TestResourceChange_map(t *testing.T) {
             # (1 unchanged element hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"creation - empty": {
 			Action: plans.Create,
@@ -2385,8 +2311,7 @@ func TestResourceChange_map(t *testing.T) {
       + ami       = "ami-STATIC"
       + id        = (known after apply)
       + map_field = {}
-    }
-`,
+    }`,
 		},
 		"update to unknown element": {
 			Action: plans.Update,
@@ -2425,8 +2350,7 @@ func TestResourceChange_map(t *testing.T) {
             # (2 unchanged elements hidden)
         }
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -2476,8 +2400,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         # (1 unchanged attribute hidden)
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - creation": {
 			Action: plans.Update,
@@ -2520,8 +2443,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
       + root_block_device {}
-    }
-`,
+    }`,
 		},
 		"in-place update - first insertion": {
 			Action: plans.Update,
@@ -2567,8 +2489,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       + root_block_device {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -2631,8 +2552,7 @@ func TestResourceChange_nestedList(t *testing.T) {
           + new_field   = "new_value"
             # (1 unchanged attribute hidden)
         }
-    }
-`,
+    }`,
 		},
 		"force-new update (inside blocks)": {
 			Action:       plans.DeleteThenCreate,
@@ -2695,8 +2615,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ root_block_device {
           ~ volume_type = "gp2" -> "different" # forces replacement
         }
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -2751,8 +2670,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ root_block_device { # forces replacement
           ~ volume_type = "gp2" -> "different"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -2799,8 +2717,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       - root_block_device {
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"with dynamically-typed attribute": {
 			Action: plans.Update,
@@ -2839,8 +2756,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       + block {
           + attr = true
         }
-    }
-`,
+    }`,
 		},
 		"in-place sequence update - deletion": {
 			Action: plans.Update,
@@ -2881,8 +2797,7 @@ func TestResourceChange_nestedList(t *testing.T) {
       ~ list {
           ~ attr = "y" -> "z"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -2931,8 +2846,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - modification": {
 			Action: plans.Update,
@@ -3004,8 +2918,7 @@ func TestResourceChange_nestedList(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -3059,8 +2972,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       + root_block_device {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - creation": {
 			Action: plans.Update,
@@ -3106,8 +3018,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       + root_block_device {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - creation - sensitive set": {
 			Action: plans.Update,
@@ -3157,8 +3068,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       + root_block_device {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - marking set sensitive": {
 			Action: plans.Update,
@@ -3204,8 +3114,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       # display in UI output after applying this change. The value is unchanged.
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -3274,8 +3183,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       - root_block_device {
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -3337,8 +3245,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       - root_block_device { # forces replacement
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -3388,8 +3295,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
           - new_field   = "new_value" -> null
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - empty nested sets": {
 			Action: plans.Update,
@@ -3424,8 +3330,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       + disks = [
         ]
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - null insertion": {
 			Action: plans.Update,
@@ -3480,8 +3385,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
       - root_block_device {
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -3530,8 +3434,7 @@ func TestResourceChange_nestedSet(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -3583,8 +3486,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
       + root_block_device "a" {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - creation": {
 			Action: plans.Update,
@@ -3630,8 +3532,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
       + root_block_device "a" {
           + volume_type = "gp2"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - change attr": {
 			Action: plans.Update,
@@ -3685,8 +3586,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
           + new_field   = "new_value"
             # (1 unchanged attribute hidden)
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion": {
 			Action: plans.Update,
@@ -3751,8 +3651,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -3817,8 +3716,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -3868,8 +3766,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
           - new_field   = "new_value" -> null
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -3918,8 +3815,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - insertion sensitive": {
 			Action: plans.Update,
@@ -3977,8 +3873,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         id    = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple unchanged blocks": {
 			Action: plans.Update,
@@ -4028,8 +3923,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         # (1 unchanged attribute hidden)
 
         # (2 unchanged blocks hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple blocks first changed": {
 			Action: plans.Update,
@@ -4083,8 +3977,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple blocks second changed": {
 			Action: plans.Update,
@@ -4138,8 +4031,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple blocks changed": {
 			Action: plans.Update,
@@ -4194,8 +4086,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ root_block_device "b" {
           ~ volume_type = "gp2" -> "gp3"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple different unchanged blocks": {
 			Action: plans.Update,
@@ -4249,8 +4140,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         # (1 unchanged attribute hidden)
 
         # (2 unchanged blocks hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple different blocks first changed": {
 			Action: plans.Update,
@@ -4308,8 +4198,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple different blocks second changed": {
 			Action: plans.Update,
@@ -4367,8 +4256,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - multiple different blocks changed": {
 			Action: plans.Update,
@@ -4428,8 +4316,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
       ~ root_block_device "a" {
           ~ volume_type = "gp2" -> "gp3"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - mixed blocks unchanged": {
 			Action: plans.Update,
@@ -4495,8 +4382,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         # (1 unchanged attribute hidden)
 
         # (4 unchanged blocks hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - mixed blocks changed": {
 			Action: plans.Update,
@@ -4570,8 +4456,7 @@ func TestResourceChange_nestedMap(t *testing.T) {
         }
 
         # (2 unchanged blocks hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -4613,8 +4498,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
         # (1 unchanged attribute hidden)
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - creation": {
 			Action: plans.Update,
@@ -4653,8 +4537,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
         id   = "i-02ae66f368e8518a9"
 
       + root_block_device {}
-    }
-`,
+    }`,
 		},
 		"force-new update (inside blocks)": {
 			Action:       plans.DeleteThenCreate,
@@ -4705,8 +4588,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
       ~ root_block_device {
           ~ volume_type = "gp2" -> "different" # forces replacement
         }
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -4751,8 +4633,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
       ~ root_block_device { # forces replacement
           ~ volume_type = "gp2" -> "different"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -4793,8 +4674,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
       - root_block_device {
           - volume_type = "gp2" -> null
         }
-    }
-`,
+    }`,
 		},
 		"with dynamically-typed attribute": {
 			Action: plans.Update,
@@ -4827,8 +4707,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
       + block {
           + attr = "foo"
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -4869,8 +4748,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
         id   = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 		"in-place update - modification": {
 			Action: plans.Update,
@@ -4911,8 +4789,7 @@ func TestResourceChange_nestedSingle(t *testing.T) {
         id   = "i-02ae66f368e8518a9"
 
         # (1 unchanged block hidden)
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -4948,8 +4825,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
       + ami   = "ami-AFTER"
       + disks = (sensitive value)
       + id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update": {
 			Action: plans.Update,
@@ -4979,8 +4855,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -5015,8 +4890,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value) # forces replacement
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -5046,8 +4920,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       - disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -5077,8 +4950,7 @@ func TestResourceChange_nestedMapSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -5114,8 +4986,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
       + ami   = "ami-AFTER"
       + disks = (sensitive value)
       + id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update": {
 			Action: plans.Update,
@@ -5145,8 +5016,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -5181,8 +5051,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value) # forces replacement
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -5212,8 +5081,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       - disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -5243,8 +5111,7 @@ func TestResourceChange_nestedListSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -5280,8 +5147,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
       + ami   = "ami-AFTER"
       + disks = (sensitive value)
       + id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update": {
 			Action: plans.Update,
@@ -5311,8 +5177,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"force-new update (whole block)": {
 			Action:       plans.DeleteThenCreate,
@@ -5347,8 +5212,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value) # forces replacement
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - deletion": {
 			Action: plans.Update,
@@ -5378,8 +5242,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       - disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"in-place update - unknown": {
 			Action: plans.Update,
@@ -5409,8 +5272,7 @@ func TestResourceChange_nestedSetSensitiveSchema(t *testing.T) {
       ~ ami   = "ami-BEFORE" -> "ami-AFTER"
       ~ disks = (sensitive value)
         id    = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -5431,8 +5293,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because of wrong repetition mode (NoKey)": {
 			Action:          plans.Delete,
@@ -5445,8 +5306,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be destroyed
   # (because resource uses count or for_each)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because of wrong repetition mode (IntKey)": {
 			Action:          plans.Delete,
@@ -5459,8 +5319,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example[1] will be destroyed
   # (because resource does not use count)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because of wrong repetition mode (StringKey)": {
 			Action:          plans.Delete,
@@ -5473,8 +5332,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example["a"] will be destroyed
   # (because resource does not use for_each)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because no resource configuration": {
 			Action:          plans.Delete,
@@ -5487,8 +5345,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # module.foo.test_instance.example will be destroyed
   # (because test_instance.example is not in configuration)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because no module": {
 			Action:          plans.Delete,
@@ -5501,8 +5358,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # module.foo[1].test_instance.example will be destroyed
   # (because module.foo[1] is not in configuration)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because out of range for count": {
 			Action:          plans.Delete,
@@ -5515,8 +5371,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example[1] will be destroyed
   # (because index [1] is out of range for count)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"delete because out of range for for_each": {
 			Action:          plans.Delete,
@@ -5529,8 +5384,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example["boop"] will be destroyed
   # (because key ["boop"] is not in for_each map)
-  - resource "test_instance" "example" {}
-`,
+  - resource "test_instance" "example" {}`,
 		},
 		"replace for no particular reason (delete first)": {
 			Action:          plans.DeleteThenCreate,
@@ -5541,8 +5395,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {}
-`,
+-/+ resource "test_instance" "example" {}`,
 		},
 		"replace for no particular reason (create first)": {
 			Action:          plans.CreateThenDelete,
@@ -5553,8 +5406,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example must be replaced
-+/- resource "test_instance" "example" {}
-`,
++/- resource "test_instance" "example" {}`,
 		},
 		"replace by request (delete first)": {
 			Action:          plans.DeleteThenCreate,
@@ -5565,8 +5417,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be replaced, as requested
--/+ resource "test_instance" "example" {}
-`,
+-/+ resource "test_instance" "example" {}`,
 		},
 		"replace by request (create first)": {
 			Action:          plans.CreateThenDelete,
@@ -5577,8 +5428,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example will be replaced, as requested
-+/- resource "test_instance" "example" {}
-`,
++/- resource "test_instance" "example" {}`,
 		},
 		"replace because tainted (delete first)": {
 			Action:          plans.DeleteThenCreate,
@@ -5589,8 +5439,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
--/+ resource "test_instance" "example" {}
-`,
+-/+ resource "test_instance" "example" {}`,
 		},
 		"replace because tainted (create first)": {
 			Action:          plans.CreateThenDelete,
@@ -5601,8 +5450,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			Schema:          emptySchema,
 			RequiredReplace: cty.NewPathSet(),
 			ExpectedOutput: `  # test_instance.example is tainted, so must be replaced
-+/- resource "test_instance" "example" {}
-`,
++/- resource "test_instance" "example" {}`,
 		},
 		"replace because cannot update (delete first)": {
 			Action:          plans.DeleteThenCreate,
@@ -5616,8 +5464,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			// typically appears inline as a "# forces replacement" comment.
 			// (not shown here)
 			ExpectedOutput: `  # test_instance.example must be replaced
--/+ resource "test_instance" "example" {}
-`,
+-/+ resource "test_instance" "example" {}`,
 		},
 		"replace because cannot update (create first)": {
 			Action:          plans.CreateThenDelete,
@@ -5631,8 +5478,7 @@ func TestResourceChange_actionReason(t *testing.T) {
 			// typically appears inline as a "# forces replacement" comment.
 			// (not shown here)
 			ExpectedOutput: `  # test_instance.example must be replaced
-+/- resource "test_instance" "example" {}
-`,
++/- resource "test_instance" "example" {}`,
 		},
 	}
 
@@ -5755,8 +5601,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - before sensitive": {
 			Action: plans.Update,
@@ -5924,8 +5769,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - after sensitive": {
 			Action: plans.Update,
@@ -6031,8 +5875,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - both sensitive": {
 			Action: plans.Update,
@@ -6162,8 +6005,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"in-place update - value unchanged, sensitivity changes": {
 			Action: plans.Update,
@@ -6331,8 +6173,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"deletion": {
 			Action: plans.Delete,
@@ -6431,8 +6272,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"update with sensitive value forcing replacement": {
 			Action: plans.DeleteThenCreate,
@@ -6504,8 +6344,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
           # At least one attribute in this block is (or was) sensitive,
           # so its contents will not be displayed.
         }
-    }
-`,
+    }`,
 		},
 		"update with sensitive attribute forcing replacement": {
 			Action: plans.DeleteThenCreate,
@@ -6531,8 +6370,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
 -/+ resource "test_instance" "example" {
       ~ ami = (sensitive value) # forces replacement
         id  = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 		"update with sensitive nested type attribute forcing replacement": {
 			Action: plans.DeleteThenCreate,
@@ -6576,8 +6414,7 @@ func TestResourceChange_sensitiveVariable(t *testing.T) {
             # (1 unchanged attribute hidden)
         }
         id        = "i-02ae66f368e8518a9"
-    }
-`,
+    }`,
 		},
 	}
 	runTestCases(t, testCases)
@@ -6619,8 +6456,7 @@ func TestResourceChange_moved(t *testing.T) {
       ~ bar = "baz" -> "boop"
         id  = "12345"
         # (1 unchanged attribute hidden)
-    }
-`,
+    }`,
 		},
 		"moved without changes": {
 			PrevRunAddr: prevRunAddr,
@@ -6648,8 +6484,7 @@ func TestResourceChange_moved(t *testing.T) {
     resource "test_instance" "example" {
         id  = "12345"
         # (2 unchanged attributes hidden)
-    }
-`,
+    }`,
 		},
 	}
 
@@ -6789,8 +6624,7 @@ func TestOutputChanges(t *testing.T) {
 					false,
 				),
 			},
-			`
-  + foo = "bar"`,
+			`  + foo = "bar"`,
 		},
 		"removed output": {
 			[]*plans.OutputChangeSrc{
@@ -6801,8 +6635,7 @@ func TestOutputChanges(t *testing.T) {
 					false,
 				),
 			},
-			`
-  - foo = "bar" -> null`,
+			`  - foo = "bar" -> null`,
 		},
 		"single string change": {
 			[]*plans.OutputChangeSrc{
@@ -6813,8 +6646,7 @@ func TestOutputChanges(t *testing.T) {
 					false,
 				),
 			},
-			`
-  ~ foo = "bar" -> "baz"`,
+			`  ~ foo = "bar" -> "baz"`,
 		},
 		"element added to list": {
 			[]*plans.OutputChangeSrc{
@@ -6836,8 +6668,7 @@ func TestOutputChanges(t *testing.T) {
 					false,
 				),
 			},
-			`
-  ~ foo = [
+			`  ~ foo = [
         # (1 unchanged element hidden)
         "beta",
       + "gamma",
@@ -6866,8 +6697,7 @@ func TestOutputChanges(t *testing.T) {
 					false,
 				),
 			},
-			`
-  ~ a = 1 -> 2
+			`  ~ a = 1 -> 2
   ~ b = (sensitive value)
   ~ c = false -> true`,
 		},
