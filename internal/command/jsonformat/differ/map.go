@@ -36,12 +36,12 @@ func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*json
 	return computed.NewDiff(renderers.Map(elements), current, change.replacePath())
 }
 
-func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
 	current := change.getDefaultActionForIteration()
-	var elements []computed.Diff
+	elements := make(map[string]computed.Diff)
 	change.processMap(func(key string, value Change) {
 		element := value.ComputeDiffForBlock(block)
-		elements = append(elements, element)
+		elements[key] = element
 		current = compareActions(current, element.Action)
 	})
 	return elements, current

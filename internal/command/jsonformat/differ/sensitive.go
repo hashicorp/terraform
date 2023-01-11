@@ -10,25 +10,27 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
+type CreateSensitiveRenderer func(computed.Diff, bool, bool) computed.DiffRenderer
+
 func (change Change) checkForSensitiveType(ctype cty.Type) (computed.Diff, bool) {
-	return change.checkForSensitive(func(value Change) computed.Diff {
+	return change.checkForSensitive(renderers.Sensitive, func(value Change) computed.Diff {
 		return value.computeDiffForType(ctype)
 	})
 }
 
 func (change Change) checkForSensitiveNestedAttribute(attribute *jsonprovider.NestedType) (computed.Diff, bool) {
-	return change.checkForSensitive(func(value Change) computed.Diff {
+	return change.checkForSensitive(renderers.Sensitive, func(value Change) computed.Diff {
 		return value.computeDiffForNestedAttribute(attribute)
 	})
 }
 
 func (change Change) checkForSensitiveBlock(block *jsonprovider.Block) (computed.Diff, bool) {
-	return change.checkForSensitive(func(value Change) computed.Diff {
+	return change.checkForSensitive(renderers.SensitiveBlock, func(value Change) computed.Diff {
 		return value.ComputeDiffForBlock(block)
 	})
 }
 
-func (change Change) checkForSensitive(computedDiff func(value Change) computed.Diff) (computed.Diff, bool) {
+func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedDiff func(value Change) computed.Diff) (computed.Diff, bool) {
 	beforeSensitive := change.isBeforeSensitive()
 	afterSensitive := change.isAfterSensitive()
 
@@ -56,7 +58,7 @@ func (change Change) checkForSensitive(computedDiff func(value Change) computed.
 
 	inner := computedDiff(value)
 
-	return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), inner.Action, change.replacePath()), true
+	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), inner.Action, change.replacePath()), true
 }
 
 func (change Change) isBeforeSensitive() bool {

@@ -12,8 +12,8 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		return sensitive
 	}
 
-	if computed, ok := change.checkForUnknownBlock(block); ok {
-		return computed
+	if unknown, ok := change.checkForUnknownBlock(block); ok {
+		return unknown
 	}
 
 	current := change.getDefaultActionForIteration()
@@ -33,33 +33,59 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		current = compareActions(current, childChange.Action)
 	}
 
-	blocks := make(map[string][]computed.Diff)
+	blocks := renderers.Blocks{
+		SingleBlocks: make(map[string]computed.Diff),
+		ListBlocks:   make(map[string][]computed.Diff),
+		SetBlocks:    make(map[string][]computed.Diff),
+		MapBlocks:    make(map[string]map[string]computed.Diff),
+	}
+
 	for key, blockType := range block.BlockTypes {
 		childValue := blockValue.getChild(key)
-		childChanges, next := childValue.computeDiffsForBlockType(blockType)
-		if next == plans.NoOp && childValue.Before == nil && childValue.After == nil {
-			// Don't record nil values at all in blocks.
-			continue
+
+		switch NestingMode(blockType.NestingMode) {
+		case nestingModeSet:
+			diffs, action := childValue.computeBlockDiffsAsSet(blockType.Block)
+			if action == plans.NoOp && childValue.Before == childValue.After {
+				// Don't record nil values in blocks.
+				continue
+			}
+			for _, diff := range diffs {
+				blocks.AddSetBlock(key, diff)
+			}
+			current = compareActions(current, action)
+		case nestingModeList:
+			diffs, action := childValue.computeBlockDiffsAsList(blockType.Block)
+			if action == plans.NoOp && childValue.Before == childValue.After {
+				// Don't record nil values in blocks.
+				continue
+			}
+			for _, diff := range diffs {
+				blocks.AddListBlock(key, diff)
+			}
+			current = compareActions(current, action)
+		case nestingModeMap:
+			diffs, action := childValue.computeBlockDiffsAsMap(blockType.Block)
+			if action == plans.NoOp && childValue.Before == childValue.After {
+				// Don't record nil values in blocks.
+				continue
+			}
+			for dKey, diff := range diffs {
+				blocks.AddMapBlock(key, dKey, diff)
+			}
+			current = compareActions(current, action)
+		case nestingModeSingle, nestingModeGroup:
+			diff := childValue.ComputeDiffForBlock(blockType.Block)
+			if diff.Action == plans.NoOp && childValue.Before == childValue.After {
+				// Don't record nil values in blocks.
+				continue
+			}
+			blocks.AddSingleBlock(key, diff)
+			current = compareActions(current, diff.Action)
+		default:
+			panic("unrecognized nesting mode: " + blockType.NestingMode)
 		}
-		blocks[key] = childChanges
-		current = compareActions(current, next)
 	}
 
 	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.replacePath())
-}
-
-func (change Change) computeDiffsForBlockType(blockType *jsonprovider.BlockType) ([]computed.Diff, plans.Action) {
-	switch NestingMode(blockType.NestingMode) {
-	case nestingModeSet:
-		return change.computeBlockDiffsAsSet(blockType.Block)
-	case nestingModeList:
-		return change.computeBlockDiffsAsList(blockType.Block)
-	case nestingModeMap:
-		return change.computeBlockDiffsAsMap(blockType.Block)
-	case nestingModeSingle, nestingModeGroup:
-		diff := change.ComputeDiffForBlock(blockType.Block)
-		return []computed.Diff{diff}, diff.Action
-	default:
-		panic("unrecognized nesting mode: " + blockType.NestingMode)
-	}
 }

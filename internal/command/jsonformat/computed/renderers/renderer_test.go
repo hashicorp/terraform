@@ -1236,7 +1236,7 @@ func TestRenderers_Human(t *testing.T) {
 		},
 		"create_empty_block": {
 			diff: computed.Diff{
-				Renderer: Block(nil, nil),
+				Renderer: Block(nil, Blocks{}),
 				Action:   plans.Create,
 			},
 			expected: `
@@ -1254,26 +1254,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(nil, true, cty.Bool),
 						Action:   plans.Create,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "one", cty.String),
 									Action:   plans.Create,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Create,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "two", cty.String),
 									Action:   plans.Create,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Create,
 						},
 					},
@@ -1305,26 +1303,26 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(nil, true, cty.Bool),
 						Action:   plans.Create,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
+
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "one", cty.String),
 									Action:   plans.Create,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Create,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
+
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "two", cty.String),
 									Action:   plans.Create,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Create,
 						},
 					},
@@ -1356,26 +1354,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(false, true, cty.Bool),
 						Action:   plans.Update,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "one", cty.String),
 									Action:   plans.NoOp,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.NoOp,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive(nil, "two", cty.String),
 									Action:   plans.Create,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Create,
 						},
 					},
@@ -1404,26 +1400,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(true, nil, cty.Bool),
 						Action:   plans.Delete,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("one", nil, cty.String),
 									Action:   plans.Delete,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Delete,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("two", nil, cty.String),
 									Action:   plans.Delete,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Delete,
 						},
 					},
@@ -1455,26 +1449,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(true, nil, cty.Bool),
 						Action:   plans.Delete,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("one", nil, cty.String),
 									Action:   plans.Delete,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Delete,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("two", nil, cty.String),
 									Action:   plans.Delete,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Delete,
 						},
 					},
@@ -1495,9 +1487,172 @@ func TestRenderers_Human(t *testing.T) {
         }
     }`,
 		},
+		"list_block_update": {
+			diff: computed.Diff{
+				Renderer: Block(
+					nil,
+					Blocks{
+						ListBlocks: map[string][]computed.Diff{
+							"list_blocks": {
+								{
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, 2.0, cty.Number),
+											Action:   plans.Update,
+										},
+										"string": {
+											Renderer: Primitive(nil, "new", cty.String),
+											Action:   plans.Create,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+								{
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, nil, cty.Number),
+											Action:   plans.Delete,
+										},
+										"string": {
+											Renderer: Primitive("old", "new", cty.String),
+											Action:   plans.Update,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+							},
+						},
+					}),
+			},
+			expected: `
+{
+      ~ list_blocks {
+          ~ number = 1 -> 2
+          + string = "new"
+        }
+      ~ list_blocks {
+          - number = 1 -> null
+          ~ string = "old" -> "new"
+        }
+    }`,
+		},
+		"set_block_update": {
+			diff: computed.Diff{
+				Renderer: Block(
+					nil,
+					Blocks{
+						SetBlocks: map[string][]computed.Diff{
+							"set_blocks": {
+								{
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, 2.0, cty.Number),
+											Action:   plans.Update,
+										},
+										"string": {
+											Renderer: Primitive(nil, "new", cty.String),
+											Action:   plans.Create,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+								{
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, nil, cty.Number),
+											Action:   plans.Delete,
+										},
+										"string": {
+											Renderer: Primitive("old", "new", cty.String),
+											Action:   plans.Update,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+							},
+						},
+					}),
+			},
+			expected: `
+{
+      ~ set_blocks {
+          ~ number = 1 -> 2
+          + string = "new"
+        }
+      ~ set_blocks {
+          - number = 1 -> null
+          ~ string = "old" -> "new"
+        }
+    }`,
+		},
+		"map_block_update": {
+			diff: computed.Diff{
+				Renderer: Block(
+					nil,
+					Blocks{
+						MapBlocks: map[string]map[string]computed.Diff{
+							"list_blocks": {
+								"key_one": {
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, 2.0, cty.Number),
+											Action:   plans.Update,
+										},
+										"string": {
+											Renderer: Primitive(nil, "new", cty.String),
+											Action:   plans.Create,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+								"key:two": {
+									Renderer: Block(map[string]computed.Diff{
+										"number": {
+											Renderer: Primitive(1.0, nil, cty.Number),
+											Action:   plans.Delete,
+										},
+										"string": {
+											Renderer: Primitive("old", "new", cty.String),
+											Action:   plans.Update,
+										},
+									}, Blocks{}),
+									Action: plans.Update,
+								},
+							},
+						},
+					}),
+			},
+			expected: `
+{
+      ~ list_blocks "key:two" {
+          - number = 1 -> null
+          ~ string = "old" -> "new"
+        }
+      ~ list_blocks "key_one" {
+          ~ number = 1 -> 2
+          + string = "new"
+        }
+    }
+`,
+		},
+		"sensitive_block": {
+			diff: computed.Diff{
+				Renderer: SensitiveBlock(computed.Diff{
+					Renderer: Block(nil, Blocks{}),
+					Action:   plans.NoOp,
+				}, true, true),
+				Action: plans.Update,
+			},
+			expected: `
+{
+      # At least one attribute in this block is (or was) sensitive,
+      # so its contents will not be displayed.
+    }
+`,
+		},
 		"delete_empty_block": {
 			diff: computed.Diff{
-				Renderer: Block(nil, nil),
+				Renderer: Block(nil, Blocks{}),
 				Action:   plans.Delete,
 			},
 			expected: `
@@ -1519,26 +1674,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(3.0, 4.0, cty.Number),
 						Action:   plans.Update,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block:one": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block:one": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("one", "four", cty.String),
 									Action:   plans.Update,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Update,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("two", "three", cty.String),
 									Action:   plans.Update,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.Update,
 						},
 					},
@@ -1571,26 +1724,24 @@ func TestRenderers_Human(t *testing.T) {
 						Renderer: Primitive(false, false, cty.Bool),
 						Action:   plans.NoOp,
 					},
-				}, map[string][]computed.Diff{
-					"nested_block": {
-						{
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"nested_block": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("one", "one", cty.String),
 									Action:   plans.NoOp,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.NoOp,
 						},
-					},
-					"nested_block_two": {
-						{
+						"nested_block_two": {
 							Renderer: Block(map[string]computed.Diff{
 								"string": {
 									Renderer: Primitive("two", "two", cty.String),
 									Action:   plans.NoOp,
 								},
-							}, nil),
+							}, Blocks{}),
 							Action: plans.NoOp,
 						},
 					},
