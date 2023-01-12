@@ -437,6 +437,15 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 
 	p.OutputChanges = make(map[string]Change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
+
+		// Skip output changes that are not from the root module.
+		// These are automatically stripped from plans that are written to disk
+		// elsewhere, we just need to duplicate the logic here in case anyone
+		// is converting this plan directly from memory.
+		if !oc.Addr.Module.IsRoot() {
+			continue
+		}
+
 		changeV, err := oc.Decode()
 		if err != nil {
 			return err
