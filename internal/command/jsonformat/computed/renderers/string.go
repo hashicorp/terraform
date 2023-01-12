@@ -3,6 +3,8 @@ package renderers
 import (
 	"encoding/json"
 	"strings"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 )
 
 type evaluatedString struct {
@@ -12,9 +14,9 @@ type evaluatedString struct {
 	IsMultiline bool
 }
 
-func evaluatePrimitiveString(value interface{}) evaluatedString {
+func evaluatePrimitiveString(value interface{}, opts computed.RenderHumanOpts) evaluatedString {
 	if value == nil {
-		return evaluatedString{String: "[dark_gray]null[reset]"}
+		return evaluatedString{String: opts.Colorize.Color("[dark_gray]null[reset]")}
 	}
 
 	str := value.(string)

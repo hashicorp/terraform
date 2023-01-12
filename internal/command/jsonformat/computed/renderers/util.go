@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/internal/command/format"
+
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -16,24 +18,24 @@ import (
 type NoWarningsRenderer struct{}
 
 // WarningsHuman returns an empty slice, as the name NoWarningsRenderer suggests.
-func (render NoWarningsRenderer) WarningsHuman(diff computed.Diff, indent int) []string {
+func (render NoWarningsRenderer) WarningsHuman(_ computed.Diff, _ int, _ computed.RenderHumanOpts) []string {
 	return nil
 }
 
 // nullSuffix returns the `-> null` suffix if the change is a delete action, and
 // it has not been overridden.
-func nullSuffix(override bool, action plans.Action) string {
-	if !override && action == plans.Delete {
-		return " [dark_gray]-> null[reset]"
+func nullSuffix(action plans.Action, opts computed.RenderHumanOpts) string {
+	if !opts.OverrideNullSuffix && action == plans.Delete {
+		return opts.Colorize.Color(" [dark_gray]-> null[reset]")
 	}
 	return ""
 }
 
 // forcesReplacement returns the `# forces replacement` suffix if this change is
 // driving the entire resource to be replaced.
-func forcesReplacement(replace bool, override bool) string {
-	if replace || override {
-		return " [red]# forces replacement[reset]"
+func forcesReplacement(replace bool, opts computed.RenderHumanOpts) string {
+	if replace || opts.OverrideForcesReplacement {
+		return opts.Colorize.Color(" [red]# forces replacement[reset]")
 	}
 	return ""
 }
@@ -46,11 +48,11 @@ func formatIndent(indent int) string {
 
 // unchanged prints out a description saying how many of 'keyword' have been
 // hidden because they are unchanged or noop actions.
-func unchanged(keyword string, count int) string {
+func unchanged(keyword string, count int, opts computed.RenderHumanOpts) string {
 	if count == 1 {
-		return fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", count, keyword)
+		return opts.Colorize.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %s hidden)[reset]", count, keyword))
 	}
-	return fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword)
+	return opts.Colorize.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword))
 }
 
 // ensureValidAttributeName checks if `name` contains any HCL syntax and returns
@@ -60,4 +62,8 @@ func ensureValidAttributeName(name string) string {
 		return fmt.Sprintf("%q", name)
 	}
 	return name
+}
+
+func colorizeDiffAction(action plans.Action, opts computed.RenderHumanOpts) string {
+	return opts.Colorize.Color(format.DiffActionSymbol(action))
 }

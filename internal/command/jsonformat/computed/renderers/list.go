@@ -33,7 +33,7 @@ type listRenderer struct {
 
 func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.elements) == 0 {
-		return fmt.Sprintf("[]%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
+		return fmt.Sprintf("[]%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 	}
 
 	elementOpts := opts.Clone()
@@ -50,7 +50,7 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 	renderNext := false
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
+	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(diff.Replace, opts)))
 	for _, element := range renderer.elements {
 		if element.Action == plans.NoOp && !renderNext && !opts.ShowUnchangedChildren {
 			unchangedElements = append(unchangedElements, element)
@@ -70,14 +70,14 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 			// minus 1 as the most recent unchanged element will be printed out
 			// in full.
 			if len(unchangedElements) > 1 {
-				buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements)-1)))
+				buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements)-1, opts)))
 			}
 			// If our list of unchanged elements contains at least one entry,
 			// we're going to print out the most recent change in full. That's
 			// what happens here.
 			if len(unchangedElements) > 0 {
 				lastElement := unchangedElements[len(unchangedElements)-1]
-				buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), format.DiffActionSymbol(lastElement.Action), lastElement.RenderHuman(indent+1, unchangedElementOpts)))
+				buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(lastElement.Action, opts), lastElement.RenderHuman(indent+1, unchangedElementOpts)))
 			}
 			// We now reset the unchanged elements list, we've printed out a
 			// count of all the elements we skipped so we start counting from
@@ -95,10 +95,10 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 			renderNext = element.Action != plans.NoOp
 		}
 
-		for _, warning := range element.WarningsHuman(indent + 1) {
+		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), format.DiffActionSymbol(element.Action), element.RenderHuman(indent+1, elementOpts)))
+		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), element.RenderHuman(indent+1, elementOpts)))
 	}
 
 	// If we were not displaying any context alongside our changes then the
@@ -108,9 +108,9 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 	// If we were displaying context, then this will contain any unchanged
 	// elements since our last change, so we should also print it out.
 	if len(unchangedElements) > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements))))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements), opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s ]%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(opts.OverrideNullSuffix, diff.Action)))
+	buf.WriteString(fmt.Sprintf("%s%s ]%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }
