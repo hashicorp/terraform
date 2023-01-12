@@ -44,23 +44,26 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(forcesReplacementSelf, opts.OverrideForcesReplacement))
 	}
 
-	maximumKeyLen := 0
-	for key := range renderer.elements {
-		if maximumKeyLen < len(key) {
-			maximumKeyLen = len(key)
-		}
-	}
-	maximumKeyLen += 2 // We always render map keys with quotation marks.
-
-	unchangedElements := 0
-
 	// Sort the map elements by key, so we have a deterministic ordering in
 	// the output.
 	var keys []string
+
+	// We need to make sure the keys are capable of rendering properly.
+	escapedKeys := make(map[string]string)
+
+	maximumKeyLen := 0
 	for key := range renderer.elements {
 		keys = append(keys, key)
+
+		escapedKey := hclEscapeString(key)
+		escapedKeys[key] = escapedKey
+		if maximumKeyLen < len(escapedKey) {
+			maximumKeyLen = len(escapedKey)
+		}
 	}
 	sort.Strings(keys)
+
+	unchangedElements := 0
 
 	elementOpts := opts.Clone()
 	elementOpts.OverrideNullSuffix = diff.Action == plans.Delete || renderer.overrideNullSuffix
@@ -87,7 +90,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 			comma = ","
 		}
 
-		buf.WriteString(fmt.Sprintf("%s%s %-*q = %s%s\n", formatIndent(indent+1), format.DiffActionSymbol(element.Action), maximumKeyLen, key, element.RenderHuman(indent+1, elementOpts), comma))
+		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s%s\n", formatIndent(indent+1), format.DiffActionSymbol(element.Action), maximumKeyLen, escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
 	}
 
 	if unchangedElements > 0 {

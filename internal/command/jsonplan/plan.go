@@ -459,7 +459,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 }
 
 // MarshalOutputChanges converts the provided internal representation of
-// Changes objects into the .
+// Changes objects into the structured JSON representation.
 //
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere

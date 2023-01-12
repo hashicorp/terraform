@@ -1,11 +1,12 @@
 package jsonformat
 
 import (
+	"sort"
+
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
-	"sort"
 )
 
 func precomputeDiffs(plan Plan) diffs {

@@ -50,7 +50,9 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 	// version then we are executing. We could also look into major vs minor
 	// version differences. This should work for alpha testing in the meantime.
 	if plan.PlanFormatVersion != jsonplan.FormatVersion || plan.ProviderFormatVersion != jsonprovider.FormatVersion {
-		r.Streams.Println(r.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here maybe missing representations of recent features."))
+		r.Streams.Println(format.WordWrap(
+			r.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here maybe missing representations of recent features."),
+			r.Streams.Stdout.Columns()))
 	}
 
 	checkOpts := func(target RendererOpt) bool {
@@ -89,10 +91,15 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 	}
 
 	if len(changes) == 0 && len(diffs.outputs) == 0 {
+		// If we didn't find any changes to report at all then this is a
+		// "No changes" plan. How we'll present this depends on whether
+		// the plan is "applyable" and, if so, whether it had refresh changes
+		// that we already would've presented above.
+
 		if checkOpts(Errored) {
 			if haveRefreshChanges {
 				r.Streams.Print(format.HorizontalRule(r.Colorize, r.Streams.Stdout.Columns()))
-				r.Streams.Println("")
+				r.Streams.Println()
 			}
 			r.Streams.Print(
 				r.Colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] Terraform encountered an error while generating this plan.[reset]\n\n"),
@@ -101,6 +108,9 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 			switch mode {
 			case plans.RefreshOnlyMode:
 				if haveRefreshChanges {
+					// We already generated a sufficient prompt about what will
+					// happen if applying this change above, so we don't need to
+					// say anything more.
 					return
 				}
 
@@ -164,6 +174,11 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		}
 	}
 
+	if haveRefreshChanges {
+		r.Streams.Print(format.HorizontalRule(r.Colorize, r.Streams.Stdout.Columns()))
+		r.Streams.Println()
+	}
+
 	if willPrintResourceChanges {
 		r.Streams.Println("\nTerraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:")
 		if counts[plans.Create] > 0 {
@@ -184,28 +199,34 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		if counts[plans.Read] > 0 {
 			r.Streams.Println(r.Colorize.Color(actionDescription(plans.Read)))
 		}
-
-		r.Streams.Print("\nTerraform will perform the following actions:\n")
 	}
 
-	for _, change := range changes {
-		diff, render := r.renderHumanDiff(change, proposedChange)
-		if render {
-			fmt.Fprintln(r.Streams.Stdout.File)
-			r.Streams.Println(r.Colorize.Color(diff))
+	if len(changes) > 0 {
+		if checkOpts(Errored) {
+			r.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n\n")
+		} else {
+			r.Streams.Printf("\nTerraform will perform the following actions:\n\n")
 		}
-	}
 
-	r.Streams.Printf(
-		"\nPlan: %d to add, %d to change, %d to destroy.\n",
-		counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-		counts[plans.Update],
-		counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		for _, change := range changes {
+			diff, render := r.renderHumanDiff(change, proposedChange)
+			if render {
+				fmt.Fprintln(r.Streams.Stdout.File)
+				r.Streams.Println(diff)
+			}
+		}
+
+		r.Streams.Printf(
+			"\nPlan: %d to add, %d to change, %d to destroy.\n",
+			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+			counts[plans.Update],
+			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+	}
 
 	diff := r.renderHumanDiffOutputs(diffs.outputs)
 	if len(diff) > 0 {
 		r.Streams.Print("\nChanges to Outputs:\n")
-		r.Streams.Printf("%s\n", r.Colorize.Color(diff))
+		r.Streams.Printf("%s\n", diff)
 
 		// TODO: check what happens if you have modules with outputs.
 
@@ -233,7 +254,7 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 	for _, key := range keys {
 		output := outputs[key]
 		if output.Action != plans.NoOp {
-			rendered = append(rendered, r.Colorize.Color(fmt.Sprintf("%s %s = %s", format.DiffActionSymbol(output.Action), key, output.RenderHuman(0, computed.RenderHumanOpts{}))))
+			rendered = append(rendered, fmt.Sprintf("%s %s = %s", r.Colorize.Color(format.DiffActionSymbol(output.Action)), key, output.RenderHuman(0, computed.RenderHumanOpts{})))
 		}
 	}
 	return strings.Join(rendered, "\n")
@@ -272,7 +293,7 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 		diff, render := r.renderHumanDiff(drift, detectedDrift)
 		if render {
 			r.Streams.Println()
-			r.Streams.Println(r.Colorize.Color(diff))
+			r.Streams.Println(diff)
 		}
 	}
 
@@ -296,7 +317,7 @@ func (r Renderer) renderHumanDiff(diff diff, cause string) (string, bool) {
 
 	var buf bytes.Buffer
 	buf.WriteString(r.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
-	buf.WriteString(r.Colorize.Color(fmt.Sprintf("%s %s %s", format.DiffActionSymbol(action), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.RenderHumanOpts{}))))
+	buf.WriteString(fmt.Sprintf("%s %s %s", r.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.RenderHumanOpts{})))
 	return buf.String(), true
 }
 
