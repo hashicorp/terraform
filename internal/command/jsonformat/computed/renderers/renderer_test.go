@@ -1996,12 +1996,15 @@ EOT
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+
+			opts := tc.opts.Clone()
+			opts.Colorize = colorize
+
 			expected := strings.TrimSpace(tc.expected)
-			actual := colorize.Color(tc.diff.RenderHuman(0, tc.opts))
+			actual := tc.diff.RenderHuman(0, opts)
 			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
 				t.Fatalf("\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", expected, actual, diff)
 			}
 		})
 	}
-
 }

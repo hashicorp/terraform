@@ -36,7 +36,7 @@ type mapRenderer struct {
 
 func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.elements) == 0 {
-		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
+		return fmt.Sprintf("{}%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 	}
 
 	unchangedElements := 0
@@ -55,7 +55,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts)))
 	for _, key := range keys {
 		element := renderer.elements[key]
 
@@ -65,7 +65,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 			continue
 		}
 
-		for _, warning := range element.WarningsHuman(indent + 1) {
+		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
 
@@ -79,13 +79,13 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 		// additional 2 characters, as we are going to add quotation marks ("")
 		// around the key when it is rendered.
 		keyLenWithOffset := renderer.maximumKeyLen + 2
-		buf.WriteString(fmt.Sprintf("%s%s %-*q = %s%s\n", formatIndent(indent+1), format.DiffActionSymbol(element.Action), keyLenWithOffset, key, element.RenderHuman(indent+1, elementOpts), comma))
+		buf.WriteString(fmt.Sprintf("%s%s %-*q = %s%s\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), keyLenWithOffset, key, element.RenderHuman(indent+1, elementOpts), comma))
 	}
 
 	if unchangedElements > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", unchangedElements)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", unchangedElements, opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s }%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(opts.OverrideNullSuffix, diff.Action)))
+	buf.WriteString(fmt.Sprintf("%s%s }%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }
