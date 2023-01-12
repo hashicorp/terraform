@@ -3,9 +3,10 @@ package jsonfunction
 import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-func getReturnType(f function.Function) string {
+func getReturnType(f function.Function) ([]byte, error) {
 	args := make([]cty.Type, 0)
 	for _, param := range f.Params() {
 		args = append(args, param.Type)
@@ -16,7 +17,7 @@ func getReturnType(f function.Function) string {
 
 	returnType, err := f.ReturnType(args)
 	if err != nil {
-		return "" // TODO? handle error
+		return nil, err
 	}
-	return returnType.FriendlyName()
+	return ctyjson.MarshalType(returnType)
 }

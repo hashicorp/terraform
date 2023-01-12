@@ -1,6 +1,7 @@
 package jsonfunction
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -22,7 +23,7 @@ func TestMarshalFunction(t *testing.T) {
 				Type: function.StaticReturnType(cty.Bool),
 			}),
 			&FunctionSignature{
-				ReturnType: "bool",
+				ReturnType: json.RawMessage(`"bool"`),
 			},
 		},
 		{
@@ -33,7 +34,7 @@ func TestMarshalFunction(t *testing.T) {
 			}),
 			&FunctionSignature{
 				Description: "`timestamp` returns a UTC timestamp string.",
-				ReturnType:  "string",
+				ReturnType:  json.RawMessage(`"string"`),
 			},
 		},
 		{
@@ -54,17 +55,17 @@ func TestMarshalFunction(t *testing.T) {
 				Type: function.StaticReturnType(cty.String),
 			}),
 			&FunctionSignature{
-				ReturnType: "string",
+				ReturnType: json.RawMessage(`"string"`),
 				Parameters: []*parameter{
 					{
 						Name:        "timestamp",
 						Description: "timestamp text",
-						Type:        "string",
+						Type:        json.RawMessage(`"string"`),
 					},
 					{
 						Name:        "duration",
 						Description: "duration text",
-						Type:        "string",
+						Type:        json.RawMessage(`"string"`),
 					},
 				},
 			},
@@ -84,12 +85,33 @@ func TestMarshalFunction(t *testing.T) {
 				Type: function.StaticReturnType(cty.DynamicPseudoType),
 			}),
 			&FunctionSignature{
-				ReturnType: "dynamic",
+				ReturnType: json.RawMessage(`"dynamic"`),
 				VariadicParameter: &parameter{
 					Name:        "default",
 					Description: "default description",
-					Type:        "dynamic",
+					Type:        json.RawMessage(`"dynamic"`),
 					IsNullable:  true,
+				},
+			},
+		},
+		{
+			"function with list types",
+			function.New(&function.Spec{
+				Params: []function.Parameter{
+					{
+						Name: "list",
+						Type: cty.List(cty.String),
+					},
+				},
+				Type: function.StaticReturnType(cty.List(cty.String)),
+			}),
+			&FunctionSignature{
+				ReturnType: json.RawMessage(`["list","string"]`),
+				Parameters: []*parameter{
+					{
+						Name: "list",
+						Type: json.RawMessage(`["list","string"]`),
+					},
 				},
 			},
 		},
@@ -97,7 +119,10 @@ func TestMarshalFunction(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
-			got := marshalFunction(test.Input)
+			got, err := marshalFunction(test.Input)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
 				t.Fatalf("mismatch of function signature: %s", diff)
