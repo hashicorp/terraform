@@ -7,6 +7,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func TestOmitUnknowns(t *testing.T) {
@@ -313,6 +316,99 @@ func TestEncodePaths(t *testing.T) {
 			}
 			if !cmp.Equal(got, test.Want) {
 				t.Errorf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
+			}
+		})
+	}
+}
+
+func TestOutputs(t *testing.T) {
+	root := addrs.RootModuleInstance
+
+	child, diags := addrs.ParseModuleInstanceStr("module.child")
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	tests := map[string]struct {
+		changes  *plans.Changes
+		expected map[string]Change
+	}{
+		"copies all outputs": {
+			changes: &plans.Changes{
+				Outputs: []*plans.OutputChangeSrc{
+					{
+						Addr: root.OutputValue("first"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+					{
+						Addr: root.OutputValue("second"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+				},
+			},
+			expected: map[string]Change{
+				"first": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+				"second": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+			},
+		},
+		"skips non root modules": {
+			changes: &plans.Changes{
+				Outputs: []*plans.OutputChangeSrc{
+					{
+						Addr: root.OutputValue("first"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+					{
+						Addr: child.OutputValue("second"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+				},
+			},
+			expected: map[string]Change{
+				"first": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+			},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			p := newPlan()
+
+			err := p.marshalOutputChanges(test.changes)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			if !cmp.Equal(p.OutputChanges, test.expected) {
+				t.Errorf("wrong result:\n %v\n", cmp.Diff(p.OutputChanges, test.expected))
 			}
 		})
 	}
