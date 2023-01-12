@@ -58,6 +58,8 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 		}
 		renderNext = false
 
+		opts := elementOpts
+
 		// If we want to display the context around this change, we want to
 		// render the change immediately before this change in the list, and the
 		// change immediately after in the list, even if both these changes are
@@ -86,19 +88,26 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 			// change that happened previously.
 			unchangedElements = nil
 
-			// As we also want to render the element immediately after any
-			// changes, we make a note here to say we should render the next
-			// change whatever it is. But, we only want to render the next
-			// change if the current change isn't a NoOp. If the current change
-			// is a NoOp then it was told to print by the last change and we
-			// don't want to cascade and print all changes from now on.
-			renderNext = element.Action != plans.NoOp
+			if element.Action == plans.NoOp {
+				// If this is a NoOp action then we're going to render it below
+				// so we need to just override the opts we're going to use to
+				// make sure we use the unchanged opts.
+				opts = unchangedElementOpts
+			} else {
+				// As we also want to render the element immediately after any
+				// changes, we make a note here to say we should render the next
+				// change whatever it is. But, we only want to render the next
+				// change if the current change isn't a NoOp. If the current change
+				// is a NoOp then it was told to print by the last change and we
+				// don't want to cascade and print all changes from now on.
+				renderNext = true
+			}
 		}
 
 		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), element.RenderHuman(indent+1, elementOpts)))
+		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), element.RenderHuman(indent+1, opts)))
 	}
 
 	// If we were not displaying any context alongside our changes then the

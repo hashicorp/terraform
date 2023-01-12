@@ -16,6 +16,8 @@ var (
 
 	importantAttributes = []string{
 		"id",
+		"name",
+		"tags",
 	}
 )
 
@@ -43,6 +45,10 @@ type blockRenderer struct {
 }
 
 func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
+	if len(renderer.attributes) == 0 && len(renderer.blocks.GetAllKeys()) == 0 {
+		return fmt.Sprintf("{}%s", forcesReplacement(diff.Replace, opts))
+	}
+
 	unchangedAttributes := 0
 	unchangedBlocks := 0
 
@@ -59,19 +65,24 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	}
 	sort.Strings(attributeKeys)
 
+	importantAttributeOpts := opts.Clone()
+	importantAttributeOpts.ShowUnchangedChildren = true
+
+	attributeOpts := opts.Clone()
+
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts)))
-	for _, importantKey := range importantAttributes {
-		if attribute, ok := renderer.attributes[importantKey]; ok {
-			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, opts), maximumAttributeKeyLen, importantKey, attribute.RenderHuman(indent+1, opts)))
-		}
-	}
-
 	for _, key := range attributeKeys {
+		attribute := renderer.attributes[key]
 		if importantAttribute(key) {
+
+			// Always display the important attributes.
+			for _, warning := range attribute.WarningsHuman(indent+1, importantAttributeOpts) {
+				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
+			}
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, importantAttributeOpts), maximumAttributeKeyLen, key, attribute.RenderHuman(indent+1, importantAttributeOpts)))
 			continue
 		}
-		attribute := renderer.attributes[key]
 		if attribute.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 			unchangedAttributes++
 			continue
@@ -80,7 +91,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 		for _, warning := range attribute.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, opts), maximumAttributeKeyLen, escapedAttributeKeys[key], attribute.RenderHuman(indent+1, opts)))
+		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, attributeOpts), maximumAttributeKeyLen, escapedAttributeKeys[key], attribute.RenderHuman(indent+1, attributeOpts)))
 	}
 
 	if unchangedAttributes > 0 {
@@ -92,6 +103,22 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 
 		foundChangedBlock := false
 		renderBlock := func(diff computed.Diff, mapKey string, opts computed.RenderHumanOpts) {
+
+			creatingSensitiveValue := diff.Action == plans.Create && renderer.blocks.AfterSensitiveBlocks[key]
+			deletingSensitiveValue := diff.Action == plans.Delete && renderer.blocks.BeforeSensitiveBlocks[key]
+			modifyingSensitiveValue := (diff.Action == plans.Update || diff.Action == plans.NoOp) && (renderer.blocks.AfterSensitiveBlocks[key] || renderer.blocks.BeforeSensitiveBlocks[key])
+
+			if creatingSensitiveValue || deletingSensitiveValue || modifyingSensitiveValue {
+				// Intercept the renderer here if the sensitive data was set
+				// across all the blocks instead of individually.
+				action := diff.Action
+				if diff.Action == plans.NoOp && renderer.blocks.BeforeSensitiveBlocks[key] != renderer.blocks.AfterSensitiveBlocks[key] {
+					action = plans.Update
+				}
+
+				diff = computed.NewDiff(SensitiveBlock(diff, renderer.blocks.BeforeSensitiveBlocks[key], renderer.blocks.AfterSensitiveBlocks[key]), action, diff.Replace)
+			}
+
 			if diff.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 				unchangedBlocks++
 				return
@@ -104,10 +131,17 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 				foundChangedBlock = true
 			}
 
-			for _, warning := range diff.WarningsHuman(indent+1, opts) {
+			// If the force replacement metadata was set for every entry in the
+			// block we need to override that here. Our child blocks will only
+			// know about the replace function if it was set on them
+			// specifically, and not if it was set for all the blocks.
+			blockOpts := opts.Clone()
+			blockOpts.OverrideForcesReplacement = renderer.blocks.ReplaceBlocks[key]
+
+			for _, warning := range diff.WarningsHuman(indent+1, blockOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), colorizeDiffAction(diff.Action, opts), ensureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, opts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), colorizeDiffAction(diff.Action, blockOpts), ensureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, blockOpts)))
 
 		}
 
@@ -140,7 +174,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	}
 
 	if unchangedBlocks > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("block", unchangedBlocks, opts)))
+		buf.WriteString(fmt.Sprintf("\n%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("block", unchangedBlocks, opts)))
 	}
 
 	buf.WriteString(fmt.Sprintf("%s%s }", formatIndent(indent), format.DiffActionSymbol(plans.NoOp)))

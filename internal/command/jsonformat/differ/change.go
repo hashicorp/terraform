@@ -82,9 +82,9 @@ type Change struct {
 	ReplacePaths replace.ForcesReplacement
 }
 
-// ValueFromJsonChange unmarshals the raw []byte values in the jsonplan.Change
+// FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
-func ValueFromJsonChange(change jsonplan.Change) Change {
+func FromJsonChange(change jsonplan.Change) Change {
 	return Change{
 		Before:          unmarshalGeneric(change.Before),
 		After:           unmarshalGeneric(change.After),

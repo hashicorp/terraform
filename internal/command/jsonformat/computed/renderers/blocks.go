@@ -13,6 +13,17 @@ type Blocks struct {
 	ListBlocks   map[string][]computed.Diff
 	SetBlocks    map[string][]computed.Diff
 	MapBlocks    map[string]map[string]computed.Diff
+
+	// ReplaceBlocks and Before/AfterSensitiveBlocks carry forward the
+	// information about an entire group of blocks (eg. if all the blocks for a
+	// given list block are sensitive that isn't captured in the individual
+	// blocks as they are processed independently). These maps allow the
+	// renderer to check the metadata on the overall groups and respond
+	// accordingly.
+
+	ReplaceBlocks         map[string]bool
+	BeforeSensitiveBlocks map[string]bool
+	AfterSensitiveBlocks  map[string]bool
 }
 
 func (blocks *Blocks) GetAllKeys() []string {
@@ -53,23 +64,30 @@ func (blocks *Blocks) IsSetBlock(key string) bool {
 	return ok
 }
 
-func (blocks *Blocks) AddSingleBlock(key string, diff computed.Diff) {
+func (blocks *Blocks) AddSingleBlock(key string, diff computed.Diff, replace, beforeSensitive, afterSensitive bool) {
 	blocks.SingleBlocks[key] = diff
+	blocks.ReplaceBlocks[key] = replace
+	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
+	blocks.AfterSensitiveBlocks[key] = afterSensitive
 }
 
-func (blocks *Blocks) AddListBlock(key string, diff computed.Diff) {
-	blocks.ListBlocks[key] = append(blocks.ListBlocks[key], diff)
+func (blocks *Blocks) AddAllListBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+	blocks.ListBlocks[key] = diffs
+	blocks.ReplaceBlocks[key] = replace
+	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
+	blocks.AfterSensitiveBlocks[key] = afterSensitive
 }
 
-func (blocks *Blocks) AddSetBlock(key string, diff computed.Diff) {
-	blocks.SetBlocks[key] = append(blocks.SetBlocks[key], diff)
+func (blocks *Blocks) AddAllSetBlock(key string, diffs []computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+	blocks.SetBlocks[key] = diffs
+	blocks.ReplaceBlocks[key] = replace
+	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
+	blocks.AfterSensitiveBlocks[key] = afterSensitive
 }
 
-func (blocks *Blocks) AddMapBlock(key string, entry string, diff computed.Diff) {
-	m := blocks.MapBlocks[key]
-	if m == nil {
-		m = make(map[string]computed.Diff)
-	}
-	m[entry] = diff
-	blocks.MapBlocks[key] = m
+func (blocks *Blocks) AddAllMapBlocks(key string, diffs map[string]computed.Diff, replace, beforeSensitive, afterSensitive bool) {
+	blocks.MapBlocks[key] = diffs
+	blocks.ReplaceBlocks[key] = replace
+	blocks.BeforeSensitiveBlocks[key] = beforeSensitive
+	blocks.AfterSensitiveBlocks[key] = afterSensitive
 }

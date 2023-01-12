@@ -25,7 +25,7 @@ type sensitiveRenderer struct {
 }
 
 func (renderer sensitiveRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	return fmt.Sprintf("(sensitive)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
+	return fmt.Sprintf("(sensitive value)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 }
 
 func (renderer sensitiveRenderer) WarningsHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) []string {

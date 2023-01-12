@@ -37,15 +37,9 @@ func (renderer sensitiveBlockRenderer) WarningsHuman(diff computed.Diff, indent 
 		return []string{}
 	}
 
-	var warning string
 	if renderer.beforeSensitive {
-		warning = opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this block will no longer be marked as sensitive\n%s  # after applying this change.", formatIndent(indent)))
+		return []string{opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this block will no longer be marked as sensitive\n%s  # after applying this change.", formatIndent(indent)))}
 	} else {
-		warning = opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this block will be marked as sensitive and will not\n%s  # display in UI output after applying this change.", formatIndent(indent)))
+		return []string{opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this block will be marked as sensitive and will not\n%s  # display in UI output after applying this change.", formatIndent(indent)))}
 	}
-
-	if renderer.inner.Action == plans.NoOp {
-		return []string{fmt.Sprintf("%s The value is unchanged.", warning)}
-	}
-	return []string{warning}
 }

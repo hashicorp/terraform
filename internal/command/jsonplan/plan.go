@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -23,7 +24,22 @@ import (
 // FormatVersion represents the version of the json format and will be
 // incremented for any change to this format that requires changes to a
 // consuming parser.
-const FormatVersion = "1.1"
+const (
+	FormatVersion = "1.1"
+
+	ResourceInstanceReplaceBecauseCannotUpdate    = "replace_because_cannot_update"
+	ResourceInstanceReplaceBecauseTainted         = "replace_because_tainted"
+	ResourceInstanceReplaceByRequest              = "replace_by_request"
+	ResourceInstanceReplaceByTriggers             = "replace_by_triggers"
+	ResourceInstanceDeleteBecauseNoResourceConfig = "delete_because_no_resource_config"
+	ResourceInstanceDeleteBecauseWrongRepetition  = "delete_because_wrong_repetition"
+	ResourceInstanceDeleteBecauseCountIndex       = "delete_because_count_index"
+	ResourceInstanceDeleteBecauseEachKey          = "delete_because_each_key"
+	ResourceInstanceDeleteBecauseNoModule         = "delete_because_no_module"
+	ResourceInstanceDeleteBecauseNoMoveTarget     = "delete_because_no_move_target"
+	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
+	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
+)
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
@@ -156,7 +172,7 @@ func Marshal(
 				}
 			}
 		}
-		output.ResourceDrift, err = output.marshalResourceChanges(driftedResources, schemas)
+		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling resource drift: %s", err)
 		}
@@ -168,15 +184,14 @@ func Marshal(
 
 	// output.ResourceChanges
 	if p.Changes != nil {
-		output.ResourceChanges, err = output.marshalResourceChanges(p.Changes.Resources, schemas)
+		output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas)
 		if err != nil {
 			return nil, fmt.Errorf("error in marshaling resource changes: %s", err)
 		}
 	}
 
 	// output.OutputChanges
-	err = output.marshalOutputChanges(p.Changes)
-	if err != nil {
+	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
 	}
 
@@ -257,7 +272,13 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 	return nil
 }
 
-func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
+// MarshalResourceChanges converts the provided internal representation of
+// ResourceInstanceChangeSrc objects into the public structured JSON changes.
+//
+// This function is referenced directly from the structured renderer tests, to
+// ensure parity between the renderers. It probably shouldn't be used anywhere
+// else.
+func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
 	var ret []ResourceChange
 
 	for _, rc := range resources {
@@ -391,29 +412,29 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 		case plans.ResourceInstanceChangeNoReason:
 			r.ActionReason = "" // will be omitted in output
 		case plans.ResourceInstanceReplaceBecauseCannotUpdate:
-			r.ActionReason = "replace_because_cannot_update"
+			r.ActionReason = ResourceInstanceReplaceBecauseCannotUpdate
 		case plans.ResourceInstanceReplaceBecauseTainted:
-			r.ActionReason = "replace_because_tainted"
+			r.ActionReason = ResourceInstanceReplaceBecauseTainted
 		case plans.ResourceInstanceReplaceByRequest:
-			r.ActionReason = "replace_by_request"
+			r.ActionReason = ResourceInstanceReplaceByRequest
 		case plans.ResourceInstanceReplaceByTriggers:
-			r.ActionReason = "replace_by_triggers"
+			r.ActionReason = ResourceInstanceReplaceByTriggers
 		case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
-			r.ActionReason = "delete_because_no_resource_config"
+			r.ActionReason = ResourceInstanceDeleteBecauseNoResourceConfig
 		case plans.ResourceInstanceDeleteBecauseWrongRepetition:
-			r.ActionReason = "delete_because_wrong_repetition"
+			r.ActionReason = ResourceInstanceDeleteBecauseWrongRepetition
 		case plans.ResourceInstanceDeleteBecauseCountIndex:
-			r.ActionReason = "delete_because_count_index"
+			r.ActionReason = ResourceInstanceDeleteBecauseCountIndex
 		case plans.ResourceInstanceDeleteBecauseEachKey:
-			r.ActionReason = "delete_because_each_key"
+			r.ActionReason = ResourceInstanceDeleteBecauseEachKey
 		case plans.ResourceInstanceDeleteBecauseNoModule:
-			r.ActionReason = "delete_because_no_module"
+			r.ActionReason = ResourceInstanceDeleteBecauseNoModule
 		case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
-			r.ActionReason = "delete_because_no_move_target"
+			r.ActionReason = ResourceInstanceDeleteBecauseNoMoveTarget
 		case plans.ResourceInstanceReadBecauseConfigUnknown:
-			r.ActionReason = "read_because_config_unknown"
+			r.ActionReason = ResourceInstanceReadBecauseConfigUnknown
 		case plans.ResourceInstanceReadBecauseDependencyPending:
-			r.ActionReason = "read_because_dependency_pending"
+			r.ActionReason = ResourceInstanceReadBecauseDependencyPending
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}
@@ -429,13 +450,19 @@ func (p *plan) marshalResourceChanges(resources []*plans.ResourceInstanceChangeS
 	return ret, nil
 }
 
-func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
+// MarshalOutputChanges converts the provided internal representation of
+// Changes objects into the structured JSON representation.
+//
+// This function is referenced directly from the structured renderer tests, to
+// ensure parity between the renderers. It probably shouldn't be used anywhere
+// else.
+func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	if changes == nil {
 		// Nothing to do!
-		return nil
+		return nil, nil
 	}
 
-	p.OutputChanges = make(map[string]Change, len(changes.Outputs))
+	outputChanges := make(map[string]Change, len(changes.Outputs))
 	for _, oc := range changes.Outputs {
 
 		// Skip output changes that are not from the root module.
@@ -448,7 +475,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 
 		changeV, err := oc.Decode()
 		if err != nil {
-			return err
+			return nil, err
 		}
 		// We drop the marks from the change, as decoding is only an
 		// intermediate step to re-encode the values as json
@@ -461,14 +488,14 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		if changeV.Before != cty.NilVal {
 			before, err = ctyjson.Marshal(changeV.Before, changeV.Before.Type())
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		if changeV.After != cty.NilVal {
 			if changeV.After.IsWhollyKnown() {
 				after, err = ctyjson.Marshal(changeV.After, changeV.After.Type())
 				if err != nil {
-					return err
+					return nil, err
 				}
 				afterUnknown = cty.False
 			} else {
@@ -478,7 +505,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 				} else {
 					after, err = ctyjson.Marshal(filteredAfter, filteredAfter.Type())
 					if err != nil {
-						return err
+						return nil, err
 					}
 				}
 				afterUnknown = unknownAsBool(changeV.After)
@@ -495,7 +522,7 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		}
 		sensitive, err := ctyjson.Marshal(outputSensitive, outputSensitive.Type())
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		a, _ := ctyjson.Marshal(afterUnknown, afterUnknown.Type())
@@ -509,10 +536,10 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 			AfterSensitive:  json.RawMessage(sensitive),
 		}
 
-		p.OutputChanges[oc.Addr.OutputValue.Name] = c
+		outputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
-	return nil
+	return outputChanges, nil
 }
 
 func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
@@ -696,6 +723,36 @@ func actionString(action string) []string {
 	default:
 		return []string{action}
 	}
+}
+
+// UnmarshalActions reverses the actionString function.
+func UnmarshalActions(actions []string) plans.Action {
+	if len(actions) == 2 {
+		if actions[0] == "create" && actions[1] == "delete" {
+			return plans.CreateThenDelete
+		}
+
+		if actions[0] == "delete" && actions[1] == "create" {
+			return plans.DeleteThenCreate
+		}
+	}
+
+	if len(actions) == 1 {
+		switch actions[0] {
+		case "create":
+			return plans.Create
+		case "delete":
+			return plans.Delete
+		case "update":
+			return plans.Update
+		case "read":
+			return plans.Read
+		case "no-op":
+			return plans.NoOp
+		}
+	}
+
+	panic("unrecognized action slice: " + strings.Join(actions, ", "))
 }
 
 // encodePaths lossily encodes a cty.PathSet into an array of arrays of step

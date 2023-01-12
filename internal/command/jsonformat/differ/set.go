@@ -38,10 +38,6 @@ func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*json
 }
 
 func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
-	// TODO(liamcervante): In the upcoming block PR, block sets should override
-	// the forces replacement setting. We can't do that here, so make sure it
-	// gets carried over into the diff renderer logic when set and list blocks
-	// are given separate behaviour.
 	var elements []computed.Diff
 	current := change.getDefaultActionForIteration()
 	change.processSet(func(value Change) {
@@ -71,7 +67,7 @@ func (change Change) processSet(process func(value Change)) {
 			}
 
 			child := sliceValue.getChild(ix, jx)
-			if reflect.DeepEqual(child.Before, child.After) && child.isBeforeSensitive() == child.isAfterSensitive() && child.Unknown == nil {
+			if reflect.DeepEqual(child.Before, child.After) && child.isBeforeSensitive() == child.isAfterSensitive() && !child.isUnknown() {
 				matched = true
 				foundInBefore[ix] = jx
 				foundInAfter[jx] = ix
