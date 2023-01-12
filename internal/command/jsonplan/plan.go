@@ -9,7 +9,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/command/jsonchecks"
 	"github.com/hashicorp/terraform/internal/command/jsonconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -41,7 +40,6 @@ type plan struct {
 	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
 	Config             json.RawMessage   `json:"configuration,omitempty"`
 	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
-	Conditions         []conditionResult `json:"condition_results,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
 }
 
@@ -180,12 +178,6 @@ func Marshal(
 	err = output.marshalOutputChanges(p.Changes)
 	if err != nil {
 		return nil, fmt.Errorf("error in marshaling output changes: %s", err)
-	}
-
-	// output.Conditions (deprecated in favor of Checks, below)
-	err = output.marshalCheckResults(p.Checks)
-	if err != nil {
-		return nil, fmt.Errorf("error in marshaling check results: %s", err)
 	}
 
 	// output.Checks
@@ -511,90 +503,6 @@ func (p *plan) marshalOutputChanges(changes *plans.Changes) error {
 		p.OutputChanges[oc.Addr.OutputValue.Name] = c
 	}
 
-	return nil
-}
-
-func (p *plan) marshalCheckResults(results *states.CheckResults) error {
-	if results == nil {
-		return nil
-	}
-
-	// For the moment this is still producing the flat structure from
-	// the initial release of preconditions/postconditions in Terraform v1.2.
-	// This therefore discards the aggregate information about any configuration
-	// objects that might end up with zero instances declared.
-	// We'll need to think about what we want to do here in order to expose
-	// the full check details while hopefully also remaining compatible with
-	// what we previously documented.
-
-	for _, configElem := range results.ConfigResults.Elems {
-		for _, objectElem := range configElem.Value.ObjectResults.Elems {
-			objectAddr := objectElem.Key
-			result := objectElem.Value
-
-			var boolResult, unknown bool
-			switch result.Status {
-			case checks.StatusPass:
-				boolResult = true
-			case checks.StatusFail:
-				boolResult = false
-			case checks.StatusError:
-				boolResult = false
-			case checks.StatusUnknown:
-				unknown = true
-			}
-
-			// We need to export one of the previously-documented condition
-			// types here even though we're no longer actually representing
-			// individual checks, so we'll fib a bit and just report a
-			// fixed string depending on the object type. Note that this
-			// means we'll report that a resource postcondition failed even
-			// if it was actually a precondition, which is non-ideal but
-			// hopefully we replace this with an object-first data structure
-			// in the near future.
-			fakeCheckType := "Condition"
-			switch objectAddr.(type) {
-			case addrs.AbsResourceInstance:
-				fakeCheckType = "ResourcePostcondition"
-			case addrs.AbsOutputValue:
-				fakeCheckType = "OutputPrecondition"
-			}
-
-			// NOTE: Our original design for this data structure exposed
-			// each declared check individually, but checks don't really
-			// have durable addresses between runs so we've now simplified
-			// the model to say that it's entire objects that pass or fail,
-			// via the combination of all of their checks.
-			//
-			// The public data structure for this was built around the
-			// original design and so we approximate that here by
-			// generating only a single "condition" per object in most cases,
-			// but will generate one for each error message if we're
-			// reporting a failure and we have at least one message.
-			if result.Status == checks.StatusFail && len(result.FailureMessages) != 0 {
-				for _, msg := range result.FailureMessages {
-					p.Conditions = append(p.Conditions, conditionResult{
-						Address:      objectAddr.String(),
-						Type:         fakeCheckType,
-						Result:       boolResult,
-						Unknown:      unknown,
-						ErrorMessage: msg,
-					})
-				}
-			} else {
-				p.Conditions = append(p.Conditions, conditionResult{
-					Address: objectAddr.String(),
-					Type:    fakeCheckType,
-					Result:  boolResult,
-					Unknown: unknown,
-				})
-			}
-		}
-	}
-
-	sort.Slice(p.Conditions, func(i, j int) bool {
-		return p.Conditions[i].Address < p.Conditions[j].Address
-	})
 	return nil
 }
 
