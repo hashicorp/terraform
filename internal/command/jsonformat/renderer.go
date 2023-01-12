@@ -228,8 +228,6 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		r.Streams.Print("\nChanges to Outputs:\n")
 		r.Streams.Printf("%s\n", diff)
 
-		// TODO: check what happens if you have modules with outputs.
-
 		if len(counts) == 0 {
 			// If we have output changes but not resource changes then we
 			// won't have output any indication about the changes at all yet,
