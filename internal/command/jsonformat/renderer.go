@@ -217,7 +217,7 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		}
 
 		r.Streams.Printf(
-			"\nPlan: %d to add, %d to change, %d to destroy.\n",
+			r.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
 			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
 			counts[plans.Update],
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
