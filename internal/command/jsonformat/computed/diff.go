@@ -68,7 +68,7 @@ type DiffRenderer interface {
 // RenderHumanOpts contains options that can control how the human render
 // function of the DiffRenderer will function.
 type RenderHumanOpts struct {
-	Colorize colorstring.Colorize
+	Colorize *colorstring.Colorize
 
 	// OverrideNullSuffix tells the Renderer not to display the `-> null` suffix
 	// that is normally displayed when an element, attribute, or block is
@@ -91,7 +91,7 @@ type RenderHumanOpts struct {
 
 // NewRenderHumanOpts creates a new RenderHumanOpts struct with the required
 // fields set.
-func NewRenderHumanOpts(colorize colorstring.Colorize) RenderHumanOpts {
+func NewRenderHumanOpts(colorize *colorstring.Colorize) RenderHumanOpts {
 	return RenderHumanOpts{
 		Colorize: colorize,
 	}

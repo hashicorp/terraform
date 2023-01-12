@@ -400,15 +400,13 @@ func TestOutputs(t *testing.T) {
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
-			p := newPlan()
-
-			err := p.marshalOutputChanges(test.changes)
+			changes, err := MarshalOutputChanges(test.changes)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}
 
-			if !cmp.Equal(p.OutputChanges, test.expected) {
-				t.Errorf("wrong result:\n %v\n", cmp.Diff(p.OutputChanges, test.expected))
+			if !cmp.Equal(changes, test.expected) {
+				t.Errorf("wrong result:\n %v\n", cmp.Diff(changes, test.expected))
 			}
 		})
 	}

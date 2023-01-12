@@ -213,7 +213,7 @@ func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, ind
 	}
 
 	if strings.Contains(renderedJsonDiff, "\n") {
-		return fmt.Sprintf("jsonencode(%s\n%s%s %s%s\n%s)", whitespace, formatIndent(indent+1), colorizeDiffAction(Action, opts), renderedJsonDiff, replace, formatIndent(indent+1))
+		return fmt.Sprintf("jsonencode(%s\n%s%s %s%s\n%s)", whitespace, formatIndent(indent+1), colorizeDiffAction(action, opts), renderedJsonDiff, replace, formatIndent(indent+1))
 	}
 	return fmt.Sprintf("jsonencode(%s)%s%s", renderedJsonDiff, whitespace, replace)
 }

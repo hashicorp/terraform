@@ -46,7 +46,7 @@ type blockRenderer struct {
 
 func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.attributes) == 0 && len(renderer.blocks.GetAllKeys()) == 0 {
-		return fmt.Sprintf("{}%s", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
+		return fmt.Sprintf("{}%s", forcesReplacement(diff.Replace, opts))
 	}
 
 	unchangedAttributes := 0
@@ -72,21 +72,15 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts)))
-	for _, importantKey := range importantAttributes {
-		if attribute, ok := renderer.attributes[importantKey]; ok {
-			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, opts), maximumAttributeKeyLen, importantKey, attribute.RenderHuman(indent+1, opts)))
-		}
-	}
-
 	for _, key := range attributeKeys {
 		attribute := renderer.attributes[key]
 		if importantAttribute(key) {
 
 			// Always display the important attributes.
-			for _, warning := range attribute.WarningsHuman(indent + 1) {
+			for _, warning := range attribute.WarningsHuman(indent+1, importantAttributeOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), format.DiffActionSymbol(attribute.Action), maximumAttributeKeyLen, key, attribute.RenderHuman(indent+1, importantAttributeOpts)))
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, importantAttributeOpts), maximumAttributeKeyLen, key, attribute.RenderHuman(indent+1, importantAttributeOpts)))
 			continue
 		}
 		if attribute.Action == plans.NoOp && !opts.ShowUnchangedChildren {
@@ -144,7 +138,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			blockOpts := opts.Clone()
 			blockOpts.OverrideForcesReplacement = renderer.blocks.ReplaceBlocks[key]
 
-			for _, warning := range diff.WarningsHuman(indent + 1, blockOpts) {
+			for _, warning := range diff.WarningsHuman(indent+1, blockOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
 			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), colorizeDiffAction(diff.Action, blockOpts), ensureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, blockOpts)))

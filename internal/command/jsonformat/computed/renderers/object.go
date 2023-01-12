@@ -68,10 +68,10 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 			importantAttributeOpts := attributeOpts.Clone()
 			importantAttributeOpts.ShowUnchangedChildren = true
 
-			for _, warning := range attribute.WarningsHuman(indent + 1) {
+			for _, warning := range attribute.WarningsHuman(indent+1, importantAttributeOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), format.DiffActionSymbol(attribute.Action), maximumKeyLen, escapedKeys[key], attribute.RenderHuman(indent+1, importantAttributeOpts)))
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, importantAttributeOpts), maximumKeyLen, escapedKeys[key], attribute.RenderHuman(indent+1, importantAttributeOpts)))
 			continue
 		}
 

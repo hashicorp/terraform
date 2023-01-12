@@ -254,7 +254,7 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 	for _, key := range keys {
 		output := outputs[key]
 		if output.Action != plans.NoOp {
-			rendered = append(rendered, fmt.Sprintf("%s %s = %s", r.Colorize.Color(format.DiffActionSymbol(output.Action)), key, output.RenderHuman(0, computed.RenderHumanOpts{})))
+			rendered = append(rendered, fmt.Sprintf("%s %s = %s", r.Colorize.Color(format.DiffActionSymbol(output.Action)), key, output.RenderHuman(0, computed.NewRenderHumanOpts(r.Colorize))))
 		}
 	}
 	return strings.Join(rendered, "\n")
@@ -317,7 +317,7 @@ func (r Renderer) renderHumanDiff(diff diff, cause string) (string, bool) {
 
 	var buf bytes.Buffer
 	buf.WriteString(r.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
-	buf.WriteString(fmt.Sprintf("%s %s %s", r.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.RenderHumanOpts{})))
+	buf.WriteString(fmt.Sprintf("%s %s %s", r.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.NewRenderHumanOpts(r.Colorize))))
 	return buf.String(), true
 }
 

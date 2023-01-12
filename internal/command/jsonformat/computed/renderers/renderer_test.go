@@ -1996,7 +1996,7 @@ jsonencode(
 		t.Run(name, func(t *testing.T) {
 
 			opts := tc.opts.Clone()
-			opts.Colorize = colorize
+			opts.Colorize = &colorize
 
 			expected := strings.TrimSpace(tc.expected)
 			actual := tc.diff.RenderHuman(0, opts)
