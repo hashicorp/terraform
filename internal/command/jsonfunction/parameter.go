@@ -17,7 +17,7 @@ type parameter struct {
 	Description string `json:"description,omitempty"`
 
 	// IsNullable is true if null is acceptable value for the argument
-	IsNullable bool `json:"is_nullable"`
+	IsNullable bool `json:"is_nullable,omitempty"`
 
 	// A type that any argument for this parameter must conform to.
 	// TODO? could we use cty.Type here instead of calling ctyjson.MarshalType manually?
