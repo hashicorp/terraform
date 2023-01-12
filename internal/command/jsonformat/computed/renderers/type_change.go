@@ -24,5 +24,5 @@ type typeChangeRenderer struct {
 
 func (renderer typeChangeRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	opts.OverrideNullSuffix = true // Never render null suffix for children of type changes.
-	return fmt.Sprintf("%s [yellow]->[reset] %s", renderer.before.RenderHuman(indent, opts), renderer.after.RenderHuman(indent, opts))
+	return fmt.Sprintf("%s %s %s", renderer.before.RenderHuman(indent, opts), opts.Colorize.Color("[yellow]->[reset]"), renderer.after.RenderHuman(indent, opts))
 }
