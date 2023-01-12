@@ -2,6 +2,7 @@ package jsonfunction
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/zclconf/go-cty/cty/function"
 )
@@ -26,7 +27,9 @@ type FunctionSignature struct {
 	// ReturnTypes is the ctyjson representation of the function's
 	// return types based on supplying all parameters using
 	// dynamic types. Functions can have dynamic return types.
-	ReturnType string `json:"return_type"`
+	// TODO? could we use cty.Type here instead of calling ctyjson.MarshalType manually?
+	// TODO? see: https://github.com/zclconf/go-cty/blob/main/cty/json/type.go
+	ReturnType json.RawMessage `json:"return_type"`
 
 	// Parameters describes the function's fixed positional parameters.
 	Parameters []*parameter `json:"parameters,omitempty"`
@@ -48,28 +51,45 @@ func Marshal(f map[string]function.Function) ([]byte, error) {
 	signatures := newFunctions()
 
 	for k, v := range f {
-		signatures.Signatures[k] = marshalFunction(v)
+		signature, err := marshalFunction(v)
+		if err != nil {
+			fmt.Printf("Failed to serialize function %q: %s\n", k, err) // TODO! handle error
+			continue
+		}
+		signatures.Signatures[k] = signature
 	}
 
 	ret, err := json.Marshal(signatures)
 	return ret, err
 }
 
-func marshalFunction(f function.Function) *FunctionSignature {
+func marshalFunction(f function.Function) (*FunctionSignature, error) {
+	var err error
 	var vp *parameter
 	if f.VarParam() != nil {
-		vp = marshalParameter(f.VarParam())
+		vp, err = marshalParameter(f.VarParam())
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var p []*parameter
 	if len(f.Params()) > 0 {
-		p = marshalParameters(f.Params())
+		p, err = marshalParameters(f.Params())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	r, err := getReturnType(f)
+	if err != nil {
+		return nil, err
 	}
 
 	return &FunctionSignature{
 		Description:       f.Description(),
-		ReturnType:        getReturnType(f),
+		ReturnType:        r,
 		Parameters:        p,
 		VariadicParameter: vp,
-	}
+	}, nil
 }
