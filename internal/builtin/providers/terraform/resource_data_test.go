@@ -125,6 +125,22 @@ func TestManagedDataPlan(t *testing.T) {
 			}),
 		},
 
+		"create-typed-null-input": {
+			prior: cty.NullVal(ty),
+			proposed: cty.ObjectVal(map[string]cty.Value{
+				"input":            cty.NullVal(cty.String),
+				"output":           cty.NullVal(cty.DynamicPseudoType),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.NullVal(cty.String),
+			}),
+			planned: cty.ObjectVal(map[string]cty.Value{
+				"input":            cty.NullVal(cty.String),
+				"output":           cty.NullVal(cty.String),
+				"triggers_replace": cty.NullVal(cty.DynamicPseudoType),
+				"id":               cty.UnknownVal(cty.String),
+			}),
+		},
+
 		"create-output": {
 			prior: cty.NullVal(ty),
 			proposed: cty.ObjectVal(map[string]cty.Value{
