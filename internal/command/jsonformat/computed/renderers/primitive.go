@@ -2,7 +2,6 @@ package renderers
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -10,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 

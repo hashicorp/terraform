@@ -2,8 +2,9 @@ package jsonformat
 
 import (
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"testing"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"

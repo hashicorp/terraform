@@ -261,13 +261,9 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 
 func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	var drs []diff
-	if mode == plans.RefreshOnlyMode {
-		drs = diffs.drift
-	} else {
-		for _, dr := range diffs.drift {
-			if dr.diff.Action != plans.NoOp {
-				drs = append(drs, dr)
-			}
+	for _, dr := range diffs.drift {
+		if dr.diff.Action != plans.NoOp {
+			drs = append(drs, dr)
 		}
 	}
 

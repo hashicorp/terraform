@@ -1,11 +1,11 @@
 package jsonformat
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -27,6 +27,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			for _, attr := range plan.RelevantAttributes {
 				if len(attr.Resource) == 0 || attr.Resource == drift.Address {
 					relevantAttrs = attribute_path.Parse(attr.Attr, true)
+					break
 				}
 			}
 		}
