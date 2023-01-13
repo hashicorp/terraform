@@ -20,7 +20,7 @@ func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Di
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -34,7 +34,7 @@ func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*json
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
@@ -89,10 +89,18 @@ func (change Change) processSet(process func(value Change)) {
 	for ix := 0; ix < len(sliceValue.Before); ix++ {
 		if jx := foundInBefore[ix]; jx >= 0 {
 			child := sliceValue.getChild(ix, jx)
+			if !child.RelevantAttributes.MatchesPartial() {
+				// Skip elements that don't contain relevant attributes.
+				continue
+			}
 			process(child)
 			continue
 		}
 		child := sliceValue.getChild(ix, len(sliceValue.After))
+		if !child.RelevantAttributes.MatchesPartial() {
+			// Skip elements that don't contain relevant attributes.
+			continue
+		}
 		process(child)
 	}
 
@@ -102,6 +110,10 @@ func (change Change) processSet(process func(value Change)) {
 			continue
 		}
 		child := sliceValue.getChild(len(sliceValue.Before), jx)
+		if !child.RelevantAttributes.MatchesPartial() {
+			// Skip elements that don't contain relevant attributes.
+			continue
+		}
 		process(child)
 	}
 }

@@ -2,6 +2,7 @@ package renderers
 
 import (
 	"fmt"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"strings"
 
 	"github.com/zclconf/go-cty/cty"
@@ -176,7 +177,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 }
 
 func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, indent int, opts computed.RenderHumanOpts, before evaluatedString, after evaluatedString) string {
-	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json)
+	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json, attribute_path.AlwaysMatcher())
 
 	action := diff.Action
 

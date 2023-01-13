@@ -1,6 +1,7 @@
 package jsondiff
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
@@ -28,7 +29,7 @@ type JsonOpts struct {
 // Transform accepts a generic before and after value that is assumed to be JSON
 // formatted and transforms it into a computed.Diff, using the callbacks
 // supplied in the JsonOpts class.
-func (opts JsonOpts) Transform(before, after interface{}) computed.Diff {
+func (opts JsonOpts) Transform(before, after interface{}, relevantAttributes attribute_path.Matcher) computed.Diff {
 	beforeType := GetType(before)
 	afterType := GetType(after)
 
@@ -37,15 +38,15 @@ func (opts JsonOpts) Transform(before, after interface{}) computed.Diff {
 		if targetType == Null {
 			targetType = afterType
 		}
-		return opts.processUpdate(before, after, targetType)
+		return opts.processUpdate(before, after, targetType, relevantAttributes)
 	}
 
-	b := opts.processUpdate(before, nil, beforeType)
-	a := opts.processUpdate(nil, after, afterType)
+	b := opts.processUpdate(before, nil, beforeType, relevantAttributes)
+	a := opts.processUpdate(nil, after, afterType, relevantAttributes)
 	return opts.TypeChange(b, a, plans.Update)
 }
 
-func (opts JsonOpts) processUpdate(before, after interface{}, jtype Type) computed.Diff {
+func (opts JsonOpts) processUpdate(before, after interface{}, jtype Type, relevantAttributes attribute_path.Matcher) computed.Diff {
 	switch jtype {
 	case Null:
 		return opts.processPrimitive(before, after, cty.NilType)
@@ -66,7 +67,7 @@ func (opts JsonOpts) processUpdate(before, after interface{}, jtype Type) comput
 			a = after.(map[string]interface{})
 		}
 
-		return opts.processObject(b, a)
+		return opts.processObject(b, a, relevantAttributes)
 	case Array:
 		var b, a []interface{}
 
@@ -78,7 +79,7 @@ func (opts JsonOpts) processUpdate(before, after interface{}, jtype Type) comput
 			a = after.([]interface{})
 		}
 
-		return opts.processArray(b, a)
+		return opts.processArray(b, a, relevantAttributes)
 	default:
 		panic("unrecognized json type: " + jtype)
 	}
@@ -100,19 +101,27 @@ func (opts JsonOpts) processPrimitive(before, after interface{}, ctype cty.Type)
 	return opts.Primitive(before, after, ctype, action)
 }
 
-func (opts JsonOpts) processArray(before, after []interface{}) computed.Diff {
-	processIndices := func(beforeIx, afterIx int) computed.Diff {
+func (opts JsonOpts) processArray(before, after []interface{}, relevantAttributes attribute_path.Matcher) computed.Diff {
+	processIndices := func(beforeIx, afterIx int) (computed.Diff, bool) {
 		var b, a interface{}
 
+		relevantIndex := beforeIx
 		if beforeIx >= 0 && beforeIx < len(before) {
 			b = before[beforeIx]
+		} else {
+			relevantIndex = afterIx
 		}
 
 		if afterIx >= 0 && afterIx < len(after) {
 			a = after[afterIx]
 		}
 
-		return opts.Transform(b, a)
+		childRelevantAttributes := relevantAttributes.GetChildWithIndex(relevantIndex)
+		if !childRelevantAttributes.MatchesPartial() {
+			return computed.Diff{}, false
+		}
+
+		return opts.Transform(b, a, childRelevantAttributes), true
 	}
 
 	isObjType := func(value interface{}) bool {
@@ -122,8 +131,13 @@ func (opts JsonOpts) processArray(before, after []interface{}) computed.Diff {
 	return opts.Array(collections.TransformSlice(before, after, processIndices, isObjType))
 }
 
-func (opts JsonOpts) processObject(before, after map[string]interface{}) computed.Diff {
-	return opts.Object(collections.TransformMap(before, after, func(key string) computed.Diff {
-		return opts.Transform(before[key], after[key])
+func (opts JsonOpts) processObject(before, after map[string]interface{}, relevantAttributes attribute_path.Matcher) computed.Diff {
+	return opts.Object(collections.TransformMap(before, after, func(key string) (computed.Diff, bool) {
+		childRelevantAttributes := relevantAttributes.GetChildWithKey(key)
+		if !childRelevantAttributes.MatchesPartial() {
+			return computed.Diff{}, false
+		}
+
+		return opts.Transform(before[key], after[key], childRelevantAttributes), true
 	}))
 }

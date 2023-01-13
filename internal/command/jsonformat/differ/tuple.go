@@ -14,9 +14,13 @@ func (change Change) computeAttributeDiffAsTuple(elementTypes []cty.Type) comput
 	sliceValue := change.asSlice()
 	for ix, elementType := range elementTypes {
 		childValue := sliceValue.getChild(ix, ix)
+		if !childValue.RelevantAttributes.MatchesPartial() {
+			// Skip elements that don't contain relevant attributes.
+			continue
+		}
 		element := childValue.computeDiffForType(elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	}
-	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches())
 }

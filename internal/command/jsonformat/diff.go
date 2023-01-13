@@ -1,6 +1,7 @@
 package jsonformat
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -9,16 +10,37 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func precomputeDiffs(plan Plan) diffs {
+func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	diffs := diffs{
 		outputs: make(map[string]computed.Diff),
 	}
 
 	for _, drift := range plan.ResourceDrift {
+
+		var relevantAttrs attribute_path.Matcher
+		if mode == plans.RefreshOnlyMode {
+			// For a refresh only plan, we show all the drift.
+			relevantAttrs = attribute_path.AlwaysMatcher()
+		} else {
+			// Otherwise we only want to show the drift changes that are
+			// relevant.
+			for _, attr := range plan.RelevantAttributes {
+				if len(attr.Resource) == 0 || attr.Resource == drift.Address {
+					relevantAttrs = attribute_path.Parse(attr.Attr, true)
+				}
+			}
+		}
+
+		if relevantAttrs == nil {
+			// If we couldn't build a relevant attribute matcher, then we are
+			// not going to show anything for this drift.
+			continue
+		}
+
 		schema := plan.ProviderSchemas[drift.ProviderName].ResourceSchemas[drift.Type]
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
-			diff:   differ.FromJsonChange(drift.Change).ComputeDiffForBlock(schema.Block),
+			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
 		})
 	}
 
@@ -26,12 +48,12 @@ func precomputeDiffs(plan Plan) diffs {
 		schema := plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
-			diff:   differ.FromJsonChange(change.Change).ComputeDiffForBlock(schema.Block),
+			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
 		})
 	}
 
 	for key, output := range plan.OutputChanges {
-		diffs.outputs[key] = differ.FromJsonChange(output).ComputeDiffForOutput()
+		diffs.outputs[key] = differ.FromJsonChange(output, attribute_path.AlwaysMatcher()).ComputeDiffForOutput()
 	}
 
 	less := func(drs []diff) func(i, j int) bool {

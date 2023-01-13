@@ -2,10 +2,10 @@ package differ
 
 import (
 	"encoding/json"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -76,27 +76,33 @@ type Change struct {
 	// sensitive.
 	AfterSensitive interface{}
 
-	// ReplacePaths generally contains nested slices that describe paths to
-	// elements or attributes that are causing the overall resource to be
-	// replaced.
-	ReplacePaths replace.ForcesReplacement
+	// ReplacePaths contains a set of paths that point to attributes/elements
+	// that are causing the overall resource to be replaced rather than simply
+	// updated.
+	ReplacePaths attribute_path.Matcher
+
+	// RelevantAttributes contains a set of paths that point attributes/elements
+	// that we should display. Any element/attribute not matched by this Matcher
+	// should be skipped.
+	RelevantAttributes attribute_path.Matcher
 }
 
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
-func FromJsonChange(change jsonplan.Change) Change {
+func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Matcher) Change {
 	return Change{
-		Before:          unmarshalGeneric(change.Before),
-		After:           unmarshalGeneric(change.After),
-		Unknown:         unmarshalGeneric(change.AfterUnknown),
-		BeforeSensitive: unmarshalGeneric(change.BeforeSensitive),
-		AfterSensitive:  unmarshalGeneric(change.AfterSensitive),
-		ReplacePaths:    replace.Parse(change.ReplacePaths),
+		Before:             unmarshalGeneric(change.Before),
+		After:              unmarshalGeneric(change.After),
+		Unknown:            unmarshalGeneric(change.AfterUnknown),
+		BeforeSensitive:    unmarshalGeneric(change.BeforeSensitive),
+		AfterSensitive:     unmarshalGeneric(change.AfterSensitive),
+		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
+		RelevantAttributes: relevantAttributes,
 	}
 }
 
 func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
-	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.Matches())
 }
 
 func (change Change) calculateChange() plans.Action {

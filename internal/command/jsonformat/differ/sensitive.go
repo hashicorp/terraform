@@ -45,14 +45,15 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 	// it will just be ignored in favour of printing `(sensitive value)`.
 
 	value := Change{
-		BeforeExplicit:  change.BeforeExplicit,
-		AfterExplicit:   change.AfterExplicit,
-		Before:          change.Before,
-		After:           change.After,
-		Unknown:         change.Unknown,
-		BeforeSensitive: false,
-		AfterSensitive:  false,
-		ReplacePaths:    change.ReplacePaths,
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      change.AfterExplicit,
+		Before:             change.Before,
+		After:              change.After,
+		Unknown:            change.Unknown,
+		BeforeSensitive:    false,
+		AfterSensitive:     false,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
 	}
 
 	inner := computedDiff(value)
@@ -64,7 +65,7 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 		action = plans.Update
 	}
 
-	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.ForcesReplacement()), true
+	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches()), true
 }
 
 func (change Change) isBeforeSensitive() bool {

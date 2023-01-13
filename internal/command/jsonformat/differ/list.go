@@ -13,8 +13,14 @@ import (
 func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.Diff {
 	sliceValue := change.asSlice()
 
-	processIndices := func(beforeIx, afterIx int) computed.Diff {
-		return sliceValue.getChild(beforeIx, afterIx).computeDiffForType(elementType)
+	processIndices := func(beforeIx, afterIx int) (computed.Diff, bool) {
+		value := sliceValue.getChild(beforeIx, afterIx)
+		if !value.RelevantAttributes.MatchesPartial() {
+			// Don't process elements that don't contain relevant attributes.
+			return computed.Diff{}, false
+		}
+
+		return value.computeDiffForType(elementType), true
 	}
 
 	isObjType := func(_ interface{}) bool {
@@ -22,7 +28,7 @@ func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.D
 	}
 
 	elements, current := collections.TransformSlice(sliceValue.Before, sliceValue.After, processIndices, isObjType)
-	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -36,7 +42,7 @@ func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jso
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
@@ -53,6 +59,11 @@ func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]compu
 func (change Change) processNestedList(process func(value Change)) {
 	sliceValue := change.asSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
-		process(sliceValue.getChild(ix, ix))
+		value := sliceValue.getChild(ix, ix)
+		if !value.RelevantAttributes.MatchesPartial() {
+			// Don't process elements that don't contain relevant attributes.
+			return
+		}
+		process(value)
 	}
 }

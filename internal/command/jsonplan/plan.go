@@ -55,7 +55,7 @@ type plan struct {
 	OutputChanges      map[string]Change `json:"output_changes,omitempty"`
 	PriorState         json.RawMessage   `json:"prior_state,omitempty"`
 	Config             json.RawMessage   `json:"configuration,omitempty"`
-	RelevantAttributes []resourceAttr    `json:"relevant_attributes,omitempty"`
+	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
 }
 
@@ -65,9 +65,9 @@ func newPlan() *plan {
 	}
 }
 
-// resourceAttr contains the address and attribute of an external for the
+// ResourceAttr contains the address and attribute of an external for the
 // RelevantAttributes in the plan.
-type resourceAttr struct {
+type ResourceAttr struct {
 	Resource string          `json:"resource"`
 	Attr     json.RawMessage `json:"attribute"`
 }
@@ -568,7 +568,7 @@ func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
 			return err
 		}
 
-		p.RelevantAttributes = append(p.RelevantAttributes, resourceAttr{addr, path})
+		p.RelevantAttributes = append(p.RelevantAttributes, ResourceAttr{addr, path})
 	}
 	return nil
 }

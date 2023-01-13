@@ -28,10 +28,11 @@ const (
 )
 
 type Plan struct {
-	PlanFormatVersion string                     `json:"plan_format_version"`
-	OutputChanges     map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges   []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift     []jsonplan.ResourceChange  `json:"resource_drift"`
+	PlanFormatVersion  string                     `json:"plan_format_version"`
+	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
+	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
+	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
+	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
@@ -64,7 +65,7 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		return false
 	}
 
-	diffs := precomputeDiffs(plan)
+	diffs := precomputeDiffs(plan, mode)
 	haveRefreshChanges := r.renderHumanDiffDrift(diffs, mode)
 
 	willPrintResourceChanges := false
@@ -264,9 +265,6 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 		drs = diffs.drift
 	} else {
 		for _, dr := range diffs.drift {
-			// TODO(liamcervante): Look into if we have to keep filtering resource changes.
-			// For now we still want to remove the moved resources from here as
-			// they will show up in the regular changes.
 			if dr.diff.Action != plans.NoOp {
 				drs = append(drs, dr)
 			}
@@ -277,6 +275,8 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 		return false
 	}
 
+	// If the overall plan is empty, and it's not a refresh only plan then we
+	// won't show any drift changes.
 	if diffs.Empty() && mode != plans.RefreshOnlyMode {
 		return false
 	}

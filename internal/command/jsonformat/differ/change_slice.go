@@ -1,6 +1,8 @@
 package differ
 
-import "github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+)
 
 // ChangeSlice is a Change that represents a Tuple, Set, or List type, and has
 // converted the relevant interfaces into slices for easier access.
@@ -23,17 +25,21 @@ type ChangeSlice struct {
 	AfterSensitive []interface{}
 
 	// ReplacePaths matches the same attributes in Change exactly.
-	ReplacePaths replace.ForcesReplacement
+	ReplacePaths attribute_path.Matcher
+
+	// RelevantAttributes matches the same attributes in Change exactly.
+	RelevantAttributes attribute_path.Matcher
 }
 
 func (change Change) asSlice() ChangeSlice {
 	return ChangeSlice{
-		Before:          genericToSlice(change.Before),
-		After:           genericToSlice(change.After),
-		Unknown:         genericToSlice(change.Unknown),
-		BeforeSensitive: genericToSlice(change.BeforeSensitive),
-		AfterSensitive:  genericToSlice(change.AfterSensitive),
-		ReplacePaths:    change.ReplacePaths,
+		Before:             genericToSlice(change.Before),
+		After:              genericToSlice(change.After),
+		Unknown:            genericToSlice(change.Unknown),
+		BeforeSensitive:    genericToSlice(change.BeforeSensitive),
+		AfterSensitive:     genericToSlice(change.AfterSensitive),
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
 	}
 }
 
@@ -44,15 +50,21 @@ func (s ChangeSlice) getChild(beforeIx, afterIx int) Change {
 	beforeSensitive, _ := getFromGenericSlice(s.BeforeSensitive, beforeIx)
 	afterSensitive, _ := getFromGenericSlice(s.AfterSensitive, afterIx)
 
+	mostRelevantIx := beforeIx
+	if beforeIx < 0 || beforeIx >= len(s.Before) {
+		mostRelevantIx = afterIx
+	}
+
 	return Change{
-		BeforeExplicit:  beforeExplicit,
-		AfterExplicit:   afterExplicit,
-		Before:          before,
-		After:           after,
-		Unknown:         unknown,
-		BeforeSensitive: beforeSensitive,
-		AfterSensitive:  afterSensitive,
-		ReplacePaths:    s.ReplacePaths.GetChildWithIndex(beforeIx),
+		BeforeExplicit:     beforeExplicit,
+		AfterExplicit:      afterExplicit,
+		Before:             before,
+		After:              after,
+		Unknown:            unknown,
+		BeforeSensitive:    beforeSensitive,
+		AfterSensitive:     afterSensitive,
+		ReplacePaths:       s.ReplacePaths.GetChildWithIndex(mostRelevantIx),
+		RelevantAttributes: s.RelevantAttributes.GetChildWithIndex(mostRelevantIx),
 	}
 }
 

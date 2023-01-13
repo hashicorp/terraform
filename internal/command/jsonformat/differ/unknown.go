@@ -64,9 +64,11 @@ func (change Change) checkForUnknown(childUnknown interface{}, computeDiff func(
 	// accurately.
 
 	beforeValue := Change{
-		Before:          change.Before,
-		BeforeSensitive: change.BeforeSensitive,
-		Unknown:         childUnknown,
+		Before:             change.Before,
+		BeforeSensitive:    change.BeforeSensitive,
+		Unknown:            childUnknown,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
 	}
 	return change.asDiff(renderers.Unknown(computeDiff(beforeValue))), true
 }
