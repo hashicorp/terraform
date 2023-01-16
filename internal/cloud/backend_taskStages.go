@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -66,7 +67,7 @@ func (b *Cloud) getTaskStageWithAllOptions(ctx *IntegrationContext, stageID stri
 }
 
 func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWriter, stageID string) error {
-	var errs multiErrors
+	var errs *multierror.Error
 
 	// Create our summarizers
 	summarizers := make([]taskStageSummarizer, 0)
@@ -98,60 +99,33 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			return true, nil
 		// Note: Terminal statuses need to print out one last time just in case
 		case tfe.TaskStageRunning, tfe.TaskStagePassed:
-			for _, s := range summarizers {
-				cont, msg, err := s.Summarize(ctx, output, stage)
-				if err != nil {
-					errs.Append(err)
-					break
-				}
-				if !cont {
-					continue
-				}
-
-				// cont is true and we must continue to poll
-				if msg != nil {
-					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-				}
+			ok, e := processSummarizers(ctx, output, stage, summarizers, errs)
+			if e != nil {
+				errs = e
+			}
+			if ok {
 				return true, nil
 			}
 		case tfe.TaskStageCanceled, tfe.TaskStageErrored, tfe.TaskStageFailed:
-			for _, s := range summarizers {
-				cont, msg, err := s.Summarize(ctx, output, stage)
-				if err != nil {
-					errs.Append(err)
-					break
-				}
-
-				if !cont {
-					continue
-				}
-
-				// cont is true and we must continue to poll
-				if msg != nil {
-					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-				}
+			ok, e := processSummarizers(ctx, output, stage, summarizers, errs)
+			if e != nil {
+				errs = e
+			}
+			if ok {
 				return true, nil
 			}
 			return false, fmt.Errorf("Task Stage %s.", stage.Status)
 		case tfe.TaskStageAwaitingOverride:
-			for _, s := range summarizers {
-				cont, msg, err := s.Summarize(ctx, output, stage)
-				if err != nil {
-					errs.Append(err)
-					break
-				}
-				if !cont {
-					continue
-				}
-				// cont is true and we must continue to poll
-				if msg != nil {
-					output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
-				}
+			ok, e := processSummarizers(ctx, output, stage, summarizers, errs)
+			if e != nil {
+				errs = e
+			}
+			if ok {
 				return true, nil
 			}
 			cont, err := b.processStageOverrides(ctx, output, stage.ID)
 			if err != nil {
-				errs.Append(err)
+				errs = multierror.Append(errs, err)
 			} else {
 				return cont, nil
 			}
@@ -160,12 +134,29 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 		default:
 			return false, fmt.Errorf("Invalid Task stage status: %s ", stage.Status)
 		}
-
-		if len(errs) > 0 {
-			return false, errs.Err()
-		}
-		return false, nil
+		return false, errs.ErrorOrNil()
 	})
+}
+
+func processSummarizers(ctx *IntegrationContext, output IntegrationOutputWriter, stage *tfe.TaskStage, summarizers []taskStageSummarizer, errs *multierror.Error) (bool, *multierror.Error) {
+	for _, s := range summarizers {
+		cont, msg, err := s.Summarize(ctx, output, stage)
+		if err != nil {
+			errs = multierror.Append(errs, err)
+			break
+		}
+
+		if !cont {
+			continue
+		}
+
+		// cont is true and we must continue to poll
+		if msg != nil {
+			output.OutputElapsed(*msg, len(*msg)) // Up to 2 digits are allowed by the max message allocation
+		}
+		return true, nil
+	}
+	return false, errs
 }
 
 func (b *Cloud) processStageOverrides(context *IntegrationContext, output IntegrationOutputWriter, taskStageID string) (bool, error) {

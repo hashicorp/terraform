@@ -104,7 +104,7 @@ func (pes *policyEvaluationSummarizer) taskStageWithPolicyEvaluation(context *In
 	// Currently only one policy evaluation supported : OPA
 	for _, polEvaluation := range policyEvaluation {
 		if polEvaluation.Status == tfe.PolicyEvaluationPassed {
-			message = "[dim] This result means that all OPA policies passed and the protected behaviour is allowed"
+			message = "[dim] This result means that all OPA policies passed and the protected behavior is allowed"
 			result = fmt.Sprintf("[green]%s", strings.ToUpper(string(tfe.PolicyEvaluationPassed)))
 			if polEvaluation.ResultCount.AdvisoryFailed > 0 {
 				result += " (with advisory)"

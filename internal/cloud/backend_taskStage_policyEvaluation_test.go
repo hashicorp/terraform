@@ -30,7 +30,7 @@ func TestCloud_runTaskStageWithPolicyEvaluation(t *testing.T) {
 			},
 			writer:          writer,
 			context:         integrationContext,
-			expectedOutputs: []string{"│ [bold]OPA Policy Evaluation\n\n│ [bold]→→ Overall Result: [green]PASSED\n│ [dim] This result means that all OPA policies passed and the protected behaviour is allowed\n│ 1 policies evaluated\n\n│ → Policy set 1: [bold]policy-set-that-passes (1)\n│   ↳ Policy name: [bold]policy-pass\n│      | [green][bold]✓ Passed\n│      | [dim]This policy will pass\n"},
+			expectedOutputs: []string{"│ [bold]OPA Policy Evaluation\n\n│ [bold]→→ Overall Result: [green]PASSED\n│ [dim] This result means that all OPA policies passed and the protected behavior is allowed\n│ 1 policies evaluated\n\n│ → Policy set 1: [bold]policy-set-that-passes (1)\n│   ↳ Policy name: [bold]policy-pass\n│      | [green][bold]✓ Passed\n│      | [dim]This policy will pass\n"},
 			isError:         false,
 		},
 		"mandatory-failed": {
