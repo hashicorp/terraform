@@ -15,8 +15,8 @@ func (change Change) computeAttributeDiffAsTuple(elementTypes []cty.Type) comput
 	for ix, elementType := range elementTypes {
 		childValue := sliceValue.getChild(ix, ix)
 		if !childValue.RelevantAttributes.MatchesPartial() {
-			// Skip elements that don't contain relevant attributes.
-			continue
+			// Mark non-relevant attributes as unchanged.
+			childValue = childValue.AsNoOp()
 		}
 		element := childValue.computeDiffForType(elementType)
 		elements = append(elements, element)

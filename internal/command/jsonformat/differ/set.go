@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"reflect"
 
 	"github.com/zclconf/go-cty/cty"
@@ -79,6 +80,29 @@ func (change Change) processSet(process func(value Change)) {
 		}
 	}
 
+	clearRelevantStatus := func(change Change) Change {
+		// It's actually really difficult to render the diffs when some indices
+		// within a slice are relevant and others aren't. To make this simpler
+		// we just treat all children of a relevant list or set as also
+		// relevant.
+		//
+		// Interestingly the terraform plan builder also agrees with this, and
+		// never sets relevant attributes beneath lists or sets. We're just
+		// going to enforce this logic here as well. If the collection is
+		// relevant (decided elsewhere), then every element in the collection is
+		// also relevant. To be clear, in practice even if we didn't do the
+		// following explicitly the effect would be the same. It's just nicer
+		// for us to be clear about the behaviour we expect.
+		//
+		// What makes this difficult is the fact that the beforeIx and afterIx
+		// can be different, and it's quite difficult to work out which one is
+		// the relevant one. For nested lists, block lists, and tuples it's much
+		// easier because we always process the same indices in the before and
+		// after.
+		change.RelevantAttributes = attribute_path.AlwaysMatcher()
+		return change
+	}
+
 	// Now everything in before should be a key in foundInBefore and a value
 	// in foundInAfter. If a key is mapped to -1 in foundInBefore it means it
 	// does not have an equivalent in foundInAfter and so has been deleted.
@@ -88,19 +112,11 @@ func (change Change) processSet(process func(value Change)) {
 
 	for ix := 0; ix < len(sliceValue.Before); ix++ {
 		if jx := foundInBefore[ix]; jx >= 0 {
-			child := sliceValue.getChild(ix, jx)
-			if !child.RelevantAttributes.MatchesPartial() {
-				// Skip elements that don't contain relevant attributes.
-				continue
-			}
+			child := clearRelevantStatus(sliceValue.getChild(ix, jx))
 			process(child)
 			continue
 		}
-		child := sliceValue.getChild(ix, len(sliceValue.After))
-		if !child.RelevantAttributes.MatchesPartial() {
-			// Skip elements that don't contain relevant attributes.
-			continue
-		}
+		child := clearRelevantStatus(sliceValue.getChild(ix, len(sliceValue.After)))
 		process(child)
 	}
 
@@ -109,11 +125,7 @@ func (change Change) processSet(process func(value Change)) {
 			// Then this value was handled in the previous for loop.
 			continue
 		}
-		child := sliceValue.getChild(len(sliceValue.Before), jx)
-		if !child.RelevantAttributes.MatchesPartial() {
-			// Skip elements that don't contain relevant attributes.
-			continue
-		}
+		child := clearRelevantStatus(sliceValue.getChild(len(sliceValue.Before), jx))
 		process(child)
 	}
 }

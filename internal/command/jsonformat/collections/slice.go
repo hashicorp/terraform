@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 )
 
-type TransformIndices func(before, after int) (computed.Diff, bool)
+type TransformIndices func(before, after int) computed.Diff
 type ProcessIndices func(before, after int)
 type IsObjType[Input any] func(input Input) bool
 
@@ -24,11 +24,7 @@ func TransformSlice[Input any](before, after []Input, process TransformIndices, 
 
 	var elements []computed.Diff
 	ProcessSlice(before, after, func(before, after int) {
-		element, include := process(before, after)
-		if !include {
-			return
-		}
-
+		element := process(before, after)
 		elements = append(elements, element)
 		current = CompareActions(current, element.Action)
 	}, isObjType)

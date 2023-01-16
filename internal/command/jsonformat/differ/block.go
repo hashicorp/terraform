@@ -26,8 +26,8 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		childValue := blockValue.getChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
-			// Skip attributes that aren't relevant.
-			continue
+			// Mark non-relevant attributes as unchanged.
+			childValue = childValue.AsNoOp()
 		}
 
 		// Empty strings in blocks should be considered null for legacy reasons.
@@ -67,8 +67,8 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		childValue := blockValue.getChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
-			// Skip blocks that don't contain relevant attributes.
-			continue
+			// Mark non-relevant attributes as unchanged.
+			childValue = childValue.AsNoOp()
 		}
 
 		beforeSensitive := childValue.isBeforeSensitive()

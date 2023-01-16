@@ -22,13 +22,18 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			// For a refresh only plan, we show all the drift.
 			relevantAttrs = attribute_path.AlwaysMatcher()
 		} else {
+			matcher := attribute_path.Empty(true)
+
 			// Otherwise we only want to show the drift changes that are
 			// relevant.
 			for _, attr := range plan.RelevantAttributes {
 				if len(attr.Resource) == 0 || attr.Resource == drift.Address {
-					relevantAttrs = attribute_path.Parse(attr.Attr, true)
-					break
+					matcher = attribute_path.AppendSingle(matcher, attr.Attr)
 				}
+			}
+
+			if len(matcher.Paths) > 0 {
+				relevantAttrs = matcher
 			}
 		}
 

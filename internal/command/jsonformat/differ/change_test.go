@@ -48,6 +48,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 		validateObject       renderers.ValidateDiffFunction
 		validateNestedObject renderers.ValidateDiffFunction
 		validateDiffs        map[string]renderers.ValidateDiffFunction
+		validateList         renderers.ValidateDiffFunction
 		validateReplace      bool
 		validateAction       plans.Action
 		// Sets break changes out differently to the other collections, so they
@@ -588,7 +589,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				},
 				After: map[string]interface{}{
 					"attribute_one": "new_one",
-					"attribute_two": "old_two",
+					"attribute_two": "new_two",
 				},
 				RelevantAttributes: &attribute_path.PathMatcher{
 					Paths: [][]interface{}{
@@ -602,13 +603,25 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 			validateDiffs: map[string]renderers.ValidateDiffFunction{
 				"attribute_one": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+				"attribute_two": renderers.ValidatePrimitive("old_two", "old_two", plans.NoOp, false),
 			},
+			validateList: renderers.ValidateList([]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					// Lists are a bit special, and in this case is actually
+					// going to ignore the relevant attributes. This is
+					// deliberate. See the comments in list.go for an
+					// explanation.
+					"attribute_one": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+					"attribute_two": renderers.ValidatePrimitive("old_two", "new_two", plans.Update, false),
+				}, plans.Update, false),
+			}, plans.Update, false),
 			validateAction:  plans.Update,
 			validateReplace: false,
 			validateSetDiffs: &SetDiff{
 				Before: SetDiffEntry{
 					ObjectDiff: map[string]renderers.ValidateDiffFunction{
 						"attribute_one": renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
+						"attribute_two": renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
 					},
 					Action:  plans.Delete,
 					Replace: false,
@@ -616,6 +629,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				After: SetDiffEntry{
 					ObjectDiff: map[string]renderers.ValidateDiffFunction{
 						"attribute_one": renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
+						"attribute_two": renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 					},
 					Action:  plans.Create,
 					Replace: false,
@@ -697,6 +711,11 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				input := wrapChangeInSlice(tc.input)
+
+				if tc.validateList != nil {
+					tc.validateList(t, input.ComputeDiffForAttribute(attribute))
+					return
+				}
 
 				if tc.validateObject != nil {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
@@ -2139,7 +2158,8 @@ func TestRelevantAttributes(t *testing.T) {
 				},
 			},
 			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
-				"id": renderers.ValidatePrimitive("old_id", "new_id", plans.Update, false),
+				"id":     renderers.ValidatePrimitive("old_id", "new_id", plans.Update, false),
+				"ignore": renderers.ValidatePrimitive("doesn't matter", "doesn't matter", plans.NoOp, false),
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"nested_attributes": {
@@ -2193,6 +2213,9 @@ func TestRelevantAttributes(t *testing.T) {
 					renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
 						"id": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
 					}, nil, nil, nil, nil, plans.Update, false),
+					renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+						"id": renderers.ValidatePrimitive("ignored", "ignored", plans.NoOp, false),
+					}, nil, nil, nil, nil, plans.NoOp, false),
 				},
 			}, nil, nil, plans.Update, false),
 		},
@@ -2245,7 +2268,7 @@ func TestRelevantAttributes(t *testing.T) {
 					},
 				},
 				RelevantAttributes: &attribute_path.PathMatcher{
-					Paths: [][]interface{}{
+					Paths: [][]interface{}{ // The list is actually just going to ignore this.
 						{
 							"list",
 							float64(0),
@@ -2269,10 +2292,16 @@ func TestRelevantAttributes(t *testing.T) {
 				},
 			},
 			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				// The list validator below just ignores our relevant
+				// attributes. This is deliberate.
 				"list": renderers.ValidateList([]renderers.ValidateDiffFunction{
 					renderers.ValidatePrimitive(0, 0, plans.NoOp, false),
+					renderers.ValidatePrimitive(1, nil, plans.Delete, false),
 					renderers.ValidatePrimitive(2, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(3, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(nil, 5, plans.Create, false),
 					renderers.ValidatePrimitive(nil, 6, plans.Create, false),
+					renderers.ValidatePrimitive(nil, 7, plans.Create, false),
 					renderers.ValidatePrimitive(4, 4, plans.NoOp, false),
 				}, plans.Update, false),
 			}, nil, nil, nil, nil, plans.Update, false),
@@ -2289,7 +2318,7 @@ func TestRelevantAttributes(t *testing.T) {
 				After: map[string]interface{}{
 					"map": map[string]interface{}{
 						"key_one":  "value_three",
-						"key_two":  "value_two",
+						"key_two":  "value_seven",
 						"key_four": "value_four",
 					},
 				},
@@ -2320,6 +2349,7 @@ func TestRelevantAttributes(t *testing.T) {
 			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
 				"map": renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"key_one":   renderers.ValidatePrimitive("value_one", "value_three", plans.Update, false),
+					"key_two":   renderers.ValidatePrimitive("value_two", "value_two", plans.NoOp, false),
 					"key_three": renderers.ValidatePrimitive("value_three", nil, plans.Delete, false),
 					"key_four":  renderers.ValidatePrimitive(nil, "value_four", plans.Create, false),
 				}, plans.Update, false),
@@ -2383,7 +2413,7 @@ func TestRelevantAttributes(t *testing.T) {
 				},
 				After: map[string]interface{}{
 					"dynamic_nested_type": map[string]interface{}{
-						"nested_id": "nomatch",
+						"nested_id": "nomatch_changed",
 						"nested_object": map[string]interface{}{
 							"nested_nested_id": "matched",
 						},
@@ -2421,6 +2451,7 @@ func TestRelevantAttributes(t *testing.T) {
 			},
 			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
 				"dynamic_nested_type": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					"nested_id": renderers.ValidatePrimitive("nomatch", "nomatch", plans.NoOp, false),
 					"nested_object": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
 						"nested_nested_id": renderers.ValidatePrimitive("matched", "matched", plans.NoOp, false),
 					}, plans.NoOp, false),

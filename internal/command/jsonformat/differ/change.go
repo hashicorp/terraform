@@ -144,6 +144,23 @@ func (change Change) getDefaultActionForIteration() plans.Action {
 	return plans.NoOp
 }
 
+// AsNoOp returns the current change as if it is a NoOp operation.
+//
+// Basically it replaces all the after values with the before values.
+func (change Change) AsNoOp() Change {
+	return Change{
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      change.BeforeExplicit,
+		Before:             change.Before,
+		After:              change.Before,
+		Unknown:            false,
+		BeforeSensitive:    change.BeforeSensitive,
+		AfterSensitive:     change.BeforeSensitive,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
+	}
+}
+
 func unmarshalGeneric(raw json.RawMessage) interface{} {
 	if raw == nil {
 		return nil

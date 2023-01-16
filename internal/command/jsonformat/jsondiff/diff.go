@@ -80,7 +80,7 @@ func (opts JsonOpts) processUpdate(before, after interface{}, jtype Type, releva
 			a = after.([]interface{})
 		}
 
-		return opts.processArray(b, a, relevantAttributes)
+		return opts.processArray(b, a)
 	default:
 		panic("unrecognized json type: " + jtype)
 	}
@@ -102,27 +102,26 @@ func (opts JsonOpts) processPrimitive(before, after interface{}, ctype cty.Type)
 	return opts.Primitive(before, after, ctype, action)
 }
 
-func (opts JsonOpts) processArray(before, after []interface{}, relevantAttributes attribute_path.Matcher) computed.Diff {
-	processIndices := func(beforeIx, afterIx int) (computed.Diff, bool) {
+func (opts JsonOpts) processArray(before, after []interface{}) computed.Diff {
+	processIndices := func(beforeIx, afterIx int) computed.Diff {
 		var b, a interface{}
 
-		relevantIndex := beforeIx
 		if beforeIx >= 0 && beforeIx < len(before) {
 			b = before[beforeIx]
-		} else {
-			relevantIndex = afterIx
 		}
-
 		if afterIx >= 0 && afterIx < len(after) {
 			a = after[afterIx]
 		}
 
-		childRelevantAttributes := relevantAttributes.GetChildWithIndex(relevantIndex)
-		if !childRelevantAttributes.MatchesPartial() {
-			return computed.Diff{}, false
-		}
-
-		return opts.Transform(b, a, childRelevantAttributes), true
+		// It's actually really difficult to render the diffs when some indices
+		// within a list are relevant and others aren't. To make this simpler
+		// we just treat all children of a relevant list as also relevant.
+		//
+		// Interestingly the terraform plan builder also agrees with this, and
+		// never sets relevant attributes beneath lists or sets. We're just
+		// going to enforce this logic here as well. If the list is relevant
+		// (decided elsewhere), then every element in the list is also relevant.
+		return opts.Transform(b, a, attribute_path.AlwaysMatcher())
 	}
 
 	isObjType := func(value interface{}) bool {
@@ -133,12 +132,17 @@ func (opts JsonOpts) processArray(before, after []interface{}, relevantAttribute
 }
 
 func (opts JsonOpts) processObject(before, after map[string]interface{}, relevantAttributes attribute_path.Matcher) computed.Diff {
-	return opts.Object(collections.TransformMap(before, after, func(key string) (computed.Diff, bool) {
+	return opts.Object(collections.TransformMap(before, after, func(key string) computed.Diff {
 		childRelevantAttributes := relevantAttributes.GetChildWithKey(key)
+
+		beforeChild := before[key]
+		afterChild := after[key]
+
 		if !childRelevantAttributes.MatchesPartial() {
-			return computed.Diff{}, false
+			// Mark non-relevant attributes as unchanged.
+			afterChild = beforeChild
 		}
 
-		return opts.Transform(before[key], after[key], childRelevantAttributes), true
+		return opts.Transform(beforeChild, afterChild, childRelevantAttributes)
 	}))
 }

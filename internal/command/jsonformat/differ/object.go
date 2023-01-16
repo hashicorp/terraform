@@ -44,8 +44,8 @@ func processObject[T any](v Change, attributes map[string]T, computeDiff func(Ch
 		attributeValue := mapValue.getChild(key)
 
 		if !attributeValue.RelevantAttributes.MatchesPartial() {
-			// Skip attributes that aren't relevant
-			continue
+			// Mark non-relevant attributes as unchanged.
+			attributeValue = attributeValue.AsNoOp()
 		}
 
 		// We always assume changes to object are implicit.

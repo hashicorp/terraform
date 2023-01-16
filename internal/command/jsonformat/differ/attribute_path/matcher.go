@@ -16,7 +16,6 @@ import "encoding/json"
 // The Matches function returns true if the paths you have traversed until now
 // ends.
 type Matcher interface {
-
 	// Matches returns true if we have reached the end of a path and found an
 	// exact match.
 	Matches() bool
@@ -56,8 +55,50 @@ func Parse(message json.RawMessage, propagate bool) Matcher {
 	return matcher
 }
 
-// PathMatcher is only visible to aid with testing, it is generally safer to
-// use the Parse function as the entry point.
+// Empty returns an empty PathMatcher that will by default match nothing.
+//
+// We give direct access to the PathMatcher struct so a matcher can be built
+// in parts with the Append and AppendSingle functions.
+func Empty(propagate bool) *PathMatcher {
+	return &PathMatcher{
+		Propagate: propagate,
+	}
+}
+
+// Append accepts an existing PathMatcher and returns a new one that attaches
+// all the paths from message with the existing paths.
+//
+// The new PathMatcher is created fresh, and the existing one is unchanged.
+func Append(matcher *PathMatcher, message json.RawMessage) *PathMatcher {
+	var values [][]interface{}
+	if err := json.Unmarshal(message, &values); err != nil {
+		panic("failed to unmarshal attribute paths: " + err.Error())
+	}
+
+	return &PathMatcher{
+		Propagate: matcher.Propagate,
+		Paths:     append(matcher.Paths, values...),
+	}
+}
+
+// AppendSingle accepts an existing PathMatcher and returns a new one that
+// attaches the single path from message with the existing paths.
+//
+// The new PathMatcher is created fresh, and the existing one is unchanged.
+func AppendSingle(matcher *PathMatcher, message json.RawMessage) *PathMatcher {
+	var values []interface{}
+	if err := json.Unmarshal(message, &values); err != nil {
+		panic("failed to unmarshal attribute paths: " + err.Error())
+	}
+
+	return &PathMatcher{
+		Propagate: matcher.Propagate,
+		Paths:     append(matcher.Paths, values),
+	}
+}
+
+// PathMatcher contains a slice of paths that represent paths through the values
+// to relevant/tracked attributes.
 type PathMatcher struct {
 	// We represent our internal paths as a [][]interface{} as the cty.Paths
 	// conversion process is lossy. Since the type information is lost there

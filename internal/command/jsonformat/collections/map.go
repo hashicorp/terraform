@@ -5,7 +5,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-type ProcessKey func(key string) (computed.Diff, bool)
+type ProcessKey func(key string) computed.Diff
 
 func TransformMap[Input any](before, after map[string]Input, process ProcessKey) (map[string]computed.Diff, plans.Action) {
 	current := plans.NoOp
@@ -18,11 +18,7 @@ func TransformMap[Input any](before, after map[string]Input, process ProcessKey)
 
 	elements := make(map[string]computed.Diff)
 	for key := range before {
-		element, include := process(key)
-		if !include {
-			continue
-		}
-		elements[key] = element
+		elements[key] = process(key)
 		current = CompareActions(current, elements[key].Action)
 	}
 
@@ -31,11 +27,7 @@ func TransformMap[Input any](before, after map[string]Input, process ProcessKey)
 			// Then we've already processed this key in the before.
 			continue
 		}
-		element, include := process(key)
-		if !include {
-			continue
-		}
-		elements[key] = element
+		elements[key] = process(key)
 		current = CompareActions(current, elements[key].Action)
 	}
 

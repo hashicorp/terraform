@@ -12,41 +12,41 @@ import (
 
 func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Diff {
 	mapValue := change.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, bool) {
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
 		value := mapValue.getChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
-			// Skip elements that do not contain relevant attributes.
-			return computed.Diff{}, false
+			// Mark non-relevant attributes as unchanged.
+			value = value.AsNoOp()
 		}
-		return value.computeDiffForType(elementType), true
+		return value.computeDiffForType(elementType)
 	})
 	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	mapValue := change.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, bool) {
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
 		value := mapValue.getChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
-			// Skip elements that do not contain relevant attributes.
-			return computed.Diff{}, false
+			// Mark non-relevant attributes as unchanged.
+			value = value.AsNoOp()
 		}
 		return value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
-		}), true
+		})
 	})
 	return computed.NewDiff(renderers.NestedMap(elements), current, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
 	mapValue := change.asMap()
-	return collections.TransformMap(mapValue.Before, mapValue.After, func(key string) (computed.Diff, bool) {
+	return collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
 		value := mapValue.getChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
-			// Skip elements that do not contain relevant attributes.
-			return computed.Diff{}, false
+			// Mark non-relevant attributes as unchanged.
+			value = value.AsNoOp()
 		}
-		return value.ComputeDiffForBlock(block), true
+		return value.ComputeDiffForBlock(block)
 	})
 }
