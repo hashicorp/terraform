@@ -9,7 +9,7 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -48,6 +48,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 		validateObject       renderers.ValidateDiffFunction
 		validateNestedObject renderers.ValidateDiffFunction
 		validateDiffs        map[string]renderers.ValidateDiffFunction
+		validateList         renderers.ValidateDiffFunction
 		validateReplace      bool
 		validateAction       plans.Action
 		// Sets break changes out differently to the other collections, so they
@@ -510,8 +511,8 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				After: map[string]interface{}{
 					"attribute_one": "new",
 				},
-				ReplacePaths: replace.ForcesReplacement{
-					ReplacePaths: [][]interface{}{
+				ReplacePaths: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
 						{},
 					},
 				},
@@ -537,7 +538,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						"attribute_one": renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 					},
 					Action:  plans.Create,
-					Replace: false,
+					Replace: true,
 				},
 			},
 		},
@@ -549,8 +550,8 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				After: map[string]interface{}{
 					"attribute_one": "new",
 				},
-				ReplacePaths: replace.ForcesReplacement{
-					ReplacePaths: [][]interface{}{
+				ReplacePaths: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
 						{"attribute_one"},
 					},
 				},
@@ -573,7 +574,62 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				},
 				After: SetDiffEntry{
 					ObjectDiff: map[string]renderers.ValidateDiffFunction{
-						"attribute_one": renderers.ValidatePrimitive(nil, "new", plans.Create, false),
+						"attribute_one": renderers.ValidatePrimitive(nil, "new", plans.Create, true),
+					},
+					Action:  plans.Create,
+					Replace: false,
+				},
+			},
+		},
+		"update_includes_relevant_attributes": {
+			input: Change{
+				Before: map[string]interface{}{
+					"attribute_one": "old_one",
+					"attribute_two": "old_two",
+				},
+				After: map[string]interface{}{
+					"attribute_one": "new_one",
+					"attribute_two": "new_two",
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
+						{"attribute_one"},
+					},
+				},
+			},
+			attributes: map[string]cty.Type{
+				"attribute_one": cty.String,
+				"attribute_two": cty.String,
+			},
+			validateDiffs: map[string]renderers.ValidateDiffFunction{
+				"attribute_one": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+				"attribute_two": renderers.ValidatePrimitive("old_two", "old_two", plans.NoOp, false),
+			},
+			validateList: renderers.ValidateList([]renderers.ValidateDiffFunction{
+				renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					// Lists are a bit special, and in this case is actually
+					// going to ignore the relevant attributes. This is
+					// deliberate. See the comments in list.go for an
+					// explanation.
+					"attribute_one": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+					"attribute_two": renderers.ValidatePrimitive("old_two", "new_two", plans.Update, false),
+				}, plans.Update, false),
+			}, plans.Update, false),
+			validateAction:  plans.Update,
+			validateReplace: false,
+			validateSetDiffs: &SetDiff{
+				Before: SetDiffEntry{
+					ObjectDiff: map[string]renderers.ValidateDiffFunction{
+						"attribute_one": renderers.ValidatePrimitive("old_one", nil, plans.Delete, false),
+						"attribute_two": renderers.ValidatePrimitive("old_two", nil, plans.Delete, false),
+					},
+					Action:  plans.Delete,
+					Replace: false,
+				},
+				After: SetDiffEntry{
+					ObjectDiff: map[string]renderers.ValidateDiffFunction{
+						"attribute_one": renderers.ValidatePrimitive(nil, "new_one", plans.Create, false),
+						"attribute_two": renderers.ValidatePrimitive(nil, "new_two", plans.Create, false),
 					},
 					Action:  plans.Create,
 					Replace: false,
@@ -584,6 +640,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 
 	for name, tmp := range tcs {
 		tc := tmp
+
+		// Let's set some default values on the input.
+		if tc.input.RelevantAttributes == nil {
+			tc.input.RelevantAttributes = attribute_path.AlwaysMatcher()
+		}
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
 
 		collectionDefaultAction := plans.Update
 		if name == "ignores_unset_fields" {
@@ -647,6 +711,11 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				input := wrapChangeInSlice(tc.input)
+
+				if tc.validateList != nil {
+					tc.validateList(t, input.ComputeDiffForAttribute(attribute))
+					return
+				}
 
 				if tc.validateObject != nil {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
@@ -1084,6 +1153,8 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					After: map[string]interface{}{
 						"block_type": tc.after,
 					},
+					ReplacePaths:       &attribute_path.PathMatcher{},
+					RelevantAttributes: attribute_path.AlwaysMatcher(),
 				}
 
 				block := &jsonprovider.Block{
@@ -1112,6 +1183,8 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 							"one": tc.after,
 						},
 					},
+					ReplacePaths:       &attribute_path.PathMatcher{},
+					RelevantAttributes: attribute_path.AlwaysMatcher(),
 				}
 
 				block := &jsonprovider.Block{
@@ -1142,6 +1215,8 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 							tc.after,
 						},
 					},
+					ReplacePaths:       &attribute_path.PathMatcher{},
+					RelevantAttributes: attribute_path.AlwaysMatcher(),
 				}
 
 				block := &jsonprovider.Block{
@@ -1172,6 +1247,8 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 							tc.after,
 						},
 					},
+					ReplacePaths:       &attribute_path.PathMatcher{},
+					RelevantAttributes: attribute_path.AlwaysMatcher(),
 				}
 
 				block := &jsonprovider.Block{
@@ -1416,6 +1493,15 @@ func TestValue_Outputs(t *testing.T) {
 	}
 
 	for name, tc := range tcs {
+
+		// Let's set some default values on the input.
+		if tc.input.RelevantAttributes == nil {
+			tc.input.RelevantAttributes = attribute_path.AlwaysMatcher()
+		}
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
+
 		t.Run(name, func(t *testing.T) {
 			tc.validateDiff(t, tc.input.ComputeDiffForOutput())
 		})
@@ -1543,8 +1629,8 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			input: Change{
 				Before: "old",
 				After:  "new",
-				ReplacePaths: replace.ForcesReplacement{
-					ReplacePaths: [][]interface{}{
+				ReplacePaths: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
 						{}, // An empty path suggests replace should be true.
 					},
 				},
@@ -1553,7 +1639,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, true),
 			validateSliceDiffs: []renderers.ValidateDiffFunction{
 				renderers.ValidatePrimitive("old", nil, plans.Delete, true),
-				renderers.ValidatePrimitive(nil, "new", plans.Create, false),
+				renderers.ValidatePrimitive(nil, "new", plans.Create, true),
 			},
 		},
 		"noop": {
@@ -1594,6 +1680,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 	}
 	for name, tmp := range tcs {
 		tc := tmp
+
+		// Let's set some default values on the input.
+		if tc.input.RelevantAttributes == nil {
+			tc.input.RelevantAttributes = attribute_path.AlwaysMatcher()
+		}
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
 
 		defaultCollectionsAction := plans.Update
 		if name == "noop" {
@@ -2014,8 +2108,369 @@ func TestValue_CollectionAttributes(t *testing.T) {
 	}
 
 	for name, tc := range tcs {
+
+		// Let's set some default values on the input.
+		if tc.input.RelevantAttributes == nil {
+			tc.input.RelevantAttributes = attribute_path.AlwaysMatcher()
+		}
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
+
 		t.Run(name, func(t *testing.T) {
 			tc.validateDiff(t, tc.input.ComputeDiffForAttribute(tc.attribute))
+		})
+	}
+}
+
+func TestRelevantAttributes(t *testing.T) {
+	tcs := map[string]struct {
+		input    Change
+		block    *jsonprovider.Block
+		validate renderers.ValidateDiffFunction
+	}{
+		"simple_attributes": {
+			input: Change{
+				Before: map[string]interface{}{
+					"id":     "old_id",
+					"ignore": "doesn't matter",
+				},
+				After: map[string]interface{}{
+					"id":     "new_id",
+					"ignore": "doesn't matter but modified",
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
+						{
+							"id",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"id": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"ignore": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id":     renderers.ValidatePrimitive("old_id", "new_id", plans.Update, false),
+				"ignore": renderers.ValidatePrimitive("doesn't matter", "doesn't matter", plans.NoOp, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+		"nested_attributes": {
+			input: Change{
+				Before: map[string]interface{}{
+					"list_block": []interface{}{
+						map[string]interface{}{
+							"id": "old_one",
+						},
+						map[string]interface{}{
+							"id": "ignored",
+						},
+					},
+				},
+				After: map[string]interface{}{
+					"list_block": []interface{}{
+						map[string]interface{}{
+							"id": "new_one",
+						},
+						map[string]interface{}{
+							"id": "ignored_but_changed",
+						},
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
+						{
+							"list_block",
+							float64(0),
+							"id",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"list_block": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"id": {
+									AttributeType: unmarshalType(t, cty.String),
+								},
+							},
+						},
+						NestingMode: "list",
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(nil, nil, map[string][]renderers.ValidateDiffFunction{
+				"list_block": {
+					renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+						"id": renderers.ValidatePrimitive("old_one", "new_one", plans.Update, false),
+					}, nil, nil, nil, nil, plans.Update, false),
+					renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+						"id": renderers.ValidatePrimitive("ignored", "ignored", plans.NoOp, false),
+					}, nil, nil, nil, nil, plans.NoOp, false),
+				},
+			}, nil, nil, plans.Update, false),
+		},
+		"nested_attributes_in_object": {
+			input: Change{
+				Before: map[string]interface{}{
+					"object": map[string]interface{}{
+						"id": "old_id",
+					},
+				},
+				After: map[string]interface{}{
+					"object": map[string]interface{}{
+						"id": "new_id",
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Propagate: true,
+					Paths: [][]interface{}{
+						{
+							"object", // Even though we just specify object, it should now include every below object as well.
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"object": {
+						AttributeType: unmarshalType(t, cty.Object(map[string]cty.Type{
+							"id": cty.String,
+						})),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"object": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					"id": renderers.ValidatePrimitive("old_id", "new_id", plans.Update, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+		"elements_in_list": {
+			input: Change{
+				Before: map[string]interface{}{
+					"list": []interface{}{
+						0, 1, 2, 3, 4,
+					},
+				},
+				After: map[string]interface{}{
+					"list": []interface{}{
+						0, 5, 6, 7, 4,
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{ // The list is actually just going to ignore this.
+						{
+							"list",
+							float64(0),
+						},
+						{
+							"list",
+							float64(2),
+						},
+						{
+							"list",
+							float64(4),
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"list": {
+						AttributeType: unmarshalType(t, cty.List(cty.Number)),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				// The list validator below just ignores our relevant
+				// attributes. This is deliberate.
+				"list": renderers.ValidateList([]renderers.ValidateDiffFunction{
+					renderers.ValidatePrimitive(0, 0, plans.NoOp, false),
+					renderers.ValidatePrimitive(1, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(2, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(3, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(nil, 5, plans.Create, false),
+					renderers.ValidatePrimitive(nil, 6, plans.Create, false),
+					renderers.ValidatePrimitive(nil, 7, plans.Create, false),
+					renderers.ValidatePrimitive(4, 4, plans.NoOp, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+		"elements_in_map": {
+			input: Change{
+				Before: map[string]interface{}{
+					"map": map[string]interface{}{
+						"key_one":   "value_one",
+						"key_two":   "value_two",
+						"key_three": "value_three",
+					},
+				},
+				After: map[string]interface{}{
+					"map": map[string]interface{}{
+						"key_one":  "value_three",
+						"key_two":  "value_seven",
+						"key_four": "value_four",
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Paths: [][]interface{}{
+						{
+							"map",
+							"key_one",
+						},
+						{
+							"map",
+							"key_three",
+						},
+						{
+							"map",
+							"key_four",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"map": {
+						AttributeType: unmarshalType(t, cty.Map(cty.String)),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"map": renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+					"key_one":   renderers.ValidatePrimitive("value_one", "value_three", plans.Update, false),
+					"key_two":   renderers.ValidatePrimitive("value_two", "value_two", plans.NoOp, false),
+					"key_three": renderers.ValidatePrimitive("value_three", nil, plans.Delete, false),
+					"key_four":  renderers.ValidatePrimitive(nil, "value_four", plans.Create, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+		"elements_in_set": {
+			input: Change{
+				Before: map[string]interface{}{
+					"set": []interface{}{
+						0, 1, 2, 3, 4,
+					},
+				},
+				After: map[string]interface{}{
+					"set": []interface{}{
+						0, 2, 4, 5, 6,
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Propagate: true,
+					Paths: [][]interface{}{
+						{
+							"set",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"set": {
+						AttributeType: unmarshalType(t, cty.Set(cty.Number)),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"set": renderers.ValidateSet([]renderers.ValidateDiffFunction{
+					renderers.ValidatePrimitive(0, 0, plans.NoOp, false),
+					renderers.ValidatePrimitive(1, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(2, 2, plans.NoOp, false),
+					renderers.ValidatePrimitive(3, nil, plans.Delete, false),
+					renderers.ValidatePrimitive(4, 4, plans.NoOp, false),
+					renderers.ValidatePrimitive(nil, 5, plans.Create, false),
+					renderers.ValidatePrimitive(nil, 6, plans.Create, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+		"dynamic_types": {
+			input: Change{
+				Before: map[string]interface{}{
+					"dynamic_nested_type": map[string]interface{}{
+						"nested_id": "nomatch",
+						"nested_object": map[string]interface{}{
+							"nested_nested_id": "matched",
+						},
+					},
+					"dynamic_nested_type_match": map[string]interface{}{
+						"nested_id": "allmatch",
+						"nested_object": map[string]interface{}{
+							"nested_nested_id": "allmatch",
+						},
+					},
+				},
+				After: map[string]interface{}{
+					"dynamic_nested_type": map[string]interface{}{
+						"nested_id": "nomatch_changed",
+						"nested_object": map[string]interface{}{
+							"nested_nested_id": "matched",
+						},
+					},
+					"dynamic_nested_type_match": map[string]interface{}{
+						"nested_id": "allmatch",
+						"nested_object": map[string]interface{}{
+							"nested_nested_id": "allmatch",
+						},
+					},
+				},
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Propagate: true,
+					Paths: [][]interface{}{
+						{
+							"dynamic_nested_type",
+							"nested_object",
+							"nested_nested_id",
+						},
+						{
+							"dynamic_nested_type_match",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"dynamic_nested_type": {
+						AttributeType: unmarshalType(t, cty.DynamicPseudoType),
+					},
+					"dynamic_nested_type_match": {
+						AttributeType: unmarshalType(t, cty.DynamicPseudoType),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"dynamic_nested_type": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					"nested_id": renderers.ValidatePrimitive("nomatch", "nomatch", plans.NoOp, false),
+					"nested_object": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+						"nested_nested_id": renderers.ValidatePrimitive("matched", "matched", plans.NoOp, false),
+					}, plans.NoOp, false),
+				}, plans.NoOp, false),
+				"dynamic_nested_type_match": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+					"nested_id": renderers.ValidatePrimitive("allmatch", "allmatch", plans.NoOp, false),
+					"nested_object": renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+						"nested_nested_id": renderers.ValidatePrimitive("allmatch", "allmatch", plans.NoOp, false),
+					}, plans.NoOp, false),
+				}, plans.NoOp, false),
+			}, nil, nil, nil, nil, plans.NoOp, false),
+		},
+	}
+	for name, tc := range tcs {
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
+		t.Run(name, func(t *testing.T) {
+			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
 		})
 	}
 }
@@ -2070,20 +2525,37 @@ func wrapChangeInMap(input Change) Change {
 
 func wrapChange(input Change, step interface{}, wrap func(interface{}, interface{}, bool) interface{}) Change {
 
-	replacePaths := replace.ForcesReplacement{}
-	for _, path := range input.ReplacePaths.ReplacePaths {
+	replacePaths := &attribute_path.PathMatcher{}
+	for _, path := range input.ReplacePaths.(*attribute_path.PathMatcher).Paths {
 		var updated []interface{}
 		updated = append(updated, step)
 		updated = append(updated, path...)
-		replacePaths.ReplacePaths = append(replacePaths.ReplacePaths, updated)
+		replacePaths.Paths = append(replacePaths.Paths, updated)
+	}
+
+	// relevantAttributes usually default to AlwaysMatcher, which means we can
+	// just ignore it. But if we have had some paths specified we need to wrap
+	// those as well.
+	relevantAttributes := input.RelevantAttributes
+	if concrete, ok := relevantAttributes.(*attribute_path.PathMatcher); ok {
+
+		newRelevantAttributes := &attribute_path.PathMatcher{}
+		for _, path := range concrete.Paths {
+			var updated []interface{}
+			updated = append(updated, step)
+			updated = append(updated, path...)
+			newRelevantAttributes.Paths = append(newRelevantAttributes.Paths, updated)
+		}
+		relevantAttributes = newRelevantAttributes
 	}
 
 	return Change{
-		Before:          wrap(input.Before, nil, input.BeforeExplicit),
-		After:           wrap(input.After, input.Unknown, input.AfterExplicit),
-		Unknown:         wrap(input.Unknown, nil, false),
-		BeforeSensitive: wrap(input.BeforeSensitive, nil, false),
-		AfterSensitive:  wrap(input.AfterSensitive, nil, false),
-		ReplacePaths:    replacePaths,
+		Before:             wrap(input.Before, nil, input.BeforeExplicit),
+		After:              wrap(input.After, input.Unknown, input.AfterExplicit),
+		Unknown:            wrap(input.Unknown, nil, false),
+		BeforeSensitive:    wrap(input.BeforeSensitive, nil, false),
+		AfterSensitive:     wrap(input.AfterSensitive, nil, false),
+		ReplacePaths:       replacePaths,
+		RelevantAttributes: relevantAttributes,
 	}
 }

@@ -28,10 +28,11 @@ const (
 )
 
 type Plan struct {
-	PlanFormatVersion string                     `json:"plan_format_version"`
-	OutputChanges     map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges   []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift     []jsonplan.ResourceChange  `json:"resource_drift"`
+	PlanFormatVersion  string                     `json:"plan_format_version"`
+	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
+	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
+	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
+	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
@@ -64,7 +65,7 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		return false
 	}
 
-	diffs := precomputeDiffs(plan)
+	diffs := precomputeDiffs(plan, mode)
 	haveRefreshChanges := r.renderHumanDiffDrift(diffs, mode)
 
 	willPrintResourceChanges := false
@@ -260,16 +261,9 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 
 func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	var drs []diff
-	if mode == plans.RefreshOnlyMode {
-		drs = diffs.drift
-	} else {
-		for _, dr := range diffs.drift {
-			// TODO(liamcervante): Look into if we have to keep filtering resource changes.
-			// For now we still want to remove the moved resources from here as
-			// they will show up in the regular changes.
-			if dr.diff.Action != plans.NoOp {
-				drs = append(drs, dr)
-			}
+	for _, dr := range diffs.drift {
+		if dr.diff.Action != plans.NoOp {
+			drs = append(drs, dr)
 		}
 	}
 
@@ -277,6 +271,8 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 		return false
 	}
 
+	// If the overall plan is empty, and it's not a refresh only plan then we
+	// won't show any drift changes.
 	if diffs.Empty() && mode != plans.RefreshOnlyMode {
 		return false
 	}
@@ -293,6 +289,19 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 			r.Streams.Println()
 			r.Streams.Println(diff)
 		}
+	}
+
+	switch mode {
+	case plans.RefreshOnlyMode:
+		r.Streams.Println(format.WordWrap(
+			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			r.Streams.Stdout.Columns(),
+		))
+	default:
+		r.Streams.Println(format.WordWrap(
+			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			r.Streams.Stdout.Columns(),
+		))
 	}
 
 	return true

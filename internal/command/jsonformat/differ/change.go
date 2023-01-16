@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -76,27 +76,33 @@ type Change struct {
 	// sensitive.
 	AfterSensitive interface{}
 
-	// ReplacePaths generally contains nested slices that describe paths to
-	// elements or attributes that are causing the overall resource to be
-	// replaced.
-	ReplacePaths replace.ForcesReplacement
+	// ReplacePaths contains a set of paths that point to attributes/elements
+	// that are causing the overall resource to be replaced rather than simply
+	// updated.
+	ReplacePaths attribute_path.Matcher
+
+	// RelevantAttributes contains a set of paths that point attributes/elements
+	// that we should display. Any element/attribute not matched by this Matcher
+	// should be skipped.
+	RelevantAttributes attribute_path.Matcher
 }
 
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
 // structs into generic interface{} types that can be reasoned about.
-func FromJsonChange(change jsonplan.Change) Change {
+func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Matcher) Change {
 	return Change{
-		Before:          unmarshalGeneric(change.Before),
-		After:           unmarshalGeneric(change.After),
-		Unknown:         unmarshalGeneric(change.AfterUnknown),
-		BeforeSensitive: unmarshalGeneric(change.BeforeSensitive),
-		AfterSensitive:  unmarshalGeneric(change.AfterSensitive),
-		ReplacePaths:    replace.Parse(change.ReplacePaths),
+		Before:             unmarshalGeneric(change.Before),
+		After:              unmarshalGeneric(change.After),
+		Unknown:            unmarshalGeneric(change.AfterUnknown),
+		BeforeSensitive:    unmarshalGeneric(change.BeforeSensitive),
+		AfterSensitive:     unmarshalGeneric(change.AfterSensitive),
+		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
+		RelevantAttributes: relevantAttributes,
 	}
 }
 
 func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
-	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.Matches())
 }
 
 func (change Change) calculateChange() plans.Action {
@@ -136,6 +142,23 @@ func (change Change) getDefaultActionForIteration() plans.Action {
 		return plans.Delete
 	}
 	return plans.NoOp
+}
+
+// AsNoOp returns the current change as if it is a NoOp operation.
+//
+// Basically it replaces all the after values with the before values.
+func (change Change) AsNoOp() Change {
+	return Change{
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      change.BeforeExplicit,
+		Before:             change.Before,
+		After:              change.Before,
+		Unknown:            false,
+		BeforeSensitive:    change.BeforeSensitive,
+		AfterSensitive:     change.BeforeSensitive,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
+	}
 }
 
 func unmarshalGeneric(raw json.RawMessage) interface{} {

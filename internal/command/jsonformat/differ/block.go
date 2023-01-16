@@ -25,6 +25,11 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 	for key, attr := range block.Attributes {
 		childValue := blockValue.getChild(key)
 
+		if !childValue.RelevantAttributes.MatchesPartial() {
+			// Mark non-relevant attributes as unchanged.
+			childValue = childValue.AsNoOp()
+		}
+
 		// Empty strings in blocks should be considered null for legacy reasons.
 		// The SDK doesn't support null strings yet, so we work around this now.
 		if before, ok := childValue.Before.(string); ok && len(before) == 0 {
@@ -61,9 +66,14 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 	for key, blockType := range block.BlockTypes {
 		childValue := blockValue.getChild(key)
 
+		if !childValue.RelevantAttributes.MatchesPartial() {
+			// Mark non-relevant attributes as unchanged.
+			childValue = childValue.AsNoOp()
+		}
+
 		beforeSensitive := childValue.isBeforeSensitive()
 		afterSensitive := childValue.isAfterSensitive()
-		forcesReplacement := childValue.ReplacePaths.ForcesReplacement()
+		forcesReplacement := childValue.ReplacePaths.Matches()
 
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
@@ -103,5 +113,5 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		}
 	}
 
-	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.Matches())
 }

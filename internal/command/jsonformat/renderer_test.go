@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
@@ -6602,7 +6604,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			diff := diff{
 				change: jsonchanges[0],
 				diff: differ.
-					FromJsonChange(jsonchanges[0].Change).
+					FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher()).
 					ComputeDiffForBlock(jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
 			}
 			output, _ := renderer.renderHumanDiff(diff, proposedChange)
@@ -6722,7 +6724,7 @@ func TestOutputChanges(t *testing.T) {
 			renderer := Renderer{Colorize: color}
 			diffs := precomputeDiffs(Plan{
 				OutputChanges: outputs,
-			})
+			}, plans.NormalMode)
 
 			output := renderer.renderHumanDiffOutputs(diffs.outputs)
 			if output != tc.output {

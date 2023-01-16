@@ -14,14 +14,14 @@ func (change Change) computeAttributeDiffAsObject(attributes map[string]cty.Type
 	attributeDiffs, action := processObject(change, attributes, func(value Change, ctype cty.Type) computed.Diff {
 		return value.computeDiffForType(ctype)
 	})
-	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.Matches())
 }
 
 func (change Change) computeAttributeDiffAsNestedObject(attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	attributeDiffs, action := processObject(change, attributes, func(value Change, attribute *jsonprovider.Attribute) computed.Diff {
 		return value.ComputeDiffForAttribute(attribute)
 	})
-	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.ForcesReplacement())
+	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.Matches())
 }
 
 // processObject steps through the children of value as if it is an object and
@@ -42,6 +42,11 @@ func processObject[T any](v Change, attributes map[string]T, computeDiff func(Ch
 	currentAction := v.getDefaultActionForIteration()
 	for key, attribute := range attributes {
 		attributeValue := mapValue.getChild(key)
+
+		if !attributeValue.RelevantAttributes.MatchesPartial() {
+			// Mark non-relevant attributes as unchanged.
+			attributeValue = attributeValue.AsNoOp()
+		}
 
 		// We always assume changes to object are implicit.
 		attributeValue.BeforeExplicit = false
