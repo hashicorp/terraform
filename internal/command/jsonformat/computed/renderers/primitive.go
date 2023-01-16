@@ -177,12 +177,14 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 }
 
 func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, indent int, opts computed.RenderHumanOpts, before evaluatedString, after evaluatedString) string {
-	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json, attribute_path.AlwaysMatcher())
+	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json, diff.Action != plans.Create, diff.Action != plans.Delete, attribute_path.AlwaysMatcher())
 
 	action := diff.Action
 
-	var whitespace, replace string
 	jsonOpts := opts.Clone()
+	jsonOpts.OverrideNullSuffix = true
+
+	var whitespace, replace string
 	if jsonDiff.Action == plans.NoOp && diff.Action == plans.Update {
 		// Then this means we are rendering a whitespace only change. The JSON
 		// differ will have ignored the whitespace changes so that makes the
@@ -214,7 +216,7 @@ func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, ind
 	}
 
 	if strings.Contains(renderedJsonDiff, "\n") {
-		return fmt.Sprintf("jsonencode(%s\n%s%s %s%s\n%s)", whitespace, formatIndent(indent+1), colorizeDiffAction(action, opts), renderedJsonDiff, replace, formatIndent(indent+1))
+		return fmt.Sprintf("jsonencode(%s\n%s%s %s%s\n%s)%s", whitespace, formatIndent(indent+1), colorizeDiffAction(action, opts), renderedJsonDiff, replace, formatIndent(indent+1), nullSuffix(diff.Action, opts))
 	}
 	return fmt.Sprintf("jsonencode(%s)%s%s", renderedJsonDiff, whitespace, replace)
 }

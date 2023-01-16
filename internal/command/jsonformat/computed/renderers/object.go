@@ -50,7 +50,7 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 	escapedKeys := make(map[string]string)
 	for key := range renderer.attributes {
 		keys = append(keys, key)
-		escapedKey := ensureValidAttributeName(key)
+		escapedKey := EnsureValidAttributeName(key)
 		escapedKeys[key] = escapedKey
 		if maximumKeyLen < len(escapedKey) {
 			maximumKeyLen = len(escapedKey)

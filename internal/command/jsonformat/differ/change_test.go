@@ -35,6 +35,83 @@ func (entry SetDiffEntry) Validate(obj func(attributes map[string]renderers.Vali
 	return obj(entry.ObjectDiff, entry.Action, entry.Replace)
 }
 
+func TestValue_SimpleBlocks(t *testing.T) {
+	// Most of the other test functions wrap the test cases in various
+	// collections or blocks. This function just very simply lets you specify
+	// individual test cases within blocks for some simple tests.
+
+	tcs := map[string]struct {
+		input    Change
+		block    *jsonprovider.Block
+		validate renderers.ValidateDiffFunction
+	}{
+		"delete_with_null_sensitive_value": {
+			input: Change{
+				Before: map[string]interface{}{
+					"normal_attribute": "some value",
+				},
+				After: nil,
+				BeforeSensitive: map[string]interface{}{
+					"sensitive_attribute": true,
+				},
+				AfterSensitive: false,
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"normal_attribute": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"sensitive_attribute": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"normal_attribute": renderers.ValidatePrimitive("some value", nil, plans.Delete, false),
+			}, nil, nil, nil, nil, plans.Delete, false),
+		},
+		"create_with_null_sensitive_value": {
+			input: Change{
+				Before: nil,
+				After: map[string]interface{}{
+					"normal_attribute": "some value",
+				},
+				BeforeSensitive: map[string]interface{}{
+					"sensitive_attribute": true,
+				},
+				AfterSensitive: false,
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"normal_attribute": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"sensitive_attribute": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"normal_attribute": renderers.ValidatePrimitive(nil, "some value", plans.Create, false),
+			}, nil, nil, nil, nil, plans.Create, false),
+		},
+	}
+	for name, tc := range tcs {
+		// Set some default values
+		if tc.input.ReplacePaths == nil {
+			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
+		}
+
+		if tc.input.RelevantAttributes == nil {
+			tc.input.RelevantAttributes = attribute_path.AlwaysMatcher()
+		}
+
+		t.Run(name, func(t *testing.T) {
+			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
+		})
+	}
+}
+
 func TestValue_ObjectAttributes(t *testing.T) {
 	// This function holds a range of test cases creating, deleting and editing
 	// objects. It is built in such a way that it can automatically test these
