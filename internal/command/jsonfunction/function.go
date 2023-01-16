@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty/function"
 )
 
@@ -47,20 +48,37 @@ func newFunctions() *functions {
 	}
 }
 
-func Marshal(f map[string]function.Function) ([]byte, error) {
+func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	signatures := newFunctions()
 
 	for k, v := range f {
 		signature, err := marshalFunction(v)
 		if err != nil {
-			fmt.Printf("Failed to serialize function %q: %s\n", k, err) // TODO! handle error
-			continue
+			// failedFunctions = append(failedFunctions, fmt.Sprintf("%q: %s", k, err))
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				fmt.Sprintf("Failed to serialize function %q", k),
+				err.Error(),
+			))
 		}
 		signatures.Signatures[k] = signature
 	}
 
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
 	ret, err := json.Marshal(signatures)
-	return ret, err
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to serialize functions",
+			err.Error(),
+		))
+		return nil, diags
+	}
+	return ret, nil
 }
 
 func marshalFunction(f function.Function) (*FunctionSignature, error) {

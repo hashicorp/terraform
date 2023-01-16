@@ -45,9 +45,9 @@ func (c *MetadataFunctionsCommand) Run(args []string) int {
 		BaseDir:     ".", // TODO? might be omitted
 	}
 	funcs := scope.Functions()
-	jsonFunctions, err := jsonfunction.Marshal(funcs)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to marshal function signatures to json: %s", err))
+	jsonFunctions, marshalDiags := jsonfunction.Marshal(funcs)
+	if marshalDiags.HasErrors() {
+		c.showDiagnostics(marshalDiags)
 		return 1
 	}
 	c.Ui.Output(string(jsonFunctions))
