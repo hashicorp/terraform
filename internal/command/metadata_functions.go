@@ -5,6 +5,11 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonfunction"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/zclconf/go-cty/cty/function"
+)
+
+var (
+	ignoredFunctions = []string{"map", "list"}
 )
 
 // MetadataFunctionsCommand is a Command implementation that prints out information
@@ -40,12 +45,17 @@ func (c *MetadataFunctionsCommand) Run(args []string) int {
 		return 1
 	}
 
-	scope := &lang.Scope{
-		ConsoleMode: true,
-		BaseDir:     ".", // TODO? might be omitted
-	}
+	scope := &lang.Scope{}
 	funcs := scope.Functions()
-	jsonFunctions, marshalDiags := jsonfunction.Marshal(funcs)
+	filteredFuncs := make(map[string]function.Function)
+	for k, v := range funcs {
+		if isIgnoredFunction(k) {
+			continue
+		}
+		filteredFuncs[k] = v
+	}
+
+	jsonFunctions, marshalDiags := jsonfunction.Marshal(filteredFuncs)
 	if marshalDiags.HasErrors() {
 		c.showDiagnostics(marshalDiags)
 		return 1
@@ -60,3 +70,12 @@ Usage: terraform [global options] metadata functions -json
 
   Prints out a json representation of the available function signatures.
 `
+
+func isIgnoredFunction(name string) bool {
+	for _, i := range ignoredFunctions {
+		if i == name {
+			return true
+		}
+	}
+	return false
+}
