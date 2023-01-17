@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"strconv"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,8 +35,10 @@ const (
 	tfstateSecretSuffixKey    = "tfstateSecretSuffix"
 	tfstateWorkspaceKey       = "tfstateWorkspace"
 	tfstateLockInfoAnnotation = "app.terraform.io/lock-info"
+
 	managedByKey              = "app.kubernetes.io/managed-by"
-	etcdDefaultSize           = 1048576
+	
+	defaultChunkSize            = 1048576
 )
 
 type RemoteClient struct {
@@ -53,12 +56,12 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 		return nil, err
 	}
 
-	if len(secretList.Items) == 0 {
+	if len(secretList) == 0 {
 		return nil, nil
 	}
 
 	var data []string
-	for _, secret := range secretList.Items {
+	for _, secret := range secretList {
 		secretData := getSecretData(&secret)
 		stateRaw, ok := secretData[tfstateKey]
 		if !ok {
@@ -74,7 +77,6 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	}
 
 	md5 := md5.Sum(state)
-
 	p := &remote.Payload{
 		Data: state,
 		MD5:  md5[:],
@@ -82,18 +84,31 @@ func (c *RemoteClient) Get() (payload *remote.Payload, err error) {
 	return p, nil
 }
 
-func multiSecret(size []byte) bool {
-	// by default etcd can hold up to 1.5Mib data for secret
-	return len(size) > etcdDefaultSize
-}
-
-func (c *RemoteClient) getSecrets() (*unstructured.UnstructuredList, error) {
+func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 	ls := metav1.SetAsLabelSelector(c.getLabels())
-	return c.kubernetesSecretClient.List(context.Background(),
+	res, err := c.kubernetesSecretClient.List(context.Background(),
 		metav1.ListOptions{
 			LabelSelector: metav1.FormatLabelSelector(ls),
 		},
 	)
+	if err != nil {
+		return []unstructured.Unstructured{}, err
+	}
+
+	// NOTE we need to sort the list as the k8s API will return
+	// the list sorted by name which will corrupt the state when 
+	// the number of secrets is greater than 10
+	items := make([]unstructured.Unstructured, len(res.Items))
+	for _, item := range res.Items {
+		name := item.GetName()
+		nameParts := strings.Split(name, "-")
+		index, err := strconv.Atoi(nameParts[len(nameParts)-1])
+		if err != nil {
+			index = 0
+		}
+		items[index] = item
+	}	
+	return items, nil
 }
 
 func (c *RemoteClient) Put(data []byte) error {
@@ -108,13 +123,13 @@ func (c *RemoteClient) Put(data []byte) error {
 		return err
 	}
 
-	parts := split(payload, etcdDefaultSize)
+	chunks := chunkPayload(payload, defaultChunkSize)
 	existingSecrets, err := c.getSecrets()
 	if err != nil {
 		return err
 	}
 
-	for idx, data := range parts {
+	for idx, data := range chunks {
 		secretName, err := c.createSecretName(idx)
 		if err != nil {
 			return err
@@ -125,9 +140,16 @@ func (c *RemoteClient) Put(data []byte) error {
 			if !k8serrors.IsNotFound(err) {
 				return err
 			}
-
-			secret = c.formatSecret(secretName)
-
+			secret = &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": metav1.ObjectMeta{
+						Name:        secretName,
+						Namespace:   c.namespace,
+						Labels:      c.getLabels(),
+						Annotations: map[string]string{"encoding": "gzip"},
+					},
+				},
+			}
 			secret, err = c.kubernetesSecretClient.Create(ctx, secret, metav1.CreateOptions{})
 			if err != nil {
 				return err
@@ -136,34 +158,28 @@ func (c *RemoteClient) Put(data []byte) error {
 
 		setState(secret, data)
 		_, err = c.kubernetesSecretClient.Update(ctx, secret, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
 	}
 
-	// in case new state requires less secrets, cleanup old secrets
-	secretNum := len(existingSecrets.Items)
-	newSecretNum := len(parts)
-	for i := newSecretNum; i <= secretNum; i++ {
-		c.deleteSecret(fmt.Sprintf("%s-part%d", secretName, i))
+	// remove old secrets
+	secretCount := len(existingSecrets)
+	newSecretCount := len(chunks)
+	for i := newSecretCount; i <= secretCount; i++ {
+		err := c.deleteSecret(fmt.Sprintf("%s-part-%d", secretName, i))
+		if err != nil {
+			return err
+		}
 	}
 	return err
 }
 
-func (c *RemoteClient) formatSecret(name string) *unstructured.Unstructured {
-	return &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"metadata": metav1.ObjectMeta{
-				Name:        name,
-				Namespace:   c.namespace,
-				Labels:      c.getLabels(),
-				Annotations: map[string]string{"encoding": "gzip"},
-			},
-		},
-	}
-}
-
-func split(buf []byte, size int) [][]byte {
-	var chunk []byte
+// chunkPayload splits the state payload into byte arrays of the given size
+func chunkPayload(buf []byte, size int) [][]byte {
 	chunks := make([][]byte, 0, len(buf)/size+1)
 	for len(buf) >= size {
+		var chunk []byte
 		chunk, buf = buf[:size], buf[size:]
 		chunks = append(chunks, chunk)
 	}
@@ -180,7 +196,7 @@ func (c *RemoteClient) Delete() error {
 		return err
 	}
 
-	for i, _ := range secretList.Items {
+	for i, _ := range secretList {
 		secretName, err := c.createSecretName(i)
 		if err != nil {
 			return err
@@ -386,7 +402,7 @@ func (c *RemoteClient) createSecretName(idx int) (string, error) {
 	secretName := strings.Join([]string{tfstateKey, c.workspace, c.nameSuffix}, "-")
 
 	if idx > 0 {
-		secretName = fmt.Sprintf("%s-part%d", secretName, idx)
+		secretName = fmt.Sprintf("%s-part-%d", secretName, idx)
 	}
 
 	errs := validation.IsDNS1123Subdomain(secretName)
