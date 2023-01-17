@@ -1,7 +1,6 @@
 package jsonfunction
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -13,119 +12,122 @@ import (
 
 func TestMarshalFunction(t *testing.T) {
 	tests := []struct {
-		Name  string
-		Input function.Function
-		Want  *FunctionSignature
+		Name    string
+		Input   map[string]function.Function
+		Want    string
+		WantErr string
 	}{
 		{
 			"minimal function",
-			function.New(&function.Spec{
-				Type: function.StaticReturnType(cty.Bool),
-			}),
-			&FunctionSignature{
-				ReturnType: json.RawMessage(`"bool"`),
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					Type: function.StaticReturnType(cty.Bool),
+				}),
 			},
+			`{"format_version":"1.0","function_signatures":{"fun":{"return_type":"bool"}}}`,
+			"",
 		},
 		{
 			"function with description",
-			function.New(&function.Spec{
-				Description: "`timestamp` returns a UTC timestamp string.",
-				Type:        function.StaticReturnType(cty.String),
-			}),
-			&FunctionSignature{
-				Description: "`timestamp` returns a UTC timestamp string.",
-				ReturnType:  json.RawMessage(`"string"`),
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					Description: "`timestamp` returns a UTC timestamp string.",
+					Type:        function.StaticReturnType(cty.String),
+				}),
 			},
+			"{\"format_version\":\"1.0\",\"function_signatures\":{\"fun\":{\"description\":\"`timestamp` returns a UTC timestamp string.\",\"return_type\":\"string\"}}}",
+			"",
 		},
 		{
 			"function with parameters",
-			function.New(&function.Spec{
-				Params: []function.Parameter{
-					{
-						Name:        "timestamp",
-						Description: "timestamp text",
-						Type:        cty.String,
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					Params: []function.Parameter{
+						{
+							Name:        "timestamp",
+							Description: "timestamp text",
+							Type:        cty.String,
+						},
+						{
+							Name:        "duration",
+							Description: "duration text",
+							Type:        cty.String,
+						},
 					},
-					{
-						Name:        "duration",
-						Description: "duration text",
-						Type:        cty.String,
-					},
-				},
-				Type: function.StaticReturnType(cty.String),
-			}),
-			&FunctionSignature{
-				ReturnType: json.RawMessage(`"string"`),
-				Parameters: []*parameter{
-					{
-						Name:        "timestamp",
-						Description: "timestamp text",
-						Type:        json.RawMessage(`"string"`),
-					},
-					{
-						Name:        "duration",
-						Description: "duration text",
-						Type:        json.RawMessage(`"string"`),
-					},
-				},
+					Type: function.StaticReturnType(cty.String),
+				}),
 			},
+			`{"format_version":"1.0","function_signatures":{"fun":{"return_type":"string","parameters":[{"name":"timestamp","description":"timestamp text","type":"string"},{"name":"duration","description":"duration text","type":"string"}]}}}`,
+			"",
 		},
 		{
 			"function with variadic parameter",
-			function.New(&function.Spec{
-				VarParam: &function.Parameter{
-					Name:             "default",
-					Description:      "default description",
-					Type:             cty.DynamicPseudoType,
-					AllowUnknown:     true,
-					AllowDynamicType: true,
-					AllowNull:        true,
-					AllowMarked:      true,
-				},
-				Type: function.StaticReturnType(cty.DynamicPseudoType),
-			}),
-			&FunctionSignature{
-				ReturnType: json.RawMessage(`"dynamic"`),
-				VariadicParameter: &parameter{
-					Name:        "default",
-					Description: "default description",
-					Type:        json.RawMessage(`"dynamic"`),
-					IsNullable:  true,
-				},
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					VarParam: &function.Parameter{
+						Name:             "default",
+						Description:      "default description",
+						Type:             cty.DynamicPseudoType,
+						AllowUnknown:     true,
+						AllowDynamicType: true,
+						AllowNull:        true,
+						AllowMarked:      true,
+					},
+					Type: function.StaticReturnType(cty.DynamicPseudoType),
+				}),
 			},
+			`{"format_version":"1.0","function_signatures":{"fun":{"return_type":"dynamic","variadic_parameter":{"name":"default","description":"default description","is_nullable":true,"type":"dynamic"}}}}`,
+			"",
 		},
 		{
 			"function with list types",
-			function.New(&function.Spec{
-				Params: []function.Parameter{
-					{
-						Name: "list",
-						Type: cty.List(cty.String),
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					Params: []function.Parameter{
+						{
+							Name: "list",
+							Type: cty.List(cty.String),
+						},
 					},
-				},
-				Type: function.StaticReturnType(cty.List(cty.String)),
-			}),
-			&FunctionSignature{
-				ReturnType: json.RawMessage(`["list","string"]`),
-				Parameters: []*parameter{
-					{
-						Name: "list",
-						Type: json.RawMessage(`["list","string"]`),
-					},
-				},
+					Type: function.StaticReturnType(cty.List(cty.String)),
+				}),
 			},
+			`{"format_version":"1.0","function_signatures":{"fun":{"return_type":["list","string"],"parameters":[{"name":"list","type":["list","string"]}]}}}`,
+			"",
+		},
+		{
+			"returns diagnostics on failure",
+			map[string]function.Function{
+				"fun": function.New(&function.Spec{
+					Params: []function.Parameter{},
+					Type: func(args []cty.Value) (ret cty.Type, err error) {
+						return cty.DynamicPseudoType, fmt.Errorf("error")
+					},
+				}),
+			},
+			"",
+			"Failed to serialize function \"fun\": error",
 		},
 	}
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
-			got, err := marshalFunction(test.Input)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got, diags := Marshal(test.Input)
+			if test.WantErr != "" {
+				if !diags.HasErrors() {
+					t.Fatal("expected error, got none")
+				}
+				if diags.Err().Error() != test.WantErr {
+					t.Fatalf("expected error %q, got %q", test.WantErr, diags.Err())
+				}
+			} else {
+				if diags.HasErrors() {
+					t.Fatal(diags)
+				}
 
-			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
-				t.Fatalf("mismatch of function signature: %s", diff)
+				if diff := cmp.Diff(test.Want, string(got), ctydebug.CmpOptions); diff != "" {
+					t.Fatalf("mismatch of function signature: %s", diff)
+				}
 			}
 		})
 	}
