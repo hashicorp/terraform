@@ -271,9 +271,19 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 
 func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	var drs []diff
-	for _, dr := range diffs.drift {
-		if dr.diff.Action != plans.NoOp {
-			drs = append(drs, dr)
+
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+
+	if mode == plans.RefreshOnlyMode {
+		drs = diffs.drift
+	} else {
+		for _, dr := range diffs.drift {
+			if dr.diff.Action != plans.NoOp {
+				drs = append(drs, dr)
+			}
 		}
 	}
 
