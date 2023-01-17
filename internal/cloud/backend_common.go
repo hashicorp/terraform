@@ -538,3 +538,10 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 
 	return <-result
 }
+
+func stringPtr(s string, nilIfEmpty bool) *string {
+	if nilIfEmpty && s == "" {
+		return nil
+	}
+	return &s
+}

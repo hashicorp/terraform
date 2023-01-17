@@ -1057,3 +1057,11 @@ var schemaDescriptions = map[string]string{
 		"will automatically be prefixed with this prefix. If omitted only the default\n" +
 		"workspace can be used. This option conflicts with \"name\"",
 }
+
+
+func stringPtr(s string, nilIfEmpty bool) *string {
+	if nilIfEmpty && s == "" {
+		return nil
+	}
+	return &s
+}

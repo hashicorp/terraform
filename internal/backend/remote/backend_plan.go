@@ -276,6 +276,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	runOptions := tfe.RunCreateOptions{
 		ConfigurationVersion: cv,
+		Message:              stringPtr(os.Getenv("TFE_RUN_MESSAGE"), true),
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
 	}

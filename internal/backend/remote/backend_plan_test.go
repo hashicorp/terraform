@@ -842,6 +842,7 @@ func TestRemote_planLockTimeout(t *testing.T) {
 	// Create a pending run to block this run.
 	_, err = b.client.Runs.Create(ctx, tfe.RunCreateOptions{
 		ConfigurationVersion: c,
+		Message:              stringPtr(os.Getenv("TFE_RUN_MESSAGE"), true),
 		Workspace:            w,
 	})
 	if err != nil {
