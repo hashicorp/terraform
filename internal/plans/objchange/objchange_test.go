@@ -1877,6 +1877,66 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed set. The nested computed values should be
+		// represented in the proposed new object, and correlated with state
+		// via the non-computed attributes.
+		"config within optional+computed set": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+		},
 	}
 
 	for name, test := range tests {
