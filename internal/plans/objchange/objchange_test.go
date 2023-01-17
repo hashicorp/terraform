@@ -1738,26 +1738,144 @@ func TestProposedNew(t *testing.T) {
 				},
 			},
 			cty.UnknownVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
 			cty.NullVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
 			cty.UnknownVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
+		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed container. The nested computed values should be
+		// represented in the proposed new object.
+		"config within optional+computed": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed container. The entire prior nested value should be
+		// represented in the proposed new object if the configuration is null.
+		"computed within optional+computed": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"obj": cty.Object(map[string]cty.Type{
+							"optional": cty.String,
+							"computed": cty.String,
+						}),
+					}),
+				)),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
 		},
 	}
 

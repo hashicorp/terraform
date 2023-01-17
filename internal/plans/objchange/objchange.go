@@ -286,42 +286,37 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 		}
 
 		configV := config.GetAttr(name)
+
+		// required isn't considered when constructing the plan, so attributes
+		// are essentially either computed or not computed. In the case of
+		// optional+computed, they are only computed when there is no
+		// configuration.
+		computed := attr.Computed
+		if attr.Optional && !configV.IsNull() {
+			computed = false
+		}
+
 		var newV cty.Value
 		switch {
-		case attr.Computed && attr.Optional:
-			// This is the trickiest scenario: we want to keep the prior value
-			// if the config isn't overriding it. Note that due to some
-			// ambiguity here, setting an optional+computed attribute from
-			// config and then later switching the config to null in a
-			// subsequent change causes the initial config value to be "sticky"
-			// unless the provider specifically overrides it during its own
-			// plan customization step.
-			if configV.IsNull() {
-				newV = priorV
-			} else {
-				newV = configV
-			}
-		case attr.Computed:
+		case computed:
 			// configV will always be null in this case, by definition.
 			// priorV may also be null, but that's okay.
 			newV = priorV
-		default:
-			if attr.NestedType != nil {
-				// For non-computed NestedType attributes, we need to descend
-				// into the individual nested attributes to build the final
-				// value, unless the entire nested attribute is unknown.
-				if !configV.IsKnown() {
-					newV = configV
-				} else {
-					newV = proposedNewNestedType(attr.NestedType, priorV, configV)
-				}
-			} else {
-				// For non-computed attributes, we always take the config value,
-				// even if it is null. If it's _required_ then null values
-				// should've been caught during an earlier validation step, and
-				// so we don't really care about that here.
+		case attr.NestedType != nil:
+			// For non-computed NestedType attributes, we need to descend
+			// into the individual nested attributes to build the final
+			// value, unless the entire nested attribute is unknown.
+			if !configV.IsKnown() {
 				newV = configV
+			} else {
+				newV = proposedNewNestedType(attr.NestedType, priorV, configV)
 			}
+		default:
+			// For non-computed attributes, we always take the config value,
+			// even if it is null. If it's _required_ then null values
+			// should've been caught during an earlier validation step, and
+			// so we don't really care about that here.
+			newV = configV
 		}
 		newAttrs[name] = newV
 	}
