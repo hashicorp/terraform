@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"sort"
 	"strings"
 
