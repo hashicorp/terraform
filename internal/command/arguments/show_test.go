@@ -16,22 +16,25 @@ func TestParseShow_valid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Show{
-				Path:     "",
-				ViewType: ViewHuman,
+				Path:               "",
+				ViewType:           ViewHuman,
+				StructuredRenderer: true,
 			},
 		},
 		"json": {
 			[]string{"-json"},
 			&Show{
-				Path:     "",
-				ViewType: ViewJSON,
+				Path:               "",
+				ViewType:           ViewJSON,
+				StructuredRenderer: true,
 			},
 		},
 		"path": {
 			[]string{"-json", "foo"},
 			&Show{
-				Path:     "foo",
-				ViewType: ViewJSON,
+				Path:               "foo",
+				ViewType:           ViewJSON,
+				StructuredRenderer: true,
 			},
 		},
 	}
@@ -58,8 +61,9 @@ func TestParseShow_invalid(t *testing.T) {
 		"unknown flag": {
 			[]string{"-boop"},
 			&Show{
-				Path:     "",
-				ViewType: ViewHuman,
+				Path:               "",
+				ViewType:           ViewHuman,
+				StructuredRenderer: true,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(
@@ -72,8 +76,9 @@ func TestParseShow_invalid(t *testing.T) {
 		"too many arguments": {
 			[]string{"-json", "bar", "baz"},
 			&Show{
-				Path:     "bar",
-				ViewType: ViewJSON,
+				Path:               "bar",
+				ViewType:           ViewJSON,
+				StructuredRenderer: true,
 			},
 			tfdiags.Diagnostics{
 				tfdiags.Sourceless(

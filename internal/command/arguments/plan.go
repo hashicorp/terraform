@@ -19,6 +19,10 @@ type Plan struct {
 	// variable and backend config values. Default is true.
 	InputEnabled bool
 
+	// StructuredRenderer tells the command to use the structured JSON renderer
+	// instead of the traditional plan renderer. This defaults to true.
+	StructuredRenderer bool
+
 	// OutPath contains an optional path to store the plan file
 	OutPath string
 
@@ -41,6 +45,7 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
+	cmdFlags.BoolVar(&plan.StructuredRenderer, "structured-renderer", true, "structured-renderer")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

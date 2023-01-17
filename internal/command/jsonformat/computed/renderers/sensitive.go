@@ -25,10 +25,10 @@ type sensitiveRenderer struct {
 }
 
 func (renderer sensitiveRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	return fmt.Sprintf("(sensitive)%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
+	return fmt.Sprintf("(sensitive value)%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 }
 
-func (renderer sensitiveRenderer) WarningsHuman(diff computed.Diff, indent int) []string {
+func (renderer sensitiveRenderer) WarningsHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) []string {
 	if (renderer.beforeSensitive == renderer.afterSensitive) || renderer.inner.Action == plans.Create || renderer.inner.Action == plans.Delete {
 		// Only display warnings for sensitive values if they are changing from
 		// being sensitive or to being sensitive and if they are not being
@@ -38,9 +38,9 @@ func (renderer sensitiveRenderer) WarningsHuman(diff computed.Diff, indent int) 
 
 	var warning string
 	if renderer.beforeSensitive {
-		warning = fmt.Sprintf("  # [yellow]Warning[reset]: this attribute value will no longer be marked as sensitive\n%s  # after applying this change.", formatIndent(indent))
+		warning = opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this attribute value will no longer be marked as sensitive\n%s  # after applying this change.", formatIndent(indent)))
 	} else {
-		warning = fmt.Sprintf("  # [yellow]Warning[reset]: this attribute value will be marked as sensitive and will not\n%s  # display in UI output after applying this change.", formatIndent(indent))
+		warning = opts.Colorize.Color(fmt.Sprintf("  # [yellow]Warning[reset]: this attribute value will be marked as sensitive and will not\n%s  # display in UI output after applying this change.", formatIndent(indent)))
 	}
 
 	if renderer.inner.Action == plans.NoOp {

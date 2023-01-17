@@ -1,6 +1,10 @@
 package computed
 
-import "github.com/hashicorp/terraform/internal/plans"
+import (
+	"github.com/mitchellh/colorstring"
+
+	"github.com/hashicorp/terraform/internal/plans"
+)
 
 // Diff captures the computed diff for a single block, element or attribute.
 //
@@ -52,18 +56,20 @@ func (diff Diff) RenderHuman(indent int, opts RenderHumanOpts) string {
 //
 // As with the RenderHuman function, the indent should only be applied on
 // multiline warnings and on the second and following lines.
-func (diff Diff) WarningsHuman(indent int) []string {
-	return diff.Renderer.WarningsHuman(diff, indent)
+func (diff Diff) WarningsHuman(indent int, opts RenderHumanOpts) []string {
+	return diff.Renderer.WarningsHuman(diff, indent, opts)
 }
 
 type DiffRenderer interface {
 	RenderHuman(diff Diff, indent int, opts RenderHumanOpts) string
-	WarningsHuman(diff Diff, indent int) []string
+	WarningsHuman(diff Diff, indent int, opts RenderHumanOpts) []string
 }
 
 // RenderHumanOpts contains options that can control how the human render
 // function of the DiffRenderer will function.
 type RenderHumanOpts struct {
+	Colorize *colorstring.Colorize
+
 	// OverrideNullSuffix tells the Renderer not to display the `-> null` suffix
 	// that is normally displayed when an element, attribute, or block is
 	// deleted.
@@ -83,10 +89,20 @@ type RenderHumanOpts struct {
 	ShowUnchangedChildren bool
 }
 
+// NewRenderHumanOpts creates a new RenderHumanOpts struct with the required
+// fields set.
+func NewRenderHumanOpts(colorize *colorstring.Colorize) RenderHumanOpts {
+	return RenderHumanOpts{
+		Colorize: colorize,
+	}
+}
+
 // Clone returns a new RenderOpts object, that matches the original but can be
 // edited without changing the original.
 func (opts RenderHumanOpts) Clone() RenderHumanOpts {
 	return RenderHumanOpts{
+		Colorize: opts.Colorize,
+
 		OverrideNullSuffix:    opts.OverrideNullSuffix,
 		ShowUnchangedChildren: opts.ShowUnchangedChildren,
 

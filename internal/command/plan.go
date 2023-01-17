@@ -30,6 +30,8 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// Parse and validate flags
 	args, diags := arguments.ParsePlan(rawArgs)
 
+	c.View.SetStructuredRenderer(args.StructuredRenderer)
+
 	// Instantiate the view, even if there are flag errors, so that we render
 	// diagnostics according to the desired view
 	view := views.NewPlan(args.ViewType, c.View)

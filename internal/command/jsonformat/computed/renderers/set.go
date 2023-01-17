@@ -41,7 +41,7 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	displayForcesReplacementInChildren := diff.Replace && renderer.overrideForcesReplacement
 
 	if len(renderer.elements) == 0 {
-		return fmt.Sprintf("[]%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(displayForcesReplacementInSelf, opts.OverrideForcesReplacement))
+		return fmt.Sprintf("[]%s%s", nullSuffix(diff.Action, opts), forcesReplacement(displayForcesReplacementInSelf, opts))
 	}
 
 	elementOpts := opts.Clone()
@@ -51,23 +51,23 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	unchangedElements := 0
 
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(displayForcesReplacementInSelf, opts.OverrideForcesReplacement)))
+	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(displayForcesReplacementInSelf, opts)))
 	for _, element := range renderer.elements {
 		if element.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 			unchangedElements++
 			continue
 		}
 
-		for _, warning := range element.WarningsHuman(indent + 1) {
+		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), format.DiffActionSymbol(element.Action), element.RenderHuman(indent+1, elementOpts)))
+		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), element.RenderHuman(indent+1, elementOpts)))
 	}
 
 	if unchangedElements > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", unchangedElements)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", unchangedElements, opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s ]%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(opts.OverrideNullSuffix, diff.Action)))
+	buf.WriteString(fmt.Sprintf("%s%s ]%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }

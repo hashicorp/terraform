@@ -21,6 +21,10 @@ type Apply struct {
 	// variable and backend config values. Default is true.
 	InputEnabled bool
 
+	// StructuredRenderer tells the command to use the structured JSON renderer
+	// instead of the traditional plan renderer. This defaults to true.
+	StructuredRenderer bool
+
 	// PlanPath contains an optional path to a stored plan file
 	PlanPath string
 
@@ -42,6 +46,7 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 	cmdFlags := extendedFlagSet("apply", apply.State, apply.Operation, apply.Vars)
 	cmdFlags.BoolVar(&apply.AutoApprove, "auto-approve", false, "auto-approve")
 	cmdFlags.BoolVar(&apply.InputEnabled, "input", true, "input")
+	cmdFlags.BoolVar(&apply.StructuredRenderer, "structured-renderer", true, "structured-renderer")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

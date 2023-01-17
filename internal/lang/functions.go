@@ -166,6 +166,14 @@ func (s *Scope) Functions() map[string]function.Function {
 				s.funcs[name] = function.Unpredictable(s.funcs[name])
 			}
 		}
+
+		// Add a description to each function and parameter based on the
+		// contents of descriptionList.
+		// One must create a matching description entry whenever a new
+		// function is introduced.
+		for name, f := range s.funcs {
+			s.funcs[name] = funcs.WithDescription(name, f)
+		}
 	}
 	s.funcsLock.Unlock()
 

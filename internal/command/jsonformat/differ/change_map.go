@@ -1,6 +1,8 @@
 package differ
 
-import "github.com/hashicorp/terraform/internal/command/jsonformat/differ/replace"
+import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+)
 
 // ChangeMap is a Change that represents a Map or an Object type, and has
 // converted the relevant interfaces into maps for easier access.
@@ -24,17 +26,21 @@ type ChangeMap struct {
 	AfterSensitive map[string]interface{}
 
 	// ReplacePaths matches the same attributes in Change exactly.
-	ReplacePaths replace.ForcesReplacement
+	ReplacePaths attribute_path.Matcher
+
+	// RelevantAttributes matches the same attributes in Change exactly.
+	RelevantAttributes attribute_path.Matcher
 }
 
 func (change Change) asMap() ChangeMap {
 	return ChangeMap{
-		Before:          genericToMap(change.Before),
-		After:           genericToMap(change.After),
-		Unknown:         genericToMap(change.Unknown),
-		BeforeSensitive: genericToMap(change.BeforeSensitive),
-		AfterSensitive:  genericToMap(change.AfterSensitive),
-		ReplacePaths:    change.ReplacePaths,
+		Before:             genericToMap(change.Before),
+		After:              genericToMap(change.After),
+		Unknown:            genericToMap(change.Unknown),
+		BeforeSensitive:    genericToMap(change.BeforeSensitive),
+		AfterSensitive:     genericToMap(change.AfterSensitive),
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
 	}
 }
 
@@ -46,14 +52,15 @@ func (m ChangeMap) getChild(key string) Change {
 	afterSensitive, _ := getFromGenericMap(m.AfterSensitive, key)
 
 	return Change{
-		BeforeExplicit:  beforeExplicit,
-		AfterExplicit:   afterExplicit,
-		Before:          before,
-		After:           after,
-		Unknown:         unknown,
-		BeforeSensitive: beforeSensitive,
-		AfterSensitive:  afterSensitive,
-		ReplacePaths:    m.ReplacePaths.GetChildWithKey(key),
+		BeforeExplicit:     beforeExplicit,
+		AfterExplicit:      afterExplicit,
+		Before:             before,
+		After:              after,
+		Unknown:            unknown,
+		BeforeSensitive:    beforeSensitive,
+		AfterSensitive:     afterSensitive,
+		ReplacePaths:       m.ReplacePaths.GetChildWithKey(key),
+		RelevantAttributes: m.RelevantAttributes.GetChildWithKey(key),
 	}
 }
 

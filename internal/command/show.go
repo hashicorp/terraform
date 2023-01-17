@@ -36,6 +36,8 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	c.View.SetStructuredRenderer(args.StructuredRenderer)
+
 	// Set up view
 	view := views.NewShow(args.ViewType, c.View)
 

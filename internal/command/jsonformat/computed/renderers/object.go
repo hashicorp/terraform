@@ -35,7 +35,7 @@ type objectRenderer struct {
 
 func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
 	if len(renderer.attributes) == 0 {
-		return fmt.Sprintf("{}%s%s", nullSuffix(opts.OverrideNullSuffix, diff.Action), forcesReplacement(diff.Replace, opts.OverrideForcesReplacement))
+		return fmt.Sprintf("{}%s%s", nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 	}
 
 	attributeOpts := opts.Clone()
@@ -50,7 +50,7 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 	escapedKeys := make(map[string]string)
 	for key := range renderer.attributes {
 		keys = append(keys, key)
-		escapedKey := ensureValidAttributeName(key)
+		escapedKey := EnsureValidAttributeName(key)
 		escapedKeys[key] = escapedKey
 		if maximumKeyLen < len(escapedKey) {
 			maximumKeyLen = len(escapedKey)
@@ -60,9 +60,20 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 
 	unchangedAttributes := 0
 	var buf bytes.Buffer
-	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts.OverrideForcesReplacement)))
+	buf.WriteString(fmt.Sprintf("{%s\n", forcesReplacement(diff.Replace, opts)))
 	for _, key := range keys {
 		attribute := renderer.attributes[key]
+
+		if importantAttribute(key) {
+			importantAttributeOpts := attributeOpts.Clone()
+			importantAttributeOpts.ShowUnchangedChildren = true
+
+			for _, warning := range attribute.WarningsHuman(indent+1, importantAttributeOpts) {
+				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
+			}
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, importantAttributeOpts), maximumKeyLen, escapedKeys[key], attribute.RenderHuman(indent+1, importantAttributeOpts)))
+			continue
+		}
 
 		if attribute.Action == plans.NoOp && !opts.ShowUnchangedChildren {
 			// Don't render NoOp operations when we are compact display.
@@ -70,16 +81,16 @@ func (renderer objectRenderer) RenderHuman(diff computed.Diff, indent int, opts 
 			continue
 		}
 
-		for _, warning := range attribute.WarningsHuman(indent + 1) {
+		for _, warning := range attribute.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), format.DiffActionSymbol(attribute.Action), maximumKeyLen, escapedKeys[key], attribute.RenderHuman(indent+1, attributeOpts)))
+		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s\n", formatIndent(indent+1), colorizeDiffAction(attribute.Action, opts), maximumKeyLen, escapedKeys[key], attribute.RenderHuman(indent+1, attributeOpts)))
 	}
 
 	if unchangedAttributes > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("attribute", unchangedAttributes)))
+		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("attribute", unchangedAttributes, opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s }%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(opts.OverrideNullSuffix, diff.Action)))
+	buf.WriteString(fmt.Sprintf("%s%s }%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }

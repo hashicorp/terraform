@@ -18,12 +18,13 @@ func TestParsePlan_basicValid(t *testing.T) {
 		"defaults": {
 			nil,
 			&Plan{
-				DetailedExitCode: false,
-				InputEnabled:     true,
-				OutPath:          "",
-				ViewType:         ViewHuman,
-				State:            &State{Lock: true},
-				Vars:             &Vars{},
+				DetailedExitCode:   false,
+				InputEnabled:       true,
+				OutPath:            "",
+				ViewType:           ViewHuman,
+				StructuredRenderer: true,
+				State:              &State{Lock: true},
+				Vars:               &Vars{},
 				Operation: &Operation{
 					PlanMode:    plans.NormalMode,
 					Parallelism: 10,
@@ -34,12 +35,13 @@ func TestParsePlan_basicValid(t *testing.T) {
 		"setting all options": {
 			[]string{"-destroy", "-detailed-exitcode", "-input=false", "-out=saved.tfplan"},
 			&Plan{
-				DetailedExitCode: true,
-				InputEnabled:     false,
-				OutPath:          "saved.tfplan",
-				ViewType:         ViewHuman,
-				State:            &State{Lock: true},
-				Vars:             &Vars{},
+				DetailedExitCode:   true,
+				InputEnabled:       false,
+				OutPath:            "saved.tfplan",
+				ViewType:           ViewHuman,
+				StructuredRenderer: true,
+				State:              &State{Lock: true},
+				Vars:               &Vars{},
 				Operation: &Operation{
 					PlanMode:    plans.DestroyMode,
 					Parallelism: 10,
@@ -48,14 +50,15 @@ func TestParsePlan_basicValid(t *testing.T) {
 			},
 		},
 		"JSON view disables input": {
-			[]string{"-json"},
+			[]string{"-json", "-structured-renderer=false"},
 			&Plan{
-				DetailedExitCode: false,
-				InputEnabled:     false,
-				OutPath:          "",
-				ViewType:         ViewJSON,
-				State:            &State{Lock: true},
-				Vars:             &Vars{},
+				DetailedExitCode:   false,
+				InputEnabled:       false,
+				OutPath:            "",
+				ViewType:           ViewJSON,
+				StructuredRenderer: false,
+				State:              &State{Lock: true},
+				Vars:               &Vars{},
 				Operation: &Operation{
 					PlanMode:    plans.NormalMode,
 					Parallelism: 10,

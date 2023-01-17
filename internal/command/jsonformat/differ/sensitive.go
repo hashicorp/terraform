@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 type CreateSensitiveRenderer func(computed.Diff, bool, bool) computed.DiffRenderer
@@ -44,19 +45,35 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 	// it will just be ignored in favour of printing `(sensitive value)`.
 
 	value := Change{
-		BeforeExplicit:  change.BeforeExplicit,
-		AfterExplicit:   change.AfterExplicit,
-		Before:          change.Before,
-		After:           change.After,
-		Unknown:         change.Unknown,
-		BeforeSensitive: false,
-		AfterSensitive:  false,
-		ReplacePaths:    change.ReplacePaths,
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      change.AfterExplicit,
+		Before:             change.Before,
+		After:              change.After,
+		Unknown:            change.Unknown,
+		BeforeSensitive:    false,
+		AfterSensitive:     false,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
 	}
 
 	inner := computedDiff(value)
 
-	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), inner.Action, change.ReplacePaths.ForcesReplacement()), true
+	action := inner.Action
+
+	sensitiveStatusChanged := beforeSensitive != afterSensitive
+
+	// nullNoOp is a stronger NoOp, where not only is there no change happening
+	// but the before and after values are not explicitly set and are both
+	// null. This will override even the sensitive state changing.
+	nullNoOp := change.Before == nil && !change.BeforeExplicit && change.After == nil && !change.AfterExplicit
+
+	if action == plans.NoOp && sensitiveStatusChanged && !nullNoOp {
+		// Let's override this, since it means the sensitive status has changed
+		// rather than the actual content of the value.
+		action = plans.Update
+	}
+
+	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches()), true
 }
 
 func (change Change) isBeforeSensitive() bool {

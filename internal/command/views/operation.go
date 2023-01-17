@@ -8,6 +8,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -86,6 +89,40 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
+	if v.view.structuredRenderer {
+		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+		if err != nil {
+			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+			return
+		}
+
+		renderer := jsonformat.Renderer{
+			Colorize: v.view.colorize,
+			Streams:  v.view.streams,
+		}
+
+		jplan := jsonformat.Plan{
+			PlanFormatVersion:     jsonplan.FormatVersion,
+			ProviderFormatVersion: jsonprovider.FormatVersion,
+			OutputChanges:         outputs,
+			ResourceChanges:       changed,
+			ResourceDrift:         drift,
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			RelevantAttributes:    attrs,
+		}
+
+		var opts []jsonformat.RendererOpt
+		if !plan.CanApply() {
+			opts = append(opts, jsonformat.CanNotApply)
+		}
+		if plan.Errored {
+			opts = append(opts, jsonformat.Errored)
+		}
+
+		renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
+		return
+	}
+
 	renderPlan(plan, schemas, v.view)
 }
 

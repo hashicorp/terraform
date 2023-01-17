@@ -24,6 +24,11 @@ type View struct {
 	// the messages that users are most likely to see.
 	runningInAutomation bool
 
+	// When this is true, Terraform will use the structured JSON renderer
+	// defined in jsonformat, as opposed to the internal renderer defined in
+	// plan.go of this package.
+	structuredRenderer bool
+
 	// This unfortunate wart is required to enable rendering of diagnostics which
 	// have associated source code in the configuration. This function pointer
 	// will be dereferenced as late as possible when rendering diagnostics in
@@ -59,6 +64,13 @@ func (v *View) SetRunningInAutomation(new bool) *View {
 
 func (v *View) RunningInAutomation() bool {
 	return v.runningInAutomation
+}
+
+// SetStructuredRenderer tells the view to use the new JSON structured renderer
+// to display plans instead of the traditional internal renderer.
+func (v *View) SetStructuredRenderer(new bool) *View {
+	v.structuredRenderer = new
+	return v
 }
 
 // Configure applies the global view configuration flags.

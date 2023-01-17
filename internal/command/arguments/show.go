@@ -12,6 +12,10 @@ type Show struct {
 
 	// ViewType specifies which output format to use: human, JSON, or "raw".
 	ViewType ViewType
+
+	// StructuredRenderer tells the command to use the structured JSON renderer
+	// instead of the traditional plan renderer. This defaults to true.
+	StructuredRenderer bool
 }
 
 // ParseShow processes CLI arguments, returning a Show value and errors.
@@ -26,6 +30,7 @@ func ParseShow(args []string) (*Show, tfdiags.Diagnostics) {
 	var jsonOutput bool
 	cmdFlags := defaultFlagSet("show")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
+	cmdFlags.BoolVar(&show.StructuredRenderer, "structured-renderer", true, "structured-renderer")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
