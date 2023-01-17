@@ -55,7 +55,6 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 	for k, v := range f {
 		signature, err := marshalFunction(v)
 		if err != nil {
-			// failedFunctions = append(failedFunctions, fmt.Sprintf("%q: %s", k, err))
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Failed to serialize function %q", k),
