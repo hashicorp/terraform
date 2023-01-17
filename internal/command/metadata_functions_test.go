@@ -1,7 +1,7 @@
 package command
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -15,9 +15,9 @@ func TestMetadataFunctions_error(t *testing.T) {
 		},
 	}
 
+	// This test will always error because it's missing the -json flag
 	if code := c.Run(nil); code != 1 {
-		fmt.Println(ui.ErrorWriter.String())
-		t.Fatalf("expected error: \n%s", ui.ErrorWriter.String())
+		t.Fatalf("expected error, got:\n%s", ui.OutputWriter.String())
 	}
 }
 
@@ -30,6 +30,42 @@ func TestMetadataFunctions_output(t *testing.T) {
 		t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
 	}
 
-	// gotString := ui.OutputWriter.String()
-	// TODO how to mock scope.Functions() to reduce the output length
+	var got functions
+	gotString := ui.OutputWriter.String()
+	err := json.Unmarshal([]byte(gotString), &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(got.Signatures) < 100 {
+		t.Fatalf("expected at least 100 function signatures, got %d", len(got.Signatures))
+	}
+
+	// check if one particular stable function is correct
+	gotMax, ok := got.Signatures["max"]
+	wantMax := "{\"description\":\"`max` takes one or more numbers and returns the greatest number from the set.\",\"return_type\":\"number\",\"variadic_parameter\":{\"name\":\"numbers\",\"type\":\"number\"}}"
+	if !ok {
+		t.Fatal(`missing function signature for "max"`)
+	}
+	if string(gotMax) != wantMax {
+		t.Fatalf("wrong function signature for \"max\":\ngot: %q\nwant: %q", gotMax, wantMax)
+	}
+
+	stderr := ui.ErrorWriter.String()
+	if stderr != "" {
+		t.Fatalf("expected empty stderr, got:\n%s", stderr)
+	}
+
+	// test that ignored functions are not part of the json
+	for _, v := range ignoredFunctions {
+		_, ok := got.Signatures[v]
+		if ok {
+			t.Fatalf("found ignored function %q inside output", v)
+		}
+	}
+}
+
+type functions struct {
+	FormatVersion string                     `json:"format_version"`
+	Signatures    map[string]json.RawMessage `json:"function_signatures,omitempty"`
 }
