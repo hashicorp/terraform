@@ -12,8 +12,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,9 +36,9 @@ const (
 	tfstateWorkspaceKey       = "tfstateWorkspace"
 	tfstateLockInfoAnnotation = "app.terraform.io/lock-info"
 
-	managedByKey              = "app.kubernetes.io/managed-by"
-	
-	defaultChunkSize            = 1048576
+	managedByKey = "app.kubernetes.io/managed-by"
+
+	defaultChunkSize = 1048576
 )
 
 type RemoteClient struct {
@@ -96,7 +96,7 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 	}
 
 	// NOTE we need to sort the list as the k8s API will return
-	// the list sorted by name which will corrupt the state when 
+	// the list sorted by name which will corrupt the state when
 	// the number of secrets is greater than 10
 	items := make([]unstructured.Unstructured, len(res.Items))
 	for _, item := range res.Items {
@@ -107,7 +107,7 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 			index = 0
 		}
 		items[index] = item
-	}	
+	}
 	return items, nil
 }
 
@@ -164,15 +164,18 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	// remove old secrets
-	secretCount := len(existingSecrets)
+	existingSecretCount := len(existingSecrets)
 	newSecretCount := len(chunks)
-	for i := newSecretCount; i <= secretCount; i++ {
+	if existingSecretCount == newSecretCount {
+		return nil
+	}
+	for i := newSecretCount; i < existingSecretCount; i++ {
 		err := c.deleteSecret(fmt.Sprintf("%s-part-%d", secretName, i))
 		if err != nil {
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 // chunkPayload splits the state payload into byte arrays of the given size
