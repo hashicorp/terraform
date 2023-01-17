@@ -55,9 +55,9 @@ func unchanged(keyword string, count int, opts computed.RenderHumanOpts) string 
 	return opts.Colorize.Color(fmt.Sprintf("[dark_gray]# (%d unchanged %ss hidden)[reset]", count, keyword))
 }
 
-// ensureValidAttributeName checks if `name` contains any HCL syntax and calls
+// EnsureValidAttributeName checks if `name` contains any HCL syntax and calls
 // and returns hclEscapeString.
-func ensureValidAttributeName(name string) string {
+func EnsureValidAttributeName(name string) string {
 	if !hclsyntax.ValidIdentifier(name) {
 		return hclEscapeString(name)
 	}

@@ -59,7 +59,15 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 	inner := computedDiff(value)
 
 	action := inner.Action
-	if action == plans.NoOp && beforeSensitive != afterSensitive {
+
+	sensitiveStatusChanged := beforeSensitive != afterSensitive
+
+	// nullNoOp is a stronger NoOp, where not only is there no change happening
+	// but the before and after values are not explicitly set and are both
+	// null. This will override even the sensitive state changing.
+	nullNoOp := change.Before == nil && !change.BeforeExplicit && change.After == nil && !change.AfterExplicit
+
+	if action == plans.NoOp && sensitiveStatusChanged && !nullNoOp {
 		// Let's override this, since it means the sensitive status has changed
 		// rather than the actual content of the value.
 		action = plans.Update

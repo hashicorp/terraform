@@ -57,7 +57,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 	escapedAttributeKeys := make(map[string]string)
 	for key := range renderer.attributes {
 		attributeKeys = append(attributeKeys, key)
-		escapedKey := ensureValidAttributeName(key)
+		escapedKey := EnsureValidAttributeName(key)
 		escapedAttributeKeys[key] = escapedKey
 		if maximumAttributeKeyLen < len(escapedKey) {
 			maximumAttributeKeyLen = len(escapedKey)
@@ -141,7 +141,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 			for _, warning := range diff.WarningsHuman(indent+1, blockOpts) {
 				buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 			}
-			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), colorizeDiffAction(diff.Action, blockOpts), ensureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, blockOpts)))
+			buf.WriteString(fmt.Sprintf("%s%s %s%s %s\n", formatIndent(indent+1), colorizeDiffAction(diff.Action, blockOpts), EnsureValidAttributeName(key), mapKey, diff.RenderHuman(indent+1, blockOpts)))
 
 		}
 

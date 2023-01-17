@@ -137,8 +137,8 @@ jsonencode(
         {
           - key_one = "value_one"
           - key_two = "value_two"
-        } -> null
-    )
+        }
+    ) -> null
 `,
 		},
 		"primitive_json_string_update": {
@@ -151,6 +151,20 @@ jsonencode(
       ~ {
           + key_three = "value_three"
             # (2 unchanged attributes hidden)
+        }
+    )
+`,
+		},
+		"primitive_json_explicit_nulls": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key_one\":\"value_one\",\"key_two\":\"value_two\"}", "{\"key_one\":null}", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+jsonencode(
+      ~ {
+          ~ key_one = "value_one" -> null
+          - key_two = "value_two"
         }
     )
 `,

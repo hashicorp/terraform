@@ -11,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -181,7 +182,9 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 	}
 
 	if willPrintResourceChanges {
-		r.Streams.Println("\nTerraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:")
+		r.Streams.Println(format.WordWrap(
+			"\nTerraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:",
+			r.Streams.Stdout.Columns()))
 		if counts[plans.Create] > 0 {
 			r.Streams.Println(r.Colorize.Color(actionDescription(plans.Create)))
 		}
@@ -204,9 +207,9 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 
 	if len(changes) > 0 {
 		if checkOpts(Errored) {
-			r.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n\n")
+			r.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
 		} else {
-			r.Streams.Printf("\nTerraform will perform the following actions:\n\n")
+			r.Streams.Printf("\nTerraform will perform the following actions:\n")
 		}
 
 		for _, change := range changes {
@@ -245,15 +248,22 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 	var rendered []string
 
 	var keys []string
+	escapedKeys := make(map[string]string)
+	var escapedKeyMaxLen int
 	for key := range outputs {
+		escapedKey := renderers.EnsureValidAttributeName(key)
 		keys = append(keys, key)
+		escapedKeys[key] = escapedKey
+		if len(escapedKey) > escapedKeyMaxLen {
+			escapedKeyMaxLen = len(escapedKey)
+		}
 	}
 	sort.Strings(keys)
 
 	for _, key := range keys {
 		output := outputs[key]
 		if output.Action != plans.NoOp {
-			rendered = append(rendered, fmt.Sprintf("%s %s = %s", r.Colorize.Color(format.DiffActionSymbol(output.Action)), key, output.RenderHuman(0, computed.NewRenderHumanOpts(r.Colorize))))
+			rendered = append(rendered, fmt.Sprintf("%s %-*s = %s", r.Colorize.Color(format.DiffActionSymbol(output.Action)), escapedKeyMaxLen, escapedKeys[key], output.RenderHuman(0, computed.NewRenderHumanOpts(r.Colorize))))
 		}
 	}
 	return strings.Join(rendered, "\n")
