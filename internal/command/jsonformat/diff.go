@@ -1,6 +1,7 @@
 package jsonformat
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"sort"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -51,7 +52,17 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for _, change := range plan.ResourceChanges {
-		schema := plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+
+		var schema *jsonprovider.Schema
+		switch change.Mode {
+		case jsonplan.ManagedResourceMode:
+			schema = plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+		case jsonplan.DataResourceMode:
+			schema = plan.ProviderSchemas[change.ProviderName].DataSourceSchemas[change.Type]
+		default:
+			panic("found unrecognized resource mode: " + change.Mode)
+		}
+
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
 			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),

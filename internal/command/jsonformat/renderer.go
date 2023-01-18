@@ -78,7 +78,7 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 			// Don't show anything for NoOp changes.
 			continue
 		}
-		if action == plans.Delete && diff.change.Mode != "managed" {
+		if action == plans.Delete && diff.change.Mode != jsonplan.ManagedResourceMode {
 			// Don't render anything for deleted data sources.
 			continue
 		}
@@ -464,7 +464,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 
 func resourceChangeHeader(change jsonplan.ResourceChange) string {
 	mode := "resource"
-	if change.Mode != "managed" {
+	if change.Mode != jsonplan.ManagedResourceMode {
 		mode = "data"
 	}
 	return fmt.Sprintf("%s \"%s\" \"%s\"", mode, change.Type, change.Name)
