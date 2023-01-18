@@ -110,7 +110,6 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 	var newV cty.Value
 
 	switch schema.Nesting {
-
 	case configschema.NestingSingle:
 		// A NestingSingle configuration block value can be null, and since it
 		// cannot be computed we can always take the configuration value.
@@ -250,6 +249,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 					if used[i] {
 						continue
 					}
+
 					if cmp[1].RawEquals(configEV) {
 						priorEV = cmp[0]
 						used[i] = true // we can't use this value on a future iteration
@@ -287,18 +287,13 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 
 		configV := config.GetAttr(name)
 
+		var newV cty.Value
+		switch {
 		// required isn't considered when constructing the plan, so attributes
 		// are essentially either computed or not computed. In the case of
 		// optional+computed, they are only computed when there is no
 		// configuration.
-		computed := attr.Computed
-		if attr.Optional && !configV.IsNull() {
-			computed = false
-		}
-
-		var newV cty.Value
-		switch {
-		case computed:
+		case attr.Computed && configV.IsNull():
 			// configV will always be null in this case, by definition.
 			// priorV may also be null, but that's okay.
 			newV = priorV
@@ -329,11 +324,12 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 
 	switch schema.Nesting {
 	case configschema.NestingSingle:
-		if !config.IsNull() {
-			newV = cty.ObjectVal(proposedNewAttributes(schema.Attributes, prior, config))
-		} else {
-			newV = cty.NullVal(config.Type())
+		// if the config is null, we already have our value
+		if config.IsNull() {
+			break
 		}
+
+		newV = cty.ObjectVal(proposedNewAttributes(schema.Attributes, prior, config))
 
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.
@@ -429,7 +425,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 		// if the non-computed attribute values are identical.
 		var cmpVals [][2]cty.Value
 		if prior.IsKnown() && !prior.IsNull() {
-			cmpVals = setElementCompareValuesFromObject(schema, prior)
+			cmpVals = setElementCompareValues(schema, prior)
 		}
 		configVLen := 0
 		if config.IsKnown() && !config.IsNull() {
@@ -479,158 +475,43 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 // in proposedNewBlock. The result is a heuristic rather than an exact science,
 // since e.g. two separate elements may reduce to the same value through this
 // process. The caller must therefore be ready to deal with duplicates.
-func setElementCompareValues(schema *configschema.Block, set cty.Value) [][2]cty.Value {
+func setElementCompareValues(schema attrPath, set cty.Value) [][2]cty.Value {
 	ret := make([][2]cty.Value, 0, set.LengthInt())
 	for it := set.ElementIterator(); it.Next(); {
 		_, ev := it.Element()
-		ret = append(ret, [2]cty.Value{ev, setElementCompareValue(schema, ev)})
+		ret = append(ret, [2]cty.Value{ev, setElementComputedAsNull(schema, ev)})
 	}
 	return ret
 }
 
-// setElementCompareValue creates a new value that has all of the same
-// non-computed attribute values as the one given but has all computed
-// attribute values forced to null.
-//
-// The input value must conform to the schema's implied type, and the return
-// value is guaranteed to conform to it.
-func setElementCompareValue(schema *configschema.Block, v cty.Value) cty.Value {
-	if v.IsNull() || !v.IsKnown() {
-		return v
-	}
-
-	attrs := map[string]cty.Value{}
-	for name, attr := range schema.Attributes {
-		switch {
-		case attr.Computed && attr.Optional:
-			attrs[name] = cty.NullVal(attr.ImpliedType())
-		case attr.Computed:
-			attrs[name] = cty.NullVal(attr.ImpliedType())
-		default:
-			attrs[name] = v.GetAttr(name)
-		}
-	}
-
-	for name, blockType := range schema.BlockTypes {
-		elementType := blockType.Block.ImpliedType()
-
-		switch blockType.Nesting {
-		case configschema.NestingSingle, configschema.NestingGroup:
-			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name))
-
-		case configschema.NestingList, configschema.NestingSet:
-			cv := v.GetAttr(name)
-			if cv.IsNull() || !cv.IsKnown() {
-				attrs[name] = cv
-				continue
-			}
-
-			if l := cv.LengthInt(); l > 0 {
-				elems := make([]cty.Value, 0, l)
-				for it := cv.ElementIterator(); it.Next(); {
-					_, ev := it.Element()
-					elems = append(elems, setElementCompareValue(&blockType.Block, ev))
-				}
-
-				switch {
-				case blockType.Nesting == configschema.NestingSet:
-					// SetValEmpty would panic if given elements that are not
-					// all of the same type, but that's guaranteed not to
-					// happen here because our input value was _already_ a
-					// set and we've not changed the types of any elements here.
-					attrs[name] = cty.SetVal(elems)
-
-				// NestingList cases
-				case elementType.HasDynamicTypes():
-					attrs[name] = cty.TupleVal(elems)
-				default:
-					attrs[name] = cty.ListVal(elems)
-				}
-			} else {
-				switch {
-				case blockType.Nesting == configschema.NestingSet:
-					attrs[name] = cty.SetValEmpty(elementType)
-
-				// NestingList cases
-				case elementType.HasDynamicTypes():
-					attrs[name] = cty.EmptyTupleVal
-				default:
-					attrs[name] = cty.ListValEmpty(elementType)
-				}
-			}
-
-		case configschema.NestingMap:
-			cv := v.GetAttr(name)
-			if cv.IsNull() || !cv.IsKnown() || cv.LengthInt() == 0 {
-				attrs[name] = cv
-				continue
-			}
-			elems := make(map[string]cty.Value)
-			for it := cv.ElementIterator(); it.Next(); {
-				kv, ev := it.Element()
-				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev)
-			}
-
-			switch {
-			case elementType.HasDynamicTypes():
-				attrs[name] = cty.ObjectVal(elems)
-			default:
-				attrs[name] = cty.MapVal(elems)
-			}
-
-		default:
-			// Should never happen, since the above cases are comprehensive.
-			panic(fmt.Sprintf("unsupported block nesting mode %s", blockType.Nesting))
-		}
-	}
-
-	return cty.ObjectVal(attrs)
+type attrPath interface {
+	AttributeByPath(cty.Path) *configschema.Attribute
 }
 
-// setElementCompareValues takes a known, non-null value of a cty.Set type and
-// returns a table -- constructed of two-element arrays -- that maps original
-// set element values to corresponding values that have all of the computed
-// values removed, making them suitable for comparison with values obtained
-// from configuration. The element type of the set must conform to the implied
-// type of the given schema, or this function will panic.
-//
-// In the resulting slice, the zeroth element of each array is the original
-// value and the one-indexed element is the corresponding "compare value".
-//
-// This is intended to help correlate prior elements with configured elements
-// in proposedNewBlock. The result is a heuristic rather than an exact science,
-// since e.g. two separate elements may reduce to the same value through this
-// process. The caller must therefore be ready to deal with duplicates.
-func setElementCompareValuesFromObject(schema *configschema.Object, set cty.Value) [][2]cty.Value {
-	ret := make([][2]cty.Value, 0, set.LengthInt())
-	for it := set.ElementIterator(); it.Next(); {
-		_, ev := it.Element()
-		ret = append(ret, [2]cty.Value{ev, setElementCompareValueFromObject(schema, ev)})
-	}
-	return ret
-}
-
-// setElementCompareValue creates a new value that has all of the same
-// non-computed attribute values as the one given but has all computed
-// attribute values forced to null.
-//
-// The input value must conform to the schema's implied type, and the return
-// value is guaranteed to conform to it.
-func setElementCompareValueFromObject(schema *configschema.Object, v cty.Value) cty.Value {
-	if v.IsNull() || !v.IsKnown() {
-		return v
-	}
-	attrs := map[string]cty.Value{}
-
-	for name, attr := range schema.Attributes {
-		attrV := v.GetAttr(name)
-		switch {
-		case attr.Computed:
-			attrs[name] = cty.NullVal(attr.Type)
-		default:
-			attrs[name] = attrV
+func setElementComputedAsNull(schema attrPath, elem cty.Value) cty.Value {
+	elem, _ = cty.Transform(elem, func(path cty.Path, v cty.Value) (cty.Value, error) {
+		if v.IsNull() || !v.IsKnown() {
+			return v, nil
 		}
-	}
 
-	return cty.ObjectVal(attrs)
+		attr := schema.AttributeByPath(path)
+		if attr == nil {
+			// we must be at a nested block rather than an attribute, continue
+			return v, nil
+		}
+
+		if attr.Computed {
+			// If this could have been computed, we always return null in order
+			// to compare config and state values.
+			//
+			// The only way to determine if an optional+computed value is
+			// optional or computed is see if it is set in the config, however
+			// for set elements we don't yet know which element value
+			// corresponds to the configuration.
+			return cty.NullVal(v.Type()), nil
+		}
+		return v, nil
+	})
+
+	return elem
 }
