@@ -1,7 +1,6 @@
 package jsonfunction
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -32,7 +31,7 @@ func TestMarshalParameter(t *testing.T) {
 			&parameter{
 				Name:        "timestamp",
 				Description: "`timestamp` returns a UTC timestamp string in [RFC 3339]",
-				Type:        json.RawMessage(`"string"`),
+				Type:        cty.String,
 			},
 		},
 		{
@@ -47,7 +46,7 @@ func TestMarshalParameter(t *testing.T) {
 			},
 			&parameter{
 				Name:       "value",
-				Type:       json.RawMessage(`"dynamic"`),
+				Type:       cty.DynamicPseudoType,
 				IsNullable: true,
 			},
 		},
@@ -55,10 +54,7 @@ func TestMarshalParameter(t *testing.T) {
 
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%d-%s", i, test.Name), func(t *testing.T) {
-			got, err := marshalParameter(test.Input)
-			if err != nil {
-				t.Fatal(err)
-			}
+			got := marshalParameter(test.Input)
 
 			if diff := cmp.Diff(test.Want, got, ctydebug.CmpOptions); diff != "" {
 				t.Fatalf("mismatch of parameter signature: %s", diff)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 )
 
@@ -28,9 +29,7 @@ type FunctionSignature struct {
 	// ReturnTypes is the ctyjson representation of the function's
 	// return types based on supplying all parameters using
 	// dynamic types. Functions can have dynamic return types.
-	// TODO? could we use cty.Type here instead of calling ctyjson.MarshalType manually?
-	// TODO? see: https://github.com/zclconf/go-cty/blob/main/cty/json/type.go
-	ReturnType json.RawMessage `json:"return_type"`
+	ReturnType cty.Type `json:"return_type"`
 
 	// Parameters describes the function's fixed positional parameters.
 	Parameters []*parameter `json:"parameters,omitempty"`
@@ -84,18 +83,12 @@ func marshalFunction(f function.Function) (*FunctionSignature, error) {
 	var err error
 	var vp *parameter
 	if f.VarParam() != nil {
-		vp, err = marshalParameter(f.VarParam())
-		if err != nil {
-			return nil, err
-		}
+		vp = marshalParameter(f.VarParam())
 	}
 
 	var p []*parameter
 	if len(f.Params()) > 0 {
-		p, err = marshalParameters(f.Params())
-		if err != nil {
-			return nil, err
-		}
+		p = marshalParameters(f.Params())
 	}
 
 	r, err := getReturnType(f)

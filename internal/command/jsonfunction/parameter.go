@@ -1,10 +1,8 @@
 package jsonfunction
 
 import (
-	"encoding/json"
-
+	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 // parameter represents a parameter to a function.
@@ -20,37 +18,26 @@ type parameter struct {
 	IsNullable bool `json:"is_nullable,omitempty"`
 
 	// A type that any argument for this parameter must conform to.
-	// TODO? could we use cty.Type here instead of calling ctyjson.MarshalType manually?
-	// TODO? see: https://github.com/zclconf/go-cty/blob/main/cty/json/type.go
-	Type json.RawMessage `json:"type"`
+	Type cty.Type `json:"type"`
 }
 
-func marshalParameter(p *function.Parameter) (*parameter, error) {
+func marshalParameter(p *function.Parameter) *parameter {
 	if p == nil {
-		return &parameter{}, nil
-	}
-
-	t, err := ctyjson.MarshalType(p.Type)
-	if err != nil {
-		return nil, err
+		return &parameter{}
 	}
 
 	return &parameter{
 		Name:        p.Name,
 		Description: p.Description,
 		IsNullable:  p.AllowNull,
-		Type:        t,
-	}, nil
+		Type:        p.Type,
+	}
 }
 
-func marshalParameters(parameters []function.Parameter) ([]*parameter, error) {
+func marshalParameters(parameters []function.Parameter) []*parameter {
 	ret := make([]*parameter, len(parameters))
 	for k, p := range parameters {
-		mp, err := marshalParameter(&p)
-		if err != nil {
-			return nil, err
-		}
-		ret[k] = mp
+		ret[k] = marshalParameter(&p)
 	}
-	return ret, nil
+	return ret
 }
