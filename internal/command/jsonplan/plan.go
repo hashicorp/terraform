@@ -135,6 +135,54 @@ type variable struct {
 	Value json.RawMessage `json:"value,omitempty"`
 }
 
+// MarshalForRenderer returns the pre-json encoding changes of the requested
+// plan, in a format available to the structured renderer.
+//
+// This function does a small part of the Marshal function, as it only returns
+// the part of the plan required by the jsonformat.Plan renderer.
+func MarshalForRenderer(
+	p *plans.Plan,
+	schemas *terraform.Schemas,
+) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, error) {
+	output := newPlan()
+
+	var err error
+	if output.OutputChanges, err = MarshalOutputChanges(p.Changes); err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	if output.ResourceChanges, err = MarshalResourceChanges(p.Changes.Resources, schemas); err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	if len(p.DriftedResources) > 0 {
+		// In refresh-only mode, we render all resources marked as drifted,
+		// including those which have moved without other changes. In other plan
+		// modes, move-only changes will be included in the planned changes, so
+		// we skip them here.
+		var driftedResources []*plans.ResourceInstanceChangeSrc
+		if p.UIMode == plans.RefreshOnlyMode {
+			driftedResources = p.DriftedResources
+		} else {
+			for _, dr := range p.DriftedResources {
+				if dr.Action != plans.NoOp {
+					driftedResources = append(driftedResources, dr)
+				}
+			}
+		}
+		output.ResourceDrift, err = MarshalResourceChanges(driftedResources, schemas)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+	}
+
+	if err := output.marshalRelevantAttrs(p); err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
+}
+
 // Marshal returns the json encoding of a terraform plan.
 func Marshal(
 	config *configs.Config,
