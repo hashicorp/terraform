@@ -7,6 +7,9 @@ UPGRADE NOTES:
 - `terraform init`: When interpreting the hostname portion of a provider source address or the address of a module in a module registry, Terraform will now use _non-transitional_ IDNA2008 mapping rules instead of the transitional mapping rules previously used.
 
     This matches a change to [the WHATWG URL spec's rules for interpreting non-ASCII domain names](https://url.spec.whatwg.org/#concept-domain-to-ascii) which is being gradually adopted by web browsers. Terraform aims to follow the interpretation of hostnames used by web browsers for consistency. For some hostnames containing non-ASCII characters this may cause Terraform to now request a different "punycode" hostname when resolving.
+- The Terraform plan renderer has been completely rewritten to aid with future Terraform Cloud integration. Users should not see any material change in the plan output between 1.3 and 1.4. Users are encouraged to file reports if they notice material differences, or encounter any bugs or panics during their normal execution of Terraform.
+
+    The diff computation and the rendering are now split into separate packages, while previously the rendering was handled as the diff was computed. Going forward, making small changes to the format of the plan will be easier and introducing new types of renderer will be simplified.
 
 BUG FIXES:
 
