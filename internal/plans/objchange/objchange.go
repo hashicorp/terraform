@@ -234,7 +234,7 @@ func proposedNewNestedBlock(schema *configschema.NestedBlock, prior, config cty.
 		// if the non-computed attribute values are identical.
 		var cmpVals [][2]cty.Value
 		if prior.IsKnown() && !prior.IsNull() {
-			cmpVals = setElementCompareValues(&schema.Block, prior, false)
+			cmpVals = setElementCompareValues(&schema.Block, prior)
 		}
 		configVLen := 0
 		if config.IsKnown() && !config.IsNull() {
@@ -479,11 +479,11 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 // in proposedNewBlock. The result is a heuristic rather than an exact science,
 // since e.g. two separate elements may reduce to the same value through this
 // process. The caller must therefore be ready to deal with duplicates.
-func setElementCompareValues(schema *configschema.Block, set cty.Value, isConfig bool) [][2]cty.Value {
+func setElementCompareValues(schema *configschema.Block, set cty.Value) [][2]cty.Value {
 	ret := make([][2]cty.Value, 0, set.LengthInt())
 	for it := set.ElementIterator(); it.Next(); {
 		_, ev := it.Element()
-		ret = append(ret, [2]cty.Value{ev, setElementCompareValue(schema, ev, isConfig)})
+		ret = append(ret, [2]cty.Value{ev, setElementCompareValue(schema, ev)})
 	}
 	return ret
 }
@@ -492,12 +492,9 @@ func setElementCompareValues(schema *configschema.Block, set cty.Value, isConfig
 // non-computed attribute values as the one given but has all computed
 // attribute values forced to null.
 //
-// If isConfig is true then non-null Optional+Computed attribute values will
-// be preserved. Otherwise, they will also be set to null.
-//
 // The input value must conform to the schema's implied type, and the return
 // value is guaranteed to conform to it.
-func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bool) cty.Value {
+func setElementCompareValue(schema *configschema.Block, v cty.Value) cty.Value {
 	if v.IsNull() || !v.IsKnown() {
 		return v
 	}
@@ -506,11 +503,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 	for name, attr := range schema.Attributes {
 		switch {
 		case attr.Computed && attr.Optional:
-			if isConfig {
-				attrs[name] = v.GetAttr(name)
-			} else {
-				attrs[name] = cty.NullVal(attr.ImpliedType())
-			}
+			attrs[name] = cty.NullVal(attr.ImpliedType())
 		case attr.Computed:
 			attrs[name] = cty.NullVal(attr.ImpliedType())
 		default:
@@ -523,7 +516,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 
 		switch blockType.Nesting {
 		case configschema.NestingSingle, configschema.NestingGroup:
-			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name), isConfig)
+			attrs[name] = setElementCompareValue(&blockType.Block, v.GetAttr(name))
 
 		case configschema.NestingList, configschema.NestingSet:
 			cv := v.GetAttr(name)
@@ -536,7 +529,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 				elems := make([]cty.Value, 0, l)
 				for it := cv.ElementIterator(); it.Next(); {
 					_, ev := it.Element()
-					elems = append(elems, setElementCompareValue(&blockType.Block, ev, isConfig))
+					elems = append(elems, setElementCompareValue(&blockType.Block, ev))
 				}
 
 				switch {
@@ -575,7 +568,7 @@ func setElementCompareValue(schema *configschema.Block, v cty.Value, isConfig bo
 			elems := make(map[string]cty.Value)
 			for it := cv.ElementIterator(); it.Next(); {
 				kv, ev := it.Element()
-				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev, isConfig)
+				elems[kv.AsString()] = setElementCompareValue(&blockType.Block, ev)
 			}
 
 			switch {
