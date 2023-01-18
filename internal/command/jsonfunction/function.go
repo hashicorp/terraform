@@ -51,16 +51,22 @@ func Marshal(f map[string]function.Function) ([]byte, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	signatures := newFunctions()
 
-	for k, v := range f {
-		signature, err := marshalFunction(v)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				fmt.Sprintf("Failed to serialize function %q", k),
-				err.Error(),
-			))
+	for name, v := range f {
+		if name == "can" {
+			signatures.Signatures[name] = marshalCan(v)
+		} else if name == "try" {
+			signatures.Signatures[name] = marshalTry(v)
+		} else {
+			signature, err := marshalFunction(v)
+			if err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					fmt.Sprintf("Failed to serialize function %q", name),
+					err.Error(),
+				))
+			}
+			signatures.Signatures[name] = signature
 		}
-		signatures.Signatures[k] = signature
 	}
 
 	if diags.HasErrors() {
@@ -102,4 +108,38 @@ func marshalFunction(f function.Function) (*FunctionSignature, error) {
 		Parameters:        p,
 		VariadicParameter: vp,
 	}, nil
+}
+
+// marshalTry returns a static function signature for the try function.
+// We need this exception because the function implementation uses capsule
+// types that we can't marshal.
+func marshalTry(try function.Function) *FunctionSignature {
+	return &FunctionSignature{
+		Description: try.Description(),
+		ReturnType:  cty.DynamicPseudoType,
+		VariadicParameter: &parameter{
+			Name:        try.VarParam().Name,
+			Description: try.VarParam().Description,
+			IsNullable:  try.VarParam().AllowNull,
+			Type:        cty.DynamicPseudoType,
+		},
+	}
+}
+
+// marshalCan returns a static function signature for the can function.
+// We need this exception because the function implementation uses capsule
+// types that we can't marshal.
+func marshalCan(can function.Function) *FunctionSignature {
+	return &FunctionSignature{
+		Description: can.Description(),
+		ReturnType:  cty.Bool,
+		Parameters: []*parameter{
+			{
+				Name:        can.Params()[0].Name,
+				Description: can.Params()[0].Description,
+				IsNullable:  can.Params()[0].AllowNull,
+				Type:        cty.DynamicPseudoType,
+			},
+		},
+	}
 }
