@@ -1378,12 +1378,14 @@ func TestProposedNew(t *testing.T) {
 						}),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
-						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
-							"optional":          cty.StringVal("other_prior"),
-							"computed":          cty.StringVal("other_prior"),
-							"optional_computed": cty.StringVal("other_prior"),
-							"required":          cty.StringVal("other_prior"),
-						})}),
+						"bar": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"optional":          cty.StringVal("other_prior"),
+								"computed":          cty.StringVal("other_prior"),
+								"optional_computed": cty.StringVal("other_prior"),
+								"required":          cty.StringVal("other_prior"),
+							}),
+						}),
 					}),
 				}),
 			}),
@@ -1712,7 +1714,9 @@ func TestProposedNew(t *testing.T) {
 			}),
 		},
 
-		// data sources are planned with an unknown value
+		// Data sources are planned with an unknown value.
+		// Note that this plan fails AssertPlanValid, because for managed
+		// resources an instance would never be completely unknown.
 		"unknown prior nested objects": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -1910,8 +1914,14 @@ func TestProposedNew(t *testing.T) {
 				"list_obj": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
-							"optional": cty.StringVal("prior"),
-							"computed": cty.StringVal("prior computed"),
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second computed"),
 						}),
 					}),
 				}),
@@ -1920,7 +1930,19 @@ func TestProposedNew(t *testing.T) {
 				"list_obj": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
-							"optional": cty.StringVal("prior"),
+							"optional": cty.StringVal("first"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
 							"computed": cty.NullVal(cty.String),
 						}),
 					}),
@@ -1930,8 +1952,20 @@ func TestProposedNew(t *testing.T) {
 				"list_obj": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
-							"optional": cty.StringVal("prior"),
-							"computed": cty.StringVal("prior computed"),
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
+							"computed": cty.NullVal(cty.String),
 						}),
 					}),
 				}),
