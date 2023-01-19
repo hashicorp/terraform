@@ -301,11 +301,7 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 			// For non-computed NestedType attributes, we need to descend
 			// into the individual nested attributes to build the final
 			// value, unless the entire nested attribute is unknown.
-			if !configV.IsKnown() {
-				newV = configV
-			} else {
-				newV = proposedNewNestedType(attr.NestedType, priorV, configV)
-			}
+			newV = proposedNewNestedType(attr.NestedType, priorV, configV)
 		default:
 			// For non-computed attributes, we always take the config value,
 			// even if it is null. If it's _required_ then null values
@@ -319,12 +315,19 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 }
 
 func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value) cty.Value {
-	// If the config is null or empty, we will be using this default value.
+	// if the config isn't known at all, then we must use that value
+	if !config.IsNull() && !config.IsKnown() {
+		return config
+	}
+
+	// Even if the config is null or empty, we will be using this default value.
 	newV := config
 
 	switch schema.Nesting {
 	case configschema.NestingSingle:
-		// if the config is null, we already have our value
+		// If the config is null, we already have our value. If the attribute
+		// is optional+computed, we won't reach this branch with a null value
+		// since the computed case would have been taken.
 		if config.IsNull() {
 			break
 		}
@@ -334,7 +337,7 @@ func proposedNewNestedType(schema *configschema.Object, prior, config cty.Value)
 	case configschema.NestingList:
 		// Nested blocks are correlated by index.
 		configVLen := 0
-		if config.IsKnown() && !config.IsNull() {
+		if !config.IsNull() {
 			configVLen = config.LengthInt()
 		}
 

@@ -424,6 +424,49 @@ func TestProposedNew(t *testing.T) {
 				})),
 			}),
 		},
+
+		"prior optional computed nested single to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ObjectVal(map[string]cty.Value{
+					"blop":  cty.StringVal("glub"),
+					"bleep": cty.NullVal(cty.String),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ObjectVal(map[string]cty.Value{
+					"blop":  cty.StringVal("glub"),
+					"bleep": cty.NullVal(cty.String),
+				}),
+			}),
+		},
+
 		"prior nested list": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
