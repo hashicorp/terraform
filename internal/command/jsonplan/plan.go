@@ -39,6 +39,9 @@ const (
 	ResourceInstanceDeleteBecauseNoMoveTarget     = "delete_because_no_move_target"
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
+
+	ManagedResourceMode = "managed"
+	DataResourceMode    = "data"
 )
 
 // Plan is the top-level representation of the json format of a plan. It includes
@@ -445,9 +448,9 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 
 		switch addr.Resource.Resource.Mode {
 		case addrs.ManagedResourceMode:
-			r.Mode = "managed"
+			r.Mode = ManagedResourceMode
 		case addrs.DataResourceMode:
-			r.Mode = "data"
+			r.Mode = DataResourceMode
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported mode %s", r.Address, addr.Resource.Resource.Mode.String())
 		}
