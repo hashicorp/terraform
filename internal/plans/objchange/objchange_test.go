@@ -2174,7 +2174,7 @@ func TestProposedNew(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
 							"optional": cty.StringVal("second"),
-							"computed": cty.StringVal("second computed"),
+							"computed": cty.StringVal("second from config"),
 						}),
 					}),
 				}),
@@ -2190,9 +2190,10 @@ func TestProposedNew(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
 							"optional": cty.StringVal("second"),
-							"computed": cty.NullVal(cty.String),
+							"computed": cty.StringVal("second from config"),
 						}),
 					}),
+					// new "third" value added
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
 							"optional": cty.StringVal("third"),
@@ -2212,7 +2213,7 @@ func TestProposedNew(t *testing.T) {
 					cty.ObjectVal(map[string]cty.Value{
 						"obj": cty.ObjectVal(map[string]cty.Value{
 							"optional": cty.StringVal("second"),
-							"computed": cty.StringVal("second computed"),
+							"computed": cty.StringVal("second from config"),
 						}),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
