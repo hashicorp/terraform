@@ -40,7 +40,7 @@ const (
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
 
-	ManagedResourceMode = "resource"
+	ManagedResourceMode = "managed"
 	DataResourceMode    = "data"
 )
 

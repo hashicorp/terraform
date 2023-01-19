@@ -39,6 +39,17 @@ type Plan struct {
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
 }
 
+func (plan Plan) GetSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
+	switch change.Mode {
+	case jsonplan.ManagedResourceMode:
+		return plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+	case jsonplan.DataResourceMode:
+		return plan.ProviderSchemas[change.ProviderName].DataSourceSchemas[change.Type]
+	default:
+		panic("found unrecognized resource mode: " + change.Mode)
+	}
+}
+
 type Renderer struct {
 	Streams  *terminal.Streams
 	Colorize *colorstring.Colorize
