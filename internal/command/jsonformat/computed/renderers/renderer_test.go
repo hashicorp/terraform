@@ -67,6 +67,13 @@ func TestRenderers_Human(t *testing.T) {
 			},
 			expected: "0 -> 1",
 		},
+		"primitive_update_long_float": {
+			diff: computed.Diff{
+				Renderer: Primitive(123456789.0, 987654321.0, cty.Number),
+				Action:   plans.Update,
+			},
+			expected: "123456789 -> 987654321",
+		},
 		"primitive_update_replace": {
 			diff: computed.Diff{
 				Renderer: Primitive(0.0, 1.0, cty.Number),
@@ -829,6 +836,58 @@ jsonencode(
 			expected: `
 {
       ~ "element_one" = 1 -> (known after apply)
+    }
+`,
+		},
+		"map_aligns_key": {
+			diff: computed.Diff{
+				Renderer: Map(map[string]computed.Diff{
+					"element_one": {
+						Renderer: Primitive(1.0, 2.0, cty.Number),
+						Action:   plans.Update,
+					},
+					"element_two": {
+						Renderer: Primitive(1.0, 3.0, cty.Number),
+						Action:   plans.Update,
+					},
+					"element_three": {
+						Renderer: Primitive(1.0, 4.0, cty.Number),
+						Action:   plans.Update,
+					},
+				}),
+				Action: plans.Update,
+			},
+			expected: `
+{
+      ~ "element_one"   = 1 -> 2
+      ~ "element_three" = 1 -> 4
+      ~ "element_two"   = 1 -> 3
+    }
+`,
+		},
+		"nested_map_does_not_align_keys": {
+			diff: computed.Diff{
+				Renderer: NestedMap(map[string]computed.Diff{
+					"element_one": {
+						Renderer: Primitive(1.0, 2.0, cty.Number),
+						Action:   plans.Update,
+					},
+					"element_two": {
+						Renderer: Primitive(1.0, 3.0, cty.Number),
+						Action:   plans.Update,
+					},
+					"element_three": {
+						Renderer: Primitive(1.0, 4.0, cty.Number),
+						Action:   plans.Update,
+					},
+				}),
+				Action: plans.Update,
+			},
+			expected: `
+{
+      ~ "element_one" = 1 -> 2
+      ~ "element_three" = 1 -> 4
+      ~ "element_two" = 1 -> 3
     }
 `,
 		},
