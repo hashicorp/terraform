@@ -11,6 +11,7 @@ provider "tfcoremock" {}
 
 resource "tfcoremock_simple_resource" "base" {
   string = "Hello, change!"
+  number = 0
 }
 
 resource "tfcoremock_simple_resource" "dependent" {
