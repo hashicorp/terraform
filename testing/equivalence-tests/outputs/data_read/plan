@@ -29,8 +29,8 @@ Terraform will perform the following actions:
   # module.create.random_integer.random will be created
   + resource "random_integer" "random" {
       + id     = (known after apply)
-      + max    = 9.999999e+06
-      + min    = 1e+06
+      + max    = 9999999
+      + min    = 1000000
       + result = (known after apply)
       + seed   = "F78CB410-BA01-44E1-82E1-37D61F7CB158"
     }
