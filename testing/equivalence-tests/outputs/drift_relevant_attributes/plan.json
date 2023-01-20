@@ -12,6 +12,9 @@
         {
           "address": "tfcoremock_simple_resource.base",
           "expressions": {
+            "number": {
+              "constant_value": 0
+            },
             "string": {
               "constant_value": "Hello, change!"
             }
@@ -58,7 +61,7 @@
             "float": null,
             "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
             "integer": null,
-            "number": null,
+            "number": 0,
             "string": "Hello, change!"
           }
         },
@@ -100,7 +103,7 @@
               "float": null,
               "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
               "integer": null,
-              "number": null,
+              "number": 1,
               "string": "Hello, drift!"
             }
           },
@@ -148,7 +151,7 @@
           "float": null,
           "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
           "integer": null,
-          "number": null,
+          "number": 0,
           "string": "Hello, change!"
         },
         "after_sensitive": {},
@@ -158,7 +161,7 @@
           "float": null,
           "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
           "integer": null,
-          "number": null,
+          "number": 1,
           "string": "Hello, drift!"
         },
         "before_sensitive": {}
@@ -212,7 +215,7 @@
           "float": null,
           "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
           "integer": null,
-          "number": null,
+          "number": 1,
           "string": "Hello, drift!"
         },
         "after_sensitive": {},
@@ -222,7 +225,7 @@
           "float": null,
           "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
           "integer": null,
-          "number": null,
+          "number": 0,
           "string": "Hello, world!"
         },
         "before_sensitive": {}

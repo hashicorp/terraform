@@ -16,7 +16,7 @@
             "float": null,
             "id": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f",
             "integer": null,
-            "number": null,
+            "number": 0,
             "string": "Hello, change!"
           }
         },
