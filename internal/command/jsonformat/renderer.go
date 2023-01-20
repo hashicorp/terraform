@@ -39,6 +39,17 @@ type Plan struct {
 	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
 }
 
+func (plan Plan) GetSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
+	switch change.Mode {
+	case jsonplan.ManagedResourceMode:
+		return plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+	case jsonplan.DataResourceMode:
+		return plan.ProviderSchemas[change.ProviderName].DataSourceSchemas[change.Type]
+	default:
+		panic("found unrecognized resource mode: " + change.Mode)
+	}
+}
+
 type Renderer struct {
 	Streams  *terminal.Streams
 	Colorize *colorstring.Colorize
@@ -78,16 +89,16 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 			// Don't show anything for NoOp changes.
 			continue
 		}
-		if action == plans.Delete && diff.change.Mode != "managed" {
+		if action == plans.Delete && diff.change.Mode != jsonplan.ManagedResourceMode {
 			// Don't render anything for deleted data sources.
 			continue
 		}
 
 		changes = append(changes, diff)
-		willPrintResourceChanges = true
 
 		// Don't count move-only changes
 		if action != plans.NoOp {
+			willPrintResourceChanges = true
 			counts[action]++
 		}
 	}
@@ -271,9 +282,19 @@ func (r Renderer) renderHumanDiffOutputs(outputs map[string]computed.Diff) strin
 
 func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	var drs []diff
-	for _, dr := range diffs.drift {
-		if dr.diff.Action != plans.NoOp {
-			drs = append(drs, dr)
+
+	// In refresh-only mode, we show all resources marked as drifted,
+	// including those which have moved without other changes. In other plan
+	// modes, move-only changes will be rendered in the planned changes, so
+	// we skip them here.
+
+	if mode == plans.RefreshOnlyMode {
+		drs = diffs.drift
+	} else {
+		for _, dr := range diffs.drift {
+			if dr.diff.Action != plans.NoOp {
+				drs = append(drs, dr)
+			}
 		}
 	}
 
@@ -304,12 +325,12 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	switch mode {
 	case plans.RefreshOnlyMode:
 		r.Streams.Println(format.WordWrap(
-			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			"\n\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
 			r.Streams.Stdout.Columns(),
 		))
 	default:
 		r.Streams.Println(format.WordWrap(
-			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			"\n\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
 			r.Streams.Stdout.Columns(),
 		))
 	}
@@ -454,7 +475,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 
 func resourceChangeHeader(change jsonplan.ResourceChange) string {
 	mode := "resource"
-	if change.Mode != "managed" {
+	if change.Mode != jsonplan.ManagedResourceMode {
 		mode = "data"
 	}
 	return fmt.Sprintf("%s \"%s\" \"%s\"", mode, change.Type, change.Name)

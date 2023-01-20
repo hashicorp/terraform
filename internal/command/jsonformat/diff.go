@@ -43,7 +43,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			continue
 		}
 
-		schema := plan.ProviderSchemas[drift.ProviderName].ResourceSchemas[drift.Type]
+		schema := plan.GetSchema(drift)
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
 			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
@@ -51,7 +51,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for _, change := range plan.ResourceChanges {
-		schema := plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+		schema := plan.GetSchema(change)
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
 			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
@@ -64,12 +64,23 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 
 	less := func(drs []diff) func(i, j int) bool {
 		return func(i, j int) bool {
-			iA := drs[i].change.Address
-			jA := drs[j].change.Address
-			if iA == jA {
-				return drs[i].change.Deposed < drs[j].change.Deposed
+			left := drs[i].change
+			right := drs[j].change
+
+			if left.ModuleAddress != right.ModuleAddress {
+				return left.ModuleAddress < right.ModuleAddress
 			}
-			return iA < jA
+
+			if left.Mode != right.Mode {
+				return left.Mode == jsonplan.DataResourceMode
+			}
+
+			if left.Address != right.Address {
+				return left.Address < right.Address
+			}
+
+			// Everything else being equal, we'll sort by deposed.
+			return left.Deposed < right.Deposed
 		}
 	}
 

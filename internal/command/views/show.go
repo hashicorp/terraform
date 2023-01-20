@@ -2,9 +2,12 @@ package views
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -40,7 +43,36 @@ var _ Show = (*ShowHuman)(nil)
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	if plan != nil {
-		renderPlan(plan, schemas, v.view)
+		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+		if err != nil {
+			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+			return 1
+		}
+
+		renderer := jsonformat.Renderer{
+			Colorize: v.view.colorize,
+			Streams:  v.view.streams,
+		}
+
+		jplan := jsonformat.Plan{
+			PlanFormatVersion:     jsonplan.FormatVersion,
+			ProviderFormatVersion: jsonprovider.FormatVersion,
+			OutputChanges:         outputs,
+			ResourceChanges:       changed,
+			ResourceDrift:         drift,
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+			RelevantAttributes:    attrs,
+		}
+
+		var opts []jsonformat.RendererOpt
+		if !plan.CanApply() {
+			opts = append(opts, jsonformat.CanNotApply)
+		}
+		if plan.Errored {
+			opts = append(opts, jsonformat.Errored)
+		}
+
+		renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 	} else {
 		if stateFile == nil {
 			v.view.streams.Println("No state.")

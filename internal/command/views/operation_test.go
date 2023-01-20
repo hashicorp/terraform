@@ -356,6 +356,78 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 	}
 }
 
+func TestOperation_planWithDatasource(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestOperation_planWithDatasourceAndDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestOperation_planNextStep(t *testing.T) {
 	testCases := map[string]struct {
 		path string

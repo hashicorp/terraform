@@ -209,6 +209,8 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.TaskStages = mc.TaskStages
+	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
@@ -269,6 +271,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
 	b.client.StateVersions = mc.StateVersions
