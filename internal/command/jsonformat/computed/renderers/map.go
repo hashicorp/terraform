@@ -15,7 +15,8 @@ var _ computed.DiffRenderer = (*mapRenderer)(nil)
 
 func Map(elements map[string]computed.Diff) computed.DiffRenderer {
 	return &mapRenderer{
-		elements: elements,
+		elements:  elements,
+		alignKeys: true,
 	}
 }
 
@@ -34,6 +35,7 @@ type mapRenderer struct {
 
 	overrideNullSuffix        bool
 	overrideForcesReplacement bool
+	alignKeys                 bool
 }
 
 func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
@@ -83,14 +85,18 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-
 		// Only show commas between elements for objects.
 		comma := ""
 		if _, ok := element.Renderer.(*objectRenderer); ok {
 			comma = ","
 		}
 
-		buf.WriteString(fmt.Sprintf("%s%s %-*s = %s%s\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), maximumKeyLen, escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
+		if renderer.alignKeys {
+			buf.WriteString(fmt.Sprintf("%s%s %-*s = %s%s\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), maximumKeyLen, escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
+		} else {
+			buf.WriteString(fmt.Sprintf("%s%s %s = %s%s\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
+		}
+
 	}
 
 	if unchangedElements > 0 {

@@ -64,12 +64,23 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 
 	less := func(drs []diff) func(i, j int) bool {
 		return func(i, j int) bool {
-			iA := drs[i].change.Address
-			jA := drs[j].change.Address
-			if iA == jA {
-				return drs[i].change.Deposed < drs[j].change.Deposed
+			left := drs[i].change
+			right := drs[j].change
+
+			if left.ModuleAddress != right.ModuleAddress {
+				return left.ModuleAddress < right.ModuleAddress
 			}
-			return iA < jA
+
+			if left.Mode != right.Mode {
+				return left.Mode == jsonplan.DataResourceMode
+			}
+
+			if left.Address != right.Address {
+				return left.Address < right.Address
+			}
+
+			// Everything else being equal, we'll sort by deposed.
+			return left.Deposed < right.Deposed
 		}
 	}
 

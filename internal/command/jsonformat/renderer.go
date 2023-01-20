@@ -95,10 +95,10 @@ func (r Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...RendererOp
 		}
 
 		changes = append(changes, diff)
-		willPrintResourceChanges = true
 
 		// Don't count move-only changes
 		if action != plans.NoOp {
+			willPrintResourceChanges = true
 			counts[action]++
 		}
 	}
@@ -325,12 +325,12 @@ func (r Renderer) renderHumanDiffDrift(diffs diffs, mode plans.Mode) bool {
 	switch mode {
 	case plans.RefreshOnlyMode:
 		r.Streams.Println(format.WordWrap(
-			"\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			"\n\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
 			r.Streams.Stdout.Columns(),
 		))
 	default:
 		r.Streams.Println(format.WordWrap(
-			"\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
+			"\n\nUnless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.",
 			r.Streams.Stdout.Columns(),
 		))
 	}
