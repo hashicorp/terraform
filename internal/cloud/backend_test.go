@@ -814,7 +814,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 
 			for _, actual := range b.WorkspaceMapping.Tags {
 				if _, ok := expectedSet[actual]; !ok {
-					unexpected = append(missing, actual)
+					unexpected = append(unexpected, actual)
 				}
 			}
 
