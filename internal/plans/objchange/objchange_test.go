@@ -460,10 +460,10 @@ func TestProposedNew(t *testing.T) {
 				})),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"bloop": cty.ObjectVal(map[string]cty.Value{
-					"blop":  cty.StringVal("glub"),
-					"bleep": cty.NullVal(cty.String),
-				}),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
 			}),
 		},
 
@@ -2036,14 +2036,14 @@ func TestProposedNew(t *testing.T) {
 				)),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"list_obj": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"obj": cty.ObjectVal(map[string]cty.Value{
-							"optional": cty.StringVal("prior"),
-							"computed": cty.StringVal("prior computed"),
+				"list_obj": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"obj": cty.Object(map[string]cty.Type{
+							"optional": cty.String,
+							"computed": cty.String,
 						}),
 					}),
-				}),
+				)),
 			}),
 		},
 
