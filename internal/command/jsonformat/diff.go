@@ -72,7 +72,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			}
 
 			if left.Mode != right.Mode {
-				return left.Mode == "data"
+				return left.Mode == jsonplan.DataResourceMode
 			}
 
 			if left.Address != right.Address {
