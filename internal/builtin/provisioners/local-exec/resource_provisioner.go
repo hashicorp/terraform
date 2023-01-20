@@ -167,10 +167,7 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	go copyUIOutput(req.UIOutput, tee, copyDoneCh)
 
 	// Output what we're about to run
-	// if quiet is not set, output the command we're about to run
-	// if quiet is set, output Executing: Suppressed by quiet=true
 	if quietVal := req.Config.GetAttr("quiet"); !quietVal.IsNull() && quietVal.True() {
-		// If quiet is true, don't output the command
 		req.UIOutput.Output("local-exec: Executing: Suppressed by quiet=true")
 	} else {
 		req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
