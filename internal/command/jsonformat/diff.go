@@ -43,7 +43,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			continue
 		}
 
-		schema := plan.ProviderSchemas[drift.ProviderName].ResourceSchemas[drift.Type]
+		schema := plan.GetSchema(drift)
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
 			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
@@ -51,7 +51,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for _, change := range plan.ResourceChanges {
-		schema := plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
+		schema := plan.GetSchema(change)
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
 			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
