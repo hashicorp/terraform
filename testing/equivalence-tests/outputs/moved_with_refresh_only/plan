@@ -1,0 +1,18 @@
+tfcoremock_simple_resource.second: Refreshing state... [id=70c47571-66c3-b1dc-2474-47a74b9c7886]
+
+Note: Objects have changed outside of Terraform
+
+Terraform detected the following changes made outside of Terraform since the
+last "terraform apply" which may have affected this plan:
+
+  # tfcoremock_simple_resource.first has moved to tfcoremock_simple_resource.second
+    resource "tfcoremock_simple_resource" "second" {
+        id     = "70c47571-66c3-b1dc-2474-47a74b9c7886"
+        # (1 unchanged attribute hidden)
+    }
+
+
+This is a refresh-only plan, so Terraform will not take any actions to undo
+these. If you were expecting these changes then you can apply this plan to
+record the updated values in the Terraform state without changing any remote
+objects.

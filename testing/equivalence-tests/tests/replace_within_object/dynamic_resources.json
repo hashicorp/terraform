@@ -1,0 +1,17 @@
+{
+  "tfcoremock_object": {
+    "attributes": {
+      "object": {
+        "type": "object",
+        "required": true,
+        "object": {
+          "id": {
+            "type": "string",
+            "replace": true,
+            "required": true
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "tfcoremock_list": {
+    "attributes": {
+      "list": {
+        "type": "list",
+        "required": true,
+        "list": {
+          "type": "object",
+          "object": {
+            "id": {
+              "type": "string",
+              "replace": true,
+              "required": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "description": "tests handling of multiline strings when updating",
+  "include_files": [],
+  "ignore_fields": {}
+}
