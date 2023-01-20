@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/mitchellh/copystructure"
 
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -29,6 +31,7 @@ type MockClient struct {
 	Plans                 *MockPlans
 	PolicySetOutcomes     *MockPolicySetOutcomes
 	TaskStages            *MockTaskStages
+	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
 	StateVersions         *MockStateVersions
@@ -52,6 +55,7 @@ func NewMockClient() *MockClient {
 	c.StateVersionOutputs = newMockStateVersionOutputs(c)
 	c.Variables = newMockVariables(c)
 	c.Workspaces = newMockWorkspaces(c)
+	c.RedactedPlans = newMockRedactedPlans(c)
 	return c
 }
 
@@ -446,6 +450,58 @@ func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, optio
 	}
 
 	return rq, nil
+}
+
+type MockRedactedPlans struct {
+	client        *MockClient
+	redactedPlans map[string]*jsonformat.Plan
+}
+
+func newMockRedactedPlans(client *MockClient) *MockRedactedPlans {
+	return &MockRedactedPlans{
+		client:        client,
+		redactedPlans: make(map[string]*jsonformat.Plan),
+	}
+}
+
+func (m *MockRedactedPlans) create(cvID, workspaceID, planID string) error {
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	planPath := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"plan-redacted.json",
+	)
+
+	redactedPlanFile, err := os.Open(planPath)
+	if err != nil {
+		return err
+	}
+
+	raw, err := ioutil.ReadAll(redactedPlanFile)
+	if err != nil {
+		return err
+	}
+
+	redactedPlan := &jsonformat.Plan{}
+	err = json.Unmarshal(raw, redactedPlan)
+	if err != nil {
+		return err
+	}
+
+	m.redactedPlans[planID] = redactedPlan
+
+	return nil
+}
+
+func (m *MockRedactedPlans) Read(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+	if p, ok := m.redactedPlans[planID]; ok {
+		return p, nil
+	}
+	return nil, tfe.ErrResourceNotFound
 }
 
 type MockPlans struct {
@@ -981,6 +1037,18 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		w.CurrentRun = r
 	}
 
+	r.Workspace = &tfe.Workspace{
+		ID:                         w.ID,
+		StructuredRunOutputEnabled: w.StructuredRunOutputEnabled,
+	}
+
+	if w.StructuredRunOutputEnabled {
+		err := m.client.RedactedPlans.create(options.ConfigurationVersion.ID, options.Workspace.ID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if m.ModifyNewRun != nil {
 		// caller-provided callback may modify the run in-place to mimic
 		// side-effects that a real server might take in some situations.
@@ -1022,14 +1090,17 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
 	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
-		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
+		if r.IsDestroy ||
+			bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) ||
+			bytes.Contains(logs, []byte("1 to add, 1 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
 			r.HasChanges = true
 			r.Permissions.CanApply = true
 		}
 
-		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) {
+		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) ||
+			bytes.Contains(logs, []byte("Error: Unsupported block type")) {
 			r.Actions.IsCancelable = false
 			r.HasChanges = false
 			r.Status = tfe.RunErrored
@@ -1397,10 +1468,11 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		options.ExecutionMode = tfe.String("remote")
 	}
 	w := &tfe.Workspace{
-		ID:            GenerateID("ws-"),
-		Name:          *options.Name,
-		ExecutionMode: *options.ExecutionMode,
-		Operations:    *options.Operations,
+		ID:                         GenerateID("ws-"),
+		Name:                       *options.Name,
+		ExecutionMode:              *options.ExecutionMode,
+		Operations:                 *options.Operations,
+		StructuredRunOutputEnabled: false,
 		Permissions: &tfe.WorkspacePermissions{
 			CanQueueApply:  true,
 			CanQueueRun:    true,
@@ -1413,11 +1485,13 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 	if options.VCSRepo != nil {
 		w.VCSRepo = &tfe.VCSRepo{}
 	}
+
 	if options.TerraformVersion != nil {
 		w.TerraformVersion = *options.TerraformVersion
 	} else {
 		w.TerraformVersion = tfversion.String()
 	}
+
 	var tags []*tfe.Tag
 	for _, tag := range options.Tags {
 		tags = append(tags, tag)
@@ -1518,6 +1592,11 @@ func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdate
 	if options.WorkingDirectory != nil {
 		w.WorkingDirectory = *options.WorkingDirectory
 	}
+
+	if options.StructuredRunOutputEnabled != nil {
+		w.StructuredRunOutputEnabled = *options.StructuredRunOutputEnabled
+	}
+
 	return nil
 }
 

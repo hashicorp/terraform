@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -96,6 +97,54 @@ func TestCloud_planBasic(t *testing.T) {
 	}
 }
 
+func TestCloud_planJSONBasic(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-basic")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+	})
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
+	}
+}
+
 func TestCloud_planCanceled(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
@@ -155,6 +204,58 @@ func TestCloud_planLongLine(t *testing.T) {
 	}
 	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
 		t.Fatalf("expected plan summary in output: %s", output)
+	}
+}
+
+func TestCloud_planJSONFull(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-full")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+	})
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "tfcoremock_simple_resource.example: Refreshing state... [id=my-simple-resource]") {
+		t.Fatalf("expected plan log: %s", gotOut)
+	}
+
+	if !strings.Contains(gotOut, "2 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
 	}
 }
 
@@ -1089,6 +1190,50 @@ func TestCloud_planWithRemoteError(t *testing.T) {
 	}
 	if !strings.Contains(output, "null_resource.foo: 1 error") {
 		t.Fatalf("expected plan error in output: %s", output)
+	}
+}
+
+func TestCloud_planJSONWithRemoteError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	// Initialize the plan renderer
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-error")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	// Enable SRO on workspace (tests disable by default)
+	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+	})
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+	if run.Result.ExitStatus() != 1 {
+		t.Fatalf("expected exit code 1, got %d", run.Result.ExitStatus())
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "Unsupported block type") {
+		t.Fatalf("unexpected plan error in output: %s", gotOut)
 	}
 }
 

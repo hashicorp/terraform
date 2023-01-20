@@ -16,9 +16,11 @@ import (
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -222,6 +224,10 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.local = testLocalBackend(t, b)
 	b.input = true
 
+	readRedactedPlan = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, hostname, token, planID)
+	}
+
 	ctx := context.Background()
 
 	// Create the organization.
@@ -277,6 +283,10 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
+
+	readRedactedPlan = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, hostname, token, planID)
+	}
 
 	// Set local to a local test backend.
 	b.local = testLocalBackend(t, b)
@@ -406,6 +416,20 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
   ]
 }`)
 	},
+}
+
+func mockColorize() *colorstring.Colorize {
+	colors := make(map[string]string)
+	for k, v := range colorstring.DefaultColors {
+		colors[k] = v
+	}
+	colors["purple"] = "38;5;57"
+
+	return &colorstring.Colorize{
+		Colors:  colors,
+		Disable: false,
+		Reset:   true,
+	}
 }
 
 // testDisco returns a *disco.Disco mapping app.terraform.io and
