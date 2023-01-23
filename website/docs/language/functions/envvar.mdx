@@ -1,0 +1,22 @@
+---
+page_title: file - Functions - Configuration Language
+description: |-
+  The envvar function reads the value of an environment variable and returns its value
+  or the specified default value if that environment variable does not exist.
+---
+
+# `envvar` Function
+
+`envvar` The envvar function reads the value of an environment variable and returns its value 
+or the specified default value if that environment variable does not exist.
+
+```hcl
+envvar(name, default)
+```
+
+## Examples
+
+```
+> envvar("HOME", "/home/user")
+/home/vault
+```

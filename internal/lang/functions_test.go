@@ -355,6 +355,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"envvar": {
+			{
+				`envvar("INVALID","NONE")`,
+				cty.StringVal("NONE"),
+			},
+		},
+
 		"file": {
 			{
 				`file("hello.txt")`,
