@@ -143,6 +143,26 @@ func FromJsonOutput(output jsonstate.Output) Change {
 	}
 }
 
+// FromJsonViewsOutput unmarshals the raw values in the viewsjson.Output structs into
+// generic interface{} types that can be reasoned about.
+func FromJsonViewsOutput(output viewsjson.Output) Change {
+	return Change{
+		// We model resource formatting as NoOps.
+		Before: unmarshalGeneric(output.Value),
+		After:  unmarshalGeneric(output.Value),
+
+		// We have some sensitive values, but we don't have any unknown values.
+		Unknown:         false,
+		BeforeSensitive: output.Sensitive,
+		AfterSensitive:  output.Sensitive,
+
+		// We don't display replacement data for resources, and all attributes
+		// are relevant.
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	}
+}
+
 func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
 	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.Matches())
 }

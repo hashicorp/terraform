@@ -432,6 +432,16 @@ func mockColorize() *colorstring.Colorize {
 	}
 }
 
+func mockSROWorkspace(t *testing.T, b *Cloud, workspaceName string) {
+	_, err := b.client.Workspaces.Update(context.Background(), "hashicorp", workspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+		TerraformVersion:           tfe.String("1.4.0"),
+	})
+	if err != nil {
+		t.Fatalf("Error enabling SRO on workspace %s: %v", workspaceName, err)
+	}
+}
+
 // testDisco returns a *disco.Disco mapping app.terraform.io and
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {

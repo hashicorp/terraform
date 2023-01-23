@@ -167,9 +167,10 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 		return err
 	}
 
-	reader := bufio.NewReaderSize(logs, 64*1024)
 	if b.CLI != nil {
+		reader := bufio.NewReaderSize(logs, 64*1024)
 		skip := 0
+
 		for next := true; next; {
 			var l, line []byte
 			var err error
@@ -195,12 +196,12 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 
 			if next || len(line) > 0 {
 				log := &jsonformat.JSONLog{}
-				if err := json.Unmarshal(line, log); err != nil || log == nil {
+				if err := json.Unmarshal(line, log); err != nil {
 					// If we can not parse the line as JSON, we will simply
 					// print the line. This maintains backwards compatibility for
 					// users who do not wish to enable structured output in their
 					// workspace.
-					b.CLI.Output(b.Colorize().Color(string(line)))
+					b.CLI.Output(string(line))
 					continue
 				}
 

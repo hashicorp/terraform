@@ -114,9 +114,7 @@ func TestCloud_planJSONBasic(t *testing.T) {
 
 	op.Workspace = testBackendSingleWorkspaceName
 
-	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
-		StructuredRunOutputEnabled: tfe.Bool(true),
-	})
+	mockSROWorkspace(t, b, op.Workspace)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -224,9 +222,7 @@ func TestCloud_planJSONFull(t *testing.T) {
 
 	op.Workspace = testBackendSingleWorkspaceName
 
-	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
-		StructuredRunOutputEnabled: tfe.Bool(true),
-	})
+	mockSROWorkspace(t, b, op.Workspace)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {
@@ -1211,10 +1207,7 @@ func TestCloud_planJSONWithRemoteError(t *testing.T) {
 
 	op.Workspace = testBackendSingleWorkspaceName
 
-	// Enable SRO on workspace (tests disable by default)
-	b.client.Workspaces.Update(context.Background(), "hashicorp", testBackendSingleWorkspaceName, tfe.WorkspaceUpdateOptions{
-		StructuredRunOutputEnabled: tfe.Bool(true),
-	})
+	mockSROWorkspace(t, b, op.Workspace)
 
 	run, err := b.Operation(context.Background(), op)
 	if err != nil {

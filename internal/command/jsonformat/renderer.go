@@ -1,31 +1,20 @@
 package jsonformat
 
 import (
+	"fmt"
+
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
-)
-
-type RendererOpt int
-
-const (
-	detectedDrift  string = "drift"
-	proposedChange string = "change"
-
-	Errored RendererOpt = iota
-	CanNotApply
 )
 
 type JSONLogType string
@@ -48,28 +37,6 @@ const (
 	LogChangeSummary   JSONLogType = "change_summary"
 	LogOutputs         JSONLogType = "outputs"
 )
-
-type Plan struct {
-	PlanFormatVersion  string                     `json:"plan_format_version"`
-	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
-	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
-
-	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
-}
-
-func (plan Plan) GetSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {
-	switch change.Mode {
-	case jsonplan.ManagedResourceMode:
-		return plan.ProviderSchemas[change.ProviderName].ResourceSchemas[change.Type]
-	case jsonplan.DataResourceMode:
-		return plan.ProviderSchemas[change.ProviderName].DataSourceSchemas[change.Type]
-	default:
-		panic("found unrecognized resource mode: " + change.Mode)
-	}
-}
 
 type Renderer struct {
 	Streams  *terminal.Streams
@@ -108,7 +75,7 @@ func (renderer Renderer) RenderHumanState(state State) {
 		return
 	}
 
-	opts: = computed.RenderHumanOpts{
+	opts := computed.RenderHumanOpts{
 		ShowUnchangedChildren: true,
 		HideDiffActionSymbols: true,
 	}
@@ -119,9 +86,13 @@ func (renderer Renderer) RenderHumanState(state State) {
 
 func (r Renderer) RenderLog(log *JSONLog) error {
 	switch log.Type {
+	case LogRefreshComplete, LogVersion, LogPlannedChange:
+		// We won't display these types of logs
+		return nil
+
 	case LogApplyStart, LogApplyComplete, LogRefreshStart:
-		msg := fmt.Sprintf("[bold]%s[reset]", log.Message)
-		r.Streams.Println(r.Colorize.Color(msg))
+		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s[reset]"), log.Message)
+		r.Streams.Println(msg)
 
 	case LogDiagnostic:
 		diag := format.DiagnosticFromJSON(log.Diagnostic, r.Colorize, 78)
@@ -131,7 +102,7 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 		if len(log.Outputs) > 0 {
 			r.Streams.Println(r.Colorize.Color("[bold][green]Outputs:[reset]"))
 			for name, output := range log.Outputs {
-				change := differ.FromJsonOutput(output)
+				change := differ.FromJsonViewsOutput(output)
 				ctype, err := ctyjson.UnmarshalType(output.Type)
 				if err != nil {
 					return err
@@ -144,17 +115,19 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 				})
 
 				msg := fmt.Sprintf("%s = %s", name, outputStr)
-				r.Streams.Println(r.Colorize.Color(msg))
+				r.Streams.Println(msg)
 			}
 		}
 
 	case LogChangeSummary:
 		// We will only render the apply change summary since the renderer
 		// generates a plan change summary for us
-		if !strings.Contains(log.Message, "Plan") {
-			msg := fmt.Sprintf("[bold][green]%s[reset]", log.Message)
-			r.Streams.Println("\n" + r.Colorize.Color(msg) + "\n")
-		}
+		msg := fmt.Sprintf(r.Colorize.Color("[bold][green]%s[reset]"), log.Message)
+		r.Streams.Println("\n" + msg + "\n")
+
+	default:
+		// If the log type is not a known log type, we will just print the log message
+		r.Streams.Println(log.Message)
 	}
 
 	return nil

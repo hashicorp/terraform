@@ -571,6 +571,7 @@ var readRedactedPlan func(context.Context, string, string, string) (*jsonformat.
 	if err != nil {
 		return p, err
 	}
+	defer resp.Body.Close()
 
 	if err := json.NewDecoder(resp.Body).Decode(p); err != nil {
 		return nil, err
