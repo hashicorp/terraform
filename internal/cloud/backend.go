@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -413,7 +414,15 @@ func (b *Cloud) discover() (*url.URL, error) {
 
 	host, err := b.services.Discover(hostname)
 	if err != nil {
-		return nil, err
+		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+
+		switch {
+		case errors.As(err, &serviceDiscoErr):
+			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			return nil, err
+		default:
+			return nil, err
+		}
 	}
 
 	service, err := host.ServiceURL(tfeServiceID)
