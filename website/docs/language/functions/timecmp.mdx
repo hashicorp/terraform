@@ -53,7 +53,7 @@ the "apply" step:
 ```hcl
   lifecycle {
     postcondition {
-      condition     = timecmp(timestamp(), timeadd(self.expiration_timestamp, "-720h")) < 0
+      condition     = timecmp(timestamp(), timeadd(self.expiration_timestamp, "-720h")) > 0
       error_message = "Certificate will expire in less than 30 days."
     }
   }
