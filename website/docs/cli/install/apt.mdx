@@ -27,45 +27,7 @@ package repositories.
 
 ## Repository Configuration
 
-The Terraform packages are signed using a private key controlled by HashiCorp, so you must configure your system to trust that HashiCorp key for package authentication.
-
-To configure your repository:
-
-1. Download the signing key to a new keyring.
-
-   ```bash
-   $ wget -O- https://apt.releases.hashicorp.com/gpg | \
-       gpg --dearmor | \
-       sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-
-1. Verify the key's fingerprint.
-
-   ```bash
-   $ gpg --no-default-keyring \
-       --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
-       --fingerprint
-   ```
-   The fingerprint must match `E8A0 32E0 94D8 EB4E A189 D270 DA41 8C88 A321 9F7B`. You can also verify the key on [Security at HashiCorp](https://www.hashicorp.com/security) under **Linux Package Checksum Verification**.
-
-1. Add the official HashiCorp repository to your system. The `lsb_release -cs` command finds the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
-
-   ```bash
-   $ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-       https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-       sudo tee /etc/apt/sources.list.d/hashicorp.list
-   ```
-
-1. Download the package information from HashiCorp.
-
-  ```bash
-  $ sudo apt update
-  ```
-
-1. Install Terraform from the new repository.
-
-   ```bash
-   $ sudo apt install terraform
-   ```
+Please follow the instructions in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
 
 ## Supported Architectures
 
@@ -78,36 +40,9 @@ There are no official packages available for other architectures, such as
 
 ## Supported Debian and Ubuntu Releases
 
-The HashiCorp APT server contains release repositories for the
-following distribution releases:
+The HashiCorp APT server contains release repositories for a variety of
+supported distributions, which are outlined in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
 
-* Debian 9 (`stretch`)
-* Debian 10 (`buster`)
-* Debian 11 (`bullseye`)
-* Ubuntu 16.04 (`xenial`)
-* Ubuntu 18.04 (`bionic`)
-* Ubuntu 19.10 (`eoam`)
-* Ubuntu 20.04 (`focal`)
-* Ubuntu 20.10 (`groovy`)
-* Ubuntu 21.04 (`hirsute`)
-* Ubuntu 21.10 (`impish`)
-* Ubuntu 22.04 (`jammy`)
-* Ubuntu 22.10 (`kinetic`)
-
-No repositories are available for other Debian or Ubuntu versions or
-any other APT-based Linux distributions. If you add the repository using
-the above commands on other systems then `apt update` will report the
-repository index as missing.
-
-Terraform executables are statically linked and so they depend only on the
-Linux system call interface, not on any system libraries. Because of that,
-you may be able to use one of the above release codenames when adding a
-repository to your system, even if that codename doesn't match your current
-distribution release.
-
-Over time we will change the set of supported distributions, including both
-adding support for new releases and ceasing to publish new Terraform versions
-under older releases.
 
 ## Choosing Terraform Versions
 
