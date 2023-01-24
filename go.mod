@@ -46,7 +46,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.15.0
 	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
 	github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
-	github.com/hashicorp/terraform-svchost v0.0.0-20200729002733-f050f53b9734
+	github.com/hashicorp/terraform-svchost v0.0.1
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/lib/pq v1.10.3
@@ -80,11 +80,11 @@ require (
 	github.com/zclconf/go-cty-yaml v1.0.3
 	golang.org/x/crypto v0.1.0
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4
-	golang.org/x/net v0.1.0
-	golang.org/x/oauth2 v0.0.0-20221014153046-6fdb5e3db783
-	golang.org/x/sys v0.2.0
-	golang.org/x/term v0.1.0
-	golang.org/x/text v0.4.0
+	golang.org/x/net v0.5.0
+	golang.org/x/oauth2 v0.4.0
+	golang.org/x/sys v0.4.0
+	golang.org/x/term v0.4.0
+	golang.org/x/text v0.6.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/api v0.102.0
 	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c
