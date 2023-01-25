@@ -297,6 +297,14 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 			// configV will always be null in this case, by definition.
 			// priorV may also be null, but that's okay.
 			newV = priorV
+
+			// the exception to the above is that if the config is optional and
+			// the _prior_ value contains non-computed values, we can infer
+			// that the config must have been non-null previously.
+			if optionalValueNotComputable(attr, priorV) {
+				newV = configV
+			}
+
 		case attr.NestedType != nil:
 			// For non-computed NestedType attributes, we need to descend
 			// into the individual nested attributes to build the final
@@ -517,4 +525,44 @@ func setElementComputedAsNull(schema attrPath, elem cty.Value) cty.Value {
 	})
 
 	return elem
+}
+
+// optionalValueNotComputable is used to check if an object in state must
+// have at least partially come from configuration. If the prior value has any
+// non-null attributes which are not computed in the schema, then we know there
+// was previously a configuration value which set those.
+//
+// This is used when the configuration contains a null optional+computed value,
+// and we want to know if we should plan to send the null value or the prior
+// state.
+func optionalValueNotComputable(schema *configschema.Attribute, val cty.Value) bool {
+	if !schema.Optional {
+		return false
+	}
+
+	// We must have a NestedType for complex nested attributes in order
+	// to find nested computed values in the first place.
+	if schema.NestedType == nil {
+		return false
+	}
+
+	foundNonComputedAttr := false
+	cty.Walk(val, func(path cty.Path, v cty.Value) (bool, error) {
+		if v.IsNull() {
+			return true, nil
+		}
+
+		attr := schema.NestedType.AttributeByPath(path)
+		if attr == nil {
+			return true, nil
+		}
+
+		if !attr.Computed {
+			foundNonComputedAttr = true
+			return false, nil
+		}
+		return true, nil
+	})
+
+	return foundNonComputedAttr
 }

@@ -460,10 +460,10 @@ func TestProposedNew(t *testing.T) {
 				})),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"bloop": cty.ObjectVal(map[string]cty.Value{
-					"blop":  cty.StringVal("glub"),
-					"bleep": cty.NullVal(cty.String),
-				}),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
 			}),
 		},
 
@@ -1989,8 +1989,9 @@ func TestProposedNew(t *testing.T) {
 		},
 
 		// A nested object with computed attributes, which is contained in an
-		// optional+computed container. The entire prior nested value should be
-		// represented in the proposed new object if the configuration is null.
+		// optional+computed container. The prior nested object contains values
+		// which could not be computed, therefor the proposed new value must be
+		// the null value from the configuration.
 		"computed within optional+computed": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -2036,14 +2037,14 @@ func TestProposedNew(t *testing.T) {
 				)),
 			}),
 			cty.ObjectVal(map[string]cty.Value{
-				"list_obj": cty.ListVal([]cty.Value{
-					cty.ObjectVal(map[string]cty.Value{
-						"obj": cty.ObjectVal(map[string]cty.Value{
-							"optional": cty.StringVal("prior"),
-							"computed": cty.StringVal("prior computed"),
+				"list_obj": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"obj": cty.Object(map[string]cty.Type{
+							"optional": cty.String,
+							"computed": cty.String,
 						}),
 					}),
-				}),
+				)),
 			}),
 		},
 
