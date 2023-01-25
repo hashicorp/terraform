@@ -39,23 +39,28 @@ func TestHTTPClientFactory(t *testing.T) {
 	if client.UnlockURL != nil || client.UnlockMethod != "UNLOCK" {
 		t.Fatal("Unexpected unlock_address or unlock_method")
 	}
+	if client.WorkspacesURL != nil || client.WorkspacesMethod != "OPTIONS" {
+		t.Fatal("Unexpected workspaces_address or workspaces_method")
+	}
 	if client.Username != "" || client.Password != "" {
 		t.Fatal("Unexpected username or password")
 	}
 
 	// custom
 	conf = map[string]cty.Value{
-		"address":        cty.StringVal("http://127.0.0.1:8888/foo"),
-		"update_method":  cty.StringVal("BLAH"),
-		"lock_address":   cty.StringVal("http://127.0.0.1:8888/bar"),
-		"lock_method":    cty.StringVal("BLIP"),
-		"unlock_address": cty.StringVal("http://127.0.0.1:8888/baz"),
-		"unlock_method":  cty.StringVal("BLOOP"),
-		"username":       cty.StringVal("user"),
-		"password":       cty.StringVal("pass"),
-		"retry_max":      cty.StringVal("999"),
-		"retry_wait_min": cty.StringVal("15"),
-		"retry_wait_max": cty.StringVal("150"),
+		"address":            cty.StringVal("http://127.0.0.1:8888/foo"),
+		"update_method":      cty.StringVal("BLAH"),
+		"lock_address":       cty.StringVal("http://127.0.0.1:8888/bar"),
+		"lock_method":        cty.StringVal("BLIP"),
+		"unlock_address":     cty.StringVal("http://127.0.0.1:8888/baz"),
+		"unlock_method":      cty.StringVal("BLOOP"),
+		"workspaces_address": cty.StringVal("http://127.0.0.1:8888/qux"),
+		"workspaces_method":  cty.StringVal("BLUUP"),
+		"username":           cty.StringVal("user"),
+		"password":           cty.StringVal("pass"),
+		"retry_max":          cty.StringVal("999"),
+		"retry_wait_min":     cty.StringVal("15"),
+		"retry_wait_max":     cty.StringVal("150"),
 	}
 
 	b = backend.TestBackendConfig(t, New(), configs.SynthBody("synth", conf)).(*Backend)
@@ -75,6 +80,10 @@ func TestHTTPClientFactory(t *testing.T) {
 		t.Fatalf("Unexpected unlock_address \"%s\" vs \"%s\" or unlock_method \"%s\" vs \"%s\"", client.UnlockURL.String(),
 			conf["unlock_address"].AsString(), client.UnlockMethod, conf["unlock_method"])
 	}
+	if client.WorkspacesURL.String() != conf["workspaces_address"].AsString() || client.WorkspacesMethod != "BLUUP" {
+		t.Fatalf("Unexpected workspaces_address \"%s\" vs \"%s\" or workspaces_method \"%s\" vs \"%s\"", client.WorkspacesURL.String(),
+			conf["workspaces_address"].AsString(), client.WorkspacesMethod, conf["workspaces_method"])
+	}
 	if client.Username != "user" || client.Password != "pass" {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
@@ -93,25 +102,30 @@ func TestHTTPClientFactory(t *testing.T) {
 func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	// env
 	conf := map[string]string{
-		"address":        "http://127.0.0.1:8888/foo",
-		"update_method":  "BLAH",
-		"lock_address":   "http://127.0.0.1:8888/bar",
-		"lock_method":    "BLIP",
-		"unlock_address": "http://127.0.0.1:8888/baz",
-		"unlock_method":  "BLOOP",
-		"username":       "user",
-		"password":       "pass",
-		"retry_max":      "999",
-		"retry_wait_min": "15",
-		"retry_wait_max": "150",
+		"address":            "http://127.0.0.1:8888/foo",
+		"update_method":      "BLAH",
+		"lock_address":       "http://127.0.0.1:8888/bar",
+		"lock_method":        "BLIP",
+		"unlock_address":     "http://127.0.0.1:8888/baz",
+		"unlock_method":      "BLOOP",
+		"workspaces_address": "http://127.0.0.1:8888/qux",
+		"workspaces_method":  "BLUUP",
+		"username":           "user",
+		"password":           "pass",
+		"retry_max":          "999",
+		"retry_wait_min":     "15",
+		"retry_wait_max":     "150",
 	}
 
 	defer testWithEnv(t, "TF_HTTP_ADDRESS", conf["address"])()
 	defer testWithEnv(t, "TF_HTTP_UPDATE_METHOD", conf["update_method"])()
 	defer testWithEnv(t, "TF_HTTP_LOCK_ADDRESS", conf["lock_address"])()
 	defer testWithEnv(t, "TF_HTTP_UNLOCK_ADDRESS", conf["unlock_address"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACES_ADDRESS", conf["workspaces_address"])()
 	defer testWithEnv(t, "TF_HTTP_LOCK_METHOD", conf["lock_method"])()
 	defer testWithEnv(t, "TF_HTTP_UNLOCK_METHOD", conf["unlock_method"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACES_METHOD", conf["workspaces_method"])()
+	defer testWithEnv(t, "TF_HTTP_WORKSPACES", conf["workspaces"])()
 	defer testWithEnv(t, "TF_HTTP_USERNAME", conf["username"])()
 	defer testWithEnv(t, "TF_HTTP_PASSWORD", conf["password"])()
 	defer testWithEnv(t, "TF_HTTP_RETRY_MAX", conf["retry_max"])()
@@ -134,6 +148,10 @@ func TestHTTPClientFactoryWithEnv(t *testing.T) {
 	if client.UnlockURL.String() != conf["unlock_address"] || client.UnlockMethod != "BLOOP" {
 		t.Fatalf("Unexpected unlock_address \"%s\" vs \"%s\" or unlock_method \"%s\" vs \"%s\"", client.UnlockURL.String(),
 			conf["unlock_address"], client.UnlockMethod, conf["unlock_method"])
+	}
+	if client.WorkspacesURL.String() != conf["workspaces_address"] || client.WorkspacesMethod != "BLUUP" {
+		t.Fatalf("Unexpected workspaces_address \"%s\" vs \"%s\" or workspaces_method \"%s\" vs \"%s\"", client.WorkspacesURL.String(),
+			conf["workspaces_address"], client.WorkspacesMethod, conf["workspaces_method"])
 	}
 	if client.Username != "user" || client.Password != "pass" {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],

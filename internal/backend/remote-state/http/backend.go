@@ -45,6 +45,12 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UNLOCK_ADDRESS", nil),
 				Description: "The address of the unlock REST endpoint",
 			},
+			"workspaces_address": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACES_ADDRESS", nil),
+				Description: "The address of the workspaces REST endpoint",
+			},
 			"lock_method": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -56,6 +62,18 @@ func New() backend.Backend {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_UNLOCK_METHOD", "UNLOCK"),
 				Description: "The HTTP method to use when unlocking",
+			},
+			"workspaces_method": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACES_METHOD", "OPTIONS"),
+				Description: "The HTTP method to use when listing workspaces",
+			},
+			"workspaces": &schema.Schema{
+				Type:        schema.TypeBool,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_WORKSPACES", false),
+				Description: "Wether to enable workspaces use on REST endpoint",
 			},
 			"username": &schema.Schema{
 				Type:        schema.TypeString,
@@ -149,6 +167,27 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	unlockMethod := data.Get("unlock_method").(string)
 
+	var workspacesURL *url.URL
+	if v, ok := data.GetOk("workspaces_address"); ok && v.(string) != "" {
+		var err error
+		workspacesURL, err = url.Parse(v.(string))
+		if err != nil {
+			return fmt.Errorf("failed to parse workspacesAddress URL: %s", err)
+		}
+		if workspacesURL.Scheme != "http" && workspacesURL.Scheme != "https" {
+			return fmt.Errorf("workspacesAddress must be HTTP or HTTPS")
+		}
+	}
+
+	workspacesMethod := data.Get("workspaces_method").(string)
+
+	if data.Get("workspaces").(bool) {
+		// Use default address if no workspaces_address is provided
+		if workspacesURL == nil {
+			workspacesURL = updateURL
+		}
+	}
+
 	client := cleanhttp.DefaultPooledClient()
 
 	if data.Get("skip_cert_verification").(bool) {
@@ -169,10 +208,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
 
-		LockURL:      lockURL,
-		LockMethod:   lockMethod,
-		UnlockURL:    unlockURL,
-		UnlockMethod: unlockMethod,
+		LockURL:          lockURL,
+		LockMethod:       lockMethod,
+		UnlockURL:        unlockURL,
+		UnlockMethod:     unlockMethod,
+		WorkspacesURL:    workspacesURL,
+		WorkspacesMethod: workspacesMethod,
 
 		Username: data.Get("username").(string),
 		Password: data.Get("password").(string),
@@ -185,16 +226,36 @@ func (b *Backend) configure(ctx context.Context) error {
 
 func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 	if name != backend.DefaultStateName {
-		return nil, backend.ErrWorkspacesNotSupported
+		b.client.workspace = name
 	}
 
 	return &remote.State{Client: b.client}, nil
 }
 
 func (b *Backend) Workspaces() ([]string, error) {
-	return nil, backend.ErrWorkspacesNotSupported
+	if b.client.WorkspacesURL == nil {
+		return nil, backend.ErrWorkspacesNotSupported
+	}
+
+	workspaces, err := b.client.Workspaces()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]string, 1, len(workspaces)+1)
+	result[0] = backend.DefaultStateName
+	result = append(result, workspaces...)
+	return result, nil
 }
 
-func (b *Backend) DeleteWorkspace(string, bool) error {
-	return backend.ErrWorkspacesNotSupported
+func (b *Backend) DeleteWorkspace(name string, force bool) error {
+	if b.client.WorkspacesURL == nil {
+		return backend.ErrWorkspacesNotSupported
+	}
+
+	if name == backend.DefaultStateName || name == "" {
+		return fmt.Errorf("can't delete default state")
+	}
+
+	return b.client.Delete()
 }
