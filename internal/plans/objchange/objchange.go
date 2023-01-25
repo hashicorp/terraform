@@ -1,6 +1,7 @@
 package objchange
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/zclconf/go-cty/cty"
@@ -268,53 +269,54 @@ func proposedNewNestingMap(schema nestedSchema, prior, config cty.Value) cty.Val
 }
 
 func proposedNewNestingSet(schema nestedSchema, prior, config cty.Value) cty.Value {
-	newV := config
-
 	if !config.Type().IsSetType() {
 		panic("configschema.NestingSet value is not a set as expected")
 	}
 
-	// Nested set elements are correlated by comparing the element values after
-	// eliminating all of the computed attributes. In practice, this means that
-	// any config change produces an entirely new nested object, and we only
-	// propagate prior computed values if the non-computed attribute values are
-	// identical.
-	var cmpVals [][2]cty.Value
+	newV := config
+	if !config.IsKnown() || config.IsNull() || config.LengthInt() == 0 {
+		return newV
+	}
+
+	var priorVals []cty.Value
 	if prior.IsKnown() && !prior.IsNull() {
-		cmpVals = setElementCompareValues(schema, prior)
+		priorVals = prior.AsValueSlice()
 	}
 
-	configVLen := 0
-	if config.IsKnown() && !config.IsNull() {
-		configVLen = config.LengthInt()
-	}
-	if configVLen > 0 {
-		used := make([]bool, len(cmpVals)) // track used elements in case multiple have the same compare value
-		newVals := make([]cty.Value, 0, configVLen)
-		for it := config.ElementIterator(); it.Next(); {
-			_, configEV := it.Element()
-			var priorEV cty.Value
-			for i, cmp := range cmpVals {
-				if used[i] {
-					continue
-				}
+	var newVals []cty.Value
+	// track which prior elements have been used
+	used := make([]bool, len(priorVals))
 
-				if cmp[1].RawEquals(configEV) {
-					priorEV = cmp[0]
-					used[i] = true // we can't use this value on a future iteration
-					break
-				}
-			}
-			if priorEV == cty.NilVal {
-				priorEV = cty.NullVal(config.Type().ElementType())
+	for _, configEV := range config.AsValueSlice() {
+		var priorEV cty.Value
+		for i, priorCmp := range priorVals {
+			if used[i] {
+				continue
 			}
 
-			newVals = append(newVals, proposedNewBlockOrObject(schema, priorEV, configEV))
+			// It is possible that multiple prior elements could be valid
+			// matches for a configuration value, in which case we will end up
+			// picking the first match encountered (but it will always be
+			// consistent due to cty's iteration order). Because configured set
+			// elements must also be entirely unique in order to be included in
+			// the set, these matches either will not matter because they only
+			// differ by computed values, or could not have come from a valid
+			// config with all unique set elements.
+			if validPriorFromConfig(schema, priorCmp, configEV) {
+				priorEV = priorCmp
+				used[i] = true
+				break
+			}
 		}
-		newV = cty.SetVal(newVals)
+
+		if priorEV == cty.NilVal {
+			priorEV = cty.NullVal(config.Type().ElementType())
+		}
+
+		newVals = append(newVals, proposedNewBlockOrObject(schema, priorEV, configEV))
 	}
 
-	return newV
+	return cty.SetVal(newVals)
 }
 
 func proposedNewObjectAttributes(schema *configschema.Object, prior, config cty.Value) cty.Value {
@@ -372,61 +374,10 @@ func proposedNewAttributes(attrs map[string]*configschema.Attribute, prior, conf
 	return newAttrs
 }
 
-// setElementCompareValues takes a known, non-null value of a cty.Set type and
-// returns a table -- constructed of two-element arrays -- that maps original
-// set element values to corresponding values that have all of the computed
-// values removed, making them suitable for comparison with values obtained
-// from configuration. The element type of the set must conform to the implied
-// type of the given schema, or this function will panic.
-//
-// In the resulting slice, the zeroth element of each array is the original
-// value and the one-indexed element is the corresponding "compare value".
-//
-// This is intended to help correlate prior elements with configured elements
-// in proposedNewBlock. The result is a heuristic rather than an exact science,
-// since e.g. two separate elements may reduce to the same value through this
-// process. The caller must therefore be ready to deal with duplicates.
-func setElementCompareValues(schema nestedSchema, set cty.Value) [][2]cty.Value {
-	ret := make([][2]cty.Value, 0, set.LengthInt())
-	for it := set.ElementIterator(); it.Next(); {
-		_, ev := it.Element()
-		ret = append(ret, [2]cty.Value{ev, setElementComputedAsNull(schema, ev)})
-	}
-	return ret
-}
-
 // nestedSchema is used as a generic container for either a
 // *configschema.Object, or *configschema.Block.
 type nestedSchema interface {
 	AttributeByPath(cty.Path) *configschema.Attribute
-}
-
-func setElementComputedAsNull(schema nestedSchema, elem cty.Value) cty.Value {
-	elem, _ = cty.Transform(elem, func(path cty.Path, v cty.Value) (cty.Value, error) {
-		if v.IsNull() || !v.IsKnown() {
-			return v, nil
-		}
-
-		attr := schema.AttributeByPath(path)
-		if attr == nil {
-			// we must be at a nested block rather than an attribute, continue
-			return v, nil
-		}
-
-		if attr.Computed {
-			// If this could have been computed, we always return null in order
-			// to compare config and state values.
-			//
-			// The only way to determine if an optional+computed value is
-			// optional or computed is see if it is set in the config, however
-			// for set elements we don't yet know which element value
-			// corresponds to the configuration.
-			return cty.NullVal(v.Type()), nil
-		}
-		return v, nil
-	})
-
-	return elem
 }
 
 // optionalValueNotComputable is used to check if an object in state must
@@ -467,4 +418,74 @@ func optionalValueNotComputable(schema *configschema.Attribute, val cty.Value) b
 	})
 
 	return foundNonComputedAttr
+}
+
+// validPriorFromConfig returns true if the prior object could have been
+// derived from the configuration. We do this by walking the prior value to
+// determine if it is a valid superset of the config, and only computable
+// values have been added. This function is only used to correlated
+// configuration with possible valid prior values within sets.
+func validPriorFromConfig(schema nestedSchema, prior, config cty.Value) bool {
+	if config.RawEquals(prior) {
+		return true
+	}
+
+	// error value to halt the walk
+	stop := errors.New("stop")
+
+	valid := true
+	cty.Walk(prior, func(path cty.Path, priorV cty.Value) (bool, error) {
+		configV, err := path.Apply(config)
+		if err != nil {
+			// most likely dynamic objects with different types
+			valid = false
+			return false, stop
+		}
+
+		// we don't need to know the schema if both are equal
+		if configV.RawEquals(priorV) {
+			// we know they are equal, so no need to descend further
+			return false, nil
+		}
+
+		// We can't descend into nested sets to correlate configuration, so the
+		// overall values must be equal.
+		if configV.Type().IsSetType() {
+			valid = false
+			return false, stop
+		}
+
+		attr := schema.AttributeByPath(path)
+		if attr == nil {
+			// Not at a schema attribute, so we can continue until we find leaf
+			// attributes.
+			return true, nil
+		}
+
+		// If we have nested object attributes we'll be descending into those
+		// to compare the individual values and determine why this level is not
+		// equal
+		if attr.NestedType != nil {
+			return true, nil
+		}
+
+		// This is a leaf attribute, so it must be computed in order to differ
+		// from config.
+		if !attr.Computed {
+			valid = false
+			return false, stop
+		}
+
+		// And if it is computed, the config must be null to allow a change.
+		if !configV.IsNull() {
+			valid = false
+			return false, stop
+		}
+
+		// We sill stop here. The cty value could be far larger, but this was
+		// the last level of prescribed schema.
+		return false, nil
+	})
+
+	return valid
 }

@@ -2537,8 +2537,6 @@ func TestProposedNew(t *testing.T) {
 			}),
 		},
 
-		// If there are no configured attributes which cannot be computed, the
-		// values cannot be correlated and will always produce a change.
 		"set attr with all optional computed": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -2574,6 +2572,10 @@ func TestProposedNew(t *testing.T) {
 					}),
 				}),
 			}),
+			// Each of these values can be correlated by the existence of the
+			// optional config attribute. Because "one" and "two" are set in
+			// the config, they must exist in the state regardless of
+			// optional&computed.
 			cty.ObjectVal(map[string]cty.Value{
 				"multi": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
@@ -2590,11 +2592,135 @@ func TestProposedNew(t *testing.T) {
 				"multi": cty.SetVal([]cty.Value{
 					cty.ObjectVal(map[string]cty.Value{
 						"opt": cty.StringVal("one"),
-						"oc":  cty.NullVal(cty.String),
+						"oc":  cty.StringVal("OK"),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
 						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+		},
+
+		"set block with all optional computed and nested object types": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"multi": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"oc": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"attr": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"opt": {
+												Type:     cty.String,
+												Optional: true,
+												Computed: true,
+											},
+											"oc": {
+												Type:     cty.String,
+												Optional: true,
+												Computed: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
 						"oc":  cty.NullVal(cty.String),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.NullVal(cty.String),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("three"),
+						"oc":  cty.NullVal(cty.String),
+						"attr": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+							"opt": cty.String,
+							"oc":  cty.String,
+						}))),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					// We can correlate this with prior from the outer object
+					// attributes, and the equal nested set.
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					// This value is overridden by config, because we can't
+					// correlate optional+computed config values within nested
+					// sets.
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.NullVal(cty.String),
+						})}),
+					}),
+					// This value was taken only from config
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("three"),
+						"oc":  cty.NullVal(cty.String),
+						"attr": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+							"opt": cty.String,
+							"oc":  cty.String,
+						}))),
 					}),
 				}),
 			}),
