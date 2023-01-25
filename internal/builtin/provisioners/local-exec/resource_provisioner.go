@@ -57,6 +57,10 @@ func (p *provisioner) GetSchema() (resp provisioners.GetSchemaResponse) {
 				Type:     cty.Map(cty.String),
 				Optional: true,
 			},
+			"quiet": {
+				Type:     cty.Bool,
+				Optional: true,
+			},
 		},
 	}
 
@@ -163,7 +167,11 @@ func (p *provisioner) ProvisionResource(req provisioners.ProvisionResourceReques
 	go copyUIOutput(req.UIOutput, tee, copyDoneCh)
 
 	// Output what we're about to run
-	req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
+	if quietVal := req.Config.GetAttr("quiet"); !quietVal.IsNull() && quietVal.True() {
+		req.UIOutput.Output("local-exec: Executing: Suppressed by quiet=true")
+	} else {
+		req.UIOutput.Output(fmt.Sprintf("Executing: %q", cmdargs))
+	}
 
 	// Start the command
 	err = cmd.Start()
