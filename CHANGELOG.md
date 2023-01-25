@@ -20,6 +20,10 @@ BUG FIXES:
 * Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
 * Fix inconsistent behaviour in empty vs null collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
 * `terraform workspace` now returns a non-zero exit when given an invalid argument [GH-31318]
+* Terraform would always plan changes when using a nested set attribute [GH-32536]
+* Terraform can now better detect when complex optional+computed object attributes are removed from configuration [GH-32551]
+* A new methodology for planning set elements can now better detect optional+computed changes within sets [GH-32563]
+
 
 ENHANCEMENTS:
 
