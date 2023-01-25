@@ -1989,8 +1989,9 @@ func TestProposedNew(t *testing.T) {
 		},
 
 		// A nested object with computed attributes, which is contained in an
-		// optional+computed container. The entire prior nested value should be
-		// represented in the proposed new object if the configuration is null.
+		// optional+computed container. The prior nested object contains values
+		// which could not be computed, therefor the proposed new value must be
+		// the null value from the configuration.
 		"computed within optional+computed": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
