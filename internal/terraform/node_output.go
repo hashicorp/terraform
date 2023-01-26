@@ -580,17 +580,20 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		changes.AppendOutputChange(cs)     // add the new planned change
 	}
 
-	if val.IsKnown() && !val.IsNull() {
-		// The state itself doesn't represent unknown values, so we null them
-		// out here and then we'll save the real unknown value in the planned
-		// changeset below, if we have one on this graph walk.
-		log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-		unmarkedVal, _ := val.UnmarkDeep()
-		stateVal := cty.UnknownAsNull(unmarkedVal)
-		state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
-	} else {
+	// Null outputs must be saved for modules so that they can still be
+	// evaluated. Null root outputs are removed entirely, which is always fine
+	// because they can't be referenced by anything else in the configuration.
+	if n.Addr.Module.IsRoot() && val.IsNull() {
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
+		return
 	}
 
+	// The state itself doesn't represent unknown values, so we null them
+	// out here and then we'll save the real unknown value in the planned
+	// changeset, if we have one on this graph walk.
+	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+	unmarkedVal, _ := val.UnmarkDeep()
+	stateVal := cty.UnknownAsNull(unmarkedVal)
+	state.SetOutputValue(n.Addr, stateVal, n.Config.Sensitive)
 }
