@@ -5,6 +5,7 @@ BUG FIXES:
 * Fixed a rare bug causing inaccurate `before_sensitive` / `after_sensitive` annotations in JSON plan output for deeply nested structures. This was only observed in the wild on the rancher/rancher2 provider, and resulted in glitched display in Terraform Cloud's structured plan log view. [GH-32543]
 * A variable only referenced by an output precondition error_message may be missing during evaluation [GH-32464]
 * Removing a NestingSingle block from configuration results in an invalid plan [GH-32463]
+* Null module outputs could be dropped, causing evaluation errors when referring to those module attributes [GH-32583]
 
 ## 1.3.7 (January 04, 2023)
 
