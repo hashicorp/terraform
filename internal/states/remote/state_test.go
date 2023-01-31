@@ -49,19 +49,23 @@ type testCase struct {
 	name string
 	// A function to mutate state and return a cleanup function
 	mutationFunc func(*State) (*states.State, func())
-	// The expected request to have taken place
-	expectedRequest mockClientRequest
+	// The expected requests to have taken place
+	expectedRequests []mockClientRequest
 	// Mark this case as not having a request
 	noRequest bool
+	// The expected current state
+	currentState []byte
 }
 
 // isRequested ensures a test that is specified as not having
 // a request doesn't have one by checking if a method exists
 // on the expectedRequest.
 func (tc testCase) isRequested(t *testing.T) bool {
-	hasMethod := tc.expectedRequest.Method != ""
-	if tc.noRequest && hasMethod {
-		t.Fatalf("expected no content for %q but got: %v", tc.name, tc.expectedRequest)
+	for _, expectedMethod := range tc.expectedRequests {
+		hasMethod := expectedMethod.Method != ""
+		if tc.noRequest && hasMethod {
+			t.Fatalf("expected no content for %q but got: %v", tc.name, expectedMethod)
+		}
 	}
 	return !tc.noRequest
 }
@@ -74,17 +78,20 @@ func TestStatePersist(t *testing.T) {
 			mutationFunc: func(mgr *State) (*states.State, func()) {
 				return mgr.State(), func() {}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Get",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "mock-lineage",
-					"serial":            1.0, // encoding/json decodes this as float64 by default
-					"terraform_version": "0.0.0",
-					"outputs":           map[string]interface{}{},
-					"resources":         []interface{}{},
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Get",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            1.0, // encoding/json decodes this as float64 by default
+						"terraform_version": "0.0.0",
+						"outputs":           map[string]interface{}{},
+						"resources":         []interface{}{},
+					},
 				},
 			},
+			currentState: nil,
 		},
 		{
 			name: "change lineage",
@@ -95,18 +102,21 @@ func TestStatePersist(t *testing.T) {
 					mgr.lineage = originalLineage
 				}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Put",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "some-new-lineage",
-					"serial":            2.0, // encoding/json decodes this as float64 by default
-					"terraform_version": version.Version,
-					"outputs":           map[string]interface{}{},
-					"resources":         []interface{}{},
-					"check_results":     nil,
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "some-new-lineage",
+						"serial":            2.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs":           map[string]interface{}{},
+						"resources":         []interface{}{},
+						"check_results":     nil,
+					},
 				},
 			},
+			currentState: nil,
 		},
 		{
 			name: "change serial",
@@ -117,18 +127,21 @@ func TestStatePersist(t *testing.T) {
 					mgr.serial = originalSerial
 				}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Put",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "mock-lineage",
-					"serial":            4.0, // encoding/json decodes this as float64 by default
-					"terraform_version": version.Version,
-					"outputs":           map[string]interface{}{},
-					"resources":         []interface{}{},
-					"check_results":     nil,
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            4.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs":           map[string]interface{}{},
+						"resources":         []interface{}{},
+						"check_results":     nil,
+					},
 				},
 			},
+			currentState: nil,
 		},
 		{
 			name: "add output to state",
@@ -137,23 +150,26 @@ func TestStatePersist(t *testing.T) {
 				s.RootModule().SetOutputValue("foo", cty.StringVal("bar"), false)
 				return s, func() {}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Put",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "mock-lineage",
-					"serial":            3.0, // encoding/json decodes this as float64 by default
-					"terraform_version": version.Version,
-					"outputs": map[string]interface{}{
-						"foo": map[string]interface{}{
-							"type":  "string",
-							"value": "bar",
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{
+							"foo": map[string]interface{}{
+								"type":  "string",
+								"value": "bar",
+							},
 						},
+						"resources":     []interface{}{},
+						"check_results": nil,
 					},
-					"resources":     []interface{}{},
-					"check_results": nil,
 				},
 			},
+			currentState: nil,
 		},
 		{
 			name: "mutate state bar -> baz",
@@ -162,23 +178,26 @@ func TestStatePersist(t *testing.T) {
 				s.RootModule().SetOutputValue("foo", cty.StringVal("baz"), false)
 				return s, func() {}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Put",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "mock-lineage",
-					"serial":            4.0, // encoding/json decodes this as float64 by default
-					"terraform_version": version.Version,
-					"outputs": map[string]interface{}{
-						"foo": map[string]interface{}{
-							"type":  "string",
-							"value": "baz",
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            4.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{
+							"foo": map[string]interface{}{
+								"type":  "string",
+								"value": "baz",
+							},
 						},
+						"resources":     []interface{}{},
+						"check_results": nil,
 					},
-					"resources":     []interface{}{},
-					"check_results": nil,
 				},
 			},
+			currentState: nil,
 		},
 		{
 			name: "nothing changed",
@@ -194,21 +213,77 @@ func TestStatePersist(t *testing.T) {
 				mgr.serial = 2
 				return mgr.State(), func() {}
 			},
-			expectedRequest: mockClientRequest{
-				Method: "Put",
-				Content: map[string]interface{}{
-					"version":           4.0, // encoding/json decodes this as float64 by default
-					"lineage":           "mock-lineage",
-					"serial":            3.0, // encoding/json decodes this as float64 by default
-					"terraform_version": version.Version,
-					"outputs": map[string]interface{}{
-						"foo": map[string]interface{}{
-							"type":  "string",
-							"value": "baz",
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{
+							"foo": map[string]interface{}{
+								"type":  "string",
+								"value": "baz",
+							},
 						},
+						"resources":     []interface{}{},
+						"check_results": nil,
 					},
-					"resources":     []interface{}{},
-					"check_results": nil,
+				},
+			},
+			currentState: nil,
+		},
+		{
+			name: "first state persistence",
+			mutationFunc: func(mgr *State) (*states.State, func()) {
+				mgr.readState = nil
+				return mgr.State(), func() {}
+			},
+			currentState: []byte(`
+			{
+				"version": 4,
+				"lineage": "",
+				"serial": 0,
+				"terraform_version":"0.0.0",
+				"outputs": {},
+				"resources": []
+			}
+		`),
+			expectedRequests: []mockClientRequest{
+				{
+					Method: "Get",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{
+							"foo": map[string]interface{}{
+								"type":  "string",
+								"value": "baz",
+							},
+						},
+						"resources":     []interface{}{},
+						"check_results": nil,
+					},
+				},
+				{
+					Method: "Put",
+					Content: map[string]interface{}{
+						"version":           4.0, // encoding/json decodes this as float64 by default
+						"lineage":           "mock-lineage",
+						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{
+							"foo": map[string]interface{}{
+								"type":  "string",
+								"value": "baz",
+							},
+						},
+						"resources":     []interface{}{},
+						"check_results": nil,
+					},
 				},
 			},
 		},
@@ -220,15 +295,15 @@ func TestStatePersist(t *testing.T) {
 	mgr := &State{
 		Client: &mockClient{
 			current: []byte(`
-				{
-					"version": 4,
-					"lineage": "mock-lineage",
-					"serial": 1,
-					"terraform_version":"0.0.0",
-					"outputs": {},
-					"resources": []
-				}
-			`),
+			{
+				"version": 4,
+				"lineage": "mock-lineage",
+				"serial": 1,
+				"terraform_version":"0.0.0",
+				"outputs": {},
+				"resources": []
+			}
+		`),
 		},
 	}
 
@@ -252,6 +327,13 @@ func TestStatePersist(t *testing.T) {
 	// Run tests in order.
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			if tc.currentState != nil {
+				originalState := mockClient.current
+				defer func(){
+					mockClient.current = originalState
+				}()
+				mockClient.current = tc.currentState
+			}
 			s, cleanup := tc.mutationFunc(mgr)
 
 			if err := mgr.WriteState(s); err != nil {
@@ -267,10 +349,12 @@ func TestStatePersist(t *testing.T) {
 				if logIdx >= len(mockClient.log) {
 					t.Fatalf("request lock and index are out of sync on %q: idx=%d len=%d", tc.name, logIdx, len(mockClient.log))
 				}
-				loggedRequest := mockClient.log[logIdx]
-				logIdx++
-				if diff := cmp.Diff(tc.expectedRequest, loggedRequest); len(diff) > 0 {
-					t.Fatalf("incorrect client requests for %q:\n%s", tc.name, diff)
+				for expectedRequestIdx := 0; expectedRequestIdx < len(tc.expectedRequests); expectedRequestIdx++ {
+					loggedRequest := mockClient.log[logIdx]
+					logIdx++
+					if diff := cmp.Diff(tc.expectedRequests[expectedRequestIdx], loggedRequest); len(diff) > 0 {
+						t.Fatalf("incorrect client requests for %q:\n%s", tc.name, diff)
+					}
 				}
 			}
 			cleanup()
@@ -278,7 +362,7 @@ func TestStatePersist(t *testing.T) {
 	}
 	logCnt := len(mockClient.log)
 	if logIdx != logCnt {
-		log.Fatalf("not all requests were read. Expected logIdx to be %d but got %d", logCnt, logIdx)
+		t.Fatalf("not all requests were read. Expected logIdx to be %d but got %d", logCnt, logIdx)
 	}
 }
 
