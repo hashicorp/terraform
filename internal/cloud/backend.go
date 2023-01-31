@@ -194,7 +194,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
-// configureGenericHost aliases the cloud backend hostname configuration
+// configureGenericHostname aliases the cloud backend hostname configuration
 // as a generic "localterraform.com" hostname. This was originally added as a
 // Terraform Enterprise feature and is useful for re-using whatever the
 // Cloud/Enterprise backend host is in nested module sources in order
