@@ -180,6 +180,18 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}
 			]
 		}
+		// https://github.com/hashicorp/terraform/issues/32396
+		// This variable was originally introduced to test the behaviour of the
+        // dynamic type constraint. You should be able to set primitive types in
+        // the list consistently.
+        variable "list_with_nested_collections_dynamic_with_default" {
+			type = list(
+				object({
+					name = optional(string, "default")
+					taints = optional(list(map(any)), [])
+				})
+			)
+		}
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -510,6 +522,39 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			``,
 		},
+		{
+			"list_with_nested_collections_dynamic_with_default",
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("default"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("default"),
+					"taints": cty.ListValEmpty(cty.Map(cty.String)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
 
 		// complex types
 
@@ -709,6 +754,39 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 					"a": cty.StringVal("b"),
 					"b": cty.ListVal([]cty.Value{
 						cty.NumberIntVal(1),
+					}),
+				}),
+			}),
+			``,
+		},
+		{
+			"list_with_nested_collections_dynamic_with_default",
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("default"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("default"),
+					"taints": cty.ListValEmpty(cty.Map(cty.String)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
 					}),
 				}),
 			}),
