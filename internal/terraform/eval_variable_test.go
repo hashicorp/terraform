@@ -522,6 +522,39 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			cty.UnknownVal(cty.String),
 			``,
 		},
+		{
+			"list_with_nested_collections_dynamic_with_default",
+			cty.TupleVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("default"),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			cty.ListVal([]cty.Value{
+				cty.ObjectVal(map[string]cty.Value{
+					"name":   cty.StringVal("default"),
+					"taints": cty.ListValEmpty(cty.Map(cty.String)),
+				}),
+				cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("complex"),
+					"taints": cty.ListVal([]cty.Value{
+						cty.MapVal(map[string]cty.Value{
+							"key":   cty.StringVal("my_key"),
+							"value": cty.StringVal("my_value"),
+						}),
+					}),
+				}),
+			}),
+			``,
+		},
 
 		// complex types
 
