@@ -41,6 +41,7 @@ ENHANCEMENTS:
 * backend/oss: More robustly handle endpoint retrieval error ([#32295](https://github.com/hashicorp/terraform/issues/32295))
 * local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. [GH-32116]
 * backend/http: Add support for mTLS authentication. [GH-31699]
+* Resource meta-arguments can now be controlled using dynamic blocks functionality. [GH-24188]
 
 EXPERIMENTS:
 
