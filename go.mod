@@ -83,7 +83,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
-	golang.org/x/text v0.6.0
+	golang.org/x/text v0.4.0
 	golang.org/x/tools v0.1.12
 	google.golang.org/api v0.44.0-impersonate-preview
 	google.golang.org/grpc v1.47.0
