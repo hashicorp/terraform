@@ -6,6 +6,7 @@ BUG FIXES:
 * A variable only referenced by an output precondition error_message may be missing during evaluation [GH-32464]
 * Removing a NestingSingle block from configuration results in an invalid plan [GH-32463]
 * Null module outputs could be dropped, causing evaluation errors when referring to those module attributes [GH-32583]
+* Fix terraform crash when applying defaults into a collection with dynamic type constraint. [GH-32454]
 
 ## 1.3.7 (January 04, 2023)
 
