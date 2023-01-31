@@ -41,6 +41,7 @@ ENHANCEMENTS:
 * backend/oss: More robustly handle endpoint retrieval error ([#32295](https://github.com/hashicorp/terraform/issues/32295))
 * local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. [GH-32116]
 * backend/http: Add support for mTLS authentication. [GH-31699]
+* cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname.
 
 EXPERIMENTS:
 
