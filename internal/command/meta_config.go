@@ -9,11 +9,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -69,31 +67,6 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
-	return module, diags
-}
-
-// loadSingleModuleEarly is a variant of loadSingleModule that uses the special
-// "early config" loader that is more forgiving of unexpected constructs and
-// legacy syntax.
-//
-// Early-loaded config is not registered in the source code cache, so
-// diagnostics produced from it may render without source code snippets. In
-// practice this is not a big concern because the early config loader also
-// cannot generate detailed source locations, so it prefers to produce
-// diagnostics without explicit source location information and instead includes
-// approximate locations in the message text.
-//
-// Most callers should use loadConfig. This method exists to support early
-// initialization use-cases where the root module must be inspected in order
-// to determine what else needs to be installed before the full configuration
-// can be used.
-func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	dir = m.normalizePath(dir)
-
-	module, moreDiags := earlyconfig.LoadModule(dir)
-	diags = diags.Append(moreDiags)
-
 	return module, diags
 }
 
