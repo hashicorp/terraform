@@ -6,8 +6,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/zclconf/go-cty/cty"
 
+	tfaddr "github.com/hashicorp/terraform-registry-address"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -72,32 +75,77 @@ func (tc testCase) isRequested(t *testing.T) bool {
 
 func TestStatePersist(t *testing.T) {
 	testCases := []testCase{
-		// Refreshing state before we run the test loop causes a GET
 		{
-			name: "refresh state",
+			name: "first state persistence",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
-				return mgr.State(), func() {}
+				mgr.state = &states.State{
+					Modules: map[string]*states.Module{"": {}},
+				}
+				s := mgr.State()
+				s.RootModule().SetResourceInstanceCurrent(
+					addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Name: "myfile",
+							Type: "local_file",
+					}.Instance(addrs.NoKey),
+					&states.ResourceInstanceObjectSrc{
+						AttrsFlat: map[string]string{
+							"filename": "file.txt",
+						},
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Provider: tfaddr.Provider{Namespace: "local"},
+					},
+				)
+				mgr.readState = nil
+				return s, func() {}
 			},
 			expectedRequests: []mockClientRequest{
 				{
 					Method: "Get",
+					Content: nil,
+				},
+				{
+					Method: "Get",
+					Content: nil,
+				},
+				{
+					Method: "Put",
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            1.0, // encoding/json decodes this as float64 by default
-						"terraform_version": "0.0.0",
-						"outputs":           map[string]interface{}{},
-						"resources":         []interface{}{},
+						"serial":            0.0, // encoding/json decodes this as float64 by default
+						"terraform_version": version.Version,
+						"outputs": map[string]interface{}{},
+						"resources": []interface{}{
+							map[string]interface{}{
+								"instances": []interface{}{
+									map[string]interface{}{
+										"attributes_flat": map[string]interface{}{
+											"filename":"file.txt",
+										},
+										"schema_version": 0.0,
+										"sensitive_attributes": []interface{}{},
+									},
+								},
+								"mode": "managed",
+								"name": "myfile",
+								"provider": `provider["/local/"]`,
+								"type": "local_file",
+							},
+						},
+						"check_results": nil,
 					},
 				},
 			},
-			currentState: nil,
 		},
 		{
 			name: "change lineage",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
 				originalLineage := mgr.lineage
 				mgr.lineage = "some-new-lineage"
+				mgr.state.RootModule().Resources = map[string]*states.Resource{}
 				return mgr.State(), func() {
 					mgr.lineage = originalLineage
 				}
@@ -108,7 +156,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "some-new-lineage",
-						"serial":            2.0, // encoding/json decodes this as float64 by default
+						"serial":            1.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs":           map[string]interface{}{},
 						"resources":         []interface{}{},
@@ -133,7 +181,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            4.0, // encoding/json decodes this as float64 by default
+						"serial":            3.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs":           map[string]interface{}{},
 						"resources":         []interface{}{},
@@ -156,7 +204,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"serial":            2.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs": map[string]interface{}{
 							"foo": map[string]interface{}{
@@ -184,7 +232,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            4.0, // encoding/json decodes this as float64 by default
+						"serial":            3.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs": map[string]interface{}{
 							"foo": map[string]interface{}{
@@ -234,77 +282,13 @@ func TestStatePersist(t *testing.T) {
 			},
 			currentState: nil,
 		},
-		{
-			name: "first state persistence",
-			mutationFunc: func(mgr *State) (*states.State, func()) {
-				mgr.readState = nil
-				return mgr.State(), func() {}
-			},
-			currentState: []byte(`
-			{
-				"version": 4,
-				"lineage": "",
-				"serial": 0,
-				"terraform_version":"0.0.0",
-				"outputs": {},
-				"resources": []
-			}
-		`),
-			expectedRequests: []mockClientRequest{
-				{
-					Method: "Get",
-					Content: map[string]interface{}{
-						"version":           4.0, // encoding/json decodes this as float64 by default
-						"lineage":           "mock-lineage",
-						"serial":            3.0, // encoding/json decodes this as float64 by default
-						"terraform_version": version.Version,
-						"outputs": map[string]interface{}{
-							"foo": map[string]interface{}{
-								"type":  "string",
-								"value": "baz",
-							},
-						},
-						"resources":     []interface{}{},
-						"check_results": nil,
-					},
-				},
-				{
-					Method: "Put",
-					Content: map[string]interface{}{
-						"version":           4.0, // encoding/json decodes this as float64 by default
-						"lineage":           "mock-lineage",
-						"serial":            3.0, // encoding/json decodes this as float64 by default
-						"terraform_version": version.Version,
-						"outputs": map[string]interface{}{
-							"foo": map[string]interface{}{
-								"type":  "string",
-								"value": "baz",
-							},
-						},
-						"resources":     []interface{}{},
-						"check_results": nil,
-					},
-				},
-			},
-		},
 	}
 
 	// Initial setup of state just to give us a fixed starting point for our
 	// test assertions below, or else we'd need to deal with
 	// random lineage.
 	mgr := &State{
-		Client: &mockClient{
-			current: []byte(`
-			{
-				"version": 4,
-				"lineage": "mock-lineage",
-				"serial": 1,
-				"terraform_version":"0.0.0",
-				"outputs": {},
-				"resources": []
-			}
-		`),
-		},
+		Client: &mockClient{},
 	}
 
 	// In normal use (during a Terraform operation) we always refresh and read
@@ -352,8 +336,14 @@ func TestStatePersist(t *testing.T) {
 				for expectedRequestIdx := 0; expectedRequestIdx < len(tc.expectedRequests); expectedRequestIdx++ {
 					loggedRequest := mockClient.log[logIdx]
 					logIdx++
-					if diff := cmp.Diff(tc.expectedRequests[expectedRequestIdx], loggedRequest); len(diff) > 0 {
-						t.Fatalf("incorrect client requests for %q:\n%s", tc.name, diff)
+					if diff := cmp.Diff(tc.expectedRequests[expectedRequestIdx], loggedRequest, cmpopts.IgnoreMapEntries(func(key string, value interface{}) bool {
+						if key == "lineage" && value != "mock-lineage" {
+							return true
+						}
+						return false
+					})); len(diff) > 0 {
+						t.Logf("incorrect client requests for %q:\n%s", tc.name, diff)
+						t.Fail()
 					}
 				}
 			}
