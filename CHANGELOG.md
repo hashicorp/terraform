@@ -7,6 +7,7 @@ BUG FIXES:
 * Removing a NestingSingle block from configuration results in an invalid plan [GH-32463]
 * Null module outputs could be dropped, causing evaluation errors when referring to those module attributes [GH-32583]
 * Fix terraform crash when applying defaults into a collection with dynamic type constraint. [GH-32454]
+* Updated to newer github.com/mitchellh/cli version, in turn bringing in updates for several indirect dependencies with known security issues. [GH-32609]
 
 ## 1.3.7 (January 04, 2023)
 
