@@ -98,24 +98,26 @@ func TestStatePersist(t *testing.T) {
 						Provider: tfaddr.Provider{Namespace: "local"},
 					},
 				)
-				mgr.readState = nil
 				return s, func() {}
 			},
 			expectedRequests: []mockClientRequest{
+				// Expect an initial refresh, which returns nothing since there is no remote state.
 				{
 					Method: "Get",
 					Content: nil,
 				},
+				// Expect a second refresh, since the read state is nil
 				{
 					Method: "Get",
 					Content: nil,
 				},
+				// Expect an initial push with values and a serial of 1
 				{
 					Method: "Put",
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            0.0, // encoding/json decodes this as float64 by default
+						"serial":            1.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs": map[string]interface{}{},
 						"resources": []interface{}{
@@ -140,6 +142,7 @@ func TestStatePersist(t *testing.T) {
 				},
 			},
 		},
+		// If lineage changes, expect the serial to increment
 		{
 			name: "change lineage",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
@@ -156,7 +159,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "some-new-lineage",
-						"serial":            1.0, // encoding/json decodes this as float64 by default
+						"serial":            2.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs":           map[string]interface{}{},
 						"resources":         []interface{}{},
@@ -166,6 +169,7 @@ func TestStatePersist(t *testing.T) {
 			},
 			currentState: nil,
 		},
+		// If the remote serial is incremented, then we increment it once more.
 		{
 			name: "change serial",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
@@ -181,7 +185,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"serial":            4.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs":           map[string]interface{}{},
 						"resources":         []interface{}{},
@@ -191,6 +195,7 @@ func TestStatePersist(t *testing.T) {
 			},
 			currentState: nil,
 		},
+		// Adding an output should cause the serial to increment as well.
 		{
 			name: "add output to state",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
@@ -204,7 +209,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            2.0, // encoding/json decodes this as float64 by default
+						"serial":            3.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs": map[string]interface{}{
 							"foo": map[string]interface{}{
@@ -219,6 +224,7 @@ func TestStatePersist(t *testing.T) {
 			},
 			currentState: nil,
 		},
+		// ...as should changing an output
 		{
 			name: "mutate state bar -> baz",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
@@ -232,7 +238,7 @@ func TestStatePersist(t *testing.T) {
 					Content: map[string]interface{}{
 						"version":           4.0, // encoding/json decodes this as float64 by default
 						"lineage":           "mock-lineage",
-						"serial":            3.0, // encoding/json decodes this as float64 by default
+						"serial":            4.0, // encoding/json decodes this as float64 by default
 						"terraform_version": version.Version,
 						"outputs": map[string]interface{}{
 							"foo": map[string]interface{}{
@@ -255,6 +261,8 @@ func TestStatePersist(t *testing.T) {
 			},
 			noRequest: true,
 		},
+		// If the remote state's serial is less (force push), then we
+		// increment it once from there.
 		{
 			name: "reset serial (force push style)",
 			mutationFunc: func(mgr *State) (*states.State, func()) {
