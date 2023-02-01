@@ -284,10 +284,8 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 		))
 		return nil, snap, diags
 	}
-	log.Printf("[DEBUG] backend/local: priorStateFile: %v", *priorStateFile)
 
 	if currentStateMeta != nil {
-		log.Printf("[DEBUG] backend/local: currentStateMeta: %v", *currentStateMeta)
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
 		// has changed since the plan was created. (All of the "real-world"
