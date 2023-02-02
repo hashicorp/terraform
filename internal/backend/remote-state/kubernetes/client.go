@@ -113,10 +113,6 @@ func (c *RemoteClient) getSecrets() ([]unstructured.Unstructured, error) {
 
 func (c *RemoteClient) Put(data []byte) error {
 	ctx := context.Background()
-	secretName, err := c.createSecretName(0)
-	if err != nil {
-		return err
-	}
 
 	payload, err := compressState(data)
 	if err != nil {
@@ -170,7 +166,11 @@ func (c *RemoteClient) Put(data []byte) error {
 		return nil
 	}
 	for i := newSecretCount; i < existingSecretCount; i++ {
-		err := c.deleteSecret(fmt.Sprintf("%s-part-%d", secretName, i))
+		secretName, err := c.createSecretName(i)
+		if err != nil {
+			return err
+		}
+		err = c.deleteSecret(secretName)
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func chunkPayload(buf []byte, size int) [][]byte {
 		chunks = append(chunks, chunk)
 	}
 	if len(buf) > 0 {
-		chunks = append(chunks, buf[:len(buf)])
+		chunks = append(chunks, buf)
 	}
 	return chunks
 }
