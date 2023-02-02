@@ -79,7 +79,7 @@ func TestLargeState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = s.PersistState()
+	err = s.PersistState(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -94,7 +94,7 @@ func TestLargeState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = s.PersistState()
+	err = s.PersistState(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
