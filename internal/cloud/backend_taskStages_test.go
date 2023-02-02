@@ -3,6 +3,7 @@ package cloud
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -203,5 +204,65 @@ func TestTaskStagesWithErrors(t *testing.T) {
 
 	if err == nil {
 		t.Error("Expected to error but did not")
+	}
+}
+
+func TestTaskStageOverride(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	integrationContext, writer := newMockIntegrationContext(b, t)
+
+	integrationContext.Op.UIOut = b.CLI
+
+	cases := map[string]struct {
+		taskStageID string
+		isError     bool
+		errMsg      string
+		input       *mockInput
+	}{
+		"override-pass": {
+			taskStageID: "ts-pass",
+			isError:     false,
+			input: testInput(t, map[string]string{
+				"→→ [bold]Override": "override",
+			}),
+			errMsg: "",
+		},
+		"override-fail": {
+			taskStageID: "ts-err",
+			isError:     true,
+			input: testInput(t, map[string]string{
+				"→→ [bold]Override": "override",
+			}),
+			errMsg: "",
+		},
+		"skip-override": {
+			taskStageID: "ts-err",
+			isError:     true,
+			errMsg:      "Failed to override: Apply discarded.",
+			input: testInput(t, map[string]string{
+				"→→ [bold]Override": "no",
+			}),
+		},
+	}
+	for _, c := range cases {
+		integrationContext.Op.UIIn = c.input
+		_, err := b.processStageOverrides(integrationContext, writer, c.taskStageID)
+		if c.isError {
+			if err == nil {
+				t.Fatalf("Expected to fail with some error")
+			}
+			if c.errMsg != "" {
+				if !strings.Contains(err.Error(), c.errMsg) {
+					t.Fatalf("Expected: %s, got: %s", c.errMsg, err.Error())
+				}
+			}
+
+		} else {
+			if err != nil {
+				t.Fatalf("Expected to pass, got err: %s", err)
+			}
+		}
 	}
 }

@@ -1,0 +1,25 @@
+tfcoremock_simple_resource.drift: Refreshing state... [id=cb79269e-dc39-1e68-0a9c-63cb392afda9]
+
+Note: Objects have changed outside of Terraform
+
+Terraform detected the following changes made outside of Terraform since the
+last "terraform apply" which may have affected this plan:
+
+  # tfcoremock_simple_resource.drift has changed
+  ~ resource "tfcoremock_simple_resource" "drift" {
+        id     = "cb79269e-dc39-1e68-0a9c-63cb392afda9"
+      ~ string = "Hello, world!" -> "Hello, drift!"
+    }
+
+
+This is a refresh-only plan, so Terraform will not take any actions to undo
+these. If you were expecting these changes then you can apply this plan to
+record the updated values in the Terraform state without changing any remote
+objects.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"
