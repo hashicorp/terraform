@@ -63,9 +63,6 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	// object state for now.
 	c.Meta.parallelism = args.Operation.Parallelism
 
-	// The ViewType argument is used to determine how the command's messages are dispatched.
-	c.Meta.viewType = args.ViewType
-
 	// Prepare the backend with the backend-specific arguments
 	be, beDiags := c.PrepareBackend(args.State)
 	diags = diags.Append(beDiags)
@@ -75,7 +72,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation)
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.ViewType)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -134,12 +131,12 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State) (backend.Enhanced
 	return be, diags
 }
 
-func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, args *arguments.Operation,
+func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, args *arguments.Operation, format arguments.ViewType,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, format)
 	opReq.ConfigDir = "."
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets

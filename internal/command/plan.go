@@ -61,9 +61,6 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	// object state for now.
 	c.Meta.parallelism = args.Operation.Parallelism
 
-	// The ViewType argument is used to determine how the command's messages are dispatched.
-	c.Meta.viewType = args.ViewType
-
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Prepare the backend with the backend-specific arguments
@@ -75,7 +72,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath, args.ViewType)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -142,11 +139,12 @@ func (c *PlanCommand) OperationRequest(
 	view views.Plan,
 	args *arguments.Operation,
 	planOutPath string,
+	format arguments.ViewType,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, format)
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()

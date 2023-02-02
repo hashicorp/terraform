@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -390,7 +391,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 // This prepares the operation. After calling this, the caller is expected
 // to modify fields of the operation such as Sequence to specify what will
 // be called.
-func (m *Meta) Operation(b backend.Backend) *backend.Operation {
+func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Operation {
 	schema := b.ConfigSchema()
 	workspace, err := m.Workspace()
 	if err != nil {
@@ -410,7 +411,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 
 	stateLocker := clistate.NewNoopLocker()
 	if m.stateLock {
-		view := views.NewStateLocker(m.viewType, m.View)
+		view := views.NewStateLocker(vt, m.View)
 		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
 	}
 
@@ -1006,7 +1007,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		view := views.NewStateLocker(m.viewType, m.View)
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
@@ -1142,7 +1143,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 
 		if m.stateLock {
-			view := views.NewStateLocker(m.viewType, m.View)
+			view := views.NewStateLocker(arguments.ViewHuman, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 				diags = diags.Append(fmt.Errorf("Error locking state: %s", err))

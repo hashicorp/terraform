@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
@@ -93,7 +94,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	if c.stateLock {
-		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(c.StateMeta.Meta.viewType, c.View))
+		stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 		if diags := stateLocker.Lock(stateFromMgr, "state-mv"); diags.HasErrors() {
 			c.showDiagnostics(diags)
 			return 1
@@ -131,7 +132,7 @@ func (c *StateMvCommand) Run(args []string) int {
 		}
 
 		if c.stateLock {
-			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(c.StateMeta.Meta.viewType, c.View))
+			stateLocker := clistate.NewLocker(c.stateLockTimeout, views.NewStateLocker(arguments.ViewHuman, c.View))
 			if diags := stateLocker.Lock(stateToMgr, "state-mv"); diags.HasErrors() {
 				c.showDiagnostics(diags)
 				return 1

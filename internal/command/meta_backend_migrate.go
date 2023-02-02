@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/states"
@@ -339,7 +340,7 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 	if m.stateLock {
 		lockCtx := context.Background()
 
-		view := views.NewStateLocker(m.viewType, m.View)
+		view := views.NewStateLocker(arguments.ViewHuman, m.View)
 		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
 		lockerSource := locker.WithContext(lockCtx)

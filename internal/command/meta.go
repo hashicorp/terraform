@@ -223,8 +223,6 @@ type Meta struct {
 	// compactWarnings (-compact-warnings) selects a more compact presentation
 	// of warnings in the output when they are not accompanied by errors.
 	//
-	// viewType (type ViewType) is the requested output format. If a --json argument is passed,
-	// the ViewType is set to arguments.ViewJSON('J'), the default is arguments.ViewHuman('H').
 	statePath        string
 	stateOutPath     string
 	backupPath       string
@@ -235,7 +233,6 @@ type Meta struct {
 	reconfigure      bool
 	migrateState     bool
 	compactWarnings  bool
-	viewType         arguments.ViewType
 
 	// Used with commands which write state to allow users to write remote
 	// state even if the remote and local Terraform versions don't match.
@@ -555,8 +552,6 @@ func (m *Meta) process(args []string) []string {
 		m.Ui = m.oldUi
 	}
 
-	// Set default view type
-	m.viewType = arguments.ViewHuman
 	// Set colorization
 	m.color = m.Color
 	i := 0 // output index
@@ -564,8 +559,6 @@ func (m *Meta) process(args []string) []string {
 		if v == "-no-color" {
 			m.color = false
 			m.Color = false
-		} else if v == "--json" {
-			m.viewType = arguments.ViewJSON
 		} else {
 			// copy and increment index
 			args[i] = v
