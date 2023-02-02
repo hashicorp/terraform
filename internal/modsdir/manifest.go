@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	version "github.com/hashicorp/go-version"
@@ -136,7 +137,14 @@ func ReadManifestSnapshotForDir(dir string) (Manifest, error) {
 func (m Manifest) WriteSnapshot(w io.Writer) error {
 	var write manifestSnapshotFile
 
-	for _, record := range m {
+	var keys []string
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		record := m[k]
+
 		// Make sure VersionStr is in sync with Version, since we encourage
 		// callers to manipulate Version and ignore VersionStr.
 		if record.Version != nil {
