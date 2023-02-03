@@ -1,0 +1,16 @@
+name: Test Link Rewrites
+
+on: [deployment_status]
+
+jobs:
+  test-link-rewrites:
+    if: github.event.deployment_status.state == 'success'
+    uses: hashicorp/dev-portal/.github/workflows/docs-content-link-rewrites-e2e.yml@2aceb60125f6c15f4c8dbe2e4d79148047bfa437
+    with:
+      repo-owner: "hashicorp"
+      repo-name: "terraform"
+      commit-sha: ${{ github.sha }}
+      main-branch-preview-url: "https://terraform-lw0m5e91w-hashicorp.vercel.app/"
+      # Workflow is only intended to run for one single migration PR
+      # This variable does not need to be updated
+      pr-branch-preview-url: ${{ github.event.deployment_status.target_url }}
