@@ -53,6 +53,10 @@ type BackendOpts struct {
 	// ForceLocal will force a purely local backend, including state.
 	// You probably don't want to set this.
 	ForceLocal bool
+
+	// ViewType will set console output format for the
+	// initialization operation (JSON or human-readable).
+	ViewType arguments.ViewType
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -1007,7 +1011,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		vt := arguments.ViewJSON
+		// Set default viewtype if none was set as the StateLocker needs to know exactly
+		// what viewType we want to have.
+		if opts == nil || opts.ViewType != vt {
+			vt = arguments.ViewHuman
+		}
+		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
@@ -1143,7 +1153,13 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 
 		if m.stateLock {
-			view := views.NewStateLocker(arguments.ViewHuman, m.View)
+			vt := arguments.ViewJSON
+			// Set default viewtype if none was set as the StateLocker needs to know exactly
+			// what viewType we want to have.
+			if opts == nil || opts.ViewType != vt {
+				vt = arguments.ViewHuman
+			}
+			view := views.NewStateLocker(vt, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 				diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
