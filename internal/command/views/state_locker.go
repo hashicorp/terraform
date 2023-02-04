@@ -33,9 +33,8 @@ type StateLockerHuman struct {
 	view *View
 }
 
-// StateLockerHuman and StateLockerJSON share the same methods so we only have to check
-// whether StateLockerHuman conforms the interface
 var _ StateLocker = (*StateLockerHuman)(nil)
+var _ StateLocker = (*StateLockerJSON)(nil)
 
 func (v *StateLockerHuman) Locking() {
 	v.view.streams.Println("Acquiring state lock. This may take a few moments...")
