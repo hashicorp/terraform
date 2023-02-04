@@ -238,7 +238,6 @@ type Meta struct {
 	//
 	// compactWarnings (-compact-warnings) selects a more compact presentation
 	// of warnings in the output when they are not accompanied by errors.
-	//
 	statePath        string
 	stateOutPath     string
 	backupPath       string
