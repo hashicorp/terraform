@@ -615,7 +615,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.backend_c_r_S(c, cHash, sMgr, true)
+		return m.backend_c_r_S(c, cHash, sMgr, true, opts)
 
 	// Configuring a backend for the first time or -reconfigure flag was used
 	case c != nil && s.Backend.Empty():
@@ -849,8 +849,17 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 //-------------------------------------------------------------------
 
 // Unconfiguring a backend (moving from backend => local).
-func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_r_S(
+	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+
 	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
 
 	s := sMgr.State()
 
@@ -889,6 +898,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 		DestinationType: "local",
 		Source:          b,
 		Destination:     localB,
+		ViewType:        vt,
 	})
 	if err != nil {
 		diags = diags.Append(err)
@@ -919,6 +929,13 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 // Configuring a backend for the first time.
 func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
@@ -974,6 +991,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 			DestinationType: c.Type,
 			Source:          localB,
 			Destination:     b,
+			ViewType:        vt,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -1011,12 +1029,6 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		vt := arguments.ViewJSON
-		// Set default viewtype if none was set as the StateLocker needs to know exactly
-		// what viewType we want to have.
-		if opts == nil || opts.ViewType != vt {
-			vt = arguments.ViewHuman
-		}
 		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
@@ -1087,6 +1099,13 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
+
 	// Get the old state
 	s := sMgr.State()
 
@@ -1146,6 +1165,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 			DestinationType: c.Type,
 			Source:          oldB,
 			Destination:     b,
+			ViewType:        vt,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -1153,12 +1173,6 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 
 		if m.stateLock {
-			vt := arguments.ViewJSON
-			// Set default viewtype if none was set as the StateLocker needs to know exactly
-			// what viewType we want to have.
-			if opts == nil || opts.ViewType != vt {
-				vt = arguments.ViewHuman
-			}
 			view := views.NewStateLocker(vt, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
