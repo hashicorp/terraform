@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -898,12 +897,17 @@ func testCopyDir(t *testing.T, src, dst string) {
 		t.Fatal(err)
 	}
 
-	entries, err := ioutil.ReadDir(src)
+	entries, err := os.ReadDir(src)
 	if err != nil {
 		return
 	}
 
-	for _, entry := range entries {
+	for _, dirEntry := range entries {
+		entry, err := dirEntry.Info()
+		if err != nil {
+			t.Fatal(err)
+		}
+
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
@@ -1070,7 +1074,7 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 		t.Fatalf("failed to open output file: %s", err)
 	}
 	defer wantFile.Close()
-	wantBytes, err := ioutil.ReadAll(wantFile)
+	wantBytes, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("failed to read output file: %s", err)
 	}

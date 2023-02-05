@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
@@ -604,7 +603,7 @@ func TestAccUploadFile(t *testing.T) {
 		t.Fatalf("error uploading file: %s", err)
 	}
 
-	data, err := ioutil.ReadFile(tmpFile)
+	data, err := os.ReadFile(tmpFile)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -638,7 +637,7 @@ func TestAccHugeUploadFile(t *testing.T) {
 	size := int64(1 << 32)
 	source := io.LimitReader(rand.New(rand.NewSource(0)), size)
 
-	dest, err := ioutil.TempFile("", "communicator")
+	dest, err := os.CreateTemp("", "communicator")
 	if err != nil {
 		t.Fatal(err)
 	}

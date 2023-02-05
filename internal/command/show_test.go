@@ -2,7 +2,7 @@ package command
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -472,7 +472,7 @@ func TestShow_state(t *testing.T) {
 
 func TestShow_json_output(t *testing.T) {
 	fixtureDir := "testdata/show-json"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -569,7 +569,7 @@ func TestShow_json_output(t *testing.T) {
 				t.Fatalf("unexpected err: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}
@@ -662,7 +662,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -758,7 +758,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -775,7 +775,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 // similar test as above, without the plan
 func TestShow_json_output_state(t *testing.T) {
 	fixtureDir := "testdata/show-json-state"
-	testDirs, err := ioutil.ReadDir(fixtureDir)
+	testDirs, err := os.ReadDir(fixtureDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -845,7 +845,7 @@ func TestShow_json_output_state(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}

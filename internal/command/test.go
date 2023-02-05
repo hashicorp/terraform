@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -609,7 +608,7 @@ func (c *TestCommand) testSuiteDestroy(ctx context.Context, state *states.State,
 }
 
 func (c *TestCommand) collectSuiteNames() ([]string, error) {
-	items, err := ioutil.ReadDir("tests")
+	items, err := os.ReadDir("tests")
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

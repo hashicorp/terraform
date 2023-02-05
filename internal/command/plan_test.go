@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -880,7 +879,7 @@ func TestPlan_varFile(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -921,7 +920,7 @@ func TestPlan_varFileDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -960,7 +959,7 @@ func TestPlan_varFileWithDecls(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(planVarFileWithDecl), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

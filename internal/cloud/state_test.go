@@ -3,7 +3,7 @@ package cloud
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
@@ -92,7 +92,7 @@ func TestState(t *testing.T) {
 
 	state := testCloudState(t)
 
-	jsonState, err := ioutil.ReadFile("../command/testdata/show-json-state/sensitive-variables/output.json")
+	jsonState, err := os.ReadFile("../command/testdata/show-json-state/sensitive-variables/output.json")
 	if err != nil {
 		t.Fatal(err)
 	}
