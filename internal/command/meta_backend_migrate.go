@@ -27,6 +27,7 @@ type backendMigrateOpts struct {
 	SourceType, DestinationType string
 	Source, Destination         backend.Backend
 	ViewType                    arguments.ViewType
+
 	// Fields below are set internally when migrate is called
 
 	sourceWorkspace      string
