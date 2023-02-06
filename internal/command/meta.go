@@ -553,13 +553,9 @@ func (m *Meta) extendedFlagSet(n string) *flag.FlagSet {
 	return f
 }
 
-// process will a:
-// process any -no-color entries out of the arguments. This
+// process will process any -no-color entries out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice, and update the Meta and Ui.
-// and b:
-// process any --json flag. If it is true, any outputs will be made in JSON format,
-// otherwise it will be in human-readable format.
 func (m *Meta) process(args []string) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
