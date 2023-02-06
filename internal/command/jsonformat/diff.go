@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -43,7 +44,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			continue
 		}
 
-		schema := plan.GetSchema(drift)
+		schema := plan.getSchema(drift)
 		diffs.drift = append(diffs.drift, diff{
 			change: drift,
 			diff:   differ.FromJsonChange(drift.Change, relevantAttrs).ComputeDiffForBlock(schema.Block),
@@ -51,7 +52,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	}
 
 	for _, change := range plan.ResourceChanges {
-		schema := plan.GetSchema(change)
+		schema := plan.getSchema(change)
 		diffs.changes = append(diffs.changes, diff{
 			change: change,
 			diff:   differ.FromJsonChange(change.Change, attribute_path.AlwaysMatcher()).ComputeDiffForBlock(schema.Block),
@@ -72,7 +73,7 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 			}
 
 			if left.Mode != right.Mode {
-				return left.Mode == jsonplan.DataResourceMode
+				return left.Mode == jsonstate.DataResourceMode
 			}
 
 			if left.Address != right.Address {

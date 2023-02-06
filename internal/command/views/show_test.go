@@ -53,7 +53,7 @@ func TestShowHuman(t *testing.T) {
 			},
 			testSchemas(),
 			true,
-			"\n",
+			"The state file is empty. No resources are represented.\n",
 		},
 		"nothing": {
 			nil,

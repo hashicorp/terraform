@@ -37,7 +37,7 @@ func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.D
 		// after.
 		value.RelevantAttributes = attribute_path.AlwaysMatcher()
 
-		return value.computeDiffForType(elementType)
+		return value.ComputeDiffForType(elementType)
 	}
 
 	isObjType := func(_ interface{}) bool {

@@ -76,6 +76,15 @@ func hclEscapeString(str string) string {
 	return fmt.Sprintf("%q", str)
 }
 
-func colorizeDiffAction(action plans.Action, opts computed.RenderHumanOpts) string {
-	return opts.Colorize.Color(format.DiffActionSymbol(action))
+// writeDiffActionSymbol writes out the symbols for the associated action, and
+// handles localized colorization of the symbol as well as indenting the symbol
+// to be 4 spaces wide.
+//
+// If the opts has HideDiffActionSymbols set then this function returns an empty
+// string.
+func writeDiffActionSymbol(action plans.Action, opts computed.RenderHumanOpts) string {
+	if opts.HideDiffActionSymbols {
+		return ""
+	}
+	return fmt.Sprintf("%s ", opts.Colorize.Color(format.DiffActionSymbol(action)))
 }

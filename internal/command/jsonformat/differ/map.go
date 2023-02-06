@@ -18,7 +18,7 @@ func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Di
 			// Mark non-relevant attributes as unchanged.
 			value = value.AsNoOp()
 		}
-		return value.computeDiffForType(elementType)
+		return value.ComputeDiffForType(elementType)
 	})
 	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.Matches())
 }

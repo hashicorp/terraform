@@ -12,7 +12,7 @@ import (
 
 func (change Change) computeAttributeDiffAsObject(attributes map[string]cty.Type) computed.Diff {
 	attributeDiffs, action := processObject(change, attributes, func(value Change, ctype cty.Type) computed.Diff {
-		return value.computeDiffForType(ctype)
+		return value.ComputeDiffForType(ctype)
 	})
 	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.Matches())
 }

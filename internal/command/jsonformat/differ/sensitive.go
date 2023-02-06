@@ -13,7 +13,7 @@ type CreateSensitiveRenderer func(computed.Diff, bool, bool) computed.DiffRender
 
 func (change Change) checkForSensitiveType(ctype cty.Type) (computed.Diff, bool) {
 	return change.checkForSensitive(renderers.Sensitive, func(value Change) computed.Diff {
-		return value.computeDiffForType(ctype)
+		return value.ComputeDiffForType(ctype)
 	})
 }
 

@@ -12,7 +12,7 @@ import (
 
 func (change Change) checkForUnknownType(ctype cty.Type) (computed.Diff, bool) {
 	return change.checkForUnknown(false, func(value Change) computed.Diff {
-		return value.computeDiffForType(ctype)
+		return value.ComputeDiffForType(ctype)
 	})
 }
 func (change Change) checkForUnknownNestedAttribute(attribute *jsonprovider.NestedType) (computed.Diff, bool) {

@@ -18,7 +18,7 @@ func (change Change) computeAttributeDiffAsTuple(elementTypes []cty.Type) comput
 			// Mark non-relevant attributes as unchanged.
 			childValue = childValue.AsNoOp()
 		}
-		element := childValue.computeDiffForType(elementType)
+		element := childValue.ComputeDiffForType(elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	}
