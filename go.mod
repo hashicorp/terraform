@@ -70,7 +70,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/posener/complete v1.2.3
 	github.com/spf13/afero v1.2.2
-	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.232
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.0.588
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/tag v1.0.233
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.29
 	github.com/tombuildsstuff/giovanni v0.15.1
@@ -170,6 +170,7 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sts v1.0.588 // indirect
 	github.com/ulikunitz/xz v0.5.8 // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
