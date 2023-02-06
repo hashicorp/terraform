@@ -92,7 +92,6 @@ func (state State) renderHumanStateModule(renderer Renderer, module jsonstate.Mo
 		renderer.Streams.Println()
 	}
 
-	// Render depth-first, so we show children first.
 	for _, child := range module.ChildModules {
 		state.renderHumanStateModule(renderer, child, opts, first)
 	}
