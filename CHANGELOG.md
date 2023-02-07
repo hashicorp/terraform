@@ -43,6 +43,7 @@ ENHANCEMENTS:
 * local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. [GH-32116]
 * backend/http: Add support for mTLS authentication. [GH-31699]
 * cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname. This enhancement was also applied to the remote backend.
+* `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. [GH-32629]
 
 EXPERIMENTS:
 
