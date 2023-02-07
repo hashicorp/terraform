@@ -24,7 +24,8 @@ var StartsWithFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.Bool),
+	Type:         function.StaticReturnType(cty.Bool),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		str := args[0].AsString()
 		prefix := args[1].AsString()
@@ -50,7 +51,8 @@ var EndsWithFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.Bool),
+	Type:         function.StaticReturnType(cty.Bool),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		str := args[0].AsString()
 		suffix := args[1].AsString()
@@ -80,7 +82,8 @@ var ReplaceFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		str := args[0].AsString()
 		substr := args[1].AsString()
