@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -72,14 +71,14 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 			// minus 1 as the most recent unchanged element will be printed out
 			// in full.
 			if len(unchangedElements) > 1 {
-				buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements)-1, opts)))
+				buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), unchanged("element", len(unchangedElements)-1, opts)))
 			}
 			// If our list of unchanged elements contains at least one entry,
 			// we're going to print out the most recent change in full. That's
 			// what happens here.
 			if len(unchangedElements) > 0 {
 				lastElement := unchangedElements[len(unchangedElements)-1]
-				buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(lastElement.Action, opts), lastElement.RenderHuman(indent+1, unchangedElementOpts)))
+				buf.WriteString(fmt.Sprintf("%s%s%s,\n", formatIndent(indent+1), writeDiffActionSymbol(lastElement.Action, unchangedElementOpts), lastElement.RenderHuman(indent+1, unchangedElementOpts)))
 			}
 			// We now reset the unchanged elements list, we've printed out a
 			// count of all the elements we skipped so we start counting from
@@ -107,7 +106,7 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s %s,\n", formatIndent(indent+1), colorizeDiffAction(element.Action, opts), element.RenderHuman(indent+1, opts)))
+		buf.WriteString(fmt.Sprintf("%s%s%s,\n", formatIndent(indent+1), writeDiffActionSymbol(element.Action, opts), element.RenderHuman(indent+1, opts)))
 	}
 
 	// If we were not displaying any context alongside our changes then the
@@ -117,9 +116,9 @@ func (renderer listRenderer) RenderHuman(diff computed.Diff, indent int, opts co
 	// If we were displaying context, then this will contain any unchanged
 	// elements since our last change, so we should also print it out.
 	if len(unchangedElements) > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s %s\n", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), unchanged("element", len(unchangedElements), opts)))
+		buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), unchanged("element", len(unchangedElements), opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s ]%s", formatIndent(indent), format.DiffActionSymbol(plans.NoOp), nullSuffix(diff.Action, opts)))
+	buf.WriteString(fmt.Sprintf("%s%s]%s", formatIndent(indent), writeDiffActionSymbol(plans.NoOp, opts), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }

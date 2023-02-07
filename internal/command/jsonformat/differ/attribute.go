@@ -13,7 +13,7 @@ func (change Change) ComputeDiffForAttribute(attribute *jsonprovider.Attribute) 
 	if attribute.AttributeNestedType != nil {
 		return change.computeDiffForNestedAttribute(attribute.AttributeNestedType)
 	}
-	return change.computeDiffForType(unmarshalAttribute(attribute))
+	return change.ComputeDiffForType(unmarshalAttribute(attribute))
 }
 
 func (change Change) computeDiffForNestedAttribute(nested *jsonprovider.NestedType) computed.Diff {
@@ -39,7 +39,7 @@ func (change Change) computeDiffForNestedAttribute(nested *jsonprovider.NestedTy
 	}
 }
 
-func (change Change) computeDiffForType(ctype cty.Type) computed.Diff {
+func (change Change) ComputeDiffForType(ctype cty.Type) computed.Diff {
 	if sensitive, ok := change.checkForSensitiveType(ctype); ok {
 		return sensitive
 	}

@@ -6607,7 +6607,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 					FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher()).
 					ComputeDiffForBlock(jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
 			}
-			output, _ := renderer.renderHumanDiff(diff, proposedChange)
+			output, _ := renderHumanDiff(renderer, diff, proposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
 				t.Errorf("wrong output\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", tc.ExpectedOutput, output, diff)
 			}
@@ -6726,7 +6726,7 @@ func TestOutputChanges(t *testing.T) {
 				OutputChanges: outputs,
 			}, plans.NormalMode)
 
-			output := renderer.renderHumanDiffOutputs(diffs.outputs)
+			output := renderHumanDiffOutputs(renderer, diffs.outputs)
 			if output != tc.output {
 				t.Errorf("Unexpected diff.\ngot:\n%s\nwant:\n%s\n", output, tc.output)
 			}

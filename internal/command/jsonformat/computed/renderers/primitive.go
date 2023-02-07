@@ -7,7 +7,6 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
@@ -95,12 +94,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		// We are creating a single multiline string, so let's split by the new
 		// line character. While we are doing this, we are going to insert our
 		// indents and make sure each line is formatted correctly.
-		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s ", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp))), "\n")
+		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts))), "\n")
 
 		// We now just need to do the same for the first entry in lines, because
 		// we split on the new line characters which won't have been at the
 		// beginning of the first line.
-		lines[0] = fmt.Sprintf("%s%s %s", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), lines[0])
+		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
 	case plans.Delete:
 		str := evaluatePrimitiveString(renderer.before, opts)
 
@@ -115,12 +114,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		// We are creating a single multiline string, so let's split by the new
 		// line character. While we are doing this, we are going to insert our
 		// indents and make sure each line is formatted correctly.
-		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s ", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp))), "\n")
+		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts))), "\n")
 
 		// We now just need to do the same for the first entry in lines, because
 		// we split on the new line characters which won't have been at the
 		// beginning of the first line.
-		lines[0] = fmt.Sprintf("%s%s %s", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), lines[0])
+		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
 	default:
 		beforeString := evaluatePrimitiveString(renderer.before, opts)
 		afterString := evaluatePrimitiveString(renderer.after, opts)
@@ -150,16 +149,16 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 
 		processIndices := func(beforeIx, afterIx int) {
 			if beforeIx < 0 || beforeIx >= len(beforeLines) {
-				lines = append(lines, fmt.Sprintf("%s%s %s", formatIndent(indent+1), colorizeDiffAction(plans.Create, opts), afterLines[afterIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Create, opts), afterLines[afterIx]))
 				return
 			}
 
 			if afterIx < 0 || afterIx >= len(afterLines) {
-				lines = append(lines, fmt.Sprintf("%s%s %s", formatIndent(indent+1), colorizeDiffAction(plans.Delete, opts), beforeLines[beforeIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
 				return
 			}
 
-			lines = append(lines, fmt.Sprintf("%s%s %s", formatIndent(indent+1), format.DiffActionSymbol(plans.NoOp), beforeLines[beforeIx]))
+			lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), beforeLines[beforeIx]))
 		}
 		isObjType := func(_ string) bool {
 			return false
@@ -170,11 +169,11 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 
 	// We return early if we find non-multiline strings or JSON strings, so we
 	// know here that we just render the lines slice properly.
-	return fmt.Sprintf("<<-EOT%s\n%s\n%s%s EOT%s",
+	return fmt.Sprintf("<<-EOT%s\n%s\n%s%sEOT%s",
 		forcesReplacement(diff.Replace, opts),
 		strings.Join(lines, "\n"),
 		formatIndent(indent),
-		format.DiffActionSymbol(plans.NoOp),
+		writeDiffActionSymbol(plans.NoOp, opts),
 		nullSuffix(diff.Action, opts))
 }
 
@@ -218,7 +217,7 @@ func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, ind
 	}
 
 	if strings.Contains(renderedJsonDiff, "\n") {
-		return fmt.Sprintf("jsonencode(%s\n%s%s %s%s\n%s)%s", whitespace, formatIndent(indent+1), colorizeDiffAction(action, opts), renderedJsonDiff, replace, formatIndent(indent+1), nullSuffix(diff.Action, opts))
+		return fmt.Sprintf("jsonencode(%s\n%s%s%s%s\n%s)%s", whitespace, formatIndent(indent+1), writeDiffActionSymbol(action, opts), renderedJsonDiff, replace, formatIndent(indent+1), nullSuffix(diff.Action, opts))
 	}
 	return fmt.Sprintf("jsonencode(%s)%s%s", renderedJsonDiff, whitespace, replace)
 }

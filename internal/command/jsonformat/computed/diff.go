@@ -87,6 +87,10 @@ type RenderHumanOpts struct {
 	// given complex change, instead of hiding unchanged items and compressing
 	// them into a single line.
 	ShowUnchangedChildren bool
+
+	// HideDiffActionSymbols tells the renderer not to show the '+'/'-' symbols
+	// and to skip the places where the symbols would result in an offset.
+	HideDiffActionSymbols bool
 }
 
 // NewRenderHumanOpts creates a new RenderHumanOpts struct with the required
@@ -105,6 +109,7 @@ func (opts RenderHumanOpts) Clone() RenderHumanOpts {
 
 		OverrideNullSuffix:    opts.OverrideNullSuffix,
 		ShowUnchangedChildren: opts.ShowUnchangedChildren,
+		HideDiffActionSymbols: opts.HideDiffActionSymbols,
 
 		// OverrideForcesReplacement is a special case in that it doesn't
 		// cascade. So each diff should decide independently whether it's direct

@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -42,16 +41,17 @@ type ShowHuman struct {
 var _ Show = (*ShowHuman)(nil)
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile *statefile.File, schemas *terraform.Schemas) int {
+	renderer := jsonformat.Renderer{
+		Colorize:            v.view.colorize,
+		Streams:             v.view.streams,
+		RunningInAutomation: v.view.runningInAutomation,
+	}
+
 	if plan != nil {
 		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
 		if err != nil {
 			v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
 			return 1
-		}
-
-		renderer := jsonformat.Renderer{
-			Colorize: v.view.colorize,
-			Streams:  v.view.streams,
 		}
 
 		jplan := jsonformat.Plan{
@@ -64,7 +64,7 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile 
 			RelevantAttributes:    attrs,
 		}
 
-		var opts []jsonformat.RendererOpt
+		var opts []jsonformat.PlanRendererOpt
 		if !plan.CanApply() {
 			opts = append(opts, jsonformat.CanNotApply)
 		}
@@ -79,11 +79,21 @@ func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile 
 			return 0
 		}
 
-		v.view.streams.Println(format.State(&format.StateOpts{
-			State:   stateFile.State,
-			Color:   v.view.colorize,
-			Schemas: schemas,
-		}))
+		root, outputs, err := jsonstate.MarshalForRenderer(stateFile, schemas)
+		if err != nil {
+			v.view.streams.Eprintf("Failed to marshal state to json: %s", err)
+			return 1
+		}
+
+		jstate := jsonformat.State{
+			StateFormatVersion:    jsonstate.FormatVersion,
+			ProviderFormatVersion: jsonprovider.FormatVersion,
+			RootModule:            root,
+			RootModuleOutputs:     outputs,
+			ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+		}
+
+		renderer.RenderHumanState(jstate)
 	}
 	return 0
 }

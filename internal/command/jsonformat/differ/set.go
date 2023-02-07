@@ -17,7 +17,7 @@ func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Di
 	var elements []computed.Diff
 	current := change.getDefaultActionForIteration()
 	change.processSet(func(value Change) {
-		element := value.computeDiffForType(elementType)
+		element := value.ComputeDiffForType(elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})

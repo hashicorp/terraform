@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -101,6 +102,46 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 	}
 }
 
+// FromJsonResource unmarshals the raw values in the jsonstate.Resource structs
+// into generic interface{} types that can be reasoned about.
+func FromJsonResource(resource jsonstate.Resource) Change {
+	return Change{
+		// We model resource formatting as NoOps.
+		Before: unwrapAttributeValues(resource.AttributeValues),
+		After:  unwrapAttributeValues(resource.AttributeValues),
+
+		// We have some sensitive values, but we don't have any unknown values.
+		Unknown:         false,
+		BeforeSensitive: unmarshalGeneric(resource.SensitiveValues),
+		AfterSensitive:  unmarshalGeneric(resource.SensitiveValues),
+
+		// We don't display replacement data for resources, and all attributes
+		// are relevant.
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	}
+}
+
+// FromJsonOutput unmarshals the raw values in the jsonstate.Output structs into
+// generic interface{} types that can be reasoned about.
+func FromJsonOutput(output jsonstate.Output) Change {
+	return Change{
+		// We model resource formatting as NoOps.
+		Before: unmarshalGeneric(output.Value),
+		After:  unmarshalGeneric(output.Value),
+
+		// We have some sensitive values, but we don't have any unknown values.
+		Unknown:         false,
+		BeforeSensitive: output.Sensitive,
+		AfterSensitive:  output.Sensitive,
+
+		// We don't display replacement data for resources, and all attributes
+		// are relevant.
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	}
+}
+
 func (change Change) asDiff(renderer computed.DiffRenderer) computed.Diff {
 	return computed.NewDiff(renderer, change.calculateChange(), change.ReplacePaths.Matches())
 }
@@ -169,6 +210,14 @@ func unmarshalGeneric(raw json.RawMessage) interface{} {
 	var out interface{}
 	if err := json.Unmarshal(raw, &out); err != nil {
 		panic("unrecognized json type: " + err.Error())
+	}
+	return out
+}
+
+func unwrapAttributeValues(values jsonstate.AttributeValues) map[string]interface{} {
+	out := make(map[string]interface{})
+	for key, value := range values {
+		out[key] = unmarshalGeneric(value)
 	}
 	return out
 }
