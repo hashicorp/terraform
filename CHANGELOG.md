@@ -23,6 +23,7 @@ BUG FIXES:
 * Terraform would always plan changes when using a nested set attribute [GH-32536]
 * Terraform can now better detect when complex optional+computed object attributes are removed from configuration [GH-32551]
 * A new methodology for planning set elements can now better detect optional+computed changes within sets [GH-32563]
+* Fix state locking and releasing messages when in `-json` mode, messages will now be written in JSON format [GH-32451]
 
 
 ENHANCEMENTS:
