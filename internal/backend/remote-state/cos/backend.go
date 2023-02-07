@@ -54,13 +54,13 @@ func New() backend.Backend {
 		Schema: map[string]*schema.Schema{
 			"secret_id": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_SECRET_ID, nil),
 				Description: "Secret id of Tencent Cloud",
 			},
 			"secret_key": {
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_SECRET_KEY, nil),
 				Description: "Secret key of Tencent Cloud",
 				Sensitive:   true,
