@@ -3,6 +3,7 @@ package cos
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -234,6 +235,14 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	// init credential by AKSK & TOKEN
 	b.credential = common.NewTokenCredential(secretId, secretKey, securityToken)
+	// update credential if assume role exist
+	err = handleAssumeRole(data, b)
+	if err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] cos.NewClient b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
+		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
 
 	b.cosClient = cos.NewClient(
 		&cos.BaseURL{BucketURL: u},
@@ -247,7 +256,11 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	)
 
-	// update credential if assume role exist
+	b.tagClient = b.UseTagClient()
+	return err
+}
+
+func handleAssumeRole(data *schema.ResourceData, b *Backend) error {
 	assumeRoleList := data.Get("assume_role").(*schema.Set).List()
 	if len(assumeRoleList) == 1 {
 		assumeRole := assumeRoleList[0].(map[string]interface{})
@@ -256,12 +269,12 @@ func (b *Backend) configure(ctx context.Context) error {
 		assumeRoleSessionDuration := assumeRole["session_duration"].(int)
 		assumeRolePolicy := assumeRole["policy"].(string)
 
-		_ = b.updateCredentialWithSTS(assumeRoleArn, assumeRoleSessionName, assumeRoleSessionDuration, assumeRolePolicy)
+		err := b.updateCredentialWithSTS(assumeRoleArn, assumeRoleSessionName, assumeRoleSessionDuration, assumeRolePolicy)
+		if err != nil {
+			return err
+		}
 	}
-
-	b.tagClient = b.UseTagClient()
-
-	return err
+	return nil
 }
 
 func (b *Backend) updateCredentialWithSTS(assumeRoleArn, assumeRoleSessionName string, assumeRoleSessionDuration int, assumeRolePolicy string) error {
@@ -295,7 +308,8 @@ func (b *Backend) UseStsClient() *sts.Client {
 	if b.stsClient != nil {
 		return b.stsClient
 	}
-
+	log.Printf("[DEBUG] sts.NewClient  b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
+		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
 	cpf := b.NewClientProfile(300)
 	b.stsClient, _ = sts.NewClient(b.credential, b.region, cpf)
 	b.stsClient.WithHttpTransport(&LogRoundTripper{})
@@ -308,7 +322,8 @@ func (b *Backend) UseTagClient() *tag.Client {
 	if b.tagClient != nil {
 		return b.tagClient
 	}
-
+	log.Printf("[DEBUG] tag.NewClient b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
+		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
 	cpf := b.NewClientProfile(300)
 	cpf.Language = "en-US"
 	b.tagClient, _ = tag.NewClient(b.credential, b.region, cpf)
