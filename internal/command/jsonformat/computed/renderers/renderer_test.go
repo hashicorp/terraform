@@ -2064,6 +2064,23 @@ jsonencode(
     ]
 `,
 		},
+		"json_string_no_symbols": {
+			diff: computed.Diff{
+				Renderer: Primitive("{\"key\":\"value\"}", "{\"key\":\"value\"}", cty.String),
+				Action:   plans.NoOp,
+			},
+			opts: computed.RenderHumanOpts{
+				HideDiffActionSymbols: true,
+				ShowUnchangedChildren: true,
+			},
+			expected: `
+jsonencode(
+    {
+        key = "value"
+    }
+)
+`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
