@@ -3,7 +3,6 @@ package cos
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -241,9 +240,6 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] cos.NewClient b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
-		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
-
 	b.cosClient = cos.NewClient(
 		&cos.BaseURL{BucketURL: u},
 		&http.Client{
@@ -308,8 +304,6 @@ func (b *Backend) UseStsClient() *sts.Client {
 	if b.stsClient != nil {
 		return b.stsClient
 	}
-	log.Printf("[DEBUG] sts.NewClient  b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
-		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
 	cpf := b.NewClientProfile(300)
 	b.stsClient, _ = sts.NewClient(b.credential, b.region, cpf)
 	b.stsClient.WithHttpTransport(&LogRoundTripper{})
@@ -322,8 +316,6 @@ func (b *Backend) UseTagClient() *tag.Client {
 	if b.tagClient != nil {
 		return b.tagClient
 	}
-	log.Printf("[DEBUG] tag.NewClient b.credential.SecretId:[%s],b.credential.SecretKey:[%s],b.credential.Token:[%s]",
-		b.credential.SecretId, b.credential.SecretKey, b.credential.Token)
 	cpf := b.NewClientProfile(300)
 	cpf.Language = "en-US"
 	b.tagClient, _ = tag.NewClient(b.credential, b.region, cpf)
