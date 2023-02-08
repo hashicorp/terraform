@@ -8,6 +8,7 @@ BUG FIXES:
 * Null module outputs could be dropped, causing evaluation errors when referring to those module attributes [GH-32583]
 * Fix terraform crash when applying defaults into a collection with dynamic type constraint. [GH-32454]
 * Updated to newer github.com/mitchellh/cli version, in turn bringing in updates for several indirect dependencies with known security issues. [GH-32609]
+* Fix case where the first plan to use a new remote state could be applied twice, corrupting the state [GH-32614]
 
 ## 1.3.7 (January 04, 2023)
 
