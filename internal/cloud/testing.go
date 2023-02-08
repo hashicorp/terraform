@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"testing"
 	"time"
@@ -224,14 +225,20 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.local = testLocalBackend(t, b)
 	b.input = true
 
-	readRedactedPlan = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
-		return mc.RedactedPlans.Read(ctx, hostname, token, planID)
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
 	ctx := context.Background()
 
 	// Create the organization.
-	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
+	_, err = b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
 		Name: tfe.String(b.organization),
 	})
 	if err != nil {
@@ -284,8 +291,14 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
-	readRedactedPlan = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
-		return mc.RedactedPlans.Read(ctx, hostname, token, planID)
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
 	// Set local to a local test backend.

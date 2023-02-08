@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/hashicorp/go-retryablehttp"
 	tfe "github.com/hashicorp/go-tfe"
+	"github.com/hashicorp/jsonapi"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -548,17 +551,20 @@ func (b *Cloud) confirm(stopCtx context.Context, op *backend.Operation, opts *te
 // a struct the jsonformat.Renderer expects.
 //
 // Note: Apologies for the lengthy definition, this is a result of not being able to mock receiver methods
-var readRedactedPlan func(context.Context, string, string, string) (*jsonformat.Plan, error) = func(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+var readRedactedPlan func(context.Context, url.URL, string, string) (*jsonformat.Plan, error) = func(ctx context.Context, baseURL url.URL, token string, planID string) (*jsonformat.Plan, error) {
 	client := retryablehttp.NewClient()
 	client.RetryMax = 10
+	client.RetryWaitMin = 100 * time.Millisecond
+	client.RetryWaitMax = 400 * time.Millisecond
 	client.Logger = logging.HCLogger()
 
-	u := fmt.Sprintf("https://%s/api/v2/plans/%s/json-output-redacted",
-		url.QueryEscape(hostname),
-		url.QueryEscape(planID),
-	)
+	u, err := baseURL.Parse(fmt.Sprintf(
+		"plans/%s/json-output-redacted", url.QueryEscape(planID)))
+	if err != nil {
+		return nil, err
+	}
 
-	req, err := retryablehttp.NewRequest("GET", u, nil)
+	req, err := retryablehttp.NewRequest("GET", u.String(), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -569,13 +575,61 @@ var readRedactedPlan func(context.Context, string, string, string) (*jsonformat.
 	p := &jsonformat.Plan{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return p, err
+		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if err = checkResponseCode(resp); err != nil {
+		return nil, err
+	}
 
 	if err := json.NewDecoder(resp.Body).Decode(p); err != nil {
 		return nil, err
 	}
 
 	return p, nil
+}
+
+func checkResponseCode(r *http.Response) error {
+	if r.StatusCode >= 200 && r.StatusCode <= 299 {
+		return nil
+	}
+
+	var errs []string
+	var err error
+
+	switch r.StatusCode {
+	case 401:
+		return tfe.ErrUnauthorized
+	case 404:
+		return tfe.ErrResourceNotFound
+	}
+
+	errs, err = decodeErrorPayload(r)
+	if err != nil {
+		return err
+	}
+
+	return errors.New(strings.Join(errs, "\n"))
+}
+
+func decodeErrorPayload(r *http.Response) ([]string, error) {
+	// Decode the error payload.
+	var errs []string
+	errPayload := &jsonapi.ErrorsPayload{}
+	err := json.NewDecoder(r.Body).Decode(errPayload)
+	if err != nil || len(errPayload.Errors) == 0 {
+		return errs, errors.New(r.Status)
+	}
+
+	// Parse and format the errors.
+	for _, e := range errPayload.Errors {
+		if e.Detail == "" {
+			errs = append(errs, e.Title)
+		} else {
+			errs = append(errs, fmt.Sprintf("%s\n\n%s", e.Title, e.Detail))
+		}
+	}
+
+	return errs, nil
 }

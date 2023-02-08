@@ -437,7 +437,7 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 			return err
 		}
 		// Fetch the redacted plan.
-		redacted, err := readRedactedPlan(ctx, b.hostname, token, run.Plan.ID)
+		redacted, err := readRedactedPlan(ctx, b.client.BaseURL(), token, run.Plan.ID)
 		if err != nil {
 			return err
 		}

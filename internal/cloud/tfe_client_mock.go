@@ -234,6 +234,11 @@ func (m *MockConfigurationVersions) Upload(ctx context.Context, url, path string
 	}
 	m.uploadPaths[cv.ID] = path
 	cv.Status = tfe.ConfigurationUploaded
+
+	return m.UploadTarGzip(ctx, url, nil)
+}
+
+func (m *MockConfigurationVersions) UploadTarGzip(ctx context.Context, url string, archive io.Reader) error {
 	return nil
 }
 
@@ -389,6 +394,10 @@ func (m *MockOrganizations) Create(ctx context.Context, options tfe.Organization
 }
 
 func (m *MockOrganizations) Read(ctx context.Context, name string) (*tfe.Organization, error) {
+	return m.ReadWithOptions(ctx, name, tfe.OrganizationReadOptions{})
+}
+
+func (m *MockOrganizations) ReadWithOptions(ctx context.Context, name string, options tfe.OrganizationReadOptions) (*tfe.Organization, error) {
 	org, ok := m.organizations[name]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
