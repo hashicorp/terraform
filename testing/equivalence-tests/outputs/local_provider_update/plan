@@ -11,7 +11,7 @@ Terraform will perform the following actions:
       ~ content              = jsonencode(
           ~ {
               + goodbye = "world"
-              - hello   = "world" -> null
+              - hello   = "world"
             } # forces replacement
         )
       ~ id                   = "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e" -> (known after apply)
