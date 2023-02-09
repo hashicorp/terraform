@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"testing"
 	"time"
@@ -16,9 +17,11 @@ import (
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -222,10 +225,20 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.local = testLocalBackend(t, b)
 	b.input = true
 
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
+	}
+
 	ctx := context.Background()
 
 	// Create the organization.
-	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
+	_, err = b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
 		Name: tfe.String(b.organization),
 	})
 	if err != nil {
@@ -277,6 +290,16 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
+
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
+	}
 
 	// Set local to a local test backend.
 	b.local = testLocalBackend(t, b)
@@ -406,6 +429,30 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
   ]
 }`)
 	},
+}
+
+func mockColorize() *colorstring.Colorize {
+	colors := make(map[string]string)
+	for k, v := range colorstring.DefaultColors {
+		colors[k] = v
+	}
+	colors["purple"] = "38;5;57"
+
+	return &colorstring.Colorize{
+		Colors:  colors,
+		Disable: false,
+		Reset:   true,
+	}
+}
+
+func mockSROWorkspace(t *testing.T, b *Cloud, workspaceName string) {
+	_, err := b.client.Workspaces.Update(context.Background(), "hashicorp", workspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+		TerraformVersion:           tfe.String("1.4.0"),
+	})
+	if err != nil {
+		t.Fatalf("Error enabling SRO on workspace %s: %v", workspaceName, err)
+	}
 }
 
 // testDisco returns a *disco.Disco mapping app.terraform.io and
