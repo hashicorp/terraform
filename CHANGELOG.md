@@ -19,20 +19,20 @@ BUG FIXES:
 * Fix Terraform creating objects that should not exist in variables that specify default attributes in optional objects. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
 * Fix several Terraform crashes that are caused by HCL creating objects that should not exist in variables that specify default attributes in optional objects within collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
 * Fix inconsistent behaviour in empty vs null collections. ([#32178](https://github.com/hashicorp/terraform/issues/32178))
-* `terraform workspace` now returns a non-zero exit when given an invalid argument [GH-31318]
-* Terraform would always plan changes when using a nested set attribute [GH-32536]
-* Terraform can now better detect when complex optional+computed object attributes are removed from configuration [GH-32551]
-* A new methodology for planning set elements can now better detect optional+computed changes within sets [GH-32563]
-* Fix state locking and releasing messages when in `-json` mode, messages will now be written in JSON format [GH-32451]
+* `terraform workspace` now returns a non-zero exit when given an invalid argument ([#31318](https://github.com/hashicorp/terraform/issues/31318))
+* Terraform would always plan changes when using a nested set attribute ([#32536](https://github.com/hashicorp/terraform/issues/32536))
+* Terraform can now better detect when complex optional+computed object attributes are removed from configuration ([#32551](https://github.com/hashicorp/terraform/issues/32551))
+* A new methodology for planning set elements can now better detect optional+computed changes within sets ([#32563](https://github.com/hashicorp/terraform/issues/32563))
+* Fix state locking and releasing messages when in `-json` mode, messages will now be written in JSON format ([#32451](https://github.com/hashicorp/terraform/issues/32451))
 
 
 ENHANCEMENTS:
 
-* `terraform plan` can now store a plan file even when encountering errors, which can later be inspected to help identify the source of the failures [GH-32395]
-* `terraform_data` is a new builtin managed resource type, which can replace the use of `null_resource`, and can store data of any type [GH-31757]
+* `terraform plan` can now store a plan file even when encountering errors, which can later be inspected to help identify the source of the failures ([#32395](https://github.com/hashicorp/terraform/issues/32395))
+* `terraform_data` is a new builtin managed resource type, which can replace the use of `null_resource`, and can store data of any type ([#31757](https://github.com/hashicorp/terraform/issues/31757))
 * `terraform init` will now ignore entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. This therefore avoids the long-standing problem that when installing a new provider for the first time from the cache we can't determine the full set of checksums to include in the lock file. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. There is an interim CLI configuration opt-out for those who rely on the previous incorrect behavior. ([#32129](https://github.com/hashicorp/terraform/issues/32129))
-* Interactive input for sensitive variables is now masked in the UI [GH-29520]
-* A new `-or-create` flag was added to `terraform workspace select`, to aid in creating workspaces in automated situations [GH-31633]
+* Interactive input for sensitive variables is now masked in the UI ([#29520](https://github.com/hashicorp/terraform/issues/29520))
+* A new `-or-create` flag was added to `terraform workspace select`, to aid in creating workspaces in automated situations ([#31633](https://github.com/hashicorp/terraform/issues/31633))
 * The "Failed to install provider" error message now includes the reason a provider could not be installed. ([#31898](https://github.com/hashicorp/terraform/issues/31898))
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. ([#24967](https://github.com/hashicorp/terraform/issues/24967))
 * backend/gcs: Add `storage_custom_endpoint` argument, to allow communication with the backend via a Private Service Connect endpoint. ([#28856](https://github.com/hashicorp/terraform/issues/28856))
@@ -40,10 +40,10 @@ ENHANCEMENTS:
 * backed/gcs: Update storage package to v1.28.0 ([#29656](https://github.com/hashicorp/terraform/issues/29656))
 * When removing a workspace from the `cloud` backend `terraform workspace delete` will use Terraform Cloud's [Safe Delete](https://developer.hashicorp.com/terraform/cloud-docs/api-docs/workspaces#safe-delete-a-workspace) API if the `-force` flag is not provided. ([#31949](https://github.com/hashicorp/terraform/pull/31949))
 * backend/oss: More robustly handle endpoint retrieval error ([#32295](https://github.com/hashicorp/terraform/issues/32295))
-* local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. [GH-32116]
-* backend/http: Add support for mTLS authentication. [GH-31699]
+* local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. ([#32116](https://github.com/hashicorp/terraform/issues/32116))
+* backend/http: Add support for mTLS authentication. ([#31699](https://github.com/hashicorp/terraform/issues/31699))
 * cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname. This enhancement was also applied to the remote backend.
-* `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. [GH-32629]
+* `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. ([#32629](https://github.com/hashicorp/terraform/issues/32629))
 
 EXPERIMENTS:
 
