@@ -141,3 +141,70 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 		t.Errorf("there should be no change for the %s instance, got %s", addr, got.Action)
 	}
 }
+
+// This test describes a situation which should not be possible, as this node
+// should never work on deposed instances. However, a bug elsewhere resulted in
+// this code path being exercised and triggered a panic. As a result, the
+// assertions at the end of the test are minimal, as the behaviour (aside from
+// not panicking) is unspecified.
+func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_object",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	state := states.NewState()
+	state.Module(addrs.RootModuleInstance).SetResourceInstanceDeposed(
+		addr.Resource,
+		states.NewDeposedKey(),
+		&states.ResourceInstanceObjectSrc{
+			AttrsFlat: map[string]string{
+				"test_string": "foo",
+			},
+			Status: states.ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: addrs.NewDefaultProvider("test"),
+			Module:   addrs.RootModule,
+		},
+	)
+	refreshState := state.DeepCopy()
+	prevRunState := state.DeepCopy()
+	changes := plans.NewChanges()
+
+	p := simpleMockProvider()
+	p.ConfigureProvider(providers.ConfigureProviderRequest{})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.NullVal(p.GetProviderSchemaResponse.ResourceTypes["test_string"].Block.ImpliedType()),
+	}
+	ctx := &MockEvalContext{
+		StateState:               state.SyncWrapper(),
+		RefreshStateState:        refreshState.SyncWrapper(),
+		PrevRunStateState:        prevRunState.SyncWrapper(),
+		InstanceExpanderExpander: instances.NewExpander(),
+		ProviderProvider:         p,
+		ProviderSchemaSchema: &ProviderSchema{
+			ResourceTypes: map[string]*configschema.Block{
+				"test_object": simpleTestSchema(),
+			},
+		},
+		ChangesChanges: changes.SyncWrapper(),
+	}
+
+	node := NodePlannableResourceInstanceOrphan{
+		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
+			NodeAbstractResource: NodeAbstractResource{
+				ResolvedProvider: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+			},
+			Addr: mustResourceInstanceAddr("test_object.foo"),
+		},
+	}
+	diags := node.Execute(ctx, walkPlan)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected error: %s", diags.Err())
+	}
+}
