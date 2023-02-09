@@ -329,7 +329,16 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
 	var ret []ResourceChange
 
-	for _, rc := range resources {
+	var sortedResources []*plans.ResourceInstanceChangeSrc
+	sortedResources = append(sortedResources, resources...)
+	sort.Slice(sortedResources, func(i, j int) bool {
+		if !sortedResources[i].Addr.Equal(sortedResources[j].Addr) {
+			return sortedResources[i].Addr.Less(sortedResources[j].Addr)
+		}
+		return sortedResources[i].DeposedKey < sortedResources[j].DeposedKey
+	})
+
+	for _, rc := range sortedResources {
 		var r ResourceChange
 		addr := rc.Addr
 		r.Address = addr.String()
@@ -490,10 +499,6 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 		ret = append(ret, r)
 
 	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Address < ret[j].Address
-	})
 
 	return ret, nil
 }

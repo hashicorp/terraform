@@ -1,13 +1,10 @@
 package jsonformat
 
 import (
-	"sort"
-
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -62,31 +59,6 @@ func precomputeDiffs(plan Plan, mode plans.Mode) diffs {
 	for key, output := range plan.OutputChanges {
 		diffs.outputs[key] = differ.FromJsonChange(output, attribute_path.AlwaysMatcher()).ComputeDiffForOutput()
 	}
-
-	less := func(drs []diff) func(i, j int) bool {
-		return func(i, j int) bool {
-			left := drs[i].change
-			right := drs[j].change
-
-			if left.ModuleAddress != right.ModuleAddress {
-				return left.ModuleAddress < right.ModuleAddress
-			}
-
-			if left.Mode != right.Mode {
-				return left.Mode == jsonstate.DataResourceMode
-			}
-
-			if left.Address != right.Address {
-				return left.Address < right.Address
-			}
-
-			// Everything else being equal, we'll sort by deposed.
-			return left.Deposed < right.Deposed
-		}
-	}
-
-	sort.Slice(diffs.drift, less(diffs.drift))
-	sort.Slice(diffs.changes, less(diffs.changes))
 
 	return diffs
 }

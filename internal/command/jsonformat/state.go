@@ -36,30 +36,11 @@ func (state State) GetSchema(resource jsonstate.Resource) *jsonprovider.Schema {
 }
 
 func (state State) renderHumanStateModule(renderer Renderer, module jsonstate.Module, opts computed.RenderHumanOpts, first bool) {
-	// Sort the resources in the module first, for consistent output.
-	var resources []jsonstate.Resource
-	resources = append(resources, module.Resources...)
-	sort.Slice(resources, func(i, j int) bool {
-		left := resources[i]
-		right := resources[j]
-
-		if left.Mode != right.Mode {
-			return left.Mode == jsonstate.DataResourceMode
-		}
-
-		if left.Address != right.Address {
-			return left.Address < right.Address
-		}
-
-		// Everything else being equal, we'll sort by deposed.
-		return left.DeposedKey < right.DeposedKey
-	})
-
-	if len(resources) > 0 && !first {
+	if len(module.Resources) > 0 && !first {
 		renderer.Streams.Println()
 	}
 
-	for _, resource := range resources {
+	for _, resource := range module.Resources {
 
 		if !first {
 			renderer.Streams.Println()
