@@ -189,6 +189,13 @@ type UpgradeResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred is a list of reasons why this action must be deferred to
+	// a later run when there's hopefully more information available. If this
+	// list has one or more items then Terraform will place this change and
+	// anything that depends on it into the "deferred changes" bucket, and
+	// therefore exclude it from the set of proposed changes for this run.
+	Deferred []DeferredReason
 }
 
 type ConfigureProviderRequest struct {
@@ -234,6 +241,13 @@ type ReadResourceResponse struct {
 	// Private is an opaque blob that will be stored in state along with the
 	// resource. It is intended only for interpretation by the provider itself.
 	Private []byte
+
+	// Deferred is a list of reasons why this action must be deferred to
+	// a later run when there's hopefully more information available. If this
+	// list has one or more items then Terraform will place this change and
+	// anything that depends on it into the "deferred changes" bucket, and
+	// therefore exclude it from the set of proposed changes for this run.
+	Deferred []DeferredReason
 }
 
 type PlanResourceChangeRequest struct {
@@ -282,6 +296,13 @@ type PlanResourceChangeResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred is a list of reasons why this action must be deferred to
+	// a later run when there's hopefully more information available. If this
+	// list has one or more items then Terraform will place this change and
+	// anything that depends on it into the "deferred changes" bucket, and
+	// therefore exclude it from the set of proposed changes for this run.
+	Deferred []DeferredReason
 
 	// LegacyTypeSystem is set only if the provider is using the legacy SDK
 	// whose type system cannot be precisely mapped into the Terraform type
@@ -357,6 +378,13 @@ type ImportResourceStateResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred is a list of reasons why this action must be deferred to
+	// a later run when there's hopefully more information available. If this
+	// list has one or more items then Terraform will place this change and
+	// anything that depends on it into the "deferred changes" bucket, and
+	// therefore exclude it from the set of proposed changes for this run.
+	Deferred []DeferredReason
 }
 
 // ImportedResource represents an object being imported into Terraform with the
@@ -416,4 +444,11 @@ type ReadDataSourceResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// Deferred is a list of reasons why this action must be deferred to
+	// a later run when there's hopefully more information available. If this
+	// list has one or more items then Terraform will place any change
+	// that depends on this result into the "deferred changes" bucket, and
+	// therefore exclude it from the set of proposed changes for this run.
+	Deferred []DeferredReason
 }

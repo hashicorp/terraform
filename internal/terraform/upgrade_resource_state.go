@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -92,6 +93,19 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 
 	resp := provider.UpgradeResourceState(req)
 	diags := resp.Diagnostics
+	if len(resp.Deferred) != 0 {
+		// We don't yet support deferrals really, so for now we'll just treat
+		// them as errors. This is only a temporary shortcut and should not
+		// ship in any stable Terraform release.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not enough information to upgrade",
+			Detail: fmt.Sprintf(
+				"The configuration of either %s or its provider contains unknown values that prevent planning.",
+				addr.String(),
+			),
+		})
+	}
 	if diags.HasErrors() {
 		return nil, diags
 	}

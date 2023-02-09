@@ -285,6 +285,7 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 			Json:    r.RawStateJSON,
 			Flatmap: r.RawStateFlatmap,
 		},
+		DeferAllowed: true,
 	}
 
 	protoResp, err := p.client.UpgradeResourceState(p.ctx, protoReq)
@@ -306,6 +307,13 @@ func (p *GRPCProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 		return resp
 	}
 	resp.UpgradedState = state
+
+	if len(protoResp.Deferred) != 0 {
+		resp.Deferred = make([]providers.DeferredReason, len(protoResp.Deferred))
+		for i, raw := range protoResp.Deferred {
+			resp.Deferred[i] = convert.DeferredReasonFromProto(raw)
+		}
+	}
 
 	return resp
 }
@@ -381,6 +389,7 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 		TypeName:     r.TypeName,
 		CurrentState: &proto6.DynamicValue{Msgpack: mp},
 		Private:      r.Private,
+		DeferAllowed: true,
 	}
 
 	if metaSchema.Block != nil {
@@ -406,6 +415,13 @@ func (p *GRPCProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	}
 	resp.NewState = state
 	resp.Private = protoResp.Private
+
+	if len(protoResp.Deferred) != 0 {
+		resp.Deferred = make([]providers.DeferredReason, len(protoResp.Deferred))
+		for i, raw := range protoResp.Deferred {
+			resp.Deferred[i] = convert.DeferredReasonFromProto(raw)
+		}
+	}
 
 	return resp
 }
@@ -460,6 +476,7 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 		Config:           &proto6.DynamicValue{Msgpack: configMP},
 		ProposedNewState: &proto6.DynamicValue{Msgpack: propMP},
 		PriorPrivate:     r.PriorPrivate,
+		DeferAllowed:     true,
 	}
 
 	if metaSchema.Block != nil {
@@ -487,6 +504,13 @@ func (p *GRPCProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	for _, p := range protoResp.RequiresReplace {
 		resp.RequiresReplace = append(resp.RequiresReplace, convert.AttributePathToPath(p))
+	}
+
+	if len(protoResp.Deferred) != 0 {
+		resp.Deferred = make([]providers.DeferredReason, len(protoResp.Deferred))
+		for i, raw := range protoResp.Deferred {
+			resp.Deferred[i] = convert.DeferredReasonFromProto(raw)
+		}
 	}
 
 	resp.PlannedPrivate = protoResp.PlannedPrivate
@@ -577,8 +601,9 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 	}
 
 	protoReq := &proto6.ImportResourceState_Request{
-		TypeName: r.TypeName,
-		Id:       r.ID,
+		TypeName:     r.TypeName,
+		Id:           r.ID,
+		DeferAllowed: true,
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)
@@ -587,6 +612,13 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		return resp
 	}
 	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	if len(protoResp.Deferred) != 0 {
+		resp.Deferred = make([]providers.DeferredReason, len(protoResp.Deferred))
+		for i, raw := range protoResp.Deferred {
+			resp.Deferred[i] = convert.DeferredReasonFromProto(raw)
+		}
+	}
 
 	for _, imported := range protoResp.ImportedResources {
 		resource := providers.ImportedResource{
@@ -639,6 +671,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		Config: &proto6.DynamicValue{
 			Msgpack: config,
 		},
+		DeferAllowed: true,
 	}
 
 	if metaSchema.Block != nil {
@@ -663,6 +696,13 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 		return resp
 	}
 	resp.State = state
+
+	if len(protoResp.Deferred) != 0 {
+		resp.Deferred = make([]providers.DeferredReason, len(protoResp.Deferred))
+		for i, raw := range protoResp.Deferred {
+			resp.Deferred[i] = convert.DeferredReasonFromProto(raw)
+		}
+	}
 
 	return resp
 }

@@ -643,6 +643,19 @@ func (n *NodeAbstractResourceInstance) refresh(ctx EvalContext, deposedKey state
 	if n.Config != nil {
 		resp.Diagnostics = resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String())
 	}
+	if len(resp.Deferred) != 0 {
+		// We don't yet support deferrals really, so for now we'll just treat
+		// them as errors. This is only a temporary shortcut and should not
+		// ship in any stable Terraform release.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not enough information to read",
+			Detail: fmt.Sprintf(
+				"The configuration of either %s or its provider contains unknown values that prevent planning.",
+				n.Addr.String(),
+			),
+		})
+	}
 
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -898,6 +911,20 @@ func (n *NodeAbstractResourceInstance) plan(
 		})
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if len(resp.Deferred) != 0 {
+		// We don't yet support deferrals really, so for now we'll just treat
+		// them as errors. This is only a temporary shortcut and should not
+		// ship in any stable Terraform release.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not enough information to plan",
+			Detail: fmt.Sprintf(
+				"The configuration of either %s or its provider contains unknown values that prevent planning.",
+				n.Addr.String(),
+			),
+			Subject: config.DeclRange.Ptr(),
+		})
+	}
 	if diags.HasErrors() {
 		return nil, nil, keyData, diags
 	}
@@ -1566,6 +1593,20 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 		})
 	}
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if len(resp.Deferred) != 0 {
+		// We don't yet support deferrals really, so for now we'll just treat
+		// them as errors. This is only a temporary shortcut and should not
+		// ship in any stable Terraform release.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not enough information to read",
+			Detail: fmt.Sprintf(
+				"The configuration of either %s or its provider contains unknown values that prevent planning.",
+				n.Addr.String(),
+			),
+			Subject: config.DeclRange.Ptr(),
+		})
+	}
 	if diags.HasErrors() {
 		return newVal, diags
 	}

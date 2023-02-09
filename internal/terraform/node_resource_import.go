@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -95,6 +96,19 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 		ID:       n.ID,
 	})
 	diags = diags.Append(resp.Diagnostics)
+	if len(resp.Deferred) != 0 {
+		// We don't yet support deferrals really, so for now we'll just treat
+		// them as errors. This is only a temporary shortcut and should not
+		// ship in any stable Terraform release.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Not enough information to import",
+			Detail: fmt.Sprintf(
+				"The provider configuration for %s contains unknown values that prevent planning.",
+				n.Addr.String(),
+			),
+		})
+	}
 	if diags.HasErrors() {
 		return diags
 	}
