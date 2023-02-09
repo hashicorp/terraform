@@ -71,6 +71,7 @@ func New() backend.Backend {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT",
 					"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
 				}, nil),
 				Description: "The service account to impersonate for all Google API Calls",
