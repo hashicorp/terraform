@@ -1,14 +1,14 @@
-## 1.3.8 (Unreleased)
+## 1.3.8 (February 09, 2023)
 
 BUG FIXES:
 
-* Fixed a rare bug causing inaccurate `before_sensitive` / `after_sensitive` annotations in JSON plan output for deeply nested structures. This was only observed in the wild on the rancher/rancher2 provider, and resulted in glitched display in Terraform Cloud's structured plan log view. [GH-32543]
-* A variable only referenced by an output precondition error_message may be missing during evaluation [GH-32464]
-* Removing a NestingSingle block from configuration results in an invalid plan [GH-32463]
-* Null module outputs could be dropped, causing evaluation errors when referring to those module attributes [GH-32583]
-* Fix terraform crash when applying defaults into a collection with dynamic type constraint. [GH-32454]
-* Updated to newer github.com/mitchellh/cli version, in turn bringing in updates for several indirect dependencies with known security issues. [GH-32609]
-* Fix case where the first plan to use a new remote state could be applied twice, corrupting the state [GH-32614]
+* Fixed a rare bug causing inaccurate `before_sensitive` / `after_sensitive` annotations in JSON plan output for deeply nested structures. This was only observed in the wild on the rancher/rancher2 provider, and resulted in glitched display in Terraform Cloud's structured plan log view. ([#32543](https://github.com/hashicorp/terraform/issues/32543))
+* A variable only referenced by an output precondition error_message may be missing during evaluation ([#32464](https://github.com/hashicorp/terraform/issues/32464))
+* Removing a NestingSingle block from configuration results in an invalid plan ([#32463](https://github.com/hashicorp/terraform/issues/32463))
+* Null module outputs could be dropped, causing evaluation errors when referring to those module attributes ([#32583](https://github.com/hashicorp/terraform/issues/32583))
+* Fix terraform crash when applying defaults into a collection with dynamic type constraint. ([#32454](https://github.com/hashicorp/terraform/issues/32454))
+* Updated to newer github.com/mitchellh/cli version, in turn bringing in updates for several indirect dependencies with known security issues. ([#32609](https://github.com/hashicorp/terraform/issues/32609))
+* Fix case where the first plan to use a new remote state could be applied twice, corrupting the state ([#32614](https://github.com/hashicorp/terraform/issues/32614))
 
 ## 1.3.7 (January 04, 2023)
 
