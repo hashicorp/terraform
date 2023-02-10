@@ -17,7 +17,7 @@ permissions:
   contents: write
 
 env:
-  terraform-equivalence-testing-version: v0.2.1
+  terraform-equivalence-testing-version: v0.3.0
   target-os: linux
   target-arch: amd64
 
