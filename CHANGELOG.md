@@ -44,7 +44,7 @@ ENHANCEMENTS:
 * backend/http: Add support for mTLS authentication. ([#31699](https://github.com/hashicorp/terraform/issues/31699))
 * cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname. This enhancement was also applied to the remote backend.
 * `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. ([#32629](https://github.com/hashicorp/terraform/issues/32629))
-* backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider.
+* backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider. [GH-32557]
 
 EXPERIMENTS:
 
