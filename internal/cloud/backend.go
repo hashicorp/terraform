@@ -66,6 +66,9 @@ type Cloud struct {
 	// hostname of Terraform Cloud or Terraform Enterprise
 	hostname string
 
+	// token for Terraform Cloud or Terraform Enterprise
+	token string
+
 	// organization is the organization that contains the target workspaces.
 	organization string
 
@@ -250,7 +253,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was not set in the configuration
 	if token == "" {
-		token, err = b.token()
+		token, err = b.cliConfigToken()
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -280,6 +283,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diags
 	}
 
+	b.token = token
 	b.configureGenericHostname()
 
 	if b.client == nil {
@@ -458,10 +462,10 @@ func (b *Cloud) discover() (*url.URL, error) {
 	return service, err
 }
 
-// token returns the token for this host as configured in the credentials
+// cliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func (b *Cloud) token() (string, error) {
+func (b *Cloud) cliConfigToken() (string, error) {
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return "", err
