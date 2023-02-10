@@ -37,13 +37,14 @@ ENHANCEMENTS:
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. ([#24967](https://github.com/hashicorp/terraform/issues/24967))
 * backend/gcs: Add `storage_custom_endpoint` argument, to allow communication with the backend via a Private Service Connect endpoint. ([#28856](https://github.com/hashicorp/terraform/issues/28856))
 * backend/gcs: Update documentation for usage of `gcs` with `terraform_remote_state` ([#32065](https://github.com/hashicorp/terraform/issues/32065))
-* backed/gcs: Update storage package to v1.28.0 ([#29656](https://github.com/hashicorp/terraform/issues/29656))
+* backend/gcs: Update storage package to v1.28.0 ([#29656](https://github.com/hashicorp/terraform/issues/29656))
 * When removing a workspace from the `cloud` backend `terraform workspace delete` will use Terraform Cloud's [Safe Delete](https://developer.hashicorp.com/terraform/cloud-docs/api-docs/workspaces#safe-delete-a-workspace) API if the `-force` flag is not provided. ([#31949](https://github.com/hashicorp/terraform/pull/31949))
 * backend/oss: More robustly handle endpoint retrieval error ([#32295](https://github.com/hashicorp/terraform/issues/32295))
 * local-exec provisioner: Added `quiet` argument. If `quiet` is set to `true`, Terraform will not print the entire command to stdout during plan. ([#32116](https://github.com/hashicorp/terraform/issues/32116))
 * backend/http: Add support for mTLS authentication. ([#31699](https://github.com/hashicorp/terraform/issues/31699))
 * cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname. This enhancement was also applied to the remote backend.
 * `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. ([#32629](https://github.com/hashicorp/terraform/issues/32629))
+* backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider.
 
 EXPERIMENTS:
 
