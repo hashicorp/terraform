@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terminal"
 )
 
 func TestGraph(t *testing.T) {
@@ -19,10 +20,12 @@ func TestGraph(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	streams, closeStreams := terminal.StreamsForTesting(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -31,9 +34,9 @@ func TestGraph(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
-		t.Fatalf("doesn't look like digraph: %s", output)
+	output := closeStreams(t)
+	if !strings.Contains(output.Stdout(), `provider[\"registry.terraform.io/hashicorp/test\"]`) {
+		t.Fatalf("doesn't look like digraph: %s", output.Stdout())
 	}
 }
 
@@ -61,10 +64,12 @@ func TestGraph_noArgs(t *testing.T) {
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
+	streams, closeStreams := terminal.StreamsForTesting(t)
 	c := &GraphCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(applyFixtureProvider()),
 			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -73,9 +78,9 @@ func TestGraph_noArgs(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, `provider[\"registry.terraform.io/hashicorp/test\"]`) {
-		t.Fatalf("doesn't look like digraph: %s", output)
+	output := closeStreams(t)
+	if !strings.Contains(output.Stdout(), `provider[\"registry.terraform.io/hashicorp/test\"]`) {
+		t.Fatalf("doesn't look like digraph: %s", output.Stdout())
 	}
 }
 
