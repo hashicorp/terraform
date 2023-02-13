@@ -94,6 +94,10 @@
             "path": "resources/provisioners/remote-exec"
           }
         ]
+      },
+      {
+        "title": "The <code>terraform_data</code> Resource",
+        "path": "resources/terraform-data"
       }
     ]
   },
