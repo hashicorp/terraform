@@ -155,11 +155,10 @@
   },
   "resource_changes": [
     {
-      "address": "module.child.module.grandchild.test_instance.test_alternate",
-      "module_address": "module.child.module.grandchild",
+      "address": "test_instance.test",
       "mode": "managed",
       "type": "test_instance",
-      "name": "test_alternate",
+      "name": "test",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
         "actions": [
@@ -167,7 +166,7 @@
         ],
         "before": null,
         "after": {
-          "ami": "secondary"
+          "ami": "foo"
         },
         "after_unknown": {
           "id": true
@@ -177,11 +176,10 @@
       }
     },
     {
-      "address": "module.child.module.grandchild.test_instance.test_main",
-      "module_address": "module.child.module.grandchild",
+      "address": "test_instance.test_backup",
       "mode": "managed",
       "type": "test_instance",
-      "name": "test_main",
+      "name": "test_backup",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
         "actions": [
@@ -189,7 +187,7 @@
         ],
         "before": null,
         "after": {
-          "ami": "main"
+          "ami": "foo-backup"
         },
         "after_unknown": {
           "id": true
@@ -243,50 +241,6 @@
       }
     },
     {
-      "address": "module.sibling.module.grandchild.test_instance.test_alternate",
-      "module_address": "module.sibling.module.grandchild",
-      "mode": "managed",
-      "type": "test_instance",
-      "name": "test_alternate",
-      "provider_name": "registry.terraform.io/hashicorp/test",
-      "change": {
-        "actions": [
-          "create"
-        ],
-        "before": null,
-        "after": {
-          "ami": "secondary"
-        },
-        "after_unknown": {
-          "id": true
-        },
-        "before_sensitive": false,
-        "after_sensitive": {}
-      }
-    },
-    {
-      "address": "module.sibling.module.grandchild.test_instance.test_main",
-      "module_address": "module.sibling.module.grandchild",
-      "mode": "managed",
-      "type": "test_instance",
-      "name": "test_main",
-      "provider_name": "registry.terraform.io/hashicorp/test",
-      "change": {
-        "actions": [
-          "create"
-        ],
-        "before": null,
-        "after": {
-          "ami": "main"
-        },
-        "after_unknown": {
-          "id": true
-        },
-        "before_sensitive": false,
-        "after_sensitive": {}
-      }
-    },
-    {
       "address": "module.sibling.test_instance.test_primary",
       "module_address": "module.sibling",
       "mode": "managed",
@@ -331,10 +285,11 @@
       }
     },
     {
-      "address": "test_instance.test",
+      "address": "module.child.module.grandchild.test_instance.test_alternate",
+      "module_address": "module.child.module.grandchild",
       "mode": "managed",
       "type": "test_instance",
-      "name": "test",
+      "name": "test_alternate",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
         "actions": [
@@ -342,7 +297,7 @@
         ],
         "before": null,
         "after": {
-          "ami": "foo"
+          "ami": "secondary"
         },
         "after_unknown": {
           "id": true
@@ -352,10 +307,11 @@
       }
     },
     {
-      "address": "test_instance.test_backup",
+      "address": "module.child.module.grandchild.test_instance.test_main",
+      "module_address": "module.child.module.grandchild",
       "mode": "managed",
       "type": "test_instance",
-      "name": "test_backup",
+      "name": "test_main",
       "provider_name": "registry.terraform.io/hashicorp/test",
       "change": {
         "actions": [
@@ -363,7 +319,51 @@
         ],
         "before": null,
         "after": {
-          "ami": "foo-backup"
+          "ami": "main"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.module.grandchild.test_instance.test_alternate",
+      "module_address": "module.sibling.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_alternate",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "secondary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.module.grandchild.test_instance.test_main",
+      "module_address": "module.sibling.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_main",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "main"
         },
         "after_unknown": {
           "id": true

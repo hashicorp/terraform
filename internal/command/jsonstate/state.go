@@ -323,8 +323,27 @@ func marshalModules(
 func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
 	var ret []Resource
 
+	var sortedResources []*states.Resource
 	for _, r := range resources {
-		for k, ri := range r.Instances {
+		sortedResources = append(sortedResources, r)
+	}
+	sort.Slice(sortedResources, func(i, j int) bool {
+		return sortedResources[i].Addr.Less(sortedResources[j].Addr)
+	})
+
+	for _, r := range sortedResources {
+
+		var sortedKeys []addrs.InstanceKey
+		for k := range r.Instances {
+			sortedKeys = append(sortedKeys, k)
+		}
+		sort.Slice(sortedKeys, func(i, j int) bool {
+			return addrs.InstanceKeyLess(sortedKeys[i], sortedKeys[j])
+		})
+
+		for _, k := range sortedKeys {
+			ri := r.Instances[k]
+
 			var err error
 
 			resAddr := r.Addr.Resource
@@ -400,7 +419,15 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				ret = append(ret, current)
 			}
 
-			for deposedKey, rios := range ri.Deposed {
+			var sortedDeposedKeys []string
+			for k := range ri.Deposed {
+				sortedDeposedKeys = append(sortedDeposedKeys, string(k))
+			}
+			sort.Strings(sortedDeposedKeys)
+
+			for _, deposedKey := range sortedDeposedKeys {
+				rios := ri.Deposed[states.DeposedKey(deposedKey)]
+
 				// copy the base fields from the current instance
 				deposed := Resource{
 					Address:      current.Address,
@@ -436,15 +463,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if riObj.Status == states.ObjectTainted {
 					deposed.Tainted = true
 				}
-				deposed.DeposedKey = deposedKey.String()
+				deposed.DeposedKey = deposedKey
 				ret = append(ret, deposed)
 			}
 		}
 	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Address < ret[j].Address
-	})
 
 	return ret, nil
 }
