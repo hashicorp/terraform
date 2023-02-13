@@ -125,7 +125,7 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 	// refresh indicates the instance no longer exists, there is also nothing
 	// to plan because there is no longer any state and it doesn't exist in the
 	// config.
-	if n.skipPlanChanges || oldState.Value.IsNull() {
+	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
 		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 
