@@ -87,7 +87,8 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 		}
 
 		for key, inst := range rs.Instances {
-			// deposed instances will be taken care of separately
+			// Instances which have no current objects (only one or more
+			// deposed objects) will be taken care of separately
 			if inst.Current == nil {
 				continue
 			}
