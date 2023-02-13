@@ -1,5 +1,9 @@
 ## 1.3.9 (Unreleased)
 
+BUG FIXES:
+
+* Fix crash when planning to remove already-deposed resource instances. [GH-32663]
+
 ## 1.3.8 (February 09, 2023)
 
 BUG FIXES:
