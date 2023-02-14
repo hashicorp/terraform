@@ -46,19 +46,20 @@ resource "aws_instance" "web" {
   # ...
 }
 
+resource "aws_instance" "database" {
+  # ...
+}
+
 # A use-case for terraform_data is as a do-nothing container
 # for arbitrary actions taken by a provisioner.
 resource "terraform_data" "bootstrap" {
-  triggers_replace = aws_instance.web.id
+  triggers_replace = [
+    aws_instance.web.id,
+    aws_instance.database.id
+  ]
 
-  connection {
-    host = aws_instance.web.public_ip
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "bootstrap-host.sh,
-    ]
+  provisioner "local-exec" {
+    command = "bootstrap-hosts.sh"
   }
 }
 ```
