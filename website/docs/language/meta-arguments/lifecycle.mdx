@@ -144,6 +144,8 @@ The arguments available within a `lifecycle` block are `create_before_destroy`,
   }
   ```
 
+  If a local value, module output, or variable needs to be tracked by `replace_triggered_by`, it can be stored in a [`terraform_data`](language/resources/terraform-data) managed resource.
+
 ## Custom Condition Checks
 
 You can add `precondition` and `postcondition` blocks with a `lifecycle` block to specify assumptions and guarantees about how resources and data sources operate. The following examples creates a precondition that checks whether the AMI is properly configured.
