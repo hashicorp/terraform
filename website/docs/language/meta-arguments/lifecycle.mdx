@@ -144,6 +144,8 @@ The arguments available within a `lifecycle` block are `create_before_destroy`,
   }
   ```
 
+  `replace_triggered_by` allows only resource addresses because the decision is based on the planned actions for all of the given resources. Plain values such as local values or input variables do not have planned actions of their own, but you can treat them with a resource-like lifecycle by using them with [the `terraform_data` resource type](/language/resources/terraform-data).
+
 ## Custom Condition Checks
 
 You can add `precondition` and `postcondition` blocks with a `lifecycle` block to specify assumptions and guarantees about how resources and data sources operate. The following examples creates a precondition that checks whether the AMI is properly configured.
