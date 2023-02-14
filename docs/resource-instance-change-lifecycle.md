@@ -33,9 +33,11 @@ The various object values used in different parts of this process are:
   which a provider may use as a starting point for its planning operation.
 
     The built-in logic primarily deals with the expected behavior for attributes
-    marked in the schema as both "optional" _and_ "computed", which means that
-    the user may either set it or may leave it unset to allow the provider
-    to choose a value instead.
+    marked in the schema as "computed". If an attribute is only "computed",
+    Terraform expects the value to only be chosen by the provider and it will
+    preserve any Prior State. If an attribute is marked as "computed" and
+    "optional", this means that the user may either set it or may leave it
+    unset to allow the provider to choose a value.
 
     Terraform Core therefore constructs the proposed new state by taking the
     attribute value from Configuration if it is non-null, and then using the
