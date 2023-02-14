@@ -15,6 +15,12 @@ The `terraform_data` resource is useful for storing values which need to follow 
 
 ## Example Usage (data for `replace_triggered_by`)
 
+
+[The `replace_triggered_by` lifecycle argument](/language/meta-arguments/lifecycle#replace_triggered_by) requires all of the given addresses to be for resources, because the decision to force replacement is based on the planned actions for all of the mentioned resources.
+
+Plain data values such as [Local Values](/language/values/locals) and [Input Variables](/language/values/variables) don't have any side-effects to plan against and so they aren't valid in `replace_triggered_by`. You can use `terraform_data`'s behavior of planning an action each time `input` changes to _indirectly_ use a plain value to trigger replacement.
+
+
 ```hcl
 variable "revision" {
   default = 1
@@ -54,26 +60,6 @@ resource "terraform_data" "bootstrap" {
       "bootstrap-host.sh,
     ]
   }
-}
-```
-
-## Example Usage (force computed value)
-
-```hcl
-resource "example_resource" "test" {
-  name = "foo"
-}
-
-resource "terraform_data" "example" {
-  input = example_resource.test.name
-}
-
-# This resource has a problem where it will fail during plan if the
-# contains list of resources has not yet been created.
-resource "example_broken_collection" "test" {
-  # terraform_data.example.output will stand in as a computed attribute
-  # for example_resource.test, which will be unknown until after apply.
-  contains = [terraform_data.example.output]
 }
 ```
 
