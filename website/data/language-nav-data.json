@@ -96,7 +96,7 @@
         ]
       },
       {
-        "title": "The <code>terraform_data</code> Resource",
+        "title": "The <code>terraform_data</code> Resource Type",
         "path": "resources/terraform-data"
       }
     ]
