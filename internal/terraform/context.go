@@ -193,6 +193,12 @@ func (c *Context) Stop() {
 		c.runContextCancel = nil
 	}
 
+	// Notify all of the hooks that we're stopping, in case they want to try
+	// to flush in-memory state to disk before a subsequent hard kill.
+	for _, hook := range c.hooks {
+		hook.Stopping()
+	}
+
 	// Grab the condition var before we exit
 	if cond := c.runCond; cond != nil {
 		log.Printf("[INFO] terraform: waiting for graceful stop to complete")

@@ -64,6 +64,148 @@ func TestContext2Apply_basic(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_stop(t *testing.T) {
+	t.Parallel()
+
+	m := testModule(t, "apply-stop")
+	stopCh := make(chan struct{})
+	waitCh := make(chan struct{})
+	stoppedCh := make(chan struct{})
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"indefinite": {
+					Version: 1,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"result": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			log.Printf("[TRACE] TestContext2Apply_stop: no-op PlanResourceChange")
+			return providers.PlanResourceChangeResponse{
+				PlannedState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.UnknownVal(cty.String),
+				}),
+			}
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			// This will unblock the main test code once we reach this
+			// point, so that it'll then be guaranteed to call Stop
+			// while we're waiting in here.
+			close(waitCh)
+
+			log.Printf("[TRACE] TestContext2Apply_stop: ApplyResourceChange waiting for Stop call")
+			// This will block until StopFn closes this channel below.
+			<-stopCh
+			// This unblocks StopFn below, thereby acknowledging the request
+			// to stop.
+			close(stoppedCh)
+			return providers.ApplyResourceChangeResponse{
+				NewState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.StringVal("complete"),
+				}),
+			}
+		},
+		StopFn: func() error {
+			// Closing this channel will unblock the channel read in
+			// ApplyResourceChangeFn above.
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop called")
+			close(stopCh)
+			// This will block until ApplyResourceChange has reacted to
+			// being stopped.
+			log.Printf("[TRACE] TestContext2Apply_stop: Waiting for ApplyResourceChange to react to being stopped")
+			<-stoppedCh
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop is completing")
+			return nil
+		},
+	}
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.MustParseProviderSourceString("terraform.io/test/indefinite"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	// We'll reset the hook events before we apply because we only care about
+	// the apply-time events.
+	hook.Calls = hook.Calls[:0]
+
+	// We'll apply in the background so that we can call Stop in the foreground.
+	stateCh := make(chan *states.State)
+	go func(plan *plans.Plan) {
+		state, _ := ctx.Apply(plan, m)
+		stateCh <- state
+	}(plan)
+
+	// We'll wait until the provider signals that we've reached the
+	// ApplyResourceChange function, so we can guarantee the expected
+	// order of operations so our hook events below will always match.
+	t.Log("waiting for the apply phase to get started")
+	<-waitCh
+
+	// This will block until the apply operation has unwound, so we should
+	// be able to observe all of the apply side-effects afterwards.
+	t.Log("waiting for ctx.Stop to return")
+	ctx.Stop()
+
+	t.Log("waiting for apply goroutine to return state")
+	state := <-stateCh
+
+	t.Log("apply is all complete")
+	if state == nil {
+		t.Fatalf("final state is nil")
+	}
+
+	// Because we interrupted the apply phase while applying the resource,
+	// we should have halted immediately after we finished visiting that
+	// resource. We don't visit indefinite.bar at all.
+	gotEvents := hook.Calls
+	wantEvents := []*testHookCall{
+		{"PreDiff", "indefinite.foo"},
+		{"PostDiff", "indefinite.foo"},
+		{"PreApply", "indefinite.foo"},
+		{"Stopping", ""}, // Local backend uses this as a hint to persist the latest state snapshot
+		{"PostApply", "indefinite.foo"},
+		{"PostStateUpdate", ""}, // State gets updated one more time to include the apply result.
+	}
+	if diff := cmp.Diff(wantEvents, gotEvents); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+
+	rov := state.OutputValue(addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance))
+	if rov != nil && rov.Value != cty.NilVal && !rov.Value.IsNull() {
+		t.Errorf("'result' output value unexpectedly populated: %#v", rov.Value)
+	}
+
+	resourceAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "indefinite",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	rv := state.ResourceInstance(resourceAddr)
+	if rv == nil || rv.Current == nil {
+		t.Fatalf("no state entry for %s", resourceAddr)
+	}
+
+	resourceAddr.Resource.Resource.Name = "bar"
+	rv = state.ResourceInstance(resourceAddr)
+	if rv != nil && rv.Current != nil {
+		t.Fatalf("unexpected state entry for %s", resourceAddr)
+	}
+}
+
 func TestContext2Apply_unstable(t *testing.T) {
 	// This tests behavior when the configuration contains an unstable value,
 	// such as the result of uuid() or timestamp(), where each call produces

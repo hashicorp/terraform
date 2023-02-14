@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -74,6 +75,10 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+	// stateHook uses schemas for when it periodically persists state to the
+	// persistent storage backend.
+	stateHook.Schemas = schemas
+	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
 
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan
