@@ -144,7 +144,7 @@ The arguments available within a `lifecycle` block are `create_before_destroy`,
   }
   ```
 
-  If a local value, module output, or variable needs to be tracked by `replace_triggered_by`, it can be stored in a [`terraform_data`](language/resources/terraform-data) managed resource.
+  `replace_triggered_by` allows only resource addresses because the decision is based on the planned actions for all of the given resources. Plain values such as local values or input variables do not have planned actions of their own, but you can treat them with a resource-like lifecycle by using them with [the `terraform_data` resource type](/language/resources/terraform-data).
 
 ## Custom Condition Checks
 
