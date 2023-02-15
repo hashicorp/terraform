@@ -1,8 +1,8 @@
-## 1.3.9 (Unreleased)
+## 1.3.9 (February 15, 2023)
 
 BUG FIXES:
 
-* Fix crash when planning to remove already-deposed resource instances. [GH-32663]
+* Fix crash when planning to remove already-deposed resource instances. ([#32663](https://github.com/hashicorp/terraform/issues/32663))
 
 ## 1.3.8 (February 09, 2023)
 
