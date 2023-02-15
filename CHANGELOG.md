@@ -33,7 +33,7 @@ ENHANCEMENTS:
 * `terraform init` will now ignore entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. This therefore avoids the long-standing problem that when installing a new provider for the first time from the cache we can't determine the full set of checksums to include in the lock file. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. There is an interim CLI configuration opt-out for those who rely on the previous incorrect behavior. ([#32129](https://github.com/hashicorp/terraform/issues/32129))
 * Interactive input for sensitive variables is now masked in the UI ([#29520](https://github.com/hashicorp/terraform/issues/29520))
 * A new `-or-create` flag was added to `terraform workspace select`, to aid in creating workspaces in automated situations ([#31633](https://github.com/hashicorp/terraform/issues/31633))
-* A new command was added for exporting Terraform function signatures in machine-readable format: `terraform metadata functions -json` [GH-32487]
+* A new command was added for exporting Terraform function signatures in machine-readable format: `terraform metadata functions -json` ([#32487](https://github.com/hashicorp/terraform/issues/32487))
 * The "Failed to install provider" error message now includes the reason a provider could not be installed. ([#31898](https://github.com/hashicorp/terraform/issues/31898))
 * backend/gcs: Add `kms_encryption_key` argument, to allow encryption of state files using Cloud KMS keys. ([#24967](https://github.com/hashicorp/terraform/issues/24967))
 * backend/gcs: Add `storage_custom_endpoint` argument, to allow communication with the backend via a Private Service Connect endpoint. ([#28856](https://github.com/hashicorp/terraform/issues/28856))
@@ -45,7 +45,7 @@ ENHANCEMENTS:
 * backend/http: Add support for mTLS authentication. ([#31699](https://github.com/hashicorp/terraform/issues/31699))
 * cloud: Add support for using the [generic hostname](https://developer.hashicorp.com/terraform/cloud-docs/registry/using#generic-hostname-terraform-enterprise) localterraform.com in module and provider sources as a substitute for the currently configured cloud backend hostname. This enhancement was also applied to the remote backend.
 * `terraform show` will now print an explanation when called on a Terraform workspace with empty state detailing why no resources are shown. ([#32629](https://github.com/hashicorp/terraform/issues/32629))
-* backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider. [GH-32557]
+* backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider. ([#32557](https://github.com/hashicorp/terraform/issues/32557))
 * backend/cos: Add support for the `assume_role` authentication method with the `tencentcloud` provider. This can be configured via the Terraform config or environment variables.
 * backend/cos: Add support for the `security_token` authentication method with the `tencentcloud` provider. This can be configured via the Terraform config or environment variables.
 
