@@ -204,15 +204,15 @@
   "relevant_attributes": [
     {
       "attribute": [
-        "string"
-      ],
-      "resource": "data.tfcoremock_simple_resource.read"
-    },
-    {
-      "attribute": [
         "id"
       ],
       "resource": "module.create.random_integer.random"
+    },
+    {
+      "attribute": [
+        "string"
+      ],
+      "resource": "data.tfcoremock_simple_resource.read"
     }
   ],
   "resource_changes": [
@@ -239,6 +239,31 @@
       },
       "mode": "data",
       "name": "read",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_simple_resource"
+    },
+    {
+      "address": "tfcoremock_simple_resource.create",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "after": {
+          "bool": null,
+          "float": null,
+          "integer": null,
+          "number": null,
+          "string": null
+        },
+        "after_sensitive": {},
+        "after_unknown": {
+          "id": true
+        },
+        "before": null,
+        "before_sensitive": false
+      },
+      "mode": "managed",
+      "name": "create",
       "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     },
@@ -297,31 +322,6 @@
       "name": "random",
       "provider_name": "registry.terraform.io/hashicorp/random",
       "type": "random_integer"
-    },
-    {
-      "address": "tfcoremock_simple_resource.create",
-      "change": {
-        "actions": [
-          "create"
-        ],
-        "after": {
-          "bool": null,
-          "float": null,
-          "integer": null,
-          "number": null,
-          "string": null
-        },
-        "after_sensitive": {},
-        "after_unknown": {
-          "id": true
-        },
-        "before": null,
-        "before_sensitive": false
-      },
-      "mode": "managed",
-      "name": "create",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
-      "type": "tfcoremock_simple_resource"
     }
   ]
 }

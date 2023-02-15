@@ -1,0 +1,19 @@
+# tfcoremock_simple_resource.json:
+resource "tfcoremock_simple_resource" "json" {
+    id     = "5a3fd9b3-e852-8956-8c0a-255d47eda645"
+    string = jsonencode(
+        {
+            list-attribute   = [
+                "one",
+                "four",
+                "three",
+            ]
+            object-attribute = {
+                key_four  = "value_three"
+                key_one   = "value_one"
+                key_three = "value_two"
+            }
+            string-attribute = "a new string"
+        }
+    )
+}

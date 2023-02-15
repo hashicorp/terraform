@@ -1,0 +1,12 @@
+# tfcoremock_simple_resource.multiline:
+resource "tfcoremock_simple_resource" "multiline" {
+    id     = "69fe5233-e77a-804f-0dac-115c949540bc"
+    string = <<-EOT
+        one
+        three
+        two
+        four
+        six
+        seven
+    EOT
+}

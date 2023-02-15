@@ -1,0 +1,4 @@
+# tfcoremock_object.object:
+resource "tfcoremock_object" "object" {
+    id = "00e14fba-4d56-6cc5-b685-633555376e3f"
+}

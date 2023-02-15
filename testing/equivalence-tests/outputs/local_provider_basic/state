@@ -1,0 +1,12 @@
+# local_file.local_file:
+resource "local_file" "local_file" {
+    content              = jsonencode(
+        {
+            hello = "world"
+        }
+    )
+    directory_permission = "0777"
+    file_permission      = "0777"
+    filename             = "output.json"
+    id                   = "2248ee2fa0aaaad99178531f924bf00b4b0a8f4e"
+}

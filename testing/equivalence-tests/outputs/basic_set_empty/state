@@ -1,0 +1,5 @@
+# tfcoremock_set.set:
+resource "tfcoremock_set" "set" {
+    id  = "046952C9-B832-4106-82C0-C217F7C73E18"
+    set = []
+}
