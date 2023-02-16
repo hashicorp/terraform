@@ -21,10 +21,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -466,6 +468,23 @@ func testDisco(s *httptest.Server) *disco.Disco {
 
 	d.ForceHostServices(svchost.Hostname(defaultHostname), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
+	return d
+}
+
+// testDisco returns a *disco.Disco mapping the specified host to the local server
+func testDiscoHostname(hostname svchost.Hostname, s *httptest.Server) *disco.Disco {
+	services := map[string]interface{}{
+		"tfe.v2": fmt.Sprintf("%s/api/v2/", s.URL),
+	}
+
+	helperPlugins := pluginDiscovery.FindPlugins("credentials", []string{})
+	config, _ := cliconfig.LoadConfig()
+	creds, _ := config.CredentialsSource(helperPlugins)
+
+	d := disco.NewWithCredentialsSource(creds)
+	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+
+	d.ForceHostServices(hostname, services)
 	return d
 }
 

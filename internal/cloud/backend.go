@@ -16,6 +16,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -245,6 +246,20 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var token string
 	if val := obj.GetAttr("token"); !val.IsNull() {
 		token = val.AsString()
+
+		if token != "" {
+			cliToken, err := b.token()
+			// Service discovery is the canonical source for credentials, but in the absence of
+			// credentials for the cloud hostname in that source, make an effort to use the token set by
+			// cloud config. This allows cloud credentials to be used for things like private
+			// registry module sources authentication.
+			if cliToken == "" && err == nil {
+				log.Printf("[DEBUG] No CLI credentials found for %q, shimming cloud token", b.hostname)
+				if err := b.services.CredentialsSource().StoreForHost(svchost.Hostname(b.hostname), auth.HostCredentialsToken(token)); err != nil {
+					log.Printf("[DEBUG] Failed to store cloud token in services credentials source: %s", err)
+				}
+			}
+		}
 	}
 
 	// Get the token from the CLI Config File in the credentials section
@@ -458,9 +473,8 @@ func (b *Cloud) discover() (*url.URL, error) {
 	return service, err
 }
 
-// token returns the token for this host as configured in the credentials
-// section of the CLI Config File. If no token was configured, an empty
-// string will be returned instead.
+// token returns the token specified by the cloud hostname in the service discovery
+// credentials source
 func (b *Cloud) token() (string, error) {
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {

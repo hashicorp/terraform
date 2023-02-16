@@ -10,6 +10,7 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -548,6 +549,36 @@ func TestCloud_config(t *testing.T) {
 			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
 			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
 		}
+	}
+}
+
+func TestCloud_configShimsCredentials(t *testing.T) {
+	// Tests that the cloud token config sets service discovery credentials
+	// when none exist for a given host.
+	config := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.StringVal("doesnotexist.io"),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.StringVal("topsecret"),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("prod"),
+			"tags": cty.NullVal(cty.Set(cty.String)),
+		}),
+	})
+
+	hostname := svchost.Hostname("doesnotexist.io")
+	s := testServerWithHandlers(map[string]func(http.ResponseWriter, *http.Request){})
+	b := New(testDiscoHostname(hostname, s))
+	b.Configure(config)
+
+	creds, err := b.services.CredentialsForHost(hostname)
+	if err != nil {
+		t.Fatalf("expected no errors, but got %q", err)
+	}
+	if creds == nil {
+		t.Fatal("expected credentials for host, but got nil")
+	}
+	if creds.Token() != "topsecret" {
+		t.Fatalf("expected credentials to be same as cloud block token, but got %q", creds.Token())
 	}
 }
 
