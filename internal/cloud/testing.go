@@ -21,12 +21,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
-	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -41,11 +39,35 @@ const (
 
 var (
 	tfeHost  = svchost.Hostname(defaultHostname)
-	credsSrc = auth.StaticCredentialsSource(map[svchost.Hostname]map[string]interface{}{
+	credsSrc = mutableCredentialsSource(map[svchost.Hostname]map[string]interface{}{
 		tfeHost: {"token": testCred},
 	})
 	testBackendSingleWorkspaceName = "app-prod"
 )
+
+type mutableCredentialsSource map[svchost.Hostname]map[string]interface{}
+
+func (s mutableCredentialsSource) ForHost(host svchost.Hostname) (auth.HostCredentials, error) {
+	if s == nil {
+		return nil, nil
+	}
+
+	if m, exists := s[host]; exists {
+		return auth.HostCredentialsFromMap(m), nil
+	}
+
+	return nil, nil
+}
+
+func (s mutableCredentialsSource) StoreForHost(host svchost.Hostname, credentials auth.HostCredentialsWritable) error {
+	s[host] = map[string]interface{}{"token": credentials.Token()}
+	return nil
+}
+
+func (s mutableCredentialsSource) ForgetForHost(host svchost.Hostname) error {
+	delete(s, host)
+	return nil
+}
 
 // mockInput is a mock implementation of terraform.UIInput.
 type mockInput struct {
@@ -477,11 +499,7 @@ func testDiscoHostname(hostname svchost.Hostname, s *httptest.Server) *disco.Dis
 		"tfe.v2": fmt.Sprintf("%s/api/v2/", s.URL),
 	}
 
-	helperPlugins := pluginDiscovery.FindPlugins("credentials", []string{})
-	config, _ := cliconfig.LoadConfig()
-	creds, _ := config.CredentialsSource(helperPlugins)
-
-	d := disco.NewWithCredentialsSource(creds)
+	d := disco.NewWithCredentialsSource(credsSrc)
 	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
 
 	d.ForceHostServices(hostname, services)
