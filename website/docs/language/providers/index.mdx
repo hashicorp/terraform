@@ -55,6 +55,8 @@ see the [provider publishing documentation](/registry/providers/docs).
 
 ## How to Use Providers
 
+Providers are released on a separate rhythm from Terraform itself, and thus have their own version numbers. For production use, it is recommended to constrain the acceptable provider versions by pinning it via configuration, to ensure that new versions with breaking changes will not be automatically installed by `terraform init` in the future.
+
 To use resources from a given provider, you need to include some information
 about it in your configuration. See the following pages for details:
 
