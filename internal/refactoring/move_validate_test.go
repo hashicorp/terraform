@@ -534,7 +534,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
