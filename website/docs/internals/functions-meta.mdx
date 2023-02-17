@@ -1,5 +1,5 @@
 ---
-page_title: 'Command: metadata functions'
+page_title: Functions Metadata
 description: >-
   The `terraform metadata functions` command prints signatures for all the
   functions available in the current Terraform version.
@@ -37,7 +37,7 @@ We will introduce new major versions only within the bounds of
 ## Format Summary
 
 The following sections describe the JSON output format by example, using a pseudo-JSON notation.
-Important elements are described with comments, which are prefixed with //.
+Important elements are described with comments, which are prefixed with `//`.
 To avoid excessive repetition, we've split the complete format into several discrete sub-objects, described under separate headers. References wrapped in angle brackets (like `<block-representation>`) are placeholders which, in the real output, would be replaced by an instance of the specified sub-object.
 
 The JSON output format consists of the following objects and sub-objects:
@@ -87,7 +87,7 @@ A parameter representation describes a parameter to a function.
 
 ```javascript
 {
-    // "name" is the internal name of the parameter
+  // "name" is the internal name of the parameter
   "name": "string",
 
   // "description" is an optional English-language description of
@@ -95,7 +95,7 @@ A parameter representation describes a parameter to a function.
   "description": "string",
 
   // "type" is a representation of a type specification
-  // that the parameters's value must conform to.
+  // that the parameter's value must conform to.
   "type": "string"
 }
 ```

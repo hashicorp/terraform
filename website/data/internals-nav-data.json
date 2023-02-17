@@ -45,8 +45,8 @@
     "path": "provider-meta"
   },
   {
-    "title": "Metadata Functions",
-    "path": "metadata-functions"
+    "title": "Functions Metadata",
+    "path": "functions-meta"
   },
   {
     "title": "Machine Readable UI",
