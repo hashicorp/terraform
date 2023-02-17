@@ -32,14 +32,14 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 	// At this point we pre-populate all of the check results as StatusUnknown,
 	// so that even if we never hear from Terraform Core again we'll still
 	// remember that these results were all pending.
-	st.objects = addrs.MakeMap[addrs.Checkable, map[addrs.CheckType][]Status]()
+	st.objects = addrs.MakeMap[addrs.Checkable, map[addrs.CheckRuleType][]Status]()
 	for _, objectAddr := range objectAddrs {
 		if gotConfigAddr := objectAddr.ConfigCheckable(); !addrs.Equivalent(configAddr, gotConfigAddr) {
 			// All of the given object addresses must belong to the specified configuration address
 			panic(fmt.Sprintf("%s belongs to %s, not %s", objectAddr, gotConfigAddr, configAddr))
 		}
 
-		checks := make(map[addrs.CheckType][]Status, len(st.checkTypes))
+		checks := make(map[addrs.CheckRuleType][]Status, len(st.checkTypes))
 		for checkType, count := range st.checkTypes {
 			// NOTE: This is intentionally a slice of count of the zero value
 			// of Status, which is StatusUnknown to represent that we don't
@@ -61,7 +61,7 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 //
 // This method will also panic if the specified check already had a known
 // status; each check should have its result reported only once.
-func (c *State) ReportCheckResult(objectAddr addrs.Checkable, checkType addrs.CheckType, index int, status Status) {
+func (c *State) ReportCheckResult(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, status Status) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -76,21 +76,21 @@ func (c *State) ReportCheckResult(objectAddr addrs.Checkable, checkType addrs.Ch
 // situations where the check condition was itself invalid, because that
 // should be represented by StatusError instead, and the error signalled via
 // diagnostics as normal.
-func (c *State) ReportCheckFailure(objectAddr addrs.Checkable, checkType addrs.CheckType, index int, errorMessage string) {
+func (c *State) ReportCheckFailure(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, errorMessage string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.reportCheckResult(objectAddr, checkType, index, StatusFail)
 	if c.failureMsgs.Elems == nil {
-		c.failureMsgs = addrs.MakeMap[addrs.Check, string]()
+		c.failureMsgs = addrs.MakeMap[addrs.CheckRule, string]()
 	}
-	checkAddr := addrs.NewCheck(objectAddr, checkType, index)
+	checkAddr := addrs.NewCheckRule(objectAddr, checkType, index)
 	c.failureMsgs.Put(checkAddr, errorMessage)
 }
 
 // reportCheckResult is shared between both ReportCheckResult and
 // ReportCheckFailure, and assumes its caller already holds the mutex.
-func (c *State) reportCheckResult(objectAddr addrs.Checkable, checkType addrs.CheckType, index int, status Status) {
+func (c *State) reportCheckResult(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, status Status) {
 	configAddr := objectAddr.ConfigCheckable()
 
 	st, ok := c.statuses.GetOk(configAddr)

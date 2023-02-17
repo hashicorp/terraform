@@ -42,7 +42,7 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 
 		st := &configCheckableState{}
 
-		st.checkTypes = map[addrs.CheckType]int{
+		st.checkTypes = map[addrs.CheckRuleType]int{
 			addrs.OutputPrecondition: ct,
 		}
 
@@ -63,7 +63,7 @@ func collectInitialStatusForResource(into addrs.Map[addrs.ConfigCheckable, *conf
 	}
 
 	st := &configCheckableState{
-		checkTypes: make(map[addrs.CheckType]int),
+		checkTypes: make(map[addrs.CheckRuleType]int),
 	}
 
 	if ct := len(rc.Preconditions); ct > 0 {
