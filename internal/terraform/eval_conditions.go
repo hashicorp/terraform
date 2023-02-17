@@ -87,7 +87,7 @@ func evalCheckRule(typ addrs.CheckType, rule *configs.CheckRule, ctx EvalContext
 			panic(fmt.Sprintf("Invalid self reference type %t", self))
 		}
 	}
-	scope := ctx.EvaluationScope(selfReference, keyData)
+	scope := ctx.EvaluationScope(selfReference, nil, keyData)
 
 	hclCtx, moreDiags := scope.EvalContext(refs)
 	diags = diags.Append(moreDiags)

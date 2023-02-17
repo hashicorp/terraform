@@ -37,6 +37,13 @@ type Resource struct {
 	// For all other resource modes, this field is nil.
 	Managed *ManagedResource
 
+	// Container links a scoped resource back up to the resources that contains
+	// it. This field is referenced during static analysis to check whether any
+	// references are also made from within the same container.
+	//
+	// If this is nil, then this resource is essentially public.
+	Container Container
+
 	DeclRange hcl.Range
 	TypeRange hcl.Range
 }

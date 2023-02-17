@@ -319,7 +319,7 @@ func (c *MockEvalContext) installSimpleEval() {
 	}
 }
 
-func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+func (c *MockEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	c.EvaluationScopeCalled = true
 	c.EvaluationScopeSelf = self
 	c.EvaluationScopeKeyData = keyData

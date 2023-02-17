@@ -19,7 +19,7 @@ type dataForTests struct {
 
 var _ Data = &dataForTests{}
 
-func (d *dataForTests) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable) tfdiags.Diagnostics {
+func (d *dataForTests) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	return nil // does nothing in this stub implementation
 }
 
