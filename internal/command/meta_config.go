@@ -152,7 +152,13 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 		return true, diags
 	}
 
-	inst := m.moduleInstaller()
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
+
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
 	// Installation can be aborted by interruption signals
 	ctx, done := m.InterruptibleContext()
@@ -184,8 +190,14 @@ func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.Mod
 	ctx, done := m.InterruptibleContext()
 	defer done()
 
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
+
 	targetDir = m.normalizePath(targetDir)
-	moreDiags := initwd.DirFromModule(ctx, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	moreDiags := initwd.DirFromModule(ctx, loader, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
@@ -314,13 +326,6 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		}
 	}
 	return m.configLoader, nil
-}
-
-// moduleInstaller instantiates and returns a module installer for use by
-// "terraform init" (directly or indirectly).
-func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
-	reg := m.registryClient()
-	return initwd.NewModuleInstaller(m.modulesDir(), reg)
 }
 
 // registryClient instantiates and returns a new Terraform Registry client.
