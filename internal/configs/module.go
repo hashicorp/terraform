@@ -47,6 +47,8 @@ type Module struct {
 	DataResources    map[string]*Resource
 
 	Moved []*Moved
+
+	Checks map[string]*Check
 }
 
 // File describes the contents of a single configuration file.
@@ -81,6 +83,8 @@ type File struct {
 	DataResources    []*Resource
 
 	Moved []*Moved
+
+	Checks []*Check
 }
 
 // NewModule takes a list of primary files and a list of override files and
@@ -102,6 +106,7 @@ func NewModule(primaryFiles, overrideFiles []*File) (*Module, hcl.Diagnostics) {
 		ModuleCalls:        map[string]*ModuleCall{},
 		ManagedResources:   map[string]*Resource{},
 		DataResources:      map[string]*Resource{},
+		Checks:             map[string]*Check{},
 		ProviderMetas:      map[addrs.Provider]*ProviderMeta{},
 	}
 
@@ -330,6 +335,9 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
+	// Data sources can either be defined at the module root level, or within a
+	// single check block. We'll merge the data sources from both into the
+	// single module level DataResources map.
 	for _, r := range file.DataResources {
 		key := r.moduleUniqueKey()
 		if existing, exists := m.DataResources[key]; exists {
@@ -342,7 +350,37 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 			continue
 		}
 		m.DataResources[key] = r
+	}
 
+	for _, c := range file.Checks {
+		if c.DataResource != nil {
+			key := c.DataResource.moduleUniqueKey()
+			if existing, exists := m.DataResources[key]; exists {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate data %q configuration", existing.Type),
+					Detail:   fmt.Sprintf("A %s data resource named %q was already declared at %s. Resource names must be unique per type in each module, including within check blocks.", existing.Type, existing.Name, existing.DeclRange),
+					Subject:  &c.DataResource.DeclRange,
+				})
+				continue
+			}
+			m.DataResources[key] = c.DataResource
+		}
+
+		if existing, exists := m.Checks[c.Name]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  fmt.Sprintf("Duplicate check %q configuration", existing.Name),
+				Detail:   fmt.Sprintf("A check block named %q was already declared at %s. Check blocks must be unique within each module.", existing.Name, existing.DeclRange),
+				Subject:  &c.DeclRange,
+			})
+			continue
+		}
+		m.Checks[c.Name] = c
+	}
+
+	// Handle the provider associations for all data resources together.
+	for _, r := range m.DataResources {
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
 			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
