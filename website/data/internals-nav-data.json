@@ -45,6 +45,10 @@
     "path": "provider-meta"
   },
   {
+    "title": "Metadata Functions",
+    "path": "metadata-functions"
+  },
+  {
     "title": "Machine Readable UI",
     "path": "machine-readable-ui",
     "hidden": true
