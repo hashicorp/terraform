@@ -5,13 +5,13 @@ import (
 	"log"
 	"sort"
 
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-
-	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -66,6 +66,7 @@ func (n *NodePlannableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 }
 
 func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (diags tfdiags.Diagnostics) {
+
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 

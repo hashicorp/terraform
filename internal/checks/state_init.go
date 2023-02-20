@@ -49,6 +49,22 @@ func collectInitialStatuses(into addrs.Map[addrs.ConfigCheckable, *configCheckab
 		into.Put(addr, st)
 	}
 
+	for _, c := range cfg.Module.Checks {
+		addr := c.Addr().InModule(moduleAddr)
+
+		st := &configCheckableState{
+			checkTypes: map[addrs.CheckRuleType]int{
+				addrs.CheckAssertion: len(c.Asserts),
+			},
+		}
+
+		if c.DataResource != nil {
+			st.checkTypes[addrs.CheckDataResource] = 1
+		}
+
+		into.Put(addr, st)
+	}
+
 	// Must also visit child modules to collect everything
 	for _, child := range cfg.Children {
 		collectInitialStatuses(into, child)

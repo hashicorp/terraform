@@ -9,6 +9,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -1587,7 +1588,31 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		return nil, nil, keyData, diags
 	}
 
-	unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
+	check, nested := n.nestedInCheckBlock()
+	if nested {
+		// Going forward from this point, the only reason we will fail is
+		// that the data source fails to load its data. Normally, this would
+		// cancel the entire plan and this error message would bubble its way
+		// back up to the user.
+		//
+		// But, if we are in a check block then we don't want this data block to
+		// cause the plan to fail. We also need to report a status on the data
+		// block so the check processing later on knows whether to attempt to
+		// process the checks. Either we'll report the data block as failed
+		// if/when we load the data block later, or we want to report it as a
+		// success overall.
+		//
+		// Therefore, we create a deferred function here that will check if the
+		// status for the check has been updated yet, and if not we will set it
+		// to be StatusPass. The rest of this function will only update the
+		// status if it should be StatusFail.
+		defer func() {
+			status := ctx.Checks().ObjectCheckStatus(check.Addr().Absolute(n.Addr.Module))
+			if status == checks.StatusUnknown {
+				ctx.Checks().ReportCheckResult(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, checks.StatusPass)
+			}
+		}()
+	}
 
 	configKnown := configVal.IsWhollyKnown()
 	depsPending := n.dependenciesHavePendingChanges(ctx)
@@ -1620,6 +1645,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 			reason = plans.ResourceInstanceReadBecauseDependencyPending
 		}
 
+		unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
 		proposedNewVal := objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
 		proposedNewVal = proposedNewVal.MarkWithPaths(configMarkPaths)
 
@@ -1653,16 +1679,83 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return nil, nil, keyData, diags
+
+	// Now we've loaded the data, and diags tells us whether we were successful
+	// or not, we are going to create our plannedChange and our
+	// proposedNewState.
+	var plannedChange *plans.ResourceInstanceChange
+	var plannedNewState *states.ResourceInstanceObject
+
+	// If we are a nested block, then we want to create a plannedChange that
+	// tells Terraform to reload the data block during the apply stage even if
+	// we managed to get the data now.
+	// Another consideration is that if we failed to load the data, we need to
+	// disguise that for a nested block. Nested blocks will report the overall
+	// check as failed but won't affect the rest of the plan operation or block
+	// an apply operation.
+
+	if nested {
+		// Let's fix things up for a nested data block.
+		//
+		// A nested data block doesn't error, and creates a planned change. So,
+		// if we encountered an error we'll tidy up newVal so it makes sense
+		// and handle the error. We'll also create the plannedChange if
+		// appropriate.
+
+		if diags.HasErrors() {
+			// If we had errors, then we can cover that up by marking the new
+			// state as unknown.
+			unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
+			newVal = objchange.PlannedDataResourceObject(schema, unmarkedConfigVal)
+			newVal = newVal.MarkWithPaths(configMarkPaths)
+
+			// We still want to report the check as failed even if we are still
+			// letting it run again during the apply stage.
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
+
+			// Also, let's hide the errors so that execution can continue as
+			// normal.
+			diags = tfdiags.WithErrorsAsWarnings(diags)
+		}
+
+		if !skipPlanChanges {
+			// refreshOnly plans cannot produce planned changes, so we only do
+			// this if skipPlanChanges is false.
+			plannedChange = &plans.ResourceInstanceChange{
+				Addr:         n.Addr,
+				PrevRunAddr:  n.prevRunAddr(ctx),
+				ProviderAddr: n.ResolvedProvider,
+				Change: plans.Change{
+					Action: plans.Read,
+					Before: priorVal,
+					After:  newVal,
+				},
+				ActionReason: plans.ResourceInstanceReadBecauseCheckNested,
+			}
+		}
+
 	}
 
-	plannedNewState := &states.ResourceInstanceObject{
-		Value:  newVal,
-		Status: states.ObjectReady,
+	if !diags.HasErrors() {
+		// Finally, let's make our new state.
+		plannedNewState = &states.ResourceInstanceObject{
+			Value:  newVal,
+			Status: states.ObjectReady,
+		}
 	}
 
-	return nil, plannedNewState, keyData, diags
+	return plannedChange, plannedNewState, keyData, diags
+}
+
+// nestedInCheckBlock determines if this resource is nested in a Check config
+// block. If so, this resource will be loaded during both plan and apply
+// operations to make sure the check is always giving the latest information.
+func (n *NodeAbstractResourceInstance) nestedInCheckBlock() (*configs.Check, bool) {
+	if n.Config.Container != nil {
+		check, ok := n.Config.Container.(*configs.Check)
+		return check, ok
+	}
+	return nil, false
 }
 
 // dependenciesHavePendingChanges determines whether any managed resource the
@@ -1784,7 +1877,19 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
+
+	if check, nested := n.nestedInCheckBlock(); nested {
+		// We're just going to jump in here and hide away any erros for nested
+		// data blocks.
+		if diags.HasErrors() {
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
+			return nil, keyData, tfdiags.WithErrorsAsWarnings(diags)
+		}
+
+		// If no errors, just remember to report this as a success and continue
+		// as normal.
+		ctx.Checks().ReportCheckResult(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, checks.StatusPass)
+	} else if diags.HasErrors() {
 		return nil, keyData, diags
 	}
 

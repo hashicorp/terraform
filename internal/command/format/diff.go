@@ -77,6 +77,8 @@ func ResourceChange(
 			buf.WriteString("\n  # (config refers to values not yet known)")
 		case plans.ResourceInstanceReadBecauseDependencyPending:
 			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		case plans.ResourceInstanceReadBecauseCheckNested:
+			buf.WriteString("\n  # (data will be read during apply for a check block)")
 		}
 	case plans.Update:
 		switch language {
