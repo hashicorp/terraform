@@ -31,11 +31,11 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"alltrue": {
-		Description:      "`alltrue` returns `true` if all elements in a given collection are `true` or `&#34;true&#34;`. It also returns `true` if the collection is empty.",
+		Description:      "`alltrue` returns `true` if all elements in a given collection are `true` or `\"true\"`. It also returns `true` if the collection is empty.",
 		ParamDescription: []string{""},
 	},
 	"anytrue": {
-		Description:      "`anytrue` returns `true` if any element in a given collection is `true` or `&#34;true&#34;`. It also returns `false` if the collection is empty.",
+		Description:      "`anytrue` returns `true` if any element in a given collection is `true` or `\"true\"`. It also returns `false` if the collection is empty.",
 		ParamDescription: []string{""},
 	},
 	"base64decode": {
@@ -51,11 +51,11 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"base64sha256": {
-		Description:      "`base64sha256` computes the SHA256 hash of a given string and encodes it with Base64. This is not equivalent to `base64encode(sha256(&#34;test&#34;))` since `sha256()` returns hexadecimal representation.",
+		Description:      "`base64sha256` computes the SHA256 hash of a given string and encodes it with Base64. This is not equivalent to `base64encode(sha256(\"test\"))` since `sha256()` returns hexadecimal representation.",
 		ParamDescription: []string{""},
 	},
 	"base64sha512": {
-		Description:      "`base64sha512` computes the SHA512 hash of a given string and encodes it with Base64. This is not equivalent to `base64encode(sha512(&#34;test&#34;))` since `sha512()` returns hexadecimal representation.",
+		Description:      "`base64sha512` computes the SHA512 hash of a given string and encodes it with Base64. This is not equivalent to `base64encode(sha512(\"test\"))` since `sha512()` returns hexadecimal representation.",
 		ParamDescription: []string{""},
 	},
 	"basename": {
@@ -116,11 +116,11 @@ var DescriptionList = map[string]descriptionEntry{
 		},
 	},
 	"coalesce": {
-		Description:      "`coalesce` takes any number of arguments and returns the first one that isn&#39;t null or an empty string.",
+		Description:      "`coalesce` takes any number of arguments and returns the first one that isn't null or an empty string.",
 		ParamDescription: []string{""},
 	},
 	"coalescelist": {
-		Description: "`coalescelist` takes any number of list arguments and returns the first one that isn&#39;t empty.",
+		Description: "`coalescelist` takes any number of list arguments and returns the first one that isn't empty.",
 		ParamDescription: []string{
 			"List or tuple values to test in the given order.",
 		},
@@ -306,7 +306,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"pathexpand": {
-		Description:      "`pathexpand` takes a filesystem path that might begin with a `~` segment, and if so it replaces that segment with the current user&#39;s home directory path.",
+		Description:      "`pathexpand` takes a filesystem path that might begin with a `~` segment, and if so it replaces that segment with the current user's home directory path.",
 		ParamDescription: []string{""},
 	},
 	"pow": {
@@ -499,7 +499,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{},
 	},
 	"uuidv5": {
-		Description:      "`uuidv5` generates a _name-based_ UUID, as described in [RFC 4122 section 4.3](https://tools.ietf.org/html/rfc4122#section-4.3), also known as a &#34;version 5&#34; UUID.",
+		Description:      "`uuidv5` generates a _name-based_ UUID, as described in [RFC 4122 section 4.3](https://tools.ietf.org/html/rfc4122#section-4.3), also known as a \"version 5\" UUID.",
 		ParamDescription: []string{"", ""},
 	},
 	"values": {
