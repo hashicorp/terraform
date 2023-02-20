@@ -98,8 +98,7 @@ func (b *Cloud) runTaskStage(ctx *IntegrationContext, output IntegrationOutputWr
 			// Waiting for it to start
 			return true, nil
 		case tfe.TaskStageRunning:
-			_, e := processSummarizers(ctx, output, stage, summarizers, errs)
-			if e != nil {
+			if _, e := processSummarizers(ctx, output, stage, summarizers, errs); e != nil {
 				errs = e
 			}
 			// not a terminal status so we continue to poll
