@@ -1262,6 +1262,103 @@ func TestCloud_applyDestroyNoConfig(t *testing.T) {
 	}
 }
 
+func TestCloud_applyJSONWithProvisioner(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+	input := testInput(t, map[string]string{
+		"approve": "yes",
+	})
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-provisioner")
+	defer configCleanup()
+	defer done(t)
+
+	op.UIIn = input
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+
+	if run.PlanEmpty {
+		t.Fatalf("expected a non-empty plan")
+	}
+
+	if len(input.answers) > 0 {
+		t.Fatalf("expected no unused answers, got: %v", input.answers)
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+	if !strings.Contains(gotOut, "null_resource.foo: Provisioning with 'local-exec'") {
+		t.Fatalf("expected provisioner local-exec start in logs: %s", gotOut)
+	}
+
+	if !strings.Contains(gotOut, "null_resource.foo: (local-exec):") {
+		t.Fatalf("expected provisioner local-exec progress in logs: %s", gotOut)
+	}
+
+	if !strings.Contains(gotOut, "Hello World!") {
+		t.Fatalf("expected provisioner local-exec output in logs: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
+	}
+}
+
+func TestCloud_applyJSONWithProvisionerError(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-provisioner-error")
+	defer configCleanup()
+	defer done(t)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "local-exec provisioner error") {
+		t.Fatalf("unexpected error in apply logs: %s", gotOut)
+	}
+}
+
 func TestCloud_applyPolicyPass(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()

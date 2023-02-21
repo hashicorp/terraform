@@ -20,22 +20,28 @@ import (
 type JSONLogType string
 
 type JSONLog struct {
-	Message    string                `json:"@message"`
-	Type       JSONLogType           `json:"type"`
-	Diagnostic *viewsjson.Diagnostic `json:"diagnostic"`
-	Outputs    viewsjson.Outputs     `json:"outputs"`
+	Message    string                 `json:"@message"`
+	Type       JSONLogType            `json:"type"`
+	Diagnostic *viewsjson.Diagnostic  `json:"diagnostic"`
+	Outputs    viewsjson.Outputs      `json:"outputs"`
+	Hook       map[string]interface{} `json:"hook"`
 }
 
 const (
-	LogVersion         JSONLogType = "version"
-	LogDiagnostic      JSONLogType = "diagnostic"
-	LogPlannedChange   JSONLogType = "planned_change"
-	LogRefreshStart    JSONLogType = "refresh_start"
-	LogRefreshComplete JSONLogType = "refresh_complete"
-	LogApplyStart      JSONLogType = "apply_start"
-	LogApplyComplete   JSONLogType = "apply_complete"
-	LogChangeSummary   JSONLogType = "change_summary"
-	LogOutputs         JSONLogType = "outputs"
+	LogVersion           JSONLogType = "version"
+	LogDiagnostic        JSONLogType = "diagnostic"
+	LogPlannedChange     JSONLogType = "planned_change"
+	LogRefreshStart      JSONLogType = "refresh_start"
+	LogRefreshComplete   JSONLogType = "refresh_complete"
+	LogApplyStart        JSONLogType = "apply_start"
+	LogApplyErrored      JSONLogType = "apply_errored"
+	LogApplyComplete     JSONLogType = "apply_complete"
+	LogChangeSummary     JSONLogType = "change_summary"
+	LogProvisionStart    JSONLogType = "provision_start"
+	LogProvisionProgress JSONLogType = "provision_progress"
+	LogProvisionComplete JSONLogType = "provision_complete"
+	LogProvisionErrored  JSONLogType = "provision_errored"
+	LogOutputs           JSONLogType = "outputs"
 )
 
 type Renderer struct {
@@ -86,11 +92,16 @@ func (renderer Renderer) RenderHumanState(state State) {
 
 func (r Renderer) RenderLog(log *JSONLog) error {
 	switch log.Type {
-	case LogRefreshComplete, LogVersion, LogPlannedChange:
+	case LogRefreshComplete,
+		LogVersion,
+		LogPlannedChange,
+		LogProvisionComplete,
+		LogProvisionErrored,
+		LogApplyErrored:
 		// We won't display these types of logs
 		return nil
 
-	case LogApplyStart, LogApplyComplete, LogRefreshStart:
+	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart:
 		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s[reset]"), log.Message)
 		r.Streams.Println(msg)
 
@@ -119,8 +130,18 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 			}
 		}
 
+	case LogProvisionProgress:
+		provisioner := log.Hook["provisioner"].(string)
+		output := log.Hook["output"].(string)
+		resource := log.Hook["resource"].(map[string]interface{})
+		resourceAddr := resource["addr"].(string)
+
+		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s: (%s):[reset] %s"),
+			resourceAddr, provisioner, output)
+		r.Streams.Println(msg)
+
 	case LogChangeSummary:
-		// We will only render the apply change summary since the renderer
+		// Normally, we will only render the apply change summary since the renderer
 		// generates a plan change summary for us
 		msg := fmt.Sprintf(r.Colorize.Color("[bold][green]%s[reset]"), log.Message)
 		r.Streams.Println("\n" + msg + "\n")
