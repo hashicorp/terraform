@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl"
 
@@ -22,6 +23,7 @@ import (
 )
 
 const pluginCacheDirEnvVar = "TF_PLUGIN_CACHE_DIR"
+const pluginCacheMayBreakLockFileEnvVar = "TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE"
 
 // Config is the structure of the configuration for the Terraform CLI.
 //
@@ -220,9 +222,14 @@ func loadConfigDir(path string) (*Config, tfdiags.Diagnostics) {
 // Any values specified in this config should override those set in the
 // configuration file.
 func EnvConfig() *Config {
+	env := makeEnvMap(os.Environ())
+	return envConfig(env)
+}
+
+func envConfig(env map[string]string) *Config {
 	config := &Config{}
 
-	if envPluginCacheDir := os.Getenv(pluginCacheDirEnvVar); envPluginCacheDir != "" {
+	if envPluginCacheDir := env[pluginCacheDirEnvVar]; envPluginCacheDir != "" {
 		// No Expandenv here, because expanding environment variables inside
 		// an environment variable would be strange and seems unnecessary.
 		// (User can expand variables into the value while setting it using
@@ -230,7 +237,32 @@ func EnvConfig() *Config {
 		config.PluginCacheDir = envPluginCacheDir
 	}
 
+	if envMayBreak := env[pluginCacheMayBreakLockFileEnvVar]; envMayBreak != "" && envMayBreak != "0" {
+		// This is an environment variable analog to the
+		// plugin_cache_may_break_dependency_lock_file setting. If either this
+		// or the config file setting are enabled then it's enabled; there is
+		// no way to override back to false if either location sets this to
+		// true.
+		config.PluginCacheMayBreakDependencyLockFile = true
+	}
+
 	return config
+}
+
+func makeEnvMap(environ []string) map[string]string {
+	if len(environ) == 0 {
+		return nil
+	}
+
+	ret := make(map[string]string, len(environ))
+	for _, entry := range environ {
+		eq := strings.IndexByte(entry, '=')
+		if eq == -1 {
+			continue
+		}
+		ret[entry[:eq]] = entry[eq+1:]
+	}
+	return ret
 }
 
 // Validate checks for errors in the configuration that cannot be detected
@@ -326,6 +358,12 @@ func (c *Config) Merge(c2 *Config) *Config {
 	result.PluginCacheDir = c.PluginCacheDir
 	if result.PluginCacheDir == "" {
 		result.PluginCacheDir = c2.PluginCacheDir
+	}
+
+	if c.PluginCacheMayBreakDependencyLockFile || c2.PluginCacheMayBreakDependencyLockFile {
+		// This setting saturates to "on"; once either configuration sets it,
+		// there is no way to override it back to off again.
+		result.PluginCacheMayBreakDependencyLockFile = true
 	}
 
 	if (len(c.Hosts) + len(c2.Hosts)) > 0 {
