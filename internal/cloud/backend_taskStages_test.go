@@ -220,6 +220,7 @@ func TestTaskStageOverride(t *testing.T) {
 		isError     bool
 		errMsg      string
 		input       *mockInput
+		cont        bool
 	}{
 		"override-pass": {
 			taskStageID: "ts-pass",
@@ -228,6 +229,7 @@ func TestTaskStageOverride(t *testing.T) {
 				"→→ [bold]Override": "override",
 			}),
 			errMsg: "",
+			cont:   true,
 		},
 		"override-fail": {
 			taskStageID: "ts-err",
@@ -236,6 +238,7 @@ func TestTaskStageOverride(t *testing.T) {
 				"→→ [bold]Override": "override",
 			}),
 			errMsg: "",
+			cont:   false,
 		},
 		"skip-override": {
 			taskStageID: "ts-err",
@@ -244,11 +247,12 @@ func TestTaskStageOverride(t *testing.T) {
 			input: testInput(t, map[string]string{
 				"→→ [bold]Override": "no",
 			}),
+			cont: false,
 		},
 	}
 	for _, c := range cases {
 		integrationContext.Op.UIIn = c.input
-		_, err := b.processStageOverrides(integrationContext, writer, c.taskStageID)
+		cont, err := b.processStageOverrides(integrationContext, writer, c.taskStageID)
 		if c.isError {
 			if err == nil {
 				t.Fatalf("Expected to fail with some error")
@@ -263,6 +267,9 @@ func TestTaskStageOverride(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Expected to pass, got err: %s", err)
 			}
+		}
+		if c.cont != cont {
+			t.Fatalf("expected polling continue: %t, got: %t", c.cont, cont)
 		}
 	}
 }
