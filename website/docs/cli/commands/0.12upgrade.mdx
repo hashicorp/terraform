@@ -11,7 +11,7 @@ The `terraform 0.12upgrade` command applies several automatic upgrade rules to
 help prepare a module that was written for Terraform v0.11 to be used
 with Terraform v0.12.
 
--> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/language/v1.1.x/upgrade-guides/0-12).
+-> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-12).
 
 ## Usage
 
@@ -70,13 +70,13 @@ the change.
 Once upgraded the configuration will no longer be compatible with Terraform
 v0.11 and earlier. When upgrading a shared module that is called from multiple
 configurations, you may need to
-[fix existing configurations to a previous version](/language/modules/syntax#version)
+[fix existing configurations to a previous version](/terraform/language/modules/syntax#version)
 to allow for a gradual upgrade. If the module is published via
-[a Terraform registry](/registry), assign a new _major_ version number
+[a Terraform registry](/terraform/registry), assign a new _major_ version number
 to the upgraded module source to represent the fact that this is a breaking
 change for v0.11 callers. If a module is installed directly from a version
 control system such as Git,
-[use specific revisions](/language/modules/sources#selecting-a-revision)
+[use specific revisions](/terraform/language/modules/sources#selecting-a-revision)
 to control which version is used by which caller.
 
 The command-line options are all optional. The available options are:

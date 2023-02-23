@@ -7,7 +7,7 @@ description: Terraform can store state in Consul.
 
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
-This backend supports [state locking](/language/state/locking).
+This backend supports [state locking](/terraform/language/state/locking).
 
 ## Example Configuration
 
@@ -22,7 +22,7 @@ terraform {
 ```
 
 Note that for the access credentials we recommend using a
-[partial configuration](/language/settings/backends/configuration#partial-configuration).
+[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
 
 ## Data Source Configuration
 
@@ -37,7 +37,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options / environment variables are supported:
 

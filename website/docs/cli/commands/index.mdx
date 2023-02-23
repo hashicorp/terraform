@@ -5,7 +5,7 @@ description: An introduction to the terraform command and its available subcomma
 
 # Basic CLI Features
 
-> **Hands-on:** Try the [Terraform: Get Started](https://learn.hashicorp.com/collections/terraform/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
 
 The command line interface to Terraform is the `terraform` command, which
 accepts a variety of subcommands such as `terraform init` or `terraform plan`.
@@ -13,8 +13,8 @@ accepts a variety of subcommands such as `terraform init` or `terraform plan`.
 We refer to the `terraform` command line tool as "Terraform CLI" elsewhere
 in the documentation. This terminology is often used to distinguish it from
 other components you might use in the Terraform product family, such as
-[Terraform Cloud](/cloud-docs) or
-the various [Terraform providers](/language/providers), which
+[Terraform Cloud](/terraform/cloud-docs) or
+the various [Terraform providers](/terraform/language/providers), which
 are developed and released separately from Terraform CLI.
 
 To view a list of the commands available in your current Terraform version,
@@ -96,7 +96,7 @@ will be read or written in the given directory instead.
 There are two exceptions where Terraform will use the original working directory
 even when you specify `-chdir=...`:
 
-* Settings in the [CLI Configuration](/cli/config/config-file) are not for a specific
+* Settings in the [CLI Configuration](/terraform/cli/config/config-file) are not for a specific
   subcommand and Terraform processes them before acting on the `-chdir`
   option.
 
@@ -145,7 +145,7 @@ Checkpoint itself can be entirely disabled for all HashiCorp products by
 setting the environment variable `CHECKPOINT_DISABLE` to any non-empty value.
 
 Alternatively, settings in
-[the CLI configuration file](/cli/config/config-file) can be used to
+[the CLI configuration file](/terraform/cli/config/config-file) can be used to
 disable checkpoint features. The following checkpoint-related settings are
 supported in this file:
 

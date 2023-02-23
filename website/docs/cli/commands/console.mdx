@@ -8,26 +8,26 @@ description: >-
 # Command: console
 
 The `terraform console` command provides an interactive console for
-evaluating [expressions](/language/expressions).
+evaluating [expressions](/terraform/language/expressions).
 
 ## Usage
 
 Usage: `terraform console [options]`
 
 This command provides an interactive command-line console for evaluating and
-experimenting with [expressions](/language/expressions).
+experimenting with [expressions](/terraform/language/expressions).
 You can use it to test interpolations before using them in configurations
 and to interact with any values currently saved in
-[state](/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
-[built-in functions](/language/functions). The console holds a [lock on the state](/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
+[state](/terraform/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
+[built-in functions](/terraform/language/functions). The console holds a [lock on the state](/terraform/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
 
 To close the console, enter the `exit` command or press Control-C
 or Control-D.
 
 For configurations using
-[the `local` backend](/language/settings/backends/local) only,
+[the `local` backend](/terraform/language/settings/backends/local) only,
 `terraform console` accepts the legacy command line option
-[`-state`](/language/settings/backends/local#command-line-arguments).
+[`-state`](/terraform/language/settings/backends/local#command-line-arguments).
 
 ## Scripting
 
@@ -48,7 +48,7 @@ tolist([
 
 ## Remote State
 
-If [remote state](/language/state/remote) is used by the current backend,
+If [remote state](/terraform/language/state/remote) is used by the current backend,
 Terraform will read the state for the current workspace from the backend
 before evaluating any expressions.
 

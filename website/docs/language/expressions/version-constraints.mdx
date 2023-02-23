@@ -11,9 +11,9 @@ Anywhere that Terraform lets you specify a range of acceptable versions for
 something, it expects a specially formatted string known as a version
 constraint. Version constraints are used when configuring:
 
-- [Modules](/language/modules)
-- [Provider requirements](/language/providers/requirements)
-- [The `required_version` setting](/language/settings#specifying-a-required-terraform-version) in the `terraform` block.
+- [Modules](/terraform/language/modules)
+- [Provider requirements](/terraform/language/providers/requirements)
+- [The `required_version` setting](/terraform/language/settings#specifying-a-required-terraform-version) in the `terraform` block.
 
 ## Version Constraint Syntax
 
@@ -24,7 +24,7 @@ other dependency management systems like Bundler and NPM.
 version = ">= 1.2.0, < 2.0.0"
 ```
 
-A version constraint is a [string literal](/language/expressions/strings)
+A version constraint is a [string literal](/terraform/language/expressions/strings)
 containing one or more conditions, which are separated by commas.
 
 Each condition consists of an operator and a version number.

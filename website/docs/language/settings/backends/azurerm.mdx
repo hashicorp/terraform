@@ -117,7 +117,7 @@ terraform {
 }
 ```
 
--> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/language/settings/backends/configuration#partial-configuration) for the credentials.
+-> **NOTE:** When using a Service Principal or an Access Key - we recommend using a [Partial Configuration](/terraform/language/settings/backends/configuration#partial-configuration) for the credentials.
 
 ## Data Source Configuration
 
@@ -232,7 +232,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 
 The following configuration options are supported:
