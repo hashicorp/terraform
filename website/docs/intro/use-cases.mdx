@@ -8,7 +8,7 @@ description: |-
 
 # Use Cases
 
-[HashiCorp Terraform](/intro) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
+[HashiCorp Terraform](/terraform/intro) is an infrastructure as code tool that lets you define infrastructure resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to safely and efficiently provision and manage your infrastructure throughout its lifecycle.
 
 This page describes popular Terraform use cases and provides related resources that you can use to create Terraform configurations and workflows.
 
@@ -17,7 +17,7 @@ Provisioning infrastructure across multiple clouds increases fault-tolerance, al
 
 ### Resources
 
-- Try our [Deploy Federated Multi-Cloud Kubernetes Clusters](https://learn.hashicorp.com/tutorials/terraform/multicloud-kubernetes) tutorial to provision Kubernetes clusters in both Azure and AWS environments, configure Consul federation with mesh gateways across the two clusters, and deploy microservices across the two clusters to verify federation.
+- Try our [Deploy Federated Multi-Cloud Kubernetes Clusters](/terraform/tutorials/networking/multicloud-kubernetes) tutorial to provision Kubernetes clusters in both Azure and AWS environments, configure Consul federation with mesh gateways across the two clusters, and deploy microservices across the two clusters to verify federation.
 - Browse the [Terraform Registry](https://registry.terraform.io/browse/providers) to find thousands of publicly available providers.
 
 
@@ -27,8 +27,8 @@ You can use Terraform to efficiently deploy, release, scale, and monitor infrast
 
 ### Resources
 
-- Try our [Automate Monitoring with the Terraform Datadog Provider](https://learn.hashicorp.com/tutorials/terraform/datadog-provider?in=terraform/applications) tutorial to deploy a demo Nginx application to a Kubernetes cluster with Helm and install the Datadog agent across the cluster. The Datadog agent reports the cluster health back to your Datadog dashboard.
-- Try our [Use Application Load Balancers for Blue-Green and Canary Deployments](https://learn.hashicorp.com/tutorials/terraform/blue-green-canary-tests-deployments) tutorial. You will provision the blue and green environments, add feature toggles to your Terraform configuration to define a list of potential deployment strategies, conduct a canary test, and incrementally promote your green environment.
+- Try our [Automate Monitoring with the Terraform Datadog Provider](/terraform/tutorials/applications/datadog-provider) tutorial to deploy a demo Nginx application to a Kubernetes cluster with Helm and install the Datadog agent across the cluster. The Datadog agent reports the cluster health back to your Datadog dashboard.
+- Try our [Use Application Load Balancers for Blue-Green and Canary Deployments](/terraform/tutorials/aws/blue-green-canary-tests-deployments) tutorial. You will provision the blue and green environments, add feature toggles to your Terraform configuration to define a list of potential deployment strategies, conduct a canary test, and incrementally promote your green environment.
 
 
 ## Self-Service Clusters
@@ -37,9 +37,9 @@ At a large organization, your centralized operations team may get many repetitiv
 
 ### Resources
 
-- Try the [Use Modules from the Registry](https://learn.hashicorp.com/tutorials/terraform/module-use?in=terraform/modules) tutorial to get started using public modules in your Terraform configuration.
-Try the [Build and Use a Local Module](https://learn.hashicorp.com/tutorials/terraform/module-create?in=terraform/modules) tutorial to create a module to manage AWS S3 buckets.
-- Follow these [ServiceNow Service Catalog Integration Setup Instructions](/cloud-docs/integrations/service-now) to connect ServiceNow to Terraform Cloud.
+- Try the [Use Modules from the Registry](/terraform/tutorials/modules/module-use) tutorial to get started using public modules in your Terraform configuration.
+Try the [Build and Use a Local Module](/terraform/tutorials/modules/module-create) tutorial to create a module to manage AWS S3 buckets.
+- Follow these [ServiceNow Service Catalog Integration Setup Instructions](/terraform/cloud-docs/integrations/service-now) to connect ServiceNow to Terraform Cloud.
 
 
 ## Policy Compliance and Management
@@ -48,9 +48,9 @@ Terraform can help you enforce policies on the types of resources teams can prov
 
 ### Resources
 
-- Try the [Control Costs with Policies](https://learn.hashicorp.com/tutorials/terraform/cost-estimation) tutorial to estimate the cost of infrastructure changes and define policy to limit it.
+- Try the [Control Costs with Policies](/terraform/tutorials/cloud-get-started/cost-estimation) tutorial to estimate the cost of infrastructure changes and define policy to limit it.
 
-- The [Sentinel documentation](/cloud-docs/policy-enforcement) provides more in-depth information and a list of example policies that you can adapt for your use cases.
+- The [Sentinel documentation](/terraform/cloud-docs/policy-enforcement) provides more in-depth information and a list of example policies that you can adapt for your use cases.
 
 
 ## PaaS Application Setup
@@ -58,19 +58,19 @@ Platform as a Service (PaaS) vendors like Heroku allow you to create  web applic
 
 ### Resources
 
-Try the [Deploy, Manage, and Scale an Application on Heroku](https://learn.hashicorp.com/tutorials/terraform/heroku-provider?in=terraform/applications) tutorial to manage an application’s lifecycle with Terraform.
+Try the [Deploy, Manage, and Scale an Application on Heroku](/terraform/tutorials/applications/heroku-provider) tutorial to manage an application’s lifecycle with Terraform.
 
 
 ## Software Defined Networking
 
 Terraform can interact with Software Defined Networks (SDNs) to automatically configure the network according to the needs of the applications running in it. This lets you move from a ticket-based workflow to an automated one, reducing deployment times.
 
-For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](https://developer.hashicorp.com/consul/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
+For example, when a service registers with [HashiCorp Consul](https://www.consul.io/), [Consul-Terraform-Sync](/consul/docs/nia) can automatically generate Terraform configuration to expose appropriate ports and adjust network settings for any SDN that has an associated Terraform provider. Network Infrastructure Automation (NIA) allows you to safely approve the changes that your applications require without having to manually translate tickets from developers into the changes you think their applications need.
 
 ### Resources
 
-- Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-intro?in=consul/network-infrastructure-automation) tutorial to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
-- Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](https://learn.hashicorp.com/tutorials/consul/consul-terraform-sync-terraform-enterprise?in=consul/network-infrastructure-automation) tutorial to configure Consul-Terraform-Sync to interact with Terraform Enterprise and Terraform Cloud.
+- Try the [Network Infrastructure Automation with Consul-Terraform-Sync Intro](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-intro) tutorial to install Consul-Terraform-Sync on a node. You will then configure it to communicate with a Consul datacenter, react to service changes, and execute an example task.
+- Try the [Consul-Terraform-Sync and Terraform Enterprise/Cloud Integration](/consul/tutorials/network-infrastructure-automation/consul-terraform-sync-terraform-enterprise) tutorial to configure Consul-Terraform-Sync to interact with Terraform Enterprise and Terraform Cloud.
 
 
 ## Kubernetes
@@ -79,8 +79,8 @@ Kubernetes is an open-source workload scheduler for containerized applications. 
 
 ### Resources
 
-- Try the [Manage Kubernetes Resources via Terraform](https://learn.hashicorp.com/tutorials/terraform/kubernetes-provider?in=terraform/kubernetes) tutorial. You will use Terraform to schedule and expose a NGINX deployment on a Kubernetes cluster.
-- Try the [Deploy Infrastructure with the Terraform Cloud Operator for Kubernetes](https://learn.hashicorp.com/tutorials/terraform/kubernetes-operator) tutorial. You will configure and deploy the Operator to a Kubernetes cluster and use it to create a Terraform Cloud workspace and provision a message queue for an example application.
+- Try the [Manage Kubernetes Resources via Terraform](/terraform/tutorials/kubernetes/kubernetes-provider) tutorial. You will use Terraform to schedule and expose a NGINX deployment on a Kubernetes cluster.
+- Try the [Deploy Infrastructure with the Terraform Cloud Operator for Kubernetes](/terraform/tutorials/kubernetes/kubernetes-operator) tutorial. You will configure and deploy the Operator to a Kubernetes cluster and use it to create a Terraform Cloud workspace and provision a message queue for an example application.
 
 
 ## Parallel Environments

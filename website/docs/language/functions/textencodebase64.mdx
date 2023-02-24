@@ -31,7 +31,7 @@ support may vary between Terraform versions. In particular Terraform supports
 therefore sometimes expected by Windows-originated software such as PowerShell.
 
 Terraform also accepts the encoding name `UTF-8`, which will produce the same
-result as [`base64encode`](/language/functions/base64encode).
+result as [`base64encode`](/terraform/language/functions/base64encode).
 
 ## Examples
 
@@ -42,10 +42,10 @@ SABlAGwAbABvACAAVwBvAHIAbABkAA==
 
 ## Related Functions
 
-* [`textdecodebase64`](/language/functions/textdecodebase64) performs the opposite operation,
+* [`textdecodebase64`](/terraform/language/functions/textdecodebase64) performs the opposite operation,
   decoding Base64 data and interpreting it as a particular character encoding.
-* [`base64encode`](/language/functions/base64encode) applies Base64 encoding of the UTF-8
+* [`base64encode`](/terraform/language/functions/base64encode) applies Base64 encoding of the UTF-8
   encoding of a string.
-* [`filebase64`](/language/functions/filebase64) reads a file from the local filesystem
+* [`filebase64`](/terraform/language/functions/filebase64) reads a file from the local filesystem
   and returns its raw bytes with Base64 encoding, without creating an
   intermediate Unicode string.

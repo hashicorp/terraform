@@ -24,7 +24,7 @@ it uses backslash `\` as the path segment separator. On Unix systems, the slash
 Referring directly to filesystem paths in resource arguments may cause
 spurious diffs if the same configuration is applied from multiple systems or on
 different host operating systems. We recommend using filesystem paths only
-for transient values, such as the argument to [`file`](/language/functions/file) (where
+for transient values, such as the argument to [`file`](/terraform/language/functions/file) (where
 only the contents are then stored) or in `connection` and `provisioner` blocks.
 
 ## Examples
@@ -36,6 +36,6 @@ baz.txt
 
 ## Related Functions
 
-* [`dirname`](/language/functions/dirname) returns all of the segments of a filesystem path
+* [`dirname`](/terraform/language/functions/dirname) returns all of the segments of a filesystem path
   _except_ the last, discarding the portion that would be returned by
   `basename`.
