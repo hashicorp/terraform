@@ -93,6 +93,7 @@ type AbsProviderConfig struct {
 }
 
 var _ ProviderConfig = AbsProviderConfig{}
+var _ UniqueKeyer = AbsProviderConfig{}
 
 // ParseAbsProviderConfig parses the given traversal as an absolute provider
 // configuration address. The following are examples of traversals that can be
@@ -408,3 +409,13 @@ func (pc AbsProviderConfig) String() string {
 
 	return strings.Join(parts, ".")
 }
+
+func (pc AbsProviderConfig) UniqueKey() UniqueKey {
+	return absProviderConfigKey(pc.String())
+}
+
+type absProviderConfigKey string
+
+var _ UniqueKey = absProviderConfigKey("")
+
+func (absProviderConfigKey) uniqueKeySigil() {}
