@@ -62,6 +62,13 @@ func (e *Expander) SetModuleCount(parentAddr addrs.ModuleInstance, callAddr addr
 	e.setModuleExpansion(parentAddr, callAddr, expansionCount(count))
 }
 
+// SetModuleCountUnknown records that the given module call inside the given
+// parent module instance uses the "count" repetition argument but its value
+// is not yet known.
+func (e *Expander) SetModuleCountUnknown(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall) {
+	e.setModuleExpansion(parentAddr, callAddr, expansionDeferredIntKey)
+}
+
 // SetModuleForEach records that the given module call inside the given parent
 // module instance uses the "for_each" repetition argument, with the given
 // map value.
@@ -71,6 +78,13 @@ func (e *Expander) SetModuleCount(parentAddr addrs.ModuleInstance, callAddr addr
 // calling this method.
 func (e *Expander) SetModuleForEach(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall, mapping map[string]cty.Value) {
 	e.setModuleExpansion(parentAddr, callAddr, expansionForEach(mapping))
+}
+
+// SetModuleForEachUnknown records that the given module call inside the given
+// parent module instance uses the "for_each" repetition argument, but its
+// map keys are not yet known.
+func (e *Expander) SetModuleForEachUnknown(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall) {
+	e.setModuleExpansion(parentAddr, callAddr, expansionDeferredStringKey)
 }
 
 // SetResourceSingle records that the given resource inside the given module
@@ -85,6 +99,12 @@ func (e *Expander) SetResourceCount(moduleAddr addrs.ModuleInstance, resourceAdd
 	e.setResourceExpansion(moduleAddr, resourceAddr, expansionCount(count))
 }
 
+// SetResourceCountUnknown records that the given resource inside the given
+// module uses the "count" repetition argument but its value isn't yet known.
+func (e *Expander) SetResourceCountUnknown(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionDeferredIntKey)
+}
+
 // SetResourceForEach records that the given resource inside the given module
 // uses the "for_each" repetition argument, with the given map value.
 //
@@ -95,8 +115,18 @@ func (e *Expander) SetResourceForEach(moduleAddr addrs.ModuleInstance, resourceA
 	e.setResourceExpansion(moduleAddr, resourceAddr, expansionForEach(mapping))
 }
 
+// SetResourceForEachUnknown records that the given resource inside the given
+// module uses the "for_each" repetition argument, but the map keys aren't
+// known yet.
+func (e *Expander) SetResourceForEachUnknown(moduleAddr addrs.ModuleInstance, resourceAddr addrs.Resource) {
+	e.setResourceExpansion(moduleAddr, resourceAddr, expansionDeferredStringKey)
+}
+
 // ExpandModule finds the exhaustive set of module instances resulting from
 // the expansion of the given module and all of its ancestor modules.
+//
+// If any involved module calls have an as-yet-unknown set of instance keys
+// then the result includes only the known instance addresses, if any.
 //
 // All of the modules on the path to the identified module must already have
 // had their expansion registered using one of the SetModule* methods before
@@ -167,6 +197,10 @@ func (e *Expander) GetDeepestExistingModuleInstance(given addrs.ModuleInstance) 
 
 // ExpandModuleResource finds the exhaustive set of resource instances resulting from
 // the expansion of the given resource and all of its containing modules.
+//
+// If any involved module calls or resources have an as-yet-unknown set of
+// instance keys then the result includes only the known instance addresses,
+// if any.
 //
 // All of the modules on the path to the identified resource and the resource
 // itself must already have had their expansion registered using one of the
@@ -286,11 +320,13 @@ func (e *Expander) setModuleExpansion(parentAddr addrs.ModuleInstance, callAddr 
 	if _, exists := mod.moduleCalls[callAddr]; exists {
 		panic(fmt.Sprintf("expansion already registered for %s", parentAddr.Child(callAddr.Name, addrs.NoKey)))
 	}
-	// We'll also pre-register the child instances so that later calls can
-	// populate them as the caller traverses the configuration tree.
-	for _, key := range exp.instanceKeys() {
-		step := addrs.ModuleInstanceStep{Name: callAddr.Name, InstanceKey: key}
-		mod.childInstances[step] = newExpanderModule()
+	if !expansionIsDeferred(exp) {
+		// We'll also pre-register the child instances so that later calls can
+		// populate them as the caller traverses the configuration tree.
+		for _, key := range exp.instanceKeys() {
+			step := addrs.ModuleInstanceStep{Name: callAddr.Name, InstanceKey: key}
+			mod.childInstances[step] = newExpanderModule()
+		}
 	}
 	mod.moduleCalls[callAddr] = exp
 }
@@ -369,6 +405,11 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 		// expansion of it.
 		panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
 	}
+	if expansionIsDeferred(exp) {
+		// We don't yet have enough information to determine the instance
+		// addresses for this module.
+		return nil
+	}
 
 	var ret []addrs.ModuleInstance
 
@@ -405,11 +446,14 @@ func (m *expanderModule) moduleResourceInstances(moduleAddr addrs.Module, resour
 		// then iterate resource expansions in the context of each module
 		// path leading to them.
 		callName := moduleAddr[0]
-		if _, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]; !ok {
+		if exp, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]; !ok {
 			// This is a bug in the caller, because it should always register
 			// expansions for an object and all of its ancestors before requesting
 			// expansion of it.
 			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
+		} else if expansionIsDeferred(exp) {
+			// We don't yet have any known instance addresses, then.
+			return nil
 		}
 
 		for step, inst := range m.childInstances {
@@ -465,6 +509,10 @@ func (m *expanderModule) onlyResourceInstances(resourceAddr addrs.Resource, pare
 	exp, ok := m.resources[resourceAddr]
 	if !ok {
 		panic(fmt.Sprintf("no expansion has been registered for %s", resourceAddr.Absolute(parentAddr)))
+	}
+	if expansionIsDeferred(exp) {
+		// We don't yet have enough information to determine the instance addresses.
+		return nil
 	}
 
 	for _, k := range exp.instanceKeys() {
