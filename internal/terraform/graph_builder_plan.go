@@ -150,7 +150,11 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&AttachStateTransformer{State: b.State},
 
 		// Create orphan output nodes
-		&OrphanOutputTransformer{Config: b.Config, State: b.State},
+		&OrphanOutputTransformer{
+			Config:   b.Config,
+			State:    b.State,
+			Planning: true,
+		},
 
 		// Attach the configuration to any resources
 		&AttachResourceConfigTransformer{Config: b.Config},

@@ -1131,6 +1131,10 @@ func TestFunctions(t *testing.T) {
 					"key": cty.StringVal("0ba"),
 				}),
 			},
+			{
+				`yamldecode("~")`,
+				cty.NullVal(cty.DynamicPseudoType),
+			},
 		},
 
 		"yamlencode": {

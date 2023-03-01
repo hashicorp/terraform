@@ -7,7 +7,7 @@ description: 'Learn about commands for core provisioning tasks: plan, apply, and
 
 Terraform's primary function is to create, modify, and destroy infrastructure
 resources to match the desired state described in a
-[Terraform configuration](/language).
+[Terraform configuration](/terraform/language).
 
 When people refer to "running Terraform," they generally mean performing these
 provisioning actions in order to affect real infrastructure objects. The
@@ -16,8 +16,8 @@ actions, but these basic provisioning tasks are the core of Terraform.
 
 Terraform's provisioning workflow relies on three commands: `plan`, `apply`, and
 `destroy`. All of these commands require an
-[initialized](/cli/init) working directory, and all of them act
-only upon the currently selected [workspace](/cli/workspaces).
+[initialized](/terraform/cli/init) working directory, and all of them act
+only upon the currently selected [workspace](/terraform/cli/workspaces).
 
 ## Planning
 
@@ -38,7 +38,7 @@ resulting actions are as expected. However, `terraform plan` can also save its
 plan as a runnable artifact, which `terraform apply` can use to carry out those
 exact changes.
 
-For details, see [the `terraform plan` command](/cli/commands/plan).
+For details, see [the `terraform plan` command](/terraform/cli/commands/plan).
 
 ## Applying
 
@@ -54,7 +54,7 @@ running a new plan. You can use this to reliably perform an exact set of
 pre-approved changes, even if the configuration or the state of the real
 infrastructure has changed in the minutes since the original plan was created.
 
-For details, see [the `terraform apply` command](/cli/commands/apply).
+For details, see [the `terraform apply` command](/terraform/cli/commands/apply).
 
 ## Destroying
 
@@ -68,4 +68,4 @@ and then running an apply, except that it doesn't require editing the
 configuration. This is more convenient if you intend to provision similar
 resources at a later date.
 
-For details, see [the `terraform destroy` command](/cli/commands/destroy).
+For details, see [the `terraform destroy` command](/terraform/cli/commands/destroy).

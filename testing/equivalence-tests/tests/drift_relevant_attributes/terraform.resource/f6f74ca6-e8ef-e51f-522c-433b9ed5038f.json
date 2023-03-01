@@ -1,0 +1,13 @@
+{
+  "values": {
+    "id": {
+      "string": "f6f74ca6-e8ef-e51f-522c-433b9ed5038f"
+    },
+    "number": {
+      "number": "1"
+    },
+    "string": {
+      "string": "Hello, drift!"
+    }
+  }
+}

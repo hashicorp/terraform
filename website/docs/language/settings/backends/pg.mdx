@@ -7,7 +7,7 @@ description: Terraform can store state remotely in a Postgres database with lock
 
 Stores the state in a [Postgres database](https://www.postgresql.org) version 10 or newer.
 
-This backend supports [state locking](/language/state/locking).
+This backend supports [state locking](/terraform/language/state/locking).
 
 ## Example Configuration
 
@@ -28,7 +28,7 @@ createdb terraform_backend
 This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/10/reference-client.html) which are installed along with the database server.
 
 We recommend using a
-[partial configuration](/language/settings/backends/configuration#partial-configuration)
+[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration)
 for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
 
 ```hcl
@@ -51,7 +51,7 @@ terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?
 
 ## Data Source Configuration
 
-To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/language/state/remote-state-data).
+To make use of the pg remote state in another configuration, use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -64,7 +64,7 @@ data "terraform_remote_state" "network" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options or environment variables are supported:
 
@@ -78,9 +78,9 @@ The following configuration options or environment variables are supported:
 
 This backend creates one table **states** in the automatically-managed Postgres schema configured by the `schema_name` variable.
 
-The table is keyed by the [workspace](/language/state/workspaces) name. If workspaces are not in use, the name `default` is used.
+The table is keyed by the [workspace](/terraform/language/state/workspaces) name. If workspaces are not in use, the name `default` is used.
 
-Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](/cli/commands/force-unlock) is not supported, because these database-native locks will automatically unlock when the session is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
+Locking is supported using [Postgres advisory locks](https://www.postgresql.org/docs/9.5/explicit-locking.html#ADVISORY-LOCKS). [`force-unlock`](/terraform/cli/commands/force-unlock) is not supported, because these database-native locks will automatically unlock when the session is aborted or the connection fails. To see outstanding locks in a Postgres server, use the [`pg_locks` system view](https://www.postgresql.org/docs/9.5/view-pg-locks.html).
 
 The **states** table contains:
 

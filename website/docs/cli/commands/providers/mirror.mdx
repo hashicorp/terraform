@@ -17,7 +17,7 @@ from provider registries as part of initializing the current working directory.
 Sometimes Terraform is running in an environment where that isn't possible,
 such as on an isolated network without access to the Terraform Registry. In
 that case,
-[explicit installation method configuration](/cli/config/config-file#explicit-installation-method-configuration)
+[explicit installation method configuration](/terraform/cli/config/config-file#explicit-installation-method-configuration)
 allows you to configure Terraform, when running on a particular system, to
 consult only a local filesystem directory where you've created a local mirror
 of the necessary plugins, and to skip accessing the upstream registry at all.
@@ -39,7 +39,7 @@ themselves.
 
 Terraform will also generate various `.json` index files which contain suitable
 responses to implement
-[the network mirror protocol](/internals/provider-network-mirror-protocol),
+[the network mirror protocol](/terraform/internals/provider-network-mirror-protocol),
 if you upload the resulting directory to a static website host. Terraform
 ignores those index files when using the directory as a filesystem mirror,
 because the directory entries themselves are authoritative in that case.

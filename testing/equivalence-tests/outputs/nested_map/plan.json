@@ -1,0 +1,110 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_nested_map.nested_map",
+          "expressions": {
+            "id": {
+              "constant_value": "502B0348-B796-4F6A-8694-A5A397237B85"
+            },
+            "maps": {
+              "constant_value": {
+                "first_nested_map": {
+                  "first_key": "9E858021-953F-4DD3-8842-F2C782780422",
+                  "second_key": "D55D0E1E-51D9-4BCE-9021-7D201906D3C0"
+                },
+                "second_nested_map": {
+                  "first_key": "6E80C701-A823-43FE-A520-699851EF9052",
+                  "second_key": "79CBEBB1-1192-480A-B4A8-E816A1A9D2FC"
+                }
+              }
+            }
+          },
+          "mode": "managed",
+          "name": "nested_map",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_nested_map"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_nested_map.nested_map",
+          "mode": "managed",
+          "name": "nested_map",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "maps": {
+              "first_nested_map": {},
+              "second_nested_map": {}
+            }
+          },
+          "type": "tfcoremock_nested_map",
+          "values": {
+            "id": "502B0348-B796-4F6A-8694-A5A397237B85",
+            "maps": {
+              "first_nested_map": {
+                "first_key": "9E858021-953F-4DD3-8842-F2C782780422",
+                "second_key": "D55D0E1E-51D9-4BCE-9021-7D201906D3C0"
+              },
+              "second_nested_map": {
+                "first_key": "6E80C701-A823-43FE-A520-699851EF9052",
+                "second_key": "79CBEBB1-1192-480A-B4A8-E816A1A9D2FC"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "tfcoremock_nested_map.nested_map",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "after": {
+          "id": "502B0348-B796-4F6A-8694-A5A397237B85",
+          "maps": {
+            "first_nested_map": {
+              "first_key": "9E858021-953F-4DD3-8842-F2C782780422",
+              "second_key": "D55D0E1E-51D9-4BCE-9021-7D201906D3C0"
+            },
+            "second_nested_map": {
+              "first_key": "6E80C701-A823-43FE-A520-699851EF9052",
+              "second_key": "79CBEBB1-1192-480A-B4A8-E816A1A9D2FC"
+            }
+          }
+        },
+        "after_sensitive": {
+          "maps": {
+            "first_nested_map": {},
+            "second_nested_map": {}
+          }
+        },
+        "after_unknown": {},
+        "before": null,
+        "before_sensitive": false
+      },
+      "mode": "managed",
+      "name": "nested_map",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_nested_map"
+    }
+  ]
+}

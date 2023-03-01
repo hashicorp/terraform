@@ -76,7 +76,7 @@ func TestShow_noArgsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -105,7 +105,7 @@ func TestShow_argsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -153,7 +153,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -453,7 +453,7 @@ func TestShow_state(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}

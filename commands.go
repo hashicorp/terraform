@@ -95,6 +95,8 @@ func initCommands(
 		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 
+		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
+
 		ShutdownCh: makeShutdownCh(),
 
 		ProviderSource:       providerSrc,
@@ -203,6 +205,18 @@ func initCommands(
 
 		"logout": func() (cli.Command, error) {
 			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata": func() (cli.Command, error) {
+			return &command.MetadataCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata functions": func() (cli.Command, error) {
+			return &command.MetadataFunctionsCommand{
 				Meta: meta,
 			}, nil
 		},

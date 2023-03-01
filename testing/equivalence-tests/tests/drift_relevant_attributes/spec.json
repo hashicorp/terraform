@@ -1,0 +1,5 @@
+{
+  "description": "tests that relevant attributes are applied when dependent resources are updated by drift",
+  "include_files": [],
+  "ignore_fields": {}
+}

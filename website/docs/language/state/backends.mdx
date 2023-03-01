@@ -8,7 +8,7 @@ description: >-
 # State Storage and Locking
 
 Backends are responsible for storing state and providing an API for
-[state locking](/language/state/locking). State locking is optional.
+[state locking](/terraform/language/state/locking). State locking is optional.
 
 Despite the state being stored remotely, all Terraform commands such
 as `terraform console`, the `terraform state` operations, `terraform taint`,
@@ -63,10 +63,10 @@ prior to forcing the overwrite.
 
 ## State Locking
 
-Backends are responsible for supporting [state locking](/language/state/locking)
+Backends are responsible for supporting [state locking](/terraform/language/state/locking)
 if possible.
 
-Not all backends support locking. The [documentation for each backend](/language/settings/backends/configuration#available-backends) includes details about whether it supports locking or not.
+Not all backends support locking. The [documentation for each backend](/terraform/language/settings/backends/configuration#available-backends) includes details about whether it supports locking or not.
 
 For more information on state locking, view the
-[page dedicated to state locking](/language/state/locking).
+[page dedicated to state locking](/terraform/language/state/locking).

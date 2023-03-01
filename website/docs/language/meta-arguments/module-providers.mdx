@@ -7,9 +7,9 @@ description: >-
 
 # The Module `providers` Meta-Argument
 
-In a [module call](/language/modules/syntax) block, the
+In a [module call](/terraform/language/modules/syntax) block, the
 optional `providers` meta-argument specifies which
-[provider configurations](/language/providers/configuration) from the parent
+[provider configurations](/terraform/language/providers/configuration) from the parent
 module will be available inside the child module.
 
 ```hcl
@@ -38,7 +38,7 @@ module "example" {
 
 ## Default Behavior: Inherit Default Providers
 
-If the child module does not declare any [configuration aliases](/language/modules/develop/providers#provider-aliases-within-modules),
+If the child module does not declare any [configuration aliases](/terraform/language/modules/develop/providers#provider-aliases-within-modules),
 the `providers` argument is optional. If you omit it, a child module inherits
 all of the _default_ provider configurations from its parent module. (Default
 provider configurations are ones that don't use the `alias` argument.)
@@ -123,4 +123,4 @@ names it needs.
 
 For more details and guidance about working with providers inside a re-usable
 child module, see
-[Module Development: Providers Within Modules](/language/modules/develop/providers).
+[Module Development: Providers Within Modules](/terraform/language/modules/develop/providers).

@@ -25,9 +25,9 @@ function-like constructs called _type constructors._
   represent a type; instead, it represents a _kind_ of similar types.
 
 Type constraints look like other kinds of Terraform
-[expressions](/language/expressions), but are a special syntax. Within the
+[expressions](/terraform/language/expressions), but are a special syntax. Within the
 Terraform language, they are only valid in the `type` argument of an
-[input variable](/language/values/variables).
+[input variable](/terraform/language/values/variables).
 
 ## Primitive Types
 
@@ -96,9 +96,8 @@ The three kinds of collection type in the Terraform language are:
   for single line maps. A newline between key/value pairs is sufficient
   in multi-line maps.
 
-  Note: Although colons are valid delimiters between keys and values,
-  `terraform fmt` currently ignores them (whereas `terraform fmt`
-  attempts to vertically align equals signs).
+  -> **Note:** Although colons are valid delimiters between keys and values, `terraform fmt` ignores them. In contrast, `terraform fmt` attempts to vertically align equals signs.
+  
 * `set(...)`: a collection of unique values that do not have any secondary
   identifiers or ordering.
 
@@ -153,7 +152,7 @@ like the following:
 
 The Terraform language has literal expressions for creating tuple and object
 values, which are described in
-[Expressions: Literal Expressions](/language/expressions/types#literal-expressions) as
+[Expressions: Literal Expressions](/terraform/language/expressions/types#literal-expressions) as
 "list/tuple" literals and "map/object" literals, respectively.
 
 Terraform does _not_ provide any way to directly represent lists, maps, or sets.
