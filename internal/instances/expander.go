@@ -160,6 +160,35 @@ func (e *Expander) expandModule(addr addrs.Module, skipUnknown bool) []addrs.Mod
 	return ret
 }
 
+// UnknownModuleInstances finds a set of patterns that collectively cover
+// all of the possible module instance addresses that could appear for the
+// given module once all of the intermediate module expansions are fully known.
+//
+// This imprecisely describes what's omitted from the [Expander.ExpandModule]
+// result whenever there's an as-yet-unknown call expansion somewhere in the
+// module path.
+//
+// Note that an [addrs.PartialExpandedModule] value is effectively an infinite
+// set of [addrs.ModuleInstance] values itself, so the result could be
+// considered as the union of all of those sets but we return it as a set of
+// sets because the inner sets are of infinite size while the outer set is
+// finite.
+func (e *Expander) UnknownModuleInstances(addr addrs.Module) addrs.Set[addrs.PartialExpandedModule] {
+	if len(addr) == 0 {
+		// The root module is always "expanded" because it's always a singleton,
+		// so we have nothing to return in that case.
+		return nil
+	}
+
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	ret := addrs.MakeSet[addrs.PartialExpandedModule]()
+	parentAddr := make(addrs.ModuleInstance, 0, 4)
+	e.exps.partialExpandedModuleInstances(addr, parentAddr, ret)
+	return ret
+}
+
 // GetDeepestExistingModuleInstance is a funny specialized function for
 // determining how many steps we can traverse through the given module instance
 // address before encountering an undeclared instance of a declared module.
@@ -437,6 +466,40 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 		ret = append(ret, full)
 	}
 	return ret
+}
+
+func (m *expanderModule) partialExpandedModuleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, into addrs.Set[addrs.PartialExpandedModule]) {
+	callName := addr[0]
+	exp, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]
+	if !ok {
+		// This is a bug in the caller, because it should always register
+		// expansions for an object and all of its ancestors before requesting
+		// expansion of it.
+		panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
+	}
+	if expansionIsDeferred(exp) {
+		// We've found a deferred expansion, so we're done searching this
+		// subtree and can just treat the whole of "addr" as unexpanded
+		// calls.
+		retAddr := parentAddr.UnexpandedChild(addrs.ModuleCall{Name: callName})
+		for _, step := range addr[1:] {
+			retAddr = retAddr.Child(addrs.ModuleCall{Name: step})
+		}
+		into.Add(retAddr)
+		return
+	}
+
+	// If this step already has everything expanded then we need to
+	// search inside it to see if it has any unexpanded descendents.
+	if len(addr) > 1 {
+		for step, inst := range m.childInstances {
+			if step.Name != callName {
+				continue
+			}
+			instAddr := append(parentAddr, step)
+			inst.partialExpandedModuleInstances(addr[1:], instAddr, into)
+		}
+	}
 }
 
 func (m *expanderModule) moduleResourceInstances(moduleAddr addrs.Module, resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {

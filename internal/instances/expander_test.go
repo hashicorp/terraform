@@ -537,15 +537,69 @@ func TestExpanderWithUnknowns(t *testing.T) {
 		if len(got) != 0 {
 			t.Errorf("unexpected known addresses: %#v", got)
 		}
+
+		gotUnknown := ex.UnknownModuleInstances(addrs.Module{moduleCallAddr.Name})
+		if len(gotUnknown) != 1 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		wantUnknownCall := addrs.RootModuleInstance.UnexpandedChild(moduleCallAddr)
+		if !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
 	})
 	t.Run("module with unknown count", func(t *testing.T) {
 		moduleCallAddr := addrs.ModuleCall{Name: "foo"}
 		ex := NewExpander()
 		ex.SetModuleCountUnknown(addrs.RootModuleInstance, moduleCallAddr)
 
-		got := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
-		if len(got) != 0 {
-			t.Errorf("unexpected known addresses: %#v", got)
+		gotKnown := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
+		if len(gotKnown) != 0 {
+			t.Errorf("unexpected known addresses: %#v", gotKnown)
+		}
+
+		gotUnknown := ex.UnknownModuleInstances(addrs.Module{moduleCallAddr.Name})
+		if len(gotUnknown) != 1 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		wantUnknownCall := addrs.RootModuleInstance.UnexpandedChild(moduleCallAddr)
+		if !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+	})
+	t.Run("nested module with unknown count", func(t *testing.T) {
+		moduleCallAddr1 := addrs.ModuleCall{Name: "foo"}
+		moduleCallAddr2 := addrs.ModuleCall{Name: "bar"}
+		module1 := addrs.RootModule.Child(moduleCallAddr1.Name)
+		module2 := module1.Child(moduleCallAddr2.Name)
+		module1Inst0 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(0))
+		module1Inst1 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(1))
+		module1Inst2 := addrs.RootModuleInstance.Child("foo", addrs.IntKey(2))
+		ex := NewExpander()
+		ex.SetModuleCount(addrs.RootModuleInstance, moduleCallAddr1, 3)
+		ex.SetModuleCountUnknown(module1Inst0, moduleCallAddr2)
+		ex.SetModuleCount(module1Inst1, moduleCallAddr2, 1)
+		ex.SetModuleCountUnknown(module1Inst2, moduleCallAddr2)
+
+		gotKnown := ex.ExpandModule(module2)
+		wantKnown := []addrs.ModuleInstance{
+			module1Inst1.Child("bar", addrs.IntKey(0)),
+		}
+		if diff := cmp.Diff(wantKnown, gotKnown); diff != "" {
+			t.Errorf("unexpected known addresses\n%s", diff)
+		}
+
+		gotUnknown := ex.UnknownModuleInstances(module2)
+		if len(gotUnknown) != 2 {
+			t.Errorf("unexpected unknown addresses: %#v", gotUnknown)
+		}
+		if wantUnknownCall := module1Inst0.UnexpandedChild(moduleCallAddr2); !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
+		}
+		if unwantUnknownCall := module1Inst1.UnexpandedChild(moduleCallAddr2); gotUnknown.Has(unwantUnknownCall) {
+			t.Errorf("unknown should not have %s, but does", unwantUnknownCall)
+		}
+		if wantUnknownCall := module1Inst2.UnexpandedChild(moduleCallAddr2); !gotUnknown.Has(wantUnknownCall) {
+			t.Errorf("unknown should have %s, but it doesn't", wantUnknownCall)
 		}
 	})
 }
