@@ -86,3 +86,27 @@ func (e expansionForEach) repetitionData(key addrs.InstanceKey) RepetitionData {
 		EachValue: v,
 	}
 }
+
+// expansionDeferred is a special expansion which represents that we don't
+// yet have enough information to calculate the expansion of a particular
+// object.
+//
+// [expansionDeferredIntKey] and [expansionDeferredStringKey] are the only
+// valid values of this type.
+type expansionDeferred rune
+
+const expansionDeferredIntKey = expansionDeferred(addrs.IntKeyType)
+const expansionDeferredStringKey = expansionDeferred(addrs.StringKeyType)
+
+func (e expansionDeferred) instanceKeys() []addrs.InstanceKey {
+	panic("cannot expand when expansion was deferred")
+}
+
+func (e expansionDeferred) repetitionData(key addrs.InstanceKey) RepetitionData {
+	panic("cannot expand when expansion was deferred")
+}
+
+func expansionIsDeferred(exp expansion) bool {
+	_, ret := exp.(expansionDeferred)
+	return ret
+}

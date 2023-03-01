@@ -499,6 +499,57 @@ func TestExpander(t *testing.T) {
 	})
 }
 
+func TestExpanderWithUnknowns(t *testing.T) {
+	t.Run("resource in root module with unknown for_each", func(t *testing.T) {
+		resourceAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "foo",
+		}
+		ex := NewExpander()
+		ex.SetResourceForEachUnknown(addrs.RootModuleInstance, resourceAddr)
+
+		got := ex.ExpandModuleResource(addrs.RootModule, resourceAddr)
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+	t.Run("resource in root module with unknown count", func(t *testing.T) {
+		resourceAddr := addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test",
+			Name: "foo",
+		}
+		ex := NewExpander()
+		ex.SetResourceCountUnknown(addrs.RootModuleInstance, resourceAddr)
+
+		got := ex.ExpandModuleResource(addrs.RootModule, resourceAddr)
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+	t.Run("module with unknown for_each", func(t *testing.T) {
+		moduleCallAddr := addrs.ModuleCall{Name: "foo"}
+		ex := NewExpander()
+		ex.SetModuleForEachUnknown(addrs.RootModuleInstance, moduleCallAddr)
+
+		got := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+	t.Run("module with unknown count", func(t *testing.T) {
+		moduleCallAddr := addrs.ModuleCall{Name: "foo"}
+		ex := NewExpander()
+		ex.SetModuleCountUnknown(addrs.RootModuleInstance, moduleCallAddr)
+
+		got := ex.ExpandModule(addrs.Module{moduleCallAddr.Name})
+		if len(got) != 0 {
+			t.Errorf("unexpected known addresses: %#v", got)
+		}
+	})
+}
+
 func mustAbsResourceInstanceAddr(str string) addrs.AbsResourceInstance {
 	addr, diags := addrs.ParseAbsResourceInstanceStr(str)
 	if diags.HasErrors() {
