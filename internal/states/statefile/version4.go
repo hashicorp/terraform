@@ -562,6 +562,7 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 				obj := &states.CheckResultObject{
 					Status:          decodeCheckStatusV4(objectIn.Status),
 					FailureMessages: objectIn.FailureMessages,
+					Refs:            objectIn.Refs,
 				}
 				aggr.ObjectResults.Put(objectAddr, obj)
 			}
@@ -592,6 +593,7 @@ func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
 				ObjectAddr:      objectElem.Key.String(),
 				Status:          encodeCheckStatusV4(objectElem.Value.Status),
 				FailureMessages: objectElem.Value.FailureMessages,
+				Refs:            objectElem.Value.Refs,
 			})
 		}
 
@@ -722,9 +724,10 @@ type checkResultsV4 struct {
 }
 
 type checkResultsObjectV4 struct {
-	ObjectAddr      string   `json:"object_addr"`
-	Status          string   `json:"status"`
-	FailureMessages []string `json:"failure_messages,omitempty"`
+	ObjectAddr      string     `json:"object_addr"`
+	Status          string     `json:"status"`
+	FailureMessages []string   `json:"failure_messages,omitempty"`
+	Refs            [][]string `json:"refs,omitempty"`
 }
 
 // stateVersionV4 is a weird special type we use to produce our hard-coded

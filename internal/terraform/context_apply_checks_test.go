@@ -23,6 +23,7 @@ import (
 type checksTestingStatus struct {
 	status   checks.Status
 	messages []string
+	refs     [][]string
 }
 
 func TestContextChecks(t *testing.T) {
@@ -105,12 +106,22 @@ check "failing" {
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
+					refs: [][]string{
+						{
+							"data.checks_object.positive",
+						},
+					},
 				},
 			},
 			apply: map[string]checksTestingStatus{
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
+					refs: [][]string{
+						{
+							"data.checks_object.positive",
+						},
+					},
 				},
 			},
 			provider: &MockProvider{
@@ -162,12 +173,22 @@ check "failing" {
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"positive number"},
+					refs: [][]string{
+						{
+							"data.checks_object.neutral",
+						},
+					},
 				},
 			},
 			apply: map[string]checksTestingStatus{
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"positive number"},
+					refs: [][]string{
+						{
+							"data.checks_object.neutral",
+						},
+					},
 				},
 			},
 			provider: &MockProvider{
@@ -223,10 +244,20 @@ check "nested_data_block" {
 				"nested_data_block": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
+					refs: [][]string{
+						{
+							"data.checks_object.nested_data_block",
+						},
+					},
 				},
 				"data_block": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
+					refs: [][]string{
+						{
+							"data.checks_object.data_block",
+						},
+					},
 				},
 			},
 			apply: map[string]checksTestingStatus{
@@ -236,6 +267,11 @@ check "nested_data_block" {
 				"data_block": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
+					refs: [][]string{
+						{
+							"data.checks_object.data_block",
+						},
+					},
 				},
 			},
 			provider: &MockProvider{
@@ -391,6 +427,11 @@ check "error" {
 					messages: []string{
 						"data source read failed: something bad happened and the provider couldn't read the data source",
 					},
+					refs: [][]string{
+						{
+							"data.checks_object.data_block",
+						},
+					},
 				},
 			},
 			apply: map[string]checksTestingStatus{
@@ -398,6 +439,11 @@ check "error" {
 					status: checks.StatusFail,
 					messages: []string{
 						"data source read failed: something bad happened and the provider couldn't read the data source",
+					},
+					refs: [][]string{
+						{
+							"data.checks_object.data_block",
+						},
 					},
 				},
 			},
@@ -665,25 +711,41 @@ func validateCheckResults(t *testing.T, stage string, expected map[string]checks
 			t.Errorf("%s: expected %d failure messages but had %d after %s", check, len(want.messages), len(results.FailureMessages), stage)
 		}
 
-		max := len(want.messages)
-		if len(results.FailureMessages) > max {
-			max = len(results.FailureMessages)
+		if len(results.FailureMessages) != len(results.Refs) {
+			t.Errorf("%s: returned a different number of references compared to failure messages", check)
 		}
 
-		for ix := 0; ix < max; ix++ {
-			var expected, actual string
-			if ix < len(want.messages) {
-				expected = want.messages[ix]
-			}
-			if ix < len(results.FailureMessages) {
-				actual = results.FailureMessages[ix]
-			}
-
-			// Order matters!
+		validateLists(t, want.messages, results.FailureMessages, func(t *testing.T, ix int, expected, actual string) {
 			if actual != expected {
 				t.Errorf("%s: expected failure message at %d to be \"%s\" but was \"%s\" after %s", check, ix, expected, actual, stage)
 			}
+		})
+
+		validateLists(t, want.refs, results.Refs, func(t *testing.T, ix int, expected, actual []string) {
+			validateLists(t, expected, actual, func(t *testing.T, jx int, expected, actual string) {
+				if actual != expected {
+					t.Errorf("%s: expected reference at (%d,%d) to be \"%s\" but was \"%s\" after %s", check, ix, jx, expected, actual, stage)
+				}
+			})
+		})
+	}
+}
+
+func validateLists[Element any](t *testing.T, expected, actual []Element, validate func(t *testing.T, ix int, left, right Element)) {
+	max := len(expected)
+	if len(actual) > max {
+		max = len(actual)
+	}
+
+	for ix := 0; ix < max; ix++ {
+		var e, a Element
+		if ix < len(expected) {
+			e = expected[ix]
+		}
+		if ix < len(actual) {
+			a = actual[ix]
 		}
 
+		validate(t, ix, e, a)
 	}
 }

@@ -146,14 +146,15 @@ func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 			n.addr,
 			EvalDataForNoInstanceKey,
 			tfdiags.Warning)
-
 	}
 
 	// Otherwise let's still validate the config and references and return
 	// diagnostics if references do not exist etc.
 	var diags tfdiags.Diagnostics
 	for _, assert := range n.config.Asserts {
-		_, _, moreDiags := validateCheckRule(addrs.CheckAssertion, assert, ctx, n.addr, EvalDataForNoInstanceKey)
+		// We don't actually care about the result, just if it returned any
+		// error diagnostics.
+		_, moreDiags := validateCheckRule(addrs.CheckAssertion, assert, ctx, n.addr, EvalDataForNoInstanceKey)
 		diags = diags.Append(moreDiags)
 	}
 	return diags

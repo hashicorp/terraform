@@ -53,7 +53,11 @@ func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx Eva
 
 		log.Printf("[TRACE] evalCheckRules: %s status is now %s", self, result.Status)
 		if result.Status == checks.StatusFail {
-			checkState.ReportCheckFailure(self, typ, i, result.FailureMessage)
+			var refs []addrs.Referenceable
+			for _, ref := range result.Refs {
+				refs = append(refs, ref.Subject)
+			}
+			checkState.ReportCheckFailure(self, typ, i, result.FailureMessage, refs)
 		} else {
 			checkState.ReportCheckResult(self, typ, i, result.Status)
 		}
@@ -65,9 +69,16 @@ func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx Eva
 type checkResult struct {
 	Status         checks.Status
 	FailureMessage string
+	Refs           []*addrs.Reference
 }
 
-func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
+type validateResult struct {
+	Ctx          *hcl.EvalContext
+	ErrorMessage string
+	Refs         []*addrs.Reference
+}
+
+func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData) (validateResult, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
@@ -104,18 +115,22 @@ func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx Eva
 	errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
 	diags = diags.Append(moreDiags)
 
-	return errorMessage, hclCtx, diags
+	return validateResult{
+		Ctx:          hclCtx,
+		ErrorMessage: errorMessage,
+		Refs:         refs,
+	}, diags
 }
 
 func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
 	// NOTE: Intentionally not passing the caller's selected severity in here,
 	// because this reports errors in the configuration itself, not the failure
 	// of an otherwise-valid condition.
-	errorMessage, hclCtx, diags := validateCheckRule(typ, rule, ctx, self, keyData)
+	validation, diags := validateCheckRule(typ, rule, ctx, self, keyData)
 
 	const errInvalidCondition = "Invalid condition result"
 
-	resultVal, hclDiags := rule.Condition.Value(hclCtx)
+	resultVal, hclDiags := rule.Condition.Value(validation.Ctx)
 	diags = diags.Append(hclDiags)
 
 	if diags.HasErrors() {
@@ -133,7 +148,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 				Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
-				EvalContext: hclCtx,
+				EvalContext: validation.Ctx,
 			})
 		}
 
@@ -150,7 +165,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 			Detail:      "Condition expression must return either true or false, not null.",
 			Subject:     rule.Condition.Range().Ptr(),
 			Expression:  rule.Condition,
-			EvalContext: hclCtx,
+			EvalContext: validation.Ctx,
 		})
 		return checkResult{Status: checks.StatusError}, diags
 	}
@@ -167,7 +182,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 			Detail:      detail,
 			Subject:     rule.Condition.Range().Ptr(),
 			Expression:  rule.Condition,
-			EvalContext: hclCtx,
+			EvalContext: validation.Ctx,
 		})
 		return checkResult{Status: checks.StatusError}, diags
 	}
@@ -182,7 +197,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 		return checkResult{Status: status}, diags
 	}
 
-	errorMessageForDiags := errorMessage
+	errorMessageForDiags := validation.ErrorMessage
 	if errorMessageForDiags == "" {
 		errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
 	}
@@ -195,12 +210,13 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 		Detail:      errorMessageForDiags,
 		Subject:     rule.Condition.Range().Ptr(),
 		Expression:  rule.Condition,
-		EvalContext: hclCtx,
+		EvalContext: validation.Ctx,
 	})
 
 	return checkResult{
 		Status:         status,
-		FailureMessage: errorMessage,
+		FailureMessage: validation.ErrorMessage,
+		Refs:           validation.Refs,
 	}, diags
 }
 

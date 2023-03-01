@@ -24,9 +24,19 @@ func MarshalCheckStates(results *states.CheckResults) []byte {
 			result := elem.Value
 
 			problems := make([]checkProblem, 0, len(result.FailureMessages))
-			for _, msg := range result.FailureMessages {
+			for ix, msg := range result.FailureMessages {
+
+				var refs []string
+				if ix >= 0 && ix < len(result.Refs) {
+					// We're being backwards compatible here, earlier versions
+					// of terraform did not include the references, and we don't
+					// want to cause an index out of bounds exception.
+					refs = result.Refs[ix]
+				}
+
 				problems = append(problems, checkProblem{
 					Message: msg,
+					Refs:    refs,
 				})
 			}
 			sort.Slice(problems, func(i, j int) bool {
@@ -111,6 +121,9 @@ type checkResultDynamic struct {
 type checkProblem struct {
 	// Message is the condition error message provided by the author.
 	Message string `json:"message"`
+
+	// Refs is a slice of references made by the condition that failed.
+	Refs []string `json:"refs,omitempty"`
 
 	// We don't currently have any other problem-related data, but this is
 	// intentionally an object to allow us to add other data over time, such

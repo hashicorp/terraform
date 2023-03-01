@@ -148,8 +148,18 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 				return nil, fmt.Errorf("checkable object %s should not be grouped under %s", objectAddr, configAddr)
 			}
 
+			var refs [][]string
+			for _, references := range rawCR.References {
+				var rs []string
+				for _, r := range references.References {
+					rs = append(rs, r)
+				}
+				refs = append(refs, rs)
+			}
+
 			obj := &states.CheckResultObject{
 				FailureMessages: rawCR.FailureMessages,
+				Refs:            refs,
 			}
 			switch rawCR.Status {
 			case planproto.CheckResults_UNKNOWN:
@@ -536,9 +546,20 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 			for _, objectElem := range configElem.Value.ObjectResults.Elems {
 				cr := objectElem.Value
+
+				var references []*planproto.CheckResults_ObjectResultReferences
+				for _, rs := range objectElem.Value.Refs {
+					refs := &planproto.CheckResults_ObjectResultReferences{}
+					for _, r := range rs {
+						refs.References = append(refs.References, r)
+					}
+					references = append(references, refs)
+				}
+
 				pcr := &planproto.CheckResults_ObjectResult{
 					ObjectAddr:      objectElem.Key.String(),
 					FailureMessages: objectElem.Value.FailureMessages,
+					References:      references,
 				}
 				switch cr.Status {
 				case checks.StatusUnknown:

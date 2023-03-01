@@ -3157,6 +3157,9 @@ resource "test_resource" "a" {
 				FailureMessages: []string{
 					"Results cannot be empty.",
 				},
+				Refs: [][]string{
+					{"self"},
+				},
 			}
 			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
 				t.Errorf("wrong check result\n%s", diff)
@@ -3308,6 +3311,9 @@ output "a" {
 			wantResult := &states.CheckResultObject{
 				Status:          checks.StatusFail,
 				FailureMessages: []string{"Wrong boop."},
+				Refs: [][]string{
+					{"var.boop"},
+				},
 			}
 			if diff := cmp.Diff(wantResult, gotResult, valueComparer); diff != "" {
 				t.Errorf("wrong condition result\n%s", diff)

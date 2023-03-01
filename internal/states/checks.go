@@ -72,6 +72,13 @@ type CheckResultObject struct {
 	// (checks.StatusError problems get reported as normal diagnostics during
 	// evaluation instead, and so will not appear here.)
 	FailureMessages []string
+
+	// Refs is an optional set of references that were used in calculating any
+	// failed checks. Each check can reference many other blocks, hence the 2D
+	// slice.
+	//
+	// Refs and FailureMessages will match up by index.
+	Refs [][]string
 }
 
 // NewCheckResults constructs a new states.CheckResults object that is a
@@ -91,9 +98,11 @@ func NewCheckResults(source *checks.State) *CheckResults {
 		}
 
 		for _, objectAddr := range source.ObjectAddrs(configAddr) {
+			msgs, refs := source.ObjectFailureMessages(objectAddr)
 			obj := &CheckResultObject{
 				Status:          source.ObjectCheckStatus(objectAddr),
-				FailureMessages: source.ObjectFailureMessages(objectAddr),
+				FailureMessages: msgs,
+				Refs:            refs,
 			}
 			aggr.ObjectResults.Put(objectAddr, obj)
 		}
@@ -155,6 +164,7 @@ func (r *CheckResults) DeepCopy() *CheckResults {
 					// NOTE: We don't deep-copy this slice because it's
 					// immutable once constructed by convention.
 					FailureMessages: objectElem.Value.FailureMessages,
+					Refs:            objectElem.Value.Refs,
 				}
 				aggr.ObjectResults.Put(objectElem.Key, result)
 			}

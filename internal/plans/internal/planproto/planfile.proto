@@ -241,10 +241,15 @@ message CheckResults {
         CHECK = 3;
     }
 
+    message ObjectResultReferences {
+        repeated string references = 1;
+    }
+
     message ObjectResult {
         string object_addr = 1;
         Status status = 2;
         repeated string failure_messages = 3;
+        repeated ObjectResultReferences references = 4;
     }
 
     ObjectKind kind = 1;

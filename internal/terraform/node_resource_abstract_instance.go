@@ -1711,7 +1711,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
+			var refs []addrs.Referenceable
+			refs = append(refs, n.Addr.Resource)
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error(), []addrs.Referenceable{n.Addr.Resource})
 
 			// Also, let's hide the errors so that execution can continue as
 			// normal.
@@ -1879,10 +1881,10 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	diags = diags.Append(readDiags)
 
 	if check, nested := n.nestedInCheckBlock(); nested {
-		// We're just going to jump in here and hide away any erros for nested
+		// We're just going to jump in here and hide away any errors for nested
 		// data blocks.
 		if diags.HasErrors() {
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error(), []addrs.Referenceable{n.Addr.Resource})
 			return nil, keyData, tfdiags.WithErrorsAsWarnings(diags)
 		}
 

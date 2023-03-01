@@ -34,6 +34,7 @@ type State struct {
 
 	statuses    addrs.Map[addrs.ConfigCheckable, *configCheckableState]
 	failureMsgs addrs.Map[addrs.CheckRule, string]
+	refs        addrs.Map[addrs.CheckRule, []addrs.Referenceable]
 }
 
 // configCheckableState is an internal part of type State that represents
@@ -233,8 +234,9 @@ func (c *State) ObjectCheckStatus(addr addrs.Checkable) Status {
 // and errors at the same time, which would aggregate as StatusError in
 // ObjectCheckStatus's result because errors are defined as "stronger"
 // than failures.
-func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
-	var ret []string
+func (c *State) ObjectFailureMessages(addr addrs.Checkable) ([]string, [][]string) {
+	var msgs []string
+	var refs [][]string
 
 	configAddr := addr.ConfigCheckable()
 
@@ -254,19 +256,26 @@ func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
 		for i, status := range checks {
 			if status == StatusFail {
 				checkAddr := addrs.NewCheckRule(addr, checkType, i)
+
 				msg := c.failureMsgs.Get(checkAddr)
-				if msg != "" {
-					ret = append(ret, msg)
+				addrs := c.refs.Get(checkAddr)
+				if len(msg) == 0 && len(refs) == 0 {
+					continue
 				}
+
+				var rs []string
+				for _, addr := range addrs {
+					rs = append(rs, addr.String())
+				}
+				sort.Strings(rs) // Keep the references consistent.
+
+				msgs = append(msgs, msg)
+				refs = append(refs, rs)
 			}
 		}
 	}
 
-	// We always return the messages in a lexical sort order just so that
-	// it'll be consistent between runs if we still have the same problems.
-	sort.Strings(ret)
-
-	return ret
+	return msgs, refs
 }
 
 func summarizeCheckStatuses(errorCount, failCount, unknownCount int) Status {

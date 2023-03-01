@@ -76,7 +76,7 @@ func (c *State) ReportCheckResult(objectAddr addrs.Checkable, checkType addrs.Ch
 // situations where the check condition was itself invalid, because that
 // should be represented by StatusError instead, and the error signalled via
 // diagnostics as normal.
-func (c *State) ReportCheckFailure(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, errorMessage string) {
+func (c *State) ReportCheckFailure(objectAddr addrs.Checkable, checkType addrs.CheckRuleType, index int, errorMessage string, refs []addrs.Referenceable) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -84,8 +84,13 @@ func (c *State) ReportCheckFailure(objectAddr addrs.Checkable, checkType addrs.C
 	if c.failureMsgs.Elems == nil {
 		c.failureMsgs = addrs.MakeMap[addrs.CheckRule, string]()
 	}
+	if c.refs.Elems == nil {
+		c.refs = addrs.MakeMap[addrs.CheckRule, []addrs.Referenceable]()
+	}
 	checkAddr := addrs.NewCheckRule(objectAddr, checkType, index)
 	c.failureMsgs.Put(checkAddr, errorMessage)
+
+	c.refs.Put(checkAddr, refs)
 }
 
 // reportCheckResult is shared between both ReportCheckResult and
