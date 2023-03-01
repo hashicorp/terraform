@@ -135,10 +135,10 @@ func (e *Expander) ExpandModule(addr addrs.Module) []addrs.ModuleInstance {
 	return e.expandModule(addr, false)
 }
 
-// expandModule allows skipping unexpanded module addresses by setting skipUnknown to true.
+// expandModule allows skipping unexpanded module addresses by setting skipUnregistered to true.
 // This is used by instances.Set, which is only concerned with the expanded
 // instances, and should not panic when looking up unknown addresses.
-func (e *Expander) expandModule(addr addrs.Module, skipUnknown bool) []addrs.ModuleInstance {
+func (e *Expander) expandModule(addr addrs.Module, skipUnregistered bool) []addrs.ModuleInstance {
 	if len(addr) == 0 {
 		// Root module is always a singleton.
 		return singletonRootModule
@@ -153,7 +153,7 @@ func (e *Expander) expandModule(addr addrs.Module, skipUnknown bool) []addrs.Mod
 	// (moduleInstances does plenty of allocations itself, so the benefit of
 	// pre-allocating this is marginal but it's not hard to do.)
 	parentAddr := make(addrs.ModuleInstance, 0, 4)
-	ret := e.exps.moduleInstances(addr, parentAddr, skipUnknown)
+	ret := e.exps.moduleInstances(addr, parentAddr, skipUnregistered)
 	sort.SliceStable(ret, func(i, j int) bool {
 		return ret[i].Less(ret[j])
 	})
@@ -521,13 +521,14 @@ func newExpanderModule() *expanderModule {
 var singletonRootModule = []addrs.ModuleInstance{addrs.RootModuleInstance}
 
 // if moduleInstances is being used to lookup known instances after all
-// expansions have been done, set skipUnknown to true which allows addrs which
-// may not have been seen to return with no instances rather than panicking.
-func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, skipUnknown bool) []addrs.ModuleInstance {
+// expansions have been done, set skipUnregistered to true which allows addrs
+// which may not have been seen to return with no instances rather than
+// panicking.
+func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.ModuleInstance, skipUnregistered bool) []addrs.ModuleInstance {
 	callName := addr[0]
 	exp, ok := m.moduleCalls[addrs.ModuleCall{Name: callName}]
 	if !ok {
-		if skipUnknown {
+		if skipUnregistered {
 			return nil
 		}
 		// This is a bug in the caller, because it should always register
@@ -550,7 +551,7 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 				continue
 			}
 			instAddr := append(parentAddr, step)
-			ret = append(ret, inst.moduleInstances(addr[1:], instAddr, skipUnknown)...)
+			ret = append(ret, inst.moduleInstances(addr[1:], instAddr, skipUnregistered)...)
 		}
 		return ret
 	}
