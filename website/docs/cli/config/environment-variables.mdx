@@ -151,6 +151,12 @@ The location of the [Terraform CLI configuration file](/terraform/cli/config/con
 export TF_CLI_CONFIG_FILE="$HOME/.terraformrc-custom"
 ```
 
+## TF_PLUGIN_CACHE_DIR
+
+The `TF_PLUGIN_CACHE_DIR` environment variable is an alternative way to set [the `plugin_cache_dir` setting in the CLI configuration](/terraform/cli/config/config-file#provider-plugin-cache).
+
+You can also use `TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to activate [the transitional compatibility setting `plugin_cache_may_break_dependency_lock_file`](/terraform/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
+
 ## TF_IGNORE
 
 If `TF_IGNORE` is set to "trace", Terraform will output debug messages to display ignored files and folders. This is useful when debugging large repositories with `.terraformignore` files.
