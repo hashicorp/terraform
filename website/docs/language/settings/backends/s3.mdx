@@ -44,6 +44,11 @@ the target backend bucket:
 * `s3:PutObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 * `s3:DeleteObject` on `arn:aws:s3:::mybucket/path/to/my/key`
 
+In case the Bucket is versioned and encrypted also these are needed:
+* `s3:GetBucketVersioning` on `arn:aws:s3:::mybucket/path/to/my/key`
+* `s3:GetBucketPublicAccessBlock` on `arn:aws:s3:::mybucket/path/to/my/key`
+* `s3:GetBucketEncryption` on `arn:aws:s3:::mybucket/path/to/my/key`
+
 This is seen in the following AWS IAM Statement:
 
 ```json
@@ -57,7 +62,14 @@ This is seen in the following AWS IAM Statement:
     },
     {
       "Effect": "Allow",
-      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+      "Action": [
+        "s3:GetObject", 
+        "s3:PutObject", 
+        "s3:DeleteObject",
+        "s3:GetBucketVersioning",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetBucketEncryption"         
+      ],
       "Resource": "arn:aws:s3:::mybucket/path/to/my/key"
     }
   ]
