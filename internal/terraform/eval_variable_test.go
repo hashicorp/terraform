@@ -192,6 +192,25 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})
 			)
 		}
+        // https://github.com/hashicorp/terraform/issues/32752
+		// This variable was introduced to make sure the evaluation doesn't 
+        // crash even when the types are wrong.
+        variable "invalid_nested_type" {
+            type = map(
+                object({
+					rules = map(
+						object({
+							description           = string
+							destination_ports     = list(string)
+							destination_addresses = optional(list(string), [])
+							translated_address    = string
+							translated_port       = string
+						})
+					)
+                })
+            )
+			default = {}
+        }
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -791,6 +810,30 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}),
 			}),
 			``,
+		},
+		{
+			"invalid_nested_type",
+			cty.MapVal(map[string]cty.Value{
+				"mysql": cty.ObjectVal(map[string]cty.Value{
+					"rules": cty.ObjectVal(map[string]cty.Value{
+						"description":           cty.StringVal("Port forward"),
+						"destination_ports":     cty.ListVal([]cty.Value{cty.StringVal("3306")}),
+						"destination_addresses": cty.ListVal([]cty.Value{cty.StringVal("192.168.0.1")}),
+						"translated_address":    cty.StringVal("192.168.0.1"),
+						"translated_port":       cty.StringVal("3306"),
+					}),
+				}),
+			}),
+			cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"rules": cty.Map(cty.Object(map[string]cty.Type{
+					"description":           cty.String,
+					"destination_ports":     cty.List(cty.String),
+					"destination_addresses": cty.List(cty.String),
+					"translated_address":    cty.String,
+					"translated_port":       cty.String,
+				})),
+			}))),
+			`Invalid value for input variable: Unsuitable value for var.invalid_nested_type set from outside of the configuration: incorrect map element type: attribute "rules": element "destination_ports": object required.`,
 		},
 
 		// sensitive
