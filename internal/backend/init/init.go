@@ -12,21 +12,16 @@ import (
 
 	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
 	backendRemote "github.com/hashicorp/terraform/internal/backend/remote"
-	backendArtifactory "github.com/hashicorp/terraform/internal/backend/remote-state/artifactory"
 	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
 	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
 	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
-	backendEtcdv2 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv2"
-	backendEtcdv3 "github.com/hashicorp/terraform/internal/backend/remote-state/etcdv3"
 	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
 	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
 	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
 	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
-	backendManta "github.com/hashicorp/terraform/internal/backend/remote-state/manta"
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
-	backendSwift "github.com/hashicorp/terraform/internal/backend/remote-state/swift"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -54,21 +49,16 @@ func Init(services *disco.Disco) {
 		"remote": func() backend.Backend { return backendRemote.New(services) },
 
 		// Remote State backends.
-		"artifactory": func() backend.Backend { return backendArtifactory.New() },
-		"azurerm":     func() backend.Backend { return backendAzure.New() },
-		"consul":      func() backend.Backend { return backendConsul.New() },
-		"cos":         func() backend.Backend { return backendCos.New() },
-		"etcd":        func() backend.Backend { return backendEtcdv2.New() },
-		"etcdv3":      func() backend.Backend { return backendEtcdv3.New() },
-		"gcs":         func() backend.Backend { return backendGCS.New() },
-		"http":        func() backend.Backend { return backendHTTP.New() },
-		"inmem":       func() backend.Backend { return backendInmem.New() },
-		"kubernetes":  func() backend.Backend { return backendKubernetes.New() },
-		"manta":       func() backend.Backend { return backendManta.New() },
-		"oss":         func() backend.Backend { return backendOSS.New() },
-		"pg":          func() backend.Backend { return backendPg.New() },
-		"s3":          func() backend.Backend { return backendS3.New() },
-		"swift":       func() backend.Backend { return backendSwift.New() },
+		"azurerm":    func() backend.Backend { return backendAzure.New() },
+		"consul":     func() backend.Backend { return backendConsul.New() },
+		"cos":        func() backend.Backend { return backendCos.New() },
+		"gcs":        func() backend.Backend { return backendGCS.New() },
+		"http":       func() backend.Backend { return backendHTTP.New() },
+		"inmem":      func() backend.Backend { return backendInmem.New() },
+		"kubernetes": func() backend.Backend { return backendKubernetes.New() },
+		"oss":        func() backend.Backend { return backendOSS.New() },
+		"pg":         func() backend.Backend { return backendPg.New() },
+		"s3":         func() backend.Backend { return backendS3.New() },
 
 		// Deprecated backends.
 		"azure": func() backend.Backend {
