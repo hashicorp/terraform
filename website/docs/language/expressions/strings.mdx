@@ -1,0 +1,223 @@
+---
+page_title: Strings and Templates - Configuration Language
+description: >-
+  String literals and template sequences interpolate values and manipulate text.
+  Learn about both quoted and heredoc string syntax.
+---
+
+# Strings and Templates
+
+String literals are the most complex kind of literal expression in
+Terraform, and also the most commonly used.
+
+Terraform supports both a quoted syntax and a "heredoc" syntax for strings.
+Both of these syntaxes support template sequences for interpolating values and
+manipulating text.
+
+## Quoted Strings
+
+A quoted string is a series of characters delimited by straight double-quote
+characters (`"`).
+
+```
+"hello"
+```
+
+### Escape Sequences
+
+In quoted strings, the backslash character serves as an escape
+sequence, with the following characters selecting the escape behavior:
+
+| Sequence     | Replacement                                                                   |
+| ------------ | ----------------------------------------------------------------------------- |
+| `\n`         | Newline                                                                       |
+| `\r`         | Carriage Return                                                               |
+| `\t`         | Tab                                                                           |
+| `\"`         | Literal quote (without terminating the string)                                |
+| `\\`         | Literal backslash                                                             |
+| `\uNNNN`     | Unicode character from the basic multilingual plane (NNNN is four hex digits) |
+| `\UNNNNNNNN` | Unicode character from supplementary planes (NNNNNNNN is eight hex digits)    |
+
+There are also two special escape sequences that do not use backslashes:
+
+| Sequence | Replacement                                                    |
+| -------- | -------------------------------------------------------------- |
+| `$${`    | Literal `${`, without beginning an interpolation sequence.     |
+| `%%{`    | Literal `%{`, without beginning a template directive sequence. |
+
+## Heredoc Strings
+
+Terraform also supports a "heredoc" style of string literal inspired by Unix
+shell languages, which allows multi-line strings to be expressed more clearly.
+
+```hcl
+<<EOT
+hello
+world
+EOT
+```
+
+A heredoc string consists of:
+
+- An opening sequence consisting of:
+  - A heredoc marker (`<<` or `<<-` — two less-than signs, with an optional hyphen for indented heredocs)
+  - A delimiter word of your own choosing
+  - A line break
+- The contents of the string, which can span any number of lines
+- The delimiter word you chose, alone on its own line (with indentation allowed for indented heredocs)
+
+The `<<` marker followed by any identifier at the end of a line introduces the
+sequence. Terraform then processes the following lines until it finds one that
+consists entirely of the identifier given in the introducer.
+
+In the above example, `EOT` is the identifier selected. Any identifier is
+allowed, but conventionally this identifier is in all-uppercase and begins with
+`EO`, meaning "end of". `EOT` in this case stands for "end of text".
+
+### Generating JSON or YAML
+
+Don't use "heredoc" strings to generate JSON or YAML. Instead, use
+[the `jsonencode` function](/terraform/language/functions/jsonencode) or
+[the `yamlencode` function](/terraform/language/functions/yamlencode) so that Terraform
+can be responsible for guaranteeing valid JSON or YAML syntax.
+
+```hcl
+  example = jsonencode({
+    a = 1
+    b = "hello"
+  })
+```
+
+### Indented Heredocs
+
+The standard heredoc form (shown above) treats all space characters as literal
+spaces. If you don't want each line to begin with spaces, then each line must be
+flush with the left margin, which can be awkward for expressions in an
+indented block:
+
+```hcl
+block {
+  value = <<EOT
+hello
+world
+EOT
+}
+```
+
+To improve on this, Terraform also accepts an _indented_ heredoc string variant
+that is introduced by the `<<-` sequence:
+
+```hcl
+block {
+  value = <<-EOT
+  hello
+    world
+  EOT
+}
+```
+
+In this case, Terraform analyses the lines in the sequence to find the one
+with the smallest number of leading spaces, and then trims that many spaces
+from the beginning of all of the lines, leading to the following result:
+
+```
+hello
+  world
+```
+
+### Escape Sequences
+
+Backslash sequences are not interpreted as escapes in a heredoc string
+expression. Instead, the backslash character is interpreted literally.
+
+Heredocs support two special escape sequences that do not use backslashes:
+
+| Sequence | Replacement                                                    |
+| -------- | -------------------------------------------------------------- |
+| `$${`    | Literal `${`, without beginning an interpolation sequence.     |
+| `%%{`    | Literal `%{`, without beginning a template directive sequence. |
+
+## String Templates
+
+Within quoted and heredoc string expressions, the sequences `${` and `%{` begin
+_template sequences_. Templates let you directly embed expressions into a string
+literal, to dynamically construct strings from other values.
+
+### Interpolation
+
+A `${ ... }` sequence is an _interpolation,_ which evaluates the expression
+given between the markers, converts the result to a string if necessary, and
+then inserts it into the final string:
+
+```hcl
+"Hello, ${var.name}!"
+```
+
+In the above example, the named object `var.name` is accessed and its value
+inserted into the string, producing a result like "Hello, Juan!".
+
+### Directives
+
+A `%{ ... }` sequence is a _directive_, which allows for conditional
+results and iteration over collections, similar to conditional
+and `for` expressions.
+
+The following directives are supported:
+
+- The `%{if <BOOL>}`/`%{else}`/`%{endif}` directive chooses between two templates based
+  on the value of a bool expression:
+
+  ```hcl
+  "Hello, %{ if var.name != "" }${var.name}%{ else }unnamed%{ endif }!"
+  ```
+
+  The `else` portion may be omitted, in which case the result is an empty
+  string if the condition expression returns `false`.
+
+- The `%{for <NAME> in <COLLECTION>}` / `%{endfor}` directive iterates over the
+  elements of a given collection or structural value and evaluates a given
+  template once for each element, concatenating the results together:
+
+  ```hcl
+  <<EOT
+  %{ for ip in aws_instance.example.*.private_ip }
+  server ${ip}
+  %{ endfor }
+  EOT
+  ```
+
+  The name given immediately after the `for` keyword is used as a temporary
+  variable name which can then be referenced from the nested template.
+
+### Whitespace Stripping
+
+To allow template directives to be formatted for readability without adding
+unwanted spaces and newlines to the result, all template sequences can include
+optional _strip markers_ (`~`), immediately after the opening characters or
+immediately before the end. When a strip marker is present, the template
+sequence consumes all of the literal whitespace (spaces and newlines) either
+before the sequence (if the marker appears at the beginning) or after (if the
+marker appears at the end):
+
+```hcl
+<<EOT
+%{ for ip in aws_instance.example.*.private_ip ~}
+server ${ip}
+%{ endfor ~}
+EOT
+```
+
+In the above example, the newline after each of the directives is not included
+in the output, but the newline after the `server ${ip}` sequence is retained,
+causing only one line to be generated for each element:
+
+```
+server 10.1.16.154
+server 10.1.16.1
+server 10.1.16.34
+```
+
+When using template directives, we recommend always using the "heredoc" string
+literal form and then formatting the template over multiple lines for
+readability. Quoted string literals should usually include only interpolation
+sequences.

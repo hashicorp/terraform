@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -83,7 +84,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 			stateMeta = &m
 		}
 		log.Printf("[TRACE] backend/local: populating backend.LocalRun from plan file")
-		ret, configSnap, ctxDiags = b.localRunForPlanFile(op.PlanFile, ret, &coreOpts, stateMeta)
+		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, op.PlanFile, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
 			return nil, nil, nil, diags
@@ -138,6 +139,32 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	}
 	run.Config = config
 
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		var suggestion string
+		switch {
+		case op.DependencyLocks == nil:
+			// If we get here then it suggests that there's a caller that we
+			// didn't yet update to populate DependencyLocks, which is a bug.
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+		case op.DependencyLocks.Empty():
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+		default:
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the current configuration:%s\n\n%s",
+				buf.String(), suggestion,
+			),
+		))
+	}
+
 	var rawVariables map[string]backend.UnparsedVariableValue
 	if op.AllowUnsetVariables {
 		// Rather than prompting for input, we'll just stub out the required
@@ -181,7 +208,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	return run, configSnap, diags
 }
 
-func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, run *backend.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	const errSummary = "Invalid plan file"
@@ -206,6 +233,46 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 	}
 	run.Config = config
 
+	// NOTE: We're intentionally comparing the current locks with the
+	// configuration snapshot, rather than the lock snapshot in the plan file,
+	// because it's the current locks which dictate our plugin selections
+	// in coreOpts below. However, we'll also separately check that the
+	// plan file has identical locked plugins below, and thus we're effectively
+	// checking consistency with both here.
+	if errs := config.VerifyDependencySelections(op.DependencyLocks); len(errs) > 0 {
+		var buf strings.Builder
+		for _, err := range errs {
+			fmt.Fprintf(&buf, "\n  - %s", err.Error())
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			fmt.Sprintf(
+				"The following dependency selections recorded in the lock file are inconsistent with the configuration in the saved plan:%s\n\nA saved plan can be applied only to the same configuration it was created from. Create a new plan from the updated configuration.",
+				buf.String(),
+			),
+		))
+	}
+
+	// This check is an important complement to the check above: the locked
+	// dependencies in the configuration must match the configuration, and
+	// the locked dependencies in the plan must match the locked dependencies
+	// in the configuration, and so transitively we ensure that the locked
+	// dependencies in the plan match the configuration too. However, this
+	// additionally catches any inconsistency between the two sets of locks
+	// even if they both happen to be valid per the current configuration,
+	// which is one of several ways we try to catch the mistake of applying
+	// a saved plan file in a different place than where we created it.
+	depLocksFromPlan, moreDiags := pf.ReadDependencyLocks()
+	diags = diags.Append(moreDiags)
+	if depLocksFromPlan != nil && !op.DependencyLocks.Equal(depLocksFromPlan) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Inconsistent dependency lock file",
+			"The given plan file was created with a different set of external dependency selections than the current configuration. A saved plan can be applied only to the same configuration it was created from.\n\nCreate a new plan from the updated configuration.",
+		))
+	}
+
 	// A plan file also contains a snapshot of the prior state the changes
 	// are intended to apply to.
 	priorStateFile, err := pf.ReadStateFile()
@@ -217,20 +284,34 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 		))
 		return nil, snap, diags
 	}
+
 	if currentStateMeta != nil {
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
 		// has changed since the plan was created. (All of the "real-world"
 		// state manager implementations support this, but simpler test backends
 		// may not.)
-		if currentStateMeta.Lineage != "" && priorStateFile.Lineage != "" {
-			if priorStateFile.Serial != currentStateMeta.Serial || priorStateFile.Lineage != currentStateMeta.Lineage {
-				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Error,
-					"Saved plan is stale",
-					"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
-				))
-			}
+
+		// Because the plan always contains a state, even if it is empty, the
+		// first plan to be applied will have empty snapshot metadata. In this
+		// case we compare only the serial in order to provide a more correct
+		// error.
+		firstPlan := priorStateFile.Lineage == "" && priorStateFile.Serial == 0
+
+		switch {
+		case !firstPlan && priorStateFile.Lineage != currentStateMeta.Lineage:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan does not match the given state",
+				"The given plan file can not be applied because it was created from a different state lineage.",
+			))
+
+		case priorStateFile.Serial != currentStateMeta.Serial:
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is stale",
+				"The given plan file can no longer be applied because the state was changed by another operation after the plan was created.",
+			))
 		}
 	}
 	// When we're applying a saved plan, the input state is the "prior state"
@@ -251,11 +332,6 @@ func (b *Local) localRunForPlanFile(pf *planfile.Reader, run *backend.LocalRun, 
 	// because a plan object incorporates the subset of data from PlanOps that
 	// we need to apply the plan.
 	run.Plan = plan
-
-	// When we're applying a saved plan, our context must verify that all of
-	// the providers it ends up using are identical to those which created
-	// the plan.
-	coreOpts.ProviderSHA256s = plan.ProviderSHA256s
 
 	tfCtx, moreDiags := terraform.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
@@ -319,6 +395,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
+			Secret:      vc.Sensitive,
 		})
 		if err != nil {
 			// Since interactive prompts are best-effort, we'll just continue

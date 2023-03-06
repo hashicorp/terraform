@@ -28,9 +28,19 @@ type ConfigTransformer struct {
 	// Mode will only add resources that match the given mode
 	ModeFilter bool
 	Mode       addrs.ResourceMode
+
+	// Do not apply this transformer.
+	skip bool
+
+	// configuration resources that are to be imported
+	importTargets []*ImportTarget
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	// If no configuration is available, we don't do anything
 	if t.Config == nil {
 		return nil
@@ -82,11 +92,22 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 			continue
 		}
 
+		// If any of the import targets can apply to this node's instances,
+		// filter them down to the applicable addresses.
+		var imports []*ImportTarget
+		configAddr := relAddr.InModule(path)
+		for _, i := range t.importTargets {
+			if target := i.Addr.ContainingResource().Config(); target.Equal(configAddr) {
+				imports = append(imports, i)
+			}
+		}
+
 		abstract := &NodeAbstractResource{
 			Addr: addrs.ConfigResource{
 				Resource: relAddr,
 				Module:   path,
 			},
+			importTargets: imports,
 		}
 
 		var node dag.Vertex = abstract

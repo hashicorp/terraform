@@ -53,11 +53,16 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 
 	log.Printf("[DEBUG] Building and walking import graph")
 
+	variables := opts.SetVariables
+
 	// Initialize our graph builder
-	builder := &ImportGraphBuilder{
-		ImportTargets: opts.Targets,
-		Config:        config,
-		Plugins:       c.plugins,
+	builder := &PlanGraphBuilder{
+		ImportTargets:      opts.Targets,
+		Config:             config,
+		State:              state,
+		RootVariableValues: variables,
+		Plugins:            c.plugins,
+		Operation:          walkImport,
 	}
 
 	// Build the graph
@@ -67,18 +72,20 @@ func (c *Context) Import(config *configs.Config, prevRunState *states.State, opt
 		return state, diags
 	}
 
-	variables := mergeDefaultInputVariableValues(opts.SetVariables, config.Module.Variables)
-
 	// Walk it
 	walker, walkDiags := c.walk(graph, walkImport, &graphWalkOpts{
-		Config:             config,
-		InputState:         state,
-		RootVariableValues: variables,
+		Config:     config,
+		InputState: state,
 	})
 	diags = diags.Append(walkDiags)
 	if walkDiags.HasErrors() {
 		return state, diags
 	}
+
+	// Data sources which could not be read during the import plan will be
+	// unknown. We need to strip those objects out so that the state can be
+	// serialized.
+	walker.State.RemovePlannedResourceInstanceObjects()
 
 	newState := walker.State.Close()
 	return newState, diags

@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,8 +19,14 @@ func TestJSONHook_create(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	hook := newJSONHook(NewJSONView(NewView(streams)))
 
+	var nowMu sync.Mutex
 	now := time.Now()
-	hook.timeNow = func() time.Time { return now }
+	hook.timeNow = func() time.Time {
+		nowMu.Lock()
+		defer nowMu.Unlock()
+		return now
+	}
+
 	after := make(chan time.Time, 1)
 	hook.timeAfter = func(time.Duration) <-chan time.Time { return after }
 
@@ -52,18 +59,24 @@ func TestJSONHook_create(t *testing.T) {
 
 	// Travel 10s into the future, notify the progress goroutine, and sleep
 	// briefly to allow it to execute
+	nowMu.Lock()
 	now = now.Add(10 * time.Second)
 	after <- now
+	nowMu.Unlock()
 	time.Sleep(1 * time.Millisecond)
 
 	// Travel 10s into the future, notify the progress goroutine, and sleep
 	// briefly to allow it to execute
+	nowMu.Lock()
 	now = now.Add(10 * time.Second)
 	after <- now
+	nowMu.Unlock()
 	time.Sleep(1 * time.Millisecond)
 
 	// Travel 2s into the future. We have arrived!
+	nowMu.Lock()
 	now = now.Add(2 * time.Second)
+	nowMu.Unlock()
 
 	action, err = hook.PostApply(addr, states.CurrentGen, plannedNewState, nil)
 	testHookReturnValues(t, action, err)

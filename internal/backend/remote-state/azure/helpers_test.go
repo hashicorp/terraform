@@ -39,6 +39,15 @@ func testAccAzureBackendRunningInAzure(t *testing.T) {
 	}
 }
 
+// these kind of tests can only run when within GitHub Actions (e.g. OIDC)
+func testAccAzureBackendRunningInGitHubActions(t *testing.T) {
+	testAccAzureBackend(t)
+
+	if os.Getenv("TF_RUNNING_IN_GITHUB_ACTIONS") == "" {
+		t.Skip("Skipping test since not running in GitHub Actions")
+	}
+}
+
 func buildTestClient(t *testing.T, res resourceNames) *ArmClient {
 	subscriptionID := os.Getenv("ARM_SUBSCRIPTION_ID")
 	tenantID := os.Getenv("ARM_TENANT_ID")

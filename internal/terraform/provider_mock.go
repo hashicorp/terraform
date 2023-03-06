@@ -218,6 +218,11 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	p.Lock()
 	defer p.Unlock()
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceState %q", r.TypeName))
+		return resp
+	}
+
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
@@ -297,6 +302,11 @@ func (p *MockProvider) ReadResource(r providers.ReadResourceRequest) (resp provi
 	p.ReadResourceCalled = true
 	p.ReadResourceRequest = r
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ReadResource %q", r.TypeName))
+		return resp
+	}
+
 	if p.ReadResourceFn != nil {
 		return p.ReadResourceFn(r)
 	}
@@ -330,6 +340,11 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 	p.Lock()
 	defer p.Unlock()
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before PlanResourceChange %q", r.TypeName))
+		return resp
+	}
+
 	p.PlanResourceChangeCalled = true
 	p.PlanResourceChangeRequest = r
 
@@ -339,6 +354,13 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	if p.PlanResourceChangeResponse != nil {
 		return *p.PlanResourceChangeResponse
+	}
+
+	// this is a destroy plan,
+	if r.ProposedNewState.IsNull() {
+		resp.PlannedState = r.ProposedNewState
+		resp.PlannedPrivate = r.PriorPrivate
+		return resp
 	}
 
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
@@ -400,6 +422,11 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 	p.ApplyResourceChangeRequest = r
 	p.Unlock()
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ApplyResourceChange %q", r.TypeName))
+		return resp
+	}
+
 	if p.ApplyResourceChangeFn != nil {
 		return p.ApplyResourceChangeFn(r)
 	}
@@ -460,6 +487,11 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 	p.Lock()
 	defer p.Unlock()
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ImportResourceState %q", r.TypeName))
+		return resp
+	}
+
 	p.ImportResourceStateCalled = true
 	p.ImportResourceStateRequest = r
 	if p.ImportResourceStateFn != nil {
@@ -493,6 +525,11 @@ func (p *MockProvider) ImportResourceState(r providers.ImportResourceStateReques
 func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
 	p.Lock()
 	defer p.Unlock()
+
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before ReadDataSource %q", r.TypeName))
+		return resp
+	}
 
 	p.ReadDataSourceCalled = true
 	p.ReadDataSourceRequest = r

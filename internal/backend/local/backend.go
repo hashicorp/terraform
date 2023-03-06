@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -215,10 +216,10 @@ func (b *Local) Workspaces() ([]string, error) {
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string) error {
+func (b *Local) DeleteWorkspace(name string, force bool) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteWorkspace(name)
+		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {
@@ -315,6 +316,7 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 
 	// Do it
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		defer stop()
 		defer cancel()
@@ -354,7 +356,7 @@ func (b *Local) opWait(
 
 		// try to force a PersistState just in case the process is terminated
 		// before we can complete.
-		if err := opStateMgr.PersistState(); err != nil {
+		if err := opStateMgr.PersistState(nil); err != nil {
 			// We can't error out from here, but warn the user if there was an error.
 			// If this isn't transient, we will catch it again below, and
 			// attempt to save the state another way.

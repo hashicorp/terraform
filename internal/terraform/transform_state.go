@@ -26,8 +26,8 @@ type StateTransformer struct {
 }
 
 func (t *StateTransformer) Transform(g *Graph) error {
-	if !t.State.HasResources() {
-		log.Printf("[TRACE] StateTransformer: state is empty, so nothing to do")
+	if t.State == nil {
+		log.Printf("[TRACE] StateTransformer: state is nil, so nothing to do")
 		return nil
 	}
 

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -19,14 +21,13 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -53,8 +54,7 @@ func TestLocalRun(t *testing.T) {
 
 func TestLocalRun_error(t *testing.T) {
 	configDir := "./testdata/invalid"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	// This backend will return an error when asked to RefreshState, which
 	// should then cause LocalRun to return with the state unlocked.
@@ -85,8 +85,7 @@ func TestLocalRun_error(t *testing.T) {
 
 func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
-	b, cleanup := TestLocal(t)
-	defer cleanup()
+	b := TestLocal(t)
 
 	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
 	defer configCleanup()
@@ -135,7 +134,13 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	outDir := t.TempDir()
 	defer os.RemoveAll(outDir)
 	planPath := filepath.Join(outDir, "plan.tfplan")
-	if err := planfile.Create(planPath, configload.NewEmptySnapshot(), prevStateFile, stateFile, plan); err != nil {
+	planfileArgs := planfile.CreateArgs{
+		ConfigSnapshot:       configload.NewEmptySnapshot(),
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+	}
+	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
 	planFile, err := planfile.Open(planPath)
@@ -185,7 +190,7 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string) error {
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -221,6 +226,10 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
 	return fmt.Errorf("unimplemented")
 }
@@ -229,6 +238,6 @@ func (s *stateStorageThatFailsRefresh) RefreshState() error {
 	return fmt.Errorf("intentionally failing for testing purposes")
 }
 
-func (s *stateStorageThatFailsRefresh) PersistState() error {
+func (s *stateStorageThatFailsRefresh) PersistState(schemas *terraform.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }

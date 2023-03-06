@@ -1,0 +1,148 @@
+---
+page_title: Types and Values - Configuration Language
+description: >-
+  Learn about value types and syntax, including string, number, bool, list, and
+  map. Also learn about complex types and type conversion.
+---
+
+# Types and Values
+
+The result of an expression is a _value_. All values have a _type_, which
+dictates where that value can be used and what transformations can be
+applied to it.
+
+## Types
+
+The Terraform language uses the following types for its values:
+
+* `string`: a sequence of Unicode characters representing some text, like
+  `"hello"`.
+* `number`: a numeric value. The `number` type can represent both whole
+  numbers like `15` and fractional values like `6.283185`.
+* `bool`: a boolean value, either `true` or `false`. `bool` values can be used in conditional
+  logic.
+* `list` (or `tuple`): a sequence of values, like
+  `["us-west-1a", "us-west-1c"]`. Elements in a list or tuple are identified by
+  consecutive whole numbers, starting with zero.
+* `map` (or `object`): a group of values identified by named labels, like
+  `{name = "Mabel", age = 52}`.
+
+Strings, numbers, and bools are sometimes called _primitive types._ Lists/tuples and maps/objects are sometimes called _complex types,_ _structural types,_ or _collection types._
+
+Finally, there is one special value that has _no_ type:
+
+* `null`: a value that represents _absence_ or _omission._ If you set an
+  argument of a resource to `null`, Terraform behaves as though you
+  had completely omitted it — it will use the argument's default value if it has
+  one, or raise an error if the argument is mandatory. `null` is most useful in
+  conditional expressions, so you can dynamically omit an argument if a
+  condition isn't met.
+
+## Literal Expressions
+
+A _literal expression_ is an expression that directly represents a particular
+constant value. Terraform has a literal expression syntax for each of the value
+types described above.
+
+### Strings
+
+Strings are usually represented by a double-quoted sequence of Unicode
+characters, `"like this"`. There is also a "heredoc" syntax for more complex
+strings.
+
+String literals are the most complex kind of literal expression in
+Terraform, and have their own page of documentation. See [Strings](/terraform/language/expressions/strings)
+for information about escape sequences, the heredoc syntax, interpolation, and
+template directives.
+
+### Numbers
+
+Numbers are represented by unquoted sequences of digits with or without a
+decimal point, like `15` or `6.283185`.
+
+### Bools
+
+Bools are represented by the unquoted symbols `true` and `false`.
+
+### Null
+
+The null value is represented by the unquoted symbol `null`.
+
+### Lists/Tuples
+
+Lists/tuples are represented by a pair of square brackets containing a
+comma-separated sequence of values, like `["a", 15, true]`.
+
+List literals can be split into multiple lines for readability, but always
+require a comma between values. A comma after the final value is allowed,
+but not required. Values in a list can be arbitrary expressions.
+
+### Maps/Objects
+
+Maps/objects are represented by a pair of curly braces containing a series of
+`<KEY> = <VALUE>` pairs:
+
+```hcl
+{
+  name = "John"
+  age  = 52
+}
+```
+
+Key/value pairs can be separated by either a comma or a line break.
+
+The values in a map
+can be arbitrary expressions.
+
+The keys in a map must be strings; they can be left unquoted if
+they are a valid [identifier](/terraform/language/syntax/configuration#identifiers), but must be quoted
+otherwise. You can use a non-literal string expression as a key by wrapping it in
+parentheses, like `(var.business_unit_tag_name) = "SRE"`.
+
+## Indices and Attributes
+
+[inpage-index]: #indices-and-attributes
+
+Elements of list/tuple and map/object values can be accessed using
+the square-bracket index notation, like `local.list[3]`. The expression within
+the brackets must be a whole number for list and tuple values or a string
+for map and object values.
+
+Map/object attributes with names that are valid identifiers can also be accessed
+using the dot-separated attribute notation, like `local.object.attrname`.
+In cases where a map might contain arbitrary user-specified keys, we recommend
+using only the square-bracket index notation (`local.map["keyname"]`).
+
+## More About Complex Types
+
+In most situations, lists and tuples behave identically, as do maps and objects.
+Whenever the distinction isn't relevant, the Terraform documentation uses each
+pair of terms interchangeably (with a historical preference for "list" and
+"map").
+
+However, module authors and provider developers should understand the
+differences between these similar types (and the related `set` type), since they
+offer different ways to restrict the allowed values for input variables and
+resource arguments.
+
+For complete details about these types (and an explanation of why the difference
+usually doesn't matter), see [Type Constraints](/terraform/language/expressions/type-constraints).
+
+## Type Conversion
+
+Expressions are most often used to set values for the arguments of resources and
+child modules. In these cases, the argument has an expected type and the given
+expression must produce a value of that type.
+
+Where possible, Terraform automatically converts values from one type to
+another in order to produce the expected type. If this isn't possible, Terraform
+will produce a type mismatch error and you must update the configuration with a
+more suitable expression.
+
+Terraform automatically converts number and bool values to strings when needed.
+It also converts strings to numbers or bools, as long as the string contains a
+valid representation of a number or bool value.
+
+* `true` converts to `"true"`, and vice-versa
+* `false` converts to `"false"`, and vice-versa
+* `15` converts to `"15"`, and vice-versa

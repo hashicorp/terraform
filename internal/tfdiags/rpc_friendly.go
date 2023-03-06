@@ -54,6 +54,11 @@ func (d rpcFriendlyDiag) FromExpr() *FromExpr {
 	return nil
 }
 
+func (d rpcFriendlyDiag) ExtraInfo() interface{} {
+	// RPC-friendly diagnostics always discard any "extra information".
+	return nil
+}
+
 func init() {
 	gob.Register((*rpcFriendlyDiag)(nil))
 }

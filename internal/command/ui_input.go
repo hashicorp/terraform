@@ -90,6 +90,7 @@ func (i *UIInput) Input(ctx context.Context, opts *terraform.InputOpts) (string,
 			return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
 		}
 
+		delete(testInputResponseMap, opts.Id)
 		return v, nil
 	}
 

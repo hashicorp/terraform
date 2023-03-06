@@ -41,6 +41,9 @@ resource "test" "for_each" {
   }
 }
 
+resource "other" "single" {
+}
+
 module "fake_external" {
   # Our configuration fixture loader has a special case for a module call
   # named "fake_external" where it will mutate the source address after

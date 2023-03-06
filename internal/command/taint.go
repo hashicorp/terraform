@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -58,30 +57,7 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Load the config and check the core version requirements are satisfied
-	loader, err := c.initConfigLoader()
-	if err != nil {
-		diags = diags.Append(err)
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	pwd, err := os.Getwd()
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		return 1
-	}
-
-	config, configDiags := loader.LoadConfig(pwd)
-	diags = diags.Append(configDiags)
-	if diags.HasErrors() {
-		c.showDiagnostics(diags)
-		return 1
-	}
-
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
-	diags = diags.Append(versionDiags)
-	if diags.HasErrors() {
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
 		c.showDiagnostics(diags)
 		return 1
 	}
@@ -102,7 +78,7 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Check remote Terraform version is compatible
-	remoteVersionDiags := c.remoteBackendVersionCheck(b, workspace)
+	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
 	if diags.HasErrors() {
@@ -148,6 +124,14 @@ func (c *TaintCommand) Run(args []string) int {
 		))
 		c.showDiagnostics(diags)
 		return 1
+	}
+
+	// Get schemas, if possible, before writing state
+	var schemas *terraform.Schemas
+	if isCloudMode(b) {
+		var schemaDiags tfdiags.Diagnostics
+		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
+		diags = diags.Append(schemaDiags)
 	}
 
 	ss := state.SyncWrapper()
@@ -196,11 +180,12 @@ func (c *TaintCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(schemas); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
 
+	c.showDiagnostics(diags)
 	c.Ui.Output(fmt.Sprintf("Resource instance %s has been marked as tainted.", addr))
 	return 0
 }

@@ -21,14 +21,10 @@ import (
 //         └── main.tf
 
 func TestCopyDir_symlinks(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "copy-dir-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
+	tmpdir := t.TempDir()
 
 	moduleDir := filepath.Join(tmpdir, "modules")
-	err = os.Mkdir(moduleDir, os.ModePerm)
+	err := os.Mkdir(moduleDir, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,14 +63,10 @@ func TestCopyDir_symlinks(t *testing.T) {
 }
 
 func TestCopyDir_symlink_file(t *testing.T) {
-	tmpdir, err := ioutil.TempDir("", "copy-file-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(tmpdir)
+	tmpdir := t.TempDir()
 
 	moduleDir := filepath.Join(tmpdir, "modules")
-	err = os.Mkdir(moduleDir, os.ModePerm)
+	err := os.Mkdir(moduleDir, os.ModePerm)
 	if err != nil {
 		t.Fatal(err)
 	}

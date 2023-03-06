@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -88,10 +89,10 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.PlanFile = planFile

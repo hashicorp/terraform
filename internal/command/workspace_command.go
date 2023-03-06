@@ -21,8 +21,7 @@ func (c *WorkspaceCommand) Run(args []string) int {
 	cmdFlags := c.Meta.extendedFlagSet("workspace")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 
-	c.Ui.Output(c.Help())
-	return 0
+	return cli.RunResultHelp
 }
 
 func (c *WorkspaceCommand) Help() string {
@@ -68,7 +67,8 @@ const (
 	envDoesNotExist = `
 Workspace %q doesn't exist.
 
-You can create this workspace with the "new" subcommand.`
+You can create this workspace with the "new" subcommand 
+or include the "-or-create" flag with the "select" subcommand.`
 
 	envChanged = `[reset][green]Switched to workspace %q.`
 
@@ -81,15 +81,6 @@ for this configuration.
 `
 
 	envDeleted = `[reset][green]Deleted workspace %q!`
-
-	envNotEmpty = `
-Workspace %[1]q is not empty.
-
-Deleting %[1]q can result in dangling resources: resources that
-exist but are no longer manageable by Terraform. Please destroy
-these resources first.  If you want to delete this workspace
-anyway and risk dangling resources, use the '-force' flag.
-`
 
 	envWarnNotEmpty = `[reset][yellow]WARNING: %q was non-empty.
 The resources managed by the deleted workspace may still exist,

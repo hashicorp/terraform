@@ -12,14 +12,22 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		Action:   changeAction(change.Action),
 		Reason:   changeReason(change.ActionReason),
 	}
+	if !change.Addr.Equal(change.PrevRunAddr) {
+		if c.Action == ActionNoOp {
+			c.Action = ActionMove
+		}
+		pr := newResourceAddr(change.PrevRunAddr)
+		c.PreviousResource = &pr
+	}
 
 	return c
 }
 
 type ResourceInstanceChange struct {
-	Resource ResourceAddr `json:"resource"`
-	Action   ChangeAction `json:"action"`
-	Reason   ChangeReason `json:"reason,omitempty"`
+	Resource         ResourceAddr  `json:"resource"`
+	PreviousResource *ResourceAddr `json:"previous_resource,omitempty"`
+	Action           ChangeAction  `json:"action"`
+	Reason           ChangeReason  `json:"reason,omitempty"`
 }
 
 func (c *ResourceInstanceChange) String() string {
@@ -30,6 +38,7 @@ type ChangeAction string
 
 const (
 	ActionNoOp    ChangeAction = "noop"
+	ActionMove    ChangeAction = "move"
 	ActionCreate  ChangeAction = "create"
 	ActionRead    ChangeAction = "read"
 	ActionUpdate  ChangeAction = "update"
@@ -59,11 +68,21 @@ func changeAction(action plans.Action) ChangeAction {
 type ChangeReason string
 
 const (
-	ReasonNone         ChangeReason = ""
-	ReasonTainted      ChangeReason = "tainted"
-	ReasonRequested    ChangeReason = "requested"
-	ReasonCannotUpdate ChangeReason = "cannot_update"
-	ReasonUnknown      ChangeReason = "unknown"
+	ReasonNone               ChangeReason = ""
+	ReasonTainted            ChangeReason = "tainted"
+	ReasonRequested          ChangeReason = "requested"
+	ReasonReplaceTriggeredBy ChangeReason = "replace_triggered_by"
+	ReasonCannotUpdate       ChangeReason = "cannot_update"
+	ReasonUnknown            ChangeReason = "unknown"
+
+	ReasonDeleteBecauseNoResourceConfig ChangeReason = "delete_because_no_resource_config"
+	ReasonDeleteBecauseWrongRepetition  ChangeReason = "delete_because_wrong_repetition"
+	ReasonDeleteBecauseCountIndex       ChangeReason = "delete_because_count_index"
+	ReasonDeleteBecauseEachKey          ChangeReason = "delete_because_each_key"
+	ReasonDeleteBecauseNoModule         ChangeReason = "delete_because_no_module"
+	ReasonDeleteBecauseNoMoveTarget     ChangeReason = "delete_because_no_move_target"
+	ReasonReadBecauseConfigUnknown      ChangeReason = "read_because_config_unknown"
+	ReasonReadBecauseDependencyPending  ChangeReason = "read_because_dependency_pending"
 )
 
 func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason {
@@ -76,6 +95,24 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonRequested
 	case plans.ResourceInstanceReplaceBecauseCannotUpdate:
 		return ReasonCannotUpdate
+	case plans.ResourceInstanceReplaceByTriggers:
+		return ReasonReplaceTriggeredBy
+	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
+		return ReasonDeleteBecauseNoResourceConfig
+	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
+		return ReasonDeleteBecauseWrongRepetition
+	case plans.ResourceInstanceDeleteBecauseCountIndex:
+		return ReasonDeleteBecauseCountIndex
+	case plans.ResourceInstanceDeleteBecauseEachKey:
+		return ReasonDeleteBecauseEachKey
+	case plans.ResourceInstanceDeleteBecauseNoModule:
+		return ReasonDeleteBecauseNoModule
+	case plans.ResourceInstanceReadBecauseConfigUnknown:
+		return ReasonReadBecauseConfigUnknown
+	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+		return ReasonDeleteBecauseNoMoveTarget
+	case plans.ResourceInstanceReadBecauseDependencyPending:
+		return ReasonReadBecauseDependencyPending
 	default:
 		// This should never happen, but there's no good way to guarantee
 		// exhaustive handling of the enum, so a generic fall back is better

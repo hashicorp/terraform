@@ -76,3 +76,7 @@ func (d wrappedDiagnostic) Source() tfdiags.Source {
 func (d wrappedDiagnostic) FromExpr() *tfdiags.FromExpr {
 	return nil
 }
+
+func (d wrappedDiagnostic) ExtraInfo() interface{} {
+	return nil
+}

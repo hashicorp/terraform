@@ -1,0 +1,117 @@
+---
+page_title: 'Command: 0.12upgrade'
+description: >-
+  The 0.12upgrade subcommand automatically rewrites existing configurations for
+  Terraform 0.12 compatibility.
+---
+
+# Command: 0.12upgrade
+
+The `terraform 0.12upgrade` command applies several automatic upgrade rules to
+help prepare a module that was written for Terraform v0.11 to be used
+with Terraform v0.12.
+
+-> **This command is available only in Terraform v0.12 releases.** For more information, see [the Terraform v0.12 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-12).
+
+## Usage
+
+Usage: `terraform 0.12upgrade [options] [dir]`
+
+By default, `0.12upgrade` changes configuration files in the current working
+directory. However, you can provide an explicit path to another directory if
+desired, which may be useful for automating migrations of several modules in
+the same repository.
+
+When run with no other options, the command will first explain what it is
+going to do and prompt for confirmation:
+
+```
+$ terraform 0.12upgrade
+
+This command will rewrite the configuration files in the given directory so
+that they use the new syntax features from Terraform v0.12, and will identify
+any constructs that may need to be adjusted for correct operation with
+Terraform v0.12.
+
+We recommend using this command in a clean version control work tree, so that
+you can easily see the proposed changes as a diff against the latest commit.
+If you have uncommitted changes already present, we recommend aborting this
+command and dealing with them before running this command again.
+
+Would you like to upgrade the module in the current directory?
+  Only 'yes' will be accepted to confirm.
+
+  Enter a value: yes
+```
+
+The `0.12upgrade` subcommand requires access to providers used in the
+configuration in order to analyze their resource types, so it's important to
+run `terraform init` first to install these. In some rare cases, a configuration
+that worked in v0.11 may have syntax errors in v0.12, in which case
+`terraform init` will run in a special mode where it installs only enough to
+run the upgrade command, after which you can run `terraform init` again to
+complete initialization.
+
+Many of the rewrite rules are completely automatic, but in some cases the
+tool cannot determine enough information from the configuration alone to make
+a decision, and so it will instead add a comment to the configuration for
+user review. All such comments contain the string `TF-UPGRADE-TODO` to make
+them easier to find.
+
+After upgrading, the configuration will also be reformatted into the standard
+Terraform style and expressions rewritten to use the more-readable v0.12 syntax
+features.
+
+We recommend running this command with a clean version control work tree so
+that you can use VCS tools to review the proposed changes, including any
+`TF-UPGRADE-TODO` comments, and make any revisions required before committing
+the change.
+
+Once upgraded the configuration will no longer be compatible with Terraform
+v0.11 and earlier. When upgrading a shared module that is called from multiple
+configurations, you may need to
+[fix existing configurations to a previous version](/terraform/language/modules/syntax#version)
+to allow for a gradual upgrade. If the module is published via
+[a Terraform registry](/terraform/registry), assign a new _major_ version number
+to the upgraded module source to represent the fact that this is a breaking
+change for v0.11 callers. If a module is installed directly from a version
+control system such as Git,
+[use specific revisions](/terraform/language/modules/sources#selecting-a-revision)
+to control which version is used by which caller.
+
+The command-line options are all optional. The available options are:
+
+* `-yes` - Skip the initial introduction messages and interactive confirmation.
+  Use this when running the command in batch from a script.
+
+* `-force` - Override the heuristic that attempts to detect if a configuration
+  is already written for v0.12 or later. Some of the transformations made by
+  this command are not idempotent, so re-running against the same module may
+  change the meanings of some expressions in the module.
+
+## Batch Usage
+
+After you've experimented with the `0.12upgrade` command in some confined
+situations, if you have a repository containing multiple modules you may
+wish to batch-upgrade them all and review them together. Recursive upgrades
+are not supported by the tool itself, but if you are on a Unix-style system
+you can achieve this using the `find` command as follows:
+
+```
+find . -name '*.tf' -printf "%h\n" | uniq | xargs -n1 terraform 0.12upgrade -yes
+```
+
+On Mac OS X, the `find` included with the system does not support the `-printf` argument. You can install GNU find using Homebrew in order to use that argument:
+
+```
+brew install findutils
+```
+
+Once installed, run the above command line using `gfind` instead of `find`.
+
+Note that the above includes the `-yes` option to override the interactive
+prompt, so be sure you have a clean work tree before running it.
+
+Because upgrading requires access to the configuration's provider plugins,
+all of the directories must be initialized with `terraform init` prior to
+running the above.

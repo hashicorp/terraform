@@ -47,11 +47,11 @@ func simpleMockPluginLibrary() *contextPlugins {
 //
 // The returned schema contains the following optional attributes:
 //
-//     test_string, of type string
-//     test_number, of type number
-//     test_bool, of type bool
-//     test_list, of type list(string)
-//     test_map, of type map(string)
+//   - test_string, of type string
+//   - test_number, of type number
+//   - test_bool, of type bool
+//   - test_list, of type list(string)
+//   - test_map, of type map(string)
 //
 // Each call to this function produces an entirely new schema instance, so
 // callers can feel free to modify it once returned.

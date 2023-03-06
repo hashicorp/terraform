@@ -21,7 +21,13 @@ import (
 func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 	rootMod, diags := l.parser.LoadConfigDir(rootDir)
 	if rootMod == nil || diags.HasErrors() {
-		return nil, diags
+		// Ensure we return any parsed modules here so that required_version
+		// constraints can be verified even when encountering errors.
+		cfg := &configs.Config{
+			Module: rootMod,
+		}
+
+		return cfg, diags
 	}
 
 	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(l.moduleWalkerLoad))
@@ -54,8 +60,11 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 
 	var diags hcl.Diagnostics
 
-	// Check for inconsistencies between manifest and config
-	if req.SourceAddr.String() != record.SourceAddr {
+	// Check for inconsistencies between manifest and config.
+
+	// We ignore a nil SourceAddr here, which represents a failure during
+	// configuration parsing, and will be reported in a diagnostic elsewhere.
+	if req.SourceAddr != nil && req.SourceAddr.String() != record.SourceAddr {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module source has changed",

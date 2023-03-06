@@ -68,6 +68,13 @@ type NodeAbstractResource struct {
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
+	// storedProviderConfig is the provider address retrieved from the
+	// state. This is defined here for access within the ProvidedBy method, but
+	// will be set from the embedding instance type when the state is attached.
+	storedProviderConfig addrs.AbsProviderConfig
+
+	// This resource may expand into instances which need to be imported.
+	importTargets []*ImportTarget
 }
 
 var (
@@ -124,6 +131,10 @@ func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
 }
 
+func (n *NodeAbstractResource) Import(addr *ImportTarget) {
+
+}
+
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	// If we have a config then we prefer to use that.
@@ -143,12 +154,17 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		refs, _ = lang.ReferencesInExpr(c.ForEach)
 		result = append(result, refs...)
 
+		for _, expr := range c.TriggersReplacement {
+			refs, _ = lang.ReferencesInExpr(expr)
+			result = append(result, refs...)
+		}
+
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
 			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+			result = append(result, refs...)
 		}
 
-		result = append(result, refs...)
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
 				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
@@ -172,6 +188,20 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				result = append(result, refs...)
 			}
 		}
+
+		for _, check := range c.Preconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			result = append(result, refs...)
+		}
+		for _, check := range c.Postconditions {
+			refs, _ := lang.ReferencesInExpr(check.Condition)
+			result = append(result, refs...)
+			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			result = append(result, refs...)
+		}
+
 		return result
 	}
 
@@ -205,6 +235,11 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 
 // GraphNodeProviderConsumer
 func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
+	// Once the provider is fully resolved, we can return the known value.
+	if n.ResolvedProvider.Provider.Type != "" {
+		return n.ResolvedProvider, true
+	}
+
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
@@ -212,6 +247,14 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 			LocalName: relAddr.LocalName,
 			Alias:     relAddr.Alias,
 		}, false
+	}
+
+	// See if we have a valid provider config from the state.
+	if n.storedProviderConfig.Provider.Type != "" {
+		// An address from the state must match exactly, since we must ensure
+		// we refresh/destroy a resource with the same provider configuration
+		// that created it.
+		return n.storedProviderConfig, true
 	}
 
 	// No provider configuration found; return a default address
@@ -225,6 +268,9 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
+	}
+	if n.storedProviderConfig.Provider.Type != "" {
+		return n.storedProviderConfig.Provider
 	}
 	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
 }
@@ -375,10 +421,6 @@ func (n *NodeAbstractResource) readResourceInstanceState(ctx EvalContext, addr a
 	}
 	diags = diags.Append(upgradeDiags)
 	if diags.HasErrors() {
-		// Note that we don't have any channel to return warnings here. We'll
-		// accept that for now since warnings during a schema upgrade would
-		// be pretty weird anyway, since this operation is supposed to seem
-		// invisible to the user.
 		return nil, diags
 	}
 
@@ -444,16 +486,16 @@ func (n *NodeAbstractResource) readResourceInstanceStateDeposed(ctx EvalContext,
 // graphNodesAreResourceInstancesInDifferentInstancesOfSameModule is an
 // annoyingly-task-specific helper function that returns true if and only if
 // the following conditions hold:
-// - Both of the given vertices represent specific resource instances, as
-//   opposed to unexpanded resources or any other non-resource-related object.
-// - The module instance addresses for both of the resource instances belong
-//   to the same static module.
-// - The module instance addresses for both of the resource instances are
-//   not equal, indicating that they belong to different instances of the
-//   same module.
+//   - Both of the given vertices represent specific resource instances, as
+//     opposed to unexpanded resources or any other non-resource-related object.
+//   - The module instance addresses for both of the resource instances belong
+//     to the same static module.
+//   - The module instance addresses for both of the resource instances are
+//     not equal, indicating that they belong to different instances of the
+//     same module.
 //
 // This result can be used as a way to compensate for the effects of
-// conservative analyses passes in our graph builders which make their
+// conservative analysis passes in our graph builders which make their
 // decisions based only on unexpanded addresses, often so that they can behave
 // correctly for interactions between expanded and not-yet-expanded objects.
 //

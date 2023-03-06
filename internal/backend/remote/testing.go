@@ -8,12 +8,14 @@ import (
 	"net/http/httptest"
 	"path"
 	"testing"
+	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -38,6 +40,26 @@ var (
 		tfeHost: {"token": testCred},
 	})
 )
+
+// mockInput is a mock implementation of terraform.UIInput.
+type mockInput struct {
+	answers map[string]string
+}
+
+func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
+	v, ok := m.answers[opts.Id]
+	if !ok {
+		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
+	}
+	if v == "wait-for-external-update" {
+		select {
+		case <-ctx.Done():
+		case <-time.After(time.Minute):
+		}
+	}
+	delete(m.answers, opts.Id)
+	return v, nil
+}
 
 func testInput(t *testing.T, answers map[string]string) *mockInput {
 	return &mockInput{answers: answers}
@@ -111,7 +133,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	}
 
 	// Get a new mock client.
-	mc := newMockClient()
+	mc := cloud.NewMockClient()
 
 	// Replace the services we use with our mock services.
 	b.CLI = cli.NewMockUi()

@@ -1,7 +1,6 @@
 package local
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -21,9 +20,12 @@ import (
 //
 // No operations will be called on the returned value, so you can still set
 // public fields without any locks.
-func TestLocal(t *testing.T) (*Local, func()) {
+func TestLocal(t *testing.T) *Local {
 	t.Helper()
-	tempDir := t.TempDir()
+	tempDir, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	local := New()
 	local.StatePath = filepath.Join(tempDir, "state.tfstate")
@@ -32,13 +34,7 @@ func TestLocal(t *testing.T) (*Local, func()) {
 	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
 	local.ContextOpts = &terraform.ContextOpts{}
 
-	cleanup := func() {
-		if err := os.RemoveAll(tempDir); err != nil {
-			t.Fatal("error cleanup up test:", err)
-		}
-	}
-
-	return local, cleanup
+	return local
 }
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
@@ -66,7 +62,14 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema *terraform.Pr
 		p.GetProviderSchemaResponse.DataSources[name] = providers.Schema{Block: dat}
 	}
 
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan,
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		rSchema, _ := schema.SchemaForResourceType(addrs.ManagedResourceMode, req.TypeName)
 		if rSchema == nil {
 			rSchema = &configschema.Block{} // default schema is empty
@@ -132,7 +135,7 @@ func (b *TestLocalSingleState) Workspaces() ([]string, error) {
 	return nil, backend.ErrWorkspacesNotSupported
 }
 
-func (b *TestLocalSingleState) DeleteWorkspace(string) error {
+func (b *TestLocalSingleState) DeleteWorkspace(string, bool) error {
 	return backend.ErrWorkspacesNotSupported
 }
 
@@ -174,11 +177,11 @@ func (b *TestLocalNoDefaultState) Workspaces() ([]string, error) {
 	return filtered, nil
 }
 
-func (b *TestLocalNoDefaultState) DeleteWorkspace(name string) error {
+func (b *TestLocalNoDefaultState) DeleteWorkspace(name string, force bool) error {
 	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
-	return b.Local.DeleteWorkspace(name)
+	return b.Local.DeleteWorkspace(name, force)
 }
 
 func (b *TestLocalNoDefaultState) StateMgr(name string) (statemgr.Full, error) {

@@ -3,6 +3,7 @@ package depsfile
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -136,5 +137,173 @@ func TestLocksEqualProviderAddress(t *testing.T) {
 		a.SetProvider(boopProvider, v2, v2EqConstraints, hashesA)
 		b.SetProvider(boopProvider, v2, v2EqConstraints, hashesB)
 		equalProviderAddressBothWays(t, a, b)
+	})
+}
+
+func TestLocksProviderSetRemove(t *testing.T) {
+	beepProvider := addrs.NewDefaultProvider("beep")
+	boopProvider := addrs.NewDefaultProvider("boop")
+	v2 := getproviders.MustParseVersion("2.0.0")
+	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
+	hash := getproviders.HashScheme("test").New("1")
+
+	locks := NewLocks()
+	if got, want := len(locks.AllProviders()), 0; got != want {
+		t.Fatalf("fresh locks object already has providers")
+	}
+
+	locks.SetProvider(boopProvider, v2, v2EqConstraints, []getproviders.Hash{hash})
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			boopProvider: {
+				addr:               boopProvider,
+				version:            v2,
+				versionConstraints: v2EqConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after SetProvider boop\n%s", diff)
+		}
+	}
+
+	locks.SetProvider(beepProvider, v2, v2GtConstraints, []getproviders.Hash{hash})
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			boopProvider: {
+				addr:               boopProvider,
+				version:            v2,
+				versionConstraints: v2EqConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+			beepProvider: {
+				addr:               beepProvider,
+				version:            v2,
+				versionConstraints: v2GtConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after SetProvider beep\n%s", diff)
+		}
+	}
+
+	locks.RemoveProvider(boopProvider)
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{
+			beepProvider: {
+				addr:               beepProvider,
+				version:            v2,
+				versionConstraints: v2GtConstraints,
+				hashes:             []getproviders.Hash{hash},
+			},
+		}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after RemoveProvider boop\n%s", diff)
+		}
+	}
+
+	locks.RemoveProvider(beepProvider)
+	{
+		got := locks.AllProviders()
+		want := map[addrs.Provider]*ProviderLock{}
+		if diff := cmp.Diff(want, got, ProviderLockComparer); diff != "" {
+			t.Fatalf("wrong providers after RemoveProvider beep\n%s", diff)
+		}
+	}
+}
+
+func TestProviderLockContainsAll(t *testing.T) {
+	provider := addrs.NewDefaultProvider("provider")
+	v2 := getproviders.MustParseVersion("2.0.0")
+	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
+
+	t.Run("non-symmetric", func(t *testing.T) {
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"1ZAChGWUMWn4zmIk",
+			"K43RHM2klOoywtyW",
+			"HWjRvIuWZ1LVatnc",
+			"swJPXfuCNhJsTM5c",
+			"KwhJK4p/U2dqbKhI",
+		})
+
+		if !original.ContainsAll(target) {
+			t.Errorf("orginal should contain all hashes in target")
+		}
+		if target.ContainsAll(original) {
+			t.Errorf("target should not contain all hashes in orginal")
+		}
+	})
+
+	t.Run("symmetric", func(t *testing.T) {
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if !original.ContainsAll(target) {
+			t.Errorf("orginal should contain all hashes in target")
+		}
+		if !target.ContainsAll(original) {
+			t.Errorf("target should not contain all hashes in orginal")
+		}
+	})
+
+	t.Run("edge case - null", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if !original.ContainsAll(nil) {
+			t.Fatalf("orginal should report true on nil")
+		}
+	})
+
+	t.Run("edge case - empty", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+
+		if !original.ContainsAll(target) {
+			t.Fatalf("orginal should report true on empty")
+		}
+	})
+
+	t.Run("edge case - original empty", func(t *testing.T) {
+		original := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{})
+
+		target := NewProviderLock(provider, v2, v2EqConstraints, []getproviders.Hash{
+			"9r3i9a9QmASqMnQM",
+			"K43RHM2klOoywtyW",
+			"swJPXfuCNhJsTM5c",
+		})
+
+		if original.ContainsAll(target) {
+			t.Fatalf("orginal should report false when empty")
+		}
 	})
 }

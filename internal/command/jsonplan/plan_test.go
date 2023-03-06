@@ -7,6 +7,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 func TestOmitUnknowns(t *testing.T) {
@@ -66,6 +69,18 @@ func TestOmitUnknowns(t *testing.T) {
 			}),
 		},
 		{
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("alpha"),
+				cty.UnknownVal(cty.String),
+				cty.StringVal("charlie"),
+			}),
+			cty.TupleVal([]cty.Value{
+				cty.StringVal("alpha"),
+				cty.NullVal(cty.String),
+				cty.StringVal("charlie"),
+			}),
+		},
+		{
 			cty.SetVal([]cty.Value{
 				cty.StringVal("dev"),
 				cty.StringVal("foo"),
@@ -76,6 +91,7 @@ func TestOmitUnknowns(t *testing.T) {
 				cty.StringVal("dev"),
 				cty.StringVal("foo"),
 				cty.StringVal("stg"),
+				cty.NullVal(cty.String),
 			}),
 		},
 		{
@@ -302,5 +318,152 @@ func TestEncodePaths(t *testing.T) {
 				t.Errorf("wrong result:\n %v\n", cmp.Diff(got, test.Want))
 			}
 		})
+	}
+}
+
+func TestOutputs(t *testing.T) {
+	root := addrs.RootModuleInstance
+
+	child, diags := addrs.ParseModuleInstanceStr("module.child")
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	tests := map[string]struct {
+		changes  *plans.Changes
+		expected map[string]Change
+	}{
+		"copies all outputs": {
+			changes: &plans.Changes{
+				Outputs: []*plans.OutputChangeSrc{
+					{
+						Addr: root.OutputValue("first"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+					{
+						Addr: root.OutputValue("second"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+				},
+			},
+			expected: map[string]Change{
+				"first": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+				"second": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+			},
+		},
+		"skips non root modules": {
+			changes: &plans.Changes{
+				Outputs: []*plans.OutputChangeSrc{
+					{
+						Addr: root.OutputValue("first"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+					{
+						Addr: child.OutputValue("second"),
+						ChangeSrc: plans.ChangeSrc{
+							Action: plans.Create,
+						},
+					},
+				},
+			},
+			expected: map[string]Change{
+				"first": {
+					Actions:         []string{"create"},
+					Before:          json.RawMessage("null"),
+					After:           json.RawMessage("null"),
+					AfterUnknown:    json.RawMessage("false"),
+					BeforeSensitive: json.RawMessage("false"),
+					AfterSensitive:  json.RawMessage("false"),
+				},
+			},
+		},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			changes, err := MarshalOutputChanges(test.changes)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			if !cmp.Equal(changes, test.expected) {
+				t.Errorf("wrong result:\n %v\n", cmp.Diff(changes, test.expected))
+			}
+		})
+	}
+}
+
+func deepObjectValue(depth int) cty.Value {
+	v := cty.ObjectVal(map[string]cty.Value{
+		"a": cty.StringVal("a"),
+		"b": cty.NumberIntVal(2),
+		"c": cty.True,
+		"d": cty.UnknownVal(cty.String),
+	})
+
+	result := v
+
+	for i := 0; i < depth; i++ {
+		result = cty.ObjectVal(map[string]cty.Value{
+			"a": result,
+			"b": result,
+			"c": result,
+		})
+	}
+
+	return result
+}
+
+func BenchmarkUnknownAsBool_2(b *testing.B) {
+	value := deepObjectValue(2)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_3(b *testing.B) {
+	value := deepObjectValue(3)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_5(b *testing.B) {
+	value := deepObjectValue(5)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_7(b *testing.B) {
+	value := deepObjectValue(7)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
+	}
+}
+
+func BenchmarkUnknownAsBool_9(b *testing.B) {
+	value := deepObjectValue(9)
+	for n := 0; n < b.N; n++ {
+		unknownAsBool(value)
 	}
 }

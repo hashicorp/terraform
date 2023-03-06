@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	remoteBackend "github.com/hashicorp/terraform/internal/backend/remote"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -29,8 +28,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
-	// Propagate -no-color for the remote backend's legacy use of Ui. This
-	// should be removed when the remote backend is migrated to views.
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
 	c.Meta.color = !common.NoColor
 	c.Meta.Color = c.Meta.color
 
@@ -94,7 +94,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 
 	// Prepare the backend, passing the plan file if present, and the
 	// backend-specific arguments
-	be, beDiags := c.PrepareBackend(planFile, args.State)
+	be, beDiags := c.PrepareBackend(planFile, args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -102,7 +102,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, planFile, args.Operation, args.AutoApprove)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
 	diags = diags.Append(opDiags)
 
 	// Collect variable value and add them to the operation request
@@ -129,9 +129,9 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 		return op.Result.ExitStatus()
 	}
 
-	// Render the resource count and outputs, unless we're using the remote
-	// backend locally, in which case these are rendered remotely
-	if rb, isRemoteBackend := be.(*remoteBackend.Remote); !isRemoteBackend || rb.IsLocalOperations() {
+	// Render the resource count and outputs, unless those counts are being
+	// rendered already in a remote Terraform process.
+	if rb, isRemoteBackend := be.(BackendWithRemoteTerraformVersion); !isRemoteBackend || rb.IsLocalOperations() {
 		view.ResourceCount(args.State.StateOutPath)
 		if !c.Destroy && op.State != nil {
 			view.Outputs(op.State.RootModule().OutputValues)
@@ -191,7 +191,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -211,7 +211,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 		}
 
 		be, beDiags = c.Backend(&BackendOpts{
-			Config: backendConfig,
+			Config:   backendConfig,
+			ViewType: viewType,
 		})
 	} else {
 		plan, err := planFile.ReadPlan()
@@ -245,6 +246,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 func (c *ApplyCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Apply,
+	viewType arguments.ViewType,
 	planFile *planfile.Reader,
 	args *arguments.Operation,
 	autoApprove bool,
@@ -257,7 +259,7 @@ func (c *ApplyCommand) OperationRequest(
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode
@@ -341,6 +343,10 @@ Options:
   -compact-warnings      If Terraform produces any warnings that are not
                          accompanied by errors, show them in a more compact
                          form that includes only the summary messages.
+
+  -destroy               Destroy Terraform-managed infrastructure.
+                         The command "terraform destroy" is a convenience alias
+                         for this option.
 
   -lock=false            Don't hold a state lock during the operation. This is
                          dangerous if others might concurrently run commands

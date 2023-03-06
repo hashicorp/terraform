@@ -37,7 +37,7 @@ func (n *NodeApplyableProvider) Execute(ctx EvalContext, op walkOperation) (diag
 	case walkValidate:
 		log.Printf("[TRACE] NodeApplyableProvider: validating configuration for %s", n.Addr)
 		return diags.Append(n.ValidateProvider(ctx, provider))
-	case walkPlan, walkApply, walkDestroy:
+	case walkPlan, walkPlanDestroy, walkApply, walkDestroy:
 		log.Printf("[TRACE] NodeApplyableProvider: configuring %s", n.Addr)
 		return diags.Append(n.ConfigureProvider(ctx, provider, false))
 	case walkImport:

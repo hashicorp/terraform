@@ -58,7 +58,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 				// this codepath doesn't really "know about". If the "self"
 				// object starts being supported in more contexts later then
 				// we'll need to adjust this message.
-				Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner and connection blocks.`,
+				Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
 				Subject: ref.SourceRange.ToHCL().Ptr(),
 			})
 			return diags

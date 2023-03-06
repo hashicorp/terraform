@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/likexian/gokit/assert"
 )
 
 // Define file suffix
@@ -58,7 +57,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 }
 
 // DeleteWorkspace deletes the named workspaces. The "default" state cannot be deleted.
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	log.Printf("[DEBUG] delete workspace, workspace: %v", name)
 
 	if name == backend.DefaultStateName || name == "" {
@@ -88,7 +87,15 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 		return nil, err
 	}
 
-	if !assert.IsContains(ws, name) {
+	exists := false
+	for _, candidate := range ws {
+		if candidate == name {
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
 		log.Printf("[DEBUG] workspace %v not exists", name)
 
 		// take a lock on this state while we write it
@@ -119,7 +126,7 @@ func (b *Backend) StateMgr(name string) (statemgr.Full, error) {
 				err = lockUnlock(err)
 				return nil, err
 			}
-			if err := stateMgr.PersistState(); err != nil {
+			if err := stateMgr.PersistState(nil); err != nil {
 				err = lockUnlock(err)
 				return nil, err
 			}

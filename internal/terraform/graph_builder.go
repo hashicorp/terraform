@@ -21,8 +21,7 @@ type GraphBuilder interface {
 // series of transforms and (optionally) validates the graph is a valid
 // structure.
 type BasicGraphBuilder struct {
-	Steps    []GraphTransformer
-	Validate bool
+	Steps []GraphTransformer
 	// Optional name to add to the graph debug log
 	Name string
 }
@@ -56,13 +55,10 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 		}
 	}
 
-	// Validate the graph structure
-	if b.Validate {
-		if err := g.Validate(); err != nil {
-			log.Printf("[ERROR] Graph validation failed. Graph:\n\n%s", g.String())
-			diags = diags.Append(err)
-			return nil, diags
-		}
+	if err := g.Validate(); err != nil {
+		log.Printf("[ERROR] Graph validation failed. Graph:\n\n%s", g.String())
+		diags = diags.Append(err)
+		return nil, diags
 	}
 
 	return g, diags

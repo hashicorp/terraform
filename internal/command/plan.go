@@ -21,8 +21,9 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
 
-	// Propagate -no-color for the remote backend's legacy use of Ui. This
-	// should be removed when the remote backend is migrated to views.
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
 	c.Meta.color = !common.NoColor
 	c.Meta.Color = c.Meta.color
 
@@ -63,7 +64,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Prepare the backend with the backend-specific arguments
-	be, beDiags := c.PrepareBackend(args.State)
+	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -71,7 +72,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -109,7 +110,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -123,7 +124,8 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		Config:   backendConfig,
+		ViewType: viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -136,13 +138,14 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 func (c *PlanCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Plan,
+	viewType arguments.ViewType,
 	args *arguments.Operation,
 	planOutPath string,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()
@@ -219,7 +222,8 @@ Plan Customization Options:
   -replace=resource   Force replacement of a particular resource instance using
                       its resource address. If the plan would've normally
                       produced an update or no-op action for this instance,
-                      Terraform will plan to replace it instead.
+                      Terraform will plan to replace it instead. You can use
+                      this option multiple times to replace more than one object.
 
   -target=resource    Limit the planning operation to only the given module,
                       resource, or resource instance and all of its

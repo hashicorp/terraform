@@ -9,7 +9,6 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/likexian/gokit/assert"
 )
 
 const (
@@ -38,12 +37,18 @@ func TestStateFile(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		b := &Backend{
-			prefix: c.prefix,
-			key:    c.key,
-		}
-		assert.Equal(t, b.stateFile(c.stateName), c.wantStateFile)
-		assert.Equal(t, b.lockFile(c.stateName), c.wantLockFile)
+		t.Run(fmt.Sprintf("%s %s %s", c.prefix, c.key, c.stateName), func(t *testing.T) {
+			b := &Backend{
+				prefix: c.prefix,
+				key:    c.key,
+			}
+			if got, want := b.stateFile(c.stateName), c.wantStateFile; got != want {
+				t.Errorf("wrong state file name\ngot:  %s\nwant: %s", got, want)
+			}
+			if got, want := b.lockFile(c.stateName), c.wantLockFile; got != want {
+				t.Errorf("wrong lock file name\ngot:  %s\nwant: %s", got, want)
+			}
+		})
 	}
 }
 
@@ -56,10 +61,14 @@ func TestRemoteClient(t *testing.T) {
 	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	rs, ok := ss.(*remote.State)
-	assert.True(t, ok)
+	if !ok {
+		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
+	}
 
 	remote.TestClient(t, rs.Client)
 }
@@ -74,10 +83,14 @@ func TestRemoteClientWithPrefix(t *testing.T) {
 	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	rs, ok := ss.(*remote.State)
-	assert.True(t, ok)
+	if !ok {
+		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
+	}
 
 	remote.TestClient(t, rs.Client)
 }
@@ -91,10 +104,14 @@ func TestRemoteClientWithEncryption(t *testing.T) {
 	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	rs, ok := ss.(*remote.State)
-	assert.True(t, ok)
+	if !ok {
+		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
+	}
 
 	remote.TestClient(t, rs.Client)
 }
@@ -122,10 +139,14 @@ func TestRemoteLocks(t *testing.T) {
 	}
 
 	c0, err := remoteClient()
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	c1, err := remoteClient()
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	remote.TestRemoteLocks(t, c0, c1)
 }
@@ -203,10 +224,14 @@ func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool) backen
 	be := b.(*Backend)
 
 	c, err := be.client("tencentcloud")
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	err = c.putBucket()
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	return b
 }
@@ -215,10 +240,14 @@ func teardownBackend(t *testing.T, b backend.Backend) {
 	t.Helper()
 
 	c, err := b.(*Backend).client("tencentcloud")
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 
 	err = c.deleteBucket(true)
-	assert.Nil(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
 }
 
 func bucketName(t *testing.T) string {

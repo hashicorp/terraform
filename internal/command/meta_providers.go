@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -8,7 +9,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/hashicorp/go-multierror"
 	plugin "github.com/hashicorp/go-plugin"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -63,6 +63,7 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 	inst := providercache.NewInstaller(targetDir, source)
 	if globalCacheDir != nil {
 		inst.SetGlobalCacheDir(globalCacheDir)
+		inst.SetGlobalCacheDirMayBreakDependencyLockFile(m.PluginCacheMayBreakDependencyLockFile)
 	}
 	var builtinProviderTypes []string
 	for ty := range m.internalProviders() {
@@ -236,7 +237,7 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	// where appropriate and so that callers can potentially make use of the
 	// partial result we return if e.g. they want to enumerate which providers
 	// are available, or call into one of the providers that didn't fail.
-	var err error
+	errs := make(map[addrs.Provider]error)
 
 	// For the providers from the lock file, we expect them to be already
 	// available in the provider cache because "terraform init" should already
@@ -274,12 +275,18 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	}
 	for provider, lock := range providerLocks {
 		reportError := func(thisErr error) {
-			err = multierror.Append(err, thisErr)
+			errs[provider] = thisErr
 			// We'll populate a provider factory that just echoes our error
 			// again if called, which allows us to still report a helpful
 			// error even if it gets detected downstream somewhere from the
 			// caller using our partial result.
 			factories[provider] = providerFactoryError(thisErr)
+		}
+
+		if locks.ProviderIsOverridden(provider) {
+			// Overridden providers we'll handle with the other separate
+			// loops below, for dev overrides etc.
+			continue
 		}
 
 		version := lock.Version()
@@ -313,12 +320,15 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 		factories[provider] = providerFactory(cached)
 	}
 	for provider, localDir := range devOverrideProviders {
-		// It's likely that providers in this map will conflict with providers
-		// in providerLocks
 		factories[provider] = devOverrideProviderFactory(provider, localDir)
 	}
 	for provider, reattach := range unmanagedProviders {
 		factories[provider] = unmanagedProviderFactory(provider, reattach)
+	}
+
+	var err error
+	if len(errs) > 0 {
+		err = providerPluginErrors(errs)
 	}
 	return factories, err
 }
@@ -470,4 +480,26 @@ func providerFactoryError(err error) providers.Factory {
 	return func() (providers.Interface, error) {
 		return nil, err
 	}
+}
+
+// providerPluginErrors is an error implementation we can return from
+// Meta.providerFactories to capture potentially multiple errors about the
+// locally-cached plugins (or lack thereof) for particular external providers.
+//
+// Some functions closer to the UI layer can sniff for this error type in order
+// to return a more helpful error message.
+type providerPluginErrors map[addrs.Provider]error
+
+func (errs providerPluginErrors) Error() string {
+	if len(errs) == 1 {
+		for addr, err := range errs {
+			return fmt.Sprintf("%s: %s", addr, err)
+		}
+	}
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "missing or corrupted provider plugins:")
+	for addr, err := range errs {
+		fmt.Fprintf(&buf, "\n  - %s: %s", addr, err)
+	}
+	return buf.String()
 }

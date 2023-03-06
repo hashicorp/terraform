@@ -1,0 +1,136 @@
+---
+page_title: 'Backend Type: gcs'
+description: >-
+  Terraform can store the state remotely, making it easier to version and work
+  with in a team.
+---
+
+# gcs
+
+Stores the state as an object in a configurable prefix in a pre-existing bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
+The bucket must exist prior to configuring the backend.
+
+This backend supports [state locking](/terraform/language/state/locking).
+
+~> **Warning!** It is highly recommended that you enable
+[Object Versioning](https://cloud.google.com/storage/docs/object-versioning)
+on the GCS bucket to allow for state recovery in the case of accidental deletions and human error.
+
+## Example Configuration
+
+```hcl
+terraform {
+  backend "gcs" {
+    bucket  = "tf-state-prod"
+    prefix  = "terraform/state"
+  }
+}
+```
+
+## Data Source Configuration
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "gcs"
+  config = {
+    bucket  = "terraform-state"
+    prefix  = "prod"
+  }
+}
+
+# Terraform >= 0.12
+resource "local_file" "foo" {
+  content  = data.terraform_remote_state.foo.outputs.greeting
+  filename = "${path.module}/outputs.txt"
+}
+
+# Terraform <= 0.11
+resource "local_file" "foo" {
+  content  = "${data.terraform_remote_state.foo.greeting}"
+  filename = "${path.module}/outputs.txt"
+}
+```
+
+## Authentication
+
+IAM Changes to buckets are [eventually consistent](https://cloud.google.com/storage/docs/consistency#eventually_consistent_operations) and may take upto a few minutes to take effect. Terraform will return 403 errors till it is eventually consistent.
+
+### Running Terraform on your workstation.
+
+If you are using terraform on your workstation, you will need to install the Google Cloud SDK and authenticate using [User Application Default
+Credentials](https://cloud.google.com/sdk/gcloud/reference/auth/application-default).
+
+User ADCs do [expire](https://developers.google.com/identity/protocols/oauth2#expiration) and you can refresh them by running `gcloud auth application-default login`.
+
+### Running Terraform on Google Cloud
+
+If you are running terraform on Google Cloud, you can configure that instance or cluster to use a [Google Service
+Account](https://cloud.google.com/compute/docs/authentication). This will allow Terraform to authenticate to Google Cloud without having to bake in a separate
+credential/authentication file. Make sure that the scope of the VM/Cluster is set to cloud-platform.
+
+### Running Terraform outside of Google Cloud
+
+If you are running terraform outside of Google Cloud, generate a service account key and set the `GOOGLE_APPLICATION_CREDENTIALS` environment variable to
+the path of the service account key. Terraform will use that key for authentication.
+
+### Impersonating Service Accounts
+
+Terraform can impersonate a Google Service Account as described [here](https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials). A valid credential must be provided as mentioned in the earlier section and that identity must have the `roles/iam.serviceAccountTokenCreator` role on the service account you are impersonating.
+
+## Encryption
+
+!> **Warning:** Take care of your encryption keys because state data encrypted with a lost or deleted key is not recoverable. If you use customer-supplied encryption keys, you must securely manage your keys and ensure you do not lose them. You must not delete customer-managed encryption keys in Cloud KMS used to encrypt state. However, if you accidentally delete a key, there is a time window where [you can recover it](https://cloud.google.com/kms/docs/destroy-restore#restore).
+
+### Customer-supplied encryption keys
+
+To get started, follow this guide: [Use customer-supplied encryption keys](https://cloud.google.com/storage/docs/encryption/using-customer-supplied-keys)
+
+If you want to remove customer-supplied keys from your backend configuration or change to a different customer-supplied key, Terraform cannot perform a state migration automatically and manual intervention is necessary instead. This intervention is necessary because Google does not store customer-supplied encryption keys, any requests sent to the Cloud Storage API must supply them instead (see [Customer-supplied Encryption Keys](https://cloud.google.com/storage/docs/encryption/customer-supplied-keys)). At the time of state migration, the backend configuration loses the old key's details and Terraform cannot use the key during the migration process.
+
+~> **Important:** To migrate your state away from using customer-supplied encryption keys or change the key used by your backend, you need to perform a [rewrite (gsutil CLI)](https://cloud.google.com/storage/docs/gsutil/commands/rewrite) or [cp (gcloud CLI)](https://cloud.google.com/sdk/gcloud/reference/storage/cp#--decryption-keys) operation to remove use of the old customer-supplied encryption key on your state file. Once you remove the encryption, you can successfully run `terraform init -migrate-state` with your new backend configuration.
+
+### Customer-managed encryption keys (Cloud KMS)
+
+To get started, follow this guide: [Use customer-managed encryption keys](https://cloud.google.com/storage/docs/encryption/using-customer-managed-keys)
+
+If you want to remove customer-managed keys from your backend configuration or change to a different customer-managed key, Terraform _can_ manage a state migration without manual intervention. This ability is because GCP stores customer-managed encryption keys and are accessible during the state migration process. However, these changes do not fully come into effect until the first write operation occurs on the state file after state migration occurs. In the first write operation after state migration, the file decrypts with the old key and then writes with the new encryption method. This method is equivalent to the [rewrite](https://cloud.google.com/storage/docs/gsutil/commands/rewrite) operation described in the customer-supplied encryption keys section. Because of the importance of the first write to state after state migration, you should not delete old KMS keys until any state file(s) encrypted with that key update.
+
+Customer-managed keys do not need to be sent in requests to read files from GCS buckets because decryption occurs automatically within GCS. This process means that if you use the `terraform_remote_state` [data source](/terraform/language/state/remote-state-data) to access KMS-encrypted state, you do not need to specify the KMS key in the data source's `config` object. 
+
+~> **Important:** To use customer-managed encryption keys, you need to create a key and give your project's GCS service agent permission to use it with the Cloud KMS CryptoKey Encrypter/Decrypter predefined role. 
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform includes these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
+The following configuration options are supported:
+
+- `bucket` - (Required) The name of the GCS bucket.  This name must be
+  globally unique.  For more information, see [Bucket Naming
+  Guidelines](https://cloud.google.com/storage/docs/bucketnaming.html#requirements).
+- `credentials` / `GOOGLE_BACKEND_CREDENTIALS` / `GOOGLE_CREDENTIALS` -
+  (Optional) Local path to Google Cloud Platform account credentials in JSON
+  format. If unset, the path uses [Google Application Default Credentials](https://developers.google.com/identity/protocols/application-default-credentials).  The provided credentials must have the Storage Object Admin role on the bucket.
+  **Warning**: if using the Google Cloud Platform provider as well, it will
+  also pick up the `GOOGLE_CREDENTIALS` environment variable.
+- `impersonate_service_account` / `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` / `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` - (Optional) The service account to impersonate for accessing the State Bucket.
+  You must have `roles/iam.serviceAccountTokenCreator` role on that account for the impersonation to succeed.
+  If you are using a delegation chain, you can specify that using the `impersonate_service_account_delegates` field.
+- `impersonate_service_account_delegates` - (Optional) The delegation chain for an impersonating a service account as described [here](https://cloud.google.com/iam/docs/creating-short-lived-service-account-credentials#sa-credentials-delegated).
+- `access_token` - (Optional) A temporary \[OAuth 2.0 access token] obtained
+  from the Google Authorization server, i.e. the `Authorization: Bearer` token
+  used to authenticate HTTP requests to GCP APIs. This is an alternative to
+  `credentials`. If both are specified, `access_token` will be used over the
+  `credentials` field.
+- `prefix` - (Optional) GCS prefix inside the bucket. Named states for
+  workspaces are stored in an object called `<prefix>/<name>.tfstate`.
+- `encryption_key` / `GOOGLE_ENCRYPTION_KEY` - (Optional) A 32 byte base64
+  encoded 'customer-supplied encryption key' used when reading and writing state files in the bucket. For
+  more information see [Customer-supplied Encryption
+  Keys](https://cloud.google.com/storage/docs/encryption/customer-supplied-keys).
+- `kms_encryption_key` / `GOOGLE_KMS_ENCRYPTION_KEY` - (Optional) A Cloud KMS key ('customer-managed encryption key')
+  used when reading and writing state files in the bucket.
+  Format should be `projects/{{project}}/locations/{{location}}/keyRings/{{keyRing}}/cryptoKeys/{{name}}`. 
+  For more information, including IAM requirements, see [Customer-managed Encryption 
+  Keys](https://cloud.google.com/storage/docs/encryption/customer-managed-keys).
+- `storage_custom_endpoint` / `GOOGLE_BACKEND_STORAGE_CUSTOM_ENDPOINT` / `GOOGLE_STORAGE_CUSTOM_ENDPOINT` - (Optional) A URL containing three parts: the protocol, the DNS name pointing to a Private Service Connect endpoint, and the path for the Cloud Storage API (`/storage/v1/b`, [see here](https://cloud.google.com/storage/docs/json_api/v1/buckets/get#http-request)). You can either use [a DNS name automatically made by the Service Directory](https://cloud.google.com/vpc/docs/configure-private-service-connect-apis#configure-p-dns) or a [custom DNS name](https://cloud.google.com/vpc/docs/configure-private-service-connect-apis#configure-dns-default) made by you. For example, if you create an endpoint called `xyz` and want to use the automatically-created DNS name, you should set the field value as `https://storage-xyz.p.googleapis.com/storage/v1/b`. For help creating a Private Service Connect endpoint using Terraform, [see this guide](https://cloud.google.com/vpc/docs/configure-private-service-connect-apis#terraform_1).

@@ -1,8 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -15,11 +13,7 @@ import (
 )
 
 func TestLogout(t *testing.T) {
-	workDir, err := ioutil.TempDir("", "terraform-test-command-logout")
-	if err != nil {
-		t.Fatalf("cannot create temporary directory: %s", err)
-	}
-	defer os.RemoveAll(workDir)
+	workDir := t.TempDir()
 
 	ui := cli.NewMockUi()
 	credsSrc := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
@@ -54,7 +48,7 @@ func TestLogout(t *testing.T) {
 	for _, tc := range testCases {
 		host := svchost.Hostname(tc.hostname)
 		token := svcauth.HostCredentialsToken("some-token")
-		err = credsSrc.StoreForHost(host, token)
+		err := credsSrc.StoreForHost(host, token)
 		if err != nil {
 			t.Fatalf("unexpected error storing credentials: %s", err)
 		}

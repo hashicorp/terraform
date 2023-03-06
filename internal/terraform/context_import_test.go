@@ -52,9 +52,20 @@ func TestContextImport_basic(t *testing.T) {
 	}
 }
 
+// import 1 of count instances in the configuration
 func TestContextImport_countIndex(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "aws" {
+  foo = "bar"
+}
+
+resource "aws_instance" "foo" {
+  count = 2
+}
+`})
+
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
@@ -419,7 +430,24 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 
 func TestContextImport_refresh(t *testing.T) {
 	p := testProvider("aws")
-	m := testModule(t, "import-provider")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+provider "aws" {
+  foo = "bar"
+}
+
+resource "aws_instance" "foo" {
+}
+
+
+// we are only importing aws_instance.foo, so these resources will be unknown
+resource "aws_instance" "bar" {
+}
+data "aws_data_source" "bar" {
+  foo = aws_instance.bar.id
+}
+`})
+
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
@@ -435,6 +463,13 @@ func TestContextImport_refresh(t *testing.T) {
 				}),
 			},
 		},
+	}
+
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("id"),
+			"foo": cty.UnknownVal(cty.String),
+		}),
 	}
 
 	p.ReadResourceFn = nil
@@ -458,6 +493,10 @@ func TestContextImport_refresh(t *testing.T) {
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors: %s", diags.Err())
+	}
+
+	if d := state.ResourceInstance(mustResourceInstanceAddr("data.aws_data_source.bar")); d != nil {
+		t.Errorf("data.aws_data_source.bar has a status of ObjectPlanned and should not be in the state\ngot:%#v\n", d.Current)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -779,7 +818,7 @@ func TestContextImport_multiStateSame(t *testing.T) {
 	}
 }
 
-func TestContextImport_noConfigModuleImport(t *testing.T) {
+func TestContextImport_nestedModuleImport(t *testing.T) {
 	p := testProvider("aws")
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
@@ -797,6 +836,9 @@ module "b" {
   source   = "./b"
   y = module.a[each.key].y
 }
+
+resource "test_resource" "test" {
+}
 `,
 		"a/main.tf": `
 output "y" {
@@ -810,6 +852,7 @@ variable "y" {
 
 resource "test_resource" "unused" {
   value = var.y
+  // missing required, but should not error
 }
 `,
 	})
@@ -823,7 +866,8 @@ resource "test_resource" "unused" {
 		ResourceTypes: map[string]*configschema.Block{
 			"test_resource": {
 				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+					"id":       {Type: cty.String, Computed: true},
+					"required": {Type: cty.String, Required: true},
 				},
 			},
 		},
@@ -834,11 +878,72 @@ resource "test_resource" "unused" {
 			{
 				TypeName: "test_resource",
 				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("test"),
+					"id":       cty.StringVal("test"),
+					"required": cty.StringVal("value"),
 				}),
 			},
 		},
 	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
+		Targets: []*ImportTarget{
+			{
+				Addr: addrs.RootModuleInstance.ResourceInstance(
+					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
+				),
+				ID: "test",
+			},
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	ri := state.ResourceInstance(mustResourceInstanceAddr("test_resource.test"))
+	expected := `{"id":"test","required":"value"}`
+	if ri == nil || ri.Current == nil {
+		t.Fatal("no state is recorded for resource instance test_resource.test")
+	}
+	if string(ri.Current.AttrsJSON) != expected {
+		t.Fatalf("expected %q, got %q\n", expected, ri.Current.AttrsJSON)
+	}
+}
+
+// New resources in the config during import won't exist for evaluation
+// purposes (until import is upgraded to using a complete plan). This means
+// that references to them are unknown, but in the case of single instances, we
+// can at least know the type of unknown value.
+func TestContextImport_newResourceUnknown(t *testing.T) {
+	p := testProvider("aws")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "one" {
+}
+
+resource "test_resource" "two" {
+  count = length(flatten([test_resource.one.id]))
+}
+
+resource "test_resource" "test" {
+}
+`})
+
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {Type: cty.String, Computed: true},
+				},
+			},
+		},
+	})
+
 	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
 		ImportedResources: []providers.ImportedResource{
 			{

@@ -1,0 +1,128 @@
+---
+page_title: Splat Expressions - Configuration Language
+description: >-
+  Splat expressions concisely represent common operations. In Terraform, they
+  also transform single, non-null values into a single-element tuple.
+---
+
+# Splat Expressions
+
+> **Hands-on:** Try the [Create Dynamic Expressions](/terraform/tutorials/configuration-language/expressions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+A _splat expression_ provides a more concise way to express a common
+operation that could otherwise be performed with a `for` expression.
+
+If `var.list` is a list of objects that all have an attribute `id`, then
+a list of the ids could be produced with the following `for` expression:
+
+```hcl
+[for o in var.list : o.id]
+```
+
+This is equivalent to the following _splat expression:_
+
+```hcl
+var.list[*].id
+```
+
+The special `[*]` symbol iterates over all of the elements of the list given
+to its left and accesses from each one the attribute name given on its
+right. A splat expression can also be used to access attributes and indexes
+from lists of complex types by extending the sequence of operations to the
+right of the symbol:
+
+```hcl
+var.list[*].interfaces[0].name
+```
+
+The above expression is equivalent to the following `for` expression:
+
+```hcl
+[for o in var.list : o.interfaces[0].name]
+```
+
+## Splat Expressions with Maps
+
+The splat expression patterns shown above apply only to lists, sets, and
+tuples. To get a similar result with a map or object value you must use
+[`for` expressions](/terraform/language/expressions/for).
+
+Resources that use the `for_each` argument will appear in expressions as a map
+of objects, so you can't use splat expressions with those resources.
+For more information, see
+[Referring to Resource Instances](/terraform/language/meta-arguments/for_each#referring-to-instances).
+
+## Single Values as Lists
+
+Splat expressions have a special behavior when you apply them to a value that
+isn't a list, set, or tuple.
+
+If the value is anything other than a null value then the splat expression will
+transform it into a single-element list, or more accurately a single-element
+tuple value. If the value is _null_ then the splat expression will return an
+empty tuple.
+
+This special behavior can be useful for modules that accept optional input
+variables whose default value is `null` to represent the absence of any value. This allows the module to adapt the variable value for Terraform language features designed to work with collections. For example:
+
+```
+variable "website_setting" {
+  type = object({
+    index_document = string
+    error_document = string
+  })
+  default = null
+}
+
+resource "aws_s3_bucket" "example" {
+  # ...
+
+  dynamic "website" {
+    for_each = var.website_setting[*]
+    content {
+      index_document = website.value.index_document
+      error_document = website.value.error_document
+    }
+  }
+}
+```
+
+The above example uses a [`dynamic` block](/terraform/language/expressions/dynamic-blocks), which
+generates zero or more nested blocks based on a collection value. The input
+variable `var.website_setting` is defined as a single object that might be null,
+so the `dynamic` block's `for_each` expression uses `[*]` to ensure that
+there will be one block if the module caller sets the website argument, or
+zero blocks if the caller leaves it set to null.
+
+This special behavior of splat expressions is not obvious to an unfamiliar
+reader, so we recommend using it only in `for_each` arguments and similar
+situations where the context implies working with a collection. Otherwise,
+the meaning of the expression may be unclear to future readers.
+
+## Legacy (Attribute-only) Splat Expressions
+
+Earlier versions of the Terraform language had a slightly different version
+of splat expressions, which Terraform continues to support for backward
+compatibility. This older variant is less useful than the modern form described
+above, and so we recommend against using it in new configurations.
+
+The legacy "attribute-only" splat expressions use the sequence `.*`, instead of
+`[*]`:
+
+```
+var.list.*.interfaces[0].name
+```
+
+This form has a subtly different behavior, equivalent to the following
+`for` expression:
+
+```
+[for o in var.list : o.interfaces][0].name
+```
+
+Notice that with the attribute-only splat expression the index operation
+`[0]` is applied to the result of the iteration, rather than as part of
+the iteration itself. Only the attribute lookups apply to each element of
+the input. This limitation was confusing some people using older versions of
+Terraform and so we recommend always using the new-style splat expressions,
+with `[*]`, to get the more consistent behavior.

@@ -7,9 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
-
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
@@ -17,6 +14,10 @@ import (
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/version"
+	"github.com/manicminer/hamilton/environments"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
 type ArmClient struct {
@@ -67,7 +68,7 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
 		MetadataHost:                  config.MetadataHost,
 		Environment:                   config.Environment,
-		ClientSecretDocsLink:          "https://www.terraform.io/docs/providers/azurerm/guides/service_principal_client_secret.html",
+		ClientSecretDocsLink:          "https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret",
 
 		// Service Principal (Client Certificate)
 		ClientCertPassword: config.ClientCertificatePassword,
@@ -79,11 +80,19 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		// Managed Service Identity
 		MsiEndpoint: config.MsiEndpoint,
 
+		// OIDC
+		IDToken:             config.OIDCToken,
+		IDTokenFilePath:     config.OIDCTokenFilePath,
+		IDTokenRequestURL:   config.OIDCRequestURL,
+		IDTokenRequestToken: config.OIDCRequestToken,
+
 		// Feature Toggles
 		SupportsAzureCliToken:          true,
 		SupportsClientCertAuth:         true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
+		SupportsOIDCAuth:               config.UseOIDC,
+		UseMicrosoftGraph:              true,
 	}
 	armConfig, err := builder.Build()
 	if err != nil {
@@ -95,14 +104,21 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		return nil, err
 	}
 
+	hamiltonEnv, err := environments.EnvironmentFromString(config.Environment)
+	if err != nil {
+		return nil, err
+	}
+
 	sender := sender.BuildSender("backend/remote-state/azure")
-	auth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.TokenAudience)
+	log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Resource Manager..")
+	auth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
 	if err != nil {
 		return nil, err
 	}
 
 	if config.UseAzureADAuthentication {
-		storageAuth, err := armConfig.GetAuthorizationToken(sender, oauthConfig, env.ResourceIdentifiers.Storage)
+		log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Storage..")
+		storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
 		if err != nil {
 			return nil, err
 		}
@@ -118,18 +134,6 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	client.groupsClient = &groupsClient
 
 	return &client, nil
-}
-
-func buildArmEnvironment(config BackendConfig) (*azure.Environment, error) {
-	// TODO: can we remove this?
-	// https://github.com/hashicorp/terraform/issues/27156
-	if config.CustomResourceManagerEndpoint != "" {
-		log.Printf("[DEBUG] Loading Environment from Endpoint %q", config.CustomResourceManagerEndpoint)
-		return authentication.LoadEnvironmentFromUrl(config.CustomResourceManagerEndpoint)
-	}
-
-	log.Printf("[DEBUG] Loading Environment %q", config.Environment)
-	return authentication.DetermineEnvironment(config.Environment)
 }
 
 func (c ArmClient) getBlobClient(ctx context.Context) (*blobs.Client, error) {
@@ -231,7 +235,7 @@ func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Autho
 }
 
 func buildUserAgent() string {
-	userAgent := httpclient.UserAgentString()
+	userAgent := httpclient.TerraformUserAgent(version.Version)
 
 	// append the CloudShell version to the user agent if it exists
 	if azureAgent := os.Getenv("AZURE_HTTP_USER_AGENT"); azureAgent != "" {

@@ -1,0 +1,42 @@
+---
+page_title: coalescelist - Functions - Configuration Language
+description: |-
+  The coalescelist function takes any number of list arguments and returns the
+  first one that isn't empty.
+---
+
+# `coalescelist` Function
+
+`coalescelist` takes any number of list arguments and returns the first one
+that isn't empty.
+
+## Examples
+
+```
+> coalescelist(["a", "b"], ["c", "d"])
+[
+  "a",
+  "b",
+]
+> coalescelist([], ["c", "d"])
+[
+  "c",
+  "d",
+]
+```
+
+To perform the `coalescelist` operation with a list of lists, use the `...`
+symbol to expand the outer list as arguments:
+
+```
+> coalescelist([[], ["c", "d"]]...)
+[
+  "c",
+  "d",
+]
+```
+
+## Related Functions
+
+* [`coalesce`](/terraform/language/functions/coalesce) performs a similar operation with string
+  arguments rather than list arguments.

@@ -22,6 +22,7 @@ import (
 	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
 	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
 	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
+	backendCloud "github.com/hashicorp/terraform/internal/cloud"
 )
 
 // backends is the list of available backends. This is a global variable
@@ -38,13 +39,16 @@ import (
 var backends map[string]backend.InitFn
 var backendsLock sync.Mutex
 
+// RemovedBackends is a record of previously supported backends which have
+// since been deprecated and removed.
+var RemovedBackends map[string]string
+
 // Init initializes the backends map with all our hardcoded backends.
 func Init(services *disco.Disco) {
 	backendsLock.Lock()
 	defer backendsLock.Unlock()
 
 	backends = map[string]backend.InitFn{
-		// Enhanced backends.
 		"local":  func() backend.Backend { return backendLocal.New() },
 		"remote": func() backend.Backend { return backendRemote.New(services) },
 
@@ -60,13 +64,18 @@ func Init(services *disco.Disco) {
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
 
-		// Deprecated backends.
-		"azure": func() backend.Backend {
-			return deprecateBackend(
-				backendAzure.New(),
-				`Warning: "azure" name is deprecated, please use "azurerm"`,
-			)
-		},
+		// Terraform Cloud 'backend'
+		// This is an implementation detail only, used for the cloud package
+		"cloud": func() backend.Backend { return backendCloud.New(services) },
+	}
+
+	RemovedBackends = map[string]string{
+		"artifactory": `The "artifactory" backend is not supported in Terraform v1.3 or later.`,
+		"azure":       `The "azure" backend name has been removed, please use "azurerm".`,
+		"etcd":        `The "etcd" backend is not supported in Terraform v1.3 or later.`,
+		"etcdv3":      `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
+		"manta":       `The "manta" backend is not supported in Terraform v1.3 or later.`,
+		"swift":       `The "swift" backend is not supported in Terraform v1.3 or later.`,
 	}
 }
 

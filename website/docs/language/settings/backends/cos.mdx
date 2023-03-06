@@ -1,0 +1,106 @@
+---
+page_title: 'Backend Type: cos'
+description: >-
+  Terraform can store the state remotely, making it easier to version and work
+  with in a team.
+---
+
+# COS
+
+Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
+
+This backend supports [state locking](/terraform/language/state/locking).
+
+~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
+on the COS bucket to allow for state recovery in the case of accidental deletions and human error.
+
+## Example Configuration
+
+```hcl
+terraform {
+  backend "cos" {
+    region = "ap-guangzhou"
+    bucket = "bucket-for-terraform-state-1258798060"
+    prefix = "terraform/state"
+  }
+}
+```
+
+This assumes we have a [COS Bucket](https://registry.terraform.io/providers/tencentcloudstack/tencentcloud/latest/docs/resources/cos_bucket) created named `bucket-for-terraform-state-1258798060`,
+Terraform state will be written into the file `terraform/state/terraform.tfstate`.
+
+## Data Source Configuration
+
+To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "cos"
+
+  config = {
+    region = "ap-guangzhou"
+    bucket = "bucket-for-terraform-state-1258798060"
+    prefix = "terraform/state"
+  }
+}
+```
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
+The following configuration options or environment variables are supported:
+
+- `secret_id` - (Optional) Secret id of Tencent Cloud. It supports environment variables `TENCENTCLOUD_SECRET_ID`.
+- `secret_key` - (Optional) Secret key of Tencent Cloud. It supports environment variables `TENCENTCLOUD_SECRET_KEY`.
+- `security_token` - (Optional) TencentCloud Security Token of temporary access credentials. It supports environment variables `TENCENTCLOUD_SECURITY_TOKEN`.
+- `region` - (Optional) The region of the COS bucket. It supports environment variables `TENCENTCLOUD_REGION`.
+- `bucket` - (Required) The name of the COS bucket. You shall manually create it first.
+- `prefix` - (Optional) The directory for saving the state file in bucket. Default to "env:".
+- `key` - (Optional) The path for saving the state file in bucket. Defaults to `terraform.tfstate`.
+- `encrypt` - (Optional) Whether to enable server side encryption of the state file. If it is true, COS will use 'AES256' encryption algorithm to encrypt state file.
+- `acl` - (Optional) Object ACL to be applied to the state file, allows `private` and `public-read`. Defaults to `private`.
+- `accelerate` - (Optional) Whether to enable global Acceleration. Defaults to `false`.
+
+### Assume Role
+If provided with an assume role, Terraform will attempt to assume this role using the supplied credentials.
+Assume role can be provided by adding an `assume_role` block in the cos backend block.
+
+- `assume_role` - (Optional) The `assume_role` block. If provided, terraform will attempt to assume this role using the supplied credentials.
+
+The details of `assume_role` block as following:
+- `role_arn` - (Required) The ARN of the role to assume. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_ARN`.
+- `session_name` - (Required) The session name to use when making the AssumeRole call. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME`.
+- `session_duration` - (Required) The duration of the session when making the AssumeRole call. Its value ranges from 0 to 43200(seconds), and default is 7200 seconds. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION`.
+- `policy` - (Optional) A more restrictive policy when making the AssumeRole call. Its content must not contains `principal` elements. Notice: more syntax references, please refer to: [policies syntax logic](https://intl.cloud.tencent.com/document/product/598/10603).
+
+Usage:
+
+```hcl
+terraform {
+  backend "cos" {
+    region = "ap-guangzhou"
+    bucket = "bucket-for-terraform-state-{appid}"
+    prefix = "terraform/state"
+    assume_role {
+      role_arn = "qcs::cam::uin/xxx:roleName/yyy"
+      session_name = "my-session-name"
+      session_duration = 3600
+    }
+  }
+}
+```
+
+In addition, these `assume_role` configurations can also be provided by environment variables.
+
+Usage:
+
+```shell
+$ export TENCENTCLOUD_SECRET_ID="my-secret-id"
+$ export TENCENTCLOUD_SECRET_KEY="my-secret-key"
+$ export TENCENTCLOUD_REGION="ap-guangzhou"
+$ export TENCENTCLOUD_ASSUME_ROLE_ARN="qcs::cam::uin/xxx:roleName/yyy"
+$ export TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME="my-session-name"
+$ export TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION=3600
+$ terraform plan
+```

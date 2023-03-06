@@ -1,0 +1,92 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_simple_resource.second",
+          "expressions": {
+            "string": {
+              "constant_value": "Hello, world!"
+            }
+          },
+          "mode": "managed",
+          "name": "second",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_simple_resource"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {}
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "tfcoremock_simple_resource.second",
+            "mode": "managed",
+            "name": "second",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "schema_version": 0,
+            "sensitive_values": {},
+            "type": "tfcoremock_simple_resource",
+            "values": {
+              "bool": null,
+              "float": null,
+              "id": "70c47571-66c3-b1dc-2474-47a74b9c7886",
+              "integer": null,
+              "number": null,
+              "string": "Hello, world!"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_drift": [
+    {
+      "address": "tfcoremock_simple_resource.second",
+      "change": {
+        "actions": [
+          "no-op"
+        ],
+        "after": {
+          "bool": null,
+          "float": null,
+          "id": "70c47571-66c3-b1dc-2474-47a74b9c7886",
+          "integer": null,
+          "number": null,
+          "string": "Hello, world!"
+        },
+        "after_sensitive": {},
+        "after_unknown": {},
+        "before": {
+          "bool": null,
+          "float": null,
+          "id": "70c47571-66c3-b1dc-2474-47a74b9c7886",
+          "integer": null,
+          "number": null,
+          "string": "Hello, world!"
+        },
+        "before_sensitive": {}
+      },
+      "mode": "managed",
+      "name": "second",
+      "previous_address": "tfcoremock_simple_resource.first",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_simple_resource"
+    }
+  ]
+}

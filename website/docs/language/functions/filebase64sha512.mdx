@@ -1,0 +1,15 @@
+---
+page_title: filebase64sha512 - Functions - Configuration Language
+description: |-
+  The filebase64sha512 function computes the SHA512 hash of the contents of
+  a given file and encodes it with Base64.
+---
+
+# `filebase64sha512` Function
+
+`filebase64sha512` is a variant of [`base64sha512`](/terraform/language/functions/base64sha512)
+that hashes the contents of a given file rather than a literal string.
+
+This is similar to `base64sha512(file(filename))`, but
+because [`file`](/terraform/language/functions/file) accepts only UTF-8 text it cannot be used to
+create hashes for binary files.

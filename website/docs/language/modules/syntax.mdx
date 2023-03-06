@@ -1,0 +1,195 @@
+---
+page_title: Modules - Configuration Language
+description: >-
+  Modules are containers for multiple resources that are used together in
+  configurations. Learn how to call one module from another and access module
+  output.
+---
+
+# Module Blocks
+
+> **Hands-on:** Try the [Reuse Configuration with Modules](/terraform/tutorials/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+
+A _module_ is a container for multiple resources that are used together.
+
+Every Terraform configuration has at least one module, known as its
+_root module_, which consists of the resources defined in the `.tf` files in
+the main working directory.
+
+A module can call other modules, which lets you include the child module's
+resources into the configuration in a concise way. Modules
+can also be called multiple times, either within the same configuration or
+in separate configurations, allowing resource configurations to be packaged
+and re-used.
+
+This page describes how to call one module from another. For more information
+about creating re-usable child modules, see [Module Development](/terraform/language/modules/develop).
+
+## Calling a Child Module
+
+To _call_ a module means to include the contents of that module into the
+configuration with specific values for its
+[input variables](/terraform/language/values/variables). Modules are called
+from within other modules using `module` blocks:
+
+```hcl
+module "servers" {
+  source = "./app-cluster"
+
+  servers = 5
+}
+```
+
+A module that includes a `module` block like this is the _calling module_ of the
+child module.
+
+The label immediately after the `module` keyword is a local name, which the
+calling module can use to refer to this instance of the module.
+
+Within the block body (between `{` and `}`) are the arguments for the module.
+Module calls use the following kinds of arguments:
+
+- The `source` argument is mandatory for all modules.
+
+- The `version` argument is recommended for modules from a registry.
+
+- Most other arguments correspond to [input variables](/terraform/language/values/variables)
+  defined by the module. (The `servers` argument in the example above is one of
+  these.)
+
+- Terraform defines a few other meta-arguments that can be used with all
+  modules, including `for_each` and `depends_on`.
+
+### Source
+
+All modules **require** a `source` argument, which is a meta-argument defined by
+Terraform. Its value is either the path to a local directory containing the
+module's configuration files, or a remote module source that Terraform should
+download and use. This value must be a literal string with no template
+sequences; arbitrary expressions are not allowed. For more information on
+possible values for this argument, see [Module Sources](/terraform/language/modules/sources).
+
+The same source address can be specified in multiple `module` blocks to create
+multiple copies of the resources defined within, possibly with different
+variable values.
+
+After adding, removing, or modifying `module` blocks, you must re-run
+`terraform init` to allow Terraform the opportunity to adjust the installed
+modules. By default this command will not upgrade an already-installed module;
+use the `-upgrade` option to instead upgrade to the newest available version.
+
+### Version
+
+When using modules installed from a module registry, we recommend explicitly
+constraining the acceptable version numbers to avoid unexpected or unwanted
+changes.
+
+Use the `version` argument in the `module` block to specify versions:
+
+```shell
+module "consul" {
+  source  = "hashicorp/consul/aws"
+  version = "0.0.5"
+
+  servers = 3
+}
+```
+
+The `version` argument accepts a [version constraint string](/terraform/language/expressions/version-constraints).
+Terraform will use the newest installed version of the module that meets the
+constraint; if no acceptable versions are installed, it will download the newest
+version that meets the constraint.
+
+Version constraints are supported only for modules installed from a module
+registry, such as the public [Terraform Registry](https://registry.terraform.io/)
+or [Terraform Cloud's private module registry](/terraform/cloud-docs/registry).
+Other module sources can provide their own versioning mechanisms within the
+source string itself, or might not support versions at all. In particular,
+modules sourced from local file paths do not support `version`; since
+they're loaded from the same source repository, they always share the same
+version as their caller.
+
+### Meta-arguments
+
+Along with `source` and `version`, Terraform defines a few more
+optional meta-arguments that have special meaning across all modules,
+described in more detail in the following pages:
+
+- `count` - Creates multiple instances of a module from a single `module` block.
+  See [the `count` page](/terraform/language/meta-arguments/count)
+  for details.
+
+- `for_each` - Creates multiple instances of a module from a single `module`
+  block. See
+  [the `for_each` page](/terraform/language/meta-arguments/for_each)
+  for details.
+
+- `providers` - Passes provider configurations to a child module. See
+  [the `providers` page](/terraform/language/meta-arguments/module-providers)
+  for details. If not specified, the child module inherits all of the default
+  (un-aliased) provider configurations from the calling module.
+
+- `depends_on` - Creates explicit dependencies between the entire
+  module and the listed targets. See
+  [the `depends_on` page](/terraform/language/meta-arguments/depends_on)
+  for details.
+
+Terraform does not use the `lifecycle` argument. However, the `lifecycle` block is reserved for future versions.
+
+## Accessing Module Output Values
+
+The resources defined in a module are encapsulated, so the calling module
+cannot access their attributes directly. However, the child module can
+declare [output values](/terraform/language/values/outputs) to selectively
+export certain values to be accessed by the calling module.
+
+For example, if the `./app-cluster` module referenced in the example above
+exported an output value named `instance_ids` then the calling module
+can reference that result using the expression `module.servers.instance_ids`:
+
+```hcl
+resource "aws_elb" "example" {
+  # ...
+
+  instances = module.servers.instance_ids
+}
+```
+
+For more information about referring to named values, see
+[Expressions](/terraform/language/expressions).
+
+## Transferring Resource State Into Modules
+
+Moving `resource` blocks from one module into several child modules causes
+Terraform to see the new location as an entirely different resource. As a
+result, Terraform plans to destroy all resource instances at the old address
+and create new instances at the new address.
+
+To preserve existing objects, you can use
+[refactoring blocks](/terraform/language/modules/develop/refactoring) to record the old and new
+addresses for each resource instance. This directs Terraform to treat existing
+objects at the old addresses as if they had originally been created at the
+corresponding new addresses.
+
+## Replacing resources within a module
+
+You may have an object that needs to be replaced with a new object for a reason
+that isn't automatically visible to Terraform, such as if a particular virtual
+machine is running on degraded underlying hardware. In this case, you can use
+[the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
+to force Terraform to propose replacing that object.
+
+If the object belongs to a resource within a nested module, specify the full
+path to that resource including all of the nested module steps leading to it.
+For example:
+
+```shellsession
+$ terraform plan -replace=module.example.aws_instance.example
+```
+
+The above selects a `resource "aws_instance" "example"` declared inside a
+`module "example"` child module declared inside your root module.
+
+Because replacing is a very disruptive action, Terraform only allows selecting
+individual resource instances. There is no syntax to force replacing _all_
+resource instances belonging to a particular module.

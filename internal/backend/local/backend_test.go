@@ -2,7 +2,6 @@ package local
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -21,7 +20,7 @@ func TestLocal_impl(t *testing.T) {
 }
 
 func TestLocal_backend(t *testing.T) {
-	defer testTmpDir(t)()
+	testTmpDir(t)
 	b := New()
 	backend.TestBackendStates(t, b)
 	backend.TestBackendStateLocks(t, b, b)
@@ -90,7 +89,7 @@ func TestLocal_StatePaths(t *testing.T) {
 }
 
 func TestLocal_addAndRemoveStates(t *testing.T) {
-	defer testTmpDir(t)()
+	testTmpDir(t)
 	dflt := backend.DefaultStateName
 	expectedStates := []string{dflt}
 
@@ -134,7 +133,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -148,7 +147,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -162,7 +161,7 @@ func TestLocal_addAndRemoveStates(t *testing.T) {
 		t.Fatalf("expected %q, got %q", expectedStates, states)
 	}
 
-	if err := b.DeleteWorkspace(dflt); err == nil {
+	if err := b.DeleteWorkspace(dflt, true); err == nil {
 		t.Fatal("expected error deleting default state")
 	}
 }
@@ -197,7 +196,7 @@ func (b *testDelegateBackend) Workspaces() ([]string, error) {
 	return []string{"default"}, nil
 }
 
-func (b *testDelegateBackend) DeleteWorkspace(name string) error {
+func (b *testDelegateBackend) DeleteWorkspace(name string, force bool) error {
 	if b.deleteErr {
 		return errTestDelegateDeleteState
 	}
@@ -221,17 +220,15 @@ func TestLocal_multiStateBackend(t *testing.T) {
 		t.Fatal("expected errTestDelegateStates, got:", err)
 	}
 
-	if err := b.DeleteWorkspace("test"); err != errTestDelegateDeleteState {
+	if err := b.DeleteWorkspace("test", true); err != errTestDelegateDeleteState {
 		t.Fatal("expected errTestDelegateDeleteState, got:", err)
 	}
 }
 
-// change into a tmp dir and return a deferable func to change back and cleanup
-func testTmpDir(t *testing.T) func() {
-	tmp, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatal(err)
-	}
+// testTmpDir changes into a tmp dir and change back automatically when the test
+// and all its subtests complete.
+func testTmpDir(t *testing.T) {
+	tmp := t.TempDir()
 
 	old, err := os.Getwd()
 	if err != nil {
@@ -242,9 +239,8 @@ func testTmpDir(t *testing.T) func() {
 		t.Fatal(err)
 	}
 
-	return func() {
+	t.Cleanup(func() {
 		// ignore errors and try to clean up
 		os.Chdir(old)
-		os.RemoveAll(tmp)
-	}
+	})
 }

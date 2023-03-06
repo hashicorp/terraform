@@ -1,0 +1,73 @@
+---
+page_title: The depends_on Meta-Argument - Configuration Language
+description: >-
+  The depends_on meta-argument allows you to handle hidden resource or module
+  dependencies.
+---
+
+# The `depends_on` Meta-Argument
+
+Use the `depends_on` meta-argument to handle hidden resource or module dependencies that Terraform cannot automatically infer. You only need to explicitly specify a dependency when a resource or module relies on another resource's behavior but does not access any of that resource's data in its arguments.
+
+-> **Note:** Module support for `depends_on` was added in Terraform version 0.13, and prior versions can only use it with resources.
+
+
+## Processing and Planning Consequences
+
+The `depends_on` meta-argument instructs Terraform to complete all actions on the dependency object (including Read actions) before performing actions on the object declaring the dependency. When the dependency object is an entire module, `depends_on` affects the order in which Terraform processes all of the resources and data sources associated with that module. Refer to [Resource Dependencies](/terraform/language/resources/behavior#resource-dependencies) and [Data Resource Dependencies](/terraform/language/data-sources#data-resource-dependencies) for more details.
+
+You should use `depends_on` as a last resort because it can cause Terraform to create more conservative plans that replace more resources than necessary. For example, Terraform may treat more values as unknown “(known after apply)” because it is uncertain what changes will occur on the upstream object. This is especially likely when you use `depends_on` for modules.
+
+Instead of `depends_on`, we recommend using [expression references](/terraform/language/expressions/references) to imply dependencies when possible. Expression references let Terraform understand which value the reference derives from and avoid planning changes if that particular value hasn’t changed, even if other parts of the upstream object have planned changes.
+
+## Usage
+
+You can use the `depends_on` meta-argument in `module` blocks and in all `resource` blocks, regardless of resource type. It requires a list of references to other resources or child modules in the same calling module. This list cannot include arbitrary expressions because the `depends_on` value must be known before Terraform knows resource relationships and thus before it can safely evaluate expressions.
+
+We recommend always including a comment that explains why using `depends_on` is necessary. The following example uses `depends_on` to handle a "hidden" dependency on the `aws_iam_instance_profile.example`.
+
+```hcl
+resource "aws_iam_role" "example" {
+  name = "example"
+
+  # assume_role_policy is omitted for brevity in this example. Refer to the
+  # documentation for aws_iam_role for a complete example.
+  assume_role_policy = "..."
+}
+
+resource "aws_iam_instance_profile" "example" {
+  # Because this expression refers to the role, Terraform can infer
+  # automatically that the role must be created first.
+  role = aws_iam_role.example.name
+}
+
+resource "aws_iam_role_policy" "example" {
+  name   = "example"
+  role   = aws_iam_role.example.name
+  policy = jsonencode({
+    "Statement" = [{
+      # This policy allows software running on the EC2 instance to
+      # access the S3 API.
+      "Action" = "s3:*",
+      "Effect" = "Allow",
+    }],
+  })
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-a1b2c3d4"
+  instance_type = "t2.micro"
+
+  # Terraform can infer from this that the instance profile must
+  # be created before the EC2 instance.
+  iam_instance_profile = aws_iam_instance_profile.example
+
+  # However, if software running in this EC2 instance needs access
+  # to the S3 API in order to boot properly, there is also a "hidden"
+  # dependency on the aws_iam_role_policy that Terraform cannot
+  # automatically infer, so it must be declared explicitly:
+  depends_on = [
+    aws_iam_role_policy.example
+  ]
+}
+```

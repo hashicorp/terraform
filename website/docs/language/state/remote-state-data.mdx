@@ -1,0 +1,208 @@
+---
+page_title: The terraform_remote_state Data Source
+description: >-
+  Retrieves the root module output values from a Terraform state snapshot stored
+  in a remote backend.
+---
+
+# The `terraform_remote_state` Data Source
+
+[backends]: /terraform/language/settings/backends/configuration
+
+The `terraform_remote_state` data source uses the latest state snapshot from a specified state backend to retrieve the root module output values
+from some other Terraform configuration.
+
+You can use the `terraform_remote_state` data source without requiring or configuring a provider. It is always available through a built-in provider with the [source address](/terraform/language/providers/requirements#source-addresses) `terraform.io/builtin/terraform`. That provider does not include any other resources or data sources.
+
+~> **Important:** We recommend using the [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs) in the [Terraform Cloud/Enterprise Provider](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs) to access remote state outputs in Terraform Cloud or Terraform Enterprise. The `tfe_outputs` data source is more secure because it does not require full access to workspace state to fetch outputs.
+
+## Alternative Ways to Share Data Between Configurations
+
+Sharing data with root module outputs is convenient, but it has drawbacks.
+Although `terraform_remote_state` only exposes output values, its user must have
+access to the entire state snapshot, which often includes some sensitive
+information.
+
+When possible, we recommend explicitly publishing data for external consumption
+to a separate location instead of accessing it via remote state. This lets you
+apply different access controls for shared information and state snapshots.
+
+To share data explicitly between configurations, you can use pairs of managed
+resource types and data sources in various providers, including (but not
+limited to) the following:
+
+| System                                                                 | Publish with...                                                                                                                                                  | Read with...                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Alibaba Cloud DNS<br /><small>(for IP addresses and hostnames)</small> | [`alicloud_alidns_record` resource type](https://registry.terraform.io/providers/aliyun/alicloud/latest/docs/resources/alidns_record)                            | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
+| Amazon Route53<br /><small>(for IP addresses and hostnames)</small>    | [`aws_route53_record` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route53_record)                                 | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
+| Amazon S3                                                              | [`aws_s3_object` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object)                             | [`aws_s3_object` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/s3_object)                                                                                                                                |
+| Amazon SSM Parameter Store                                             | [`aws_ssm_parameter` resource type](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/ssm_parameter)                                   | [`aws_ssm_parameter` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ssm_parameter)                                                                                                                                      |
+| Azure Automation                                                       | [`azurerm_automation_variable_string` resource type](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/automation_variable_string) | [`azurerm_automation_variable_string` data source](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/data-sources/automation_variable_string)                                                                                                    |
+| Azure DNS<br /><small>(for IP addresses and hostnames)</small>         | [`azurerm_dns_a_record` resource type](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/dns_a_record), etc                        | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
+| Google Cloud DNS<br /><small>(for IP addresses and hostnames)</small>  | [`google_dns_record_set` resource type](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/dns_record_set)                           | Normal DNS lookups, or [the `dns` provider](https://registry.terraform.io/providers/hashicorp/dns/latest/docs)                                                                                                                                                       |
+| Google Cloud Storage                                                   | [`google_storage_bucket_object`  resource type](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/storage_bucket_object)            | [`google_storage_bucket_object` data source](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/storage_bucket_object) and [`http` data source](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) |
+| HashiCorp Consul                                                       | [`consul_key_prefix` resource type](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/resources/key_prefix)                                   | [`consul_key_prefix` data source](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/key_prefix)                                                                                                                                      |
+| HashiCorp Terraform Cloud                                              | Normal `outputs` terraform block                                                                                                                                 | [`tfe_outputs` data source](https://registry.terraform.io/providers/hashicorp/tfe/latest/docs/data-sources/outputs)                                                                                                                                                  |
+| Kubernetes                                                             | [`kubernetes_config_map` resource type](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/resources/config_map)                           | [`kubernetes_config_map` data source](https://registry.terraform.io/providers/hashicorp/kubernetes/latest/docs/data-sources/config_map)                                                                                                                              |
+| OCI Object Storage                                                     | [`oci_objectstorage_bucket` resource type](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/resources/objectstorage_object)                     | [`oci_objectstorage_bucket` data source](https://registry.terraform.io/providers/hashicorp/oci/latest/docs/data-sources/objectstorage_object)                                                                                                                        |
+
+-> These are some common options from the Official Terraform providers, but
+there are too many configuration storage options for us to list them all
+here, including some in partner and community providers.
+Any pair of managed resource type and corresponding data source can potentially
+be used to share data between Terraform configurations. See individual provider
+documentation to find other possibilities.
+
+A key advantage of using a separate explicit configuration store instead of
+`terraform_remote_state` is that the data can potentially also be read by
+systems other than Terraform, such as configuration management or scheduler
+systems within your compute instances. For that reason, we recommend selecting
+a configuration store that your other infrastructure could potentially make
+use of. For example:
+
+* If you wish to share IP addresses and hostnames, you could publish them as
+  normal DNS `A`, `AAAA`, `CNAME`, and `SRV` records in a private DNS zone and
+  then configure your other infrastructure to refer to that zone so you can
+  find infrastructure objects via your system's built-in DNS resolver.
+* If you use HashiCorp Consul then publishing data to the Consul key/value
+  store or Consul service catalog can make that data also accessible via
+  [Consul Template](https://github.com/hashicorp/consul-template)
+  or the
+  [HashiCorp Nomad](/nomad/docs/job-specification/template)
+  `template` stanza.
+* If you use Kubernetes then you can
+  [make Config Maps available to your Pods](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/).
+
+Some of the data stores listed above are specifically designed for storing
+small configuration values, while others are generic blob storage systems. For
+those generic systems, you can use
+[the `jsonencode` function](/terraform/language/functions/jsonencode)
+and
+[the `jsondecode` function](/terraform/language/functions/jsondecode) respectively
+to store and retrieve structured data.
+
+You can encapsulate the implementation details of retrieving your published
+configuration data by writing a
+[data-only module](/terraform/language/modules/develop/composition#data-only-modules)
+containing the necessary data source configuration and any necessary
+post-processing such as JSON decoding. You can then change that module later
+if you switch to a different strategy for sharing data between multiple
+Terraform configurations.
+
+## Example Usage (`remote` Backend)
+
+```hcl
+data "terraform_remote_state" "vpc" {
+  backend = "remote"
+
+  config = {
+    organization = "hashicorp"
+    workspaces = {
+      name = "vpc-prod"
+    }
+  }
+}
+
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
+}
+```
+
+## Example Usage (`local` Backend)
+
+```hcl
+data "terraform_remote_state" "vpc" {
+  backend = "local"
+
+  config = {
+    path = "..."
+  }
+}
+
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `backend` - (Required) The remote backend to use.
+* `workspace` - (Optional) The Terraform workspace to use, if the backend
+  supports workspaces.
+* `config` - (Optional; object) The configuration of the remote backend.
+  Although this argument is listed as optional, most backends require
+  some configuration.
+
+  The `config` object can use any arguments that would be valid in the
+  equivalent `terraform { backend "<TYPE>" { ... } }` block. See
+  [the documentation of your chosen backend](/terraform/language/settings/backends/configuration)
+  for details.
+
+  -> **Note:** If the backend configuration requires a nested block, specify
+  it here as a normal attribute with an object value. (For example,
+  `workspaces = { ... }` instead of `workspaces { ... }`.)
+* `defaults` - (Optional; object) Default values for outputs, in case the state
+  file is empty or lacks a required output.
+
+## Attributes Reference
+
+In addition to the above, the following attributes are exported:
+
+* (v0.12+) `outputs` - An object containing every root-level
+  [output](/terraform/language/values/outputs) in the remote state.
+* (<= v0.11) `<OUTPUT NAME>` - Each root-level [output](/terraform/language/values/outputs)
+  in the remote state appears as a top level attribute on the data source.
+
+## Root Outputs Only
+
+Only the root-level output values from the remote state snapshot are exposed
+for use elsewhere in your module. Resource data and output values from nested
+modules are not accessible.
+
+If you wish to make a nested module output value accessible as a root module
+output value, you must explicitly configure a passthrough in the root module.
+For example:
+
+For example:
+
+```hcl
+module "app" {
+  source = "..."
+}
+
+output "app_value" {
+  # This syntax is for Terraform 0.12 or later.
+  value = module.app.example
+}
+```
+
+In this example, the output value named `example` from the "app" module is
+available as the `app_value` root module output value. If this configuration
+didn't include the `output "app_value"` block then the data would not be
+accessible via `terraform_remote_state`.
+
+~> **Warning:** Although `terraform_remote_state` doesn't expose any other
+state snapshot information for use in configuration, the state snapshot data
+is a single object and so any user or server which has enough access to read
+the root module output values will also always have access to the full state
+snapshot data by direct network requests. Don't use `terraform_remote_state`
+if any of the resources in your configuration work with data that you consider
+sensitive.

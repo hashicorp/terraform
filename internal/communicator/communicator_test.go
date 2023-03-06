@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -75,9 +76,13 @@ func TestRetryFuncBackoff(t *testing.T) {
 	origStart := initialBackoffDelay
 	initialBackoffDelay = 100 * time.Millisecond
 
+	retryTestWg = &sync.WaitGroup{}
+	retryTestWg.Add(1)
+
 	defer func() {
 		maxBackoffDelay = origMax
 		initialBackoffDelay = origStart
+		retryTestWg = nil
 	}()
 
 	count := 0
@@ -89,6 +94,8 @@ func TestRetryFuncBackoff(t *testing.T) {
 		count++
 		return io.EOF
 	})
+	cancel()
+	retryTestWg.Wait()
 
 	if count > 4 {
 		t.Fatalf("retry func failed to backoff. called %d times", count)

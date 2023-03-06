@@ -26,9 +26,16 @@ type OrphanResourceInstanceTransformer struct {
 	// Config is the root node in the configuration tree. We'll look up
 	// the appropriate note in this tree using the path in each node.
 	Config *configs.Config
+
+	// Do not apply this transformer
+	skip bool
 }
 
 func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
+	if t.skip {
+		return nil
+	}
+
 	if t.State == nil {
 		// If the entire state is nil, there can't be any orphans
 		return nil
@@ -80,7 +87,8 @@ func (t *OrphanResourceInstanceTransformer) transform(g *Graph, ms *states.Modul
 		}
 
 		for key, inst := range rs.Instances {
-			// deposed instances will be taken care of separately
+			// Instances which have no current objects (only one or more
+			// deposed objects) will be taken care of separately
 			if inst.Current == nil {
 				continue
 			}

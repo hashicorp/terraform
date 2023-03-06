@@ -70,6 +70,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 			Subject:     expr.Range().Ptr(),
 			Expression:  expr,
 			EvalContext: hclCtx,
+			Extra:       diagnosticCausedBySensitive(true),
 		})
 	}
 
@@ -77,6 +78,9 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 		return nullMap, diags
 	}
 	ty := forEachVal.Type()
+
+	const errInvalidUnknownDetailMap = "The \"for_each\" map includes keys derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to define the map keys statically in your configuration and place apply-time results only in the map values.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
+	const errInvalidUnknownDetailSet = "The \"for_each\" set includes values derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to use a map value where the keys are defined statically in your configuration and where only the values contain apply-time results.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
 
 	switch {
 	case forEachVal.IsNull():
@@ -91,13 +95,22 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 		return nullMap, diags
 	case !forEachVal.IsKnown():
 		if !allowUnknown {
+			var detailMsg string
+			switch {
+			case ty.IsSetType():
+				detailMsg = errInvalidUnknownDetailSet
+			default:
+				detailMsg = errInvalidUnknownDetailMap
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
 				Summary:     "Invalid for_each argument",
-				Detail:      errInvalidForEachUnknownDetail,
+				Detail:      detailMsg,
 				Subject:     expr.Range().Ptr(),
 				Expression:  expr,
 				EvalContext: hclCtx,
+				Extra:       diagnosticCausedByUnknown(true),
 			})
 		}
 		// ensure that we have a map, and not a DynamicValue
@@ -129,10 +142,11 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity:    hcl.DiagError,
 					Summary:     "Invalid for_each argument",
-					Detail:      errInvalidForEachUnknownDetail,
+					Detail:      errInvalidUnknownDetailSet,
 					Subject:     expr.Range().Ptr(),
 					Expression:  expr,
 					EvalContext: hclCtx,
+					Extra:       diagnosticCausedByUnknown(true),
 				})
 			}
 			return cty.UnknownVal(ty), diags
@@ -171,8 +185,6 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 
 	return forEachVal, nil
 }
-
-const errInvalidForEachUnknownDetail = `The "for_each" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the for_each depends on.`
 
 // markSafeLengthInt allows calling LengthInt on marked values safely
 func markSafeLengthInt(val cty.Value) int {

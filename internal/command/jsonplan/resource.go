@@ -41,12 +41,24 @@ type resource struct {
 	SensitiveValues json.RawMessage `json:"sensitive_values,omitempty"`
 }
 
-// resourceChange is a description of an individual change action that Terraform
+// ResourceChange is a description of an individual change action that Terraform
 // plans to use to move from the prior state to a new state matching the
 // configuration.
-type resourceChange struct {
+type ResourceChange struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
+
+	// PreviousAddress is the absolute address that this resource instance had
+	// at the conclusion of a previous run.
+	//
+	// This will typically be omitted, but will be present if the previous
+	// resource instance was subject to a "moved" block that we handled in the
+	// process of creating this plan.
+	//
+	// Note that this behavior diverges from the internal plan data structure,
+	// where the previous address is set equal to the current address in the
+	// common case, rather than being omitted.
+	PreviousAddress string `json:"previous_address,omitempty"`
 
 	// ModuleAddress is the module portion of the above address. Omitted if the
 	// instance is in the root module.
@@ -55,10 +67,10 @@ type resourceChange struct {
 	// "managed" or "data"
 	Mode string `json:"mode,omitempty"`
 
-	Type         string            `json:"type,omitempty"`
-	Name         string            `json:"name,omitempty"`
-	Index        addrs.InstanceKey `json:"index,omitempty"`
-	ProviderName string            `json:"provider_name,omitempty"`
+	Type         string          `json:"type,omitempty"`
+	Name         string          `json:"name,omitempty"`
+	Index        json.RawMessage `json:"index,omitempty"`
+	ProviderName string          `json:"provider_name,omitempty"`
 
 	// "deposed", if set, indicates that this action applies to a "deposed"
 	// object of the given instance rather than to its "current" object. Omitted
@@ -66,7 +78,7 @@ type resourceChange struct {
 	Deposed string `json:"deposed,omitempty"`
 
 	// Change describes the change that will be made to this object
-	Change change `json:"change,omitempty"`
+	Change Change `json:"change,omitempty"`
 
 	// ActionReason is a keyword representing some optional extra context
 	// for why the actions in Change.Actions were chosen.

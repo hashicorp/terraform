@@ -1,0 +1,281 @@
+---
+page_title: setproduct - Functions - Configuration Language
+description: |-
+  The setproduct function finds all of the possible combinations of elements
+  from all of the given sets by computing the cartesian product.
+---
+
+# `setproduct` Function
+
+The `setproduct` function finds all of the possible combinations of elements
+from all of the given sets by computing the
+[Cartesian product](https://en.wikipedia.org/wiki/Cartesian_product).
+
+```hcl
+setproduct(sets...)
+```
+
+This function is particularly useful for finding the exhaustive set of all
+combinations of members of multiple sets, such as per-application-per-environment
+resources.
+
+```
+> setproduct(["development", "staging", "production"], ["app1", "app2"])
+[
+  [
+    "development",
+    "app1",
+  ],
+  [
+    "development",
+    "app2",
+  ],
+  [
+    "staging",
+    "app1",
+  ],
+  [
+    "staging",
+    "app2",
+  ],
+  [
+    "production",
+    "app1",
+  ],
+  [
+    "production",
+    "app2",
+  ],
+]
+```
+
+You must pass at least two arguments to this function.
+
+Although defined primarily for sets, this function can also work with lists.
+If all of the given arguments are lists then the result is a list, preserving
+the ordering of the given lists. Otherwise the result is a set. In either case,
+the result's element type is a list of values corresponding to each given
+argument in turn.
+
+## Examples
+
+There is an example of the common usage of this function above. There are some
+other situations that are less common when hand-writing but may arise in
+reusable module situations.
+
+If any of the arguments is empty then the result is always empty itself,
+similar to how multiplying any number by zero gives zero:
+
+```
+> setproduct(["development", "staging", "production"], [])
+[]
+```
+
+Similarly, if all of the arguments have only one element then the result has
+only one element, which is the first element of each argument:
+
+```
+> setproduct(["a"], ["b"])
+[
+  [
+    "a",
+    "b",
+  ],
+]
+```
+
+Each argument must have a consistent type for all of its elements. If not,
+Terraform will attempt to convert to the most general type, or produce an
+error if such a conversion is impossible. For example, mixing both strings and
+numbers results in the numbers being converted to strings so that the result
+elements all have a consistent type:
+
+```
+> setproduct(["staging", "production"], ["a", 2])
+[
+  [
+    "staging",
+    "a",
+  ],
+  [
+    "staging",
+    "2",
+  ],
+  [
+    "production",
+    "a",
+  ],
+  [
+    "production",
+    "2",
+  ],
+]
+```
+
+## Finding combinations for `for_each`
+
+The
+[resource `for_each`](/terraform/language/meta-arguments/for_each)
+and
+[`dynamic` block](/terraform/language/expressions/dynamic-blocks)
+language features both require a collection value that has one element for
+each repetition.
+
+Sometimes your input data comes in separate values that cannot be directly
+used in a `for_each` argument, and `setproduct` can be a useful helper function
+for the situation where you want to find all unique combinations of elements in
+a number of different collections.
+
+For example, consider a module that declares variables like the following:
+
+```hcl
+variable "networks" {
+  type = map(object({
+    base_cidr_block = string
+  }))
+}
+
+variable "subnets" {
+  type = map(object({
+    number = number
+  }))
+}
+```
+
+If the goal is to create each of the defined subnets per each of the defined networks, creating the top-level networks can directly use `var.networks` because it is already in a form where the resulting instances match one-to-one with map elements:
+
+```hcl
+resource "aws_vpc" "example" {
+  for_each = var.networks
+
+  cidr_block = each.value.base_cidr_block
+}
+```
+
+However, to declare all of the _subnets_ with a single `resource` block, you must first produce a collection whose elements represent all of the combinations of networks and subnets, so that each element itself represents a subnet:
+
+```hcl
+locals {
+  # setproduct works with sets and lists, but the variables are both maps
+  # so convert them first.
+  networks = [
+    for key, network in var.networks : {
+      key        = key
+      cidr_block = network.cidr_block
+    }
+  ]
+  subnets = [
+    for key, subnet in var.subnets : {
+      key    = key
+      number = subnet.number
+    }
+  ]
+
+  network_subnets = [
+    # in pair, element zero is a network and element one is a subnet,
+    # in all unique combinations.
+    for pair in setproduct(local.networks, local.subnets) : {
+      network_key = pair[0].key
+      subnet_key  = pair[1].key
+      network_id  = aws_vpc.example[pair[0].key].id
+
+      # The cidr_block is derived from the corresponding network. Refer to the
+      # cidrsubnet function for more information on how this calculation works.
+      cidr_block = cidrsubnet(pair[0].cidr_block, 4, pair[1].number)
+    }
+  ]
+}
+
+resource "aws_subnet" "example" {
+  # local.network_subnets is a list, so project it into a map
+  # where each key is unique. Combine the network and subnet keys to
+  # produce a single unique key per instance.
+  for_each = {
+    for subnet in local.network_subnets : "${subnet.network_key}.${subnet.subnet_key}" => subnet
+  }
+
+  vpc_id            = each.value.network_id
+  availability_zone = each.value.subnet_key
+  cidr_block        = each.value.cidr_block
+}
+```
+
+The `network_subnets` list in the example above creates one subnet instance per combination of network and subnet elements in the input variables. So for this example input:
+
+```hcl
+networks = {
+  a = {
+    base_cidr_block = "10.1.0.0/16"
+  }
+  b = {
+    base_cidr_block = "10.2.0.0/16"
+  }
+}
+subnets = {
+  a = {
+    number = 1
+  }
+  b = {
+    number = 2
+  }
+  c = {
+    number = 3
+  }
+}
+```
+
+The `network_subnets` output would look similar to the following:
+
+```hcl
+[
+  {
+    "cidr_block" = "10.1.16.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.1.32.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.1.48.0/20"
+    "network_id" = "vpc-0bfb00ca6173ea5aa"
+    "network_key" = "a"
+    "subnet_key" = "c"
+  },
+  {
+    "cidr_block" = "10.2.16.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "a"
+  },
+  {
+    "cidr_block" = "10.2.32.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "b"
+  },
+  {
+    "cidr_block" = "10.2.48.0/20"
+    "network_id" = "vpc-0d193e011f6211a7d"
+    "network_key" = "b"
+    "subnet_key" = "c"
+  },
+]
+```
+
+## Related Functions
+
+- [`contains`](/terraform/language/functions/contains) tests whether a given list or set contains
+  a given element value.
+- [`flatten`](/terraform/language/functions/flatten) is useful for flattening hierarchical data
+  into a single list, for situations where the relationships between two
+  object types are defined explicitly.
+- [`setintersection`](/terraform/language/functions/setintersection) computes the _intersection_ of
+  multiple sets.
+- [`setsubtract`](/terraform/language/functions/setsubtract) computes the _relative complement_ of two sets
+- [`setunion`](/terraform/language/functions/setunion) computes the _union_ of multiple
+  sets.

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -95,7 +96,12 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 		return diags
 	}
 
-	if !n.skipRefresh {
+	// We don't refresh during the planDestroy walk, since that is only adding
+	// the destroy changes to the plan and the provider will not be configured
+	// at this point. The other nodes use separate types for plan and destroy,
+	// while deposed instances are always a destroy operation, so the logic
+	// here is a bit overloaded.
+	if !n.skipRefresh && op != walkPlanDestroy {
 		// Refresh this object even though it is going to be destroyed, in
 		// case it's already been deleted outside of Terraform. If this is a
 		// normal plan, providers expect a Read request to remove missing
@@ -244,7 +250,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) Execute(ctx EvalContext, op w
 	}
 
 	// we pass a nil configuration to apply because we are destroying
-	state, applyDiags := n.apply(ctx, state, change, nil, false)
+	state, applyDiags := n.apply(ctx, state, change, nil, instances.RepetitionData{}, false)
 	diags = diags.Append(applyDiags)
 	// don't return immediately on errors, we need to handle the state
 

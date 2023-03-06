@@ -249,7 +249,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	os.MkdirAll(suiteDirs.ModulesDir, 0755) // if this fails then we'll ignore it and let InstallModules below fail instead
 	reg := c.registryClient()
 	moduleInst := initwd.NewModuleInstaller(suiteDirs.ModulesDir, reg)
-	_, moreDiags := moduleInst.InstallModules(configDir, true, nil)
+	_, moreDiags := moduleInst.InstallModules(ctx, configDir, true, nil)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		return suiteDirs, diags
@@ -317,7 +317,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	locks := depsfile.NewLocks()
 	evts := &providercache.InstallerEvents{
 		QueryPackagesFailure: func(provider addrs.Provider, err error) {
-			if err != nil && provider.IsDefault() && provider.Type == "test" {
+			if err != nil && addrs.IsDefaultProvider(provider) && provider.Type == "test" {
 				// This is some additional context for the failure error
 				// we'll generate afterwards. Not the most ideal UX but
 				// good enough for this prototype implementation, to help

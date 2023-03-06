@@ -21,6 +21,14 @@ import (
 // If any errors occur during upgrade, error diagnostics are returned. In that
 // case it is not safe to proceed with using the original state object.
 func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Interface, src *states.ResourceInstanceObjectSrc, currentSchema *configschema.Block, currentVersion uint64) (*states.ResourceInstanceObjectSrc, tfdiags.Diagnostics) {
+	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
+		// We only do state upgrading for managed resources.
+		// This was a part of the normal workflow in older versions and
+		// returned early, so we are only going to log the error for now.
+		log.Printf("[ERROR] data resource %s should not require state upgrade", addr)
+		return src, nil
+	}
+
 	// Remove any attributes from state that are not present in the schema.
 	// This was previously taken care of by the provider, but data sources do
 	// not go through the UpgradeResourceState process.
@@ -30,11 +38,6 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 	// removed attributes.
 	if len(src.AttrsJSON) > 0 && src.SchemaVersion == currentVersion {
 		src.AttrsJSON = stripRemovedStateAttributes(src.AttrsJSON, currentSchema.ImpliedType())
-	}
-
-	if addr.Resource.Resource.Mode != addrs.ManagedResourceMode {
-		// We only do state upgrading for managed resources.
-		return src, nil
 	}
 
 	stateIsFlatmap := len(src.AttrsJSON) == 0
@@ -127,7 +130,7 @@ func stripRemovedStateAttributes(state []byte, ty cty.Type) []byte {
 	if err != nil {
 		// we just log any errors here, and let the normal decode process catch
 		// invalid JSON.
-		log.Printf("[ERROR] UpgradeResourceState: %s", err)
+		log.Printf("[ERROR] UpgradeResourceState: stripRemovedStateAttributes: %s", err)
 		return state
 	}
 

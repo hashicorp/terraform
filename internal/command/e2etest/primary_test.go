@@ -29,8 +29,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	//// INIT
 	stdout, stderr, err := tf.Run("init")
@@ -150,8 +149,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	// safe to run it even when network access is disallowed.
 
 	fixturePath := filepath.Join("testdata", "chdir-option")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	//// INIT
 	_, stderr, err := tf.Run("-chdir=subdir", "init")
@@ -204,13 +202,13 @@ func TestPrimaryChdirOption(t *testing.T) {
 	}
 
 	gotOutput := state.RootModule().OutputValues["cwd"]
-	wantOutputValue := cty.StringVal(tf.Path()) // path.cwd returns the original path, because path.root is how we get the overridden path
+	wantOutputValue := cty.StringVal(filepath.ToSlash(tf.Path())) // path.cwd returns the original path, because path.root is how we get the overridden path
 	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
 		t.Errorf("incorrect value for cwd output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)
 	}
 
 	gotOutput = state.RootModule().OutputValues["root"]
-	wantOutputValue = cty.StringVal(tf.Path("subdir")) // path.root is a relative path, but the text fixture uses abspath on it.
+	wantOutputValue = cty.StringVal(filepath.ToSlash(tf.Path("subdir"))) // path.root is a relative path, but the text fixture uses abspath on it.
 	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
 		t.Errorf("incorrect value for root output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)
 	}

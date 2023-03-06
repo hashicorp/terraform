@@ -95,11 +95,15 @@ func initCommands(
 		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
 
+		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
+
 		ShutdownCh: makeShutdownCh(),
 
 		ProviderSource:       providerSrc,
 		ProviderDevOverrides: providerDevOverrides,
 		UnmanagedProviders:   unmanagedProviders,
+
+		AllowExperimentalFeatures: ExperimentsAllowed(),
 	}
 
 	// The command list is included in the terraform -help
@@ -109,12 +113,6 @@ func initCommands(
 	// that to match.
 
 	Commands = map[string]cli.CommandFactory{
-		"add": func() (cli.Command, error) {
-			return &command.AddCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
 				Meta: meta,
@@ -207,6 +205,18 @@ func initCommands(
 
 		"logout": func() (cli.Command, error) {
 			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata": func() (cli.Command, error) {
+			return &command.MetadataCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata functions": func() (cli.Command, error) {
+			return &command.MetadataFunctionsCommand{
 				Meta: meta,
 			}, nil
 		},

@@ -4,10 +4,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanGraphBuilder_impl(t *testing.T) {
@@ -32,8 +34,9 @@ func TestPlanGraphBuilder(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-basic"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-basic"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -45,10 +48,10 @@ func TestPlanGraphBuilder(t *testing.T) {
 		t.Fatalf("wrong module path %q", g.Path)
 	}
 
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testPlanGraphBuilderStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(testPlanGraphBuilderStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -74,8 +77,9 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-dynblock"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-dynblock"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -92,15 +96,12 @@ func TestPlanGraphBuilder_dynamicBlock(t *testing.T) {
 	// is that at the end test_thing.c depends on both test_thing.a and
 	// test_thing.b. Other details might shift over time as other logic in
 	// the graph builders changes.
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-meta.count-boundary (EachMode fixup)
-  test_thing.c (expand)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(`
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_thing.c (expand)
 root
-  meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_thing.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
@@ -110,8 +111,8 @@ test_thing.c (expand)
   test_thing.a (expand)
   test_thing.b (expand)
 `)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -132,8 +133,9 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "graph-builder-plan-attr-as-blocks"),
-		Plugins: plugins,
+		Config:    testModule(t, "graph-builder-plan-attr-as-blocks"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -150,23 +152,20 @@ func TestPlanGraphBuilder_attrAsBlocks(t *testing.T) {
 	// list-of-objects attribute. This requires some special effort
 	// inside lang.ReferencesInBlock to make sure it searches blocks of
 	// type "nested" along with an attribute named "nested".
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(`
-meta.count-boundary (EachMode fixup)
-  test_thing.b (expand)
+	got := strings.TrimSpace(g.String())
+	want := strings.TrimSpace(`
 provider["registry.terraform.io/hashicorp/test"]
 provider["registry.terraform.io/hashicorp/test"] (close)
   test_thing.b (expand)
 root
-  meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/test"] (close)
 test_thing.a (expand)
   provider["registry.terraform.io/hashicorp/test"]
 test_thing.b (expand)
   test_thing.a (expand)
 `)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -177,6 +176,7 @@ func TestPlanGraphBuilder_targetModule(t *testing.T) {
 		Targets: []addrs.Targetable{
 			addrs.RootModuleInstance.Child("child2", addrs.NoKey),
 		},
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -198,8 +198,9 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 	}, nil)
 
 	b := &PlanGraphBuilder{
-		Config:  testModule(t, "plan-for-each"),
-		Plugins: plugins,
+		Config:    testModule(t, "plan-for-each"),
+		Plugins:   plugins,
+		Operation: walkPlan,
 	}
 
 	g, err := b.Build(addrs.RootModuleInstance)
@@ -211,12 +212,12 @@ func TestPlanGraphBuilder_forEach(t *testing.T) {
 		t.Fatalf("wrong module path %q", g.Path)
 	}
 
-	actual := strings.TrimSpace(g.String())
+	got := strings.TrimSpace(g.String())
 	// We're especially looking for the edge here, where aws_instance.bat
 	// has a dependency on aws_instance.boo
-	expected := strings.TrimSpace(testPlanGraphBuilderForEachStr)
-	if actual != expected {
-		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	want := strings.TrimSpace(testPlanGraphBuilderForEachStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("wrong result\n%s", diff)
 	}
 }
 
@@ -230,12 +231,9 @@ aws_security_group.firewall (expand)
   provider["registry.terraform.io/hashicorp/aws"]
 local.instance_id (expand)
   aws_instance.web (expand)
-meta.count-boundary (EachMode fixup)
-  aws_load_balancer.weblb (expand)
-  output.instance_id
 openstack_floating_ip.random (expand)
   provider["registry.terraform.io/hashicorp/openstack"]
-output.instance_id
+output.instance_id (expand)
   local.instance_id (expand)
 provider["registry.terraform.io/hashicorp/aws"]
   openstack_floating_ip.random (expand)
@@ -245,7 +243,7 @@ provider["registry.terraform.io/hashicorp/openstack"]
 provider["registry.terraform.io/hashicorp/openstack"] (close)
   openstack_floating_ip.random (expand)
 root
-  meta.count-boundary (EachMode fixup)
+  output.instance_id (expand)
   provider["registry.terraform.io/hashicorp/aws"] (close)
   provider["registry.terraform.io/hashicorp/openstack"] (close)
 var.foo
@@ -263,12 +261,6 @@ aws_instance.boo (expand)
   provider["registry.terraform.io/hashicorp/aws"]
 aws_instance.foo (expand)
   provider["registry.terraform.io/hashicorp/aws"]
-meta.count-boundary (EachMode fixup)
-  aws_instance.bar (expand)
-  aws_instance.bar2 (expand)
-  aws_instance.bat (expand)
-  aws_instance.baz (expand)
-  aws_instance.foo (expand)
 provider["registry.terraform.io/hashicorp/aws"]
 provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.bar (expand)
@@ -277,6 +269,5 @@ provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.baz (expand)
   aws_instance.foo (expand)
 root
-  meta.count-boundary (EachMode fixup)
   provider["registry.terraform.io/hashicorp/aws"] (close)
 `

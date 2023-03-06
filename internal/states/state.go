@@ -19,12 +19,25 @@ import (
 // so when accessing a State object concurrently it is the caller's
 // responsibility to ensure that only one write is in progress at a time
 // and that reads only occur when no write is in progress. The most common
-// way to acheive this is to wrap the State in a SyncState and use the
+// way to achieve this is to wrap the State in a SyncState and use the
 // higher-level atomic operations supported by that type.
 type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
+
+	// CheckResults contains a snapshot of the statuses of checks at the
+	// end of the most recent update to the state. Callers might compare
+	// checks between runs to see if e.g. a previously-failing check has
+	// been fixed since the last run, or similar.
+	//
+	// CheckResults can be nil to indicate that there are no check results
+	// from the previous run at all, which is subtly different than the
+	// previous run having affirmatively recorded that there are no checks
+	// to run. For example, if this object was created from a state snapshot
+	// created by a version of Terraform that didn't yet support checks
+	// then this field will be nil.
+	CheckResults *CheckResults
 }
 
 // NewState constructs a minimal empty state, containing an empty root module.
@@ -151,15 +164,27 @@ func (s *State) EnsureModule(addr addrs.ModuleInstance) *Module {
 	return ms
 }
 
-// HasResources returns true if there is at least one resource (of any mode)
-// present in the receiving state.
-func (s *State) HasResources() bool {
+// HasManagedResourceInstanceObjects returns true if there is at least one
+// resource instance object (current or deposed) associated with a managed
+// resource in the receiving state.
+//
+// A true result would suggest that just discarding this state without first
+// destroying these objects could leave "dangling" objects in remote systems,
+// no longer tracked by any Terraform state.
+func (s *State) HasManagedResourceInstanceObjects() bool {
 	if s == nil {
 		return false
 	}
 	for _, ms := range s.Modules {
-		if len(ms.Resources) > 0 {
-			return true
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+			for _, is := range rs.Instances {
+				if is.Current != nil || len(is.Deposed) != 0 {
+					return true
+				}
+			}
 		}
 	}
 	return false
@@ -184,6 +209,74 @@ func (s *State) Resources(addr addrs.ConfigResource) []*Resource {
 			ret = append(ret, r)
 		}
 	}
+	return ret
+}
+
+// AllManagedResourceInstanceObjectAddrs returns a set of addresses for all of
+// the leaf resource instance objects associated with managed resources that
+// are tracked in this state.
+//
+// This result is the set of objects that would be effectively "forgotten"
+// (like "terraform state rm") if this state were totally discarded, such as
+// by deleting a workspace. This function is intended only for reporting
+// context in error messages, such as when we reject deleting a "non-empty"
+// workspace as detected by s.HasManagedResourceInstanceObjects.
+//
+// The ordering of the result is meaningless but consistent. DeposedKey will
+// be NotDeposed (the zero value of DeposedKey) for any "current" objects.
+// This method is guaranteed to return at least one item if
+// s.HasManagedResourceInstanceObjects returns true for the same state, and
+// to return a zero-length slice if it returns false.
+func (s *State) AllResourceInstanceObjectAddrs() []struct {
+	Instance   addrs.AbsResourceInstance
+	DeposedKey DeposedKey
+} {
+	if s == nil {
+		return nil
+	}
+
+	// We use an unnamed return type here just because we currently have no
+	// general need to return pairs of instance address and deposed key aside
+	// from this method, and this method itself is only of marginal value
+	// when producing some error messages.
+	//
+	// If that need ends up arising more in future then it might make sense to
+	// name this as addrs.AbsResourceInstanceObject, although that would require
+	// moving DeposedKey into the addrs package too.
+	type ResourceInstanceObject = struct {
+		Instance   addrs.AbsResourceInstance
+		DeposedKey DeposedKey
+	}
+	var ret []ResourceInstanceObject
+
+	for _, ms := range s.Modules {
+		for _, rs := range ms.Resources {
+			if rs.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+
+			for instKey, is := range rs.Instances {
+				instAddr := rs.Addr.Instance(instKey)
+				if is.Current != nil {
+					ret = append(ret, ResourceInstanceObject{instAddr, NotDeposed})
+				}
+				for deposedKey := range is.Deposed {
+					ret = append(ret, ResourceInstanceObject{instAddr, deposedKey})
+				}
+			}
+		}
+	}
+
+	sort.SliceStable(ret, func(i, j int) bool {
+		objI, objJ := ret[i], ret[j]
+		switch {
+		case !objI.Instance.Equal(objJ.Instance):
+			return objI.Instance.Less(objJ.Instance)
+		default:
+			return objI.DeposedKey < objJ.DeposedKey
+		}
+	})
+
 	return ret
 }
 
@@ -332,7 +425,7 @@ func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
 // MaybeMoveAbsResource moves the given src AbsResource's current state to the
 // new dst address. This function will succeed if both the src address does not
 // exist in state and the dst address does; the return value indicates whether
-// or not the move occured. This function will panic if either the src does not
+// or not the move occurred. This function will panic if either the src does not
 // exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
 	// Get the source and destinatation addresses from state.

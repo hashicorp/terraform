@@ -22,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 
@@ -450,6 +451,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		}),
 	}
 	go func() {
+		defer logging.PanicHandler()
 		err := server.Serve(listener)
 		if err != nil && err != http.ErrServerClosed {
 			diags = diags.Append(tfdiags.Sourceless(

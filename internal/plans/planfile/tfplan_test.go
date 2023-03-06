@@ -8,8 +8,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/states"
 )
 
 func TestTFPlanRoundTrip(t *testing.T) {
@@ -118,20 +121,89 @@ func TestTFPlanRoundTrip(t *testing.T) {
 				},
 			},
 		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				PrevRunAddr: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+				ProviderAddr: addrs.AbsProviderConfig{
+					Provider: addrs.NewDefaultProvider("test"),
+					Module:   addrs.RootModule,
+				},
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.DeleteThenCreate,
+					Before: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.StringVal("foo-bar-baz"),
+						"boop": cty.ListVal([]cty.Value{
+							cty.StringVal("beep"),
+						}),
+					}), objTy),
+					After: mustNewDynamicValue(cty.ObjectVal(map[string]cty.Value{
+						"id": cty.UnknownVal(cty.String),
+						"boop": cty.ListVal([]cty.Value{
+							cty.StringVal("beep"),
+							cty.StringVal("bonk"),
+						}),
+					}), objTy),
+					AfterValMarks: []cty.PathValueMarks{
+						{
+							Path:  cty.GetAttrPath("boop").IndexInt(1),
+							Marks: cty.NewValueMarks(marks.Sensitive),
+						},
+					},
+				},
+			},
+		},
+		RelevantAttributes: []globalref.ResourceAttr{
+			{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_thing",
+					Name: "woot",
+				}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+				Attr: cty.GetAttrPath("boop").Index(cty.NumberIntVal(1)),
+			},
+		},
+		Checks: &states.CheckResults{
+			ConfigResults: addrs.MakeMap(
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_thing",
+						Name: "woot",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_thing",
+									Name: "woot",
+								}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"Oh no!"},
+								},
+							),
+						),
+					},
+				),
+			),
+		},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,
 				Type: "test_thing",
 				Name: "woot",
 			}.Absolute(addrs.RootModuleInstance),
-		},
-		ProviderSHA256s: map[string][]byte{
-			"test": []byte{
-				0xba, 0x5e, 0x1e, 0x55, 0xb0, 0x1d, 0xfa, 0xce,
-				0xef, 0xfe, 0xc7, 0xed, 0x1a, 0xbe, 0x11, 0xed,
-				0x5c, 0xa1, 0xab, 0x1e, 0xda, 0x7a, 0xba, 0x5e,
-				0x70, 0x7a, 0x11, 0xed, 0xb0, 0x07, 0xab, 0x1e,
-			},
 		},
 		Backend: plans.Backend{
 			Type: "local",
@@ -243,6 +315,7 @@ func TestTFPlanRoundTripDestroy(t *testing.T) {
 				},
 			},
 		},
+		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 		TargetAddrs: []addrs.Targetable{
 			addrs.Resource{
 				Mode: addrs.ManagedResourceMode,

@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/mitchellh/cli"
@@ -54,7 +55,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Check if the address can be parsed
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
@@ -71,7 +72,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	}
 
 	// Build the operation (required to get the schemas)
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 

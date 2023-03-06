@@ -1,0 +1,95 @@
+{
+    "format_version": "1.0",
+    "planned_values": {
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.baz",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "baz",
+                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "schema_version": 0,
+                    "values": {
+                        "ami": "baz",
+                        "id": "placeholder"
+                    },
+                    "sensitive_values": {}
+                }
+            ]
+        }
+    },
+    "resource_changes": [
+        {
+            "address": "test_instance.baz",
+            "mode": "managed",
+            "type": "test_instance",
+            "previous_address": "test_instance.foo",
+            "provider_name": "registry.terraform.io/hashicorp/test",
+            "name": "baz",
+            "change": {
+                "actions": [
+                    "update"
+                ],
+                "before": {
+                    "ami": "foo",
+                    "id": "placeholder"
+                },
+                "after": {
+                    "ami": "baz",
+                    "id": "placeholder"
+                },
+                "after_unknown": {},
+                "after_sensitive": {},
+                "before_sensitive": {}
+            }
+        }
+    ],
+    "prior_state": {
+        "format_version": "1.0",
+        "values": {
+            "root_module": {
+                "resources": [
+                    {
+                        "address": "test_instance.baz",
+                        "mode": "managed",
+                        "type": "test_instance",
+                        "name": "baz",
+                        "schema_version": 0,
+                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "values": {
+                            "ami": "foo",
+                            "id": "placeholder"
+                        },
+                        "sensitive_values": {}
+                    }
+                ]
+            }
+        }
+    },
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "name": "test",
+                "full_name": "registry.terraform.io/hashicorp/test"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.baz",
+                    "mode": "managed",
+                    "type": "test_instance",
+                    "name": "baz",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "expressions": {
+                        "ami": {
+                            "constant_value": "baz"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

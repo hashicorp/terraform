@@ -2,6 +2,7 @@ package command
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/base64"
 	"encoding/json"
@@ -12,13 +13,15 @@ import (
 	"net/http/httptest"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/google/go-cmp/cmp"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
@@ -29,6 +32,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/initwd"
 	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
@@ -52,9 +56,6 @@ var (
 	testDataDir = "./testdata"
 )
 
-// a top level temp directory which will be cleaned after all tests
-var testingDir string
-
 func init() {
 	test = true
 
@@ -73,45 +74,18 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-
-	testingDir, err = ioutil.TempDir(testingDir, "tf")
-	if err != nil {
-		panic(err)
-	}
 }
 
 func TestMain(m *testing.M) {
-	defer os.RemoveAll(testingDir)
-
 	// Make sure backend init is initialized, since our tests tend to assume it.
 	backendInit.Init(nil)
 
 	os.Exit(m.Run())
 }
 
-func tempDir(t *testing.T) string {
-	t.Helper()
-
-	dir, err := ioutil.TempDir(testingDir, "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	dir, err = filepath.EvalSymlinks(dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := os.RemoveAll(dir); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return dir
-}
-
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
-// temporary directory, and returns that object along with a cleanup function
-// to call once the calling test is complete.
+// temporary directory. The temporary directory is automatically removed when
+// the test and all its subtests complete.
 //
 // Although workdir.Dir is built to support arbitrary base directories, the
 // not-yet-migrated behaviors in command.Meta tend to expect the root module
@@ -119,25 +93,18 @@ func tempDir(t *testing.T) string {
 // to use the result inside a command.Meta object you must use a pattern
 // similar to the following when initializing your test:
 //
-//     wd, cleanup := tempWorkingDir(t)
-//     defer cleanup()
-//     defer testChdir(t, wd.RootModuleDir())()
+//	wd := tempWorkingDir(t)
+//	defer testChdir(t, wd.RootModuleDir())()
 //
 // Note that testChdir modifies global state for the test process, and so a
 // test using this pattern must never call t.Parallel().
-func tempWorkingDir(t *testing.T) (*workdir.Dir, func() error) {
+func tempWorkingDir(t *testing.T) *workdir.Dir {
 	t.Helper()
 
-	dirPath, err := os.MkdirTemp("", "tf-command-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	done := func() error {
-		return os.RemoveAll(dirPath)
-	}
+	dirPath := t.TempDir()
 	t.Logf("temporary directory %s", dirPath)
 
-	return workdir.NewDir(dirPath), done
+	return workdir.NewDir(dirPath)
 }
 
 // tempWorkingDirFixture is like tempWorkingDir but it also copies the content
@@ -169,7 +136,8 @@ func testFixturePath(name string) string {
 func metaOverridesForProvider(p providers.Interface) *testingOverrides {
 	return &testingOverrides{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
+			addrs.NewDefaultProvider("test"):                                           providers.FactoryFixed(p),
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp2", "test"): providers.FactoryFixed(p),
 		},
 	}
 }
@@ -187,7 +155,7 @@ func testModuleWithSnapshot(t *testing.T, name string) (*configs.Config, *config
 	// sources only this ultimately just records all of the module paths
 	// in a JSON file so that we can load them below.
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(dir, true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}
@@ -228,21 +196,33 @@ func testPlan(t *testing.T) *plans.Plan {
 }
 
 func testPlanFile(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan) string {
+	return testPlanFileMatchState(t, configSnap, state, plan, statemgr.SnapshotMeta{})
+}
+
+func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state *states.State, plan *plans.Plan, stateMeta statemgr.SnapshotMeta) string {
 	t.Helper()
 
 	stateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state,
 		TerraformVersion: version.SemVer,
 	}
 	prevStateFile := &statefile.File{
-		Lineage:          "",
+		Lineage:          stateMeta.Lineage,
+		Serial:           stateMeta.Serial,
 		State:            state, // we just assume no changes detected during refresh
 		TerraformVersion: version.SemVer,
 	}
 
 	path := testTempFile(t)
-	err := planfile.Create(path, configSnap, prevStateFile, stateFile, plan)
+	err := planfile.Create(path, planfile.CreateArgs{
+		ConfigSnapshot:       configSnap,
+		PreviousRunStateFile: prevStateFile,
+		StateFile:            stateFile,
+		Plan:                 plan,
+		DependencyLocks:      depsfile.NewLocks(),
+	})
 	if err != nil {
 		t.Fatalf("failed to create temporary plan file: %s", err)
 	}
@@ -348,9 +328,9 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 // The given mark string is returned verbatim, to allow the following pattern
 // in tests:
 //
-//     mark := markStateForMatching(state, "foo")
-//     // (do stuff to the state)
-//     assertStateHasMarker(state, mark)
+//	mark := markStateForMatching(state, "foo")
+//	// (do stuff to the state)
+//	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
 	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
 	return mark
@@ -544,8 +524,7 @@ func testTempFile(t *testing.T) string {
 
 func testTempDir(t *testing.T) string {
 	t.Helper()
-	d := t.TempDir()
-	d, err := filepath.EvalSymlinks(d)
+	d, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -573,15 +552,13 @@ func testChdir(t *testing.T, new string) func() {
 	}
 }
 
-// testCwd is used to change the current working directory
-// into a test directory that should be removed after
-func testCwd(t *testing.T) (string, string) {
+// testCwd is used to change the current working directory into a temporary
+// directory. The cleanup is performed automatically after the test and all its
+// subtests complete.
+func testCwd(t *testing.T) string {
 	t.Helper()
 
-	tmp, err := ioutil.TempDir(testingDir, "tf")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	tmp := t.TempDir()
 
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -592,20 +569,13 @@ func testCwd(t *testing.T) (string, string) {
 		t.Fatalf("err: %v", err)
 	}
 
-	return tmp, cwd
-}
+	t.Cleanup(func() {
+		if err := os.Chdir(cwd); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+	})
 
-// testFixCwd is used to as a defer to testDir
-func testFixCwd(t *testing.T, tmp, cwd string) {
-	t.Helper()
-
-	if err := os.Chdir(cwd); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	if err := os.RemoveAll(tmp); err != nil {
-		t.Fatalf("err: %v", err)
-	}
+	return tmp
 }
 
 // testStdinPipe changes os.Stdin to be a pipe that sends the data from
@@ -716,8 +686,15 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 
 	// Return the cleanup
 	return func() {
+		var unusedAnswers = testInputResponseMap
+
+		// First, clean up!
 		test = true
 		testInputResponseMap = nil
+
+		if len(unusedAnswers) > 0 {
+			t.Fatalf("expected no unused answers provided to command.testInputMap, got: %v", unusedAnswers)
+		}
 	}
 }
 
@@ -728,10 +705,10 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // When using this function, the configuration fixture for the test must
 // include an empty configuration block for the HTTP backend, like this:
 //
-// terraform {
-//   backend "http" {
-//   }
-// }
+//	terraform {
+//	  backend "http" {
+//	  }
+//	}
 //
 // If such a block isn't present, or if it isn't empty, then an error will
 // be returned about the backend configuration having changed and that
@@ -845,15 +822,9 @@ func testRemoteState(t *testing.T, s *states.State, c int) (*legacy.State, *http
 // deferFunc should be called in the caller to properly unlock the file.
 // Since many tests change the working directory, the sourcedir argument must be
 // supplied to locate the statelocker.go source.
-func testLockState(sourceDir, path string) (func(), error) {
+func testLockState(t *testing.T, sourceDir, path string) (func(), error) {
 	// build and run the binary ourselves so we can quickly terminate it for cleanup
-	buildDir, err := ioutil.TempDir(testingDir, "locker")
-	if err != nil {
-		return nil, err
-	}
-	cleanFunc := func() {
-		os.RemoveAll(buildDir)
-	}
+	buildDir := t.TempDir()
 
 	source := filepath.Join(sourceDir, "statelocker.go")
 	lockBin := filepath.Join(buildDir, "statelocker")
@@ -863,14 +834,12 @@ func testLockState(sourceDir, path string) (func(), error) {
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		cleanFunc()
 		return nil, fmt.Errorf("%s %s", err, out)
 	}
 
 	locker := exec.Command(lockBin, path)
 	pr, pw, err := os.Pipe()
 	if err != nil {
-		cleanFunc()
 		return nil, err
 	}
 	defer pr.Close()
@@ -882,7 +851,6 @@ func testLockState(sourceDir, path string) (func(), error) {
 		return nil, err
 	}
 	deferFunc := func() {
-		cleanFunc()
 		locker.Process.Signal(syscall.SIGTERM)
 		locker.Wait()
 	}
@@ -981,14 +949,6 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 		panic(diags.Err())
 	}
 	return addr.Config()
-}
-
-func mustProviderConfig(s string) addrs.AbsProviderConfig {
-	p, diags := addrs.ParseAbsProviderConfigStr(s)
-	if diags.HasErrors() {
-		panic(diags.Err())
-	}
-	return p
 }
 
 // This map from provider type name to namespace is used by the fake registry
@@ -1094,4 +1054,93 @@ func fakeRegistryHandler(resp http.ResponseWriter, req *http.Request) {
 func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput) {
 	streams, done := terminal.StreamsForTesting(t)
 	return views.NewView(streams), done
+}
+
+// checkGoldenReference compares the given test output with a known "golden" output log
+// located under the specified fixture path.
+//
+// If any of these tests fail, please communicate with Terraform Cloud folks before resolving,
+// as changes to UI output may also affect the behavior of Terraform Cloud's structured run output.
+func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
+	t.Helper()
+
+	// Load the golden reference fixture
+	wantFile, err := os.Open(path.Join(testFixturePath(fixturePathName), "output.jsonlog"))
+	if err != nil {
+		t.Fatalf("failed to open output file: %s", err)
+	}
+	defer wantFile.Close()
+	wantBytes, err := ioutil.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("failed to read output file: %s", err)
+	}
+	want := string(wantBytes)
+
+	got := output.Stdout()
+
+	// Split the output and the reference into lines so that we can compare
+	// messages
+	got = strings.TrimSuffix(got, "\n")
+	gotLines := strings.Split(got, "\n")
+
+	want = strings.TrimSuffix(want, "\n")
+	wantLines := strings.Split(want, "\n")
+
+	if len(gotLines) != len(wantLines) {
+		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
+			"Please communicate with Terraform Cloud team before resolving", len(gotLines), len(wantLines))
+	}
+
+	// Verify that the log starts with a version message
+	type versionMessage struct {
+		Level     string `json:"@level"`
+		Message   string `json:"@message"`
+		Type      string `json:"type"`
+		Terraform string `json:"terraform"`
+		UI        string `json:"ui"`
+	}
+	var gotVersion versionMessage
+	if err := json.Unmarshal([]byte(gotLines[0]), &gotVersion); err != nil {
+		t.Errorf("failed to unmarshal version line: %s\n%s", err, gotLines[0])
+	}
+	wantVersion := versionMessage{
+		"info",
+		fmt.Sprintf("Terraform %s", version.String()),
+		"version",
+		version.String(),
+		views.JSON_UI_VERSION,
+	}
+	if !cmp.Equal(wantVersion, gotVersion) {
+		t.Errorf("unexpected first message:\n%s", cmp.Diff(wantVersion, gotVersion))
+	}
+
+	// Compare the rest of the lines against the golden reference
+	var gotLineMaps []map[string]interface{}
+	for i, line := range gotLines[1:] {
+		index := i + 1
+		var gotMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &gotMap); err != nil {
+			t.Errorf("failed to unmarshal got line %d: %s\n%s", index, err, gotLines[index])
+		}
+		if _, ok := gotMap["@timestamp"]; !ok {
+			t.Errorf("missing @timestamp field in log: %s", gotLines[index])
+		}
+		delete(gotMap, "@timestamp")
+		gotLineMaps = append(gotLineMaps, gotMap)
+	}
+	var wantLineMaps []map[string]interface{}
+	for i, line := range wantLines[1:] {
+		index := i + 1
+		var wantMap map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &wantMap); err != nil {
+			t.Errorf("failed to unmarshal want line %d: %s\n%s", index, err, gotLines[index])
+		}
+		wantLineMaps = append(wantLineMaps, wantMap)
+	}
+	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
+		t.Errorf("wrong output lines\n%s\n"+
+			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
+			"Please communicate with Terraform Cloud team before resolving", diff)
+	}
 }

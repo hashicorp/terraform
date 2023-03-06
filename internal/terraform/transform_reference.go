@@ -114,6 +114,7 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			// use their own state.
 			continue
 		}
+
 		parents := m.References(v)
 		parentsDbg := make([]string, len(parents))
 		for i, v := range parents {
@@ -124,10 +125,18 @@ func (t *ReferenceTransformer) Transform(g *Graph) error {
 			dag.VertexName(v), parentsDbg)
 
 		for _, parent := range parents {
+			// A destroy plan relies solely on the state, so we only need to
+			// ensure that temporary values are connected to get the evaluation
+			// order correct. Any references to destroy nodes will cause
+			// cycles, because they are connected in reverse order.
+			if _, ok := parent.(GraphNodeDestroyer); ok {
+				continue
+			}
+
 			if !graphNodesAreResourceInstancesInDifferentInstancesOfSameModule(v, parent) {
 				g.Connect(dag.BasicEdge(v, parent))
 			} else {
-				log.Printf("[TRACE] ReferenceTransformer: skipping %s => %s inter-module-instance dependency", v, parent)
+				log.Printf("[TRACE] ReferenceTransformer: skipping %s => %s inter-module-instance dependency", dag.VertexName(v), dag.VertexName(parent))
 			}
 		}
 
@@ -353,11 +362,19 @@ func (m ReferenceMap) dependsOn(g *Graph, depender graphNodeDependsOn) ([]dag.Ve
 			}
 			res = append(res, rv)
 
-			// and check any ancestors for transitive dependencies
-			ans, _ := g.Ancestors(rv)
-			for _, v := range ans {
-				if isDependableResource(v) {
-					res = append(res, v)
+			// Check any ancestors for transitive dependencies when we're
+			// not pointed directly at a resource. We can't be much more
+			// precise here, since in order to maintain our guarantee that data
+			// sources will wait for explicit dependencies, if those dependencies
+			// happen to be a module, output, or variable, we have to find some
+			// upstream managed resource in order to check for a planned
+			// change.
+			if _, ok := rv.(GraphNodeConfigResource); !ok {
+				ans, _ := g.Ancestors(rv)
+				for _, v := range ans {
+					if isDependableResource(v) {
+						res = append(res, v)
+					}
 				}
 			}
 		}

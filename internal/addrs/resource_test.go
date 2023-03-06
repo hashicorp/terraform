@@ -215,6 +215,77 @@ func TestAbsResourceInstanceEqual_false(t *testing.T) {
 	}
 }
 
+func TestAbsResourceUniqueKey(t *testing.T) {
+	resourceAddr1 := Resource{
+		Mode: ManagedResourceMode,
+		Type: "a",
+		Name: "b1",
+	}.Absolute(RootModuleInstance)
+	resourceAddr2 := Resource{
+		Mode: ManagedResourceMode,
+		Type: "a",
+		Name: "b2",
+	}.Absolute(RootModuleInstance)
+	resourceAddr3 := Resource{
+		Mode: ManagedResourceMode,
+		Type: "a",
+		Name: "in_module",
+	}.Absolute(RootModuleInstance.Child("boop", NoKey))
+
+	tests := []struct {
+		Reciever  AbsResource
+		Other     UniqueKeyer
+		WantEqual bool
+	}{
+		{
+			resourceAddr1,
+			resourceAddr1,
+			true,
+		},
+		{
+			resourceAddr1,
+			resourceAddr2,
+			false,
+		},
+		{
+			resourceAddr1,
+			resourceAddr3,
+			false,
+		},
+		{
+			resourceAddr3,
+			resourceAddr3,
+			true,
+		},
+		{
+			resourceAddr1,
+			resourceAddr1.Instance(NoKey),
+			false, // no-key instance key is distinct from its resource even though they have the same String result
+		},
+		{
+			resourceAddr1,
+			resourceAddr1.Instance(IntKey(1)),
+			false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(fmt.Sprintf("%s matches %T %s?", test.Reciever, test.Other, test.Other), func(t *testing.T) {
+			rKey := test.Reciever.UniqueKey()
+			oKey := test.Other.UniqueKey()
+
+			gotEqual := rKey == oKey
+			if gotEqual != test.WantEqual {
+				t.Errorf(
+					"wrong result\nreceiver: %s\nother:    %s (%T)\ngot:  %t\nwant: %t",
+					test.Reciever, test.Other, test.Other,
+					gotEqual, test.WantEqual,
+				)
+			}
+		})
+	}
+}
+
 func TestConfigResourceEqual_true(t *testing.T) {
 	resources := []ConfigResource{
 		{

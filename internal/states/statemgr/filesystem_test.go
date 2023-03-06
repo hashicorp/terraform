@@ -185,11 +185,7 @@ func TestFilesystem_backup(t *testing.T) {
 func TestFilesystem_backupAndReadPath(t *testing.T) {
 	defer testOverrideVersion(t, "1.2.3")()
 
-	workDir, err := ioutil.TempDir("", "tf")
-	if err != nil {
-		t.Fatalf("failed to create temporary directory: %s", err)
-	}
-	defer os.RemoveAll(workDir)
+	workDir := t.TempDir()
 
 	markerOutput := addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
 
@@ -340,6 +336,7 @@ func TestFilesystem_impl(t *testing.T) {
 	var _ Writer = new(Filesystem)
 	var _ Persister = new(Filesystem)
 	var _ Refresher = new(Filesystem)
+	var _ OutputReader = new(Filesystem)
 	var _ Locker = new(Filesystem)
 }
 
@@ -411,6 +408,19 @@ func TestFilesystem_refreshWhileLocked(t *testing.T) {
 	readState := s.State()
 	if readState == nil {
 		t.Fatal("missing state")
+	}
+}
+
+func TestFilesystem_GetRootOutputValues(t *testing.T) {
+	fs := testFilesystem(t)
+
+	outputs, err := fs.GetRootOutputValues()
+	if err != nil {
+		t.Errorf("Expected GetRootOutputValues to not return an error, but it returned %v", err)
+	}
+
+	if len(outputs) != 2 {
+		t.Errorf("Expected %d outputs, but received %d", 2, len(outputs))
 	}
 }
 

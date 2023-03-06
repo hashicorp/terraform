@@ -1,0 +1,236 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
+          "expressions": {
+            "first_block": [
+              {
+                "id": {
+                  "constant_value": "B27FB8BE-52D4-4CEB-ACE9-5E7FB3968F2B"
+                }
+              },
+              {
+                "id": {
+                  "constant_value": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+                }
+              },
+              {
+                "id": {
+                  "constant_value": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+                }
+              }
+            ],
+            "id": {
+              "constant_value": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92"
+            },
+            "second_block": [
+              {
+                "id": {
+                  "constant_value": "91640A80-A65F-4BEF-925B-684E4517A04D"
+                }
+              },
+              {
+                "id": {
+                  "constant_value": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+                }
+              }
+            ]
+          },
+          "mode": "managed",
+          "name": "multiple_blocks",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_multiple_blocks"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
+          "mode": "managed",
+          "name": "multiple_blocks",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "first_block": [
+              {},
+              {},
+              {}
+            ],
+            "second_block": [
+              {},
+              {}
+            ]
+          },
+          "type": "tfcoremock_multiple_blocks",
+          "values": {
+            "first_block": [
+              {
+                "id": "B27FB8BE-52D4-4CEB-ACE9-5E7FB3968F2B"
+              },
+              {
+                "id": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+              },
+              {
+                "id": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+              }
+            ],
+            "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+            "second_block": [
+              {
+                "id": "91640A80-A65F-4BEF-925B-684E4517A04D"
+              },
+              {
+                "id": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "tfcoremock_multiple_blocks.multiple_blocks",
+            "mode": "managed",
+            "name": "multiple_blocks",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "schema_version": 0,
+            "sensitive_values": {
+              "first_block": [
+                {},
+                {},
+                {}
+              ],
+              "second_block": [
+                {},
+                {}
+              ]
+            },
+            "type": "tfcoremock_multiple_blocks",
+            "values": {
+              "first_block": [
+                {
+                  "id": "D35E88DA-BC3B-46D7-9E0B-4ED4582FA65A"
+                },
+                {
+                  "id": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+                },
+                {
+                  "id": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+                }
+              ],
+              "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+              "second_block": [
+                {
+                  "id": "157660A9-D590-469E-BE28-83B8526428CA"
+                },
+                {
+                  "id": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "tfcoremock_multiple_blocks.multiple_blocks",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "after": {
+          "first_block": [
+            {
+              "id": "B27FB8BE-52D4-4CEB-ACE9-5E7FB3968F2B"
+            },
+            {
+              "id": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+            },
+            {
+              "id": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+            }
+          ],
+          "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+          "second_block": [
+            {
+              "id": "91640A80-A65F-4BEF-925B-684E4517A04D"
+            },
+            {
+              "id": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+            }
+          ]
+        },
+        "after_sensitive": {
+          "first_block": [
+            {},
+            {},
+            {}
+          ],
+          "second_block": [
+            {},
+            {}
+          ]
+        },
+        "after_unknown": {},
+        "before": {
+          "first_block": [
+            {
+              "id": "D35E88DA-BC3B-46D7-9E0B-4ED4582FA65A"
+            },
+            {
+              "id": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+            },
+            {
+              "id": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+            }
+          ],
+          "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+          "second_block": [
+            {
+              "id": "157660A9-D590-469E-BE28-83B8526428CA"
+            },
+            {
+              "id": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+            }
+          ]
+        },
+        "before_sensitive": {
+          "first_block": [
+            {},
+            {},
+            {}
+          ],
+          "second_block": [
+            {},
+            {}
+          ]
+        }
+      },
+      "mode": "managed",
+      "name": "multiple_blocks",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_multiple_blocks"
+    }
+  ]
+}

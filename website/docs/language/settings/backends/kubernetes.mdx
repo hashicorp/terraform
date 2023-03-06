@@ -1,0 +1,74 @@
+---
+page_title: 'Backend Type: Kubernetes'
+description: Terraform can store state remotely in Kubernetes and lock that state.
+---
+
+# kubernetes
+
+-> **Note:** This backend is limited by Kubernetes' maximum Secret size of 1MB. See [Secret restrictions](https://kubernetes.io/docs/concepts/configuration/secret/#restrictions) for details.
+
+Stores the state in a [Kubernetes secret](https://kubernetes.io/docs/concepts/configuration/secret/).
+
+This backend supports [state locking](/terraform/language/state/locking), with locking done using a Lease resource.
+
+## Example Configuration
+
+```hcl
+terraform {
+  backend "kubernetes" {
+    secret_suffix    = "state"
+    config_path      = "~/.kube/config"
+  }
+}
+```
+
+This assumes the user/service account running terraform has [permissions](https://kubernetes.io/docs/reference/access-authn-authz/authorization/) to read/write secrets in the [namespace](https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/) used to store the secret.
+
+If the `config_path` or `config_paths` attribute is set the backend will attempt to use a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) to gain access to the cluster.
+
+If the `in_cluster_config` flag is set the backend will attempt to use a [service account](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/) to access the cluster. This can be used if Terraform is being run from within a pod running in the Kubernetes cluster.
+
+For most use cases either `in_cluster_config`, `config_path`, or `config_paths` will need to be set. If all flags are set the configuration at `config_path` will be used.
+
+Note that for the access credentials we recommend using a [partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
+
+## Example Referencing
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "kubernetes"
+  config = {
+    secret_suffix    = "state"
+    load_config_file = true
+  }
+}
+```
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
+The following configuration options are supported:
+
+* `secret_suffix` - (Required) Suffix used when creating secrets. Secrets will be named in the format: `tfstate-{workspace}-{secret_suffix}`.
+* `labels` - (Optional) Map of additional labels to be applied to the secret and lease.
+* `namespace` - (Optional) Namespace to store the secret and lease in. Can be sourced from `KUBE_NAMESPACE`.
+* `in_cluster_config` - (Optional) Used to authenticate to the cluster from inside a pod. Can be sourced from `KUBE_IN_CLUSTER_CONFIG`.
+* `host` - (Optional) The hostname (in form of URI) of Kubernetes master. Can be sourced from `KUBE_HOST`. Defaults to `https://localhost`.
+* `username` - (Optional) The username to use for HTTP basic authentication when accessing the Kubernetes master endpoint. Can be sourced from `KUBE_USER`.
+* `password` - (Optional) The password to use for HTTP basic authentication when accessing the Kubernetes master endpoint. Can be sourced from `KUBE_PASSWORD`.
+* `insecure` - (Optional) Whether server should be accessed without verifying the TLS certificate. Can be sourced from `KUBE_INSECURE`. Defaults to `false`.
+* `client_certificate` - (Optional) PEM-encoded client certificate for TLS authentication. Can be sourced from `KUBE_CLIENT_CERT_DATA`.
+* `client_key` - (Optional) PEM-encoded client certificate key for TLS authentication. Can be sourced from `KUBE_CLIENT_KEY_DATA`.
+* `cluster_ca_certificate` - (Optional) PEM-encoded root certificates bundle for TLS authentication. Can be sourced from `KUBE_CLUSTER_CA_CERT_DATA`.
+* `config_path` - (Optional) Path to the kube config file. Can be sourced from `KUBE_CONFIG_PATH`.
+* `config_paths` - (Optional) List of paths to kube config files. Can be sourced from `KUBE_CONFIG_PATHS`.
+* `config_context` - (Optional) Context to choose from the config file. Can be sourced from `KUBE_CTX`.
+* `config_context_auth_info` - (Optional) Authentication info context of the kube config (name of the kubeconfig user, `--user` flag in `kubectl`). Can be sourced from `KUBE_CTX_AUTH_INFO`.
+* `config_context_cluster` - (Optional) Cluster context of the kube config (name of the kubeconfig cluster, `--cluster` flag in `kubectl`). Can be sourced from `KUBE_CTX_CLUSTER`.
+* `token` - (Optional) Token of your service account.  Can be sourced from `KUBE_TOKEN`.
+* `exec` - (Optional) Configuration block to use an [exec-based credential plugin](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#client-go-credential-plugins), e.g. call an external command to receive user credentials.
+  * `api_version` - (Required) API version to use when decoding the ExecCredentials resource, e.g. `client.authentication.k8s.io/v1beta1`.
+  * `command` - (Required) Command to execute.
+  * `args` - (Optional) List of arguments to pass when executing the plugin.
+  * `env` - (Optional) Map of environment variables to set when executing the plugin.

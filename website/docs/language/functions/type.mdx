@@ -1,0 +1,81 @@
+---
+page_title: type - Functions - Configuration Language
+description: 'The type function returns the type of a given value. '
+---
+
+# `type` Function
+
+-> **Note:** This function is available only in Terraform 1.0 and later.
+
+`type` returns the type of a given value.
+
+Sometimes a Terraform configuration can result in confusing errors regarding
+inconsistent types. This function displays terraform's evaluation of a given
+value's type, which is useful in understanding this error message.
+
+This is a special function which is only available in the `terraform console`
+command. It can only be used to examine the type of a given value, and should
+not be used in more complex expressions.
+
+## Examples
+
+Here we have a conditional `output` which prints either the value of `var.list` or a local named `default_list`:
+
+```hcl
+variable "list" {
+  default = []
+}
+
+locals {
+  default_list = [
+    {
+      foo = "bar"
+      map = { bleep = "bloop" }
+    },
+    {
+      beep = "boop"
+    },
+  ]
+}
+
+output "list" {
+  value = var.list != [] ? var.list : local.default_list
+}
+```
+
+Applying this configuration results in the following error:
+
+```
+Error: Inconsistent conditional result types
+
+  on main.tf line 18, in output "list":
+  18:   value = var.list != [] ? var.list : local.default_list
+    |----------------
+    | local.default_list is tuple with 2 elements
+    | var.list is empty tuple
+
+The true and false result expressions must have consistent types. The given
+expressions are tuple and tuple, respectively.
+```
+
+While this error message does include some type information, it can be helpful
+to inspect the exact type that Terraform has determined for each given input.
+Examining both `var.list` and `local.default_list` using the `type` function
+provides more context for the error message:
+
+```
+> type(var.list)
+tuple
+> type(local.default_list)
+tuple([
+    object({
+        foo: string,
+        map: object({
+            bleep: string,
+        }),
+    }),
+    object({
+        beep: string,
+    }),
+])
+```

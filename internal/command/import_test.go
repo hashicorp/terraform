@@ -160,9 +160,8 @@ func TestImport_providerConfig(t *testing.T) {
 
 // "remote" state provided by the "local" backend
 func TestImport_remoteState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := "imported.tfstate"
@@ -273,9 +272,8 @@ func TestImport_remoteState(t *testing.T) {
 
 // early failure on import should not leave stale lock
 func TestImport_initializationErrorShouldUnlock(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-provider-remote-state"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := "imported.tfstate"
@@ -332,7 +330,7 @@ func TestImport_initializationErrorShouldUnlock(t *testing.T) {
 
 	// specifically, it should fail due to a missing provider
 	msg := strings.ReplaceAll(ui.ErrorWriter.String(), "\n", " ")
-	if want := `unavailable provider "registry.terraform.io/hashicorp/unknown"`; !strings.Contains(msg, want) {
+	if want := `provider registry.terraform.io/hashicorp/unknown: required by this configuration but no version is selected`; !strings.Contains(msg, want) {
 		t.Errorf("incorrect message\nwant substring: %s\ngot:\n%s", want, msg)
 	}
 
@@ -646,63 +644,6 @@ func TestImport_providerConfigWithVarFile(t *testing.T) {
 	testStateOutput(t, statePath, testImportStr)
 }
 
-func TestImport_allowMissingResourceConfig(t *testing.T) {
-	defer testChdir(t, testFixturePath("import-missing-resource-config"))()
-
-	statePath := testTempFile(t)
-
-	p := testProvider()
-	ui := new(cli.MockUi)
-	view, _ := testView(t)
-	c := &ImportCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
-			View:             view,
-		},
-	}
-
-	p.ImportResourceStateFn = nil
-	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
-		ImportedResources: []providers.ImportedResource{
-			{
-				TypeName: "test_instance",
-				State: cty.ObjectVal(map[string]cty.Value{
-					"id": cty.StringVal("yay"),
-				}),
-			},
-		},
-	}
-	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
-		ResourceTypes: map[string]providers.Schema{
-			"test_instance": {
-				Block: &configschema.Block{
-					Attributes: map[string]*configschema.Attribute{
-						"id": {Type: cty.String, Optional: true, Computed: true},
-					},
-				},
-			},
-		},
-	}
-
-	args := []string{
-		"-state", statePath,
-		"-allow-missing-config",
-		"test_instance.foo",
-		"bar",
-	}
-
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
-	}
-
-	if !p.ImportResourceStateCalled {
-		t.Fatal("ImportResourceState should be called")
-	}
-
-	testStateOutput(t, statePath, testImportStr)
-}
-
 func TestImport_emptyConfig(t *testing.T) {
 	defer testChdir(t, testFixturePath("empty"))()
 
@@ -800,9 +741,8 @@ func TestImport_missingModuleConfig(t *testing.T) {
 }
 
 func TestImportModuleVarFile(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-var-file"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)
@@ -869,15 +809,14 @@ func TestImportModuleVarFile(t *testing.T) {
 //
 // The specific example has a variable "foo" which is a nested object:
 //
-//   foo = { bar = { baz = true } }
+//	foo = { bar = { baz = true } }
 //
 // This is used as foo = var.foo in the call to the child module, which then
 // uses the traversal foo.bar.baz in a local. A default value in the child
 // module of {} causes this local evaluation to error, breaking import.
 func TestImportModuleInputVariableEvaluation(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("import-module-input-variable"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)

@@ -1,0 +1,70 @@
+---
+layout: "intro"
+page_title: "Terraform Editions"
+sidebar_current: "what"
+description: |-
+ Terraform Open Source, Terraform Cloud, and Terraform Enterprise solve increasingly complex infrastructure and collaboration challenges.
+---
+
+# Terraform Editions
+
+As your organization adopts infrastructure as code (IaC), you will encounter increasingly complex technical and collaboration challenges. We offer three Terraform editions designed to help you solve them.
+
+## Terraform Open Source
+
+Terraform open source is a free, downloadable tool that you interact with on the command line. It lets you provision infrastructure on any cloud provider and manages configuration, plugins, infrastructure, and state.
+
+###  Why Terraform Open Source?
+
+Terraform open source lets you:
+
+- Adopt infrastructure as code and use a common configuration language to provision thousands of different types of resources and services.
+- Codify your infrastructure so that you can check configuration files into a version control system (VCS) to safely manage contributions. Manually pull the most up-to-date version to perform Terraform operations.
+- Use and publish public infrastructure templates called modules to implement industry and organization best practices, group your infrastructure into logically-related components, and deploy infrastructure more quickly.
+
+
+### Resources
+
+- Get Started tutorials for popular providers: [Amazon Web Services](/terraform/tutorials/aws-get-started), [Azure](/terraform/tutorials/azure-get-started), [Google Cloud Platform](/terraform/tutorials/gcp-get-started), [Oracle Cloud Infrastructure](/terraform/tutorials/oci-get-started), and [Docker](/terraform/tutorials/docker-get-started)
+- [What is Terraform?](/terraform/intro)
+- [Configuration Language Documentation](/terraform/language)
+- [CLI Documentation](/terraform/cli)
+
+## Terraform Cloud
+
+Terraform Cloud is a SaaS application that runs Terraform in a stable, remote environment and securely stores state and secrets. It includes a rich user interface that helps you better understand your Terraform operations and resources, allows you to define role-based access controls, and offers a private registry for sharing modules and providers. Terraform Cloud also integrates with the Terraform CLI and connects to common version control systems (VCS) like GitHub, GitLab, and Bitbucket. When you connect a Terraform Cloud workspace to a VCS repository, new commits and changes can automatically trigger Terraform plans. Terraform Cloud also offers an API, allowing you to integrate it into existing workflows.
+
+Many Terraform Cloud features are free for small teams; we offer paid plans for larger organizations with additional collaboration and governance features.
+
+###  Why Terraform Cloud?
+
+Terraform Cloud lets you:
+
+- Run Terraform from the local CLI or in a remote environment, trigger operations through your version control system, or use an API to integrate Terraform Cloud into your existing workflows.
+- Ensure that only approved teams can access, edit, and provision infrastructure with Terraform Cloud workspaces, single sign-on, and role-based access controls.
+- Securely store and version Terraform state remotely, with encryption at rest. Versioned state files allow you to access state file history.
+- Publish configuration modules in the Terraform Cloud private registry that define approved infrastructure patterns. For example, a module may allow users to choose the cloud provider on which to deploy their Java application. This allows consumers to implement your organization’s best practices without becoming infrastructure or cloud experts.
+- Enforce best practices and security rules with the Sentinel embedded policy as code framework. For example, policies may restrict regions for production deployments.
+
+### Resources
+
+- [Create a Terraform Cloud Account](https://app.terraform.io/public/signup/account)
+- [Terraform Cloud Documentation](/terraform/cloud-docs)
+- [Sentinel Documentation](/terraform/cloud-docs/policy-enforcement)
+- [Get Started - Terraform Cloud](/terraform/tutorials/cloud-get-started) tutorials show you how to manage infrastructure using Terraform Cloud's VCS integration
+
+## Terraform Enterprise
+
+Terraform Enterprise allows you to set up a self-hosted distribution of Terraform Cloud. It offers customizable resource limits and is ideal for organizations with strict security and compliance requirements.
+
+###  Why Terraform Enterprise?
+
+Terraform Enterprise lets you:
+
+- Set up a private instance of Terraform Cloud with dedicated support from HashiCorp.
+- Accommodate advanced security and compliance requirements. Terraform Enterprise supports several types of installations, including air gapped and active/active architecture, and allows private networking and job scaling for better performance.
+
+### Resources
+- [Terraform Pricing](https://www.hashicorp.com/products/terraform/pricing)
+- [Terraform Enterprise Documentation](/terraform/enterprise)
+- [Recommended Enterprise Patterns](/terraform/tutorials/recommended-patterns) guides

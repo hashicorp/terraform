@@ -1,0 +1,44 @@
+---
+page_title: Writing and Modifying Code - Terraform CLI
+description: >-
+  Learn commands that help validate, format, and upgrade code written in the
+  Terraform Configuration Language.
+---
+
+# Writing and Modifying Terraform Code
+
+The [Terraform language](/terraform/language) is Terraform's primary
+user interface, and all of Terraform's workflows rely on configurations written
+in the Terraform language.
+
+Terraform CLI includes several commands to make Terraform code more convenient
+to work with. Integrating these commands into your editing workflow can
+potentially save you time and effort.
+
+- [The `terraform console` command](/terraform/cli/commands/console) starts an
+  interactive shell for evaluating Terraform
+  [expressions](/terraform/language/expressions), which can be a faster way
+  to verify that a particular resource argument results in the value you expect.
+
+- [The `terraform fmt` command](/terraform/cli/commands/fmt) rewrites Terraform
+  configuration files to a canonical format and style, so you don't have to
+  waste time making minor adjustments for readability and consistency. It works
+  well as a pre-commit hook in your version control system.
+
+- [The `terraform validate` command](/terraform/cli/commands/validate) validates the
+  syntax and arguments of the Terraform configuration files in a directory,
+  including argument and attribute names and types for resources and modules.
+  The `plan` and `apply` commands automatically validate a configuration before
+  performing any other work, so `validate` isn't a crucial part of the core
+  workflow, but it can be very useful as a pre-commit hook or as part of a
+  continuous integration pipeline.
+
+- [The `0.13upgrade` command](/terraform/cli/commands/0.13upgrade) and
+  [the `0.12upgrade` command](/terraform/cli/commands/0.12upgrade) can automatically
+  modify the configuration files in a Terraform module to help deal with major
+  syntax changes that occurred in the 0.13 and 0.12 releases of Terraform. Both
+  of these commands are only available in the Terraform version they are
+  associated with, and you are expected to upgrade older code to be compatible
+  with 0.12 before attempting to make it compatible with 0.13. For more detailed
+  information about updating code for new Terraform versions, see the [upgrade
+  guides](/terraform/language/upgrade-guides) in the Terraform language docs.

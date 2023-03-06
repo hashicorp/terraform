@@ -23,6 +23,11 @@ func (c *StatePullCommand) Run(args []string) int {
 		return 1
 	}
 
+	if diags := c.Meta.checkRequiredVersion(); diags != nil {
+		c.showDiagnostics(diags)
+		return 1
+	}
+
 	// Load the backend
 	b, backendDiags := c.Backend(nil)
 	if backendDiags.HasErrors() {
@@ -31,7 +36,7 @@ func (c *StatePullCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Get the state manager for the current workspace
 	env, err := c.Workspace()

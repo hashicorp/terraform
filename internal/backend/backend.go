@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/states"
@@ -108,7 +109,7 @@ type Backend interface {
 	// DeleteWorkspace cannot prevent deleting a state that is in use. It is
 	// the responsibility of the caller to hold a Lock for the state manager
 	// belonging to this workspace before calling this method.
-	DeleteWorkspace(name string) error
+	DeleteWorkspace(name string, force bool) error
 
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
@@ -121,9 +122,10 @@ type Backend interface {
 
 // Enhanced implements additional behavior on top of a normal backend.
 //
-// Enhanced backends allow customizing the behavior of Terraform operations.
-// This allows Terraform to potentially run operations remotely, load
-// configurations from external sources, etc.
+// 'Enhanced' backends are an implementation detail only, and are no longer reflected as an external
+// 'feature' of backends. In other words, backends refer to plugins for remote state snapshot
+// storage only, and the Enhanced interface here is a necessary vestige of the 'local' and
+// remote/cloud backends only.
 type Enhanced interface {
 	Backend
 
@@ -241,6 +243,16 @@ type Operation struct {
 	// configuration from ConfigDir.
 	ConfigLoader *configload.Loader
 
+	// DependencyLocks represents the locked dependencies associated with
+	// the configuration directory given in ConfigDir.
+	//
+	// Note that if field PlanFile is set then the plan file should contain
+	// its own dependency locks. The backend is responsible for correctly
+	// selecting between these two sets of locks depending on whether it
+	// will be using ConfigDir or PlanFile to get the configuration for
+	// this operation.
+	DependencyLocks *depsfile.Locks
+
 	// Hooks can be used to perform actions triggered by various events during
 	// the operation's lifecycle.
 	Hooks []terraform.Hook
@@ -253,7 +265,6 @@ type Operation struct {
 	// behavior of the operation.
 	PlanMode     plans.Mode
 	AutoApprove  bool
-	Parallelism  int
 	Targets      []addrs.Targetable
 	ForceReplace []addrs.AbsResourceInstance
 	Variables    map[string]UnparsedVariableValue

@@ -3,11 +3,12 @@ package command
 import (
 	"bufio"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/helper/wrappedstreams"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -72,10 +73,10 @@ func (c *ConsoleCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown
@@ -113,8 +114,8 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 	// Set up the UI so we can output directly to stdout
 	ui := &cli.BasicUi{
-		Writer:      wrappedstreams.Stdout(),
-		ErrorWriter: wrappedstreams.Stderr(),
+		Writer:      os.Stdout,
+		ErrorWriter: os.Stderr,
 	}
 
 	evalOpts := &terraform.EvalOpts{}
@@ -164,7 +165,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 
 func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 	var lastResult string
-	scanner := bufio.NewScanner(wrappedstreams.Stdin())
+	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		result, exit, diags := session.Handle(strings.TrimSpace(scanner.Text()))
 		if diags.HasErrors() {

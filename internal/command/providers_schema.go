@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -68,7 +69,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// This is a read-only command
-	c.ignoreRemoteBackendVersionConflict(b)
+	c.ignoreRemoteVersionConflict(b)
 
 	// we expect that the config dir is the cwd
 	cwd, err := os.Getwd()
@@ -78,7 +79,7 @@ func (c *ProvidersSchemaCommand) Run(args []string) int {
 	}
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewJSON)
 	opReq.ConfigDir = cwd
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true

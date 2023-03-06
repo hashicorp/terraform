@@ -3,7 +3,7 @@ package command
 import (
 	"bytes"
 	"io/ioutil"
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -11,9 +11,8 @@ import (
 
 func TestStatePull(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	expected, err := ioutil.ReadFile("local-state.tfstate")
@@ -42,8 +41,7 @@ func TestStatePull(t *testing.T) {
 }
 
 func TestStatePull_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -62,5 +60,35 @@ func TestStatePull_noState(t *testing.T) {
 	actual := ui.OutputWriter.String()
 	if actual != "" {
 		t.Fatalf("bad: %s", actual)
+	}
+}
+
+func TestStatePull_checkRequiredVersion(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("command-check-required-version"), td)
+	defer testChdir(t, td)()
+
+	p := testProvider()
+	ui := cli.NewMockUi()
+	c := &StatePullCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			Ui:               ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("got exit status %d; want 1\nstderr:\n%s\n\nstdout:\n%s", code, ui.ErrorWriter.String(), ui.OutputWriter.String())
+	}
+
+	// Required version diags are correct
+	errStr := ui.ErrorWriter.String()
+	if !strings.Contains(errStr, `required_version = "~> 0.9.0"`) {
+		t.Fatalf("output should point to unmet version constraint, but is:\n\n%s", errStr)
+	}
+	if strings.Contains(errStr, `required_version = ">= 0.13.0"`) {
+		t.Fatalf("output should not point to met version constraint, but is:\n\n%s", errStr)
 	}
 }

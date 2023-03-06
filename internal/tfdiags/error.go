@@ -26,3 +26,8 @@ func (e nativeError) FromExpr() *FromExpr {
 	// Native errors are not expression-related
 	return nil
 }
+
+func (e nativeError) ExtraInfo() interface{} {
+	// Native errors don't carry any "extra information".
+	return nil
+}

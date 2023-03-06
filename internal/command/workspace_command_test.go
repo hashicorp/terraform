@@ -20,9 +20,8 @@ import (
 
 func TestWorkspace_createAndChange(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	newCmd := &WorkspaceNewCommand{}
@@ -64,9 +63,8 @@ func TestWorkspace_createAndChange(t *testing.T) {
 // This also ensures we switch to the correct env after each call
 func TestWorkspace_createAndList(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// make sure a vars file doesn't interfere
@@ -113,9 +111,8 @@ func TestWorkspace_createAndList(t *testing.T) {
 // Create some workspaces and test the show output.
 func TestWorkspace_createAndShow(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// make sure a vars file doesn't interfere
@@ -182,9 +179,8 @@ func TestWorkspace_createAndShow(t *testing.T) {
 // Don't allow names that aren't URL safe
 func TestWorkspace_createInvalid(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	envs := []string{"test_a*", "test_b/foo", "../../../test_c", "好_d"}
@@ -220,9 +216,8 @@ func TestWorkspace_createInvalid(t *testing.T) {
 }
 
 func TestWorkspace_createWithState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("inmem-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 	defer inmem.Reset()
 
@@ -291,9 +286,8 @@ func TestWorkspace_createWithState(t *testing.T) {
 }
 
 func TestWorkspace_delete(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// create the workspace directories
@@ -345,9 +339,8 @@ func TestWorkspace_delete(t *testing.T) {
 }
 
 func TestWorkspace_deleteInvalid(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// choose an invalid workspace name
@@ -378,9 +371,8 @@ func TestWorkspace_deleteInvalid(t *testing.T) {
 }
 
 func TestWorkspace_deleteWithState(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// create the workspace directories
@@ -391,10 +383,10 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	// create a non-empty state
 	originalState := &legacy.State{
 		Modules: []*legacy.ModuleState{
-			&legacy.ModuleState{
+			{
 				Path: []string{"root"},
 				Resources: map[string]*legacy.ResourceState{
-					"test_instance.foo": &legacy.ResourceState{
+					"test_instance.foo": {
 						Type: "test_instance",
 						Primary: &legacy.InstanceState{
 							ID: "bar",
@@ -414,7 +406,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	delCmd := &WorkspaceDeleteCommand{
 		Meta: Meta{Ui: ui, View: view},
@@ -422,6 +414,13 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	args := []string{"test"}
 	if code := delCmd.Run(args); code == 0 {
 		t.Fatalf("expected failure without -force.\noutput: %s", ui.OutputWriter)
+	}
+	gotStderr := ui.ErrorWriter.String()
+	if want, got := `Workspace "test" is currently tracking the following resource instances`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, got)
+	}
+	if want, got := `- test_instance.foo`, gotStderr; !strings.Contains(got, want) {
+		t.Errorf("error message doesn't mention the remaining instance\nwant substring: %s\ngot:\n%s", want, got)
 	}
 
 	ui = new(cli.MockUi)
@@ -435,4 +434,32 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(local.DefaultWorkspaceDir, "test")); !os.IsNotExist(err) {
 		t.Fatal("env 'test' still exists!")
 	}
+}
+
+func TestWorkspace_selectWithOrCreate(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	selectCmd := &WorkspaceSelectCommand{}
+
+	current, _ := selectCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	args := []string{"-or-create", "test"}
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	selectCmd.Meta = Meta{Ui: ui, View: view}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	current, _ = selectCmd.Workspace()
+	if current != "test" {
+		t.Fatalf("current workspace should be 'test', got %q", current)
+	}
+
 }

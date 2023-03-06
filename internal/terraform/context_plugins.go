@@ -43,6 +43,11 @@ func (cp *contextPlugins) init() {
 	cp.provisionerSchemas = make(map[string]*configschema.Block, len(cp.provisionerFactories))
 }
 
+func (cp *contextPlugins) HasProvider(addr addrs.Provider) bool {
+	_, ok := cp.providerFactories[addr]
+	return ok
+}
+
 func (cp *contextPlugins) NewProviderInstance(addr addrs.Provider) (providers.Interface, error) {
 	f, ok := cp.providerFactories[addr]
 	if !ok {
@@ -51,6 +56,11 @@ func (cp *contextPlugins) NewProviderInstance(addr addrs.Provider) (providers.In
 
 	return f()
 
+}
+
+func (cp *contextPlugins) HasProvisioner(typ string) bool {
+	_, ok := cp.provisionerFactories[typ]
+	return ok
 }
 
 func (cp *contextPlugins) NewProvisionerInstance(typ string) (provisioners.Interface, error) {

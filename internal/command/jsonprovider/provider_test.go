@@ -23,9 +23,9 @@ func TestMarshalProvider(t *testing.T) {
 		{
 			testProvider(),
 			&Provider{
-				Provider: &schema{
-					Block: &block{
-						Attributes: map[string]*attribute{
+				Provider: &Schema{
+					Block: &Block{
+						Attributes: map[string]*Attribute{
 							"region": {
 								AttributeType:   json.RawMessage(`"string"`),
 								Required:        true,
@@ -35,11 +35,11 @@ func TestMarshalProvider(t *testing.T) {
 						DescriptionKind: "plain",
 					},
 				},
-				ResourceSchemas: map[string]*schema{
+				ResourceSchemas: map[string]*Schema{
 					"test_instance": {
 						Version: 42,
-						Block: &block{
-							Attributes: map[string]*attribute{
+						Block: &Block{
+							Attributes: map[string]*Attribute{
 								"id": {
 									AttributeType:   json.RawMessage(`"string"`),
 									Optional:        true,
@@ -52,9 +52,9 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 								"volumes": {
-									AttributeNestedType: &nestedType{
+									AttributeNestedType: &NestedType{
 										NestingMode: "list",
-										Attributes: map[string]*attribute{
+										Attributes: map[string]*Attribute{
 											"size": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Required:        true,
@@ -71,10 +71,10 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 							},
-							BlockTypes: map[string]*blockType{
+							BlockTypes: map[string]*BlockType{
 								"network_interface": {
-									Block: &block{
-										Attributes: map[string]*attribute{
+									Block: &Block{
+										Attributes: map[string]*Attribute{
 											"device_index": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Optional:        true,
@@ -95,11 +95,11 @@ func TestMarshalProvider(t *testing.T) {
 						},
 					},
 				},
-				DataSourceSchemas: map[string]*schema{
+				DataSourceSchemas: map[string]*Schema{
 					"test_data_source": {
 						Version: 3,
-						Block: &block{
-							Attributes: map[string]*attribute{
+						Block: &Block{
+							Attributes: map[string]*Attribute{
 								"id": {
 									AttributeType:   json.RawMessage(`"string"`),
 									Optional:        true,
@@ -112,10 +112,10 @@ func TestMarshalProvider(t *testing.T) {
 									DescriptionKind: "plain",
 								},
 							},
-							BlockTypes: map[string]*blockType{
+							BlockTypes: map[string]*BlockType{
 								"network_interface": {
-									Block: &block{
-										Attributes: map[string]*attribute{
+									Block: &Block{
+										Attributes: map[string]*Attribute{
 											"device_index": {
 												AttributeType:   json.RawMessage(`"string"`),
 												Optional:        true,

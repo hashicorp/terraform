@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -899,6 +900,46 @@ func TestLookup(t *testing.T) {
 	}
 }
 
+func TestLookup_error(t *testing.T) {
+	simpleMap := cty.MapVal(map[string]cty.Value{
+		"foo": cty.StringVal("bar"),
+	})
+
+	tests := map[string]struct {
+		Values  []cty.Value
+		WantErr string
+	}{
+		"failed to find non-sensitive key": {
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("boop"),
+			},
+			`lookup failed to find key "boop"`,
+		},
+		"failed to find sensitive key": {
+			[]cty.Value{
+				simpleMap,
+				cty.StringVal("boop").Mark(marks.Sensitive),
+			},
+			"lookup failed to find key (sensitive value)",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Lookup(test.Values...)
+
+			if err == nil {
+				t.Fatal("succeeded; want error")
+			}
+
+			if err.Error() != test.WantErr {
+				t.Errorf("wrong error\ngot:  %#v\nwant: %#v", err, test.WantErr)
+			}
+		})
+	}
+}
+
 func TestMatchkeys(t *testing.T) {
 	tests := []struct {
 		Keys      cty.Value
@@ -1587,6 +1628,15 @@ func TestSum(t *testing.T) {
 			}),
 			cty.NilVal,
 			"can't compute sum of opposing infinities",
+		},
+		{
+			cty.ListVal([]cty.Value{
+				cty.StringVal("1"),
+				cty.StringVal("2"),
+				cty.StringVal("3"),
+			}),
+			cty.NumberIntVal(6),
+			"",
 		},
 	}
 

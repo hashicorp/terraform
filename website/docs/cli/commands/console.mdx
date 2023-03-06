@@ -1,0 +1,120 @@
+---
+page_title: 'Command: console'
+description: >-
+  The terraform console command provides an interactive console for evaluating
+  expressions.
+---
+
+# Command: console
+
+The `terraform console` command provides an interactive console for
+evaluating [expressions](/terraform/language/expressions).
+
+## Usage
+
+Usage: `terraform console [options]`
+
+This command provides an interactive command-line console for evaluating and
+experimenting with [expressions](/terraform/language/expressions).
+You can use it to test interpolations before using them in configurations
+and to interact with any values currently saved in
+[state](/terraform/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
+[built-in functions](/terraform/language/functions). The console holds a [lock on the state](/terraform/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
+
+To close the console, enter the `exit` command or press Control-C
+or Control-D.
+
+For configurations using
+[the `local` backend](/terraform/language/settings/backends/local) only,
+`terraform console` accepts the legacy command line option
+[`-state`](/terraform/language/settings/backends/local#command-line-arguments).
+
+## Scripting
+
+The `terraform console` command can be used in non-interactive scripts
+by piping newline-separated commands to it. Only the output from the
+final command is printed unless an error occurs earlier.
+
+For example:
+
+```shell
+$ echo 'split(",", "foo,bar,baz")' | terraform console
+tolist([
+  "foo",
+  "bar",
+  "baz",
+])
+```
+
+## Remote State
+
+If [remote state](/terraform/language/state/remote) is used by the current backend,
+Terraform will read the state for the current workspace from the backend
+before evaluating any expressions.
+
+## Examples
+
+The `terraform console` command will read the Terraform configuration in the
+current working directory and the Terraform state file from the configured
+backend so that interpolations can be tested against both the values in the
+configuration and the state file.
+
+With the following `main.tf`:
+
+```hcl
+variable "apps" {
+  type = map(any)
+  default = {
+    "foo" = {
+      "region" = "us-east-1",
+    },
+    "bar" = {
+      "region" = "eu-west-1",
+    },
+    "baz" = {
+      "region" = "ap-south-1",
+    },
+  }
+}
+
+resource "random_pet" "example" {
+  for_each = var.apps
+}
+```
+
+Executing `terraform console` will drop you into an interactive shell where you
+can test interpolations to:
+
+Print a value from a map:
+
+```
+> var.apps.foo
+{
+  "region" = "us-east-1"
+}
+```
+
+Filter a map based on a specific value:
+
+```
+> { for key, value in var.apps : key => value if value.region == "us-east-1" }
+{
+  "foo" = {
+    "region" = "us-east-1"
+  }
+}
+```
+
+Check if certain values may not be known until apply:
+
+```
+> random_pet.example
+(known after apply)
+```
+
+Test various functions:
+
+```
+> cidrnetmask("172.16.0.0/12")
+"255.240.0.0"
+```

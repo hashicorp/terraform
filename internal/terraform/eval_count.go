@@ -2,10 +2,8 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -33,6 +31,12 @@ func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags
 			Summary:  "Invalid count argument",
 			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
 			Subject:  expr.Range().Ptr(),
+
+			// TODO: Also populate Expression and EvalContext in here, but
+			// we can't easily do that right now because the hcl.EvalContext
+			// (which is not the same as the ctx we have in scope here) is
+			// hidden away inside evaluateCountExpressionValue.
+			Extra: diagnosticCausedByUnknown(true),
 		})
 	}
 
@@ -93,40 +97,11 @@ func evaluateCountExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Val
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid count argument",
-			Detail:   `The given "count" argument value is unsuitable: negative numbers are not supported.`,
+			Detail:   `The given "count" argument value is unsuitable: must be greater than or equal to zero.`,
 			Subject:  expr.Range().Ptr(),
 		})
 		return nullCount, diags
 	}
 
 	return countVal, diags
-}
-
-// fixResourceCountSetTransition is a helper function to fix up the state when a
-// resource transitions its "count" from being set to unset or vice-versa,
-// treating a 0-key and a no-key instance as aliases for one another across
-// the transition.
-//
-// The correct time to call this function is in the DynamicExpand method for
-// a node representing a resource, just after evaluating the count with
-// evaluateCountExpression, and before any other analysis of the
-// state such as orphan detection.
-//
-// This function calls methods on the given EvalContext to update the current
-// state in-place, if necessary. It is a no-op if there is no count transition
-// taking place.
-//
-// Since the state is modified in-place, this function must take a writer lock
-// on the state. The caller must therefore not also be holding a state lock,
-// or this function will block forever awaiting the lock.
-func fixResourceCountSetTransition(ctx EvalContext, addr addrs.ConfigResource, countEnabled bool) {
-	state := ctx.State()
-	if state.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
-		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
-	}
-
-	refreshState := ctx.RefreshState()
-	if refreshState != nil && refreshState.MaybeFixUpResourceInstanceAddressForCount(addr, countEnabled) {
-		log.Printf("[TRACE] renamed first %s instance in transient state due to count argument change", addr)
-	}
 }

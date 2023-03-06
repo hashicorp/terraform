@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -51,7 +52,7 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	// the state was locked during succesfull context creation; unlock the state
+	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {
 		diags := op.StateLocker.Unlock()
@@ -64,12 +65,20 @@ func (b *Local) opRefresh(
 	// If we succeed then we'll overwrite this with the resulting state below,
 	// but otherwise the resulting state is just the input state.
 	runningOp.State = lr.InputState
-	if !runningOp.State.HasResources() {
+	if !runningOp.State.HasManagedResourceInstanceObjects() {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Empty or non-existent state",
-			"There are currently no resources tracked in the state, so there is nothing to refresh.",
+			"There are currently no remote objects tracked in the state, so there is nothing to refresh.",
 		))
+	}
+
+	// get schemas before writing state
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
 	}
 
 	// Perform the refresh in a goroutine so we can be interrupted
@@ -77,6 +86,7 @@ func (b *Local) opRefresh(
 	var refreshDiags tfdiags.Diagnostics
 	doneCh := make(chan struct{})
 	go func() {
+		defer logging.PanicHandler()
 		defer close(doneCh)
 		newState, refreshDiags = lr.Core.Refresh(lr.Config, lr.InputState, lr.PlanOpts)
 		log.Printf("[INFO] backend/local: refresh calling Refresh")
@@ -94,7 +104,7 @@ func (b *Local) opRefresh(
 		return
 	}
 
-	err := statemgr.WriteAndPersist(opState, newState)
+	err := statemgr.WriteAndPersist(opState, newState, schemas)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("failed to write state: %w", err))
 		op.ReportResult(runningOp, diags)

@@ -12,9 +12,8 @@ import (
 
 func TestMetaCompletePredictWorkspaceName(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// make sure a vars file doesn't interfere

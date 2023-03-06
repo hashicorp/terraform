@@ -17,9 +17,17 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(rawArgs []string) int {
+	var diags tfdiags.Diagnostics
+
 	// Parse and apply global view arguments
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
+
+	// Propagate -no-color for legacy use of Ui.  The remote backend and
+	// cloud package use this; it should be removed when/if they are
+	// migrated to views.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
 
 	// Parse and validate flags
 	args, diags := arguments.ParseRefresh(rawArgs)
@@ -56,7 +64,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	c.Meta.parallelism = args.Operation.Parallelism
 
 	// Prepare the backend with the backend-specific arguments
-	be, beDiags := c.PrepareBackend(args.State)
+	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -64,7 +72,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -99,7 +107,7 @@ func (c *RefreshCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *RefreshCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *RefreshCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -113,7 +121,8 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State) (backend.Enhanced
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		Config:   backendConfig,
+		ViewType: viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -123,12 +132,12 @@ func (c *RefreshCommand) PrepareBackend(args *arguments.State) (backend.Enhanced
 	return be, diags
 }
 
-func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, args *arguments.Operation,
+func (c *RefreshCommand) OperationRequest(be backend.Enhanced, view views.Refresh, viewType arguments.ViewType, args *arguments.Operation,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.ConfigDir = "."
 	opReq.Hooks = view.Hooks()
 	opReq.Targets = args.Targets
@@ -193,6 +202,8 @@ Options:
   -lock-timeout=0s    Duration to retry a state lock.
 
   -no-color           If specified, output won't contain any color.
+
+  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
 
   -target=resource    Resource to target. Operation will be limited to this
                       resource and its dependencies. This flag can be used

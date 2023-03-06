@@ -2,12 +2,15 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/didyoumean"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -40,10 +43,9 @@ func (n *NodeValidatableResource) Path() addrs.ModuleInstance {
 func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
 	diags = diags.Append(n.validateResource(ctx))
 
-	if managed := n.Config.Managed; managed != nil {
-		hasCount := n.Config.Count != nil
-		hasForEach := n.Config.ForEach != nil
+	diags = diags.Append(n.validateCheckRules(ctx, n.Config))
 
+	if managed := n.Config.Managed; managed != nil {
 		// Validate all the provisioners
 		for _, p := range managed.Provisioners {
 			if p.Connection == nil {
@@ -53,7 +55,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 			}
 
 			// Validate Provisioner Config
-			diags = diags.Append(n.validateProvisioner(ctx, p, hasCount, hasForEach))
+			diags = diags.Append(n.validateProvisioner(ctx, p))
 			if diags.HasErrors() {
 				return diags
 			}
@@ -65,7 +67,7 @@ func (n *NodeValidatableResource) Execute(ctx EvalContext, op walkOperation) (di
 // validateProvisioner validates the configuration of a provisioner belonging to
 // a resource. The provisioner config is expected to contain the merged
 // connection configurations.
-func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner, hasCount, hasForEach bool) tfdiags.Diagnostics {
+func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *configs.Provisioner) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	provisioner, err := ctx.Provisioner(p.Type)
@@ -86,7 +88,7 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 	}
 
 	// Validate the provisioner's own config first
-	configVal, _, configDiags := n.evaluateBlock(ctx, p.Config, provisionerSchema, hasCount, hasForEach)
+	configVal, _, configDiags := n.evaluateBlock(ctx, p.Config, provisionerSchema)
 	diags = diags.Append(configDiags)
 
 	if configVal == cty.NilVal {
@@ -110,42 +112,14 @@ func (n *NodeValidatableResource) validateProvisioner(ctx EvalContext, p *config
 		// configuration keys that are not valid for *any* communicator, catching
 		// typos early rather than waiting until we actually try to run one of
 		// the resource's provisioners.
-		_, _, connDiags := n.evaluateBlock(ctx, p.Connection.Config, connectionBlockSupersetSchema, hasCount, hasForEach)
+		_, _, connDiags := n.evaluateBlock(ctx, p.Connection.Config, connectionBlockSupersetSchema)
 		diags = diags.Append(connDiags)
 	}
 	return diags
 }
 
-func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block, hasCount, hasForEach bool) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
-	keyData := EvalDataForNoInstanceKey
-	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
-
-	if hasCount {
-		// For a resource that has count, we allow count.index but don't
-		// know at this stage what it will return.
-		keyData = InstanceKeyEvalData{
-			CountIndex: cty.UnknownVal(cty.Number),
-		}
-
-		// "self" can't point to an unknown key, but we'll force it to be
-		// key 0 here, which should return an unknown value of the
-		// expected type since none of these elements are known at this
-		// point anyway.
-		selfAddr = n.ResourceAddr().Resource.Instance(addrs.IntKey(0))
-	} else if hasForEach {
-		// For a resource that has for_each, we allow each.value and each.key
-		// but don't know at this stage what it will return.
-		keyData = InstanceKeyEvalData{
-			EachKey:   cty.UnknownVal(cty.String),
-			EachValue: cty.DynamicVal,
-		}
-
-		// "self" can't point to an unknown key, but we'll force it to be
-		// key "" here, which should return an unknown value of the
-		// expected type since none of these elements are known at
-		// this point anyway.
-		selfAddr = n.ResourceAddr().Resource.Instance(addrs.StringKey(""))
-	}
+func (n *NodeValidatableResource) evaluateBlock(ctx EvalContext, body hcl.Body, schema *configschema.Block) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
+	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
 
 	return ctx.EvaluateBlock(body, schema, selfAddr, keyData)
 }
@@ -214,6 +188,26 @@ var connectionBlockSupersetSchema = &configschema.Block{
 			Optional: true,
 		},
 		"agent_identity": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_scheme": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_host": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_port": {
+			Type:     cty.Number,
+			Optional: true,
+		},
+		"proxy_user_name": {
+			Type:     cty.String,
+			Optional: true,
+		},
+		"proxy_user_password": {
 			Type:     cty.String,
 			Optional: true,
 		},
@@ -383,10 +377,30 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 				moreDiags := schema.StaticValidateTraversal(traversal)
 				diags = diags.Append(moreDiags)
 
-				// TODO: we want to notify users that they can't use
-				// ignore_changes for computed attributes, but we don't have an
-				// easy way to correlate the config value, schema and
-				// traversal together.
+				// ignore_changes cannot be used for Computed attributes,
+				// unless they are also Optional.
+				// If the traversal was valid, convert it to a cty.Path and
+				// use that to check whether the Attribute is Computed and
+				// non-Optional.
+				if !diags.HasErrors() {
+					path := traversalToPath(traversal)
+
+					attrSchema := schema.AttributeByPath(path)
+
+					if attrSchema != nil && !attrSchema.Optional && attrSchema.Computed {
+						// ignore_changes uses absolute traversal syntax in config despite
+						// using relative traversals, so we strip the leading "." added by
+						// FormatCtyPath for a better error message.
+						attrDisplayPath := strings.TrimPrefix(tfdiags.FormatCtyPath(path), ".")
+
+						diags = diags.Append(&hcl.Diagnostic{
+							Severity: hcl.DiagWarning,
+							Summary:  "Redundant ignore_changes element",
+							Detail:   fmt.Sprintf("Adding an attribute name to ignore_changes tells Terraform to ignore future changes to the argument in configuration after the object has been created, retaining the value originally configured.\n\nThe attribute %s is decided by the provider alone and therefore there can be no configured value to compare with. Including this attribute in ignore_changes has no effect. Remove the attribute from ignore_changes to quiet this warning.", attrDisplayPath),
+							Subject:  &n.Config.TypeRange,
+						})
+					}
+				}
 			}
 		}
 
@@ -440,6 +454,81 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 
 		resp := provider.ValidateDataResourceConfig(req)
 		diags = diags.Append(resp.Diagnostics.InConfigBody(n.Config.Config, n.Addr.String()))
+	}
+
+	return diags
+}
+
+func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Expression, wantTy cty.Type, self addrs.Referenceable, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	refs, refDiags := lang.ReferencesInExpr(expr)
+	diags = diags.Append(refDiags)
+
+	scope := ctx.EvaluationScope(self, keyData)
+
+	hclCtx, moreDiags := scope.EvalContext(refs)
+	diags = diags.Append(moreDiags)
+
+	result, hclDiags := expr.Value(hclCtx)
+	diags = diags.Append(hclDiags)
+
+	return result, diags
+}
+
+func (n *NodeValidatableResource) stubRepetitionData(hasCount, hasForEach bool) (instances.RepetitionData, addrs.Referenceable) {
+	keyData := EvalDataForNoInstanceKey
+	selfAddr := n.ResourceAddr().Resource.Instance(addrs.NoKey)
+
+	if n.Config.Count != nil {
+		// For a resource that has count, we allow count.index but don't
+		// know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			CountIndex: cty.UnknownVal(cty.Number),
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key 0 here, which should return an unknown value of the
+		// expected type since none of these elements are known at this
+		// point anyway.
+		selfAddr = n.ResourceAddr().Resource.Instance(addrs.IntKey(0))
+	} else if n.Config.ForEach != nil {
+		// For a resource that has for_each, we allow each.value and each.key
+		// but don't know at this stage what it will return.
+		keyData = InstanceKeyEvalData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		}
+
+		// "self" can't point to an unknown key, but we'll force it to be
+		// key "" here, which should return an unknown value of the
+		// expected type since none of these elements are known at
+		// this point anyway.
+		selfAddr = n.ResourceAddr().Resource.Instance(addrs.StringKey(""))
+	}
+
+	return keyData, selfAddr
+}
+
+func (n *NodeValidatableResource) validateCheckRules(ctx EvalContext, config *configs.Resource) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	keyData, selfAddr := n.stubRepetitionData(n.Config.Count != nil, n.Config.ForEach != nil)
+
+	for _, cr := range config.Preconditions {
+		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, nil, keyData)
+		diags = diags.Append(conditionDiags)
+
+		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, nil, keyData)
+		diags = diags.Append(errorMessageDiags)
+	}
+
+	for _, cr := range config.Postconditions {
+		_, conditionDiags := n.evaluateExpr(ctx, cr.Condition, cty.Bool, selfAddr, keyData)
+		diags = diags.Append(conditionDiags)
+
+		_, errorMessageDiags := n.evaluateExpr(ctx, cr.ErrorMessage, cty.Bool, selfAddr, keyData)
+		diags = diags.Append(errorMessageDiags)
 	}
 
 	return diags
