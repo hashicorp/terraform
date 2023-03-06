@@ -2,9 +2,9 @@ package version
 
 import "runtime/debug"
 
-// See the docs for InterestingDependencyVersions to understand what
-// "interesting" is intended to mean here. We should keep this set relatively
-// small to avoid bloating the logs too much.
+// See the docs for InterestingDependencies to understand what "interesting" is
+// intended to mean here. We should keep this set relatively small to avoid
+// bloating the logs too much.
 var interestingDependencies = map[string]struct{}{
 	"github.com/hashicorp/hcl/v2":            {},
 	"github.com/zclconf/go-cty":              {},
