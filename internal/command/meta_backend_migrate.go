@@ -173,7 +173,8 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 				opts.DestinationType),
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateMultiToMulti),
-				opts.SourceType, opts.DestinationType),
+				opts.SourceType, opts.DestinationType,
+				logging.Indent(opts.Source.String()), logging.Indent(opts.Destination.String())),
 		})
 		if err != nil {
 			return fmt.Errorf(
@@ -472,7 +473,8 @@ func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opt
 			Query: "Do you want to copy existing state to the new backend?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateEmpty),
-				opts.SourceType, opts.DestinationType),
+				opts.SourceType, opts.DestinationType,
+				logging.Indent(opts.Source.String()), logging.Indent(opts.Destination.String())),
 		}
 	}
 
@@ -1127,6 +1129,14 @@ states in the destination.
 Terraform initialization doesn't currently migrate only select workspaces.
 If you want to migrate a select number of workspaces, you must manually
 pull and push those states.
+
+The configuration for the previous %[1]q backend was:
+
+%[3]s
+
+The configuration for the new %[2]q backend is:
+
+%[4]s
 
 If you answer "yes", Terraform will migrate all states. If you answer
 "no", Terraform will abort.
