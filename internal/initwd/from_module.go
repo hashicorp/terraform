@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -23,6 +24,7 @@ import (
 )
 
 const initFromModuleRootCallName = "root"
+const initFromModuleRootFilename = "<main configuration>"
 const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 
 // DirFromModule populates the given directory (which must exist and be
@@ -136,6 +138,11 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 			initFromModuleRootCallName: {
 				Name:       initFromModuleRootCallName,
 				SourceAddr: sourceAddr,
+				DeclRange: hcl.Range{
+					Filename: initFromModuleRootFilename,
+					Start:    hcl.InitialPos,
+					End:      hcl.InitialPos,
+				},
 			},
 		},
 		ProviderRequirements: &configs.RequiredProviders{},
