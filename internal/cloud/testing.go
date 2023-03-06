@@ -466,6 +466,7 @@ func testDisco(s *httptest.Server) *disco.Disco {
 
 	d.ForceHostServices(svchost.Hostname(defaultHostname), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
+	d.ForceHostServices(svchost.Hostname("nontfe.local"), nil)
 	return d
 }
 
