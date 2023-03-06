@@ -7,13 +7,15 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 // Function to skip a test unless in ACCeptance test mode.
@@ -38,46 +40,110 @@ func TestBackend_impl(t *testing.T) {
 func TestBackendConfig(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()
-	schemaName := pq.QuoteIdentifier(fmt.Sprintf("terraform_%s", t.Name()))
 
-	config := backend.TestWrapConfig(map[string]interface{}{
-		"conn_str":    connStr,
-		"schema_name": schemaName,
-	})
-	schemaName = pq.QuoteIdentifier(schemaName)
-
-	dbCleaner, err := sql.Open("postgres", connStr)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
-
-	b := backend.TestBackendConfig(t, New(), config).(*Backend)
-
-	if b == nil {
-		t.Fatal("Backend could not be configured")
-	}
-
-	_, err = b.db.Query(fmt.Sprintf("SELECT name, data FROM %s.%s LIMIT 1", schemaName, statesTableName))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	s, err := b.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	c := s.(*remote.State).Client.(*RemoteClient)
-	if c.Name != backend.DefaultStateName {
-		t.Fatal("RemoteClient name is not configured")
+	testCases := []struct {
+		Name        string
+		EnvVars     map[string]string
+		Config      map[string]interface{}
+		ExpectError string
+	}{
+		{
+			Name: "valid-config",
+			Config: map[string]interface{}{
+				"conn_str":    connStr,
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+		},
+		{
+			Name: "missing-conn-str",
+			Config: map[string]interface{}{
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+			ExpectError: `The attribute "conn_str" is required, but no definition was found.`,
+		},
+		{
+			Name: "conn-str-env-var",
+			EnvVars: map[string]string{
+				"PGDATABASE": connStr,
+			},
+			Config: map[string]interface{}{
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+		},
 	}
 
-	backend.TestBackendStates(t, b)
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			for k, v := range tc.EnvVars {
+				t.Setenv(k, v)
+			}
+
+			config := backend.TestWrapConfig(tc.Config)
+			schemaName := pq.QuoteIdentifier(tc.Config["schema_name"].(string))
+
+			dbCleaner, err := sql.Open("postgres", connStr)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", schemaName))
+
+			var diags tfdiags.Diagnostics
+			b := New().(*Backend)
+			schema := b.ConfigSchema()
+			spec := schema.DecoderSpec()
+			obj, decDiags := hcldec.Decode(config, spec, nil)
+			diags = diags.Append(decDiags)
+
+			newObj, valDiags := b.PrepareConfig(obj)
+			diags = diags.Append(valDiags.InConfigBody(config, ""))
+
+			if tc.ExpectError != "" {
+				if !diags.HasErrors() {
+					t.Fatal("error expected but got none")
+				}
+				if !strings.Contains(diags.ErrWithWarnings().Error(), tc.ExpectError) {
+					t.Fatalf("failed to find %q in %s", tc.ExpectError, diags.ErrWithWarnings())
+				}
+				return
+			} else if diags.HasErrors() {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+
+			obj = newObj
+
+			confDiags := b.Configure(obj)
+			if len(confDiags) != 0 {
+				confDiags = confDiags.InConfigBody(config, "")
+				t.Fatal(confDiags.ErrWithWarnings())
+			}
+
+			if b == nil {
+				t.Fatal("Backend could not be configured")
+			}
+
+			_, err = b.db.Query(fmt.Sprintf("SELECT name, data FROM %s.%s LIMIT 1", schemaName, statesTableName))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			_, err = b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			s, err := b.StateMgr(backend.DefaultStateName)
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := s.(*remote.State).Client.(*RemoteClient)
+			if c.Name != backend.DefaultStateName {
+				t.Fatal("RemoteClient name is not configured")
+			}
+
+			backend.TestBackendStates(t, b)
+		})
+	}
+
 }
 
 func TestBackendConfigSkipOptions(t *testing.T) {
@@ -243,7 +309,7 @@ func TestBackendStates(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer dbCleaner.Query("DROP SCHEMA IF EXISTS %s CASCADE", pq.QuoteIdentifier(schemaName))
+			defer dbCleaner.Query(fmt.Sprintf("DROP SCHEMA IF EXISTS %s CASCADE", pq.QuoteIdentifier(schemaName)))
 
 			config := backend.TestWrapConfig(map[string]interface{}{
 				"conn_str":    connStr,
