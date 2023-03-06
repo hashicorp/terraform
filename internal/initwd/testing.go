@@ -34,7 +34,7 @@ func LoadConfigForTests(t *testing.T, rootDir string) (*configs.Config, *configl
 	var diags tfdiags.Diagnostics
 
 	loader, cleanup := configload.NewLoaderForTests(t)
-	inst := NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 
 	_, moreDiags := inst.InstallModules(context.Background(), rootDir, true, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
