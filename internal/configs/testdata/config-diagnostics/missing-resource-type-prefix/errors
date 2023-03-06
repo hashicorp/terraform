@@ -1,0 +1,1 @@
+and so Terraform assumes it should belong to the default configuration for a provider named "s3" based on the prefix of the resource type name.

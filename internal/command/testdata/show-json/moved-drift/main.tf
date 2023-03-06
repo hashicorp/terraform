@@ -16,3 +16,11 @@ moved {
   from = test_instance.should_refresh
   to   = test_instance.should_refresh_with_move
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

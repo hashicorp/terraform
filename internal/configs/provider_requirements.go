@@ -62,7 +62,21 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 			}
 
 			rp.Requirement = vc
-			rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+			var ok bool
+			rp.Type, ok = addrs.ImpliedProviderForUnqualifiedType(pType)
+			if !ok {
+				// We get here if the name before the equals sign isn't
+				// one of the small set of names that were valid official
+				// providers before we started requiring explicit source
+				// addresses.
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_providers entry",
+					Detail:   "Aside from a small number of providers preserved for backward compatibility, all required_providers entries must be objects specifying a provider source address and optional version constraint.",
+					Subject:  attr.Expr.Range().Ptr(),
+				})
+				continue
+			}
 			ret.RequiredProviders[name] = rp
 
 			continue
@@ -235,7 +249,16 @@ func decodeRequiredProvidersBlock(block *hcl.Block) (*RequiredProviders, hcl.Dia
 					Subject:  attr.Expr.Range().Ptr(),
 				})
 			} else {
-				rp.Type = addrs.ImpliedProviderForUnqualifiedType(pType)
+				var ok bool
+				rp.Type, ok = addrs.ImpliedProviderForUnqualifiedType(pType)
+				if !ok {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Missing source address for provider requirement",
+						Detail:   "Each entry in required_providers must include the \"source\" attribute to specify the provider's fully-qualified address.",
+						Subject:  attr.Expr.Range().Ptr(),
+					})
+				}
 			}
 		}
 

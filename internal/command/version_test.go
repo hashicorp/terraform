@@ -24,13 +24,13 @@ func TestVersion(t *testing.T) {
 	// from it.
 	locks := depsfile.NewLocks()
 	locks.SetProvider(
-		addrs.NewDefaultProvider("test2"),
+		addrs.NewOfficialProvider("test2"),
 		getproviders.MustParseVersion("1.2.3"),
 		nil,
 		nil,
 	)
 	locks.SetProvider(
-		addrs.NewDefaultProvider("test1"),
+		addrs.NewOfficialProvider("test1"),
 		getproviders.MustParseVersion("7.8.9-beta.2"),
 		nil,
 		nil,
@@ -149,13 +149,13 @@ func TestVersion_json(t *testing.T) {
 	// from it.
 	locks := depsfile.NewLocks()
 	locks.SetProvider(
-		addrs.NewDefaultProvider("test2"),
+		addrs.NewOfficialProvider("test2"),
 		getproviders.MustParseVersion("1.2.3"),
 		nil,
 		nil,
 	)
 	locks.SetProvider(
-		addrs.NewDefaultProvider("test1"),
+		addrs.NewOfficialProvider("test1"),
 		getproviders.MustParseVersion("7.8.9-beta.2"),
 		nil,
 		nil,

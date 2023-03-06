@@ -9,3 +9,11 @@ locals {
 resource "test_instance" "foo" {
     foo = local.baz
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

@@ -1,11 +1,11 @@
-provider "foo" {
+provider "null" {
 
 }
 
-resource "bar_instance" "test" {
+resource "http_instance" "test" {
 
 }
 
-provider "baz" {
+provider "tls" {
   version = "1.2.0"
 }

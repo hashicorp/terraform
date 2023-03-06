@@ -1,6 +1,6 @@
 terraform {
   required_providers {
-    foo = {
+    tls = {
       version = "~>2.0.0"
     }
   }

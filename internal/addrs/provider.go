@@ -36,7 +36,68 @@ const BuiltInProviderNamespace = tfaddr.BuiltInProviderNamespace
 // FQN.
 const LegacyProviderNamespace = tfaddr.LegacyProviderNamespace
 
-func IsDefaultProvider(addr Provider) bool {
+// legacyImpliedProviders are providers that older versions of Terraform
+// would allow to be used without an explicit required_providers entry,
+// for backward compatibility with modules written for older Terraform
+// versions that didn't yet support third-party providers and so were
+// able to just assume _everything_ was an official provider.
+//
+// Although we've supported explicit provider source addresses since
+// Terraform v0.13, versions up to Terraform v1.4 just treated any unqualified
+// provider as an assumed-official provider and so in practice this map
+// includes official providers that were published after Terraform v0.13 but
+// before v1.4. Any new official providers published after Terraform CLI v1.4.0
+// should not be added here because there is no possibility of older modules
+// referring to them and therefore no backward-compatibility concern for them.
+var legacyImpliedProviders = map[string]Provider{
+	"ad":              NewOfficialProvider("ad"),
+	"archive":         NewOfficialProvider("archive"),
+	"aws":             NewOfficialProvider("aws"),
+	"awscc":           NewOfficialProvider("awscc"),
+	"azuread":         NewOfficialProvider("azuread"),
+	"azurerm":         NewOfficialProvider("azurerm"),
+	"azurestack":      NewOfficialProvider("azurestack"),
+	"boundary":        NewOfficialProvider("boundary"),
+	"cloudinit":       NewOfficialProvider("cloudinit"),
+	"consul":          NewOfficialProvider("consul"),
+	"dns":             NewOfficialProvider("dns"),
+	"external":        NewOfficialProvider("external"),
+	"google":          NewOfficialProvider("google"),
+	"google-beta":     NewOfficialProvider("google-beta"),
+	"googleworkspace": NewOfficialProvider("googleworkspace"),
+	"hashicups":       NewOfficialProvider("hashicups"),
+	"hcp":             NewOfficialProvider("hcp"),
+	"hcs":             NewOfficialProvider("hcs"),
+	"helm":            NewOfficialProvider("helm"),
+	"http":            NewOfficialProvider("http"),
+	"kubernetes":      NewOfficialProvider("kubernetes"),
+	"local":           NewOfficialProvider("local"),
+	"nomad":           NewOfficialProvider("nomad"),
+	"null":            NewOfficialProvider("null"),
+	"opc":             NewOfficialProvider("opc"),
+	"oraclepaas":      NewOfficialProvider("oraclepaas"),
+	"random":          NewOfficialProvider("random"),
+	"salesforce":      NewOfficialProvider("salesforce"),
+	"template":        NewOfficialProvider("template"),
+	"terraform":       NewBuiltInProvider("terraform"),
+	"tfcoremock":      NewOfficialProvider("tfcoremock"),
+	"tfe":             NewOfficialProvider("tfe"),
+	"time":            NewOfficialProvider("time"),
+	"tls":             NewOfficialProvider("tls"),
+	"vault":           NewOfficialProvider("vault"),
+	"vsphere":         NewOfficialProvider("vsphere"),
+}
+
+// IsOfficialProvider returns true if and only if the given provider address
+// belongs to the official public registry's "hashicorp" namespace.
+//
+// Packages for providers in that namespace should also typically be signed
+// with a HashiCorp private key, but this function only deals with the
+// address of the provider and not its packages and so it cannot guarantee
+// that any particular package belonging to an official provider is correctly
+// signed. The provider installer is responsible for verifying signatures
+// during installation.
+func IsOfficialProvider(addr Provider) bool {
 	return addr.Hostname == DefaultProviderRegistryHost && addr.Namespace == "hashicorp"
 }
 
@@ -55,33 +116,29 @@ func NewProvider(hostname svchost.Hostname, namespace, typeName string) Provider
 	return tfaddr.NewProvider(hostname, namespace, typeName)
 }
 
-// ImpliedProviderForUnqualifiedType represents the rules for inferring what
-// provider FQN a user intended when only a naked type name is available.
+// ImpliedProviderForUnqualifiedType implements the backward-compatibility rules
+// for handling modules that lack explicit required_providers declarations
+// because they were written before those were supported or before they were
+// required.
 //
-// For all except the type name "terraform" this returns a so-called "default"
-// provider, which is under the registry.terraform.io/hashicorp/ namespace.
+// Provider type names that were supported for implicit selection in Terraform
+// v1.3 or earlier will return the corresponding explicit provider source
+// address and true. Name that was not available as an implied provider before
+// Terraform v1.4 is invalid and so will return a zero-value provider and
+// false to indicate that the result isn't valid.
 //
-// As a special case, the string "terraform" maps to
-// "terraform.io/builtin/terraform" because that is the more likely user
-// intent than the now-unmaintained "registry.terraform.io/hashicorp/terraform"
-// which remains only for compatibility with older Terraform versions.
-func ImpliedProviderForUnqualifiedType(typeName string) Provider {
-	switch typeName {
-	case "terraform":
-		// Note for future maintainers: any additional strings we add here
-		// as implied to be builtin must never also be use as provider names
-		// in the registry.terraform.io/hashicorp/... namespace, because
-		// otherwise older versions of Terraform could implicitly select
-		// the registry name instead of the internal one.
-		return NewBuiltInProvider(typeName)
-	default:
-		return NewDefaultProvider(typeName)
-	}
+// All provider addresses successfully returned from this function will be
+// so-called "official providers" belonging to the "hashicorp" namespace on
+// the public registry, except for the special provider type "terraform" which
+// is treated as "terraform.io/builtin/terraform".
+func ImpliedProviderForUnqualifiedType(typeName string) (addr Provider, ok bool) {
+	addr, ok = legacyImpliedProviders[typeName]
+	return addr, ok
 }
 
-// NewDefaultProvider returns the default address of a HashiCorp-maintained,
+// NewOfficialProvider returns the default address of a HashiCorp-maintained,
 // Registry-hosted provider.
-func NewDefaultProvider(name string) Provider {
+func NewOfficialProvider(name string) Provider {
 	return tfaddr.Provider{
 		Type:      MustParseProviderPart(name),
 		Namespace: "hashicorp",

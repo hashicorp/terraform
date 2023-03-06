@@ -118,7 +118,7 @@ func TestGraph_plan(t *testing.T) {
 			After:  plans.DynamicValue(`null`),
 		},
 		ProviderAddr: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	})

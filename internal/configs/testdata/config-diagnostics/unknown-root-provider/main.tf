@@ -1,7 +1,7 @@
 module "mod" {
   source = "./mod"
   providers = {
-    // bar may be required by the module, but the name is not defined here
-    bar = bar
+    // null may be required by the module, but the name is not defined here
+    null = null
   }
 }

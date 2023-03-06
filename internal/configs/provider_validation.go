@@ -88,6 +88,12 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 		// check for duplicate requirements of the same type
 		for _, req := range mod.ProviderRequirements.RequiredProviders {
+			if req.Type.IsZero() {
+				// If we have a totally-unset type then that suggests it
+				// was too invalid to parse, and so we should already have
+				// reported an error about that earlier.
+				continue
+			}
 			if localTypes[req.Type.String()] {
 				// find the last declaration to give a better error
 				prevDecl := ""
@@ -106,7 +112,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 					),
 					Subject: &req.DeclRange,
 				})
-			} else if addrs.IsDefaultProvider(req.Type) {
+			} else if addrs.IsOfficialProvider(req.Type) {
 				// Now check for possible implied duplicates, where a provider
 				// block uses a default namespaced provider, but that provider
 				// was required via a different name.
@@ -170,7 +176,18 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 				continue
 			}
 
-			defAddr := addrs.ImpliedProviderForUnqualifiedType(localName)
+			defAddr, ok := addrs.ImpliedProviderForUnqualifiedType(localName)
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource for undeclared provider",
+					Detail: fmt.Sprintf(
+						"There is no provider with the local name %q declared in this module's required_providers block.\n\nThis resource does not explicitly select a provider configuration using the \"provider\" argument, and so Terraform assumes it should belong to the default configuration for a provider named %q based on the prefix of the resource type name. To correct this error, either declare this provider as a dependency in required_providers or explicitly select a configuration for a different provider using the optional \"provider\" argument.",
+						localName, localName,
+					),
+					Subject: r.DeclRange.Ptr(),
+				})
+			}
 
 			// Now make sure we don't have the same provider required under a
 			// different name.
@@ -232,7 +249,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			// configuration. We ignore empty configs, because they will
 			// already produce a warning.
 			if !(confOK || localOK) {
-				defAddr := addrs.NewDefaultProvider(name)
+				defAddr := addrs.NewOfficialProvider(name)
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Reference to undefined provider",
@@ -250,7 +267,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			// there won't be a configuration available at runtime if the
 			// parent module did not pass one in.
 			if !cfg.Path.IsRoot() && !(confOK || passedOK) {
-				defAddr := addrs.NewDefaultProvider(name)
+				defAddr := addrs.NewOfficialProvider(name)
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Missing required provider configuration",
@@ -333,7 +350,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 			// This means the child module is only using an inferred
 			// provider type. We allow this but will generate a warning to
 			// declare provider_requirements below.
-			childTy = addrs.NewDefaultProvider(passed.InChild.Name)
+			childTy = addrs.NewOfficialProvider(passed.InChild.Name)
 		}
 
 		providerAddr := addrs.AbsProviderConfig{
@@ -357,7 +374,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		if !(localName || configAlias || emptyConfig) {
 
 			// we still allow default configs, so switch to a warning if the incoming provider is a default
-			if addrs.IsDefaultProvider(providerAddr.Provider) {
+			if addrs.IsOfficialProvider(providerAddr.Provider) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  "Reference to undefined provider",
@@ -384,9 +401,10 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 		// The provider being passed in must also be of the correct type.
 		pTy := passed.InParent.providerType
 		if pTy.IsZero() {
-			// While we would like to ensure required_providers exists here,
-			// implied default configuration is still allowed.
-			pTy = addrs.NewDefaultProvider(passed.InParent.Name)
+			// If we don't have a real provider address here then that
+			// suggests this was an invalid provider reference, which we
+			// should've already reported on earlier.
+			continue
 		}
 
 		// use the full address for a nice diagnostic output
@@ -470,7 +488,7 @@ func validateProviderConfigs(parentCall *ModuleCall, cfg *Config, noProviderConf
 
 		sourceAddr, ok := localNames[name]
 		if !ok {
-			sourceAddr = addrs.NewDefaultProvider(providerLocalName)
+			sourceAddr = addrs.NewOfficialProvider(providerLocalName)
 		}
 
 		suggestion := providerReqSuggestions[providerLocalName]

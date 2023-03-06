@@ -27,7 +27,7 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -46,7 +46,7 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -66,7 +66,7 @@ func TestOrphanResourceInstanceTransformer(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -115,7 +115,7 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -132,7 +132,7 @@ func TestOrphanResourceInstanceTransformer_countGood(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -180,7 +180,7 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -197,7 +197,7 @@ func TestOrphanResourceInstanceTransformer_countBad(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -245,7 +245,7 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -262,7 +262,7 @@ func TestOrphanResourceInstanceTransformer_modules(t *testing.T) {
 				Status: states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)

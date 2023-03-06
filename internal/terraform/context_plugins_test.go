@@ -28,7 +28,7 @@ func simpleMockPluginLibrary() *contextPlugins {
 	provisioner := simpleMockProvisioner()
 	ret := &contextPlugins{
 		providerFactories: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): func() (providers.Interface, error) {
+			addrs.NewOfficialProvider("test"): func() (providers.Interface, error) {
 				return provider, nil
 			},
 		},

@@ -164,7 +164,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 					`module.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.single, but that module call is still declared at testdata/move-validate-zoo/move-validate-root.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.single, but that module call is still declared at testdata/move-validate-zoo/move-validate-root.tf:17,1.
 
 Change your configuration so that this call will be declared as module.other instead.`,
 		},
@@ -176,7 +176,7 @@ Change your configuration so that this call will be declared as module.other ins
 					`module.other[0]`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.single, but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.single, but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:17,1.
 
 Change your configuration so that this instance will be declared as module.other[0] instead.`,
 		},
@@ -188,7 +188,7 @@ Change your configuration so that this instance will be declared as module.other
 					`module.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.count[0], but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:12,12.
+			WantError: `Moved object still exists: This statement declares a move from module.count[0], but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:23,12.
 
 Change your configuration so that this instance will be declared as module.other instead.`,
 		},
@@ -200,7 +200,7 @@ Change your configuration so that this instance will be declared as module.other
 					`module.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.for_each["a"], but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:22,14.
+			WantError: `Moved object still exists: This statement declares a move from module.for_each["a"], but that module instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:33,14.
 
 Change your configuration so that this instance will be declared as module.other instead.`,
 		},
@@ -212,7 +212,7 @@ Change your configuration so that this instance will be declared as module.other
 					`test.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from test.single, but that resource is still declared at testdata/move-validate-zoo/move-validate-root.tf:27,1.
+			WantError: `Moved object still exists: This statement declares a move from test.single, but that resource is still declared at testdata/move-validate-zoo/move-validate-root.tf:38,1.
 
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},
@@ -224,7 +224,7 @@ Change your configuration so that this resource will be declared as test.other i
 					`test.other[0]`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from test.single, but that resource instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:27,1.
+			WantError: `Moved object still exists: This statement declares a move from test.single, but that resource instance is still declared at testdata/move-validate-zoo/move-validate-root.tf:38,1.
 
 Change your configuration so that this instance will be declared as test.other[0] instead.`,
 		},
@@ -236,7 +236,7 @@ Change your configuration so that this instance will be declared as test.other[0
 					`test.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:14,1.
 
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},
@@ -248,7 +248,7 @@ Change your configuration so that this resource will be declared as test.other i
 					`test.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:14,1.
 
 Change your configuration so that this resource will be declared as module.single.test.other instead.`,
 		},
@@ -260,7 +260,7 @@ Change your configuration so that this resource will be declared as module.singl
 					`test.other[0]`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource instance is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.single.test.single, but that resource instance is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:14,1.
 
 Change your configuration so that this instance will be declared as test.other[0] instead.`,
 		},
@@ -272,7 +272,7 @@ Change your configuration so that this instance will be declared as test.other[0
 					`test.other`,
 				),
 			},
-			WantError: `Moved object still exists: This statement declares a move from module.count[0].test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:6,1.
+			WantError: `Moved object still exists: This statement declares a move from module.count[0].test.single, but that resource is still declared at testdata/move-validate-zoo/child/move-validate-child.tf:14,1.
 
 Change your configuration so that this resource will be declared as test.other instead.`,
 		},

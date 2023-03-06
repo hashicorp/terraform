@@ -17,7 +17,7 @@ func TestBuildProviderConfig(t *testing.T) {
 	})
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 
 	ctx := &MockEvalContext{

@@ -38,7 +38,7 @@ func TestNodeApplyableProviderExecute(t *testing.T) {
 	provider := mockProviderWithConfigSchema(schema)
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
@@ -86,7 +86,7 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
@@ -121,7 +121,7 @@ func TestNodeApplyableProviderExecute_unknownApply(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
 		Addr:   providerAddr,
@@ -157,7 +157,7 @@ func TestNodeApplyableProviderExecute_sensitive(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
@@ -194,7 +194,7 @@ func TestNodeApplyableProviderExecute_sensitiveValidate(t *testing.T) {
 	provider := mockProviderWithConfigSchema(simpleTestSchema())
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 
 	n := &NodeApplyableProvider{&NodeAbstractProvider{
@@ -236,7 +236,7 @@ func TestNodeApplyableProviderExecute_emptyValidate(t *testing.T) {
 	})
 	providerAddr := addrs.AbsProviderConfig{
 		Module:   addrs.RootModule,
-		Provider: addrs.NewDefaultProvider("foo"),
+		Provider: addrs.NewOfficialProvider("foo"),
 	}
 
 	n := &NodeApplyableProvider{&NodeAbstractProvider{

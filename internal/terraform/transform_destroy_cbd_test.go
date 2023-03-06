@@ -11,6 +11,7 @@ import (
 )
 
 func cbdTestGraph(t *testing.T, mod string, changes *plans.Changes, state *states.State) *Graph {
+	t.Helper()
 	module := testModule(t, mod)
 
 	applyBuilder := &ApplyGraphBuilder{

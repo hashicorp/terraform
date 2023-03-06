@@ -11,3 +11,11 @@ output "test" {
 }
 
 provider "test" {}
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

@@ -120,8 +120,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 5, Column: 1, Byte: 180},
-				End:      tfdiags.SourcePos{Line: 5, Column: 32, Byte: 211},
+				Start:    tfdiags.SourcePos{Line: 13, Column: 1, Byte: 271},
+				End:      tfdiags.SourcePos{Line: 13, Column: 32, Byte: 302},
 			},
 		},
 
@@ -132,8 +132,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 5, Column: 1, Byte: 180},
-				End:      tfdiags.SourcePos{Line: 5, Column: 32, Byte: 211},
+				Start:    tfdiags.SourcePos{Line: 13, Column: 1, Byte: 271},
+				End:      tfdiags.SourcePos{Line: 13, Column: 32, Byte: 302},
 			},
 		},
 
@@ -143,8 +143,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 10, Column: 11, Byte: 282},
-				End:      tfdiags.SourcePos{Line: 10, Column: 12, Byte: 283},
+				Start:    tfdiags.SourcePos{Line: 18, Column: 11, Byte: 373},
+				End:      tfdiags.SourcePos{Line: 18, Column: 12, Byte: 374},
 			},
 		},
 
@@ -155,8 +155,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 10, Column: 11, Byte: 282},
-				End:      tfdiags.SourcePos{Line: 10, Column: 12, Byte: 283},
+				Start:    tfdiags.SourcePos{Line: 18, Column: 11, Byte: 373},
+				End:      tfdiags.SourcePos{Line: 18, Column: 12, Byte: 374},
 			},
 		},
 
@@ -171,8 +171,8 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
-				Start:    tfdiags.SourcePos{Line: 46, Column: 1, Byte: 806},
-				End:      tfdiags.SourcePos{Line: 46, Column: 27, Byte: 832},
+				Start:    tfdiags.SourcePos{Line: 54, Column: 1, Byte: 897},
+				End:      tfdiags.SourcePos{Line: 54, Column: 27, Byte: 923},
 			},
 		},
 	}

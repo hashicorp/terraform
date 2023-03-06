@@ -35,7 +35,7 @@ func TestContext2Refresh(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -90,7 +90,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 				AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -122,7 +122,7 @@ func TestContext2Refresh_dynamicAttr(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -197,7 +197,7 @@ func TestContext2Refresh_dataComputedModuleVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -261,7 +261,7 @@ func TestContext2Refresh_targeted(t *testing.T) {
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -343,7 +343,7 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -433,7 +433,7 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -486,7 +486,7 @@ func TestContext2Refresh_moduleComputedVar(t *testing.T) {
 	m := testModule(t, "refresh-module-computed-var")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -507,7 +507,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -531,7 +531,7 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	m := testModule(t, "refresh-basic")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -562,7 +562,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -589,7 +589,7 @@ func TestContext2Refresh_modules(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -647,7 +647,7 @@ func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -661,7 +661,7 @@ func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -676,7 +676,7 @@ func TestContext2Refresh_noState(t *testing.T) {
 	m := testModule(t, "refresh-no-state")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -722,7 +722,7 @@ func TestContext2Refresh_output(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -770,7 +770,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -796,7 +796,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -866,7 +866,7 @@ func TestContext2Refresh_dataCount(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -901,7 +901,7 @@ func TestContext2Refresh_dataState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -965,7 +965,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	state := states.NewState()
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1001,7 +1001,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
@@ -1083,7 +1083,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1177,7 +1177,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1218,7 +1218,7 @@ func TestContext2Validate(t *testing.T) {
 	m := testModule(t, "validate-good")
 	c := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1238,7 +1238,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1297,7 +1297,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 				},
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1305,7 +1305,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1379,7 +1379,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 				AttrsJSON:     []byte(`{"id":"foo"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1387,7 +1387,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1443,7 +1443,7 @@ data "aws_data_source" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1491,7 +1491,7 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1516,7 +1516,7 @@ func TestRefresh_updateLifecycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1535,7 +1535,7 @@ resource "aws_instance" "bar" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1569,7 +1569,7 @@ func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
 			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1581,7 +1581,7 @@ func TestContext2Refresh_dataSourceOrphan(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 

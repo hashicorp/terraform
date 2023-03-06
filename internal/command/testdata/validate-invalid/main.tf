@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resorce "test_instance" "foo" { # Intentional typo to test error reporting
     ami = "bar"
 

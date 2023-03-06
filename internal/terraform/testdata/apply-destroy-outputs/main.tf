@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 data "test_data_source" "bar" {
   for_each = {
     a = "b"

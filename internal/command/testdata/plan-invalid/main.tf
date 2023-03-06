@@ -8,3 +8,11 @@ resource "test_instance" "bar" {
   # so we can predict how many instances we will operate on.
   count = timestamp()
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

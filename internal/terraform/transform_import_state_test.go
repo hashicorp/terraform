@@ -42,7 +42,7 @@ func TestGraphNodeImportStateExecute(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		ID: "bar",
 		ResolvedProvider: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	}
@@ -96,7 +96,7 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		State: importedResource,
 		ResolvedProvider: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	}
@@ -156,7 +156,7 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 		}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
 		State: importedResource,
 		ResolvedProvider: addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	}

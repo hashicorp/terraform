@@ -112,7 +112,15 @@ func (c *Context) Input(config *configs.Config, mode InputMode) tfdiags.Diagnost
 				UIInput:     c.uiInput,
 			}
 
-			providerFqn := config.Module.ProviderForLocalConfig(pa)
+			providerFqn, ok := config.Module.ProviderForLocalConfig(pa)
+			if !ok {
+				// This configuration isn't valid, but we should've caught
+				// that during configuration loading so we shouldn't be
+				// able to get here in practice. Since input gathering is
+				// best-effort anyway, we'll just ignore it.
+				log.Printf("[TRACE] Context.Input: Ignoring invalid provider local name %q", pa.LocalName)
+				continue
+			}
 			schema := schemas.ProviderConfig(providerFqn)
 			if schema == nil {
 				// Could either be an incorrect config or just an incomplete

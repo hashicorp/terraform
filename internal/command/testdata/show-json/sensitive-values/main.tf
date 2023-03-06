@@ -11,3 +11,11 @@ output "test" {
   value = test_instance.test.ami
   sensitive = true
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

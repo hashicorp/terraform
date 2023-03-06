@@ -1,3 +1,10 @@
+terraform {
+  required_providers {
+    foo = {
+      source = "terraform.io/test-only/foo"
+    }
+  }
+}
 
 resource "foo" "bar" {
   count = 2

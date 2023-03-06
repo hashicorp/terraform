@@ -346,6 +346,14 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 
 	config := testModuleInline(t, map[string]string{
 		"main.tf": `
+			terraform {
+				required_providers {
+					test = {
+						source = "hashicorp/test"
+					}
+				}
+			}
+
 			resource "test" "a" {
 			}
 

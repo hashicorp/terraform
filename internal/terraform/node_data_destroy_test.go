@@ -20,7 +20,7 @@ func TestNodeDataDestroyExecute(t *testing.T) {
 			AttrsJSON: []byte(`{"dynamic":{"type":"string","value":"hello"}}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)

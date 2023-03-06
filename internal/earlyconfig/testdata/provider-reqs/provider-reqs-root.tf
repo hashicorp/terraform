@@ -11,9 +11,9 @@ terraform {
   }
 }
 
-# There is no provider in required_providers called "implied", so this
-# implicitly declares a dependency on "hashicorp/implied".
-resource "implied_foo" "bar" {
+# There is no provider in required_providers called "http", so this
+# implicitly declares a dependency on "hashicorp/http".
+resource "http_foo" "bar" {
 }
 
 module "child" {

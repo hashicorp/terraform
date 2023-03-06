@@ -40,7 +40,7 @@ func TestContext2Apply_basic(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -220,7 +220,7 @@ func TestContext2Apply_unstable(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -276,7 +276,7 @@ func TestContext2Apply_escape(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -304,7 +304,7 @@ func TestContext2Apply_resourceCountOneList(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -332,7 +332,7 @@ func TestContext2Apply_resourceCountZeroList(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -385,7 +385,7 @@ func TestContext2Apply_resourceDependsOnModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -457,7 +457,7 @@ func TestContext2Apply_resourceDependsOnModuleStateOnly(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -484,7 +484,7 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -525,7 +525,7 @@ func TestContext2Apply_resourceDependsOnModuleDestroy(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -578,7 +578,7 @@ func TestContext2Apply_resourceDependsOnModuleGrandchild(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -629,7 +629,7 @@ func TestContext2Apply_resourceDependsOnModuleInModule(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -656,7 +656,7 @@ func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -694,7 +694,7 @@ func TestContext2Apply_refCount(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -731,7 +731,7 @@ func TestContext2Apply_providerAlias(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): p,
+			addrs.NewOfficialProvider("aws"): p,
 		},
 	})
 
@@ -770,7 +770,7 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("another"): p,
+			addrs.NewOfficialProvider("another"): p,
 		},
 	})
 
@@ -802,7 +802,7 @@ func TestContext2Apply_providerAliasConfigure(t *testing.T) {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("another"): p,
+			addrs.NewOfficialProvider("another"): p,
 		},
 	})
 
@@ -834,7 +834,7 @@ func TestContext2Apply_providerWarning(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -869,7 +869,7 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -906,7 +906,7 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -986,7 +986,7 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1043,7 +1043,7 @@ func TestContext2Apply_createBeforeDestroy_dependsNonCBD(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1107,7 +1107,7 @@ func TestContext2Apply_createBeforeDestroy_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1183,7 +1183,7 @@ func TestContext2Apply_createBeforeDestroy_deposedCount(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1243,7 +1243,7 @@ func TestContext2Apply_createBeforeDestroy_deposedOnly(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1283,7 +1283,7 @@ func TestContext2Apply_destroyComputed(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1351,7 +1351,7 @@ func testContext2Apply_destroyDependsOn(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Parallelism: 1, // To check ordering
 	})
@@ -1388,7 +1388,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1413,7 +1413,7 @@ func TestContext2Apply_destroyDependsOnStateOnly(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1445,7 +1445,7 @@ func testContext2Apply_destroyDependsOnStateOnly(t *testing.T, state *states.Sta
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Parallelism: 1, // To check ordering
 	})
@@ -1482,7 +1482,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 			Dependencies: []addrs.ConfigResource{},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1507,7 +1507,7 @@ func TestContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -1540,7 +1540,7 @@ func testContext2Apply_destroyDependsOnStateOnlyModule(t *testing.T, state *stat
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Parallelism: 1, // To check ordering
 	})
@@ -1575,7 +1575,7 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{hook},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1627,7 +1627,7 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	hook := &testHook{}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 		Hooks: []Hook{hook},
 	})
@@ -1693,7 +1693,7 @@ func TestContext2Apply_destroySkipsCBD(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1730,7 +1730,7 @@ func TestContext2Apply_destroyModuleVarProviderConfig(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): p,
+			addrs.NewOfficialProvider("aws"): p,
 		},
 	})
 
@@ -1777,7 +1777,7 @@ func TestContext2Apply_destroyCrossProviders(t *testing.T) {
 	})
 
 	providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p_aws),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p_aws),
 	}
 
 	ctx, m, state := getContextForApply_destroyCrossProviders(t, m, providers)
@@ -1828,7 +1828,7 @@ func TestContext2Apply_minimal(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1854,7 +1854,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -1916,7 +1916,7 @@ func TestContext2Apply_cancelBlock(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2013,7 +2013,7 @@ func TestContext2Apply_cancelProvisioner(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -2118,7 +2118,7 @@ func TestContext2Apply_compute(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2178,7 +2178,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2228,7 +2228,7 @@ func TestContext2Apply_countDecreaseToOneX(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2290,7 +2290,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2357,7 +2357,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2408,7 +2408,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2434,7 +2434,7 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2466,7 +2466,7 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 	pr := testProvisioner()
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 	}
 
 	provisioners := map[string]provisioners.Factory{
@@ -2513,7 +2513,7 @@ func TestContext2Apply_foreachVariable(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2546,7 +2546,7 @@ func TestContext2Apply_moduleBasic(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2625,7 +2625,7 @@ func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2675,7 +2675,7 @@ func TestContext2Apply_moduleInheritAlias(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2722,7 +2722,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	m := testModule(t, "apply-orphan-resource")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -2734,7 +2734,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	// with the single instance associated with test_thing.one.
 	want := states.BuildState(func(s *states.SyncState) {
 		providerAddr := addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		}
 		oneAddr := addrs.Resource{
@@ -2757,7 +2757,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	m = testModule(t, "empty")
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
@@ -2822,7 +2822,7 @@ func TestContext2Apply_moduleOrphanInheritAlias(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2885,7 +2885,7 @@ func TestContext2Apply_moduleOrphanProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2925,7 +2925,7 @@ func TestContext2Apply_moduleOrphanGrandchildProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2959,7 +2959,7 @@ func TestContext2Apply_moduleGrandchildProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -2992,8 +2992,8 @@ func TestContext2Apply_moduleOnlyProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(p),
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(pTest),
+			addrs.NewOfficialProvider("aws"):  testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(pTest),
 		},
 	})
 
@@ -3019,7 +3019,7 @@ func TestContext2Apply_moduleProviderAlias(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3044,7 +3044,7 @@ func TestContext2Apply_moduleProviderAliasTargets(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3094,7 +3094,7 @@ func TestContext2Apply_moduleProviderCloseNested(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3131,7 +3131,7 @@ func TestContext2Apply_moduleVarRefExisting(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3156,7 +3156,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3176,7 +3176,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3204,7 +3204,7 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3232,7 +3232,7 @@ func TestContext2Apply_moduleTarget(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3285,8 +3285,8 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-			addrs.NewDefaultProvider("do"):  testProviderFuncFixed(pDO),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("do"):  testProviderFuncFixed(pDO),
 		},
 	})
 
@@ -3349,8 +3349,8 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
-				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
+				addrs.NewOfficialProvider("aws"):   testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("vault"): testProviderFuncFixed(p2),
 			},
 		})
 
@@ -3396,8 +3396,8 @@ func TestContext2Apply_multiProviderDestroy(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
-				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
+				addrs.NewOfficialProvider("aws"):   testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("vault"): testProviderFuncFixed(p2),
 			},
 		})
 
@@ -3462,8 +3462,8 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
-				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
+				addrs.NewOfficialProvider("aws"):   testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("vault"): testProviderFuncFixed(p2),
 			},
 		})
 
@@ -3511,8 +3511,8 @@ func TestContext2Apply_multiProviderDestroyChild(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"):   testProviderFuncFixed(p),
-				addrs.NewDefaultProvider("vault"): testProviderFuncFixed(p2),
+				addrs.NewOfficialProvider("aws"):   testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("vault"): testProviderFuncFixed(p2),
 			},
 		})
 
@@ -3546,7 +3546,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3578,7 +3578,7 @@ func TestContext2Apply_multiVar(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -3683,7 +3683,7 @@ func TestContext2Apply_multiVarComprehensive(t *testing.T) {
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3829,7 +3829,7 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3860,7 +3860,7 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -3894,7 +3894,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 		p.ApplyResourceChangeFn = testApplyFn
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -3958,7 +3958,7 @@ func TestContext2Apply_multiVarCountDec(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -4010,7 +4010,7 @@ func TestContext2Apply_multiVarMissingState(t *testing.T) {
 	// First, apply with a count of 3
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -4037,7 +4037,7 @@ func TestContext2Apply_outputOrphan(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -4065,7 +4065,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -4087,7 +4087,7 @@ func TestContext2Apply_outputOrphanModule(t *testing.T) {
 	// remaining output
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -4123,8 +4123,8 @@ func TestContext2Apply_providerComputedVar(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(p),
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(pTest),
+			addrs.NewOfficialProvider("aws"):  testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(pTest),
 		},
 	})
 
@@ -4161,7 +4161,7 @@ func TestContext2Apply_providerConfigureDisabled(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -4195,7 +4195,7 @@ func TestContext2Apply_provisionerModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4242,7 +4242,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4300,7 +4300,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4335,7 +4335,7 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4370,7 +4370,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4416,7 +4416,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4455,7 +4455,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
@@ -4501,7 +4501,7 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 	p.ApplyResourceChangeFn = func(req providers.ApplyResourceChangeRequest) (resp providers.ApplyResourceChangeResponse) {
@@ -4534,7 +4534,7 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-multi-depose-create-before-destroy")
 	p := testProvider("aws")
-	ps := map[addrs.Provider]providers.Factory{addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p)}
+	ps := map[addrs.Provider]providers.Factory{addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p)}
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
 		ResourceTypes: map[string]*configschema.Block{
 			"aws_instance": {
@@ -4754,7 +4754,7 @@ func TestContext2Apply_provisionerFailContinue(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4799,7 +4799,7 @@ func TestContext2Apply_provisionerFailContinueHook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4848,7 +4848,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4895,7 +4895,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -4959,7 +4959,7 @@ func TestContext2Apply_provisionerDestroyFailContinue(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5026,7 +5026,7 @@ func TestContext2Apply_provisionerDestroyFailContinueFail(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5092,7 +5092,7 @@ func TestContext2Apply_provisionerDestroyTainted(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5153,7 +5153,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5197,7 +5197,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5248,7 +5248,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5306,7 +5306,7 @@ func TestContext2Apply_provisionerMultiSelfRefSingle(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5358,7 +5358,7 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 			Provisioners: map[string]provisioners.Factory{
 				"shell": testProvisionerFuncFixed(pr),
@@ -5384,7 +5384,7 @@ func TestContext2Apply_provisionerExplicitSelfRef(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 			Provisioners: map[string]provisioners.Factory{
 				"shell": testProvisionerFuncFixed(pr),
@@ -5424,7 +5424,7 @@ func TestContext2Apply_provisionerForEachSelfRef(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5449,7 +5449,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5494,7 +5494,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	// Re-create context with state
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -5538,7 +5538,7 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5585,7 +5585,7 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5603,7 +5603,7 @@ func TestContext2Apply_destroyX(t *testing.T) {
 	ctx = testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5640,7 +5640,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5660,7 +5660,7 @@ func TestContext2Apply_destroyOrder(t *testing.T) {
 	ctx = testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5698,7 +5698,7 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5721,7 +5721,7 @@ func TestContext2Apply_destroyModulePrefix(t *testing.T) {
 	ctx = testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5759,7 +5759,7 @@ func TestContext2Apply_destroyNestedModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5797,7 +5797,7 @@ func TestContext2Apply_destroyDeeplyNestedModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -5826,7 +5826,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -5853,7 +5853,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		ctx := testContext2(t, &ContextOpts{
 			Hooks: []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -5873,7 +5873,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 		}
 
 		ctxOpts.Providers = map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		}
 
 		ctx, diags = NewContext(ctxOpts)
@@ -5904,7 +5904,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -5925,7 +5925,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 		ctx := testContext2(t, &ContextOpts{
 			Hooks: []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -5944,7 +5944,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 
 		ctxOpts.Providers =
 			map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			}
 
 		ctx, diags = NewContext(ctxOpts)
@@ -5976,7 +5976,7 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -5993,7 +5993,7 @@ func TestContext2Apply_destroyTargetWithModuleVariableAndCount(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -6050,7 +6050,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -6071,7 +6071,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 		ctx := testContext2(t, &ContextOpts{
 			Hooks: []Hook{h},
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -6088,7 +6088,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 
 		ctxOpts.Providers =
 			map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			}
 
 		ctx, diags = NewContext(ctxOpts)
@@ -6128,7 +6128,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6145,7 +6145,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	// Next, plan and apply a destroy operation
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6167,7 +6167,7 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	// destroying again should produce no errors
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	plan, diags = ctx.Plan(m, state, &PlanOpts{
@@ -6195,7 +6195,7 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 	)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6234,7 +6234,7 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -6269,7 +6269,7 @@ func TestContext2Apply_error(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6331,7 +6331,7 @@ func TestContext2Apply_errorDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6347,7 +6347,7 @@ func TestContext2Apply_errorDestroy(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"baz"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -6405,7 +6405,7 @@ func TestContext2Apply_errorCreateInvalidNew(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6463,7 +6463,7 @@ func TestContext2Apply_errorUpdateNullNew(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6479,7 +6479,7 @@ func TestContext2Apply_errorUpdateNullNew(t *testing.T) {
 				AttrsJSON: []byte(`{"value":"old"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -6536,7 +6536,7 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6579,7 +6579,7 @@ func TestContext2Apply_hook(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6621,7 +6621,7 @@ func TestContext2Apply_hookOrphan(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6648,7 +6648,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 	p := testProvider("aws")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6685,7 +6685,7 @@ func TestContext2Apply_outputBasic(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6711,7 +6711,7 @@ func TestContext2Apply_outputAdd(t *testing.T) {
 	p1.PlanResourceChangeFn = testDiffFn
 	ctx1 := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p1),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p1),
 		},
 	})
 
@@ -6729,7 +6729,7 @@ func TestContext2Apply_outputAdd(t *testing.T) {
 	p2.PlanResourceChangeFn = testDiffFn
 	ctx2 := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p2),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p2),
 		},
 	})
 
@@ -6755,7 +6755,7 @@ func TestContext2Apply_outputList(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6781,7 +6781,7 @@ func TestContext2Apply_outputMulti(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6807,7 +6807,7 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6859,7 +6859,7 @@ func TestContext2Apply_taintX(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6914,7 +6914,7 @@ func TestContext2Apply_taintDep(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6965,7 +6965,7 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -6995,7 +6995,7 @@ func TestContext2Apply_targeted(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7035,7 +7035,7 @@ func TestContext2Apply_targetedCount(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7077,7 +7077,7 @@ func TestContext2Apply_targetedCountIndex(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7133,7 +7133,7 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7216,7 +7216,7 @@ func TestContext2Apply_targetedDestroyCountDeps(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7282,7 +7282,7 @@ func TestContext2Apply_targetedDestroyModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7365,7 +7365,7 @@ func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7410,7 +7410,7 @@ func TestContext2Apply_targetedModule(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7459,7 +7459,7 @@ func TestContext2Apply_targetedModuleDep(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7517,7 +7517,7 @@ func TestContext2Apply_targetedModuleUnrelatedOutputs(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7563,7 +7563,7 @@ func TestContext2Apply_targetedModuleResource(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7616,7 +7616,7 @@ func TestContext2Apply_targetedResourceOrphanModule(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7662,7 +7662,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7687,7 +7687,7 @@ func TestContext2Apply_unknownAttributeInterpolate(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7829,7 +7829,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -7855,7 +7855,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -7863,7 +7863,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -7957,7 +7957,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"bar","require_new":"ami-old"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -7983,7 +7983,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("aws"),
+			Provider: addrs.NewOfficialProvider("aws"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -7991,7 +7991,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8029,7 +8029,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 	// Apply cleanly step 0
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("template"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8046,7 +8046,7 @@ func TestContext2Apply_issue7824(t *testing.T) {
 
 	ctxOpts.Providers =
 		map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("template"): testProviderFuncFixed(p),
 		}
 
 	ctx, diags = NewContext(ctxOpts)
@@ -8085,7 +8085,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	m := testModule(t, "issue-5254/step-0")
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("template"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8104,7 +8104,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	// Application success. Now make the modification and store a plan
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("template"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8120,7 +8120,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 	}
 
 	ctxOpts.Providers = map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("template"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("template"): testProviderFuncFixed(p),
 	}
 
 	ctx, diags = NewContext(ctxOpts)
@@ -8174,7 +8174,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8197,7 +8197,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	}
 
 	ctxOpts.Providers = map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 	}
 
 	ctx, diags = NewContext(ctxOpts)
@@ -8241,7 +8241,7 @@ func TestContext2Apply_ignoreChangesCreate(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8351,7 +8351,7 @@ func TestContext2Apply_ignoreChangesWithDep(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8382,7 +8382,7 @@ func TestContext2Apply_ignoreChangesAll(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8426,7 +8426,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -8443,7 +8443,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 	{
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -8460,7 +8460,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 		}
 
 		ctxOpts.Providers = map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		}
 
 		ctx, diags = NewContext(ctxOpts)
@@ -8501,7 +8501,7 @@ resource "null_instance" "depends" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8588,7 +8588,7 @@ resource "null_instance" "depends" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8616,7 +8616,7 @@ func TestContext2Apply_terraformWorkspace(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Meta: &ContextMeta{Env: "foo"},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8642,7 +8642,7 @@ func TestContext2Apply_multiRef(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8667,7 +8667,7 @@ func TestContext2Apply_targetedModuleRecursive(t *testing.T) {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8751,7 +8751,7 @@ func TestContext2Apply_destroyWithLocals(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8790,7 +8790,7 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8804,7 +8804,7 @@ func TestContext2Apply_providerWithLocals(t *testing.T) {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8845,7 +8845,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8859,7 +8859,7 @@ func TestContext2Apply_destroyWithProviders(t *testing.T) {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -8950,7 +8950,7 @@ func TestContext2Apply_providersFromState(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := testContext2(t, &ContextOpts{
 				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+					addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 				},
 			})
 
@@ -8984,7 +8984,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 	}
 
 	state := states.NewState()
@@ -9034,7 +9034,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	p := testProvider("aws")
 	p.PlanResourceChangeFn = testDiffFn
 	providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 	}
 
 	state := states.NewState()
@@ -9097,7 +9097,7 @@ func TestContext2Apply_scaleInMultivarRef(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 	}
 
 	state := states.NewState()
@@ -9206,7 +9206,7 @@ func TestContext2Apply_inconsistentWithPlan(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -9253,7 +9253,7 @@ func TestContext2Apply_issue19908(t *testing.T) {
 	}
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -9269,7 +9269,7 @@ func TestContext2Apply_issue19908(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -9324,7 +9324,7 @@ func TestContext2Apply_invalidIndexRef(t *testing.T) {
 	m := testModule(t, "apply-invalid-index")
 	c := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	diags := c.Validate(m)
@@ -9386,7 +9386,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 				CreateBeforeDestroy: mode == "cbd",
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -9403,7 +9403,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 				AttrsJSON: []byte(`{"id":"b","require_new":"old"}`),
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("aws"),
+				Provider: addrs.NewOfficialProvider("aws"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -9439,7 +9439,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 
 		ctx := testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -9452,7 +9452,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 						Name: "a",
 					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance.Child("a", addrs.NoKey)),
 					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("aws"),
+						Provider: addrs.NewOfficialProvider("aws"),
 						Module:   addrs.RootModule,
 					},
 					ChangeSrc: plans.ChangeSrc{
@@ -9468,7 +9468,7 @@ func TestContext2Apply_moduleReplaceCycle(t *testing.T) {
 						Name: "b",
 					}.Instance(addrs.IntKey(0)).Absolute(addrs.RootModuleInstance.Child("b", addrs.NoKey)),
 					ProviderAddr: addrs.AbsProviderConfig{
-						Provider: addrs.NewDefaultProvider("aws"),
+						Provider: addrs.NewOfficialProvider("aws"),
 						Module:   addrs.RootModule,
 					},
 					ChangeSrc: plans.ChangeSrc{
@@ -9525,7 +9525,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("null"),
+			Provider: addrs.NewOfficialProvider("null"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9550,7 +9550,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9565,14 +9565,14 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"old"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("null"),
+			Provider: addrs.NewOfficialProvider("null"),
 			Module:   addrs.RootModule,
 		},
 	)
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
-		addrs.NewDefaultProvider("test"): testProviderFuncFixed(tp),
+		addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("test"): testProviderFuncFixed(tp),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -9672,7 +9672,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"a","foo":"a"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9687,7 +9687,7 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"b","foo":"b"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9702,13 +9702,13 @@ func TestContext2Apply_taintedDestroyFailure(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"c","foo":"old"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -9815,7 +9815,7 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 	}
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 	}
 
 	provisioners := map[string]provisioners.Factory{
@@ -9877,7 +9877,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9902,7 +9902,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			},
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -9917,13 +9917,13 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 			AttrsJSON: []byte(`{"id":"c","require_new":"old"}`),
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
 
 	Providers := map[addrs.Provider]providers.Factory{
-		addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 	}
 
 	hook := &testHook{}
@@ -9991,7 +9991,7 @@ func TestContext2Apply_ProviderMeta_apply_set(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10071,7 +10071,7 @@ func TestContext2Apply_ProviderMeta_apply_unset(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10120,7 +10120,7 @@ func TestContext2Apply_ProviderMeta_plan_set(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10187,7 +10187,7 @@ func TestContext2Apply_ProviderMeta_plan_unset(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10217,7 +10217,7 @@ func TestContext2Apply_ProviderMeta_plan_setNoSchema(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10265,7 +10265,7 @@ func TestContext2Apply_ProviderMeta_plan_setInvalid(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10327,7 +10327,7 @@ func TestContext2Apply_ProviderMeta_refresh_set(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10396,7 +10396,7 @@ func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10411,7 +10411,7 @@ func TestContext2Apply_ProviderMeta_refresh_setNoSchema(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10461,7 +10461,7 @@ func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10483,7 +10483,7 @@ func TestContext2Apply_ProviderMeta_refresh_setInvalid(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10535,7 +10535,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_set(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	rdsPMs := map[string]cty.Value{}
@@ -10629,7 +10629,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_unset(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	rdsPMs := map[string]cty.Value{}
@@ -10686,7 +10686,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_setNoSchema(t *testing.T) {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
@@ -10740,7 +10740,7 @@ func TestContext2Apply_ProviderMeta_refreshdata_setInvalid(t *testing.T) {
 	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(schema)
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
@@ -10816,7 +10816,7 @@ output "out" {
 	p.ApplyResourceChangeFn = testApplyFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10875,7 +10875,7 @@ resource "aws_instance" "cbd" {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10947,7 +10947,7 @@ func TestContext2Apply_moduleDependsOn(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -10987,6 +10987,14 @@ output "c" {
 }
 `,
 		"test/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "a" {}
 
 resource "test_instance" "test" {
@@ -11004,7 +11012,7 @@ output "c" {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11020,7 +11028,7 @@ output "c" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11044,6 +11052,14 @@ output "c" {
 func TestContext2Apply_moduleExpandDependsOn(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 module "child" {
   count = 1
   source = "./child"
@@ -11059,6 +11075,14 @@ resource "test_instance" "b" {
 }
 `,
 		"child/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_instance" "foo" {
 }
 
@@ -11071,7 +11095,7 @@ output "myoutput" {
 	p.PlanResourceChangeFn = testDiffFn
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11087,7 +11111,7 @@ output "myoutput" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11111,6 +11135,14 @@ output "myoutput" {
 func TestContext2Apply_scaleInCBD(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "ct" {
   type = number
 }
@@ -11223,7 +11255,7 @@ locals {
 	// reduce the count to 1
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11286,7 +11318,7 @@ locals {
 	// reduce the count to 0
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11344,6 +11376,14 @@ locals {
 func TestContext2Apply_destroyProviderReference(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 provider "null" {
   value = ""
 }
@@ -11454,8 +11494,8 @@ output "output" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testP),
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(nullP),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(testP),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(nullP),
 		},
 	})
 
@@ -11469,8 +11509,8 @@ output "output" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testP),
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(nullP),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(testP),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(nullP),
 		},
 	})
 
@@ -11489,6 +11529,14 @@ output "output" {
 func TestContext2Apply_destroyInterModuleExpansion(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 data "test_data_source" "a" {
   for_each = {
     one = "thing"
@@ -11523,6 +11571,14 @@ output "test_instances" {
 }
 `,
 		"mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "input" {
 }
 
@@ -11548,7 +11604,7 @@ output "outputs" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11563,7 +11619,7 @@ output "outputs" {
 	destroy := func() {
 		ctx = testContext2(t, &ContextOpts{
 			Providers: map[addrs.Provider]providers.Factory{
-				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+				addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 			},
 		})
 
@@ -11586,6 +11642,14 @@ output "outputs" {
 func TestContext2Apply_createBeforeDestroyWithModule(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "v" {}
 
 module "mod" {
@@ -11602,6 +11666,14 @@ resource "test_resource" "a" {
 }
 `,
 		"mod/main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "in" {}
 
 resource "test_resource" "a" {
@@ -11628,7 +11700,7 @@ resource "test_resource" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11649,7 +11721,7 @@ resource "test_resource" "a" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11672,6 +11744,14 @@ resource "test_resource" "a" {
 func TestContext2Apply_forcedCBD(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "v" {}
 
 resource "test_instance" "a" {
@@ -11691,7 +11771,7 @@ resource "test_instance" "b" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11712,7 +11792,7 @@ resource "test_instance" "b" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11735,6 +11815,14 @@ resource "test_instance" "b" {
 func TestContext2Apply_removeReferencedResource(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "ct" {
 }
 
@@ -11752,7 +11840,7 @@ resource "test_resource" "c" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11773,7 +11861,7 @@ resource "test_resource" "c" {
 
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11796,6 +11884,14 @@ resource "test_resource" "c" {
 func TestContext2Apply_variableSensitivity(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "sensitive_var" {
 	default = "foo"
 	sensitive = true
@@ -11852,7 +11948,7 @@ resource "test_resource" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11867,7 +11963,7 @@ resource "test_resource" "foo" {
 	// Run a second apply with no changes
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11882,7 +11978,7 @@ resource "test_resource" "foo" {
 	// Now change the variable value for sensitive_var
 	ctx = testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11906,6 +12002,14 @@ resource "test_resource" "foo" {
 func TestContext2Apply_variableSensitivityPropagation(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "sensitive_map" {
 	type = map(string)
 	default = {
@@ -11925,7 +12029,7 @@ resource "test_resource" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -11963,6 +12067,14 @@ resource "test_resource" "foo" {
 func TestContext2Apply_variableSensitivityProviders(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "foo" {
 	sensitive_value = "should get marked"
 }
@@ -11988,7 +12100,7 @@ resource "test_resource" "baz" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12036,6 +12148,14 @@ resource "test_resource" "baz" {
 func TestContext2Apply_variableSensitivityChange(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "sensitive_var" {
 	default = "hello"
 	sensitive = true
@@ -12051,7 +12171,7 @@ resource "test_resource" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12068,7 +12188,7 @@ resource "test_resource" "foo" {
 				// No AttrSensitivePaths present
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -12099,6 +12219,14 @@ resource "test_resource" "foo" {
 
 	m2 := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "sensitive_var" {
 	default = "hello"
 	sensitive = false
@@ -12111,7 +12239,7 @@ resource "test_resource" "foo" {
 
 	ctx2 := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12394,7 +12522,7 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("aws"): testProviderFuncFixed(p),
 		},
 		Provisioners: map[string]provisioners.Factory{
 			"shell": testProvisionerFuncFixed(pr),
@@ -12447,6 +12575,14 @@ func TestContext2Apply_provisionerSensitive(t *testing.T) {
 func TestContext2Apply_warnings(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_resource" "foo" {
 }`,
 	})
@@ -12463,7 +12599,7 @@ resource "test_resource" "foo" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12484,6 +12620,14 @@ resource "test_resource" "foo" {
 func TestContext2Apply_rpcDiagnostics(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_instance" "a" {
 }
 `,
@@ -12509,7 +12653,7 @@ resource "test_instance" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
@@ -12550,7 +12694,7 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("null"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12605,7 +12749,7 @@ func TestContext2Apply_errorRestorePrivateData(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12650,7 +12794,7 @@ func TestContext2Apply_errorRestoreStatus(t *testing.T) {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12692,6 +12836,14 @@ func TestContext2Apply_nonConformingResponse(t *testing.T) {
 	// empty config to remove our resource
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
   test_string = "x"
 }
@@ -12712,7 +12864,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 
@@ -12738,6 +12890,14 @@ func TestContext2Apply_nilResponse(t *testing.T) {
 	// empty config to remove our resource
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 resource "test_object" "a" {
 }
 `,
@@ -12748,7 +12908,7 @@ resource "test_object" "a" {
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			addrs.NewOfficialProvider("test"): testProviderFuncFixed(p),
 		},
 	})
 

@@ -53,8 +53,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"default": {
-							Name: "default",
+						"aws": {
+							Name: "aws",
 							Expr: hcltest.MockExprLiteral(cty.StringVal("1.0.0")),
 						},
 					},
@@ -63,9 +63,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"default": {
-						Name:        "default",
-						Type:        addrs.NewDefaultProvider("default"),
+					"aws": {
+						Name:        "aws",
+						Type:        addrs.NewOfficialProvider("aws"),
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
 					},
@@ -107,8 +107,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"legacy": {
-							Name: "legacy",
+						"aws": {
+							Name: "aws",
 							Expr: hcltest.MockExprLiteral(cty.StringVal("1.0.0")),
 						},
 						"my-test": {
@@ -124,9 +124,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"legacy": {
-						Name:        "legacy",
-						Type:        addrs.NewDefaultProvider("legacy"),
+					"aws": {
+						Name:        "aws",
+						Type:        addrs.NewOfficialProvider("aws"),
 						Requirement: testVC("1.0.0"),
 						DeclRange:   mockRange,
 					},
@@ -146,8 +146,8 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 				Type: "required_providers",
 				Body: hcltest.MockBody(&hcl.BodyContent{
 					Attributes: hcl.Attributes{
-						"test": {
-							Name: "test",
+						"azurerm": {
+							Name: "azurerm",
 							Expr: hcltest.MockExprLiteral(cty.ObjectVal(map[string]cty.Value{
 								"version": cty.StringVal("~>2.0.0"),
 							})),
@@ -158,9 +158,9 @@ func TestDecodeRequiredProvidersBlock(t *testing.T) {
 			},
 			Want: &RequiredProviders{
 				RequiredProviders: map[string]*RequiredProvider{
-					"test": {
-						Name:        "test",
-						Type:        addrs.NewDefaultProvider("test"),
+					"azurerm": {
+						Name:        "azurerm",
+						Type:        addrs.NewOfficialProvider("azurerm"),
 						Requirement: testVC("~>2.0.0"),
 						DeclRange:   mockRange,
 					},

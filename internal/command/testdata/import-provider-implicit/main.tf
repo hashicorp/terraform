@@ -2,3 +2,11 @@
 # "test" provider, making it available for import.
 resource "test_instance" "foo" {
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

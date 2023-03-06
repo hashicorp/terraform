@@ -12,3 +12,17 @@ provider "between" {
   # that we can parse that form too.
   version = "> 1.0.0 , <3.0.0"
 }
+
+terraform {
+  required_providers {
+    exact = {
+      source = "hashicorp/exact"
+    }
+    greater-than = {
+      source = "hashicorp/greater-than"
+    }
+    between = {
+      source = "hashicorp/between"
+    }
+  }
+}

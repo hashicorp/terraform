@@ -227,6 +227,11 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 	}
 
 	for providerAddr, constraints := range reqs {
+		if providerAddr.IsZero() {
+			// Suggests that it was found to be invalid during config decoding,
+			// in which case we should've reported errors about that earlier.
+			continue
+		}
 		if !depsfile.ProviderIsLockable(providerAddr) {
 			continue // disregard builtin providers, and such
 		}
@@ -394,7 +399,16 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 
 	// "provider" block can also contain version constraints
 	for _, provider := range c.Module.ProviderConfigs {
-		fqn := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
+		fqn, ok := c.Module.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: provider.Name})
+		if !ok {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Configuration for undeclared provider",
+				Detail:   fmt.Sprintf("There is no provider with local name %q declared in this module's required_providers block.", provider.Name),
+				Subject:  provider.NameRange.Ptr(),
+			})
+			continue
+		}
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
 			// add to this in the loop below.
@@ -453,7 +467,7 @@ func (c *Config) resolveProviderTypes() {
 		if required {
 			p.providerType = addr
 		} else {
-			addr := addrs.NewDefaultProvider(p.Name)
+			addr := addrs.NewOfficialProvider(p.Name)
 			p.providerType = addr
 			providers[p.Name] = addr
 		}
@@ -508,16 +522,22 @@ func (c *Config) ProviderTypes() []addrs.Provider {
 // If the given address is already an AbsProviderConfig then this method returns
 // it verbatim, and will always succeed. If it's a LocalProviderConfig then
 // it will consult the local-to-FQN mapping table for the given module
-// to find the absolute address corresponding to the given local one.
+// to find the absolute address corresponding to the given local one, if
+// possible.
+//
+// Resolution can fail (ok is false) if an unqualified address doesn't match
+// any of the module's declared local provider names and if the local name
+// isn't one of the fixed set of legacy names that we allow for backward
+// compatibility with modules written for earlier versions of Terraform.
 //
 // The module address to resolve local addresses in must be given in the second
 // argument, and must refer to a module that exists under the receiver or
 // else this method will panic.
-func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addrs.Module) addrs.AbsProviderConfig {
-	switch addr := addr.(type) {
+func (c *Config) ResolveAbsProviderAddr(localAddr addrs.ProviderConfig, inModule addrs.Module) (addr addrs.AbsProviderConfig, ok bool) {
+	switch localAddr := localAddr.(type) {
 
 	case addrs.AbsProviderConfig:
-		return addr
+		return localAddr, true
 
 	case addrs.LocalProviderConfig:
 		// Find the descendent Config that contains the module that this
@@ -528,17 +548,21 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 		}
 
 		var provider addrs.Provider
-		if providerReq, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
+		if providerReq, exists := c.Module.ProviderRequirements.RequiredProviders[localAddr.LocalName]; exists {
 			provider = providerReq.Type
 		} else {
-			provider = addrs.ImpliedProviderForUnqualifiedType(addr.LocalName)
+			var ok bool
+			provider, ok = addrs.ImpliedProviderForUnqualifiedType(localAddr.LocalName)
+			if !ok {
+				return addrs.AbsProviderConfig{}, false
+			}
 		}
 
 		return addrs.AbsProviderConfig{
 			Module:   inModule,
 			Provider: provider,
-			Alias:    addr.Alias,
-		}
+			Alias:    localAddr.Alias,
+		}, true
 
 	default:
 		panic(fmt.Sprintf("cannot ResolveAbsProviderAddr(%v, ...)", addr))
@@ -549,9 +573,13 @@ func (c *Config) ResolveAbsProviderAddr(addr addrs.ProviderConfig, inModule addr
 // ProviderForConfigAddr returns the FQN for a given addrs.ProviderConfig, first
 // by checking for the provider in module.ProviderRequirements and falling
 // back to addrs.NewDefaultProvider if it is not found.
-func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Provider {
+func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) (addrs.Provider, bool) {
 	if provider, exists := c.Module.ProviderRequirements.RequiredProviders[addr.LocalName]; exists {
-		return provider.Type
+		return provider.Type, true
 	}
-	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
+	configAddr, ok := c.ResolveAbsProviderAddr(addr, addrs.RootModule)
+	if !ok {
+		return addrs.Provider{}, false
+	}
+	return configAddr.Provider, true
 }

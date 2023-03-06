@@ -116,7 +116,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 				schema, _ := schemas.ResourceTypeConfig(
-					addrs.NewDefaultProvider("test"),
+					addrs.NewOfficialProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
@@ -125,7 +125,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Addr:        addr,
 					PrevRunAddr: addr,
 					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
-						addrs.NewDefaultProvider("test"),
+						addrs.NewOfficialProvider("test"),
 					),
 					Change: plans.Change{
 						Action: plans.Update,
@@ -157,7 +157,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 				schema, _ := schemas.ResourceTypeConfig(
-					addrs.NewDefaultProvider("test"),
+					addrs.NewOfficialProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
@@ -166,7 +166,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Addr:        addr,
 					PrevRunAddr: addr,
 					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
-						addrs.NewDefaultProvider("test"),
+						addrs.NewOfficialProvider("test"),
 					),
 					Change: plans.Change{
 						Action: plans.Update,
@@ -204,7 +204,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Name: "somewhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 				schema, _ := schemas.ResourceTypeConfig(
-					addrs.NewDefaultProvider("test"),
+					addrs.NewOfficialProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
@@ -213,7 +213,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Addr:        addr,
 					PrevRunAddr: addr,
 					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
-						addrs.NewDefaultProvider("test"),
+						addrs.NewOfficialProvider("test"),
 					),
 					Change: plans.Change{
 						Action: plans.Update,
@@ -250,7 +250,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Name: "anywhere",
 				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
 				schema, _ := schemas.ResourceTypeConfig(
-					addrs.NewDefaultProvider("test"),
+					addrs.NewOfficialProvider("test"),
 					addr.Resource.Resource.Mode,
 					addr.Resource.Resource.Type,
 				)
@@ -259,7 +259,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 					Addr:        addr,
 					PrevRunAddr: addrPrev,
 					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
-						addrs.NewDefaultProvider("test"),
+						addrs.NewOfficialProvider("test"),
 					),
 					Change: plans.Change{
 						Action: plans.NoOp,
@@ -302,7 +302,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 								Status:    states.ObjectReady,
 								AttrsJSON: []byte(`{}`),
 							},
-							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewDefaultProvider("test")),
+							addrs.RootModuleInstance.ProviderConfigDefault(addrs.NewOfficialProvider("test")),
 						)
 					}),
 					PriorState: states.NewState(),

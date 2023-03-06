@@ -9,3 +9,11 @@ resource "test_instance" "test" {
 module "child" {
   source = "./child"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

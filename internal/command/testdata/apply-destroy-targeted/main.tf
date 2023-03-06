@@ -5,3 +5,11 @@ resource "test_instance" "foo" {
 resource "test_load_balancer" "foo" {
   instances = test_instance.foo.*.id
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

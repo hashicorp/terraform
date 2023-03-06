@@ -9,7 +9,7 @@ import (
 )
 
 func TestLocksEqual(t *testing.T) {
-	boopProvider := addrs.NewDefaultProvider("boop")
+	boopProvider := addrs.NewOfficialProvider("boop")
 	v2 := getproviders.MustParseVersion("2.0.0")
 	v2LocalBuild := getproviders.MustParseVersion("2.0.0+awesomecorp.1")
 	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
@@ -83,7 +83,7 @@ func TestLocksEqual(t *testing.T) {
 }
 
 func TestLocksEqualProviderAddress(t *testing.T) {
-	boopProvider := addrs.NewDefaultProvider("boop")
+	boopProvider := addrs.NewOfficialProvider("boop")
 	v2 := getproviders.MustParseVersion("2.0.0")
 	v2LocalBuild := getproviders.MustParseVersion("2.0.0+awesomecorp.1")
 	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
@@ -141,8 +141,8 @@ func TestLocksEqualProviderAddress(t *testing.T) {
 }
 
 func TestLocksProviderSetRemove(t *testing.T) {
-	beepProvider := addrs.NewDefaultProvider("beep")
-	boopProvider := addrs.NewDefaultProvider("boop")
+	beepProvider := addrs.NewOfficialProvider("beep")
+	boopProvider := addrs.NewOfficialProvider("boop")
 	v2 := getproviders.MustParseVersion("2.0.0")
 	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
 	v2GtConstraints := getproviders.MustParseVersionConstraints(">= 2.0.0")
@@ -218,7 +218,7 @@ func TestLocksProviderSetRemove(t *testing.T) {
 }
 
 func TestProviderLockContainsAll(t *testing.T) {
-	provider := addrs.NewDefaultProvider("provider")
+	provider := addrs.NewOfficialProvider("provider")
 	v2 := getproviders.MustParseVersion("2.0.0")
 	v2EqConstraints := getproviders.MustParseVersionConstraints("2.0.0")
 

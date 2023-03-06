@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    another = {
+      source = "hashicorp/another"
+    }
+  }
+}
+
 provider "another" {
   foo = "bar"
 }

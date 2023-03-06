@@ -105,7 +105,16 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements) tfdiags
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.ImpliedProviderForUnqualifiedType(localName)
+			var ok bool
+			fqn, ok = addrs.ImpliedProviderForUnqualifiedType(localName)
+			if !ok {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Missing source address for provider requirement",
+					fmt.Sprintf("Each entry in required_providers must include the \"source\" attribute to specify the provider's fully-qualified address, but the entry for local name %q has no such argument.", localName),
+				))
+				continue
+			}
 		}
 		if _, ok := reqs[fqn]; !ok {
 			// We'll at least have an unconstrained dependency then, but might
@@ -170,7 +179,7 @@ func (c *Config) ProviderDependencies() (*moduledeps.Module, tfdiags.Diagnostics
 			fqn = addr
 		}
 		if fqn.IsZero() {
-			fqn = addrs.NewDefaultProvider(name)
+			fqn = addrs.NewOfficialProvider(name)
 		}
 		var constraints version.Constraints
 		for _, reqStr := range reqs.VersionConstraints {

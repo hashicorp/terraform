@@ -9,3 +9,11 @@ module "foo" {
 resource "test_instance" "test" {
     ami   = "foo-bar"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

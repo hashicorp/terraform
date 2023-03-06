@@ -568,7 +568,14 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 
 	// add all providers from the configuration
 	for _, p := range mod.ProviderConfigs {
-		fqn := mod.ProviderForLocalConfig(p.Addr())
+		fqn, ok := mod.ProviderForLocalConfig(p.Addr())
+		if !ok {
+			// We shouldn't be able to get here because we intend to validate
+			// all of the provider config declarations during configuration
+			// loading, and so we should already have failed earlier.
+			log.Printf("[WARN] ProviderConfigTransformer: ignoring invalid provider reference for %s", p.Addr())
+			continue
+		}
 		addr := addrs.AbsProviderConfig{
 			Provider: fqn,
 			Alias:    p.Alias,
@@ -647,7 +654,14 @@ func (t *ProviderConfigTransformer) addProxyProviders(g *Graph, c *configs.Confi
 	// Go through all the providers the parent is passing in, and add proxies to
 	// the parent provider nodes.
 	for _, pair := range parentCfg.Providers {
-		fqn := c.Module.ProviderForLocalConfig(pair.InChild.Addr())
+		fqn, ok := c.Module.ProviderForLocalConfig(pair.InChild.Addr())
+		if !ok {
+			// We shouldn't be able to get here because we intend to validate
+			// all of the provider config declarations during configuration
+			// loading, and so we should already have failed earlier.
+			log.Printf("[WARN] ProviderConfigTransformer: ignoring invalid provider reference for %s", pair.InChild.Addr())
+			continue
+		}
 		fullAddr := addrs.AbsProviderConfig{
 			Provider: fqn,
 			Module:   path,

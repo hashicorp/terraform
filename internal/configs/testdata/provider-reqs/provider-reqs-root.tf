@@ -11,9 +11,9 @@ terraform {
   }
 }
 
-# There is no provider in required_providers called "implied", so this
-# implicitly declares a dependency on "hashicorp/implied".
-resource "implied_foo" "bar" {
+# There is no provider in required_providers called "vault", so this
+# implicitly declares a dependency on "hashicorp/vault".
+resource "vault_foo" "bar" {
 }
 
 module "kinder" {
@@ -27,8 +27,8 @@ module "kinder" {
 data "terraform_remote_state" "bar" {
 }
 
-# There is no provider in required_providers called "configured", so the version
+# There is no provider in required_providers called "http", so the version
 # constraint should come from this configuration block.
-provider "configured" {
+provider "http" {
   version = "~> 1.4"
 }

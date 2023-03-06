@@ -1,11 +1,11 @@
 terraform {
   required_providers {
-    foo = {
+    null = {
       version = "1.0"
     }
   }
 }
 
-provider "bar" {
+provider "http" {
   version = "2.0.0"
 }

@@ -27,7 +27,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 			Status: states.ObjectReady,
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -52,7 +52,7 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			NodeAbstractResource: NodeAbstractResource{
 				ResolvedProvider: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
+					Provider: addrs.NewOfficialProvider("test"),
 					Module:   addrs.RootModule,
 				},
 			},
@@ -85,7 +85,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 			Status: states.ObjectReady,
 		},
 		addrs.AbsProviderConfig{
-			Provider: addrs.NewDefaultProvider("test"),
+			Provider: addrs.NewOfficialProvider("test"),
 			Module:   addrs.RootModule,
 		},
 	)
@@ -116,7 +116,7 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			NodeAbstractResource: NodeAbstractResource{
 				ResolvedProvider: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
+					Provider: addrs.NewOfficialProvider("test"),
 					Module:   addrs.RootModule,
 				},
 			},

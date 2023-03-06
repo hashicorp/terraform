@@ -277,7 +277,7 @@ func TestProviderConfigTransformer_grandparentProviders(t *testing.T) {
 func TestProviderConfigTransformer_inheritOldSkool(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{
 		"main.tf": `
-provider "test" {
+provider "null" {
   test_string = "config"
 }
 
@@ -287,7 +287,7 @@ module "moda" {
 `,
 
 		"moda/main.tf": `
-resource "test_object" "a" {
+resource "null_object" "a" {
 }
 `,
 	})
@@ -301,9 +301,9 @@ resource "test_object" "a" {
 		}
 	}
 
-	expected := `module.moda.test_object.a
-  provider["registry.terraform.io/hashicorp/test"]
-provider["registry.terraform.io/hashicorp/test"]`
+	expected := `module.moda.null_object.a
+  provider["registry.terraform.io/hashicorp/null"]
+provider["registry.terraform.io/hashicorp/null"]`
 
 	actual := strings.TrimSpace(g.String())
 	if actual != expected {
@@ -317,13 +317,13 @@ func TestProviderConfigTransformer_nestedModuleProviders(t *testing.T) {
 		"main.tf": `
 terraform {
   required_providers {
-    test = {
-      source = "registry.terraform.io/hashicorp/test"
+    null = {
+      source = "registry.terraform.io/hashicorp/null"
 	}
   }
 }
 
-provider "test" {
+provider "null" {
   alias = "z"
   test_string = "config"
 }
@@ -331,7 +331,7 @@ provider "test" {
 module "moda" {
   source = "./moda"
   providers = {
-    test.x = test.z
+    null.x = null.z
   }
 }
 `,
@@ -339,23 +339,23 @@ module "moda" {
 		"moda/main.tf": `
 terraform {
   required_providers {
-    test = {
-      source = "registry.terraform.io/hashicorp/test"
-      configuration_aliases = [ test.x ]
+    null = {
+      source = "registry.terraform.io/hashicorp/null"
+      configuration_aliases = [ null.x ]
 	}
   }
 }
 
-provider "test" {
+provider "null" {
   test_string = "config"
 }
 
 // this should connect to this module's provider
-resource "test_object" "a" {
+resource "null_object" "a" {
 }
 
-resource "test_object" "x" {
-  provider = test.x
+resource "null_object" "x" {
+  provider = null.x
 }
 
 module "modb" {
@@ -365,7 +365,7 @@ module "modb" {
 
 		"moda/modb/main.tf": `
 # this should end up with the provider from the parent module
-resource "test_object" "a" {
+resource "null_object" "a" {
 }
 `,
 	})
@@ -379,14 +379,14 @@ resource "test_object" "a" {
 		}
 	}
 
-	expected := `module.moda.module.modb.test_object.a
-  module.moda.provider["registry.terraform.io/hashicorp/test"]
-module.moda.provider["registry.terraform.io/hashicorp/test"]
-module.moda.test_object.a
-  module.moda.provider["registry.terraform.io/hashicorp/test"]
-module.moda.test_object.x
-  provider["registry.terraform.io/hashicorp/test"].z
-provider["registry.terraform.io/hashicorp/test"].z`
+	expected := `module.moda.module.modb.null_object.a
+  module.moda.provider["registry.terraform.io/hashicorp/null"]
+module.moda.null_object.a
+  module.moda.provider["registry.terraform.io/hashicorp/null"]
+module.moda.null_object.x
+  provider["registry.terraform.io/hashicorp/null"].z
+module.moda.provider["registry.terraform.io/hashicorp/null"]
+provider["registry.terraform.io/hashicorp/null"].z`
 
 	actual := strings.TrimSpace(g.String())
 	if actual != expected {
@@ -449,33 +449,33 @@ const testTransformMissingProviderBasicStr = `
 aws_instance.web
   provider["registry.terraform.io/hashicorp/aws"]
 foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
+  provider["terraform.io/test-only/foo"]
 provider["registry.terraform.io/hashicorp/aws"]
 provider["registry.terraform.io/hashicorp/aws"] (close)
   aws_instance.web
   provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"] (close)
+provider["terraform.io/test-only/foo"]
+provider["terraform.io/test-only/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
+  provider["terraform.io/test-only/foo"]
 `
 
 const testTransformMissingGrandchildProviderStr = `
 module.sub.module.subsub.bar_instance.two
-  provider["registry.terraform.io/hashicorp/bar"]
+  provider["terraform.io/test-only/bar"]
 module.sub.module.subsub.foo_instance.one
-  module.sub.provider["registry.terraform.io/hashicorp/foo"]
-module.sub.provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/bar"]
+  module.sub.provider["terraform.io/test-only/foo"]
+module.sub.provider["terraform.io/test-only/foo"]
+provider["terraform.io/test-only/bar"]
 `
 
 const testTransformPruneProviderBasicStr = `
 foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"] (close)
+  provider["terraform.io/test-only/foo"]
+provider["terraform.io/test-only/foo"]
+provider["terraform.io/test-only/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
+  provider["terraform.io/test-only/foo"]
 `
 
 const testTransformModuleProviderConfigStr = `

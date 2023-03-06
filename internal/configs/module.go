@@ -239,7 +239,16 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, pm := range file.ProviderMetas {
-		provider := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
+		provider, ok := m.ProviderForLocalConfig(addrs.LocalProviderConfig{LocalName: pm.Provider})
+		if !ok {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Provider metadata for undeclared provider",
+				Detail:   fmt.Sprintf("There is no provider with local name %q declared in this module's required_providers block.", pm.Provider),
+				Subject:  &pm.DeclRange,
+			})
+			continue
+		}
 		if existing, exists := m.ProviderMetas[provider]; exists {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
@@ -314,17 +323,38 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+			var ok bool
+			r.Provider, ok = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Resource for undeclared provider",
+					Detail:   fmt.Sprintf("There is no provider with the local name %q declared in this module's required_providers block.", r.ProviderConfigRef.Name),
+					Subject:  r.ProviderConfigRef.NameRange.Ptr(),
+				})
+			}
 		} else {
 			// an invalid resource name (for e.g. "null resource" instead of
 			// "null_resource") can cause a panic down the line in addrs:
 			// https://github.com/hashicorp/terraform/issues/25560
 			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
 			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+				var ok bool
+				r.Provider, ok = m.ImpliedProviderForUnqualifiedType(implied)
+				if !ok {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Resource for undeclared provider",
+						Detail: fmt.Sprintf(
+							"There is no provider with the local name %q declared in this module's required_providers block.\n\nThis resource does not explicitly select a provider configuration using the \"provider\" argument, and so Terraform assumes it should belong to the default configuration for a provider named %q based on the prefix of the resource type name.\n\nTo correct this error, either declare this provider as a dependency in required_providers or explicitly select a configuration for a different provider using the optional \"provider\" argument.",
+							implied, implied,
+						),
+						Subject: r.DeclRange.Ptr(),
+					})
+				}
 			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
+			// We don't return a diagnostic just for invalid syntax because
+			// that will already have been caught and reported earlier on.
 		}
 	}
 
@@ -343,17 +373,38 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 		// set the provider FQN for the resource
 		if r.ProviderConfigRef != nil {
-			r.Provider = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+			var ok bool
+			r.Provider, ok = m.ProviderForLocalConfig(r.ProviderConfigAddr())
+			if !ok {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Data resource for undeclared provider",
+					Detail:   fmt.Sprintf("There is no provider with the local name %q declared in this module's required_providers block.", r.ProviderConfigRef.Name),
+					Subject:  r.ProviderConfigRef.NameRange.Ptr(),
+				})
+			}
 		} else {
 			// an invalid data source name (for e.g. "null resource" instead of
 			// "null_resource") can cause a panic down the line in addrs:
 			// https://github.com/hashicorp/terraform/issues/25560
 			implied, err := addrs.ParseProviderPart(r.Addr().ImpliedProvider())
 			if err == nil {
-				r.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+				var ok bool
+				r.Provider, ok = m.ImpliedProviderForUnqualifiedType(implied)
+				if !ok {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Data resource for undeclared provider",
+						Detail: fmt.Sprintf(
+							"There is no provider with the local name %q declared in this module's required_providers block.\n\nThis resource does not explicitly select a provider configuration using the \"provider\" argument, and so Terraform assumes it should belong to the default configuration for a provider named %q based on the prefix of the resource type name.\n\nTo correct this error, either declare this provider as a dependency in required_providers or explicitly select a configuration for a different provider using the optional \"provider\" argument.",
+							implied, implied,
+						),
+						Subject: r.DeclRange.Ptr(),
+					})
+				}
 			}
-			// We don't return a diagnostic because the invalid resource name
-			// will already have been caught.
+			// We don't return a diagnostic just for invalid syntax because
+			// that will already have been caught and reported earlier on.
 		}
 	}
 
@@ -572,7 +623,7 @@ func (m *Module) LocalNameForProvider(p addrs.Provider) string {
 
 // ProviderForLocalConfig returns the provider FQN for a given
 // LocalProviderConfig, based on its local name.
-func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Provider {
+func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) (addr addrs.Provider, ok bool) {
 	return m.ImpliedProviderForUnqualifiedType(pc.LocalName)
 }
 
@@ -583,9 +634,13 @@ func (m *Module) ProviderForLocalConfig(pc addrs.LocalProviderConfig) addrs.Prov
 // The intended behaviour is that configuring a provider with local name "foo"
 // in a required_providers block will result in resources with type "foo" using
 // that provider.
-func (m *Module) ImpliedProviderForUnqualifiedType(pType string) addrs.Provider {
+//
+// Not all unqualified names have corresponding implied providers, so this
+// function may signal that the given unqualified type is invalid by setting
+// its second return value to false.
+func (m *Module) ImpliedProviderForUnqualifiedType(pType string) (addr addrs.Provider, ok bool) {
 	if provider, exists := m.ProviderRequirements.RequiredProviders[pType]; exists {
-		return provider.Type
+		return provider.Type, true
 	}
 	return addrs.ImpliedProviderForUnqualifiedType(pType)
 }

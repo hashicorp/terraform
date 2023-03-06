@@ -6709,7 +6709,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				PrevRunAddr: prevRunAddr,
 				DeposedKey:  tc.DeposedKey,
 				ProviderAddr: addrs.AbsProviderConfig{
-					Provider: addrs.NewDefaultProvider("test"),
+					Provider: addrs.NewOfficialProvider("test"),
 					Module:   addrs.RootModule,
 				},
 				Change: plans.Change{

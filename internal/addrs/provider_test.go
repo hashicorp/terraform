@@ -18,7 +18,7 @@ func TestProviderString(t *testing.T) {
 				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
-			NewDefaultProvider("test").String(),
+			NewOfficialProvider("test").String(),
 		},
 		{
 			Provider{
@@ -26,7 +26,7 @@ func TestProviderString(t *testing.T) {
 				Hostname:  DefaultProviderRegistryHost,
 				Namespace: "hashicorp",
 			},
-			NewDefaultProvider("test-beta").String(),
+			NewOfficialProvider("test-beta").String(),
 		},
 		{
 			Provider{
@@ -156,7 +156,7 @@ func TestProviderIsDefaultProvider(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got := IsDefaultProvider(test.Input)
+		got := IsOfficialProvider(test.Input)
 		if got != test.Want {
 			t.Errorf("wrong result for %s\n", test.Input.String())
 		}

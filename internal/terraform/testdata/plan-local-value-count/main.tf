@@ -1,3 +1,10 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
 
 locals {
   count = 3

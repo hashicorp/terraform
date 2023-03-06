@@ -1,3 +1,10 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
 
 # This configuration is just here to allow the tests in session_test to
 # evaluate expressions without getting errors about things not being declared.

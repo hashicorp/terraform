@@ -151,7 +151,7 @@ func TestFullInitialState() *states.State {
 		Name: "foo",
 	}
 	providerAddr := addrs.AbsProviderConfig{
-		Provider: addrs.NewDefaultProvider(rAddr.ImpliedProvider()),
+		Provider: addrs.NewOfficialProvider(rAddr.ImpliedProvider()),
 		Module:   addrs.RootModule,
 	}
 	childMod.SetResourceProvider(rAddr, providerAddr)

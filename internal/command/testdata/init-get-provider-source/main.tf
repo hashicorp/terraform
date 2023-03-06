@@ -3,7 +3,7 @@ provider alpha {
 }
 
 resource beta_resource b {}
-resource gamma_resource g {}
+resource null_resource g {}
 
 terraform {
   required_providers {

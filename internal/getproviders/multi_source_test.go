@@ -15,19 +15,19 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 	t.Run("unfiltered merging", func(t *testing.T) {
 		s1 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform2,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform2,
@@ -37,19 +37,19 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.2.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
@@ -64,7 +64,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -77,7 +77,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -90,13 +90,13 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		s1 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
@@ -106,13 +106,13 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("foo"),
+				addrs.NewOfficialProvider("foo"),
 				MustParseVersion("1.2.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
 			),
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.2.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
@@ -131,7 +131,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			},
 		}
 
-		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
+		got, _, err := multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("foo"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -143,7 +143,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		got, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("bar"))
+		got, _, err = multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -155,7 +155,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			t.Errorf("wrong result\n%s", diff)
 		}
 
-		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("baz"))
+		_, _, err = multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("baz"))
 		if want, ok := err.(ErrRegistryProviderNotKnown); !ok {
 			t.Fatalf("wrong error type:\ngot:  %T\nwant: %T", err, want)
 		}
@@ -169,7 +169,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 			{Source: s2},
 		}
 
-		_, _, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("foo"))
+		_, _, err := multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("foo"))
 		if err == nil {
 			t.Fatal("expected error, got success")
 		}
@@ -187,19 +187,19 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 		platform2 := Platform{OS: "aros", Arch: "arm"}
 		s1 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform2,
 			),
 		},
 			map[addrs.Provider]Warnings{
-				addrs.NewDefaultProvider("bar"): {"WARNING!"},
+				addrs.NewOfficialProvider("bar"): {"WARNING!"},
 			},
 		)
 		s2 := NewMockSource([]PackageMeta{
 			FakePackageMeta(
-				addrs.NewDefaultProvider("bar"),
+				addrs.NewOfficialProvider("bar"),
 				MustParseVersion("1.0.0"),
 				VersionList{MustParseVersion("5.0")},
 				platform1,
@@ -214,7 +214,7 @@ func TestMultiSourceAvailableVersions(t *testing.T) {
 
 		// AvailableVersions produces the union of all versions available
 		// across all of the sources.
-		got, warns, err := multi.AvailableVersions(context.Background(), addrs.NewDefaultProvider("bar"))
+		got, warns, err := multi.AvailableVersions(context.Background(), addrs.NewOfficialProvider("bar"))
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
@@ -247,19 +247,19 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	}
 
 	onlyInS1 := fakeFilename("s1", FakePackageMeta(
-		addrs.NewDefaultProvider("foo"),
+		addrs.NewOfficialProvider("foo"),
 		MustParseVersion("1.0.0"),
 		VersionList{MustParseVersion("5.0")},
 		platform2,
 	))
 	onlyInS2 := fakeFilename("s2", FakePackageMeta(
-		addrs.NewDefaultProvider("foo"),
+		addrs.NewOfficialProvider("foo"),
 		MustParseVersion("1.2.0"),
 		VersionList{MustParseVersion("5.0")},
 		platform1,
 	))
 	inBothS1 := fakeFilename("s1", FakePackageMeta(
-		addrs.NewDefaultProvider("foo"),
+		addrs.NewOfficialProvider("foo"),
 		MustParseVersion("1.0.0"),
 		VersionList{MustParseVersion("5.0")},
 		platform1,
@@ -269,7 +269,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 		inBothS1,
 		onlyInS1,
 		fakeFilename("s1", FakePackageMeta(
-			addrs.NewDefaultProvider("bar"),
+			addrs.NewOfficialProvider("bar"),
 			MustParseVersion("1.0.0"),
 			VersionList{MustParseVersion("5.0")},
 			platform2,
@@ -281,7 +281,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 		inBothS2,
 		onlyInS2,
 		fakeFilename("s2", FakePackageMeta(
-			addrs.NewDefaultProvider("bar"),
+			addrs.NewOfficialProvider("bar"),
 			MustParseVersion("1.0.0"),
 			VersionList{MustParseVersion("5.0")},
 			platform1,
@@ -295,7 +295,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	t.Run("only in s1", func(t *testing.T) {
 		got, err := multi.PackageMeta(
 			context.Background(),
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			MustParseVersion("1.0.0"),
 			platform2,
 		)
@@ -310,7 +310,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	t.Run("only in s2", func(t *testing.T) {
 		got, err := multi.PackageMeta(
 			context.Background(),
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			MustParseVersion("1.2.0"),
 			platform1,
 		)
@@ -325,7 +325,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	t.Run("in both", func(t *testing.T) {
 		got, err := multi.PackageMeta(
 			context.Background(),
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			MustParseVersion("1.0.0"),
 			platform1,
 		)
@@ -347,7 +347,7 @@ func TestMultiSourcePackageMeta(t *testing.T) {
 	t.Run("in neither", func(t *testing.T) {
 		_, err := multi.PackageMeta(
 			context.Background(),
-			addrs.NewDefaultProvider("nonexist"),
+			addrs.NewOfficialProvider("nonexist"),
 			MustParseVersion("1.0.0"),
 			platform1,
 		)
@@ -374,7 +374,7 @@ func TestMultiSourceSelector(t *testing.T) {
 			MultiSourceSelector{
 				Source: emptySource,
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"built-in provider with no constraints": {
@@ -391,7 +391,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/foo"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"default provider with include constraint that matches it via type wildcard": {
@@ -399,7 +399,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"default provider with include constraint that matches it via namespace wildcard": {
@@ -407,7 +407,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Include: mustParseMultiSourceMatchingPatterns("*/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"default provider with non-normalized include constraint that matches it via type wildcard": {
@@ -415,7 +415,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Include: mustParseMultiSourceMatchingPatterns("HashiCorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"built-in provider with exact include constraint that does not match it": {
@@ -459,7 +459,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/foo"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 		"default provider with exclude constraint that matches it via type wildcard": {
@@ -467,7 +467,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 		"default provider with exact exclude constraint that doesn't match it": {
@@ -475,7 +475,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/bar"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 		"default provider with non-normalized exclude constraint that matches it via type wildcard": {
@@ -483,7 +483,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Source:  emptySource,
 				Exclude: mustParseMultiSourceMatchingPatterns("HashiCorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 
@@ -494,7 +494,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/foo"),
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 		"default provider with exclude wildcard overriding irrelevant include exact": {
@@ -503,7 +503,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/bar"),
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 		"default provider with exclude exact overriding include wildcard": {
@@ -512,7 +512,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/foo"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			false,
 		},
 		"default provider with irrelevant exclude exact overriding include wildcard": {
@@ -521,7 +521,7 @@ func TestMultiSourceSelector(t *testing.T) {
 				Include: mustParseMultiSourceMatchingPatterns("hashicorp/*"),
 				Exclude: mustParseMultiSourceMatchingPatterns("hashicorp/bar"),
 			},
-			addrs.NewDefaultProvider("foo"),
+			addrs.NewOfficialProvider("foo"),
 			true,
 		},
 	}

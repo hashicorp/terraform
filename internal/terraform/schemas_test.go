@@ -12,7 +12,7 @@ func simpleTestSchemas() *Schemas {
 
 	return &Schemas{
 		Providers: map[addrs.Provider]*ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+			addrs.NewOfficialProvider("test"): provider.ProviderSchema(),
 		},
 		Provisioners: map[string]*configschema.Block{
 			"test": provisioner.GetSchemaResponse.Provisioner,

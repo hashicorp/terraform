@@ -11,3 +11,11 @@ resource "test_instance" "no_refresh" {
 resource "test_instance" "should_refresh" {
   ami = "baz"
 }
+
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}

@@ -31,9 +31,9 @@ func TestProviders(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo]",
-		"provider[registry.terraform.io/hashicorp/bar]",
-		"provider[registry.terraform.io/hashicorp/baz]",
+		"provider[registry.terraform.io/hashicorp/null]",
+		"provider[registry.terraform.io/hashicorp/http]",
+		"provider[registry.terraform.io/hashicorp/tls]",
 	}
 
 	output := ui.OutputWriter.String()
@@ -82,9 +82,9 @@ func TestProviders_modules(t *testing.T) {
 	// first run init with mock provider sources to install the module
 	initUi := new(cli.MockUi)
 	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"foo": {"1.0.0"},
-		"bar": {"2.0.0"},
-		"baz": {"1.2.2"},
+		"null": {"1.0.0"},
+		"http": {"2.0.0"},
+		"tls":  {"1.2.2"},
 	})
 	defer close()
 	m := Meta{
@@ -113,10 +113,10 @@ func TestProviders_modules(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo] 1.0.0", // from required_providers
-		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from provider config
+		"provider[registry.terraform.io/hashicorp/null] 1.0.0", // from required_providers
+		"provider[registry.terraform.io/hashicorp/http] 2.0.0", // from provider config
 		"── module.kiddo",                               // tree node for child module
-		"provider[registry.terraform.io/hashicorp/baz]", // implied by a resource in the child module
+		"provider[registry.terraform.io/hashicorp/tls]", // implied by a resource in the child module
 	}
 
 	output := ui.OutputWriter.String()
@@ -150,10 +150,10 @@ func TestProviders_state(t *testing.T) {
 	}
 
 	wantOutput := []string{
-		"provider[registry.terraform.io/hashicorp/foo] 1.0.0", // from required_providers
-		"provider[registry.terraform.io/hashicorp/bar] 2.0.0", // from a provider config block
-		"Providers required by state",                         // header for state providers
-		"provider[registry.terraform.io/hashicorp/baz]",       // from a resouce in state (only)
+		"provider[registry.terraform.io/hashicorp/null] 1.0.0", // from required_providers
+		"provider[registry.terraform.io/hashicorp/http] 2.0.0", // from a provider config block
+		"Providers required by state",                          // header for state providers
+		"provider[registry.terraform.io/hashicorp/http]",       // from a resouce in state (only)
 	}
 
 	output := ui.OutputWriter.String()

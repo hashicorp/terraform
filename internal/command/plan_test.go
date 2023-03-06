@@ -120,7 +120,7 @@ func TestPlan_destroy(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -242,7 +242,7 @@ func TestPlan_outPathNoChange(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -343,7 +343,7 @@ func TestPlan_outBackend(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1247,7 +1247,7 @@ func TestPlan_replace(t *testing.T) {
 				Status:    states.ObjectReady,
 			},
 			addrs.AbsProviderConfig{
-				Provider: addrs.NewDefaultProvider("test"),
+				Provider: addrs.NewOfficialProvider("test"),
 				Module:   addrs.RootModule,
 			},
 		)
@@ -1360,7 +1360,7 @@ func TestPlan_parallelism(t *testing.T) {
 				PlannedState: req.ProposedNewState,
 			}
 		}
-		providerFactories[addrs.NewDefaultProvider(name)] = providers.FactoryFixed(provider)
+		providerFactories[addrs.NewOfficialProvider(name)] = providers.FactoryFixed(provider)
 	}
 	testingOverrides := &testingOverrides{
 		Providers: providerFactories,
@@ -1381,7 +1381,7 @@ func TestPlan_parallelism(t *testing.T) {
 	res := c.Run(args)
 	output := done(t)
 	if res != 0 {
-		t.Fatal(output.Stdout())
+		t.Fatal(output.Stderr())
 	}
 }
 

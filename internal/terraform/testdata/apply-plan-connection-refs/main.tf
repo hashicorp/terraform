@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    test = {
+      source = "hashicorp/test"
+    }
+  }
+}
+
 variable "msg" {
   default = "ok"
 }
@@ -5,7 +13,6 @@ variable "msg" {
 resource "test_instance" "a" {
   foo = "a"
 }
-
 
 resource "test_instance" "b" {
   foo = "b"

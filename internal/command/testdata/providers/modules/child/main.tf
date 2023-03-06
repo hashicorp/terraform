@@ -1,1 +1,1 @@
-resource "baz_resource" "baz" {}
+resource "tls_resource" "baz" {}

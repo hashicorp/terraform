@@ -159,7 +159,13 @@ func marshalProviderConfigs(
 
 	// Add an entry for each provider configuration block in the module.
 	for k, pc := range c.Module.ProviderConfigs {
-		providerFqn := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
+		providerFqn, ok := c.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: pc.Name})
+		if !ok {
+			// Shouldn't be possible to get here, because that means the
+			// config is invalid and thus we should've caught that in the
+			// config loader.
+			panic(fmt.Sprintf("config loader didn't catch reference to missing provider local name %q", pc.Name))
+		}
 		schema := schemas.ProviderConfig(providerFqn)
 
 		p := providerConfig{
@@ -277,7 +283,13 @@ func marshalProviderConfigs(
 			parentProviderName := ppc.InParent.String()
 
 			// Look up the provider FQN from the module context, using the non-aliased local name
-			providerFqn := cc.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: ppc.InChild.Name})
+			providerFqn, ok := cc.ProviderForConfigAddr(addrs.LocalProviderConfig{LocalName: ppc.InChild.Name})
+			if !ok {
+				// Shouldn't be possible to get here, because that means the
+				// config is invalid and thus we should've caught that in the
+				// config loader.
+				panic(fmt.Sprintf("config loader didn't catch reference to missing provider local name %q", ppc.InChild.Name))
+			}
 
 			// The presence of passed provider configs means that we cannot have
 			// any configuration expressions or version constraints here
