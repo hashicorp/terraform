@@ -9,7 +9,9 @@
 package cliconfig
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -102,12 +104,14 @@ func LoadConfig() (*Config, tfdiags.Diagnostics) {
 	configVal := BuiltinConfig // copy
 	config := &configVal
 
-	if mainFilename, err := cliConfigFile(); err == nil {
+	if mainFilename, mainFileDiags := cliConfigFile(); len(mainFileDiags) == 0 {
 		if _, err := os.Stat(mainFilename); err == nil {
 			mainConfig, mainDiags := loadConfigFile(mainFilename)
 			diags = diags.Append(mainDiags)
 			config = config.Merge(mainConfig)
 		}
+	} else {
+		diags = diags.Append(mainFileDiags)
 	}
 
 	// Unless the user has specifically overridden the configuration file
@@ -407,7 +411,8 @@ func (c *Config) Merge(c2 *Config) *Config {
 	return &result
 }
 
-func cliConfigFile() (string, error) {
+func cliConfigFile() (string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	mustExist := true
 
 	configFilePath := cliConfigFileOverride()
@@ -427,15 +432,19 @@ func cliConfigFile() (string, error) {
 	f, err := os.Open(configFilePath)
 	if err == nil {
 		f.Close()
-		return configFilePath, nil
+		return configFilePath, diags
 	}
 
-	if mustExist || !os.IsNotExist(err) {
-		return "", err
+	if mustExist || !errors.Is(err, fs.ErrNotExist) {
+		diags = append(diags, tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Unable to open CLI configuration file",
+			fmt.Sprintf("The CLI configuration file at %q does not exist.", configFilePath),
+		))
 	}
 
 	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
-	return "", nil
+	return "", diags
 }
 
 func cliConfigFileOverride() string {
