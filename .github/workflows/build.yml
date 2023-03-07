@@ -215,11 +215,10 @@ jobs:
       - e2etest-build
     strategy:
       matrix:
-        goarch: ["amd64"]
         include:
-          - { runson: ubuntu-latest, goos: linux }
-          - { runson: macos-latest, goos: macos }
-          - { runson: windows-latest, goos: windows }
+          - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
+          - { runson: macos-latest, goos: macos, goarch: "amd64" }
+          - { runson: windows-latest, goos: windows, goarch: "amd64" }
       fail-fast: false
 
     env:
