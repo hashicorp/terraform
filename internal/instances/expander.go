@@ -277,6 +277,31 @@ func (e *Expander) ExpandResource(resourceAddr addrs.AbsResource) []addrs.AbsRes
 	return ret
 }
 
+// UnknownResourceInstances finds a set of patterns that collectively cover
+// all of the possible resource instance addresses that could appear for the
+// given static resource once all of the intermediate module expansions are
+// fully known.
+//
+// This imprecisely describes what's omitted from the [Expander.ExpandResource]
+// and [Expander.ExpandModuleResource] results whenever there's an
+// as-yet-unknown expansion somewhere in the module path or in the resource
+// itself.
+//
+// Note that an [addrs.PartialExpandedResource] value is effectively an infinite
+// set of [addrs.AbsResourceInstance] values itself, so the result could be
+// considered as the union of all of those sets but we return it as a set of
+// sets because the inner sets are of infinite size while the outer set is
+// finite.
+func (e *Expander) UnknownResourceInstances(resourceAddr addrs.ConfigResource) addrs.Set[addrs.PartialExpandedResource] {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	ret := addrs.MakeSet[addrs.PartialExpandedResource]()
+	parentModuleAddr := make(addrs.ModuleInstance, 0, 4)
+	e.exps.partialExpandedResourceInstances(resourceAddr.Module, resourceAddr.Resource, parentModuleAddr, ret)
+	return ret
+}
+
 // GetModuleInstanceRepetitionData returns an object describing the values
 // that should be available for each.key, each.value, and count.index within
 // the call block for the given module instance.
@@ -565,6 +590,68 @@ func (m *expanderModule) resourceInstances(moduleAddr addrs.ModuleInstance, reso
 		}
 	}
 	return m.onlyResourceInstances(resourceAddr, parentAddr)
+}
+
+func (m *expanderModule) partialExpandedResourceInstances(moduleAddr addrs.Module, resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance, into addrs.Set[addrs.PartialExpandedResource]) {
+	// The idea here is to recursively walk along the module path until we
+	// either encounter a module call whose expansion isn't known yet or we
+	// run out of module steps. If we make it all the way to the end of the
+	// module path without encountering anything then that just leaves the
+	// resource expansion, which itself might be either known or unknown.
+
+	switch {
+	case len(moduleAddr) > 0:
+		callName := moduleAddr[0]
+		callAddr := addrs.ModuleCall{Name: callName}
+		exp, ok := m.moduleCalls[callAddr]
+		if !ok {
+			// This is a bug in the caller, because it should always register
+			// expansions for an object and all of its ancestors before requesting
+			// expansion of it.
+			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Child(callName, addrs.NoKey)))
+		}
+		if expansionIsDeferred(exp) {
+			// We've found a module call with an unknown expansion so this is
+			// as far as we can go and the rest of the module path has
+			// unknown expansion.
+			retMod := parentAddr.UnexpandedChild(callAddr)
+			for _, stepName := range moduleAddr[1:] {
+				retMod = retMod.Child(addrs.ModuleCall{Name: stepName})
+			}
+			ret := retMod.Resource(resourceAddr)
+			into.Add(ret)
+			return
+		}
+
+		// If we get here then we can continue exploring all of the known
+		// instances of this current module call.
+		for step, inst := range m.childInstances {
+			if step.Name != callName {
+				continue
+			}
+			instAddr := parentAddr.Child(step.Name, step.InstanceKey)
+			inst.partialExpandedResourceInstances(moduleAddr[1:], resourceAddr, instAddr, into)
+		}
+
+	default:
+		// If we've run out of module address steps then the only remaining
+		// question is whether the resource's own expansion is known.
+		exp, ok := m.resources[resourceAddr]
+		if !ok {
+			// This is a bug in the caller, because it should always register
+			// expansions for an object and all of its ancestors before requesting
+			// expansion of it.
+			panic(fmt.Sprintf("no expansion has been registered for %s", parentAddr.Resource(resourceAddr.Mode, resourceAddr.Type, resourceAddr.Name)))
+		}
+		if expansionIsDeferred(exp) {
+			ret := parentAddr.UnexpandedResource(resourceAddr)
+			into.Add(ret)
+			return
+		}
+		// If the expansion isn't deferred then there's nothing to do here,
+		// because the instances of this resource would appear in the
+		// resourceInstances method results instead.
+	}
 }
 
 func (m *expanderModule) onlyResourceInstances(resourceAddr addrs.Resource, parentAddr addrs.ModuleInstance) []addrs.AbsResourceInstance {
