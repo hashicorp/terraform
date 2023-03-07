@@ -25,6 +25,6 @@ For more details and how to keep using the prior incorrect behavior, please see 
 
 ## Hostname interpretation during terraform init
 
-When interpreting the hostname portion of a provider source address or the address of a module in a module registry, Terraform will now use non-transitional IDNA2008 mapping rules instead of the transitional mapping rules previously used. Terraform will no longer accept the characters `ß` (U+00DF, "LATIN SMALL LETTER SHARP S") and `ς` (U+03C2, "GREEK SMALL LETTER FINAL SIGMA"), both of which have alternative forms that must be used instead.
+When interpreting the hostname portion of a provider source address or the address of a module in a module registry, Terraform now uses non-transitional IDNA2008 mapping rules instead of the transitional mapping rules. Terraform no longer accepts the characters `ß` (U+00DF, "LATIN SMALL LETTER SHARP S") and `ς` (U+03C2, "GREEK SMALL LETTER FINAL SIGMA") Use the available alternative forms for both characters instead.
 
 This change better adheres to the [the WHATWG URL spec's rules for interpreting non-ASCII domain names](https://url.spec.whatwg.org/#concept-domain-to-ascii). Terraform tries to interpret host names the same way that web browsers do. For some hostnames containing non-ASCII characters this may cause Terraform to now request a different "punycode" hostname when resolving. 
