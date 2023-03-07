@@ -1,4 +1,4 @@
-name: Build Terraform CLI Packages
+name: build
 
 # If you want to test changes to this file before merging to a main branch,
 # push them up to a branch whose name has the prefix "build-workflow-dev/",
