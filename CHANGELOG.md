@@ -1,4 +1,4 @@
-## 1.4.0 (Unreleased)
+## 1.4.0 (March 08, 2023)
 
 UPGRADE NOTES:
 
