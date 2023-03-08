@@ -11,7 +11,7 @@ project "terraform" {
     repository = "terraform"
 
     release_branches = [
-      "releng/**" // REMOVEME
+      "releng/**", // REMOVEME
       "main",
       "release/**",
       "build-workflow-dev/**",
