@@ -64,7 +64,7 @@ jobs:
           echo "
           
           Raw version is ${RAW_VERSION}"
-          echo "::set-output name=raw-version::${RAW_VERSION}"
+          echo "raw-version=${RAW_VERSION}" >> $GITHUB_OUTPUT
       - name: Decide version number
         id: get-product-version
         shell: bash
@@ -102,11 +102,11 @@ jobs:
           if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
             echo "This build allows use of experimental features"
           fi
-          echo "::set-output name=product-version::${VERSION}"
-          echo "::set-output name=product-version-base::${BASE_VERSION}"
-          echo "::set-output name=product-version-pre::${PRERELEASE}"
-          echo "::set-output name=experiments::${EXPERIMENTS_ENABLED}"
-          echo "::set-output name=go-ldflags::${LDFLAGS}"
+          echo "product-version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "product-version-base=${BASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "product-version-pre=${PRERELEASE}" >> $GITHUB_OUTPUT
+          echo "experiments=${EXPERIMENTS_ENABLED}" >> $GITHUB_OUTPUT
+          echo "go-ldflags=${LDFLAGS}" >> $GITHUB_OUTPUT
       - name: Report chosen version number
         run: |
           [ -n "${{steps.get-product-version.outputs.product-version}}" ]
