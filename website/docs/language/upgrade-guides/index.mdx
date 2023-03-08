@@ -10,12 +10,14 @@ description: Upgrading to Terraform v1.4
 Terraform v1.4 is a minor release in the stable Terraform v1.0 series.
 
 Terraform v1.4 honors the [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises), but there are some behavior changes outside of those promises that may affect a small number of users. Specifically, the following updates may require additional upgrade steps:
-* [Provider caching during `terraform init`](#provider-caching-during-terraform-init)
+* **Important** [Provider caching workflow change during `terraform init`](#provider-caching-during-terraform-init)
 * [Hostname interpretation during `terraform init`](#hostname-interpretation-during-terraform-init)
 
 See the full [changelog for more details](https://github.com/hashicorp/terraform/blob/v1.4/CHANGELOG.md). If you encounter any problems during upgrading which are not by this guide, or if the migration instructions don't work for you, please start a topic in [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core/27) to discuss it.
 
 ## Provider caching during terraform init
+
+**_This change effects those who rely upon global provider caching and not the dependecy lock file._**
 
 `terraform init` now ignores entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. 
 
