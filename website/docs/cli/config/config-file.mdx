@@ -387,7 +387,7 @@ grow to contain several unused versions which you must delete manually.
 safe. The provider installer's behavior in environments with multiple `terraform
 init` calls is undefined.
 
-## Allowing the Provider Plugin Cache to break the dependency lock file
+### Allowing the Provider Plugin Cache to break the dependency lock file
 
 ~> **Note:** The option described in is for unusual and exceptional situations
 only. Do not set this option unless you are sure you need it and you fully
@@ -414,6 +414,10 @@ to confirm it:
 ```hcl
 plugin_cache_may_break_dependency_lock_file = true
 ```
+
+Alternatively, you can set the environment variable
+`TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to any value other than the
+empty string or `0`, which is equivalent to the above setting.
 
 Setting this option gives Terraform CLI permission to create an incomplete
 dependency lock file entry for a provider if that would allow Terraform to
