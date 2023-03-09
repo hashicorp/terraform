@@ -221,8 +221,6 @@ jobs:
       matrix:
         include:
           - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
-          - { runson: ubuntu-latest, goos: linux, goarch: "arm" }
-          - { runson: ubuntu-latest, goos: linux, goarch: "arm64" }
           - { runson: ubuntu-latest, goos: linux, goarch: "386" }
           - { runson: macos-latest, goos: darwin, goarch: "amd64" }
           - { runson: macos-latest, goos: darwin, goarch: "arm64" }
