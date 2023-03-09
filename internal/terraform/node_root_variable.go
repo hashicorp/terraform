@@ -111,7 +111,7 @@ func (n *NodeRootVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Di
 		return diags
 	}
 
-	ctx.SetRootModuleArgument(addr.Variable, finalVal)
+	ctx.NamedValues().SetInputVariableValue(addr, finalVal)
 
 	if !n.DestroyApply {
 		diags = diags.Append(evalVariableValidations(

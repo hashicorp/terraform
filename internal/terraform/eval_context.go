@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -133,35 +134,10 @@ type EvalContext interface {
 	// addresses in this context.
 	EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope
 
-	// SetRootModuleArgument defines the value for one variable of the root
-	// module. The caller must ensure that given value is a suitable
-	// "final value" for the variable, which means that it's already converted
-	// and validated to match any configured constraints and validation rules.
-	//
-	// Calling this function multiple times with the same variable address
-	// will silently overwrite the value provided by a previous call.
-	SetRootModuleArgument(addrs.InputVariable, cty.Value)
-
-	// SetModuleCallArgument defines the value for one input variable of a
-	// particular child module call. The caller must ensure that the given
-	// value is a suitable "final value" for the variable, which means that
-	// it's already converted and validated to match any configured
-	// constraints and validation rules.
-	//
-	// Calling this function multiple times with the same variable address
-	// will silently overwrite the value provided by a previous call.
-	SetModuleCallArgument(addrs.ModuleCallInstance, addrs.InputVariable, cty.Value)
-
-	// GetVariableValue returns the value provided for the input variable with
-	// the given address, or cty.DynamicVal if the variable hasn't been assigned
-	// a value yet.
-	//
-	// Most callers should deal with variable values only indirectly via
-	// EvaluationScope and the other expression evaluation functions, but
-	// this is provided because variables tend to be evaluated outside of
-	// the context of the module they belong to and so we sometimes need to
-	// override the normal expression evaluation behavior.
-	GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value
+	// NamedValues returns the object that tracks the gradual evaluation of
+	// all input variables, local values, and output values during a graph
+	// walk.
+	NamedValues() *namedvals.State
 
 	// Changes returns the writer object that can be used to write new proposed
 	// changes into the global changes set.

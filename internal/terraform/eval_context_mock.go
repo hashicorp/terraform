@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -121,21 +122,8 @@ type MockEvalContext struct {
 	WithPartialExpandedPathCalled bool
 	WithPartialExpandedPathPath   addrs.PartialExpandedModule
 
-	SetRootModuleArgumentCalled bool
-	SetRootModuleArgumentAddr   addrs.InputVariable
-	SetRootModuleArgumentValue  cty.Value
-	SetRootModuleArgumentFunc   func(addr addrs.InputVariable, v cty.Value)
-
-	SetModuleCallArgumentCalled     bool
-	SetModuleCallArgumentModuleCall addrs.ModuleCallInstance
-	SetModuleCallArgumentVariable   addrs.InputVariable
-	SetModuleCallArgumentValue      cty.Value
-	SetModuleCallArgumentFunc       func(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value)
-
-	GetVariableValueCalled bool
-	GetVariableValueAddr   addrs.AbsInputVariableInstance
-	GetVariableValueValue  cty.Value
-	GetVariableValueFunc   func(addr addrs.AbsInputVariableInstance) cty.Value // supersedes GetVariableValueValue
+	NamedValuesCalled bool
+	NamedValuesState  *namedvals.State
 
 	ChangesCalled  bool
 	ChangesChanges *plans.ChangesSync
@@ -357,32 +345,9 @@ func (c *MockEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModu
 	return &newC
 }
 
-func (c *MockEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
-	c.SetRootModuleArgumentCalled = true
-	c.SetRootModuleArgumentAddr = addr
-	c.SetRootModuleArgumentValue = v
-	if c.SetRootModuleArgumentFunc != nil {
-		c.SetRootModuleArgumentFunc(addr, v)
-	}
-}
-
-func (c *MockEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
-	c.SetModuleCallArgumentCalled = true
-	c.SetModuleCallArgumentModuleCall = callAddr
-	c.SetModuleCallArgumentVariable = varAddr
-	c.SetModuleCallArgumentValue = v
-	if c.SetModuleCallArgumentFunc != nil {
-		c.SetModuleCallArgumentFunc(callAddr, varAddr, v)
-	}
-}
-
-func (c *MockEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
-	c.GetVariableValueCalled = true
-	c.GetVariableValueAddr = addr
-	if c.GetVariableValueFunc != nil {
-		return c.GetVariableValueFunc(addr)
-	}
-	return c.GetVariableValueValue
+func (c *MockEvalContext) NamedValues() *namedvals.State {
+	c.NamedValuesCalled = true
+	return c.NamedValuesState
 }
 
 func (c *MockEvalContext) Changes() *plans.ChangesSync {

@@ -59,9 +59,9 @@ type BuiltinEvalContext struct {
 	// eval context.
 	Evaluator *Evaluator
 
-	// NamedValues is where we keep the values of already-evaluated input
+	// NamedValuesValue is where we keep the values of already-evaluated input
 	// variables, local values, and output values.
-	NamedValues *namedvals.State
+	NamedValuesValue *namedvals.State
 
 	// Plugins is a library of plugin components (providers and provisioners)
 	// available for use during a graph walk.
@@ -473,25 +473,8 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
-
-	absAddr := addrs.RootModuleInstance.InputVariable(addr.Name)
-	ctx.NamedValues.SetInputVariableValue(absAddr, v)
-}
-
-func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
-
-	childPath := callAddr.ModuleInstance(ctx.PathValue)
-	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
-	ctx.NamedValues.SetInputVariableValue(childPath.InputVariable(varAddr.Name), v)
-}
-
-func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
-	return ctx.NamedValues.GetInputVariableValue(addr)
+func (ctx *BuiltinEvalContext) NamedValues() *namedvals.State {
+	return ctx.NamedValuesValue
 }
 
 func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
