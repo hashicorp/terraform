@@ -94,7 +94,16 @@ type evaluationStateData struct {
 
 	// ModulePath is the path through the dynamic module tree to the module
 	// that references will be resolved relative to.
-	ModulePath addrs.ModuleInstance
+	//
+	// PartialExpandedModulePath is the same but for situations when we're
+	// doing partial evaluation inside hypothetical instances of a
+	// not-yet-fully-expanded module.
+	//
+	// These two are mutually exclusive, and PartialEval is true when we're
+	// using PartialExpandedModulePath instead of ModulePath.
+	ModulePath                addrs.ModuleInstance
+	PartialExpandedModulePath addrs.PartialExpandedModule
+	PartialEval               bool
 
 	// InstanceKeyData describes the values, if any, that are accessible due
 	// to repetition of a containing object using "count" or "for_each"
@@ -268,7 +277,12 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.UnknownVal(config.Type), diags
 	}
 
-	val := d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
+	var val cty.Value
+	if d.PartialEval {
+		val = d.Evaluator.NamedValues.GetInputVariablePlaceholder(addrs.ObjectInPartialExpandedModule(d.PartialExpandedModulePath, addr))
+	} else {
+		val = d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
+	}
 
 	// Mark if sensitive
 	if config.Sensitive {

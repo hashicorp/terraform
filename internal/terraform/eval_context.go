@@ -191,10 +191,5 @@ type EvalContext interface {
 	// WithPartialExpandedPath is like WithPath but works with a
 	// partially-expanded path, allowing for speculative evaluation inside
 	// as-yet-unexpanded modules.
-	//
-	// TODO: This currently doesn't really do anything useful, because none
-	// of the other EvalContext methods pay attention to the partial-expanded
-	// path. We should make all of the evaluation-related methods support it
-	// and calculate speculative results in the partial-expanded context.
 	WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext
 }

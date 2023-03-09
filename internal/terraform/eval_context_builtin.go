@@ -441,15 +441,20 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	return ref, replace, diags
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
-	if !ctx.pathSet {
-		panic("context path not set")
-	}
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData instances.RepetitionData) *lang.Scope {
 	data := &evaluationStateData{
 		Evaluator:       ctx.Evaluator,
-		ModulePath:      ctx.PathValue,
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
+	}
+	switch {
+	case ctx.pathSet:
+		data.ModulePath = ctx.PathValue
+	case ctx.partialPathSet:
+		data.PartialExpandedModulePath = ctx.PartialPathValue
+		data.PartialEval = true
+	default:
+		panic("context path not set")
 	}
 	scope := ctx.Evaluator.Scope(data, self, source)
 
@@ -467,6 +472,9 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source 
 }
 
 func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
+	if ctx.partialPathSet {
+		panic(fmt.Sprintf("no module instance path during partial eval of %s", ctx.PartialPathValue))
+	}
 	if !ctx.pathSet {
 		panic("context path not set")
 	}
