@@ -170,8 +170,7 @@ func (n *nodeModuleVariable) Execute(ctx EvalContext, op walkOperation) (diags t
 
 	// Set values for arguments of a child module call, for later retrieval
 	// during expression evaluation.
-	_, call := n.Addr.Module.CallInstance()
-	ctx.SetModuleCallArgument(call, n.Addr.Variable, val)
+	ctx.NamedValues().SetInputVariableValue(n.Addr, val)
 
 	return evalVariableValidations(n.Addr, n.Config, n.Expr, ctx)
 }
@@ -334,11 +333,15 @@ func (n *nodePartialExpandedModuleVariable) Execute(ctx EvalContext, op walkOper
 	// use. We should probably find a better way to do this at some point
 	// because this will produce mildly-inaccurate error messages.
 	fakeInstanceAddr := n.Addr.Module.Module().UnkeyedInstanceShim().InputVariable(n.Addr.Local.Name)
-	_, moreDiags := prepareFinalInputVariableValue(fakeInstanceAddr, rawVal, n.Config)
+	finalVal, moreDiags := prepareFinalInputVariableValue(fakeInstanceAddr, rawVal, n.Config)
 	diags = diags.Append(moreDiags)
 
-	// TODO: Actually record the result for use elsewhere, once there's
-	// actually somewhere to save it.
+	// This placeholder represents a the value for all possible instances of
+	// this variable that might exist after we know the full expansion of the
+	// containing module, so will be used as the value of this variable for
+	// any evaluation we do to predict the results of these hypothetical module
+	// instances.
+	ctx.NamedValues().SetInputVariablePlaceholder(n.Addr, finalVal)
 
 	return diags
 }
