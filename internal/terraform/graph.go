@@ -69,6 +69,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}
+		if pn, ok := v.(GraphNodePartialExpandedModule); ok {
+			vertexCtx = walker.EnterPartialExpandedPath(pn.PartialExpandedModule())
+			defer walker.ExitPartialExpandedPath(pn.PartialExpandedModule())
+		}
 
 		// If the node is exec-able, then execute it.
 		if ev, ok := v.(GraphNodeExecutable); ok {
