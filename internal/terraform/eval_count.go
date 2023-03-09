@@ -20,35 +20,18 @@ import (
 // evaluateCountExpression differs from evaluateCountExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to an integer.
-func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (int, tfdiags.Diagnostics) {
+func evaluateCountExpression(expr hcl.Expression, ctx EvalContext) (v int, known bool, diags tfdiags.Diagnostics) {
 	countVal, diags := evaluateCountExpressionValue(expr, ctx)
+
 	if !countVal.IsKnown() {
-		// Currently this is a rather bad outcome from a UX standpoint, since we have
-		// no real mechanism to deal with this situation and all we can do is produce
-		// an error message.
-		// FIXME: In future, implement a built-in mechanism for deferring changes that
-		// can't yet be predicted, and use it to guide the user through several
-		// plan/apply steps until the desired configuration is eventually reached.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Invalid count argument",
-			Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
-			Subject:  expr.Range().Ptr(),
-
-			// TODO: Also populate Expression and EvalContext in here, but
-			// we can't easily do that right now because the hcl.EvalContext
-			// (which is not the same as the ctx we have in scope here) is
-			// hidden away inside evaluateCountExpressionValue.
-			Extra: diagnosticCausedByUnknown(true),
-		})
+		return -1, false, diags
 	}
-
-	if countVal.IsNull() || !countVal.IsKnown() {
-		return -1, diags
+	if countVal.IsNull() {
+		return -1, true, diags
 	}
 
 	count, _ := countVal.AsBigFloat().Int64()
-	return int(count), diags
+	return int(count), true, diags
 }
 
 // evaluateCountExpressionValue is like evaluateCountExpression

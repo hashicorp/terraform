@@ -19,7 +19,7 @@ import (
 // evaluateForEachExpression differs from evaluateForEachExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to a map[string]cty.Value for compatibility with other calls.
-func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
+func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
 	return newForEachEvaluator(expr, ctx).ResourceValue()
 }
 
@@ -54,38 +54,36 @@ type forEachEvaluator struct {
 
 // ResourceForEachValue returns a known for_each map[string]cty.Value
 // appropriate for use within resource expansion.
-func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, tfdiags.Diagnostics) {
+func (ev *forEachEvaluator) ResourceValue() (map[string]cty.Value, bool, tfdiags.Diagnostics) {
 	res := map[string]cty.Value{}
 
 	// no expression always results in an empty map
 	if ev.expr == nil {
-		return res, nil
+		return res, true, nil
 	}
 
 	forEachVal, diags := ev.Value()
 	if diags.HasErrors() {
-		return res, diags
+		return res, true, diags
 	}
 
-	// ensure our value is known for use in resource expansion
-	diags = diags.Append(ev.ensureKnownForResource(forEachVal))
-	if diags.HasErrors() {
-		return res, diags
+	if !ev.isKnownForResource(forEachVal) {
+		return nil, false, diags
 	}
 
 	// validate the for_each value for use in resource expansion
 	diags = diags.Append(ev.validateResource(forEachVal))
 	if diags.HasErrors() {
-		return res, diags
+		return res, true, diags
 	}
 
 	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
 		// we check length, because an empty set returns a nil map which will panic below
-		return res, diags
+		return res, true, diags
 	}
 
 	res = forEachVal.AsValueMap()
-	return res, diags
+	return res, true, diags
 }
 
 // ImportValue returns the for_each map for use within an import block,
@@ -176,47 +174,19 @@ func (ev *forEachEvaluator) ensureKnownForImport(forEachVal cty.Value) tfdiags.D
 	return diags
 }
 
-// ensureKnownForResource checks that the value is known within the rules of
+// isKnownForResource checks that the value is known within the rules of
 // resource and module expansion.
-func (ev *forEachEvaluator) ensureKnownForResource(forEachVal cty.Value) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func (ev *forEachEvaluator) isKnownForResource(forEachVal cty.Value) bool {
 	ty := forEachVal.Type()
-	const errInvalidUnknownDetailMap = "The \"for_each\" map includes keys derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to define the map keys statically in your configuration and place apply-time results only in the map values.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
-	const errInvalidUnknownDetailSet = "The \"for_each\" set includes values derived from resource attributes that cannot be determined until apply, and so Terraform cannot determine the full set of keys that will identify the instances of this resource.\n\nWhen working with unknown values in for_each, it's better to use a map value where the keys are defined statically in your configuration and where only the values contain apply-time results.\n\nAlternatively, you could use the -target planning option to first apply only the resources that the for_each value depends on, and then apply a second time to fully converge."
 
-	if !forEachVal.IsKnown() {
-		var detailMsg string
-		switch {
-		case ty.IsSetType():
-			detailMsg = errInvalidUnknownDetailSet
-		default:
-			detailMsg = errInvalidUnknownDetailMap
-		}
-
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Invalid for_each argument",
-			Detail:      detailMsg,
-			Subject:     ev.expr.Range().Ptr(),
-			Expression:  ev.expr,
-			EvalContext: ev.hclCtx,
-			Extra:       diagnosticCausedByUnknown(true),
-		})
-		return diags
+	switch {
+	case !forEachVal.IsKnown():
+		return false
+	case ty.IsSetType() && !forEachVal.IsWhollyKnown():
+		return false
+	default:
+		return true
 	}
-
-	if ty.IsSetType() && !forEachVal.IsWhollyKnown() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     "Invalid for_each argument",
-			Detail:      errInvalidUnknownDetailSet,
-			Subject:     ev.expr.Range().Ptr(),
-			Expression:  ev.expr,
-			EvalContext: ev.hclCtx,
-			Extra:       diagnosticCausedByUnknown(true),
-		})
-	}
-	return diags
 }
 
 // ValidateResourceValue is used from validation walks to verify the validity

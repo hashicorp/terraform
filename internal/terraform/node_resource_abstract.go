@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -404,17 +406,34 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 
 	switch {
 	case n.Config != nil && n.Config.Count != nil:
-		count, countDiags := evaluateCountExpression(n.Config.Count, ctx)
+		count, known, countDiags := evaluateCountExpression(n.Config.Count, ctx)
 		diags = diags.Append(countDiags)
 		if countDiags.HasErrors() {
 			return diags
 		}
 
 		state.SetResourceProvider(addr, n.ResolvedProvider)
-		expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+		if known {
+			expander.SetResourceCount(addr.Module, n.Addr.Resource, count)
+		} else {
+			// TEMP: The rest of Terraform Core isn't ready to deal with
+			// us marking expansion as unknown yet, so for now we'll preserve
+			// this as a similar error to what evaluateCountExpression used to
+			// return for an unknown count, thereby preventing downstream
+			// code from relying on this until we've made sure everything else
+			// is ready to deal with it.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid count argument",
+				Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
+				Subject:  n.Config.Count.Range().Ptr(),
+				Extra:    diagnosticCausedByUnknown(true),
+			})
+			expander.SetResourceCountUnknown(addr.Module, n.Addr.Resource)
+		}
 
 	case n.Config != nil && n.Config.ForEach != nil:
-		forEach, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
+		forEach, known, forEachDiags := evaluateForEachExpression(n.Config.ForEach, ctx)
 		diags = diags.Append(forEachDiags)
 		if forEachDiags.HasErrors() {
 			return diags
@@ -423,7 +442,24 @@ func (n *NodeAbstractResource) writeResourceState(ctx EvalContext, addr addrs.Ab
 		// This method takes care of all of the business logic of updating this
 		// while ensuring that any existing instances are preserved, etc.
 		state.SetResourceProvider(addr, n.ResolvedProvider)
-		expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+		if known {
+			expander.SetResourceForEach(addr.Module, n.Addr.Resource, forEach)
+		} else {
+			// TEMP: The rest of Terraform Core isn't ready to deal with
+			// us marking expansion as unknown yet, so for now we'll preserve
+			// this as a similar error to what evaluateForEachExpression used to
+			// return for an unknown for_each, thereby preventing downstream
+			// code from relying on this until we've made sure everything else
+			// is ready to deal with it.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid for_each argument",
+				Detail:   `The "for_each" value's instance keys depend on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that for_each depends on.`,
+				Subject:  n.Config.ForEach.Range().Ptr(),
+				Extra:    diagnosticCausedByUnknown(true),
+			})
+			expander.SetResourceForEachUnknown(addr.Module, n.Addr.Resource)
+		}
 
 	default:
 		state.SetResourceProvider(addr, n.ResolvedProvider)

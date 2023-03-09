@@ -18,21 +18,29 @@ func TestEvaluateCountExpression(t *testing.T) {
 	tests := map[string]struct {
 		Expr  hcl.Expression
 		Count int
+		Known bool
 	}{
 		"zero": {
 			hcltest.MockExprLiteral(cty.NumberIntVal(0)),
 			0,
+			true,
 		},
 		"expression with marked value": {
 			hcltest.MockExprLiteral(cty.NumberIntVal(8).Mark(marks.Sensitive)),
 			8,
+			true,
+		},
+		"unknown value": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Number)),
+			-1,
+			false,
 		},
 	}
 	for name, test := range tests {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			countVal, diags := evaluateCountExpression(test.Expr, ctx)
+			countVal, known, diags := evaluateCountExpression(test.Expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -43,6 +51,9 @@ func TestEvaluateCountExpression(t *testing.T) {
 					"wrong map value\ngot:  %swant: %s",
 					spew.Sdump(countVal), spew.Sdump(test.Count),
 				)
+			}
+			if known != test.Known {
+				t.Errorf("wrong 'knownness'\ngot:  %#v\nwant: %#v", known, test.Known)
 			}
 		})
 	}
