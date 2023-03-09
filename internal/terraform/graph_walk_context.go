@@ -16,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/moduletest/mocking"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -36,6 +37,7 @@ type ContextGraphWalker struct {
 	PrevRunState            *states.SyncState   // Used for safe concurrent access to state
 	Changes                 *plans.ChangesSync  // Used for safe concurrent writes to changes
 	Checks                  *checks.State       // Used for safe concurrent writes of checkable objects and their check results
+	NamedValues             *namedvals.State    // Tracks evaluation of input variables, local values, and output values
 	InstanceExpander        *instances.Expander // Tracks our gradual expansion of module and resource instances
 	Imports                 []configs.Import
 	MoveResults             refactoring.MoveResults // Read-only record of earlier processing of move statements
@@ -99,15 +101,14 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:               w.Context.meta,
-		Config:             w.Config,
-		Operation:          w.Operation,
-		State:              w.State,
-		Changes:            w.Changes,
-		Plugins:            w.Context.plugins,
-		VariableValues:     w.variableValues,
-		VariableValuesLock: &w.variableValuesLock,
-		PlanTimestamp:      w.PlanTimestamp,
+		Meta:          w.Context.meta,
+		Config:        w.Config,
+		Operation:     w.Operation,
+		State:         w.State,
+		Changes:       w.Changes,
+		Plugins:       w.Context.plugins,
+		NamedValues:   w.NamedValues,
+		PlanTimestamp: w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -125,12 +126,11 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ProvisionerLock:         &w.provisionerLock,
 		ChangesValue:            w.Changes,
 		ChecksValue:             w.Checks,
+		NamedValues:             w.NamedValues,
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
 		Evaluator:               evaluator,
-		VariableValues:          w.variableValues,
-		VariableValuesLock:      &w.variableValuesLock,
 		OverrideValues:          w.Overrides,
 	}
 

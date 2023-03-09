@@ -5,7 +5,6 @@ package terraform
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
@@ -15,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -75,16 +75,15 @@ func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluati
 
 	return &evaluationStateData{
 		Evaluator: &Evaluator{
-			Operation:          operation,
-			Meta:               ctx.meta,
-			Config:             ctx.Config,
-			Plugins:            ctx.plugins,
-			State:              ctx.State.SyncWrapper(),
-			Changes:            ctx.Plan.Changes.SyncWrapper(),
-			AlternateStates:    alternateStates,
-			VariableValues:     variableValues,
-			VariableValuesLock: new(sync.Mutex),
-			PlanTimestamp:      ctx.Plan.Timestamp,
+			Operation:       operation,
+			Meta:            ctx.meta,
+			Config:          ctx.Config,
+			Plugins:         ctx.plugins,
+			State:           ctx.State.SyncWrapper(),
+			Changes:         ctx.Plan.Changes.SyncWrapper(),
+			AlternateStates: alternateStates,
+			NamedValues:     namedvals.NewState(),
+			PlanTimestamp:   ctx.Plan.Timestamp,
 		},
 		ModulePath:      nil, // nil for the root module
 		InstanceKeyData: EvalDataForNoInstanceKey,

@@ -8,7 +8,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/hashicorp/hcl/v2"
@@ -21,6 +20,7 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -39,15 +39,9 @@ type Evaluator struct {
 	// Config is the root node in the configuration tree.
 	Config *configs.Config
 
-	// VariableValues is a map from variable names to their associated values,
-	// within the module indicated by ModulePath. VariableValues is modified
-	// concurrently, and so it must be accessed only while holding
-	// VariableValuesLock.
-	//
-	// The first map level is string representations of addr.ModuleInstance
-	// values, while the second level is variable names.
-	VariableValues     map[string]map[string]cty.Value
-	VariableValuesLock *sync.Mutex
+	// NamedValues is where we keep the values of already-evaluated input
+	// variables, local values, and output values.
+	NamedValues *namedvals.State
 
 	// Plugins is the library of available plugin components (providers and
 	// provisioners) that we have available to help us evaluate expressions
@@ -252,8 +246,6 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		})
 		return cty.DynamicVal, diags
 	}
-	d.Evaluator.VariableValuesLock.Lock()
-	defer d.Evaluator.VariableValuesLock.Unlock()
 
 	// During the validate walk, input variables are always unknown so
 	// that we are validating the configuration for all possible input values
@@ -276,36 +268,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.UnknownVal(config.Type), diags
 	}
 
-	moduleAddrStr := d.ModulePath.String()
-	vals := d.Evaluator.VariableValues[moduleAddrStr]
-	if vals == nil {
-		return cty.UnknownVal(config.Type), diags
-	}
-
-	// d.Evaluator.VariableValues should always contain valid "final values"
-	// for variables, which is to say that they have already had type
-	// conversions, validations, and default value handling applied to them.
-	// Those are the responsibility of the graph notes representing the
-	// variable declarations. Therefore here we just trust that we already
-	// have a correct value.
-
-	val, isSet := vals[addr.Name]
-	if !isSet {
-		// We should not be able to get here without having a valid value
-		// for every variable, so this always indicates a bug in either
-		// the graph builder (not including all the needed nodes) or in
-		// the graph nodes representing variables.
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  `Reference to unresolved input variable`,
-			Detail: fmt.Sprintf(
-				`The final value for %s is missing in Terraform's evaluation context. This is a bug in Terraform; please report it!`,
-				addr.Absolute(d.ModulePath),
-			),
-			Subject: rng.ToHCL().Ptr(),
-		})
-		val = cty.UnknownVal(config.Type)
-	}
+	val := d.Evaluator.NamedValues.GetInputVariableValue(d.ModulePath.InputVariable(addr.Name))
 
 	// Mark if sensitive
 	if config.Sensitive {
