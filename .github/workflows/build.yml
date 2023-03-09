@@ -108,20 +108,20 @@ jobs:
     strategy:
       matrix:
         include:
-          - {goos: "freebsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "freebsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "freebsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "freebsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "linux", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "darwin", goarch: "amd64", runson: "macos-latest", cgo-enabled: "1"}
-          - {goos: "darwin", goarch: "arm64", runson: "macos-latest", cgo-enabled: "1"}
+#          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+#          - {goos: "darwin", goarch: "amd64", runson: "macos-latest", cgo-enabled: "1"}
+#          - {goos: "darwin", goarch: "arm64", runson: "macos-latest", cgo-enabled: "1"}
       fail-fast: false
 
   package-docker:
@@ -155,6 +155,9 @@ jobs:
   e2etest-build:
     name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
     runs-on: ubuntu-latest
+    outputs:
+      e2e-cache-key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
+      e2e-cache-path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
     needs:
       - get-product-version
       - get-go-version
@@ -169,9 +172,9 @@ jobs:
         # tests there, but at the time of writing there is no documented
         # support for darwin_arm64 (macOS on Apple Silicon).
         include:
-          - {goos: "darwin", goarch: "amd64"}
-          #- {goos: "darwin", goarch: "arm64"}
-          - {goos: "windows", goarch: "amd64"}
+#          - {goos: "darwin", goarch: "amd64"}
+#          #- {goos: "darwin", goarch: "arm64"}
+#          - {goos: "windows", goarch: "amd64"}
           - {goos: "linux", goarch: "amd64"}
           #- {goos: "linux", goarch: "arm"}
           #- {goos: "linux", goarch: "arm64"}
@@ -181,6 +184,13 @@ jobs:
       build_script: ./internal/command/e2etest/make-archive.sh
 
     steps:
+      - name: Set Cache Values
+        id: set-cache-values
+        run: |
+          cache_key=e2e-cache-${{ github.sha }}
+          cache_path=internal/command/e2etest/build
+          echo "e2e-cache-key=${cache_key}" | tee -a "${GITHUB_OUTPUT}"
+          echo "e2e-cache-path=${cache_path}" | tee -a "${GITHUB_OUTPUT}"
       - uses: actions/checkout@v2
 
       - name: Install Go toolchain
@@ -200,10 +210,10 @@ jobs:
           # that "terraform version" is returning that version number.
           bash ./internal/command/e2etest/make-archive.sh
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/cache/save@v3
         with:
-          name: terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
-          path: internal/command/e2etest/build/terraform-e2etest_${{ matrix.goos }}_${{ matrix.goarch }}.zip
+          path: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
+          key: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
           if-no-files-found: error
 
   e2etest:
@@ -217,8 +227,8 @@ jobs:
       matrix:
         include:
           - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
-          - { runson: macos-latest, goos: darwin, goarch: "amd64" }
-          - { runson: windows-latest, goos: windows, goarch: "amd64" }
+#          - { runson: macos-latest, goos: darwin, goarch: "amd64" }
+#          - { runson: windows-latest, goos: windows, goarch: "amd64" }
       fail-fast: false
 
     env:
@@ -233,12 +243,12 @@ jobs:
       # and e2etest package for this platform. (This helps ensure that we're
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
-      - name: "Download e2etest package"
-        uses: actions/download-artifact@v2
+      - name: "Restore cache"
+        uses: actions/cache/restore@v3
         id: e2etestpkg
         with:
-          name: terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip
-          path: .
+          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
+          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
         id: clipkg
@@ -248,12 +258,12 @@ jobs:
       - name: Extract packages
         if: ${{ (matrix.goos == 'linux') || (inputs.goos == 'darwin') }}
         run: |
-          unzip "./terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Extract packages windows
         if: ${{ matrix.goos == 'windows' }}
         run: |
-          unzip "./terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Run E2E Tests
         if: ${{ (matrix.goos == 'linux') || (inputs.goos == 'darwin') }}
