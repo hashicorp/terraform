@@ -2272,16 +2272,29 @@ locals {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	state, diags := ctx.Apply(plan, m, nil)
-	if diags.HasErrors() {
-		t.Errorf("expected no errors, but got %s", diags)
+	g, _, diags := ctx.applyGraph(plan, m, &ApplyOpts{}, true)
+	assertNoDiagnostics(t, diags)
+
+	// The local value should've been pruned from the graph because nothing
+	// refers to it.
+	gotGraph := g.String()
+	wantGraph := `provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  test_object.a
+root
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_object.a
+  test_object.a (expand)
+test_object.a (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+`
+	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
+		t.Errorf("wrong apply graph\n%s", diff)
 	}
 
-	// We didn't specify any external references, so the unreferenced local
-	// value should have been tidied up and never made it into the state.
-	module := state.RootModule()
-	if len(module.LocalValues) > 0 {
-		t.Errorf("expected no local values in the state but found %d", len(module.LocalValues))
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
 	}
 }
 
@@ -2315,17 +2328,36 @@ locals {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	state, diags := ctx.Apply(plan, m, nil)
+	g, _, diags := ctx.applyGraph(plan, m, &ApplyOpts{}, true)
 	if diags.HasErrors() {
 		t.Errorf("expected no errors, but got %s", diags)
 	}
 
-	// We did specify the local value in the external references, so it should
-	// have been preserved even though it is not referenced by anything directly
-	// in the config.
-	module := state.RootModule()
-	if module.LocalValues["local_value"].AsString() != "foo" {
-		t.Errorf("expected local value to be \"foo\" but was \"%s\"", module.LocalValues["local_value"].AsString())
+	// The local value should remain in the graph because the external
+	// reference uses it.
+	gotGraph := g.String()
+	wantGraph := `<external ref to local.local_value>
+  local.local_value (expand)
+local.local_value (expand)
+  test_object.a
+provider["registry.terraform.io/hashicorp/test"]
+provider["registry.terraform.io/hashicorp/test"] (close)
+  test_object.a
+root
+  <external ref to local.local_value>
+  provider["registry.terraform.io/hashicorp/test"] (close)
+test_object.a
+  test_object.a (expand)
+test_object.a (expand)
+  provider["registry.terraform.io/hashicorp/test"]
+`
+	if diff := cmp.Diff(wantGraph, gotGraph); diff != "" {
+		t.Errorf("wrong graph\n%s", diff)
+	}
+
+	_, diags = ctx.Apply(plan, m, nil)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
 	}
 }
 

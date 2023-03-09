@@ -5,7 +5,6 @@ package states
 
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Module is a container for the states of objects within a particular module.
@@ -15,18 +14,13 @@ type Module struct {
 	// Resources contains the state for each resource. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Resources map[string]*Resource
-
-	// LocalValues contains the value for each named output value. The keys
-	// in this map are local value names.
-	LocalValues map[string]cty.Value
 }
 
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:        addr,
-		Resources:   map[string]*Resource{},
-		LocalValues: map[string]cty.Value{},
+		Addr:      addr,
+		Resources: map[string]*Resource{},
 	}
 }
 
@@ -245,19 +239,6 @@ func (ms *Module) maybeRestoreResourceInstanceDeposed(addr addrs.ResourceInstanc
 	is.Current = is.Deposed[key]
 	delete(is.Deposed, key)
 	return true
-}
-
-// SetLocalValue writes a local value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetLocalValue(name string, value cty.Value) {
-	ms.LocalValues[name] = value
-}
-
-// RemoveLocalValue removes the local value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveLocalValue(name string) {
-	delete(ms.LocalValues, name)
 }
 
 // PruneResourceHusks is a specialized method that will remove any Resource

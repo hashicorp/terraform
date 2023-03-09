@@ -252,7 +252,6 @@ func basicState(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	state.SetOutputValue(
 		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
 		cty.StringVal("bar value"), false,
