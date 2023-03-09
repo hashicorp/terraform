@@ -4,6 +4,7 @@
 package addrs
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -35,6 +36,16 @@ func (m ModuleInstance) UnexpandedChild(call ModuleCall) PartialExpandedModule {
 	}
 }
 
+// LevelsKnown returns the number of module path segments of the address that
+// have known instance keys.
+//
+// This might be useful, for example, for preferring a more-specifically-known
+// address over a less-specifically-known one when selecting a placeholder
+// value to use to represent an object beneath an unexpanded module address.
+func (pem PartialExpandedModule) LevelsKnown() int {
+	return len(pem.expandedPrefix)
+}
+
 // MatchesInstance returns true if and only if the given module instance
 // belongs to the recieving partially-expanded module address pattern.
 func (pem PartialExpandedModule) MatchesInstance(inst ModuleInstance) bool {
@@ -60,6 +71,25 @@ func (pem PartialExpandedModule) MatchesInstance(inst ModuleInstance) bool {
 
 	// If we passed all the filters above then it's a match.
 	return true
+}
+
+// MatchesPartial returns true if and only if the receiver represents the same
+// static module as the other given module and the receiver's known instance
+// keys are a prefix of the other module's.
+func (pem PartialExpandedModule) MatchesPartial(other PartialExpandedModule) bool {
+	// The two addresses must represent the same static module, regardless
+	// of the instance keys of those modules.
+	if !pem.Module().Equal(other.Module()) {
+		return false
+	}
+
+	if len(pem.expandedPrefix) > len(other.expandedPrefix) {
+		return false
+	}
+
+	thisPrefix := pem.expandedPrefix
+	otherPrefix := other.expandedPrefix[:len(pem.expandedPrefix)]
+	return thisPrefix.Equal(otherPrefix)
 }
 
 // Module returns the unexpanded module address that this pattern originated
@@ -321,3 +351,76 @@ type partialExpandedResourceKey string
 var _ UniqueKey = partialExpandedModuleKey("")
 
 func (partialExpandedResourceKey) uniqueKeySigil() {}
+
+// InPartialExpandedModule is a generic type used for all address types that
+// represent objects that exist inside module instances but do not have any
+// expansion capability of their own beyond just the containing module
+// expansion.
+//
+// Although not enforced by the type system, this type should be used only for
+// address types T that are combined with a ModuleInstance value in a type
+// whose name starts with "Abs". For example, [LocalValue] is a reasonable T
+// because [AbsLocalValue] represents a local value inside a particular module
+// instance. InPartialExpandedModule[LocalValue] is therefore like an
+// [AbsLocalValue] whose module path isn't fully known yet.
+//
+// This type is here primarily just to have implementations of [UniqueKeyer]
+// so we can store partially-evaluated objects from unexpanded modules in
+// collections for later reference downstream.
+type InPartialExpandedModule[T interface {
+	UniqueKeyer
+	fmt.Stringer
+}] struct {
+	Module PartialExpandedModule
+	Local  T
+}
+
+// ObjectInPartialExpandedModule is a constructor for [InPartialExpandedModule]
+// that's here primarily just to benefit from function type parameter inference
+// to avoid manually writing out type T when constructing such a value.
+func ObjectInPartialExpandedModule[T interface {
+	UniqueKeyer
+	fmt.Stringer
+}](module PartialExpandedModule, local T) InPartialExpandedModule[T] {
+	return InPartialExpandedModule[T]{
+		Module: module,
+		Local:  local,
+	}
+}
+
+var _ UniqueKeyer = InPartialExpandedModule[LocalValue]{}
+
+// ModuleLevelsKnown returns the number of module path segments of the address
+// that have known instance keys.
+//
+// This might be useful, for example, for preferring a more-specifically-known
+// address over a less-specifically-known one when selecting a placeholder
+// value to use to represent an object beneath an unexpanded module address.
+func (in InPartialExpandedModule[T]) ModuleLevelsKnown() int {
+	return in.Module.LevelsKnown()
+}
+
+// String returns a string representation of the pattern which uses the special
+// placeholder "[*]" to represent positions where module instance keys are not
+// yet known.
+func (in InPartialExpandedModule[T]) String() string {
+	moduleAddr := in.Module.String()
+	if len(moduleAddr) != 0 {
+		return moduleAddr + "." + in.Local.String()
+	}
+	return in.Local.String()
+}
+
+func (in InPartialExpandedModule[T]) UniqueKey() UniqueKey {
+	return inPartialExpandedModuleUniqueKey{
+		moduleKey: in.Module.UniqueKey(),
+		localKey:  in.Local.UniqueKey(),
+	}
+}
+
+type inPartialExpandedModuleUniqueKey struct {
+	moduleKey UniqueKey
+	localKey  UniqueKey
+}
+
+func (inPartialExpandedModuleUniqueKey) uniqueKeySigil() {}
