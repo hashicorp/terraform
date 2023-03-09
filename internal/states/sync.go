@@ -103,44 +103,6 @@ func (s *SyncState) RemoveOutputValue(addr addrs.AbsOutputValue) {
 	s.state.RemoveOutputValue(addr)
 }
 
-// LocalValue returns the current value associated with the given local value
-// address.
-func (s *SyncState) LocalValue(addr addrs.AbsLocalValue) cty.Value {
-	s.lock.RLock()
-	// cty.Value is immutable, so we don't need any extra copying here.
-	ret := s.state.LocalValue(addr)
-	s.lock.RUnlock()
-	return ret
-}
-
-// SetLocalValue writes a given output value into the state, overwriting
-// any existing value of the same name.
-//
-// If the module containing the local value is not yet tracked in state then it
-// will be added as a side-effect.
-func (s *SyncState) SetLocalValue(addr addrs.AbsLocalValue, value cty.Value) {
-	defer s.beginWrite()()
-
-	ms := s.state.EnsureModule(addr.Module)
-	ms.SetLocalValue(addr.LocalValue.Name, value)
-}
-
-// RemoveLocalValue removes the stored value for the local value with the
-// given address.
-//
-// If this results in its containing module being empty, the module will be
-// pruned from the state as a side-effect.
-func (s *SyncState) RemoveLocalValue(addr addrs.AbsLocalValue) {
-	defer s.beginWrite()()
-
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
-		return
-	}
-	ms.RemoveLocalValue(addr.LocalValue.Name)
-	s.maybePruneModule(addr.Module)
-}
-
 // Resource returns a snapshot of the state of the resource with the given
 // address, or nil if no such resource is tracked.
 //
