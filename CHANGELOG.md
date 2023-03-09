@@ -25,7 +25,11 @@ BUG FIXES:
 * Terraform can now better detect when complex optional+computed object attributes are removed from configuration ([#32551](https://github.com/hashicorp/terraform/issues/32551))
 * A new methodology for planning set elements can now better detect optional+computed changes within sets ([#32563](https://github.com/hashicorp/terraform/issues/32563))
 * Fix state locking and releasing messages when in `-json` mode, messages will now be written in JSON format ([#32451](https://github.com/hashicorp/terraform/issues/32451))
+* Fixes a race condition where the Terraform CLI checks if a run is confirmable before the run status gets updated and exits early.
 
+NEW FEATURES:
+
+* When showing the progress of a remote operation running in Terraform Cloud, Terraform CLI will include information about OPA policy evaluation (#32303)
 
 ENHANCEMENTS:
 
@@ -49,6 +53,7 @@ ENHANCEMENTS:
 * backend/gcs: Added support for `GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT` env var to allow impersonating a different service account when `GOOGLE_IMPERSONATE_SERVICE_ACCOUNT` is configured for the GCP provider. ([#32557](https://github.com/hashicorp/terraform/issues/32557))
 * backend/cos: Add support for the `assume_role` authentication method with the `tencentcloud` provider. This can be configured via the Terraform config or environment variables.
 * backend/cos: Add support for the `security_token` authentication method with the `tencentcloud` provider. This can be configured via the Terraform config or environment variables.
+
 
 EXPERIMENTS:
 
