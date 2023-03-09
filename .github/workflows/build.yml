@@ -210,11 +210,11 @@ jobs:
           # that "terraform version" is returning that version number.
           bash ./internal/command/e2etest/make-archive.sh
 
-      - uses: actions/cache/save@v3
+      - name: Save test harness to cache
+        uses: actions/cache/save@v3
         with:
-          path: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
-          key: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
-          if-no-files-found: error
+          path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
+          key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
 
   e2etest:
     name: Run e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
@@ -249,6 +249,7 @@ jobs:
         with:
           path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
           key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}
+          fail-on-cache-miss: true
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
         id: clipkg
