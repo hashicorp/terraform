@@ -23,6 +23,13 @@ func (v OutputValue) String() string {
 	return "output." + v.Name
 }
 
+func (v OutputValue) UniqueKey() UniqueKey {
+	return v
+}
+
+// An OutputValue is comparaible, so can be its own unique key.
+func (v OutputValue) uniqueKeySigil() {}
+
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
 func (v OutputValue) Absolute(m ModuleInstance) AbsOutputValue {

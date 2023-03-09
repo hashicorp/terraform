@@ -54,3 +54,17 @@ func (v AbsInputVariableInstance) String() string {
 
 	return fmt.Sprintf("%s.%s", v.Module.String(), v.Variable.String())
 }
+
+func (v AbsInputVariableInstance) UniqueKey() UniqueKey {
+	return absInputVariableInstanceKey{
+		moduleKey:   v.Module.UniqueKey(),
+		variableKey: v.Variable.UniqueKey(),
+	}
+}
+
+type absInputVariableInstanceKey struct {
+	moduleKey   UniqueKey
+	variableKey UniqueKey
+}
+
+func (absInputVariableInstanceKey) uniqueKeySigil() {}

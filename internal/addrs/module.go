@@ -51,6 +51,10 @@ func (m Module) String() string {
 	return buf.String()
 }
 
+func (m Module) UniqueKey() UniqueKey {
+	return moduleUniqueKey(m.String())
+}
+
 func (m Module) Equal(other Module) bool {
 	if len(m) != len(other) {
 		return false
@@ -165,3 +169,7 @@ func (m Module) Ancestors() []Module {
 func (m Module) configMoveableSigil() {
 	// ModuleInstance is moveable
 }
+
+type moduleUniqueKey string
+
+func (moduleUniqueKey) uniqueKeySigil() {}
