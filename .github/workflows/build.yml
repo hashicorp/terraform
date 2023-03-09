@@ -245,6 +245,7 @@ jobs:
           path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
           key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
           fail-on-cache-miss: true
+          enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
         id: clipkg
