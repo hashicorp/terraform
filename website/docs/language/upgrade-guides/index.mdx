@@ -17,7 +17,7 @@ See the full [changelog for more details](https://github.com/hashicorp/terraform
 
 ## Provider caching during terraform init
 
-**_This change effects those who rely upon global provider caching and not the dependecy lock file._**
+**_This change affects those who rely upon global provider caching and not the dependency lock file._**
 
 `terraform init` now ignores entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. 
 
