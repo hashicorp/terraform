@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
 )
@@ -314,16 +312,6 @@ func (s *State) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
 		return nil
 	}
 	return ms.OutputValues[addr.OutputValue.Name]
-}
-
-// LocalValue returns the value of the named local value with the given address,
-// or cty.NilVal if no such value is tracked in the state.
-func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
-	ms := s.Module(addr.Module)
-	if ms == nil {
-		return cty.NilVal
-	}
-	return ms.LocalValues[addr.LocalValue.Name]
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses

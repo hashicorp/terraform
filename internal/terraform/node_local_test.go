@@ -4,17 +4,15 @@
 package terraform
 
 import (
-	"reflect"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -48,14 +46,16 @@ func TestNodeLocalExecute(t *testing.T) {
 				t.Fatal(diags.Error())
 			}
 
+			localAddr := addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance)
 			n := &NodeLocal{
-				Addr: addrs.LocalValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+				Addr: localAddr,
 				Config: &configs.Local{
 					Expr: expr,
 				},
 			}
 			ctx := &MockEvalContext{
-				StateState: states.NewState().SyncWrapper(),
+				StateState:       states.NewState().SyncWrapper(),
+				NamedValuesState: namedvals.NewState(),
 
 				EvaluateExprResult: hcl2shim.HCL2ValueFromConfigValue(test.Want),
 			}
@@ -69,18 +69,19 @@ func TestNodeLocalExecute(t *testing.T) {
 				}
 			}
 
-			ms := ctx.StateState.Module(addrs.RootModuleInstance)
-			gotLocals := ms.LocalValues
-			wantLocals := map[string]cty.Value{}
-			if test.Want != nil {
-				wantLocals["foo"] = hcl2shim.HCL2ValueFromConfigValue(test.Want)
-			}
-
-			if !reflect.DeepEqual(gotLocals, wantLocals) {
-				t.Errorf(
-					"wrong locals after Eval\ngot:  %swant: %s",
-					spew.Sdump(gotLocals), spew.Sdump(wantLocals),
-				)
+			if test.Err {
+				if ctx.NamedValues().HasLocalValue(localAddr) {
+					t.Errorf("have value for %s, but wanted none", localAddr)
+				}
+			} else {
+				if !ctx.NamedValues().HasLocalValue(localAddr) {
+					t.Fatalf("no value for %s", localAddr)
+				}
+				got := ctx.NamedValues().GetLocalValue(localAddr)
+				want := hcl2shim.HCL2ValueFromConfigValue(test.Want)
+				if !want.RawEquals(got) {
+					t.Errorf("wrong value for %s\ngot:  %#v\nwant: %#v", localAddr, got, want)
+				}
 			}
 		})
 	}

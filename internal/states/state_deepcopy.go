@@ -58,17 +58,11 @@ func (ms *Module) DeepCopy() *Module {
 	for k, v := range ms.OutputValues {
 		outputValues[k] = v.DeepCopy()
 	}
-	localValues := make(map[string]cty.Value, len(ms.LocalValues))
-	for k, v := range ms.LocalValues {
-		// cty.Value is immutable, so we don't need to copy these.
-		localValues[k] = v
-	}
 
 	return &Module{
 		Addr:         ms.Addr, // technically mutable, but immutable by convention
 		Resources:    resources,
 		OutputValues: outputValues,
-		LocalValues:  localValues,
 	}
 }
 

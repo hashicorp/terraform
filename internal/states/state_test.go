@@ -27,7 +27,6 @@ func TestState(t *testing.T) {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
 	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
 	rootModule.SetResourceInstanceCurrent(
@@ -58,9 +57,6 @@ func TestState(t *testing.T) {
 		Modules: map[string]*Module{
 			"": {
 				Addr: addrs.RootModuleInstance,
-				LocalValues: map[string]cty.Value{
-					"foo": cty.StringVal("foo value"),
-				},
 				OutputValues: map[string]*OutputValue{
 					"bar": {
 						Addr: addrs.AbsOutputValue{
@@ -107,8 +103,7 @@ func TestState(t *testing.T) {
 				},
 			},
 			"module.child": {
-				Addr:        addrs.RootModuleInstance.Child("child", addrs.NoKey),
-				LocalValues: map[string]cty.Value{},
+				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey),
 				OutputValues: map[string]*OutputValue{
 					"pizza": {
 						Addr: addrs.AbsOutputValue{
@@ -124,8 +119,7 @@ func TestState(t *testing.T) {
 				Resources: map[string]*Resource{},
 			},
 			`module.multi["a"]`: {
-				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
-				LocalValues: map[string]cty.Value{},
+				Addr: addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
 				OutputValues: map[string]*OutputValue{
 					"pizza": {
 						Addr: addrs.AbsOutputValue{
@@ -141,8 +135,7 @@ func TestState(t *testing.T) {
 				Resources: map[string]*Resource{},
 			},
 			`module.multi["b"]`: {
-				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
-				LocalValues: map[string]cty.Value{},
+				Addr: addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
 				OutputValues: map[string]*OutputValue{
 					"pizza": {
 						Addr: addrs.AbsOutputValue{
@@ -231,7 +224,6 @@ func TestStateDeepCopy(t *testing.T) {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
 	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
 	rootModule.SetResourceInstanceCurrent(
