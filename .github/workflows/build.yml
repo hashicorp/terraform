@@ -169,7 +169,7 @@ jobs:
           - {goos: "windows", goarch: "amd64"}
           - {goos: "windows", goarch: "386"}
           - {goos: "linux", goarch: "386"}
-          - {goos: "linux", goarch: "arm64"}
+          - {goos: "linux", goarch: "amd64"}
       fail-fast: false
 
     env:
