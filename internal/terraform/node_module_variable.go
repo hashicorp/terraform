@@ -352,7 +352,7 @@ func (n *nodePartialExpandedModuleVariable) Execute(ctx EvalContext, op walkOper
 			EachValue:  cty.DynamicVal,
 		}
 
-		scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
+		scope := ctx.EvaluationScope(nil, nil, moduleInstanceRepetitionData)
 		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {

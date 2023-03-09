@@ -99,22 +99,18 @@ type BuiltinEvalContext struct {
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
 func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
-	if ctx.pathSet || ctx.partialPathSet {
-		panic("context already has a module path or partial module path")
-	}
-
 	newCtx := *ctx
 	newCtx.pathSet = true
 	newCtx.PathValue = path
+	newCtx.partialPathSet = false
+	newCtx.PartialPathValue = addrs.PartialExpandedModule{}
 	return &newCtx
 }
 
 func (ctx *BuiltinEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
-	if ctx.pathSet || ctx.partialPathSet {
-		panic("context already has a module path or partial module path")
-	}
-
 	newCtx := *ctx
+	newCtx.pathSet = false
+	newCtx.PathValue = nil
 	newCtx.partialPathSet = true
 	newCtx.PartialPathValue = path
 	return &newCtx

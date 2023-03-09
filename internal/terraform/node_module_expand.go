@@ -6,8 +6,6 @@ package terraform
 import (
 	"log"
 
-	"github.com/hashicorp/hcl/v2"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -125,19 +123,6 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 				log.Printf("[TRACE] nodeExpandModule: %s has count = %d", callAddr, count)
 				expander.SetModuleCount(module, call, count)
 			} else {
-				// TEMP: The rest of Terraform Core isn't ready to deal with
-				// us marking expansion as unknown yet, so for now we'll preserve
-				// this as a similar error to what evaluateCountExpression used to
-				// return for an unknown count, thereby preventing downstream
-				// code from relying on this until we've made sure everything else
-				// is ready to deal with it.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid count argument",
-					Detail:   `The "count" value depends on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that the count depends on.`,
-					Subject:  n.ModuleCall.Count.Range().Ptr(),
-					Extra:    diagnosticCausedByUnknown(true),
-				})
 				log.Printf("[TRACE] nodeExpandModule: %s has unknown count", callAddr)
 				expander.SetModuleCountUnknown(module, call)
 			}
@@ -152,19 +137,6 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 				log.Printf("[TRACE] nodeExpandModule: %s has for_each with instance count %d", callAddr, len(forEach))
 				expander.SetModuleForEach(module, call, forEach)
 			} else {
-				// TEMP: The rest of Terraform Core isn't ready to deal with
-				// us marking expansion as unknown yet, so for now we'll preserve
-				// this as a similar error to what evaluateCountExpression used to
-				// return for an unknown count, thereby preventing downstream
-				// code from relying on this until we've made sure everything else
-				// is ready to deal with it.
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Invalid for_each argument",
-					Detail:   `The "for_each" value's instance keys depend on resource attributes that cannot be determined until apply, so Terraform cannot predict how many instances will be created. To work around this, use the -target argument to first apply only the resources that for_each depends on.`,
-					Subject:  n.ModuleCall.ForEach.Range().Ptr(),
-					Extra:    diagnosticCausedByUnknown(true),
-				})
 				log.Printf("[TRACE] nodeExpandModule: %s has for_each with unknown instance keys", callAddr)
 				expander.SetModuleForEachUnknown(module, call)
 			}

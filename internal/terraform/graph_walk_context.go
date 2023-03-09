@@ -64,6 +64,8 @@ type ContextGraphWalker struct {
 	provisionerLock    sync.Mutex
 }
 
+var _ GraphWalker = (*ContextGraphWalker)(nil)
+
 func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 	w.contextLock.Lock()
 	defer w.contextLock.Unlock()
@@ -76,6 +78,17 @@ func (w *ContextGraphWalker) EnterPath(path addrs.ModuleInstance) EvalContext {
 
 	ctx := w.EvalContext().WithPath(path)
 	w.contexts[key] = ctx.(*BuiltinEvalContext)
+	return ctx
+}
+
+func (w *ContextGraphWalker) EnterPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
+	w.contextLock.Lock()
+	defer w.contextLock.Unlock()
+
+	// TODO: Consider caching these in a similar way as we do in EnterPath,
+	// if the allocations here prove bothersome.
+
+	ctx := w.EvalContext().WithPartialExpandedPath(path)
 	return ctx
 }
 

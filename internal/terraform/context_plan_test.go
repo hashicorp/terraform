@@ -2248,25 +2248,6 @@ func TestContext2Plan_countComputed(t *testing.T) {
 	}
 }
 
-func TestContext2Plan_countComputedModule(t *testing.T) {
-	m := testModule(t, "plan-count-computed-module")
-	p := testProvider("aws")
-	p.PlanResourceChangeFn = testDiffFn
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	_, err := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
-
-	expectedErr := `The "count" value depends on resource attributes`
-	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
-		t.Fatalf("expected err would contain %q\nerr: %s\n",
-			expectedErr, err)
-	}
-}
-
 func TestContext2Plan_countModuleStatic(t *testing.T) {
 	m := testModule(t, "plan-count-module-static")
 	p := testProvider("aws")
@@ -3087,48 +3068,6 @@ func TestContext2Plan_forEach(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-}
-
-func TestContext2Plan_forEachUnknownValue(t *testing.T) {
-	// This module has a variable defined, but it's value is unknown. We
-	// expect this to produce an error, but not to panic.
-	m := testModule(t, "plan-for-each-unknown-value")
-	p := testProvider("aws")
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
-		},
-	})
-
-	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode: plans.NormalMode,
-		SetVariables: InputValues{
-			"foo": {
-				Value:      cty.UnknownVal(cty.String),
-				SourceType: ValueFromCLIArg,
-			},
-		},
-	})
-	if !diags.HasErrors() {
-		// Should get this error:
-		// Invalid for_each argument: The "for_each" value depends on resource attributes that cannot be determined until apply...
-		t.Fatal("succeeded; want errors")
-	}
-
-	gotErrStr := diags.Err().Error()
-	wantErrStr := "Invalid for_each argument"
-	if !strings.Contains(gotErrStr, wantErrStr) {
-		t.Fatalf("missing expected error\ngot: %s\n\nwant: error containing %q", gotErrStr, wantErrStr)
-	}
-
-	// We should have a diagnostic that is marked as being caused by unknown
-	// values.
-	for _, diag := range diags {
-		if tfdiags.DiagnosticCausedByUnknown(diag) {
-			return // don't fall through to the error below
-		}
-	}
-	t.Fatalf("no diagnostic is marked as being caused by unknown\n%s", diags.Err().Error())
 }
 
 func TestContext2Plan_destroy(t *testing.T) {

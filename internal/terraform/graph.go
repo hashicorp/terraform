@@ -75,6 +75,10 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}
+		if pn, ok := v.(GraphNodePartialExpandedModule); ok {
+			vertexCtx = walker.EnterPartialExpandedPath(pn.PartialExpandedModule())
+			defer walker.ExitPartialExpandedPath(pn.PartialExpandedModule())
+		}
 
 		if g.checkAndApplyOverrides(ctx.Overrides(), v) {
 			// We can skip whole vertices if they are in a module that has been
