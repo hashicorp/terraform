@@ -63,7 +63,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 	// get evaluated before any of the corresponding instances by creating
 	// dependency edges, so we'll do some prep work here to ensure we'll only
 	// create connections to nodes that existed before we started here.
-	resourceNodes := map[string][]GraphNodeConfigResource{}
+	resourceNodes := addrs.MakeMap[addrs.ConfigResource, []GraphNodeConfigResource]()
 	for _, node := range g.Vertices() {
 		rn, ok := node.(GraphNodeConfigResource)
 		if !ok {
@@ -76,8 +76,8 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		addr := rn.ResourceAddr().String()
-		resourceNodes[addr] = append(resourceNodes[addr], rn)
+		rAddr := rn.ResourceAddr()
+		resourceNodes.Put(rAddr, append(resourceNodes.Get(rAddr), rn))
 	}
 
 	for _, rc := range changes.Resources {
@@ -178,8 +178,7 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			}
 
 			g.Add(node)
-			rsrcAddr := addr.ContainingResource().String()
-			for _, rsrcNode := range resourceNodes[rsrcAddr] {
+			for _, rsrcNode := range resourceNodes.Get(addr.ConfigResource()) {
 				g.Connect(dag.BasicEdge(node, rsrcNode))
 			}
 		}
