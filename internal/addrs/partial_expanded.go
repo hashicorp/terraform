@@ -155,7 +155,7 @@ func (pem PartialExpandedModule) String() string {
 		buf.WriteString(pem.expandedPrefix.String())
 	}
 	for i, callName := range pem.unexpandedSuffix {
-		if i > 0 || len(pem.unexpandedSuffix) != 0 {
+		if i > 0 || len(pem.expandedPrefix) != 0 {
 			buf.WriteByte('.')
 		}
 		buf.WriteString("module.")
