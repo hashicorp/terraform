@@ -1,5 +1,9 @@
 ## 1.4.1 (Unreleased)
 
+BUG FIXES:
+
+* Enables overriding modules that have the `depends_on` attribute set, while still preventing the `depends_on` attribute itself from being overridden. [GH-32796]
+
 ## 1.4.0 (March 08, 2023)
 
 UPGRADE NOTES:
