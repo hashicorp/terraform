@@ -200,11 +200,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
                 object({
 					rules = map(
 						object({
-							description           = string
-							destination_ports     = list(string)
 							destination_addresses = optional(list(string), [])
-							translated_address    = string
-							translated_port       = string
 						})
 					)
                 })
@@ -816,24 +812,16 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			cty.MapVal(map[string]cty.Value{
 				"mysql": cty.ObjectVal(map[string]cty.Value{
 					"rules": cty.ObjectVal(map[string]cty.Value{
-						"description":           cty.StringVal("Port forward"),
-						"destination_ports":     cty.ListVal([]cty.Value{cty.StringVal("3306")}),
 						"destination_addresses": cty.ListVal([]cty.Value{cty.StringVal("192.168.0.1")}),
-						"translated_address":    cty.StringVal("192.168.0.1"),
-						"translated_port":       cty.StringVal("3306"),
 					}),
 				}),
 			}),
 			cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
 				"rules": cty.Map(cty.Object(map[string]cty.Type{
-					"description":           cty.String,
-					"destination_ports":     cty.List(cty.String),
 					"destination_addresses": cty.List(cty.String),
-					"translated_address":    cty.String,
-					"translated_port":       cty.String,
 				})),
 			}))),
-			`Invalid value for input variable: Unsuitable value for var.invalid_nested_type set from outside of the configuration: incorrect map element type: attribute "rules": element "destination_ports": object required.`,
+			`Invalid value for input variable: Unsuitable value for var.invalid_nested_type set from outside of the configuration: incorrect map element type: attribute "rules": element "destination_addresses": object required.`,
 		},
 
 		// sensitive
