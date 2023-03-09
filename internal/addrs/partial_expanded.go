@@ -175,6 +175,57 @@ func (pem PartialExpandedModule) Resource(resource Resource) PartialExpandedReso
 	}
 }
 
+// ParentIsModuleInstance returns true if
+// [PartialExpandedModule.ParentModuleInstance] would succeed, or false if
+// [PartialExpandedModule.ParentPartialExpandedModule] would succeed.
+//
+// In other words, it determines whether accessing the parent module would
+// cross the boundary between the unexpanded and expanded portions of the
+// address, which means that any further traversal upwards should be done
+// using [ModuleInstance] values rather than [PartialExpandedModule]
+// values.
+func (pem PartialExpandedModule) ParentIsModuleInstance() bool {
+	// NOTE: We don't handle the case where unexpandedSuffix is zero-length
+	// here because standalone PartialExpandedModule values should always have
+	// at least one unexpanded part.
+	//
+	// This isn't true for the special PartialExpandedModule values hidden in
+	// the internals of PartialExpandedResource, so don't use this method with
+	// those.
+	return len(pem.unexpandedSuffix) == 1
+}
+
+// ParentModuleInstance returns the fully-expanded module instance that is the
+// parent of this module if and only if the last step is the only step in the
+// path that is unexpanded.
+//
+// If the receiever does not meet that criteria, the second return value is
+// false. Use ParentPartialExpandedModule instead in that case, to get the
+// parent represented as a [PartialExpandedModule].
+func (pem PartialExpandedModule) ParentModuleInstance() (ModuleInstance, bool) {
+	if len(pem.unexpandedSuffix) != 1 {
+		return nil, false
+	}
+	return pem.expandedPrefix, true
+}
+
+// ParentPartialExpandedModule is like ParentModuleInstance but deals with the
+// situation where the parent is also partially-expanded and so needs to still
+// be described as a PartialExpandedModule.
+//
+// If the reciever's parent is already exact then the second return value is
+// false. Use ParentModuleInstance instead in that case, to get the parent
+// represented as a [ModuleInstance].
+func (pem PartialExpandedModule) ParentPartialExpandedModule() (PartialExpandedModule, bool) {
+	if len(pem.unexpandedSuffix) < 2 {
+		return PartialExpandedModule{}, false
+	}
+	return PartialExpandedModule{
+		expandedPrefix:   pem.expandedPrefix,
+		unexpandedSuffix: pem.unexpandedSuffix[: len(pem.unexpandedSuffix)-1 : len(pem.unexpandedSuffix)-1],
+	}, true
+}
+
 // String returns a string representation of the pattern where the known
 // prefix uses the normal module instance address syntax and the unknown
 // suffix steps use a similar syntax but with "[*]" as a placeholder to
