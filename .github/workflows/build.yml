@@ -208,7 +208,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path: ${{ steps.set-cache-values.outputs.e2e-cache-path }}
-          key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}
+          key: ${{ steps.set-cache-values.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
 
   e2etest:
     name: Run e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
@@ -247,7 +247,7 @@ jobs:
         id: e2etestpkg
         with:
           path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
-          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}
+          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
           fail-on-cache-miss: true
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
