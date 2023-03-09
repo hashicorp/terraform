@@ -47,6 +47,12 @@ func (s *State) GetInputVariableValue(addr addrs.AbsInputVariableInstance) cty.V
 	return s.variables.GetExactResult(addr)
 }
 
+func (s *State) HasInputVariableValue(addr addrs.AbsInputVariableInstance) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.variables.HasExactResult(addr)
+}
+
 func (s *State) SetInputVariablePlaceholder(addr addrs.InPartialExpandedModule[addrs.InputVariable], val cty.Value) {
 	s.mu.Lock()
 	s.variables.SetPlaceholderResult(addr, val)
@@ -71,6 +77,12 @@ func (s *State) GetLocalValue(addr addrs.AbsLocalValue) cty.Value {
 	return s.locals.GetExactResult(addr)
 }
 
+func (s *State) HasLocalValue(addr addrs.AbsLocalValue) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.locals.HasExactResult(addr)
+}
+
 func (s *State) SetLocalValuePlaceholder(addr addrs.InPartialExpandedModule[addrs.LocalValue], val cty.Value) {
 	s.mu.Lock()
 	s.locals.SetPlaceholderResult(addr, val)
@@ -93,6 +105,12 @@ func (s *State) GetOutputValue(addr addrs.AbsOutputValue) cty.Value {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.outputs.GetExactResult(addr)
+}
+
+func (s *State) HasOutputValue(addr addrs.AbsOutputValue) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.outputs.HasExactResult(addr)
 }
 
 func (s *State) SetOutputValuePlaceholder(addr addrs.InPartialExpandedModule[addrs.OutputValue], val cty.Value) {
