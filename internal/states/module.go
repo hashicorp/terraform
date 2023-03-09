@@ -17,10 +17,6 @@ type Module struct {
 	// OutputValues contains the state for each output value. The keys in this
 	// map are output value names.
 	OutputValues map[string]*OutputValue
-
-	// LocalValues contains the value for each named output value. The keys
-	// in this map are local value names.
-	LocalValues map[string]cty.Value
 }
 
 // NewModule constructs an empty module state for the given module address.
@@ -29,7 +25,6 @@ func NewModule(addr addrs.ModuleInstance) *Module {
 		Addr:         addr,
 		Resources:    map[string]*Resource{},
 		OutputValues: map[string]*OutputValue{},
-		LocalValues:  map[string]cty.Value{},
 	}
 }
 
@@ -274,19 +269,6 @@ func (ms *Module) RemoveOutputValue(name string) {
 	delete(ms.OutputValues, name)
 }
 
-// SetLocalValue writes a local value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetLocalValue(name string, value cty.Value) {
-	ms.LocalValues[name] = value
-}
-
-// RemoveLocalValue removes the local value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveLocalValue(name string) {
-	delete(ms.LocalValues, name)
-}
-
 // PruneResourceHusks is a specialized method that will remove any Resource
 // objects that do not contain any instances, even if they have an EachMode.
 //
@@ -316,6 +298,5 @@ func (ms *Module) empty() bool {
 	// This must be updated to cover any new collections added to Module
 	// in future.
 	return (len(ms.Resources) == 0 &&
-		len(ms.OutputValues) == 0 &&
-		len(ms.LocalValues) == 0)
+		len(ms.OutputValues) == 0)
 }
