@@ -192,6 +192,21 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})
 			)
 		}
+        // https://github.com/hashicorp/terraform/issues/32752
+		// This variable was introduced to make sure the evaluation doesn't 
+        // crash even when the types are wrong.
+        variable "invalid_nested_type" {
+            type = map(
+                object({
+					rules = map(
+						object({
+							destination_addresses = optional(list(string), [])
+						})
+					)
+                })
+            )
+			default = {}
+        }
 	`
 	cfg := testModuleInline(t, map[string]string{
 		"main.tf": cfgSrc,
@@ -791,6 +806,22 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}),
 			}),
 			``,
+		},
+		{
+			"invalid_nested_type",
+			cty.MapVal(map[string]cty.Value{
+				"mysql": cty.ObjectVal(map[string]cty.Value{
+					"rules": cty.ObjectVal(map[string]cty.Value{
+						"destination_addresses": cty.ListVal([]cty.Value{cty.StringVal("192.168.0.1")}),
+					}),
+				}),
+			}),
+			cty.UnknownVal(cty.Map(cty.Object(map[string]cty.Type{
+				"rules": cty.Map(cty.Object(map[string]cty.Type{
+					"destination_addresses": cty.List(cty.String),
+				})),
+			}))),
+			`Invalid value for input variable: Unsuitable value for var.invalid_nested_type set from outside of the configuration: incorrect map element type: attribute "rules": element "destination_addresses": object required.`,
 		},
 
 		// sensitive
