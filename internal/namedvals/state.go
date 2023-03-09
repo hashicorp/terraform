@@ -19,9 +19,17 @@ import (
 type State struct {
 	mu sync.Mutex
 
-	variables *inputVariableValues
-	locals    *localValues
-	outputs   *outputValues
+	variables inputVariableValues
+	locals    localValues
+	outputs   outputValues
+}
+
+func NewState() *State {
+	return &State{
+		variables: newValues[addrs.InputVariable, addrs.AbsInputVariableInstance](),
+		locals:    newValues[addrs.LocalValue, addrs.AbsLocalValue](),
+		outputs:   newValues[addrs.OutputValue, addrs.AbsOutputValue](),
+	}
 }
 
 func (s *State) SetInputVariableValue(addr addrs.AbsInputVariableInstance, val cty.Value) {

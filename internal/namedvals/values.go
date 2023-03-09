@@ -52,6 +52,13 @@ type namedValueAddr interface {
 	fmt.Stringer
 }
 
+func newValues[LocalType namedValueAddr, AbsType namedValueAddr]() values[LocalType, AbsType] {
+	return values[LocalType, AbsType]{
+		exact:       addrs.MakeMap[AbsType, cty.Value](),
+		placeholder: addrs.MakeMap[addrs.Module, addrs.Map[addrs.InPartialExpandedModule[LocalType], cty.Value]](),
+	}
+}
+
 func (v *values[LocalType, AbsType]) SetExactResult(addr AbsType, val cty.Value) {
 	if v.exact.Has(addr) {
 		// This is always a bug in the caller, because Terraform Core should
