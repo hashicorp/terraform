@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
@@ -30,6 +31,7 @@ type ContextGraphWalker struct {
 	RefreshState       *states.SyncState       // Used for safe concurrent access to state
 	PrevRunState       *states.SyncState       // Used for safe concurrent access to state
 	Changes            *plans.ChangesSync      // Used for safe concurrent writes to changes
+	NamedValues        *namedvals.State        // Tracks evaluation of input variables, local values, and output values
 	Checks             *checks.State           // Used for safe concurrent writes of checkable objects and their check results
 	InstanceExpander   *instances.Expander     // Tracks our gradual expansion of module and resource instances
 	MoveResults        refactoring.MoveResults // Read-only record of earlier processing of move statements
@@ -90,14 +92,13 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 	// so that we can safely run multiple evaluations at once across
 	// different modules.
 	evaluator := &Evaluator{
-		Meta:               w.Context.meta,
-		Config:             w.Config,
-		Operation:          w.Operation,
-		State:              w.State,
-		Changes:            w.Changes,
-		Plugins:            w.Context.plugins,
-		VariableValues:     w.variableValues,
-		VariableValuesLock: &w.variableValuesLock,
+		Meta:        w.Context.meta,
+		Config:      w.Config,
+		Operation:   w.Operation,
+		State:       w.State,
+		Changes:     w.Changes,
+		NamedValues: w.NamedValues,
+		Plugins:     w.Context.plugins,
 	}
 
 	ctx := &BuiltinEvalContext{
@@ -106,6 +107,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		InputValue:            w.Context.uiInput,
 		InstanceExpanderValue: w.InstanceExpander,
 		Plugins:               w.Context.plugins,
+		NamedValues:           w.NamedValues,
 		MoveResultsValue:      w.MoveResults,
 		ProviderCache:         w.providerCache,
 		ProviderInputConfig:   w.Context.providerInputConfig,
@@ -118,8 +120,6 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		RefreshStateValue:     w.RefreshState,
 		PrevRunStateValue:     w.PrevRunState,
 		Evaluator:             evaluator,
-		VariableValues:        w.variableValues,
-		VariableValuesLock:    &w.variableValuesLock,
 	}
 
 	return ctx

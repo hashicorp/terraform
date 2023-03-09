@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -11,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -87,6 +87,14 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 // This particularly tests that a sensitive attribute in config
 // results in a value that has a "sensitive" cty Mark
 func TestEvaluatorGetInputVariable(t *testing.T) {
+	namedValues := namedvals.NewState()
+	namedValues.SetInputVariableValue(
+		addrs.RootModuleInstance.InputVariable("some_var"), cty.StringVal("bar"),
+	)
+	namedValues.SetInputVariableValue(
+		addrs.RootModuleInstance.InputVariable("some_other_var"), cty.StringVal("boop").Mark(marks.Sensitive),
+	)
+
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -112,13 +120,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 				},
 			},
 		},
-		VariableValues: map[string]map[string]cty.Value{
-			"": {
-				"some_var":       cty.StringVal("bar"),
-				"some_other_var": cty.StringVal("boop").Mark(marks.Sensitive),
-			},
-		},
-		VariableValuesLock: &sync.Mutex{},
+		NamedValues: namedValues,
 	}
 
 	data := &evaluationStateData{

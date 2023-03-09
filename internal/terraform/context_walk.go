@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/refactoring"
 	"github.com/hashicorp/terraform/internal/states"
@@ -135,6 +136,7 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		RefreshState:     refreshState,
 		PrevRunState:     prevRunState,
 		Changes:          changes.SyncWrapper(),
+		NamedValues:      namedvals.NewState(),
 		Checks:           checkState,
 		InstanceExpander: instances.NewExpander(),
 		MoveResults:      opts.MoveResults,
