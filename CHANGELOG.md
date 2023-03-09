@@ -3,6 +3,8 @@
 BUG FIXES:
 
 * Enables overriding modules that have the `depends_on` attribute set, while still preventing the `depends_on` attribute itself from being overridden. [GH-32796]
+* `terraform providers mirror`: when a dependency lock file is present, mirror the resolved providers versions, not the latest available based on configuration. [GH-32749]
+* Fixed module downloads from S3 URLs when using AWS IAM roles for service accounts (IRSA). [GH-32700]
 
 ## 1.4.0 (March 08, 2023)
 
