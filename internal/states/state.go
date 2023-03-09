@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // State is the top-level type of a Terraform state.
@@ -321,16 +320,6 @@ func (s *State) RemoveOutputValue(addr addrs.AbsOutputValue) {
 		return
 	}
 	delete(s.RootOutputValues, addr.OutputValue.Name)
-}
-
-// LocalValue returns the value of the named local value with the given address,
-// or cty.NilVal if no such value is tracked in the state.
-func (s *State) LocalValue(addr addrs.AbsLocalValue) cty.Value {
-	ms := s.Module(addr.Module)
-	if ms == nil {
-		return cty.NilVal
-	}
-	return ms.LocalValues[addr.LocalValue.Name]
 }
 
 // ProviderAddrs returns a list of all of the provider configuration addresses

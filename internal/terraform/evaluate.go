@@ -303,12 +303,7 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	val := d.Evaluator.State.LocalValue(addr.Absolute(d.ModulePath))
-	if val == cty.NilVal {
-		// Not evaluated yet?
-		val = cty.DynamicVal
-	}
-
+	val := d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath))
 	return val, diags
 }
 

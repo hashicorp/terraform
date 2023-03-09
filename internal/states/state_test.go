@@ -28,7 +28,6 @@ func TestState(t *testing.T) {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	state.SetOutputValue(
 		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
 		cty.StringVal("bar value"), false,
@@ -91,9 +90,6 @@ func TestState(t *testing.T) {
 		Modules: map[string]*Module{
 			"": {
 				Addr: addrs.RootModuleInstance,
-				LocalValues: map[string]cty.Value{
-					"foo": cty.StringVal("foo value"),
-				},
 				Resources: map[string]*Resource{
 					"test_thing.baz": {
 						Addr: addrs.Resource{
@@ -120,19 +116,16 @@ func TestState(t *testing.T) {
 				},
 			},
 			"module.child": {
-				Addr:        addrs.RootModuleInstance.Child("child", addrs.NoKey),
-				LocalValues: map[string]cty.Value{},
-				Resources:   map[string]*Resource{},
+				Addr:      addrs.RootModuleInstance.Child("child", addrs.NoKey),
+				Resources: map[string]*Resource{},
 			},
 			`module.multi["a"]`: {
-				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
-				LocalValues: map[string]cty.Value{},
-				Resources:   map[string]*Resource{},
+				Addr:      addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
+				Resources: map[string]*Resource{},
 			},
 			`module.multi["b"]`: {
-				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
-				LocalValues: map[string]cty.Value{},
-				Resources:   map[string]*Resource{},
+				Addr:      addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
+				Resources: map[string]*Resource{},
 			},
 		},
 	}
@@ -189,7 +182,6 @@ func TestStateDeepCopy(t *testing.T) {
 		t.Fatalf("root module is nil; want valid object")
 	}
 
-	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
 	state.SetOutputValue(
 		addrs.OutputValue{Name: "bar"}.Absolute(rootModule.Addr),
 		cty.StringVal("bar value"), false,

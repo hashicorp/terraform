@@ -4234,6 +4234,10 @@ resource "test_object" "a" {
 locals {
   local_value = test_object.a.test_string
 }
+
+output "from_local_value" {
+  value = local.local_value
+}
 `,
 	})
 
@@ -4253,20 +4257,20 @@ locals {
 	module := state.RootModule()
 
 	// So, the original state shouldn't have been updated at all.
-	if len(module.LocalValues) > 0 {
-		t.Errorf("expected no local values in the state but found %d", len(module.LocalValues))
+	if len(state.RootOutputValues) > 0 {
+		t.Errorf("expected no root output values in the state but found %d", len(state.RootOutputValues))
 	}
 
 	if len(module.Resources) > 0 {
-		t.Errorf("expected no resources in the state but found %d", len(module.LocalValues))
+		t.Errorf("expected no resources in the state but found %d", len(module.Resources))
 	}
 
 	// But, this makes it hard for the testing framework to valid things about
 	// the returned plan. So, the plan contains the planned state:
 	module = plan.PlannedState.RootModule()
 
-	if module.LocalValues["local_value"].AsString() != "foo" {
-		t.Errorf("expected local value to be \"foo\" but was \"%s\"", module.LocalValues["local_value"].AsString())
+	if got, want := plan.PlannedState.RootOutputValues["from_local_value"].Value.AsString(), "foo"; got != want {
+		t.Errorf("expected local value to be %q but was %q", want, got)
 	}
 
 	if module.ResourceInstance(addr.Resource).Current.Status != states.ObjectPlanned {
