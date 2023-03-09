@@ -18,22 +18,23 @@ import (
 // evaluateForEachExpression differs from evaluateForEachExpressionValue by
 // returning an error if the count value is not known, and converting the
 // cty.Value to a map[string]cty.Value for compatibility with other calls.
-func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, diags tfdiags.Diagnostics) {
-	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, false)
-	// forEachVal might be unknown, but if it is then there should already
-	// be an error about it in diags, which we'll return below.
+func evaluateForEachExpression(expr hcl.Expression, ctx EvalContext) (forEach map[string]cty.Value, known bool, diags tfdiags.Diagnostics) {
+	forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
 
-	if forEachVal.IsNull() || !forEachVal.IsKnown() || markSafeLengthInt(forEachVal) == 0 {
-		// we check length, because an empty set return a nil map
-		return map[string]cty.Value{}, diags
+	if !forEachVal.IsKnown() {
+		return nil, false, diags
 	}
 
-	return forEachVal.AsValueMap(), diags
+	if forEachVal.IsNull() || markSafeLengthInt(forEachVal) == 0 {
+		return map[string]cty.Value{}, true, diags
+	}
+
+	return forEachVal.AsValueMap(), true, diags
 }
 
 // evaluateForEachExpressionValue is like evaluateForEachExpression
 // except that it returns a cty.Value map or set which can be unknown.
-func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowUnknown bool) (cty.Value, tfdiags.Diagnostics) {
+func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	nullMap := cty.NullVal(cty.Map(cty.DynamicPseudoType))
 
@@ -93,28 +94,9 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 			EvalContext: hclCtx,
 		})
 		return nullMap, diags
-	case !forEachVal.IsKnown():
-		if !allowUnknown {
-			var detailMsg string
-			switch {
-			case ty.IsSetType():
-				detailMsg = errInvalidUnknownDetailSet
-			default:
-				detailMsg = errInvalidUnknownDetailMap
-			}
 
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     "Invalid for_each argument",
-				Detail:      detailMsg,
-				Subject:     expr.Range().Ptr(),
-				Expression:  expr,
-				EvalContext: hclCtx,
-				Extra:       diagnosticCausedByUnknown(true),
-			})
-		}
-		// ensure that we have a map, and not a DynamicValue
-		return cty.UnknownVal(cty.Map(cty.DynamicPseudoType)), diags
+	case !forEachVal.IsKnown():
+		return forEachVal, diags
 
 	case !(ty.IsMapType() || ty.IsSetType() || ty.IsObjectType()):
 		diags = diags.Append(&hcl.Diagnostic{
@@ -138,17 +120,6 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 		// since we can't use a set values that are unknown, we treat the
 		// entire set as unknown
 		if !forEachVal.IsWhollyKnown() {
-			if !allowUnknown {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid for_each argument",
-					Detail:      errInvalidUnknownDetailSet,
-					Subject:     expr.Range().Ptr(),
-					Expression:  expr,
-					EvalContext: hclCtx,
-					Extra:       diagnosticCausedByUnknown(true),
-				})
-			}
 			return cty.UnknownVal(ty), diags
 		}
 

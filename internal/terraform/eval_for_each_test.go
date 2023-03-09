@@ -17,10 +17,12 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 	tests := map[string]struct {
 		Expr       hcl.Expression
 		ForEachMap map[string]cty.Value
+		Known      bool
 	}{
 		"empty set": {
 			hcltest.MockExprLiteral(cty.SetValEmpty(cty.String)),
 			map[string]cty.Value{},
+			true,
 		},
 		"multi-value string set": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("a"), cty.StringVal("b")})),
@@ -28,10 +30,12 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"a": cty.StringVal("a"),
 				"b": cty.StringVal("b"),
 			},
+			true,
 		},
 		"empty map": {
 			hcltest.MockExprLiteral(cty.MapValEmpty(cty.Bool)),
 			map[string]cty.Value{},
+			true,
 		},
 		"map": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -42,6 +46,7 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"a": cty.BoolVal(true),
 				"b": cty.BoolVal(false),
 			},
+			true,
 		},
 		"map containing unknown values": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -52,6 +57,7 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"a": cty.UnknownVal(cty.Bool),
 				"b": cty.UnknownVal(cty.Bool),
 			},
+			true,
 		},
 		"map containing sensitive values, but strings are literal": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
@@ -62,6 +68,27 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 				"a": cty.BoolVal(true).Mark(marks.Sensitive),
 				"b": cty.BoolVal(false),
 			},
+			true,
+		},
+		"unknown string set": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
+			nil,
+			false,
+		},
+		"unknown map": {
+			hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
+			nil,
+			false,
+		},
+		"set containing unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
+			nil,
+			false,
+		},
+		"set containing dynamic unknown value": {
+			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
+			nil,
+			false,
 		},
 	}
 
@@ -69,7 +96,7 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachMap, diags := evaluateForEachExpression(test.Expr, ctx)
+			forEachMap, known, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
@@ -81,7 +108,9 @@ func TestEvaluateForEachExpression_valid(t *testing.T) {
 					spew.Sdump(forEachMap), spew.Sdump(test.ForEachMap),
 				)
 			}
-
+			if known != test.Known {
+				t.Errorf("wrong 'knownness'\ngot:  %#v\nwant: %#v", known, test.Known)
+			}
 		})
 	}
 }
@@ -116,18 +145,6 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"must be a map, or set of strings, and you have provided a value of type tuple",
 			false, false,
 		},
-		"unknown string set": {
-			hcltest.MockExprLiteral(cty.UnknownVal(cty.Set(cty.String))),
-			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
-			true, false,
-		},
-		"unknown map": {
-			hcltest.MockExprLiteral(cty.UnknownVal(cty.Map(cty.Bool))),
-			"Invalid for_each argument",
-			"map includes keys derived from resource attributes that cannot be determined until apply",
-			true, false,
-		},
 		"marked map": {
 			hcltest.MockExprLiteral(cty.MapVal(map[string]cty.Value{
 				"a": cty.BoolVal(true),
@@ -149,18 +166,6 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 			"must not contain null values",
 			false, false,
 		},
-		"set containing unknown value": {
-			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.String)})),
-			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
-			true, false,
-		},
-		"set containing dynamic unknown value": {
-			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.UnknownVal(cty.DynamicPseudoType)})),
-			"Invalid for_each argument",
-			"set includes values derived from resource attributes that cannot be determined until apply",
-			true, false,
-		},
 		"set containing marked values": {
 			hcltest.MockExprLiteral(cty.SetVal([]cty.Value{cty.StringVal("beep").Mark(marks.Sensitive), cty.StringVal("boop")})),
 			"Invalid for_each argument",
@@ -173,7 +178,7 @@ func TestEvaluateForEachExpression_errors(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			_, diags := evaluateForEachExpression(test.Expr, ctx)
+			_, _, diags := evaluateForEachExpression(test.Expr, ctx)
 
 			if len(diags) != 1 {
 				t.Fatalf("got %d diagnostics; want 1", diags)
@@ -218,7 +223,7 @@ func TestEvaluateForEachExpressionKnown(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			ctx := &MockEvalContext{}
 			ctx.installSimpleEval()
-			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx, true)
+			forEachVal, diags := evaluateForEachExpressionValue(expr, ctx)
 
 			if len(diags) != 0 {
 				t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
