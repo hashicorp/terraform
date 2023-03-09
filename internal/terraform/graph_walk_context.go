@@ -108,7 +108,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ProvisionerLock:         &w.provisionerLock,
 		ChangesValue:            w.Changes,
 		ChecksValue:             w.Checks,
-		NamedValues:             w.NamedValues,
+		NamedValuesValue:        w.NamedValues,
 		StateValue:              w.State,
 		RefreshStateValue:       w.RefreshState,
 		PrevRunStateValue:       w.PrevRunState,
