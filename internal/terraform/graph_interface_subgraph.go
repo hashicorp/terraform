@@ -18,3 +18,11 @@ type GraphNodeModuleInstance interface {
 type GraphNodeModulePath interface {
 	ModulePath() addrs.Module
 }
+
+// GraphNodePartialExpandedModule is implemented by nodes that represent
+// potentially multiple instances of a particular configuration object that
+// we haven't fully resolved yet because the expansion of one or more of
+// the calling modules was deferred.
+type GraphNodePartialExpandedModule interface {
+	PartialExpandedModule() addrs.PartialExpandedModule
+}

@@ -118,6 +118,9 @@ type MockEvalContext struct {
 	PathCalled bool
 	PathPath   addrs.ModuleInstance
 
+	WithPartialExpandedPathCalled bool
+	WithPartialExpandedPathPath   addrs.PartialExpandedModule
+
 	SetRootModuleArgumentCalled bool
 	SetRootModuleArgumentAddr   addrs.InputVariable
 	SetRootModuleArgumentValue  cty.Value
@@ -344,6 +347,14 @@ func (c *MockEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
 func (c *MockEvalContext) Path() addrs.ModuleInstance {
 	c.PathCalled = true
 	return c.PathPath
+}
+
+func (c *MockEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
+	c.WithPartialExpandedPathCalled = true
+	c.WithPartialExpandedPathPath = path
+	newC := *c
+	newC.WithPartialExpandedPathPath = path
+	return &newC
 }
 
 func (c *MockEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {

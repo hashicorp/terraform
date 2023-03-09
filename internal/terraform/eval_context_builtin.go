@@ -44,6 +44,16 @@ type BuiltinEvalContext struct {
 	// panic if this is not set.
 	pathSet bool
 
+	// PartialPathValue is an alternative to PathValue for situations where
+	// Terraform is speculating about any possible instances of a module whose
+	// expansion isn't known. partialPathSet is analogous to pathSet.
+	// This pair is mutually-exclusive with PathValue/pathSet. The Path
+	// method will still panic if a partial path is set instead of an exact one,
+	// but evaluation methods will work and will use a speculative evaluation
+	// context.
+	PartialPathValue addrs.PartialExpandedModule
+	partialPathSet   bool
+
 	// Evaluator is used for evaluating expressions within the scope of this
 	// eval context.
 	Evaluator *Evaluator
@@ -89,9 +99,24 @@ type BuiltinEvalContext struct {
 var _ EvalContext = (*BuiltinEvalContext)(nil)
 
 func (ctx *BuiltinEvalContext) WithPath(path addrs.ModuleInstance) EvalContext {
+	if ctx.pathSet || ctx.partialPathSet {
+		panic("context already has a module path or partial module path")
+	}
+
 	newCtx := *ctx
 	newCtx.pathSet = true
 	newCtx.PathValue = path
+	return &newCtx
+}
+
+func (ctx *BuiltinEvalContext) WithPartialExpandedPath(path addrs.PartialExpandedModule) EvalContext {
+	if ctx.pathSet || ctx.partialPathSet {
+		panic("context already has a module path or partial module path")
+	}
+
+	newCtx := *ctx
+	newCtx.partialPathSet = true
+	newCtx.PartialPathValue = path
 	return &newCtx
 }
 

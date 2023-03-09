@@ -113,6 +113,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 	// to our module, and register module instances with each of them.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
 		ctx = ctx.WithPath(module)
+		callAddr := module.ChildCall(call.Name)
 		switch {
 		case n.ModuleCall.Count != nil:
 			count, known, ctDiags := evaluateCountExpression(n.ModuleCall.Count, ctx)
@@ -121,6 +122,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 				return diags
 			}
 			if known {
+				log.Printf("[TRACE] nodeExpandModule: %s has count = %d", callAddr, count)
 				expander.SetModuleCount(module, call, count)
 			} else {
 				// TEMP: The rest of Terraform Core isn't ready to deal with
@@ -136,6 +138,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 					Subject:  n.ModuleCall.Count.Range().Ptr(),
 					Extra:    diagnosticCausedByUnknown(true),
 				})
+				log.Printf("[TRACE] nodeExpandModule: %s has unknown count", callAddr)
 				expander.SetModuleCountUnknown(module, call)
 			}
 
@@ -146,6 +149,7 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 				return diags
 			}
 			if known {
+				log.Printf("[TRACE] nodeExpandModule: %s has for_each with instance count %d", callAddr, len(forEach))
 				expander.SetModuleForEach(module, call, forEach)
 			} else {
 				// TEMP: The rest of Terraform Core isn't ready to deal with
@@ -161,10 +165,12 @@ func (n *nodeExpandModule) Execute(ctx EvalContext, op walkOperation) (diags tfd
 					Subject:  n.ModuleCall.ForEach.Range().Ptr(),
 					Extra:    diagnosticCausedByUnknown(true),
 				})
+				log.Printf("[TRACE] nodeExpandModule: %s has for_each with unknown instance keys", callAddr)
 				expander.SetModuleForEachUnknown(module, call)
 			}
 
 		default:
+			log.Printf("[TRACE] nodeExpandModule: %s is a single-instance module", callAddr)
 			expander.SetModuleSingle(module, call)
 		}
 	}
@@ -276,10 +282,15 @@ func (n *nodeValidateModule) Execute(ctx EvalContext, op walkOperation) (diags t
 	_, call := n.Addr.Call()
 	expander := ctx.InstanceExpander()
 
-	// Modules all evaluate to single instances during validation, only to
-	// create a proper context within which to evaluate. All parent modules
-	// will be a single instance, but still get our address in the expected
-	// manner anyway to ensure they've been registered correctly.
+	// We don't actually ever expand during validation, since we're testing
+	// whether modules are valid for _any_ input, rather than for some specific
+	// input.
+	//
+	// Therefore we evaluate the count or for_each expression purely to check
+	// whether its valid, but then always mark the expansion unknown so that
+	// downstreams will work with placeholder values that cover only what
+	// all instances of the module have in common. Specific instance validation
+	// will happen as part of planning.
 	for _, module := range expander.ExpandModule(n.Addr.Parent()) {
 		ctx = ctx.WithPath(module)
 

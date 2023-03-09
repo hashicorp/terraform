@@ -80,6 +80,14 @@ func (n *nodeExpandModuleVariable) DynamicExpand(ctx EvalContext) (*Graph, tfdia
 		}
 		g.Add(o)
 	}
+	for _, unexpModule := range expander.UnknownModuleInstances(n.Module) {
+		o := &nodePartialExpandedModuleVariable{
+			Addr:   addrs.ObjectInPartialExpandedModule(unexpModule, n.Addr),
+			Config: n.Config,
+			Expr:   n.Expr,
+		}
+		g.Add(o)
+	}
 	addRootNodeToGraph(&g)
 
 	if checkableAddrs != nil {
@@ -136,8 +144,8 @@ func (n *nodeExpandModuleVariable) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr}
 }
 
-// nodeModuleVariable represents a module variable input during
-// the apply step.
+// nodeModuleVariable represents a module input variable in an already-expanded
+// module instance.
 type nodeModuleVariable struct {
 	Addr   addrs.AbsInputVariableInstance
 	Config *configs.Variable // Config is the var in the config
@@ -248,6 +256,9 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 		case validateOnly:
 			// the instance expander does not track unknown expansion values, so we
 			// have to assume all RepetitionData is unknown.
+			// TODO: This is essentially what nodePartialExpandedModuleVariable
+			// does too, so we should consider making the validate walk use
+			// that node type instead so we have fewer codepaths.
 			moduleInstanceRepetitionData = instances.RepetitionData{
 				CountIndex: cty.UnknownVal(cty.Number),
 				EachKey:    cty.UnknownVal(cty.String),
@@ -287,4 +298,113 @@ func (n *nodeModuleVariable) evalModuleVariable(ctx EvalContext, validateOnly bo
 	diags = diags.Append(moreDiags)
 
 	return finalVal, diags.ErrWithWarnings()
+}
+
+// nodePartialExpandedModuleVariable represents a placeholder for zero or more
+// module input variable instances that live under a module path which can't
+// be fully expanded yet.
+type nodePartialExpandedModuleVariable struct {
+	Addr   addrs.InPartialExpandedModule[addrs.InputVariable]
+	Config *configs.Variable // Config is the var in the config
+	Expr   hcl.Expression    // Expr is the value expression given in the call
+}
+
+// Ensure that we are implementing all of the interfaces we think we are
+// implementing.
+var (
+	_ GraphNodePartialExpandedModule = (*nodePartialExpandedModuleVariable)(nil)
+	_ GraphNodeExecutable            = (*nodePartialExpandedModuleVariable)(nil)
+	_ graphNodeTemporaryValue        = (*nodePartialExpandedModuleVariable)(nil)
+)
+
+func (n *nodePartialExpandedModuleVariable) Name() string {
+	return n.Addr.String()
+}
+
+func (n *nodePartialExpandedModuleVariable) temporaryValue() bool {
+	return true
+}
+
+// Execute implements GraphNodeExecutable
+func (n *nodePartialExpandedModuleVariable) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	// For an input variable in a partial-expanded module our job is to
+	// produce a placeholder value that ought to be true for any possible
+	// instance of the containing module once its expansion _is_ known.
+	// Downstreams will use this to further derive approximate results, so
+	// it's important that we don't over-promise and err on the side of
+	// using unknown value placeholders for anything that might vary between
+	// instances of the module.
+
+	var diags tfdiags.Diagnostics
+	var givenVal cty.Value
+	var errSourceRange tfdiags.SourceRange
+
+	ctx = n.evalContextForParentModuleInstance(ctx)
+	if expr := n.Expr; expr != nil {
+
+		// TODO: We should ideally be able to tailor this based on whether the
+		// module configuration is using count, for_each, or neither, but we don't
+		// currently have access to that information here so we'll settle for just
+		// allowing everything as unknown for now.
+		moduleInstanceRepetitionData := instances.RepetitionData{
+			CountIndex: cty.UnknownVal(cty.Number),
+			EachKey:    cty.UnknownVal(cty.String),
+			EachValue:  cty.DynamicVal,
+		}
+
+		scope := ctx.EvaluationScope(nil, moduleInstanceRepetitionData)
+		val, moreDiags := scope.EvalExpr(expr, cty.DynamicPseudoType)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return diags
+		}
+		givenVal = val
+		errSourceRange = tfdiags.SourceRangeFromHCL(expr.Range())
+	} else {
+		// We'll use cty.NilVal to represent the variable not being set at all.
+		givenVal = cty.NilVal
+		errSourceRange = tfdiags.SourceRangeFromHCL(n.Config.DeclRange) // we use the declaration range as a fallback for an undefined variable
+	}
+
+	// We construct a synthetic InputValue here to pretend as if this were
+	// a root module variable set from outside, just as a convenience so we
+	// can reuse the InputValue type for this.
+	rawVal := &InputValue{
+		Value:       givenVal,
+		SourceType:  ValueFromConfig,
+		SourceRange: errSourceRange,
+	}
+
+	// prepareFinalInputVariableValue expects to be working with a fully-expanded
+	// input variable, so for now we'll construct a synthetic address for it to
+	// use. We should probably find a better way to do this at some point
+	// because this will produce mildly-inaccurate error messages.
+	fakeInstanceAddr := n.Addr.Module.Module().UnkeyedInstanceShim().InputVariable(n.Addr.Local.Name)
+	_, moreDiags := prepareFinalInputVariableValue(fakeInstanceAddr, rawVal, n.Config)
+	diags = diags.Append(moreDiags)
+
+	// TODO: Actually record the result for use elsewhere, once there's
+	// actually somewhere to save it.
+
+	return diags
+}
+
+// evalContextForParentModuleInstance returns a "pathed" [EvalContext] that has
+// either an exact module path or a partial-expanded one depending on whether
+// the parent module instance of this variable is expanded or not.
+func (n *nodePartialExpandedModuleVariable) evalContextForParentModuleInstance(unpathedCtx EvalContext) EvalContext {
+	if parent, ok := n.Addr.Module.ParentModuleInstance(); ok {
+		return unpathedCtx.WithPath(parent)
+	} else if parent, ok := n.Addr.Module.ParentPartialExpandedModule(); ok {
+		return unpathedCtx.WithPartialExpandedPath(parent)
+	} else {
+		// Should never happen: parent should always be either a ModuleInstance
+		// or another PartialExpandedModule.
+		panic(fmt.Sprintf("parent of %s is neither fully-expanded nor partially-expanded module", n.Addr.Module))
+	}
+}
+
+// PartialExpandedModule implements GraphNodePartialExpandedModule
+func (n *nodePartialExpandedModuleVariable) PartialExpandedModule() addrs.PartialExpandedModule {
+	return n.Addr.Module
 }
