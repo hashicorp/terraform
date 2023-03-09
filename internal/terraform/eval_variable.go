@@ -223,7 +223,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	// bypass our usual evaluation machinery here and just produce a minimal
 	// evaluation context containing just the required value, and thus avoid
 	// the problem that ctx's evaluation functions refer to the wrong module.
-	val := ctx.GetVariableValue(addr)
+	val := ctx.NamedValues().GetInputVariableValue(addr)
 	if val == cty.NilVal {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,

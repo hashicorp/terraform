@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -1173,12 +1174,8 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
 			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				return test.given
-			}
+			ctx.NamedValuesState = namedvals.NewState()
+			ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given)
 			ctx.ChecksState = checks.NewState(cfg)
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
@@ -1326,15 +1323,11 @@ variable "bar" {
 			// We need a minimal scope to allow basic functions to be passed to
 			// the HCL scope
 			ctx.EvaluationScopeScope = &lang.Scope{}
-			ctx.GetVariableValueFunc = func(addr addrs.AbsInputVariableInstance) cty.Value {
-				if got, want := addr.String(), varAddr.String(); got != want {
-					t.Errorf("incorrect argument to GetVariableValue: got %s, want %s", got, want)
-				}
-				if varCfg.Sensitive {
-					return test.given.Mark(marks.Sensitive)
-				} else {
-					return test.given
-				}
+			ctx.NamedValuesState = namedvals.NewState()
+			if varCfg.Sensitive {
+				ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given.Mark(marks.Sensitive))
+			} else {
+				ctx.NamedValuesState.SetInputVariableValue(varAddr, test.given)
 			}
 			ctx.ChecksState = checks.NewState(cfg)
 			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
