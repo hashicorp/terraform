@@ -6,6 +6,7 @@ BUG FIXES:
 * `terraform providers mirror`: when a dependency lock file is present, mirror the resolved providers versions, not the latest available based on configuration. [GH-32749]
 * Fixed module downloads from S3 URLs when using AWS IAM roles for service accounts (IRSA). [GH-32700]
 * hcl: Fix a crash in Terraform when attempting to apply defaults into an incompatible type. [GH-32775]
+* Prevent panic when creating a plan which errors before the planning process has begun. [GH-32818]
 
 ## 1.4.0 (March 08, 2023)
 
