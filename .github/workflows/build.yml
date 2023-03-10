@@ -113,6 +113,8 @@ jobs:
           - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
@@ -309,7 +311,7 @@ jobs:
           path: .
       - name: Run terraform-exec end-to-end tests
         run: |
-          FULL_RELEASE_VERSION="${version}"
+          FULL_RELEASE_VERSION="${{ env.version }}"
           unzip .terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
           export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
           git clone git@github.com:hashicorp/terraform-exec.git
