@@ -117,6 +117,27 @@ type evaluationStateData struct {
 	Operation walkOperation
 }
 
+func (d *evaluationStateData) staticModulePath() addrs.Module {
+	if d.PartialEval {
+		return d.PartialExpandedModulePath.Module()
+	} else {
+		return d.ModulePath.Module()
+	}
+}
+
+func (d *evaluationStateData) modulePathDisplayAddr() string {
+	var ret string
+	if d.PartialEval {
+		ret = d.PartialExpandedModulePath.String()
+	} else {
+		ret = d.ModulePath.String()
+	}
+	if ret == "" {
+		return "root module"
+	}
+	return ret
+}
+
 // InstanceKeyEvalData is the old name for instances.RepetitionData, aliased
 // here for compatibility. In new code, use instances.RepetitionData instead.
 type InstanceKeyEvalData = instances.RepetitionData
@@ -227,11 +248,11 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.Descendent(d.staticModulePath())
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
-		panic(fmt.Sprintf("input variable read from %s, which has no configuration", d.ModulePath))
+		panic(fmt.Sprintf("input variable read from %s, which has no configuration", d.modulePathDisplayAddr()))
 	}
 
 	config := moduleConfig.Module.Variables[addr.Name]
@@ -297,11 +318,11 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 
 	// First we'll make sure the requested value is declared in configuration,
 	// so we can produce a nice message if not.
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	moduleConfig := d.Evaluator.Config.Descendent(d.staticModulePath())
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
-		panic(fmt.Sprintf("local value read from %s, which has no configuration", d.ModulePath))
+		panic(fmt.Sprintf("local value read from %s, which has no configuration", d.modulePathDisplayAddr()))
 	}
 
 	config := moduleConfig.Module.Locals[addr.Name]
@@ -324,7 +345,13 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		return cty.DynamicVal, diags
 	}
 
-	val := d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath))
+	var val cty.Value
+	if d.PartialEval {
+		val = d.Evaluator.NamedValues.GetLocalValuePlaceholder(addrs.ObjectInPartialExpandedModule(d.PartialExpandedModulePath, addr))
+	} else {
+		val = d.Evaluator.NamedValues.GetLocalValue(addr.Absolute(d.ModulePath))
+	}
+
 	return val, diags
 }
 
@@ -333,9 +360,9 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 
 	// Output results live in the module that declares them, which is one of
 	// the child module instances of our current module path.
-	moduleAddr := d.ModulePath.Module().Child(addr.Name)
+	moduleAddr := d.staticModulePath().Child(addr.Name)
 
-	parentCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	parentCfg := d.Evaluator.Config.Descendent(d.staticModulePath())
 	callConfig, ok := parentCfg.Module.ModuleCalls[addr.Name]
 	if !ok {
 		diags = diags.Append(&hcl.Diagnostic{
@@ -590,11 +617,11 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 		return cty.StringVal(filepath.ToSlash(wd)), diags
 
 	case "module":
-		moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+		moduleConfig := d.Evaluator.Config.Descendent(d.staticModulePath())
 		if moduleConfig == nil {
 			// should never happen, since we can't be evaluating in a module
 			// that wasn't mentioned in configuration.
-			panic(fmt.Sprintf("module.path read from module %s, which has no configuration", d.ModulePath))
+			panic(fmt.Sprintf("module.path read from module %s, which has no configuration", d.modulePathDisplayAddr()))
 		}
 		sourceDir := moduleConfig.Module.SourceDir
 		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
@@ -622,12 +649,11 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 	var diags tfdiags.Diagnostics
 	// First we'll consult the configuration to see if an resource of this
 	// name is declared at all.
-	moduleAddr := d.ModulePath
-	moduleConfig := d.Evaluator.Config.DescendentForInstance(moduleAddr)
+	moduleConfig := d.Evaluator.Config.Descendent(d.staticModulePath())
 	if moduleConfig == nil {
 		// should never happen, since we can't be evaluating in a module
 		// that wasn't mentioned in configuration.
-		panic(fmt.Sprintf("resource value read from %s, which has no configuration", moduleAddr))
+		panic(fmt.Sprintf("resource value read from %s, which has no configuration", d.modulePathDisplayAddr()))
 	}
 
 	config := moduleConfig.Module.ResourceByAddr(addr)
@@ -635,7 +661,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared resource`,
-			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Type, addr.Name, moduleDisplayAddr(moduleAddr)),
+			Detail:   fmt.Sprintf(`A resource %q %q has not been declared in %s`, addr.Type, addr.Name, d.modulePathDisplayAddr()),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -680,7 +706,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				// (since a planned destroy cannot yet remove root outputs), we
 				// need to return a dynamic value here to allow evaluation to
 				// continue.
-				log.Printf("[ERROR] unknown instance %q referenced during %s", addr.Absolute(d.ModulePath), d.Operation)
+				log.Printf("[ERROR] unknown instance %s in %s referenced during %s", addr, d.modulePathDisplayAddr(), d.Operation)
 				return cty.DynamicVal, diags
 			}
 
