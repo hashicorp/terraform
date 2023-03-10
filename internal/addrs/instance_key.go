@@ -138,6 +138,11 @@ const (
 	NoKeyType     InstanceKeyType = 0
 	IntKeyType    InstanceKeyType = 'I'
 	StringKeyType InstanceKeyType = 'S'
+
+	// UnknownKeyType is a placeholder key type for situations where Terraform
+	// doesn't yet know which key type to use. There are no [InstanceKey]
+	// values of this type.
+	UnknownKeyType InstanceKeyType = '?'
 )
 
 // toHCLQuotedString is a helper which formats the given string in a way that
