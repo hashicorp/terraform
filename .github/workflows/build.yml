@@ -276,22 +276,12 @@ jobs:
 
 
   e2e-test-exec:
-    name: Run terraform-exec test for ${{ matrix.goos }}_${{ matrix.goarch }}
-    runs-on: ${{ matrix.runson }}
+    name: Run terraform-exec test for linux amd64
+    runs-on: ubuntu-latest
     needs:
       - get-product-version
       - get-go-version
       - build
-    strategy:
-      matrix:
-        include:
-          - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
-          - { runson: ubuntu-latest, goos: linux, goarch: "386" }
-          - { runson: macos-latest, goos: darwin, goarch: "amd64" }
-          - { runson: macos-latest, goos: darwin, goarch: "arm64" }
-          - { runson: windows-latest, goos: windows, goarch: "amd64" }
-          - { runson: windows-latest, goos: windows, goarch: "386" }
-      fail-fast: false
 
     env:
       os: ${{ matrix.goos }}
@@ -312,7 +302,7 @@ jobs:
       - name: Run terraform-exec end-to-end tests
         run: |
           FULL_RELEASE_VERSION="${{ env.version }}"
-          unzip .terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
+          unzip terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
           export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
           git clone git@github.com:hashicorp/terraform-exec.git
           cd terraform-exec
