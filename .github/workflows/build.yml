@@ -124,6 +124,7 @@ jobs:
       matrix:
         include:
           - {goos: "linux", goarch: "arm64"}
+          - {goos: "linux", goarch: "arm"}
       fail-fast: false
 
     env:
