@@ -293,12 +293,18 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      - name: "Download Terraform CLI package"
+      - name: Download Terraform CLI package
         uses: actions/download-artifact@v2
         id: clipkg
         with:
           name: terraform_${{ env.version }}_linux_amd64.zip
           path: .
+      - name: Checkout terraform-exec repo
+        uses: actions/checkout@v3
+        with:
+          repository: hashicorp/terraform-exec
+          path: terraform-exec
+
       - name: Run terraform-exec end-to-end tests
         run: |
           FULL_RELEASE_VERSION="${{ env.version }}"
