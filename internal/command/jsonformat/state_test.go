@@ -29,7 +29,7 @@ func TestState(t *testing.T) {
 		State *format.StateOpts
 		Want  string
 	}{
-		{
+		0: {
 			&format.StateOpts{
 				State:   &states.State{},
 				Color:   color,
@@ -37,7 +37,7 @@ func TestState(t *testing.T) {
 			},
 			"The state file is empty. No resources are represented.\n",
 		},
-		{
+		1: {
 			&format.StateOpts{
 				State:   basicState(t),
 				Color:   color,
@@ -45,7 +45,7 @@ func TestState(t *testing.T) {
 			},
 			basicStateOutput,
 		},
-		{
+		2: {
 			&format.StateOpts{
 				State:   nestedState(t),
 				Color:   color,
@@ -53,7 +53,7 @@ func TestState(t *testing.T) {
 			},
 			nestedStateOutput,
 		},
-		{
+		3: {
 			&format.StateOpts{
 				State:   deposedState(t),
 				Color:   color,
@@ -61,7 +61,7 @@ func TestState(t *testing.T) {
 			},
 			deposedNestedStateOutput,
 		},
-		{
+		4: {
 			&format.StateOpts{
 				State:   onlyDeposedState(t),
 				Color:   color,
@@ -69,7 +69,7 @@ func TestState(t *testing.T) {
 			},
 			onlyDeposedOutput,
 		},
-		{
+		5: {
 			&format.StateOpts{
 				State:   stateWithMoreOutputs(t),
 				Color:   color,
@@ -267,7 +267,10 @@ func basicState(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar value"), false,
+	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -311,14 +314,30 @@ func stateWithMoreOutputs(t *testing.T) *states.State {
 		t.Errorf("root module is nil; want valid object")
 	}
 
-	rootModule.SetOutputValue("string_var", cty.StringVal("string value"), false)
-	rootModule.SetOutputValue("int_var", cty.NumberIntVal(42), false)
-	rootModule.SetOutputValue("bool_var", cty.BoolVal(true), false)
-	rootModule.SetOutputValue("sensitive_var", cty.StringVal("secret!!!"), true)
-	rootModule.SetOutputValue("map_var", cty.MapVal(map[string]cty.Value{
-		"first":  cty.StringVal("foo"),
-		"second": cty.StringVal("bar"),
-	}), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "string_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("string value"), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "int_var"}.Absolute(addrs.RootModuleInstance),
+		cty.NumberIntVal(42), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bool_var"}.Absolute(addrs.RootModuleInstance),
+		cty.True, false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "sensitive_var"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("secret!!!"), true,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "map_var"}.Absolute(addrs.RootModuleInstance),
+		cty.MapVal(map[string]cty.Value{
+			"first":  cty.StringVal("foo"),
+			"second": cty.StringVal("bar"),
+		}),
+		false,
+	)
 
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{

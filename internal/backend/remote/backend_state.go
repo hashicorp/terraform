@@ -68,7 +68,7 @@ func (r *remoteClient) Put(state []byte) error {
 		return fmt.Errorf("Error reading state: %s", err)
 	}
 
-	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
+	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootOutputValues)
 	if err != nil {
 		return fmt.Errorf("Error reading output values: %s", err)
 	}

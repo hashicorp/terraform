@@ -57,23 +57,19 @@ func State(opts *StateOpts) string {
 	}
 
 	// Write the outputs for the root module
-	m := s.RootModule()
-
-	if m.OutputValues != nil {
-		if len(m.OutputValues) > 0 {
-			p.buf.WriteString("Outputs:\n\n")
-		}
+	if len(s.RootOutputValues) != 0 {
+		p.buf.WriteString("Outputs:\n\n")
 
 		// Sort the outputs
-		ks := make([]string, 0, len(m.OutputValues))
-		for k := range m.OutputValues {
+		ks := make([]string, 0, len(s.RootOutputValues))
+		for k := range s.RootOutputValues {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
 
 		// Output each output k/v pair
 		for _, k := range ks {
-			v := m.OutputValues[k]
+			v := s.RootOutputValues[k]
 			p.buf.WriteString(fmt.Sprintf("%s = ", k))
 			if v.Sensitive {
 				p.buf.WriteString("(sensitive value)")

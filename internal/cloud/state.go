@@ -194,7 +194,7 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 		return fmt.Errorf("failed to read state: %w", err)
 	}
 
-	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootModule().OutputValues)
+	ov, err := jsonstate.MarshalOutputs(stateFile.State.RootOutputValues)
 	if err != nil {
 		return fmt.Errorf("failed to translate outputs: %w", err)
 	}
@@ -456,7 +456,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 				return nil, ErrStateVersionUnauthorizedUpgradeState
 			}
 
-			return state.RootModule().OutputValues, nil
+			return state.RootOutputValues, nil
 		}
 
 		if output.Sensitive {

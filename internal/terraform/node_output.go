@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -381,7 +382,7 @@ If you do intend to export this data, annotate the output value as sensitive by 
 			// if we're continuing, make sure the output is included, and
 			// marked as unknown. If the evaluator was able to find a type
 			// for the value in spite of the error then we'll use it.
-			n.setValue(state, changes, cty.UnknownVal(val.Type()))
+			n.setValue(ctx.NamedValues(), state, changes, cty.UnknownVal(val.Type()))
 
 			// Keep existing warnings, while converting errors to warnings.
 			// This is not meant to be the normal path, so there no need to
@@ -401,13 +402,13 @@ If you do intend to export this data, annotate the output value as sensitive by 
 		}
 		return diags
 	}
-	n.setValue(state, changes, val)
+	n.setValue(ctx.NamedValues(), state, changes, val)
 
 	// If we were able to evaluate a new value, we can update that in the
 	// refreshed state as well.
 	if state = ctx.RefreshState(); state != nil && val.IsWhollyKnown() {
 		// we only need to update the state, do not pass in the changes again
-		n.setValue(state, nil, val)
+		n.setValue(nil, state, nil, val)
 	}
 
 	return diags
@@ -463,7 +464,10 @@ func (n *NodeDestroyableOutput) Execute(ctx EvalContext, op walkOperation) tfdia
 	before := cty.NullVal(cty.DynamicPseudoType)
 	mod := state.Module(n.Addr.Module)
 	if n.Addr.Module.IsRoot() && mod != nil {
-		if o, ok := mod.OutputValues[n.Addr.OutputValue.Name]; ok {
+		s := state.Lock()
+		rootOutputs := s.RootOutputValues
+		state.Unlock()
+		if o, ok := rootOutputs[n.Addr.OutputValue.Name]; ok {
 			sensitiveBefore = o.Sensitive
 			before = o.Value
 		} else {
@@ -512,7 +516,7 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 	}
 }
 
-func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
+func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
 	// If we have an active changeset then we'll first replicate the value in
 	// there and lookup the prior value in the state. This is used in
 	// preference to the state where present, since it *is* able to represent
@@ -528,7 +532,10 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 
 		mod := state.Module(n.Addr.Module)
 		if n.Addr.Module.IsRoot() && mod != nil {
-			for name, o := range mod.OutputValues {
+			s := state.Lock()
+			rootOutputs := s.RootOutputValues
+			state.Unlock()
+			for name, o := range rootOutputs {
 				if name == n.Addr.OutputValue.Name {
 					before = o.Value
 					sensitiveBefore = o.Sensitive
@@ -599,6 +606,13 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 		return
+	}
+
+	// caller leaves namedVals nil if they've already called this function
+	// with a different state, since we only have one namedVals regardless
+	// of how many states are involved in an operation.
+	if namedVals != nil {
+		namedVals.SetOutputValue(n.Addr, val)
 	}
 
 	// The state itself doesn't represent unknown values, so we null them

@@ -21,6 +21,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 		Meta: &ContextMeta{
 			Env: "foo",
 		},
+		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -51,6 +52,7 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 				SourceDir: "bar/baz",
 			},
 		},
+		NamedValues: namedvals.NewState(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -198,7 +200,8 @@ func TestEvaluatorGetResource(t *testing.T) {
 				},
 			},
 		},
-		State: stateSync,
+		State:       stateSync,
+		NamedValues: namedvals.NewState(),
 		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				Provider: &configschema.Block{},
@@ -433,8 +436,9 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 				},
 			},
 		},
-		State:   stateSync,
-		Plugins: schemaOnlyProvidersForTesting(schemas.Providers),
+		State:       stateSync,
+		NamedValues: namedvals.NewState(),
+		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
 	}
 
 	data := &evaluationStateData{
@@ -472,6 +476,10 @@ func TestEvaluatorGetModule(t *testing.T) {
 		)
 	}).SyncWrapper()
 	evaluator := evaluatorForModule(stateSync, plans.NewChanges().SyncWrapper())
+	evaluator.NamedValues.SetOutputValue(
+		addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
+		cty.StringVal("bar").Mark(marks.Sensitive),
+	)
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
@@ -485,7 +493,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
 	}
 	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
+		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
 
 	// Changes should override the state value
@@ -562,7 +570,8 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 				},
 			},
 		},
-		State:   stateSync,
-		Changes: changesSync,
+		State:       stateSync,
+		Changes:     changesSync,
+		NamedValues: namedvals.NewState(),
 	}
 }
