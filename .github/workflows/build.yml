@@ -310,6 +310,5 @@ jobs:
           FULL_RELEASE_VERSION="${{ env.version }}"
           unzip terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
           export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
-          git clone git@github.com:hashicorp/terraform-exec.git
           cd terraform-exec
           go test -race -timeout=30m -v ./tfexec/internal/e2etest
