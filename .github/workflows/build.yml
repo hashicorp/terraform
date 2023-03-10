@@ -215,7 +215,7 @@ jobs:
       - name: Run E2E Tests
         run: |
           docker run \
-          --platform=linux.arm64 \
+          --platform=linux/arm64 \
           -v $(pwd) \
           -w $(pwd)
           arm64v8/alpine:latest \
