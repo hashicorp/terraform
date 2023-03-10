@@ -209,5 +209,5 @@ jobs:
         run: |
           export DIR=$(mktemp -d)
           unzip -d $DIR "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
-          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+          unzip -d $DIR "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
           docker run --platform=linux/arm64 -v $DIR:/src -w /src arm64v8/alpine ./e2etest -test.v
