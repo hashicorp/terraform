@@ -172,7 +172,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - { runson: ubuntu-latest, goos: linux, goarch: "arm64" }
+          - { goos: linux, goarch: "arm64" }
+          - { goos: linux, goarch: "arm" }
       fail-fast: false
 
     env:
