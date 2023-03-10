@@ -166,7 +166,7 @@ jobs:
     name: Run e2e test for ${{ matrix.goos }}_${{ matrix.goarch }}
     runs-on: ubuntu-latest
     container:
-      image: arm64v8/alpine
+      image: arm64v8/alpine:latest
     needs:
       - get-product-version
       - build
@@ -189,14 +189,14 @@ jobs:
       # and e2etest package for this platform. (This helps ensure that we're
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
-#      - name: "Restore cache"
-#        uses: actions/cache/restore@v3
-#        id: e2etestpkg
-#        with:
-#          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
-#          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
-#          fail-on-cache-miss: true
-#          enableCrossOsArchive: true
+      - name: "Restore cache"
+        uses: actions/cache/restore@v3
+        id: e2etestpkg
+        with:
+          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
+          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
+          fail-on-cache-miss: true
+          enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
         id: clipkg
@@ -208,19 +208,15 @@ jobs:
         run: |
           unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
-      - name: Extract packages windows
-        if: ${{ matrix.goos == 'windows' }}
-        run: |
-          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
-          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
       - name: Run E2E Tests
-        if: ${{ (matrix.goos == 'linux') || (inputs.goos == 'darwin') }}
         run: |
+          docker run \
+          --platform=linux.arm64 \
+          -v $(pwd) \
+          -w $(pwd)
+          arm64v8/alpine:latest \
           TF_ACC=1 ./e2etest -test.v
-      - name: Run E2E Tests
-        if: ${{ matrix.goos == 'windows' }}
-        env:
-          TF_ACC: 1
-        shell: cmd
-        run: |
-          e2etest.exe -test.v
