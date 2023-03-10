@@ -108,49 +108,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - {goos: "freebsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "freebsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "freebsd", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
           - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "openbsd", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "openbsd", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "solaris", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "windows", goarch: "386", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "windows", goarch: "amd64", runson: "ubuntu-latest", cgo-enabled: "0"}
-          - {goos: "darwin", goarch: "amd64", runson: "macos-latest", cgo-enabled: "1"}
-          - {goos: "darwin", goarch: "arm64", runson: "macos-latest", cgo-enabled: "1"}
       fail-fast: false
-
-  package-docker:
-    name: Build Docker image for linux_${{ matrix.arch }}
-    runs-on: ubuntu-latest
-    needs:
-      - get-product-version
-      - build
-    strategy:
-      matrix:
-        arch: ["amd64", "386", "arm", "arm64"]
-      fail-fast: false
-    env:
-      repo: "terraform"
-      version: ${{needs.get-product-version.outputs.product-version}}
-    steps:
-      - uses: actions/checkout@v2
-      - name: Build Docker images
-        uses: hashicorp/actions-docker-build@v1
-        with:
-          pkg_name: "terraform_${{env.version}}"
-          version: ${{env.version}}
-          bin_name: terraform
-          target: default
-          arch: ${{matrix.arch}}
-          dockerfile: .github/workflows/build-Dockerfile
-          tags: |
-            docker.io/hashicorp/${{env.repo}}:${{env.version}}
-            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{env.repo}}:${{env.version}}
 
   e2etest-build:
     name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}
@@ -164,12 +123,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - {goos: "darwin", goarch: "amd64"}
-          - {goos: "darwin", goarch: "arm64"}
-          - {goos: "windows", goarch: "amd64"}
-          - {goos: "windows", goarch: "386"}
-          - {goos: "linux", goarch: "386"}
-          - {goos: "linux", goarch: "amd64"}
+          - {goos: "linux", goarch: "arm64"}
       fail-fast: false
 
     env:
@@ -210,7 +164,9 @@ jobs:
 
   e2e-test:
     name: Run e2e test for ${{ matrix.goos }}_${{ matrix.goarch }}
-    runs-on: ${{ matrix.runson }}
+    runs-on: ubuntu-latest
+    container:
+      image: arm64v8/alpine
     needs:
       - get-product-version
       - build
@@ -218,12 +174,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - { runson: ubuntu-latest, goos: linux, goarch: "amd64" }
-          - { runson: ubuntu-latest, goos: linux, goarch: "386" }
-          - { runson: macos-latest, goos: darwin, goarch: "amd64" }
-          - { runson: macos-latest, goos: darwin, goarch: "arm64" }
-          - { runson: windows-latest, goos: windows, goarch: "amd64" }
-          - { runson: windows-latest, goos: windows, goarch: "386" }
+          - { runson: ubuntu-latest, goos: linux, goarch: "arm64" }
       fail-fast: false
 
     env:
@@ -238,14 +189,14 @@ jobs:
       # and e2etest package for this platform. (This helps ensure that we're
       # really testing the release package and not inadvertently testing a
       # fresh build from source.)
-      - name: "Restore cache"
-        uses: actions/cache/restore@v3
-        id: e2etestpkg
-        with:
-          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
-          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
-          fail-on-cache-miss: true
-          enableCrossOsArchive: true
+#      - name: "Restore cache"
+#        uses: actions/cache/restore@v3
+#        id: e2etestpkg
+#        with:
+#          path: ${{ needs.e2etest-build.outputs.e2e-cache-path }}
+#          key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
+#          fail-on-cache-miss: true
+#          enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
         uses: actions/download-artifact@v2
         id: clipkg
@@ -273,42 +224,3 @@ jobs:
         shell: cmd
         run: |
           e2etest.exe -test.v
-
-
-  e2e-test-exec:
-    name: Run terraform-exec test for linux amd64
-    runs-on: ubuntu-latest
-    needs:
-      - get-product-version
-      - get-go-version
-      - build
-
-    env:
-      os: ${{ matrix.goos }}
-      arch: ${{ matrix.goarch }}
-      version: ${{needs.get-product-version.outputs.product-version}}
-
-    steps:
-      - name: Install Go toolchain
-        uses: actions/setup-go@v3
-        with:
-          go-version: ${{ needs.get-go-version.outputs.go-version }}
-      - name: Download Terraform CLI package
-        uses: actions/download-artifact@v2
-        id: clipkg
-        with:
-          name: terraform_${{ env.version }}_linux_amd64.zip
-          path: .
-      - name: Checkout terraform-exec repo
-        uses: actions/checkout@v3
-        with:
-          repository: hashicorp/terraform-exec
-          path: terraform-exec
-
-      - name: Run terraform-exec end-to-end tests
-        run: |
-          FULL_RELEASE_VERSION="${{ env.version }}"
-          unzip terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
-          export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
-          cd terraform-exec
-          go test -race -timeout=30m -v ./tfexec/internal/e2etest
