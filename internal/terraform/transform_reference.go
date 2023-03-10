@@ -20,8 +20,6 @@ import (
 // be referenced and other methods of referencing may still be possible (such
 // as by path!)
 type GraphNodeReferenceable interface {
-	GraphNodeModulePath
-
 	// ReferenceableAddrs returns a list of addresses through which this can be
 	// referenced.
 	ReferenceableAddrs() []addrs.Referenceable
@@ -30,8 +28,6 @@ type GraphNodeReferenceable interface {
 // GraphNodeReferencer must be implemented by nodes that reference other
 // Terraform items and therefore depend on them.
 type GraphNodeReferencer interface {
-	GraphNodeModulePath
-
 	// References returns a list of references made by this node, which
 	// include both a referenced address and source location information for
 	// the reference.
