@@ -26,37 +26,13 @@ func (t *OrphanOutputTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	for _, ms := range t.State.Modules {
-		if err := t.transform(g, ms); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *OrphanOutputTransformer) transform(g *Graph, ms *states.Module) error {
-	if ms == nil {
-		return nil
-	}
-
-	moduleAddr := ms.Addr
-
-	// Get the config for this path, which is nil if the entire module has been
-	// removed.
-	var outputs map[string]*configs.Output
-	if c := t.Config.DescendentForInstance(moduleAddr); c != nil {
-		outputs = c.Module.Outputs
-	}
-
-	// An output is "orphaned" if it's present in the state but not declared
-	// in the configuration.
-	for name := range ms.OutputValues {
-		if _, exists := outputs[name]; exists {
+	cfgs := t.Config.Module.Outputs
+	for name := range t.State.RootOutputValues {
+		if _, exists := cfgs[name]; exists {
 			continue
 		}
-
 		g.Add(&NodeDestroyableOutput{
-			Addr:     addrs.OutputValue{Name: name}.Absolute(moduleAddr),
+			Addr:     addrs.OutputValue{Name: name}.Absolute(addrs.RootModuleInstance),
 			Planning: t.Planning,
 		})
 	}

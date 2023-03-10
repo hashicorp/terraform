@@ -621,7 +621,7 @@ func TestContext2Apply_nullableVariables(t *testing.T) {
 		t.Fatalf("apply: %s", diags.Err())
 	}
 
-	outputs := state.Module(addrs.RootModuleInstance).OutputValues
+	outputs := state.RootOutputValues
 	// we check for null outputs be seeing that they don't exists
 	if _, ok := outputs["nullable_null_default"]; ok {
 		t.Error("nullable_null_default: expected no output value")
@@ -1686,7 +1686,10 @@ output "from_resource" {
 		},
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
-	mod.SetOutputValue("from_resource", cty.StringVal("wrong val"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "from_resource"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("wrong val"), false,
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{

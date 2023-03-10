@@ -52,18 +52,6 @@ func (s *SyncState) Module(addr addrs.ModuleInstance) *Module {
 	return ret
 }
 
-// ModuleOutputs returns the set of OutputValues that matches the given path.
-func (s *SyncState) ModuleOutputs(parentAddr addrs.ModuleInstance, module addrs.ModuleCall) []*OutputValue {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	var os []*OutputValue
-
-	for _, o := range s.state.ModuleOutputs(parentAddr, module) {
-		os = append(os, o.DeepCopy())
-	}
-	return os
-}
-
 // RemoveModule removes the entire state for the given module, taking with
 // it any resources associated with the module. This should generally be
 // called only for modules whose resources have all been destroyed, but
@@ -90,31 +78,33 @@ func (s *SyncState) OutputValue(addr addrs.AbsOutputValue) *OutputValue {
 // SetOutputValue writes a given output value into the state, overwriting
 // any existing value of the same name.
 //
-// If the module containing the output is not yet tracked in state then it
-// be added as a side-effect.
+// The state only tracks output values for the root module, so attempts to
+// write output values for any other module will be quietly ignored.
 func (s *SyncState) SetOutputValue(addr addrs.AbsOutputValue, value cty.Value, sensitive bool) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ms := s.state.EnsureModule(addr.Module)
-	ms.SetOutputValue(addr.OutputValue.Name, value, sensitive)
+	s.state.SetOutputValue(addr, value, sensitive)
 }
 
 // RemoveOutputValue removes the stored value for the output value with the
 // given address.
 //
-// If this results in its containing module being empty, the module will be
-// pruned from the state as a side-effect.
+// The state only tracks output values for the root module, so attempts to
+// remove output values for any other module will be quietly ignored.
 func (s *SyncState) RemoveOutputValue(addr addrs.AbsOutputValue) {
+	if !addr.Module.IsRoot() {
+		return
+	}
+
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	ms := s.state.Module(addr.Module)
-	if ms == nil {
-		return
-	}
-	ms.RemoveOutputValue(addr.OutputValue.Name)
-	s.maybePruneModule(addr.Module)
+	s.state.RemoveOutputValue(addr)
 }
 
 // Resource returns a snapshot of the state of the resource with the given

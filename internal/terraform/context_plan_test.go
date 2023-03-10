@@ -6853,8 +6853,10 @@ output "planned" {
 
 	ctx := testContext2(t, &ContextOpts{})
 	state := states.BuildState(func(s *states.SyncState) {
-		r := s.Module(addrs.RootModuleInstance)
-		r.SetOutputValue("planned", cty.NullVal(cty.DynamicPseudoType), false)
+		s.SetOutputValue(
+			addrs.OutputValue{Name: "planned"}.Absolute(addrs.RootModuleInstance),
+			cty.NullVal(cty.DynamicPseudoType), false,
+		)
 	})
 	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
 	if diags.HasErrors() {

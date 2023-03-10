@@ -355,7 +355,10 @@ func testStateMgrCurrentLineage(mgr statemgr.Persistent) string {
 //	// (do stuff to the state)
 //	assertStateHasMarker(state, mark)
 func markStateForMatching(state *states.State, mark string) string {
-	state.RootModule().SetOutputValue("testing_mark", cty.StringVal(mark), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "testing_mark"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal(mark), false,
+	)
 	return mark
 }
 
@@ -363,7 +366,7 @@ func markStateForMatching(state *states.State, mark string) string {
 // mark string previously added to the given state. If no such mark is present,
 // the result is an empty string.
 func getStateMatchingMarker(state *states.State) string {
-	os := state.RootModule().OutputValues["testing_mark"]
+	os := state.RootOutputValues["testing_mark"]
 	if os == nil {
 		return ""
 	}

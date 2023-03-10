@@ -204,13 +204,13 @@ func TestPrimaryChdirOption(t *testing.T) {
 		t.Fatalf("failed to read state file: %s", err)
 	}
 
-	gotOutput := state.RootModule().OutputValues["cwd"]
+	gotOutput := state.RootOutputValues["cwd"]
 	wantOutputValue := cty.StringVal(filepath.ToSlash(tf.Path())) // path.cwd returns the original path, because path.root is how we get the overridden path
 	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
 		t.Errorf("incorrect value for cwd output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)
 	}
 
-	gotOutput = state.RootModule().OutputValues["root"]
+	gotOutput = state.RootOutputValues["root"]
 	wantOutputValue = cty.StringVal(filepath.ToSlash(tf.Path("subdir"))) // path.root is a relative path, but the text fixture uses abspath on it.
 	if gotOutput == nil || !wantOutputValue.RawEquals(gotOutput.Value) {
 		t.Errorf("incorrect value for root output\ngot: %#v\nwant Value: %#v", gotOutput, wantOutputValue)

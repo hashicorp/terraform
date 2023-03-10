@@ -17,8 +17,10 @@ func TestUpdateStateHook(t *testing.T) {
 	mockHook := new(MockHook)
 
 	state := states.NewState()
-	state.Module(addrs.RootModuleInstance).SetOutputValue("foo", cty.StringVal("hello"), false)
-	state.Module(addrs.RootModuleInstance)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("hello"), false,
+	)
 
 	ctx := new(MockEvalContext)
 	ctx.HookHook = mockHook

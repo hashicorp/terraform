@@ -721,7 +721,10 @@ func TestContext2Refresh_output(t *testing.T) {
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
 	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo","foo":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	root.SetOutputValue("foo", cty.StringVal("foo"), false)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "foo"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("foo"), false,
+	)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{

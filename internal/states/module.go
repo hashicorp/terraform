@@ -4,8 +4,6 @@
 package states
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -16,18 +14,13 @@ type Module struct {
 	// Resources contains the state for each resource. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Resources map[string]*Resource
-
-	// OutputValues contains the state for each output value. The keys in this
-	// map are output value names.
-	OutputValues map[string]*OutputValue
 }
 
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:         addr,
-		Resources:    map[string]*Resource{},
-		OutputValues: map[string]*OutputValue{},
+		Addr:      addr,
+		Resources: map[string]*Resource{},
 	}
 }
 
@@ -248,30 +241,6 @@ func (ms *Module) maybeRestoreResourceInstanceDeposed(addr addrs.ResourceInstanc
 	return true
 }
 
-// SetOutputValue writes an output value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetOutputValue(name string, value cty.Value, sensitive bool) *OutputValue {
-	os := &OutputValue{
-		Addr: addrs.AbsOutputValue{
-			Module: ms.Addr,
-			OutputValue: addrs.OutputValue{
-				Name: name,
-			},
-		},
-		Value:     value,
-		Sensitive: sensitive,
-	}
-	ms.OutputValues[name] = os
-	return os
-}
-
-// RemoveOutputValue removes the output value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveOutputValue(name string) {
-	delete(ms.OutputValues, name)
-}
-
 // PruneResourceHusks is a specialized method that will remove any Resource
 // objects that do not contain any instances, even if they have an EachMode.
 //
@@ -300,6 +269,5 @@ func (ms *Module) empty() bool {
 
 	// This must be updated to cover any new collections added to Module
 	// in future.
-	return (len(ms.Resources) == 0 &&
-		len(ms.OutputValues) == 0)
+	return len(ms.Resources) == 0
 }
