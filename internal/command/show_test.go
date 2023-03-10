@@ -494,12 +494,15 @@ func TestShow_plan_json(t *testing.T) {
 
 func TestShow_state(t *testing.T) {
 	originalState := testState()
-	root := originalState.RootModule()
-	root.SetOutputValue("test", cty.ObjectVal(map[string]cty.Value{
-		"attr": cty.NullVal(cty.DynamicPseudoType),
-		"null": cty.NullVal(cty.String),
-		"list": cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
-	}), false)
+	originalState.SetOutputValue(
+		addrs.OutputValue{Name: "test"}.Absolute(addrs.RootModuleInstance),
+		cty.ObjectVal(map[string]cty.Value{
+			"attr": cty.NullVal(cty.DynamicPseudoType),
+			"null": cty.NullVal(cty.String),
+			"list": cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
+		}),
+		false,
+	)
 
 	statePath := testStateFile(t, originalState)
 	defer os.RemoveAll(filepath.Dir(statePath))

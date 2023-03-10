@@ -4,9 +4,8 @@
 package states
 
 import (
-	"github.com/zclconf/go-cty/cty"
-
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Module is a container for the states of objects within a particular module.
@@ -17,10 +16,6 @@ type Module struct {
 	// an implementation detail and must not be used by outside callers.
 	Resources map[string]*Resource
 
-	// OutputValues contains the state for each output value. The keys in this
-	// map are output value names.
-	OutputValues map[string]*OutputValue
-
 	// LocalValues contains the value for each named output value. The keys
 	// in this map are local value names.
 	LocalValues map[string]cty.Value
@@ -29,10 +24,9 @@ type Module struct {
 // NewModule constructs an empty module state for the given module address.
 func NewModule(addr addrs.ModuleInstance) *Module {
 	return &Module{
-		Addr:         addr,
-		Resources:    map[string]*Resource{},
-		OutputValues: map[string]*OutputValue{},
-		LocalValues:  map[string]cty.Value{},
+		Addr:        addr,
+		Resources:   map[string]*Resource{},
+		LocalValues: map[string]cty.Value{},
 	}
 }
 
@@ -253,30 +247,6 @@ func (ms *Module) maybeRestoreResourceInstanceDeposed(addr addrs.ResourceInstanc
 	return true
 }
 
-// SetOutputValue writes an output value into the state, overwriting any
-// existing value of the same name.
-func (ms *Module) SetOutputValue(name string, value cty.Value, sensitive bool) *OutputValue {
-	os := &OutputValue{
-		Addr: addrs.AbsOutputValue{
-			Module: ms.Addr,
-			OutputValue: addrs.OutputValue{
-				Name: name,
-			},
-		},
-		Value:     value,
-		Sensitive: sensitive,
-	}
-	ms.OutputValues[name] = os
-	return os
-}
-
-// RemoveOutputValue removes the output value of the given name from the state,
-// if it exists. This method is a no-op if there is no value of the given
-// name.
-func (ms *Module) RemoveOutputValue(name string) {
-	delete(ms.OutputValues, name)
-}
-
 // SetLocalValue writes a local value into the state, overwriting any
 // existing value of the same name.
 func (ms *Module) SetLocalValue(name string, value cty.Value) {
@@ -316,9 +286,9 @@ func (ms *Module) empty() bool {
 		return true
 	}
 
-	// This must be updated to cover any new collections added to Module
-	// in future.
-	return (len(ms.Resources) == 0 &&
-		len(ms.OutputValues) == 0 &&
-		len(ms.LocalValues) == 0)
+	// Resource instance objects -- each of which must belong to a resource --
+	// are the only significant thing we track on a per-module basis.
+	// (The presence of root module output values also causes a state to
+	// be "not empty", but the main [State] object tracks those.)
+	return len(ms.Resources) == 0
 }

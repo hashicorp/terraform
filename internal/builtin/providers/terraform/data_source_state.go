@@ -169,11 +169,8 @@ func dataSourceRemoteStateRead(d cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		newState["outputs"] = cty.EmptyObjectVal
 		return cty.ObjectVal(newState), diags
 	}
-	mod := remoteState.RootModule()
-	if mod != nil { // should always have a root module in any valid state
-		for k, os := range mod.OutputValues {
-			outputs[k] = os.Value
-		}
+	for k, os := range remoteState.RootOutputValues {
+		outputs[k] = os.Value
 	}
 
 	newState["outputs"] = cty.ObjectVal(outputs)
