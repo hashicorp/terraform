@@ -908,7 +908,7 @@ func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) ct
 
 		// For apply and inspect phases we use the root module output values
 		// from the state to construct our value.
-		outputVals := state.RootModule().OutputValues
+		outputVals := state.RootOutputValues
 		attrs := make(map[string]cty.Value, len(outputVals))
 		for _, ov := range outputVals {
 			name := ov.Addr.OutputValue.Name

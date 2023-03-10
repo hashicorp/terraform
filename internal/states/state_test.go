@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -28,8 +29,14 @@ func TestState(t *testing.T) {
 	}
 
 	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
-	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
-	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("bar value"), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "secret"}.Absolute(addrs.RootModuleInstance),
+		cty.StringVal("secret value"), true,
+	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -47,39 +54,45 @@ func TestState(t *testing.T) {
 		},
 	)
 
+	// State silently ignores attempts to write to non-root outputs, because
+	// historically we did track those here but these days we track them in
+	// namedvals.State instead, and we're being gracious to existing callers
+	// that might not know yet that they need to treat root module output
+	// values in a special way.
 	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-	childModule.SetOutputValue("pizza", cty.StringVal("hawaiian"), false)
+	state.SetOutputValue(addrs.OutputValue{Name: "pizza"}.Absolute(childModule.Addr), cty.StringVal("hawaiian"), false)
 	multiModA := state.EnsureModule(addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")))
-	multiModA.SetOutputValue("pizza", cty.StringVal("cheese"), false)
+	state.SetOutputValue(addrs.OutputValue{Name: "pizza"}.Absolute(multiModA.Addr), cty.StringVal("cheese"), false)
 	multiModB := state.EnsureModule(addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")))
-	multiModB.SetOutputValue("pizza", cty.StringVal("sausage"), false)
+	state.SetOutputValue(addrs.OutputValue{Name: "pizza"}.Absolute(multiModB.Addr), cty.StringVal("sausage"), false)
 
 	want := &State{
+		RootOutputValues: map[string]*OutputValue{
+			"bar": {
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: "bar",
+					},
+				},
+				Value:     cty.StringVal("bar value"),
+				Sensitive: false,
+			},
+			"secret": {
+				Addr: addrs.AbsOutputValue{
+					OutputValue: addrs.OutputValue{
+						Name: "secret",
+					},
+				},
+				Value:     cty.StringVal("secret value"),
+				Sensitive: true,
+			},
+		},
+
 		Modules: map[string]*Module{
 			"": {
 				Addr: addrs.RootModuleInstance,
 				LocalValues: map[string]cty.Value{
 					"foo": cty.StringVal("foo value"),
-				},
-				OutputValues: map[string]*OutputValue{
-					"bar": {
-						Addr: addrs.AbsOutputValue{
-							OutputValue: addrs.OutputValue{
-								Name: "bar",
-							},
-						},
-						Value:     cty.StringVal("bar value"),
-						Sensitive: false,
-					},
-					"secret": {
-						Addr: addrs.AbsOutputValue{
-							OutputValue: addrs.OutputValue{
-								Name: "secret",
-							},
-						},
-						Value:     cty.StringVal("secret value"),
-						Sensitive: true,
-					},
 				},
 				Resources: map[string]*Resource{
 					"test_thing.baz": {
@@ -109,53 +122,17 @@ func TestState(t *testing.T) {
 			"module.child": {
 				Addr:        addrs.RootModuleInstance.Child("child", addrs.NoKey),
 				LocalValues: map[string]cty.Value{},
-				OutputValues: map[string]*OutputValue{
-					"pizza": {
-						Addr: addrs.AbsOutputValue{
-							Module: addrs.RootModuleInstance.Child("child", addrs.NoKey),
-							OutputValue: addrs.OutputValue{
-								Name: "pizza",
-							},
-						},
-						Value:     cty.StringVal("hawaiian"),
-						Sensitive: false,
-					},
-				},
-				Resources: map[string]*Resource{},
+				Resources:   map[string]*Resource{},
 			},
 			`module.multi["a"]`: {
 				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
 				LocalValues: map[string]cty.Value{},
-				OutputValues: map[string]*OutputValue{
-					"pizza": {
-						Addr: addrs.AbsOutputValue{
-							Module: addrs.RootModuleInstance.Child("multi", addrs.StringKey("a")),
-							OutputValue: addrs.OutputValue{
-								Name: "pizza",
-							},
-						},
-						Value:     cty.StringVal("cheese"),
-						Sensitive: false,
-					},
-				},
-				Resources: map[string]*Resource{},
+				Resources:   map[string]*Resource{},
 			},
 			`module.multi["b"]`: {
 				Addr:        addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
 				LocalValues: map[string]cty.Value{},
-				OutputValues: map[string]*OutputValue{
-					"pizza": {
-						Addr: addrs.AbsOutputValue{
-							Module: addrs.RootModuleInstance.Child("multi", addrs.StringKey("b")),
-							OutputValue: addrs.OutputValue{
-								Name: "pizza",
-							},
-						},
-						Value:     cty.StringVal("sausage"),
-						Sensitive: false,
-					},
-				},
-				Resources: map[string]*Resource{},
+				Resources:   map[string]*Resource{},
 			},
 		},
 	}
@@ -173,27 +150,8 @@ func TestState(t *testing.T) {
 		}()
 	}
 
-	for _, problem := range deep.Equal(state, want) {
-		t.Error(problem)
-	}
-
-	expectedOutputs := map[string]string{
-		`module.multi["a"].output.pizza`: "cheese",
-		`module.multi["b"].output.pizza`: "sausage",
-	}
-
-	for _, o := range state.ModuleOutputs(addrs.RootModuleInstance, addrs.ModuleCall{Name: "multi"}) {
-		addr := o.Addr.String()
-		expected := expectedOutputs[addr]
-		delete(expectedOutputs, addr)
-
-		if expected != o.Value.AsString() {
-			t.Fatalf("expected %q:%q, got %q", addr, expected, o.Value.AsString())
-		}
-	}
-
-	for addr, o := range expectedOutputs {
-		t.Fatalf("missing output %q:%q", addr, o)
+	if diff := cmp.Diff(want.String(), state.String()); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
 	}
 }
 
@@ -228,12 +186,18 @@ func TestStateDeepCopy(t *testing.T) {
 
 	rootModule := state.RootModule()
 	if rootModule == nil {
-		t.Errorf("root module is nil; want valid object")
+		t.Fatalf("root module is nil; want valid object")
 	}
 
 	rootModule.SetLocalValue("foo", cty.StringVal("foo value"))
-	rootModule.SetOutputValue("bar", cty.StringVal("bar value"), false)
-	rootModule.SetOutputValue("secret", cty.StringVal("secret value"), true)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "bar"}.Absolute(rootModule.Addr),
+		cty.StringVal("bar value"), false,
+	)
+	state.SetOutputValue(
+		addrs.OutputValue{Name: "secret"}.Absolute(rootModule.Addr),
+		cty.StringVal("secret value"), true,
+	)
 	rootModule.SetResourceInstanceCurrent(
 		addrs.Resource{
 			Mode: addrs.ManagedResourceMode,
@@ -288,8 +252,7 @@ func TestStateDeepCopy(t *testing.T) {
 		},
 	)
 
-	childModule := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-	childModule.SetOutputValue("pizza", cty.StringVal("hawaiian"), false)
+	state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 
 	stateCopy := state.DeepCopy()
 	if !state.Equal(stateCopy) {

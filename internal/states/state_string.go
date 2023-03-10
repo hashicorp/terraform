@@ -38,7 +38,7 @@ func (s *State) String() string {
 	var buf bytes.Buffer
 	for _, name := range modules {
 		m := s.Modules[name]
-		mStr := m.testString()
+		mStr := m.testString(s)
 
 		// If we're the root module, we just write the output directly.
 		if m.Addr.IsRoot() {
@@ -76,7 +76,7 @@ func (s *State) String() string {
 
 // testString is used to produce part of the output of State.String. It should
 // never be used directly.
-func (ms *Module) testString() string {
+func (ms *Module) testString(state *State) string {
 	var buf bytes.Buffer
 
 	if len(ms.Resources) == 0 {
@@ -204,17 +204,25 @@ func (ms *Module) testString() string {
 		}
 	}
 
-	if len(ms.OutputValues) > 0 {
+	// This is a bit weird because we used to store output values for all
+	// modules in the state, but now we use it only for the root output
+	// values since they are the only ones that persist between runs.
+	//
+	// To keep this long-suffering legacy string representation compatible
+	// (since so many of our older tests depend on it) we have this structured
+	// in as close as possible to the same way it was when OutputValues was
+	// a field of ms, instead of RootOutputValues in State.
+	if ms.Addr.IsRoot() && len(state.RootOutputValues) != 0 {
 		buf.WriteString("\nOutputs:\n\n")
 
-		ks := make([]string, 0, len(ms.OutputValues))
-		for k := range ms.OutputValues {
+		ks := make([]string, 0, len(state.RootOutputValues))
+		for k := range state.RootOutputValues {
 			ks = append(ks, k)
 		}
 		sort.Strings(ks)
 
 		for _, k := range ks {
-			v := ms.OutputValues[k]
+			v := state.RootOutputValues[k]
 			lv := hcl2shim.ConfigValueFromHCL2(v.Value)
 			switch vTyped := lv.(type) {
 			case string:

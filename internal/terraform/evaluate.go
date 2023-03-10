@@ -346,20 +346,18 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// We know the instance path up to this point, and the child module name,
 	// so we only need to store these by instance key.
 	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
-	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
-		val := output.Value
-		if output.Sensitive {
-			val = val.Mark(marks.Sensitive)
-		}
+	for _, elem := range d.Evaluator.NamedValues.GetOutputValuesForModuleCall(d.ModulePath, addr).Elems {
+		outputAddr := elem.Key
+		val := elem.Value
 
-		_, callInstance := output.Addr.Module.CallInstance()
+		_, callInstance := outputAddr.Module.CallInstance()
 		instance, ok := stateMap[callInstance.Key]
 		if !ok {
 			instance = map[string]cty.Value{}
 			stateMap[callInstance.Key] = instance
 		}
 
-		instance[output.Addr.OutputValue.Name] = val
+		instance[outputAddr.OutputValue.Name] = val
 	}
 
 	// Get all changes that reside for this module call within our path.

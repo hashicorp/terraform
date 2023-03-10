@@ -107,6 +107,54 @@ func (s *State) GetOutputValue(addr addrs.AbsOutputValue) cty.Value {
 	return s.outputs.GetExactResult(addr)
 }
 
+func (s *State) GetOutputValuesForModuleCall(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall) addrs.Map[addrs.AbsOutputValue, cty.Value] {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// HACK: The "values" data structure isn't really designed to support
+	// this operation, since it tries to be general over all different named
+	// value address types but that makes it unable to generically handle
+	// the problem of finding the module instance for a particular absolute
+	// address. We'd need a ModuleInstance equivalent of
+	// addrs.InPartialExpandedModule to achieve that, but our "Abs" address
+	// types are all hand-written and predate Go having support for generic
+	// types.
+	//
+	// This operation is just a stop-gap until we make the evaluator work
+	// in a different way to handle placeholder values, so we'll accept it
+	// being clunky and slow just as a checkpoint to make everything still
+	// work similarly to how it used to, and then delete this function again
+	// later once we can implement what we need using just
+	// [State.GetOutputValue] by having the caller determine which output
+	// values it should be asking for using the configuration.
+
+	ret := addrs.MakeMap[addrs.AbsOutputValue, cty.Value]()
+	all := s.outputs.GetExactResults()
+
+	for _, elem := range all.Elems {
+		outputMod := elem.Key.Module
+		if outputMod.IsRoot() {
+			// We cannot enumerate the root module output values with this
+			// function, because the root module has no "call".
+			continue
+		}
+		callingMod, call := outputMod.Call()
+		if call != callAddr {
+			continue
+		}
+		if !callingMod.Equal(parentAddr) {
+			continue
+		}
+
+		// If we get here then the output value we're holding belongs to
+		// one of the instances of the call indicated in this function's
+		// arguments.
+		ret.PutElement(elem)
+	}
+
+	return ret
+}
+
 func (s *State) HasOutputValue(addr addrs.AbsOutputValue) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
