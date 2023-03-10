@@ -43,6 +43,13 @@ type Evaluator struct {
 	// variables, local values, and output values.
 	NamedValues *namedvals.State
 
+	// Instances tracks the "expansion" (from one configuration object into
+	// multiple instances of that object) of modules and resources. Other
+	// parts of Terraform Core update this object during the graph walk,
+	// and the evaluator uses it to return correctly-shaped data structures
+	// representing those expandable objects.
+	Instances *instances.Expander
+
 	// Plugins is the library of available plugin components (providers and
 	// provisioners) that we have available to help us evaluate expressions
 	// that interact with plugin-provided objects.
