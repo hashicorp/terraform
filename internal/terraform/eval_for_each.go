@@ -43,7 +43,7 @@ func evaluateForEachExpressionValue(expr hcl.Expression, ctx EvalContext, allowU
 
 	refs, moreDiags := lang.ReferencesInExpr(expr)
 	diags = diags.Append(moreDiags)
-	scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+	scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 	var hclCtx *hcl.EvalContext
 	if scope != nil {
 		hclCtx, moreDiags = scope.EvalContext(refs)
