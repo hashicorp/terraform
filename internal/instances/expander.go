@@ -314,13 +314,46 @@ func (e *Expander) GetModuleInstanceRepetitionData(addr addrs.ModuleInstance) Re
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	parentMod := e.findModule(addr[:len(addr)-1])
+	parentMod, known := e.findModule(addr[:len(addr)-1])
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know what type of expansion we're doing.
+		return TotallyUnknownRepetitionData
+	}
 	lastStep := addr[len(addr)-1]
 	exp, ok := parentMod.moduleCalls[addrs.ModuleCall{Name: lastStep.Name}]
 	if !ok {
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
 	}
 	return exp.repetitionData(lastStep.InstanceKey)
+}
+
+// GetModuleCallInstanceKeys determines the child instance keys for one specific
+// instance of a module call.
+//
+// keyType describes the expected type of all keys in knownKeys, which typically
+// also implies what data type would be used to describe the full set of
+// instances: [addrs.IntKeyType] as a list or tuple, [addrs.StringKeyType] as
+// a map or object, and [addrs.NoKeyType] as just a single value.
+//
+// If unknownKeys is true then there might be additional keys that we can't know
+// yet because the call's expansion isn't known.
+func (e *Expander) GetModuleCallInstanceKeys(addr addrs.AbsModuleCall) (keyType addrs.InstanceKeyType, knownKeys []addrs.InstanceKey, unknownKeys bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know yet what kind of instance key to expect. (The caller might
+		// be able to infer this itself using configuration info, though.)
+		return addrs.UnknownKeyType, nil, true
+	}
+	exp, ok := parentMod.moduleCalls[addr.Call]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
+	}
+	return exp.instanceKeys()
 }
 
 // GetResourceInstanceRepetitionData returns an object describing the values
@@ -330,12 +363,45 @@ func (e *Expander) GetResourceInstanceRepetitionData(addr addrs.AbsResourceInsta
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
-	parentMod := e.findModule(addr.Module)
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know what type of expansion we're doing.
+		return TotallyUnknownRepetitionData
+	}
 	exp, ok := parentMod.resources[addr.Resource.Resource]
 	if !ok {
 		panic(fmt.Sprintf("no expansion has been registered for %s", addr.ContainingResource()))
 	}
 	return exp.repetitionData(addr.Resource.Key)
+}
+
+// GetModuleCallInstanceKeys determines the child instance keys for one specific
+// instance of a module call.
+//
+// keyType describes the expected type of all keys in knownKeys, which typically
+// also implies what data type would be used to describe the full set of
+// instances: [addrs.IntKeyType] as a list or tuple, [addrs.StringKeyType] as
+// a map or object, and [addrs.NoKeyType] as just a single value.
+//
+// If unknownKeys is true then there might be additional keys that we can't know
+// yet because the call's expansion isn't known.
+func (e *Expander) ResourceInstanceKeys(addr addrs.AbsResource) (keyType addrs.InstanceKeyType, knownKeys []addrs.InstanceKey, unknownKeys bool) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	parentMod, known := e.findModule(addr.Module)
+	if !known {
+		// If we're nested inside something unexpanded then we don't even
+		// know yet what kind of instance key to expect. (The caller might
+		// be able to infer this itself using configuration info, though.)
+		return addrs.UnknownKeyType, nil, true
+	}
+	exp, ok := parentMod.resources[addr.Resource]
+	if !ok {
+		panic(fmt.Sprintf("no expansion has been registered for %s", addr))
+	}
+	return exp.instanceKeys()
 }
 
 // AllInstances returns a set of all of the module and resource instances known
@@ -350,11 +416,14 @@ func (e *Expander) AllInstances() Set {
 	return Set{e}
 }
 
-func (e *Expander) findModule(moduleInstAddr addrs.ModuleInstance) *expanderModule {
+func (e *Expander) findModule(moduleInstAddr addrs.ModuleInstance) (expMod *expanderModule, known bool) {
 	// We expect that all of the modules on the path to our module instance
 	// should already have expansions registered.
 	mod := e.exps
 	for i, step := range moduleInstAddr {
+		if expansionIsDeferred(mod.moduleCalls[addrs.ModuleCall{Name: step.Name}]) {
+			return nil, false
+		}
 		next, ok := mod.childInstances[step]
 		if !ok {
 			// Top-down ordering of registration is part of the contract of
@@ -363,21 +432,25 @@ func (e *Expander) findModule(moduleInstAddr addrs.ModuleInstance) *expanderModu
 		}
 		mod = next
 	}
-	return mod
+	return mod, true
 }
 
 func (e *Expander) setModuleExpansion(parentAddr addrs.ModuleInstance, callAddr addrs.ModuleCall, exp expansion) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	mod := e.findModule(parentAddr)
+	mod, known := e.findModule(parentAddr)
+	if !known {
+		panic(fmt.Sprintf("can't register expansion for call in %s beneath unexpanded parent", parentAddr))
+	}
 	if _, exists := mod.moduleCalls[callAddr]; exists {
 		panic(fmt.Sprintf("expansion already registered for %s", parentAddr.Child(callAddr.Name, addrs.NoKey)))
 	}
 	if !expansionIsDeferred(exp) {
 		// We'll also pre-register the child instances so that later calls can
 		// populate them as the caller traverses the configuration tree.
-		for _, key := range exp.instanceKeys() {
+		_, knownKeys, _ := exp.instanceKeys()
+		for _, key := range knownKeys {
 			step := addrs.ModuleInstanceStep{Name: callAddr.Name, InstanceKey: key}
 			mod.childInstances[step] = newExpanderModule()
 		}
@@ -389,7 +462,10 @@ func (e *Expander) setResourceExpansion(parentAddr addrs.ModuleInstance, resourc
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	mod := e.findModule(parentAddr)
+	mod, known := e.findModule(parentAddr)
+	if !known {
+		panic(fmt.Sprintf("can't register expansion in %s where path includes unknown expansion", parentAddr))
+	}
 	if _, exists := mod.resources[resourceAddr]; exists {
 		panic(fmt.Sprintf("expansion already registered for %s", resourceAddr.Absolute(parentAddr)))
 	}
@@ -481,7 +557,8 @@ func (m *expanderModule) moduleInstances(addr addrs.Module, parentAddr addrs.Mod
 
 	// Otherwise, we'll use the expansion from the final step to produce
 	// a sequence of addresses under this prefix.
-	for _, k := range exp.instanceKeys() {
+	_, knownKeys, _ := exp.instanceKeys()
+	for _, k := range knownKeys {
 		// We're reusing the buffer under parentAddr as we recurse through
 		// the structure, so we need to copy it here to produce a final
 		// immutable slice to return.
@@ -665,7 +742,8 @@ func (m *expanderModule) onlyResourceInstances(resourceAddr addrs.Resource, pare
 		return nil
 	}
 
-	for _, k := range exp.instanceKeys() {
+	_, knownKeys, _ := exp.instanceKeys()
+	for _, k := range knownKeys {
 		// We're reusing the buffer under parentAddr as we recurse through
 		// the structure, so we need to copy it here to produce a final
 		// immutable slice to return.
@@ -710,7 +788,8 @@ func (m *expanderModule) knowsResourceInstance(want addrs.AbsResourceInstance) b
 	if resourceExp == nil {
 		return false
 	}
-	for _, key := range resourceExp.instanceKeys() {
+	_, knownKeys, _ := resourceExp.instanceKeys()
+	for _, key := range knownKeys {
 		if key == want.Resource.Key {
 			return true
 		}

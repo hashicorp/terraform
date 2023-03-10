@@ -30,6 +30,14 @@ type RepetitionData struct {
 	EachKey, EachValue cty.Value
 }
 
+// TotallyUnknownRepetitionData is a [RepetitionData] value for situations
+// where don't even know yet what type of repetition will be used.
+var TotallyUnknownRepetitionData = RepetitionData{
+	CountIndex: cty.UnknownVal(cty.Number),
+	EachKey:    cty.UnknownVal(cty.String),
+	EachValue:  cty.DynamicVal,
+}
+
 // UnknownCountRepetitionData is a suitable [RepetitionData] value to use when
 // evaluating the configuration of an object which has a count argument that
 // is currently unknown.
