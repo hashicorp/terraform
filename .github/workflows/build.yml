@@ -165,8 +165,6 @@ jobs:
   e2e-test:
     name: Run e2e test for ${{ matrix.goos }}_${{ matrix.goarch }}
     runs-on: ubuntu-latest
-    container:
-      image: arm64v8/alpine:latest
     needs:
       - get-product-version
       - build
