@@ -13,7 +13,7 @@ import (
 // ways expansion can operate depending on how repetition is configured for
 // an object.
 type expansion interface {
-	instanceKeys() []addrs.InstanceKey
+	instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool)
 	repetitionData(addrs.InstanceKey) RepetitionData
 }
 
@@ -26,8 +26,8 @@ type expansionSingle uintptr
 var singleKeys = []addrs.InstanceKey{addrs.NoKey}
 var expansionSingleVal expansionSingle
 
-func (e expansionSingle) instanceKeys() []addrs.InstanceKey {
-	return singleKeys
+func (e expansionSingle) instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool) {
+	return addrs.NoKeyType, singleKeys, false
 }
 
 func (e expansionSingle) repetitionData(key addrs.InstanceKey) RepetitionData {
@@ -40,12 +40,12 @@ func (e expansionSingle) repetitionData(key addrs.InstanceKey) RepetitionData {
 // expansionCount is the expansion corresponding to the "count" argument.
 type expansionCount int
 
-func (e expansionCount) instanceKeys() []addrs.InstanceKey {
+func (e expansionCount) instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool) {
 	ret := make([]addrs.InstanceKey, int(e))
 	for i := range ret {
 		ret[i] = addrs.IntKey(i)
 	}
-	return ret
+	return addrs.IntKeyType, ret, false
 }
 
 func (e expansionCount) repetitionData(key addrs.InstanceKey) RepetitionData {
@@ -61,7 +61,7 @@ func (e expansionCount) repetitionData(key addrs.InstanceKey) RepetitionData {
 // expansionForEach is the expansion corresponding to the "for_each" argument.
 type expansionForEach map[string]cty.Value
 
-func (e expansionForEach) instanceKeys() []addrs.InstanceKey {
+func (e expansionForEach) instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool) {
 	ret := make([]addrs.InstanceKey, 0, len(e))
 	for k := range e {
 		ret = append(ret, addrs.StringKey(k))
@@ -69,7 +69,7 @@ func (e expansionForEach) instanceKeys() []addrs.InstanceKey {
 	sort.Slice(ret, func(i, j int) bool {
 		return ret[i].(addrs.StringKey) < ret[j].(addrs.StringKey)
 	})
-	return ret
+	return addrs.StringKeyType, ret, false
 }
 
 func (e expansionForEach) repetitionData(key addrs.InstanceKey) RepetitionData {
@@ -95,12 +95,12 @@ type expansionDeferred rune
 const expansionDeferredIntKey = expansionDeferred(addrs.IntKeyType)
 const expansionDeferredStringKey = expansionDeferred(addrs.StringKeyType)
 
-func (e expansionDeferred) instanceKeys() []addrs.InstanceKey {
-	panic("cannot expand when expansion was deferred")
+func (e expansionDeferred) instanceKeys() (addrs.InstanceKeyType, []addrs.InstanceKey, bool) {
+	return addrs.InstanceKeyType(e), nil, true
 }
 
 func (e expansionDeferred) repetitionData(key addrs.InstanceKey) RepetitionData {
-	panic("cannot expand when expansion was deferred")
+	panic("no known instances for object with deferred expansion")
 }
 
 func expansionIsDeferred(exp expansion) bool {
