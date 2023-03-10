@@ -109,6 +109,7 @@ jobs:
       matrix:
         include:
           - {goos: "linux", goarch: "arm64", runson: "ubuntu-latest", cgo-enabled: "0"}
+          - {goos: "linux", goarch: "arm", runson: "ubuntu-latest", cgo-enabled: "0"}
       fail-fast: false
 
   e2etest-build:
