@@ -201,15 +201,13 @@ jobs:
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
           path: .
-      - name: Extract packages
-        if: ${{ (matrix.goos == 'linux') || (inputs.goos == 'darwin') }}
-        run: |
-          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
-          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
         with:
           platforms: all
       - name: Run E2E Tests
         run: |
-          docker run --platform=linux/arm64 -v $(pwd):e2etest -w e2etest arm64v8/alpine export TF_ACC=1 && ./e2etest -test.v
+          export DIR=$(mktemp -d)
+          unzip -d $DIR "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+          docker run --platform=linux/arm64 -v $DIR:/src -w /src arm64v8/alpine ./e2etest -test.v
