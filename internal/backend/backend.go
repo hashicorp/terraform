@@ -366,8 +366,9 @@ type RunningOperation struct {
 	// operation has completed.
 	Result OperationResult
 
-	// PlanEmpty is populated after a Plan operation completes without error
-	// to note whether a plan is empty or has changes.
+	// PlanEmpty is populated after a Plan operation completes to note whether
+	// a plan is empty or has changes. This is only used in the CLI to determine
+	// the exit status because the plan value is not available at that point.
 	PlanEmpty bool
 
 	// State is the final state after the operation completed. Persisting
