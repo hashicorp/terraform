@@ -3,10 +3,7 @@ package jsonformat
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform/internal/terminal"
 	"testing"
-
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
@@ -14,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -21,6 +19,7 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
