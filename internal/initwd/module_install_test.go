@@ -740,7 +740,7 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 	t.Helper()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-configload")
+	tmpDir, err := os.MkdirTemp("", "terraform-configload")
 	if err != nil {
 		t.Fatalf("failed to create temporary directory: %s", err)
 		return "", nil
