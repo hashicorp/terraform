@@ -52,7 +52,7 @@ The command-line flags are all optional. The following flags are available:
 
 - `-no-color` - If specified, output won't contain any color.
 
-- `-parallelism=n` - Limit the number of concurrent operation as Terraform
+- `-parallelism=n` - Limit the number of concurrent operations as Terraform
   [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults
   to 10.
 
@@ -67,7 +67,7 @@ The command-line flags are all optional. The following flags are available:
 
 - `-var-file=foo` - Set variables in the Terraform configuration from
   a [variable file](/terraform/language/values/variables#variable-definitions-tfvars-files). If
-  a `terraform.tfvars` or any `.auto.tfvars` files are present in the current
+  `terraform.tfvars` or any `.auto.tfvars` files are present in the current
   directory, they will be automatically loaded. `terraform.tfvars` is loaded
   first and the `.auto.tfvars` files after in alphabetical order. Any files
   specified by `-var-file` override any values set automatically from files in
