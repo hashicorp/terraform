@@ -1,7 +1,6 @@
 package configload
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,7 +34,7 @@ func TestCopyDir_symlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(subModuleDir, "main.tf"), []byte("hello"), 0644)
+	err = os.WriteFile(filepath.Join(subModuleDir, "main.tf"), []byte("hello"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,7 +70,7 @@ func TestCopyDir_symlink_file(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(moduleDir, "main.tf"), []byte("hello"), 0644)
+	err = os.WriteFile(filepath.Join(moduleDir, "main.tf"), []byte("hello"), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

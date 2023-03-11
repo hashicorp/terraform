@@ -742,7 +742,7 @@ func (m *Meta) SetWorkspace(name string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
+	err = os.WriteFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile), []byte(name), 0644)
 	if err != nil {
 		return err
 	}

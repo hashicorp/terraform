@@ -179,7 +179,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 			fmt.Fprintln(w, path)
 		}
 		if c.write {
-			err := ioutil.WriteFile(path, result, 0644)
+			err := os.WriteFile(path, result, 0644)
 			if err != nil {
 				diags = diags.Append(fmt.Errorf("Failed to write %s", path))
 				return diags

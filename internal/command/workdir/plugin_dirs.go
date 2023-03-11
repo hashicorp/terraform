@@ -2,7 +2,6 @@ package workdir
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -78,6 +77,6 @@ func (d *Dir) SetForcedPluginDirs(dirs []string) error {
 			return err
 		}
 
-		return ioutil.WriteFile(filePath, raw, 0644)
+		return os.WriteFile(filePath, raw, 0644)
 	}
 }

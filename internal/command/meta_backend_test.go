@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -1898,7 +1897,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 
 	// init again but remove the path option from the config
 	cfg := "terraform {\n  backend \"local\" {}\n}\n"
-	if err := ioutil.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
+	if err := os.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
 		t.Fatal(err)
 	}
 

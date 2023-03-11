@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -435,7 +434,7 @@ func TestRefresh_varFile(t *testing.T) {
 	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -477,7 +476,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 	p.GetProviderSchemaResponse = refreshVarFixtureSchema()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

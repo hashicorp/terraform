@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -152,7 +151,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 			t.Fatal(err)
 		}
 		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
-		err = ioutil.WriteFile(rootFilename, final, 0644)
+		err = os.WriteFile(rootFilename, final, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -190,7 +189,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 			t.Fatal(err)
 		}
 		final := bytes.ReplaceAll(template, []byte("%%BASE%%"), []byte(filepath.ToSlash(dir)))
-		err = ioutil.WriteFile(rootFilename, final, 0644)
+		err = os.WriteFile(rootFilename, final, 0644)
 		if err != nil {
 			t.Fatal(err)
 		}

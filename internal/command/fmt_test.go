@@ -48,7 +48,7 @@ func TestFmt(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			err = ioutil.WriteFile(gotFile, input, 0700)
+			err = os.WriteFile(gotFile, input, 0700)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -107,7 +107,7 @@ func TestFmt_syntaxError(t *testing.T) {
 a = 1 +
 `
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "invalid.tf"), []byte(invalidSrc), 0644)
+	err := os.WriteFile(filepath.Join(tempDir, "invalid.tf"), []byte(invalidSrc), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestFmt_snippetInError(t *testing.T) {
 
 	backendSrc := `terraform {backend "s3" {}}`
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
+	err := os.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestFmt_manyArgs(t *testing.T) {
 	// Add a second file
 	secondSrc := `locals { x = 1 }`
 
-	err := ioutil.WriteFile(filepath.Join(tempDir, "second.tf"), []byte(secondSrc), 0644)
+	err := os.WriteFile(filepath.Join(tempDir, "second.tf"), []byte(secondSrc), 0644)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,7 +408,7 @@ var fmtFixture = struct {
 func fmtFixtureWriteDir(t *testing.T) string {
 	dir := testTempDir(t)
 
-	err := ioutil.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
+	err := os.WriteFile(filepath.Join(dir, fmtFixture.filename), fmtFixture.input, 0644)
 	if err != nil {
 		t.Fatal(err)
 	}

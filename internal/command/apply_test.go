@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -851,7 +850,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
 	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1370,7 +1369,7 @@ func TestApply_varFile(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := testTempFile(t)
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1432,7 +1431,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1493,7 +1492,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	defer testChdir(t, td)()
 
 	varFilePath := filepath.Join(td, "terraform.tfvars.json")
-	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
+	if err := os.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

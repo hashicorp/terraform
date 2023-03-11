@@ -7,7 +7,7 @@ import (
 )
 
 // AtomicWriteFile uses a temporary file along with this package's AtomicRename
-// function in order to provide a replacement for ioutil.WriteFile that
+// function in order to provide a replacement for os.WriteFile that
 // writes the given file into place as atomically as the underlying operating
 // system can support.
 //

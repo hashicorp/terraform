@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -518,7 +517,7 @@ func (s *Filesystem) writeLockInfo(info *LockInfo) error {
 	info.Created = time.Now().UTC()
 
 	log.Printf("[TRACE] statemgr.Filesystem: writing lock metadata to %s", path)
-	err := ioutil.WriteFile(path, info.Marshal(), 0600)
+	err := os.WriteFile(path, info.Marshal(), 0600)
 	if err != nil {
 		return fmt.Errorf("could not write lock info for %q: %s", s.readPath, err)
 	}
