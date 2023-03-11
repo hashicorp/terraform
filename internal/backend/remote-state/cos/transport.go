@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -68,7 +69,7 @@ func (me *LogRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 	if errRet != nil {
 		return
 	}
-	response.Body = ioutil.NopCloser(bytes.NewBuffer(outBytes))
+	response.Body = io.NopCloser(bytes.NewBuffer(outBytes))
 	return
 }
 

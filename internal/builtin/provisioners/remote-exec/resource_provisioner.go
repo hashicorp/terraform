@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -179,7 +178,7 @@ func collectScripts(v cty.Value) ([]io.ReadCloser, error) {
 
 		var r []io.ReadCloser
 		for _, script := range scripts {
-			r = append(r, ioutil.NopCloser(bytes.NewReader([]byte(script))))
+			r = append(r, io.NopCloser(bytes.NewReader([]byte(script))))
 		}
 
 		return r, nil
