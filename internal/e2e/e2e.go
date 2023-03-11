@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -237,7 +236,7 @@ func (b *binary) SetLocalState(state *states.State) error {
 
 func GoBuild(pkgPath, tmpPrefix string) string {
 	dir, prefix := filepath.Split(tmpPrefix)
-	tmpFile, err := ioutil.TempFile(dir, prefix)
+	tmpFile, err := os.CreateTemp(dir, prefix)
 	if err != nil {
 		panic(err)
 	}

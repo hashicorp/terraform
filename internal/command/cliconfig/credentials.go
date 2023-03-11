@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -392,7 +391,7 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 	// the underlying OS/filesystem will allow.
 	{
 		dir, file := filepath.Split(filename)
-		f, err := ioutil.TempFile(dir, file)
+		f, err := os.CreateTemp(dir, file)
 		if err != nil {
 			return fmt.Errorf("cannot create temporary file to update credentials: %s", err)
 		}

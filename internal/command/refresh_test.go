@@ -319,7 +319,7 @@ func TestRefresh_outPath(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(td, "tf")
+	outf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -556,7 +556,7 @@ func TestRefresh_backup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(td, "tf")
+	outf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -571,7 +571,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	// Backup path
-	backupf, err := ioutil.TempFile(td, "tf")
+	backupf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -641,7 +641,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	// Output path
-	outf, err := ioutil.TempFile(td, "tf")
+	outf, err := os.CreateTemp(td, "tf")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

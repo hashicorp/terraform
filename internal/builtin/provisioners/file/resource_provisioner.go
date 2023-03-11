@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/hashicorp/terraform/internal/communicator"
@@ -129,7 +128,7 @@ func getSrc(v cty.Value) (string, bool, error) {
 
 	switch {
 	case !content.IsNull():
-		file, err := ioutil.TempFile("", "tf-file-content")
+		file, err := os.CreateTemp("", "tf-file-content")
 		if err != nil {
 			return "", true, err
 		}
