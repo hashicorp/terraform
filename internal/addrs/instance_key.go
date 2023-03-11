@@ -134,6 +134,8 @@ func instanceKeyType(k InstanceKey) InstanceKeyType {
 // of those types.
 type InstanceKeyType rune
 
+//go:generate go run golang.org/x/tools/cmd/stringer -type=InstanceKeyType instance_key.go
+
 const (
 	NoKeyType     InstanceKeyType = 0
 	IntKeyType    InstanceKeyType = 'I'
