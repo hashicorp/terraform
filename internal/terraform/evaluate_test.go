@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/namedvals"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -26,6 +27,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 			Env: "foo",
 		},
 		NamedValues: namedvals.NewState(),
+		Instances:   instances.NewExpander(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -57,6 +59,7 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 			},
 		},
 		NamedValues: namedvals.NewState(),
+		Instances:   instances.NewExpander(),
 	}
 	data := &evaluationStateData{
 		Evaluator: evaluator,
@@ -191,6 +194,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 			},
 		},
 		NamedValues: namedValues,
+		Instances:   instances.NewExpander(),
 	}
 
 	data := &evaluationStateData{
@@ -270,6 +274,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 		},
 		State:       stateSync,
 		NamedValues: namedvals.NewState(),
+		Instances:   instances.NewExpander(),
 		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
@@ -508,6 +513,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 		},
 		State:       stateSync,
 		NamedValues: namedvals.NewState(),
+		Instances:   instances.NewExpander(),
 		Plugins:     schemaOnlyProvidersForTesting(schemas.Providers),
 	}
 
@@ -537,15 +543,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 }
 
 func TestEvaluatorGetModule(t *testing.T) {
-	// Create a new evaluator with an existing state
-	stateSync := states.BuildState(func(ss *states.SyncState) {
-		ss.SetOutputValue(
-			addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
-			cty.StringVal("bar"),
-			true,
-		)
-	}).SyncWrapper()
-	evaluator := evaluatorForModule(stateSync, plans.NewChanges().SyncWrapper())
+	evaluator := evaluatorForModule(states.NewState().SyncWrapper(), plans.NewChanges().SyncWrapper())
 	evaluator.NamedValues.SetOutputValue(
 		addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
 		cty.StringVal("bar").Mark(marks.Sensitive),
@@ -565,55 +563,12 @@ func TestEvaluatorGetModule(t *testing.T) {
 	if !got.RawEquals(want) {
 		t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, want)
 	}
-
-	// Changes should override the state value
-	changesSync := plans.NewChanges().SyncWrapper()
-	change := &plans.OutputChange{
-		Addr:      addrs.OutputValue{Name: "out"}.Absolute(addrs.ModuleInstance{addrs.ModuleInstanceStep{Name: "mod"}}),
-		Sensitive: true,
-		Change: plans.Change{
-			After: cty.StringVal("baz"),
-		},
-	}
-	cs, _ := change.Encode()
-	changesSync.AppendOutputChange(cs)
-	evaluator = evaluatorForModule(stateSync, changesSync)
-	data = &evaluationStateData{
-		Evaluator: evaluator,
-	}
-	scope = evaluator.Scope(data, nil, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
-	got, diags = scope.Data.GetModule(addrs.ModuleCall{
-		Name: "mod",
-	}, tfdiags.SourceRange{})
-
-	if len(diags) != 0 {
-		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
-	}
-	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
-	}
-
-	// Test changes with empty state
-	evaluator = evaluatorForModule(states.NewState().SyncWrapper(), changesSync)
-	data = &evaluationStateData{
-		Evaluator: evaluator,
-	}
-	scope = evaluator.Scope(data, nil, nil)
-	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
-	got, diags = scope.Data.GetModule(addrs.ModuleCall{
-		Name: "mod",
-	}, tfdiags.SourceRange{})
-
-	if len(diags) != 0 {
-		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
-	}
-	if !got.RawEquals(want) {
-		t.Errorf("wrong result %#v; want %#v", got, want)
-	}
 }
 
 func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesSync) *Evaluator {
+	insts := instances.NewExpander()
+	insts.SetModuleSingle(addrs.RootModuleInstance, addrs.ModuleCall{Name: "mod"})
+
 	return &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -643,6 +598,7 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		State:       stateSync,
 		Changes:     changesSync,
 		NamedValues: namedvals.NewState(),
+		Instances:   insts,
 	}
 }
 

@@ -392,173 +392,20 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	}
 	outputConfigs := moduleConfig.Module.Outputs
 
-	// Collect all the relevant outputs that current exist in the state.
-	// We know the instance path up to this point, and the child module name,
-	// so we only need to store these by instance key.
-	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
-	for _, elem := range d.Evaluator.NamedValues.GetOutputValuesForModuleCall(d.ModulePath, addr).Elems {
-		outputAddr := elem.Key
-		val := elem.Value
-
-		_, callInstance := outputAddr.Module.CallInstance()
-		instance, ok := stateMap[callInstance.Key]
-		if !ok {
-			instance = map[string]cty.Value{}
-			stateMap[callInstance.Key] = instance
-		}
-
-		instance[outputAddr.OutputValue.Name] = val
-	}
-
-	// Get all changes that reside for this module call within our path.
-	// The change contains the full addr, so we can key these with strings.
-	changesMap := map[addrs.InstanceKey]map[string]*plans.OutputChangeSrc{}
-	for _, change := range d.Evaluator.Changes.GetOutputChanges(d.ModulePath, addr) {
-		_, callInstance := change.Addr.Module.CallInstance()
-		instance, ok := changesMap[callInstance.Key]
-		if !ok {
-			instance = map[string]*plans.OutputChangeSrc{}
-			changesMap[callInstance.Key] = instance
-		}
-
-		instance[change.Addr.OutputValue.Name] = change
-	}
-
-	// Build up all the module objects, creating a map of values for each
-	// module instance.
-	moduleInstances := map[addrs.InstanceKey]map[string]cty.Value{}
-
-	// create a dummy object type for validation below
-	unknownMap := map[string]cty.Type{}
-
-	// the structure is based on the configuration, so iterate through all the
-	// defined outputs, and add any instance state or changes we find.
-	for _, cfg := range outputConfigs {
-		// record the output names for validation
-		unknownMap[cfg.Name] = cty.DynamicPseudoType
-
-		// get all instance output for this path from the state
-		for key, states := range stateMap {
-			outputState, ok := states[cfg.Name]
-			if !ok {
-				continue
-			}
-
-			instance, ok := moduleInstances[key]
-			if !ok {
-				instance = map[string]cty.Value{}
-				moduleInstances[key] = instance
-			}
-
-			instance[cfg.Name] = outputState
-		}
-
-		// any pending changes override the state state values
-		for key, changes := range changesMap {
-			changeSrc, ok := changes[cfg.Name]
-			if !ok {
-				continue
-			}
-
-			instance, ok := moduleInstances[key]
-			if !ok {
-				instance = map[string]cty.Value{}
-				moduleInstances[key] = instance
-			}
-
-			change, err := changeSrc.Decode()
-			if err != nil {
-				// This should happen only if someone has tampered with a plan
-				// file, so we won't bother with a pretty error for it.
-				diags = diags.Append(fmt.Errorf("planned change for %s could not be decoded: %s", addr, err))
-				instance[cfg.Name] = cty.DynamicVal
-				continue
-			}
-
-			instance[cfg.Name] = change.After
-
-			if change.Sensitive {
-				instance[cfg.Name] = change.After.Mark(marks.Sensitive)
-			}
-		}
-	}
-
-	var ret cty.Value
-
-	// compile the outputs into the correct value type for the each mode
-	switch {
-	case callConfig.Count != nil:
-		// figure out what the last index we have is
-		length := -1
-		for key := range moduleInstances {
-			intKey, ok := key.(addrs.IntKey)
-			if !ok {
-				// old key from state which is being dropped
-				continue
-			}
-			if int(intKey) >= length {
-				length = int(intKey) + 1
-			}
-		}
-
-		if length > 0 {
-			vals := make([]cty.Value, length)
-			for key, instance := range moduleInstances {
-				intKey, ok := key.(addrs.IntKey)
-				if !ok {
-					// old key from state which is being dropped
-					continue
-				}
-
-				vals[int(intKey)] = cty.ObjectVal(instance)
-			}
-
-			// Insert unknown values where there are any missing instances
-			for i, v := range vals {
-				if v.IsNull() {
-					vals[i] = cty.DynamicVal
-					continue
-				}
-			}
-			ret = cty.TupleVal(vals)
-		} else {
-			ret = cty.EmptyTupleVal
-		}
-
-	case callConfig.ForEach != nil:
-		vals := make(map[string]cty.Value)
-		for key, instance := range moduleInstances {
-			strKey, ok := key.(addrs.StringKey)
-			if !ok {
-				continue
-			}
-
-			vals[string(strKey)] = cty.ObjectVal(instance)
-		}
-
-		if len(vals) > 0 {
-			ret = cty.ObjectVal(vals)
-		} else {
-			ret = cty.EmptyObjectVal
-		}
-
-	default:
-		val, ok := moduleInstances[addrs.NoKey]
-		if !ok {
-			// create the object if there wasn't one known
-			val = map[string]cty.Value{}
-			for k := range outputConfigs {
-				val[k] = cty.DynamicVal
-			}
-		}
-
-		ret = cty.ObjectVal(val)
-	}
-
 	// The module won't be expanded during validation, so we need to return an
 	// unknown value. This will ensure the types looks correct, since we built
 	// the objects based on the configuration.
+	// FIXME: If we arrange for all module calls to have unknown expansion
+	// during the validate walk then we could avoid this special case by
+	// entering the d.PartialEval branch below instead, but we've retained
+	// this special case for now to limit the size of the change that
+	// introduced the partial evaluation mode.
 	if d.Operation == walkValidate {
+		attrTypes := make(map[string]cty.Type, len(outputConfigs))
+		for name := range outputConfigs {
+			attrTypes[name] = cty.DynamicPseudoType
+		}
+
 		// While we know the type here and it would be nice to validate whether
 		// indexes are valid or not, because tuples and objects have fixed
 		// numbers of elements we can't simply return an unknown value of the
@@ -566,19 +413,132 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 		// validation.
 		//
 		// In order to validate the expression a little precisely, we'll create
-		// an unknown map or list here to get more type information.
-		ty := cty.Object(unknownMap)
+		// an unknown map or list here to get more type information. This
+		// is technically a little incorrect because in all other cases we
+		// return object types instead of maps and tuple types instead of lists,
+		// but the validation results don't carry forward into planning so
+		// this small untruth won't typically hurt anything and gives a little
+		// more information to the type checker during validation.
+		ty := cty.Object(attrTypes)
 		switch {
 		case callConfig.Count != nil:
-			ret = cty.UnknownVal(cty.List(ty))
+			return cty.UnknownVal(cty.List(ty)), diags
 		case callConfig.ForEach != nil:
-			ret = cty.UnknownVal(cty.Map(ty))
+			return cty.UnknownVal(cty.Map(ty)), diags
 		default:
-			ret = cty.UnknownVal(ty)
+			return cty.UnknownVal(ty), diags
 		}
 	}
 
-	return ret, diags
+	if d.PartialEval {
+		// If we are under an unexpanded module then we cannot predict our
+		// instance keys unless this is a singleton module call, in which
+		// has it has only one "no-key" instance.
+		if callConfig.Count != nil || callConfig.ForEach != nil {
+			// A multi-instance module call appears as an object type or
+			// tuple type, which means we can't say anything at all about
+			// the type until we know exactly what the instance keys will be.
+			// TODO: If we ever support explicitly-type-constrained output
+			// values like in https://github.com/hashicorp/terraform/pull/31728
+			// then we could return unknown values of list of object and map of
+			// object types here in any case where all of the output values
+			// are exactly specified, which would then enable better type
+			// checking of uses in the calling module.
+			return cty.DynamicVal, diags
+		}
+
+		// If we get here then this _is_ a singleton and our result will be
+		// an object type built from the placeholder values that represent
+		// the results for _all_ instances of this module call.
+		attrs := make(map[string]cty.Value, len(outputConfigs))
+		for name := range outputConfigs {
+			outputAddr := addrs.OutputValue{Name: name}
+			placeholderAddr := addrs.ObjectInPartialExpandedModule(d.PartialExpandedModulePath.Child(addr), outputAddr)
+			attrs[name] = d.Evaluator.NamedValues.GetOutputValuePlaceholder(placeholderAddr)
+		}
+		return cty.ObjectVal(attrs), diags
+	} else {
+		keyType, knownKeys, unknownKeys := d.Evaluator.Instances.GetModuleCallInstanceKeys(addr.Absolute(d.ModulePath))
+		if keyType == addrs.UnknownKeyType || unknownKeys {
+			// If we don't know our full set of instance keys then we can't say
+			// anything at all about the expected final result.
+			return cty.DynamicVal, diags
+		}
+
+		switch keyType {
+		case addrs.NoKeyType:
+			// The following two conditions should always hold for for a module
+			// call which has addrs.NoKeyType as its key type.
+			if len(knownKeys) != 1 {
+				panic(fmt.Sprintf("instance expander produced %d instance keys for a singleton module call", len(knownKeys)))
+			}
+			if knownKeys[0] != addrs.NoKey {
+				panic(fmt.Sprintf("instance expander produced instance key %#v for a singleton module call", knownKeys[0]))
+			}
+
+			// Now we've proven that we do indeed have only one instance key
+			// and it's NoKey, we can safely disregard knownKeys when building
+			// the result.
+			// The output values actually live in the child module instance,
+			// so we need to extend our module instance address to include that.
+			moduleAddr := d.ModulePath.Child(addr.Name, addrs.NoKey)
+			attrs := d.moduleCallInstanceOutputValues(moduleAddr, outputConfigs)
+			return cty.ObjectVal(attrs), diags
+
+		case addrs.IntKeyType:
+			// For IntKeyType the expander should return the keys in index order,
+			// and we'll assume that while constructing this tuple.
+			insts := make([]cty.Value, len(knownKeys))
+			for i, instKey := range knownKeys {
+				// The output values actually live in the child module instance,
+				// so we need to extend our module instance address to include that.
+				moduleAddr := d.ModulePath.Child(addr.Name, instKey)
+				attrs := d.moduleCallInstanceOutputValues(moduleAddr, outputConfigs)
+				insts[i] = cty.ObjectVal(attrs)
+			}
+			return cty.TupleVal(insts), diags
+
+		case addrs.StringKeyType:
+			insts := make(map[string]cty.Value, len(knownKeys))
+			for _, instKey := range knownKeys {
+				// The output values actually live in the child module instance,
+				// so we need to extend our module instance address to include that.
+				moduleAddr := d.ModulePath.Child(addr.Name, instKey)
+				attrs := d.moduleCallInstanceOutputValues(moduleAddr, outputConfigs)
+				insts[string(instKey.(addrs.StringKey))] = cty.ObjectVal(attrs)
+			}
+			return cty.ObjectVal(insts), diags
+
+		default:
+			// The above cases should be exhaustive for all key types except
+			// for UnknownKeyType, which we handled in the if statement above.
+			panic(fmt.Sprintf("unsupported instance key type %s", keyType))
+		}
+	}
+}
+
+func (d *evaluationStateData) moduleCallInstanceOutputValues(moduleAddr addrs.ModuleInstance, outputConfigs map[string]*configs.Output) map[string]cty.Value {
+	attrs := make(map[string]cty.Value, len(outputConfigs))
+	for name, cfg := range outputConfigs {
+		outputAddr := addrs.OutputValue{Name: name}.Absolute(moduleAddr)
+		// In situations where Terraform can prove that a particular expression
+		// refers only to a single output value of a module instance the
+		// graph allows evaluating the object representing a module before
+		// all of the output values have been evaluated, so we must generate
+		// placeholders for any that aren't ready yet. This oddity is just
+		// so we can reuse the GetModule method as a "get individual output"
+		// method rather than having to implement essentially the same logic
+		// in two different ways.
+		if !d.Evaluator.NamedValues.HasOutputValue(outputAddr) {
+			attrs[name] = cty.DynamicVal
+		} else {
+			attrs[name] = d.Evaluator.NamedValues.GetOutputValue(outputAddr)
+		}
+		if cfg.Sensitive {
+			attrs[name] = attrs[name].Mark(marks.Sensitive)
+		}
+	}
+	return attrs
 }
 
 func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

@@ -120,7 +120,14 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, tfdiags.Diagn
 			}
 		}
 
-		log.Printf("[TRACE] Expanding output: adding %s as %T", absAddr.String(), node)
+		log.Printf("[TRACE] nodeExpandOutput: adding %s as %T", absAddr.String(), node)
+		g.Add(node)
+	}
+	for _, module := range expander.UnknownModuleInstances(n.Module) {
+		node := &nodeOutputUnexpandedPlaceholder{
+			Addr:   addrs.ObjectInPartialExpandedModule(module, n.Addr),
+			Config: n.Config,
+		}
 		g.Add(node)
 	}
 	addRootNodeToGraph(&g)
@@ -269,9 +276,10 @@ func referenceableAddrsForOutput(addr addrs.AbsOutputValue) []addrs.Referenceabl
 	// relative to the calling module, not the module where the output
 	// was declared.
 	_, outp := addr.ModuleCallOutput()
-	_, call := addr.Module.CallInstance()
+	_, callInst := addr.Module.CallInstance()
+	_, call := addr.Module.Call()
 
-	return []addrs.Referenceable{outp, call}
+	return []addrs.Referenceable{outp, callInst, call}
 }
 
 // GraphNodeReferenceable
@@ -594,7 +602,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 			// Should never happen, since we just constructed this right above
 			panic(fmt.Sprintf("planned change for %s could not be encoded: %s", n.Addr, err))
 		}
-		log.Printf("[TRACE] setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
+		log.Printf("[TRACE] NodeApplyableOutput.setValue: Saving %s change for %s in changeset", change.Action, n.Addr)
 		changes.AppendOutputChange(cs) // add the new planned change
 	}
 
@@ -608,7 +616,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// evaluated. Null root outputs are removed entirely, which is always fine
 	// because they can't be referenced by anything else in the configuration.
 	if n.Addr.Module.IsRoot() && val.IsNull() {
-		log.Printf("[TRACE] setValue: Removing %s from state (it is now null)", n.Addr)
+		log.Printf("[TRACE] NodeApplyableOutput.setValue: Removing %s from state (it is now null)", n.Addr)
 		state.RemoveOutputValue(n.Addr)
 		return
 	}
@@ -623,7 +631,7 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	// The state itself doesn't represent unknown values, so we null them
 	// out here and then we'll save the real unknown value in the planned
 	// changeset, if we have one on this graph walk.
-	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
+	log.Printf("[TRACE] NodeApplyableOutput.setValue: Saving value for %s in state", n.Addr)
 	// non-root outputs need to keep sensitive marks for evaluation, but are
 	// not serialized.
 	if n.Addr.Module.IsRoot() {
@@ -632,4 +640,73 @@ func (n *NodeApplyableOutput) setValue(namedVals *namedvals.State, state *states
 	}
 
 	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
+}
+
+type nodeOutputUnexpandedPlaceholder struct {
+	Addr   addrs.InPartialExpandedModule[addrs.OutputValue]
+	Config *configs.Output
+}
+
+var (
+	_ GraphNodePartialExpandedModule = (*nodeOutputUnexpandedPlaceholder)(nil)
+	_ GraphNodeReferenceable         = (*nodeOutputUnexpandedPlaceholder)(nil)
+	_ GraphNodeReferencer            = (*nodeOutputUnexpandedPlaceholder)(nil)
+	_ GraphNodeReferenceOutside      = (*nodeOutputUnexpandedPlaceholder)(nil)
+	_ GraphNodeExecutable            = (*nodeOutputUnexpandedPlaceholder)(nil)
+	_ graphNodeTemporaryValue        = (*nodeOutputUnexpandedPlaceholder)(nil)
+)
+
+func (n *nodeOutputUnexpandedPlaceholder) temporaryValue() bool {
+	return !n.Addr.Module.Module().IsRoot()
+}
+
+func (n *nodeOutputUnexpandedPlaceholder) Name() string {
+	return n.Addr.String()
+}
+
+// GraphNodePartialExpandedModule
+func (n *nodeOutputUnexpandedPlaceholder) PartialExpandedModule() addrs.PartialExpandedModule {
+	return n.Addr.Module
+}
+
+// GraphNodeReferenceOutside implementation
+func (n *nodeOutputUnexpandedPlaceholder) ReferenceOutside() (selfPath, referencePath addrs.Module) {
+	// Output values have their expressions resolved in the context of the
+	// module where they are defined.
+	referencePath = n.Addr.Module.Module()
+
+	// ...but they are referenced in the context of their calling module.
+	selfPath = referencePath.Parent()
+
+	return // uses named return values
+}
+
+// GraphNodeReferenceable
+func (n *nodeOutputUnexpandedPlaceholder) ReferenceableAddrs() []addrs.Referenceable {
+	// For an output inside an unexpanded module we don't actually have any
+	// specific module call instance addresses to return; the best we can
+	// do is the entire call that we're declared within, which should then
+	// soak up any access to any instance of it, and therefore any output
+	// value within any instance of it.
+	moduleAddr := n.Addr.Module.Module()
+	callName := moduleAddr[len(moduleAddr)-1]
+	call := addrs.ModuleCall{Name: callName}
+	return []addrs.Referenceable{call}
+}
+
+func (n *nodeOutputUnexpandedPlaceholder) References() []*addrs.Reference {
+	return referencesForOutput(n.Config)
+}
+
+// Execute implements GraphNodeExecutable
+func (n *nodeOutputUnexpandedPlaceholder) Execute(ctx EvalContext, op walkOperation) tfdiags.Diagnostics {
+	val, diags := ctx.EvaluateExpr(n.Config.Expr, cty.DynamicPseudoType, nil)
+	if diags.HasErrors() {
+		val = cty.DynamicVal
+	}
+	diags = diags.Append(validateDependsOn(ctx, n.Config.DependsOn))
+
+	ctx.NamedValues().SetOutputValuePlaceholder(n.Addr, val)
+
+	return diags
 }
