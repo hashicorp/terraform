@@ -522,7 +522,7 @@ func idKeyData(id string) [][]byte {
 	}
 
 	for _, p := range paths {
-		d, err := ioutil.ReadFile(p)
+		d, err := os.ReadFile(p)
 		if err != nil {
 			log.Printf("[DEBUG] error reading %q: %s", p, err)
 			continue

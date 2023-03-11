@@ -3,6 +3,7 @@ package configs
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -83,7 +84,7 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -147,7 +148,7 @@ func TestParserLoadConfigDirFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(fmt.Sprintf("%s as module", name), func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}

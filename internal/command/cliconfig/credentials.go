@@ -325,7 +325,7 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 		return fmt.Errorf("unable to determine credentials file path: %s", err)
 	}
 
-	oldSrc, err := ioutil.ReadFile(filename)
+	oldSrc, err := os.ReadFile(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("cannot read %s: %s", filename, err)
 	}
@@ -450,7 +450,7 @@ func (s *CredentialsSource) updateLocalHostCredentials(host svchost.Hostname, ne
 // this returns an empty set, reflecting that effectively no credentials are
 // stored there.
 func readHostsInCredentialsFile(filename string) map[svchost.Hostname]struct{} {
-	src, err := ioutil.ReadFile(filename)
+	src, err := os.ReadFile(filename)
 	if err != nil {
 		return nil
 	}

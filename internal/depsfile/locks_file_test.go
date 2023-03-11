@@ -236,7 +236,7 @@ func TestSaveLocksToFile(t *testing.T) {
 		t.Fatalf("Expected lock file to be non-executable: %o", mode)
 	}
 
-	gotContentBytes, err := ioutil.ReadFile(filename)
+	gotContentBytes, err := os.ReadFile(filename)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

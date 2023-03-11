@@ -720,7 +720,7 @@ func (m *Meta) WorkspaceOverridden() (string, bool) {
 		return envVar, true
 	}
 
-	envData, err := ioutil.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
+	envData, err := os.ReadFile(filepath.Join(m.DataDir(), local.DefaultWorkspaceFile))
 	current := string(bytes.TrimSpace(envData))
 	if current == "" {
 		current = backend.DefaultStateName

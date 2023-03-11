@@ -40,11 +40,11 @@ func TestFmt(t *testing.T) {
 			inFile := filepath.Join("testdata", "fmt", testName+inSuffix)
 			wantFile := filepath.Join("testdata", "fmt", testName+outSuffix)
 			gotFile := filepath.Join(tmpDir, testName+gotSuffix)
-			input, err := ioutil.ReadFile(inFile)
+			input, err := os.ReadFile(inFile)
 			if err != nil {
 				t.Fatal(err)
 			}
-			want, err := ioutil.ReadFile(wantFile)
+			want, err := os.ReadFile(wantFile)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +65,7 @@ func TestFmt(t *testing.T) {
 				t.Fatalf("fmt command was unsuccessful:\n%s", ui.ErrorWriter.String())
 			}
 
-			got, err := ioutil.ReadFile(gotFile)
+			got, err := os.ReadFile(gotFile)
 			if err != nil {
 				t.Fatal(err)
 			}

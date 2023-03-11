@@ -604,7 +604,7 @@ func TestAccUploadFile(t *testing.T) {
 		t.Fatalf("error uploading file: %s", err)
 	}
 
-	data, err := ioutil.ReadFile(tmpFile)
+	data, err := os.ReadFile(tmpFile)
 	if err != nil {
 		t.Fatal(err)
 	}

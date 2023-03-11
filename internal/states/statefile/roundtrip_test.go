@@ -34,7 +34,7 @@ func TestRoundtrip(t *testing.T) {
 		outName := name + outSuffix
 
 		t.Run(name, func(t *testing.T) {
-			oSrcWant, err := ioutil.ReadFile(filepath.Join(dir, outName))
+			oSrcWant, err := os.ReadFile(filepath.Join(dir, outName))
 			if err != nil {
 				t.Fatal(err)
 			}

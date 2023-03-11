@@ -2101,7 +2101,7 @@ func TestInit_providerLockFile(t *testing.T) {
 	}
 
 	lockFile := ".terraform.lock.hcl"
-	buf, err := ioutil.ReadFile(lockFile)
+	buf, err := os.ReadFile(lockFile)
 	if err != nil {
 		t.Fatalf("failed to read dependency lock file %s: %s", lockFile, err)
 	}
@@ -2292,7 +2292,7 @@ provider "registry.terraform.io/hashicorp/test" {
 				t.Fatalf("expected error, got output: \n%s", ui.OutputWriter.String())
 			}
 
-			buf, err := ioutil.ReadFile(lockFile)
+			buf, err := os.ReadFile(lockFile)
 			if err != nil {
 				t.Fatalf("failed to read dependency lock file %s: %s", lockFile, err)
 			}

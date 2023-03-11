@@ -133,7 +133,7 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	src, err := ioutil.ReadFile(filename)
+	src, err := os.ReadFile(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			diags = diags.Append(tfdiags.Sourceless(

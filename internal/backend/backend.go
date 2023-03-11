@@ -7,7 +7,6 @@ package backend
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -412,7 +411,7 @@ func ReadPathOrContents(poc string) (string, error) {
 	}
 
 	if _, err := os.Stat(path); err == nil {
-		contents, err := ioutil.ReadFile(path)
+		contents, err := os.ReadFile(path)
 		if err != nil {
 			return string(contents), err
 		}

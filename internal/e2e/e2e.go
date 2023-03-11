@@ -167,7 +167,7 @@ func (b *binary) OpenFile(path ...string) (*os.File, error) {
 // directory.
 func (b *binary) ReadFile(path ...string) ([]byte, error) {
 	flatPath := b.Path(path...)
-	return ioutil.ReadFile(flatPath)
+	return os.ReadFile(flatPath)
 }
 
 // FileExists is a helper for easily testing whether a particular file

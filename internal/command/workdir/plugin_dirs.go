@@ -33,7 +33,7 @@ func (d *Dir) ProviderLocalCacheDir() string {
 // non-empty list with no errors then the result totally replaces the default
 // search directories.
 func (d *Dir) ForcedPluginDirs() ([]string, error) {
-	raw, err := ioutil.ReadFile(filepath.Join(d.dataDir, PluginPathFilename))
+	raw, err := os.ReadFile(filepath.Join(d.dataDir, PluginPathFilename))
 	if os.IsNotExist(err) {
 		return nil, nil
 	}

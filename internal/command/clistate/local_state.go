@@ -287,7 +287,7 @@ func (s *LocalState) lockInfoPath() string {
 // lockInfo returns the data in a lock info file
 func (s *LocalState) lockInfo() (*statemgr.LockInfo, error) {
 	path := s.lockInfoPath()
-	infoData, err := ioutil.ReadFile(path)
+	infoData, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

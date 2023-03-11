@@ -1,7 +1,7 @@
 package configs
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -11,7 +11,7 @@ import (
 )
 
 func TestProviderReservedNames(t *testing.T) {
-	src, err := ioutil.ReadFile("testdata/invalid-files/provider-reserved.tf")
+	src, err := os.ReadFile("testdata/invalid-files/provider-reserved.tf")
 	if err != nil {
 		t.Fatal(err)
 	}

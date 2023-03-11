@@ -147,7 +147,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 	// %%BASE%% with the temporary directory path.
 	{
 		rootFilename := filepath.Join(dir, "package-escape.tf")
-		template, err := ioutil.ReadFile(rootFilename)
+		template, err := os.ReadFile(rootFilename)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -185,7 +185,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 	// %%BASE%% with the temporary directory path.
 	{
 		rootFilename := filepath.Join(dir, "package-prefix.tf")
-		template, err := ioutil.ReadFile(rootFilename)
+		template, err := os.ReadFile(rootFilename)
 		if err != nil {
 			t.Fatal(err)
 		}

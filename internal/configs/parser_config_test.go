@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -29,7 +30,7 @@ func TestParserLoadConfigFileSuccess(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/valid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/valid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -65,7 +66,7 @@ func TestParserLoadConfigFileFailure(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/invalid-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/invalid-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -133,7 +134,7 @@ func TestParserLoadConfigFileFailureMessages(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.Filename, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata", test.Filename))
+			src, err := os.ReadFile(filepath.Join("testdata", test.Filename))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -175,7 +176,7 @@ func TestParserLoadConfigFileWarning(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/warning-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/warning-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -240,7 +241,7 @@ func TestParserLoadConfigFileError(t *testing.T) {
 	for _, info := range files {
 		name := info.Name()
 		t.Run(name, func(t *testing.T) {
-			src, err := ioutil.ReadFile(filepath.Join("testdata/error-files", name))
+			src, err := os.ReadFile(filepath.Join("testdata/error-files", name))
 			if err != nil {
 				t.Fatal(err)
 			}

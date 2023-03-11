@@ -3,6 +3,7 @@ package configs
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -199,8 +200,8 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			// expected location in the source, but is not required.
 			// The literal characters `\n` are replaced with newlines, but
 			// otherwise the string is unchanged.
-			expectedErrs := readDiags(ioutil.ReadFile(filepath.Join(testDir, name, "errors")))
-			expectedWarnings := readDiags(ioutil.ReadFile(filepath.Join(testDir, name, "warnings")))
+			expectedErrs := readDiags(os.ReadFile(filepath.Join(testDir, name, "errors")))
+			expectedWarnings := readDiags(os.ReadFile(filepath.Join(testDir, name, "warnings")))
 
 			_, buildDiags := BuildConfig(mod, ModuleWalkerFunc(
 				func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {

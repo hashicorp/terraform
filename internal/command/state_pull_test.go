@@ -2,7 +2,7 @@ package command
 
 import (
 	"bytes"
-	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -15,7 +15,7 @@ func TestStatePull(t *testing.T) {
 	testCopyDir(t, testFixturePath("state-pull-backend"), td)
 	defer testChdir(t, td)()
 
-	expected, err := ioutil.ReadFile("local-state.tfstate")
+	expected, err := os.ReadFile("local-state.tfstate")
 	if err != nil {
 		t.Fatalf("error reading state: %v", err)
 	}
