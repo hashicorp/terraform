@@ -6,7 +6,7 @@ import (
 	"crypto/md5"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"strings"
@@ -198,7 +198,7 @@ func (c *remoteClient) getObject(cosFile string) (exists bool, data []byte, chec
 	}
 
 	exists = true
-	data, err = ioutil.ReadAll(rsp.Body)
+	data, err = io.ReadAll(rsp.Body)
 	log.Printf("[DEBUG] getObject %s: data length: %d", cosFile, len(data))
 	if err != nil {
 		err = fmt.Errorf("failed to open file at %v: %v", cosFile, err)

@@ -152,7 +152,7 @@ func (c *FmtCommand) processFile(path string, r io.Reader, w io.Writer, isStdout
 
 	log.Printf("[TRACE] terraform fmt: Formatting %s", path)
 
-	src, err := ioutil.ReadAll(r)
+	src, err := io.ReadAll(r)
 	if err != nil {
 		diags = diags.Append(fmt.Errorf("Failed to read %s", path))
 		return diags

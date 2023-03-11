@@ -2,6 +2,7 @@ package command
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -569,7 +570,7 @@ func TestShow_json_output(t *testing.T) {
 				t.Fatalf("unexpected err: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}
@@ -662,7 +663,7 @@ func TestShow_json_output_sensitive(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -758,7 +759,7 @@ func TestShow_json_output_conditions_refresh_only(t *testing.T) {
 		t.Fatalf("unexpected err: %s", err)
 	}
 	defer wantFile.Close()
-	byteValue, err := ioutil.ReadAll(wantFile)
+	byteValue, err := io.ReadAll(wantFile)
 	if err != nil {
 		t.Fatalf("unexpected err: %s", err)
 	}
@@ -845,7 +846,7 @@ func TestShow_json_output_state(t *testing.T) {
 				t.Fatalf("unexpected error: %s", err)
 			}
 			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
+			byteValue, err := io.ReadAll(wantFile)
 			if err != nil {
 				t.Fatalf("unexpected err: %s", err)
 			}

@@ -490,7 +490,7 @@ func (m *MockRedactedPlans) create(cvID, workspaceID, planID string) error {
 		return err
 	}
 
-	raw, err := ioutil.ReadAll(redactedPlanFile)
+	raw, err := io.ReadAll(redactedPlanFile)
 	if err != nil {
 		return err
 	}

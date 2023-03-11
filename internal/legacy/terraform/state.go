@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"reflect"
@@ -1955,7 +1954,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 	// If we are JSON we buffer the whole thing in memory so we can read it twice.
 	// This is suboptimal, but will work for now.
-	jsonBytes, err := ioutil.ReadAll(buf)
+	jsonBytes, err := io.ReadAll(buf)
 	if err != nil {
 		return nil, fmt.Errorf("Reading state file failed: %v", err)
 	}

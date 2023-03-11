@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/hashicorp/terraform/internal/configs"
@@ -212,7 +213,7 @@ func (r *Reader) ReadDependencyLocks() (*depsfile.Locks, tfdiags.Diagnostics) {
 				))
 				return nil, diags
 			}
-			src, err := ioutil.ReadAll(r)
+			src, err := io.ReadAll(r)
 			if err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,

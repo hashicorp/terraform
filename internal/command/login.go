@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"math/rand"
 	"net"
@@ -259,7 +259,7 @@ func (c *LoginCommand) Run(args []string) int {
 			return 0
 		}
 
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			c.logMOTDError(err)
 			c.outputDefaultTFCLoginSuccess()
