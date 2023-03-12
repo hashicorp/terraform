@@ -1,9 +1,10 @@
 package plans
 
 import (
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Changes describes various actions that Terraform will attempt to take if
@@ -61,6 +62,21 @@ func (c *Changes) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInst
 
 }
 
+// InstancesForAbsResource returns the planned change for the current objects
+// of the resource instances of the given address, if any. Returns nil if no
+// changes are planned.
+func (c *Changes) InstancesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
+	var changes []*ResourceInstanceChangeSrc
+	for _, rc := range c.Resources {
+		resAddr := rc.Addr.ContainingResource()
+		if resAddr.Equal(addr) && rc.DeposedKey == states.NotDeposed {
+			changes = append(changes, rc)
+		}
+	}
+
+	return changes
+}
+
 // InstancesForConfigResource returns the planned change for the current objects
 // of the resource instances of the given address, if any. Returns nil if no
 // changes are planned.
@@ -90,7 +106,8 @@ func (c *Changes) ResourceInstanceDeposed(addr addrs.AbsResourceInstance, key st
 }
 
 // OutputValue returns the planned change for the output value with the
-//  given address, if any. Returns nil if no change is planned.
+//
+//	given address, if any. Returns nil if no change is planned.
 func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	for _, oc := range c.Outputs {
 		if oc.Addr.Equal(addr) {
@@ -99,6 +116,23 @@ func (c *Changes) OutputValue(addr addrs.AbsOutputValue) *OutputChangeSrc {
 	}
 
 	return nil
+}
+
+// RootOutputValues returns planned changes for all outputs of the root module.
+func (c *Changes) RootOutputValues() []*OutputChangeSrc {
+	var res []*OutputChangeSrc
+
+	for _, oc := range c.Outputs {
+		// we can't evaluate root module outputs
+		if !oc.Addr.Module.Equal(addrs.RootModuleInstance) {
+			continue
+		}
+
+		res = append(res, oc)
+
+	}
+
+	return res
 }
 
 // OutputValues returns planned changes for all outputs for all module
@@ -234,6 +268,10 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 	}, err
 }
 
+func (rc *ResourceInstanceChange) Moved() bool {
+	return !rc.Addr.Equal(rc.PrevRunAddr)
+}
+
 // Simplify will, where possible, produce a change with a simpler action than
 // the receiever given a flag indicating whether the caller is dealing with
 // a normal apply or a destroy. This flag deals with the fact that Terraform
@@ -242,12 +280,12 @@ func (rc *ResourceInstanceChange) Encode(ty cty.Type) (*ResourceInstanceChangeSr
 //
 // The following table shows the simplification behavior:
 //
-//     Action    Destroying?   New Action
-//     --------+-------------+-----------
-//     Create    true          NoOp
-//     Delete    false         NoOp
-//     Replace   true          Delete
-//     Replace   false         Create
+//	Action    Destroying?   New Action
+//	--------+-------------+-----------
+//	Create    true          NoOp
+//	Delete    false         NoOp
+//	Replace   true          Delete
+//	Replace   false         Create
 //
 // For any combination not in the above table, the Simplify just returns the
 // receiver as-is.
@@ -341,6 +379,11 @@ const (
 	// planning option.)
 	ResourceInstanceReplaceByRequest ResourceInstanceChangeActionReason = 'R'
 
+	// ResourceInstanceReplaceByTriggers indicates that the resource instance
+	// is planned to be replaced because of a corresponding change in a
+	// replace_triggered_by reference.
+	ResourceInstanceReplaceByTriggers ResourceInstanceChangeActionReason = 'D'
+
 	// ResourceInstanceReplaceBecauseCannotUpdate indicates that the resource
 	// instance is planned to be replaced because the provider has indicated
 	// that a requested change cannot be applied as an update.
@@ -383,6 +426,24 @@ const (
 	// potentially multiple nested modules could all contribute conflicting
 	// specific reasons for a particular instance to no longer be declared.
 	ResourceInstanceDeleteBecauseNoModule ResourceInstanceChangeActionReason = 'M'
+
+	// ResourceInstanceDeleteBecauseNoMoveTarget indicates that the resource
+	// address appears as the target ("to") in a moved block, but no
+	// configuration exists for that resource. According to our move rules,
+	// this combination evaluates to a deletion of the "new" resource.
+	ResourceInstanceDeleteBecauseNoMoveTarget ResourceInstanceChangeActionReason = 'A'
+
+	// ResourceInstanceReadBecauseConfigUnknown indicates that the resource
+	// must be read during apply (rather than during planning) because its
+	// configuration contains unknown values. This reason applies only to
+	// data resources.
+	ResourceInstanceReadBecauseConfigUnknown ResourceInstanceChangeActionReason = '?'
+
+	// ResourceInstanceReadBecauseDependencyPending indicates that the resource
+	// must be read during apply (rather than during planning) because it
+	// depends on a managed resource instance which has its own changes
+	// pending.
+	ResourceInstanceReadBecauseDependencyPending ResourceInstanceChangeActionReason = '!'
 )
 
 // OutputChange describes a change to an output value.

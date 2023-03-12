@@ -259,8 +259,9 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// First we'll do static validation of the references. This catches things
 	// early that might otherwise not get caught due to unknown values being
 	// present in the scope during planning.
-	if staticDiags := s.Data.StaticValidateReferences(refs, selfAddr); staticDiags.HasErrors() {
-		diags = diags.Append(staticDiags)
+	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr, s.SourceAddr)
+	diags = diags.Append(staticDiags)
+	if staticDiags.HasErrors() {
 		return ctx, diags
 	}
 
@@ -296,7 +297,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 					// this codepath doesn't really "know about". If the "self"
 					// object starts being supported in more contexts later then
 					// we'll need to adjust this message.
-					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner and connection blocks.`,
+					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
 					Subject: ref.SourceRange.ToHCL().Ptr(),
 				})
 				continue

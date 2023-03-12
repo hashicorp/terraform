@@ -1,0 +1,655 @@
+---
+page_title: Terraform v1.x Compatibility Promises
+description: |-
+  From Terraform v1.0 onwards the Terraform team promises to preserve backward
+  compatibility for most of the Terraform language and the primary CLI
+  workflow, until the next major release.
+---
+
+# Terraform v1.x Compatibility Promises
+
+The release of Terraform v1.0 represents an important milestone in the
+development of the Terraform language and workflow. Terraform v1.0 is a stable
+platform for describing and managing infrastructure.
+
+In this release we're defining a number of Terraform behaviors that we intend
+to remain compatible with throughout the 1.x releases:
+
+* A large subset of Terraform language features.
+* A more conservative subset of the Terraform CLI workflow commands.
+* The wire protocol for communication between Terraform Core and Terraform
+  providers.
+* The wire protocols for installation of Terraform providers and external
+  Terraform modules.
+
+Our intention is that Terraform modules written for Terraform v1.0 will
+continue to plan and apply successfully, without required changes, throughout
+the v1.x releases.
+
+We also intend that automation built around the workflow subset described in
+this document will work without changes in all future v1.x releases.
+
+Finally, we intend that providers built against the currently-documented
+provider wire protocol will be compatible with all future Terraform v1.x
+releases targeting the same operating system and architecture, without the
+need for source code modification or binary recompilation.
+
+In short, we aim to make upgrades between v1.x releases straightforward,
+requiring no changes to your configuration, no extra commands to run upgrade
+steps, and no changes to any automation you've set up around Terraform.
+
+The Terraform v1.x series will be actively maintained for at least 18 months
+after v1.0.
+
+The following sections include some specific guidance on what we will promise
+throughout the v1.x series, for those who would like full details. At
+a higher level though, we don't intend to make any changes that would cause
+existing modules or automation to require changes when upgrading to a new
+v1.x release. We will generally treat compatibility problems in new Terraform
+CLI releases as bugs to be fixed unless there was a very significant
+justification for the change, such as in addressing a critical security
+problem or matching with a breaking change to a remote dependency that isn't
+directly under our control.
+
+## The Terraform Language
+
+The main Terraform Language includes the language syntax, the top-level
+structures such as `resource`, `module`, and `provider` blocks, the
+"meta-arguments" in those blocks, and the documented semantics and behaviors
+for the operators and built-in functions available for use in expressions.
+
+There is not a single formal specification for the Terraform language, but the
+Configuration section of the documentation on the Terraform website serves as a
+description of the language features and their intended behaviors.
+
+The following top-level blocks and their defined "meta-arguments" (that is,
+arguments defined by Terraform Core rather than by external plugins such as
+providers) will retain their current functionality:
+
+* [`resource`](/terraform/language/resources) and
+  [`data`](/terraform/language/data-sources) blocks to
+  declare resources, including their nested block types `lifecycle`,
+  `connection`, and `provisioner`, and their meta-argument `provider`.
+* [`module`](/terraform/language/modules/syntax) blocks to call other modules,
+  and its meta-argument `providers`.
+* The [`count`](/terraform/language/meta-arguments/count),
+  [`for_each`](/terraform/language/meta-arguments/for_each), and
+  [`depends_on`](/terraform/language/meta-arguments/depends_on) meta-arguments
+  in `resource`, `data`, and `module` blocks.
+* [`provider`](/terraform/language/providers/configuration) blocks to configure
+  providers, and the `alias` meta-argument.
+* [`variable`](/terraform/language/values/variables#declaring-an-input-variable),
+  [`output`](/terraform/language/values/outputs#declaring-an-output-value), and
+  [`locals`](/terraform/language/values/locals#declaring-a-local-value) blocks
+  for declaring the various kinds of named values in a module.
+* [`terraform`](/terraform/language/settings) blocks, including the nested
+  [`required_version`](/terraform/language/settings#specifying-a-required-terraform-version)
+  and
+  [`required_providers`](/terraform/language/providers/requirements#requiring-providers)
+  arguments, and nested
+  [`backend`](/terraform/language/settings/backends/configuration#using-a-backend-block)
+  blocks for backend configuration.
+
+We also intend to keep compatibility with all
+[expression operators](/terraform/language/expressions) and
+[built-in functions](/terraform/language/functions), with the exception of
+references to
+[`terraform.workspace`](/terraform/language/expressions/references#terraform-workspace),
+whose behavior may change as part of future changes to the workspace model.
+
+We intend to retain broad compatibility with Terraform language features, with
+a few specific caveats:
+
+* We consider a configuration to be valid if Terraform can create and apply
+  a plan for it without reporting any errors.
+
+  A configuration that currently produces errors might generate different
+  errors or exhibit other non-error behaviors in a future version of
+  Terraform. A configuration that generates errors during the apply phase
+  might generate similar errors at an earlier phase in future, because
+  we generally consider it better to detect errors in as early a phase as
+  possible.
+
+  Generally-speaking, the compatibility promises described in this document
+  apply only to valid configurations. Handling of invalid configurations is
+  always subject to change in future Terraform releases.
+* If the actual behavior of a feature differs from what we explicitly
+  documented as the feature's behavior, we will usually treat that as a bug
+  and change the feature to match the documentation, although we will avoid
+  making such changes if they seem likely to cause broad compatibility problems.
+  We cannot promise to always remain "bug-compatible" with previous releases,
+  but we will consider such fixes carefully to minimize their impact.
+* Any experimental features may change or may be removed entirely from future
+  releases. Terraform always produces a warning when an experimental language
+  feature is active, to make you aware of that risk. We don't recommend using
+  experimental features in production modules.
+* We will introduce new language features, and if you start using them then
+  your configuration won't work with prior Terraform versions that didn't
+  support those features yet.
+* Terraform Providers are separate plugins which can change independently of
+  Terraform Core and are therefore not subject to these compatibility promises.
+  If you upgrade any of the providers you are using then you might need to
+  change provider or resource configurations related to those providers.
+* A small number of features remain deprecated with explicit warnings in
+  Terraform v1.0. Those deprecation cycles will end in a future v1.x release,
+  at which point we will remove the corresponding features.
+
+## Workflow
+
+There is a set of often used Terraform workflows, which we are calling
+_protected workflows_. We will not remove these commands, subcommands, and
+flags or make backward-incompatible changes to protected workflow
+functionality. If we accidentally change these, we will consider
+backwards-incompatible changes to core workflows as bugs to be fixed. For a
+list of the command and option combinations that are part of protected
+workflows, see [Protected Workflow Commands](#protected-workflow-commands).
+There is another set of commands that we are explicitly _not_ making
+compatibility promises about, because we expect their functionality to change
+in v1.x releases: see [Commands That Might Change](#commands-that-might-change).
+
+The supported ways for external software to interact with Terraform are via
+the JSON output modes offered by some commands and via exit status codes.
+We may extend certain JSON formats with new object properties but we will not
+remove or make breaking changes to the definitions of existing properties.
+
+Natural language command output or log output is not a stable interface and
+may change in any new version. If you write software that parses this output
+then it may need to be updated when you upgrade Terraform. If you need access
+to data that is not currently available via one of the machine-readable JSON
+interfaces, we suggest opening a feature request to discuss your use-case.
+
+## Upgrading and Downgrading
+
+Throughout the v1.x series of releases, we intend that you should be able to
+switch to a newer Terraform version and use it just as before, without any
+special upgrade steps.
+
+You should be able to upgrade from any v1.x release to any later v1.x release.
+You might also be able to downgrade to an earlier v1.x release, but that isn't
+guaranteed: later releases may introduce new features that earlier versions
+cannot understand, including new storage formats for Terraform state snapshots.
+
+If you make use of features introduced in a later v1.x release, your
+configuration won't be compatible with releases that predate that feature.
+For example, if a language feature is added in v1.3 and you start using it, your
+Terraform configuration will no longer be compatible with Terraform v1.2.
+
+## Providers
+
+Terraform providers are separate plugins which communicate with Terraform using
+a documented protocol. Therefore these compatibility promises can only cover
+the "client" side of this protocol as implemented by Terraform Core; the
+behaviors of individual providers, including which resource types they support
+and which arguments they expect, are decided by the provider development teams
+and can change independently of Terraform Core releases.
+
+If you upgrade to a new version of a provider then you might need to change
+the parts of your configuration which are interpreted by that provider, even
+if you are still using a Terraform v1.x release.
+
+### Provider Installation Methods
+
+Terraform normally installs providers from a provider registry implementing
+[the Provider Registry Protocol](/terraform/internals/provider-registry-protocol),
+version 1. All Terraform v1.x releases will remain compatible with that
+protocol, and so correctly-implemented provider registries will stay compatible.
+
+Terraform also supports installation of providers from
+[local filesystem directories](/terraform/cli/config/config-file#filesystem_mirror)
+(filesystem mirrors) and from
+[network mirrors](/terraform/cli/config/config-file#network_mirror)
+(implementing [the Provider Mirror Protocol](/terraform/internals/provider-network-mirror-protocol).
+All Terraform v1.x releases will remain compatible with those installation
+methods, including
+[the Implied Local Mirror Directories](/terraform/cli/config/config-file#implied-local-mirror-directories).
+
+Specific provider registries or network mirrors are run independently from
+Terraform itself and so their own behaviors are not subject to these
+compatibility promises.
+
+### Provider Protocol Versions
+
+The current major version of the provider plugin protocol as of Terraform v1.0
+is version 5, which is defined by a combination of a Protocol Buffers schema
+describing the physical wire formats and by additional prose documentation
+describing the expected provider behaviors.
+
+We will support protocol version 5 throughout the Terraform v1.x releases. If
+we make new minor revisions to protocol version 5 in later releases then we
+will design them such that existing plugins will continue to work, as long as
+they correctly implemented the protocol.
+
+We may introduce new major versions of the protocol during the v1.x series. If
+so, we will continue to support protocol version 5 alongside those new versions.
+Individual provider teams might decide to remove support for protocol version 5
+in later releases, in which case those new provider releases will not be
+compatible with all of the Terraform v1.x releases.
+
+## External Modules
+
+Terraform modules are reusable infrastructure components written in the
+Terraform language. Some modules are "external" in the sense that Terraform
+automatically installs them from a location other than the current
+configuration directory, in which case their contents could change
+independently of changes to your local modules, of the providers you use,
+and of Terraform itself.
+
+### Module Installation Methods
+
+Terraform supports installing child modules from a number of different
+[module source types](/terraform/language/modules/sources). We will continue
+to support all of the existing source types throughout the v1.x releases.
+
+One of the supported source types is a module registry implementing
+[the Module Registry Protocol](/terraform/internals/module-registry-protocol)
+version 1. All Terraform v1.x releases will remain compatible with correct
+implementations of that protocol.
+
+Some module source types work directly with services or protocols defined and
+run by third parties. Although we will not remove Terraform's own client-side
+support for those, we cannot guarantee that their owners will keep those
+services running or that they will remain compatible with Terraform's client
+implementations.
+
+### External Module Compatibility
+
+If your configuration depends on external modules, newer versions of those
+modules may include breaking changes. External modules are not part of
+Terraform and are therefore not subject to these compatibility promises.
+
+## Provisioners
+
+We will maintain compatibility for the `file`, `local-exec`, and `remote-exec`
+provisioner types through all v1.x releases.
+
+Some additional vendor-specific provisioners were available in earlier
+Terraform versions but were deprecated in Terraform v0.13 and removed in
+Terraform v0.15.
+
+Terraform supports loading additional provisioners as plugins from certain
+local filesystem directories. We'll continue to support that throughout the
+Terraform v1.x releases, but since such plugins are separate from Terraform
+Core itself their own behaviors cannot be subject to these compatibility
+promises. However, we will continue to support the plugin wire protocol as
+defined in Terraform v1.0 throughout the v1.x releases, and so
+correctly-implemented provisioner plugins should remain compatible with future
+Terraform releases.
+
+## State Storage Backends
+
+When you use _remote state_, Terraform interacts with remote services over
+the network in order to store and manage locks for Terraform state.
+
+For historical reasons, all supported state storage backends are included as
+part of Terraform CLI but not all are supported directly by the Terraform
+Team. Only the following backends maintained by the Terraform team are subject
+to compatibility promises:
+
+* `local` (the default, when you are not using remote state)
+* `http`
+
+The other state storage backends are maintained by external teams via
+contributions to the Terraform CLI codebase, and so their expected
+configuration arguments or behaviors might change even in v1.x releases,
+although we will aim to still ensure a good migration path in such cases,
+where possible.
+
+We are considering allowing external state storage backend implementations
+via plugins, similar to provider plugins. If we introduce such a mechanism
+during the v1.x releases then you may need to make configuration changes in
+order to use those plugins, and state storage backends other than those
+listed above may be removed from later versions of Terraform CLI once
+equivalent plugins are available.
+
+### The `remote` Backend and Terraform Cloud
+
+The `remote` backend is maintained by the Terraform Cloud team and so its
+behavior may change along with ongoing changes to Terraform Cloud.
+
+There will be a supported mechanism to use Terraform CLI with Terraform Cloud
+throughout the v1.x releases, but the exact details may change. Terraform Cloud
+evolves independently of Terraform CLI and is therefore not subject to these
+compatibility promises.
+
+## Community-maintained State Storage Backends
+
+The `azurerm`, `consul`, `s3`, and `kubernetes` backends are maintained by
+other teams at HashiCorp. Those teams intend to continue basic maintenence at
+the level of bug fixes through the v1.x releases, unless we implement a plugin
+protocol for backends at which point development of these backends is likely
+to continue in the external plugins only, which may require configuration
+changes to switch to the plugin equivalents.
+
+The `cos`, `oss`, `pg`, `gcs`, and `etcdv3` backends are maintained by outside
+contributors and are not subject to these compatibility promises.
+
+### Unmaintained State Storage Backends
+
+The `artifactory`, `etcdv2`, `manta`, and `swift` state storage backends do not
+currently have any maintainers and thus remain in Terraform CLI releases on
+a best-effort basis. They may be removed in later v1.x releases, and will not
+be updated in case of any breaking changes to the services they integrate with.
+
+## Supported Platforms
+
+Throughout the v1.x series we will continue to produce official releases for
+the following platforms, and make changes as necessary to support new
+releases of these operating systems:
+
+* macOS on x64 CPUs (`darwin_amd64`)
+* Windows on x64 CPUs (`windows_amd64`)
+* Linux on x64, 32-bit ARMv6, and 64-bit ARMv8 (`linux_amd64`, `linux_arm`, and `linux_arm64` respectively)
+
+Over time we may require newer versions of these operating systems. For
+example, subsequent Terraform releases in the v1.x series might end support
+for earlier versions of macOS or Windows, or earlier Linux kernel releases.
+
+We have historically produced official releases for a number of other platforms
+as a convenience to users of those platforms, and we have no current plans to
+stop publishing them but we cannot promise ongoing releases or bug fixes for
+the other platforms throughout the v1.x series. We do not routinely test
+Terraform on any platforms other than those listed above.
+
+We might add support for new platforms in later v1.x releases. If so, earlier
+Terraform releases prior to that support will not be available on those
+platforms.
+
+All Terraform plugins, including provider plugins, are separate programs that
+have their own policies for which platforms they support. We cannot guarantee
+that all providers currently support or will continue to support the platforms
+listed above, even though Terraform CLI itself will support them.
+
+## Later Revisions to These Promises
+
+We may extend or refine these promises throughout the v1.x series in order to
+describe promises related to new features or to clarify existing promises if
+we find via feedback that our earlier statements had been unclear.
+
+Promises for new features will be additive in the sense that they will add
+further promises without retracting any existing ones. For promises that only
+apply to later v1.x releases we will mention the earliest version(s) those
+promises apply to.
+
+Even if we don't add an explicit statement to this document, we intend that
+any non-experimental features added in later v1.x releases will remain
+compatible at least through the remainder of the v1.x series, unless otherwise
+stated.
+
+## Appendices
+
+### Protected Workflow Commands
+
+The following is the list of Terraform CLI subcommands and options that are
+subject to these compatibility promises. If you build automation around
+these commands then it should be compatible with all later v1.x releases.
+
+As noted above, compatibility with external software is limited to
+explicitly-machine-readable output (`-json` and `-raw` modes) and exit codes.
+Any natural-language output from these commands might change in later releases.
+
+* [`init`](/terraform/cli/commands/init)
+  * `-backend=false`
+  * `-backend-config=FILE`
+  * `-backend-config="KEY=VALUE"`
+  * `-force-copy`
+  * `-get=false`
+  * `-input=false`
+  * `-migrate-state`
+  * `-no-color`
+  * `-plugin-dir=DIR`
+  * `-reconfigure`
+  * `-upgrade`
+* [`validate`](/terraform/cli/commands/validate)
+  * `-json`
+  * `-no-color`
+* [`plan`](/terraform/cli/commands/plan)
+  * `-compact-warnings`
+  * `-destroy`
+  * `-detailed-exitcode`
+  * `-lock=false`
+  * `-lock-timeout=DURATION`
+  * `-input=false`
+  * `-json`
+  * `-no-color`
+  * `-out=FILE`
+  * `-parallelism=N`
+  * `-refresh=false`
+  * `-refresh-only`
+  * `-replace=ADDRESS`
+  * `-target=ADDRESS`
+  * `-var 'NAME=VALUE'`
+  * `-var-file=FILE`
+* [`apply`](/terraform/cli/commands/apply)
+  * `-auto-approve`
+  * `-compact-warnings`
+  * `-lock=false`
+  * `-lock-timeout=DURATION`
+  * `-input=false`
+  * `-json`
+  * `-no-color`
+  * `-parallelism=N`
+  * `-refresh=false`
+  * `-refresh-only`
+  * `-replace=ADDRESS`
+  * `-target=ADDRESS`
+  * `-var 'NAME=VALUE'`
+  * `-var-file=FILE`
+* [`show`](/terraform/cli/commands/show)
+  * `-no-color`
+  * `-json`
+  * (both with and without a plan file)
+* [`providers`](/terraform/cli/commands/providers) (with no subcommand)
+* [`providers lock`](/terraform/cli/commands/providers/lock)
+  * `-fs-mirror=PATH`
+  * `-net-mirror=URL`
+  * `-platform=OS_ARCH`
+* [`providers mirror`](/terraform/cli/commands/providers/mirror)
+  * `-platform=OS_ARCH`
+* [`providers schema`](/terraform/cli/commands/providers/schema)
+  * `-json`
+* [`fmt`](/terraform/cli/commands/fmt)
+  * `-list=false`
+  * `-write=false`
+  * `-diff`
+  * `-recursive`
+  * `-check`
+* [`version`](/terraform/cli/commands/version)
+  * `-json`
+* [`output`](/terraform/cli/commands/output)
+  * `-no-color`
+  * `-json`
+  * `-raw`
+* [`taint`](/terraform/cli/commands/taint)
+  * `-allow-missing`
+  * `-lock=false`
+  * `-lock-timeout=DURATION`
+  * `-ignore-remote-version`
+* [`untaint`](/terraform/cli/commands/untaint)
+  * `-allow-missing`
+  * `-lock=false`
+  * `-lock-timeout=DURATION`
+  * `-ignore-remote-version`
+* [`force-unlock`](/terraform/cli/commands/force-unlock)
+  * `-force`
+* [`state list`](/terraform/cli/commands/state/list)
+  * `-id=ID`
+* [`state pull`](/terraform/cli/commands/state/pull)
+* [`state push`](/terraform/cli/commands/state/push)
+  * `-force`
+  * `-lock=false`
+  * `-lock-timeout=DURATION`
+* [`state show`](/terraform/cli/commands/state/show)
+  * `-ignore-remote-version`
+* [`login`](/terraform/cli/commands/login)
+
+For commands or options not in the above list, we will still avoid breaking
+changes where possible, but can't promise full compatibility throughout the
+v1.x series. If you are building automation around Terraform, use only the
+commands above to avoid the need for changes when upgrading.
+
+Please note that although Terraform's internal logs (via the `TF_LOG`
+environment variable) are available in a JSON format, the particular syntax
+or structure of those log lines is _not_ a supported integration interface.
+The logs are available as JSON only to help with ad-hoc filtering and
+processing of logs by Terraform developers.
+
+### Commands That Might Change
+
+All of the following commands and their subcommands/options are _not_ subject
+to compatibility promises, either because we have existing plans to improve
+them during the v1.x series or because we are aware of shortcomings in their
+design that might require breaking changes for ongoing maintenence.
+
+While you can freely use these commands when running Terraform interactively
+as long as they remain supported, we don't recommend using them as part of
+any automation unless you are willing to potentially update that automation
+when upgrading to a later v1.x release.
+
+* `destroy` (consider `terraform apply -destroy` instead)
+* `console`
+* `get` (consider `terraform init` instead)
+* `graph`
+* `import`
+* `push`
+* `refresh` (consider `terraform apply -refresh-only` instead)
+* `state mv`
+* `state replace-provider`
+* `state rm`
+* all subcommands of `workspace` (and its deprecated alias `env`)
+
+While we do intend to retain support for the main use-cases associated with
+these commands in future releases, we cannot promise to retain the exact
+command names or options used to meet those use-cases.
+
+## How We Will Keep These Promises
+
+### Automated Regression Testing
+
+The Terraform codebase includes various unit and integration tests intended to
+help us to notice accidental behavior regressions before they ship in a stable
+version.
+
+However, Terraform is a relatively complex system with many different features
+that can interact in interesting ways. In the past we've seen reports of
+behavior differences that appeared only when combining two or more features in
+a way we hadn't previously anticipated or written automated tests for.
+
+In each case we have both implemented a change to resolve the compatibility
+problem _and_ added one or more integration tests representing the behavior
+of that combination of features. We intend to continue this approach, so we can
+improve Terraform's test coverage over time.
+
+### Prerelease Versions
+
+We intend that most accidental changes in behavior covered by these promises
+will be caught by existing tests. However, we also accept that our test suite
+can never have perfect coverage of all possible feature interactions or other
+edge cases, and so we aim for each significant change to be included in both
+alpha and beta releases before eventual inclusion in a final release.
+
+For minor releases we will typically also issue at least one release candidate
+prior to the final release. A release candidate represents that planned
+development is concluded and that we've fixed any regressions reported based
+on the alpha and beta releases, and thus the final release that follows should
+typically match exactly or almost exactly its most recent release candidate.
+
+### Regressions in Final Releases
+
+For more obscure combinations of features it is possible that a regression
+could be undetected during prerelease the prerelease periods and thus included
+in a final release.
+
+If someone finds and reports such a regression soon after its release then we
+will treat it as a bug and fix it to restore the previous behavior in future
+releases, unless there is a very significant justification such as a security
+advisory. In these cases, we'll typically recommend anyone affected by the
+regression remain on the previous version until the problem is fixed and then
+skip forward directly to the new release containing that fix.
+
+You can minimize the risk of being affected by missed regressions in final
+releases by proactively testing modules against alpha, beta, and release
+candidate packages. We recommend doing so only in isolated development or
+staging environments rather than against your production infrastructure. If you
+find a change in behavior in a prerelease build that seems contrary to the
+promises in this document, please open an issue in Terraform's GitHub
+repository to discuss it.
+
+### Late-reported Regressions
+
+In the most extreme case, there may be a regression with a combination of
+features that is so rare that it remains undetected for a long time.
+
+After a change has been included in more releases it becomes increasingly
+likely that other users will have depended on the newer behavior and thus we
+will need to make a tradeoff to decide whether restoring the behavior would
+have a greater negative impact than retaining the new behavior. We will always
+make this decision with due consideration to the implications of each unique
+situation.
+
+You can minimize the risk of your modules being affected by late-reported
+regressions by upgrading promptly to new minor and patch releases of Terraform
+and reporting any compatibility problems you encounter in Terraform's GitHub
+repository.
+
+### Pragmatic Exceptions
+
+We are making the promises above in good faith, with the intent that your
+investment in writing Terraform modules or automation will not be invalidated
+by future changes to Terraform. However, broad promises like the above can't
+possibly cover all nuances of practical problems that might arise as we
+continue to develop Terraform.
+
+For that reason, there are some situations where we may still need to make
+changes that may impact existing modules or automation:
+
+* Security problems: We may become aware of a design problem that has an
+  important security impact. Depending on our determination of the associated
+  risk, we may choose to break compatibility to achieve a more secure system.
+* External Dependencies: Terraform's behavior depends on interfaces provided
+  by external codebases, including your chosen operating system and including
+  some remote network services for situations such as module and provider
+  installation. These external systems can change outside of our control,
+  including potentially removing or changing features that Terraform's own
+  features depend on. In that case, if there is no suitable replacement
+  mechanism then we may need to change Terraform's design to work within the
+  new constraints.
+* Opt-in Compatibility Breaks: The design of a language new feature may require
+  changing the behavior or configuration representation of an existing feature.
+  If so, we will typically make the new feature opt-in only in order to avoid
+  breaking existing modules, but if you change your module to opt in to the
+  new feature then you may also then be required to change other parts of your
+  configuration to work with the new language design.
+* Bugs in New Features: If we introduce a new feature to Terraform and the
+  initial implementation has problems that cause it to not match the documented
+  design intent at release, we may make a follow-up release that corrects
+  the implementation to match the documented design, even if that represents
+  a minor compatibility regression compared to the initial implementation.
+  However, once a feature is well-established and in common use we will usually
+  defer to the implemented behavior and instead change the documentation to
+  reflect it.
+* Regressions in Existing Features: If we learn that a new Terraform release
+  includes a regression for an existing feature that wasn't detected during
+  the development and prerelease periods, and that learning comes promptly
+  after the new release, we will typically restore the previous behavior at
+  the expense of technically therefore breaking compatibility with the behavior
+  of the new release, under the assumption that more users will have systems
+  affected by the regression than will have systems depending on the
+  newly-introduced behavior.
+* Late-reported regressions: As described in the previous section, if we
+  learn that there was an unintentional regression of a rarely-used feature or
+  combination of features in a much earlier release then restoring the previous
+  behavior may appear as a regression to later adopters. If we believe that
+  fixing the regression would affect more users than the regression itself
+  affects then we may choose to accept the regression as the new promised
+  behavior.
+* Situations we cannot anticipate: Although we've made an effort to consider
+  various specific exceptional situations here, Terraform and its development
+  process are not isolated from broader context, and so we must consider that
+  there may be situations that we cannot possibly anticipate that would affect
+  the future of Terraform. In those situations, we will always do our best to
+  find a course of action that will minimize as much as possible the impact to
+  existing modules and automation.
+
+Our intent with these pragmatic exceptions is only to acknowledge that there
+will always be situations that general compatibility promises cannot address.
+We will use these exceptions only with due consideration and as a last resort.

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,6 +17,11 @@ func TestBase64Decode(t *testing.T) {
 		{
 			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+"),
 			cty.StringVal("abc123!?$*&()'-=@~"),
+			false,
+		},
+		{
+			cty.StringVal("YWJjMTIzIT8kKiYoKSctPUB+").Mark(marks.Sensitive),
+			cty.StringVal("abc123!?$*&()'-=@~").Mark(marks.Sensitive),
 			false,
 		},
 		{ // Invalid base64 data decoding
@@ -45,6 +51,40 @@ func TestBase64Decode(t *testing.T) {
 
 			if !got.RawEquals(test.Want) {
 				t.Errorf("wrong result\ngot:  %#v\nwant: %#v", got, test.Want)
+			}
+		})
+	}
+}
+
+func TestBase64Decode_error(t *testing.T) {
+	tests := map[string]struct {
+		String  cty.Value
+		WantErr string
+	}{
+		"invalid base64": {
+			cty.StringVal("dfg"),
+			`failed to decode base64 data "dfg"`,
+		},
+		"sensitive invalid base64": {
+			cty.StringVal("dfg").Mark(marks.Sensitive),
+			`failed to decode base64 data (sensitive value)`,
+		},
+		"invalid utf-8": {
+			cty.StringVal("whee"),
+			"the result of decoding the provided string is not valid UTF-8",
+		},
+	}
+
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			_, err := Base64Decode(test.String)
+
+			if err == nil {
+				t.Fatal("succeeded; want error")
+			}
+
+			if err.Error() != test.WantErr {
+				t.Errorf("wrong error result\ngot:  %#v\nwant: %#v", err.Error(), test.WantErr)
 			}
 		})
 	}

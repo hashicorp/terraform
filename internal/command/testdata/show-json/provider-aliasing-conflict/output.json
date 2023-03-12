@@ -1,0 +1,143 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.1.0-dev",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "foo"
+          },
+          "sensitive_values": {}
+        }
+      ],
+      "child_modules": [
+        {
+          "resources": [
+            {
+              "address": "module.child.test_instance.test",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test",
+              "provider_name": "registry.terraform.io/hashicorp2/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "bar"
+              },
+              "sensitive_values": {}
+            }
+          ],
+          "address": "module.child"
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "test_instance.test",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "foo"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.test_instance.test",
+      "module_address": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp2/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "bar"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "test": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test",
+        "expressions": {
+          "region": {
+            "constant_value": "somewhere"
+          }
+        }
+      },
+      "module.child:test": {
+        "module_address": "module.child",
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp2/test"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_config_key": "test",
+          "expressions": {
+            "ami": {
+              "constant_value": "foo"
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "module_calls": {
+        "child": {
+          "source": "./child",
+          "module": {
+            "resources": [
+              {
+                "address": "test_instance.test",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test",
+                "provider_config_key": "module.child:test",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "bar"
+                  }
+                },
+                "schema_version": 0
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

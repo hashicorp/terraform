@@ -124,6 +124,12 @@ func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []pr
 	return HookActionContinue, nil
 }
 
+func (h *testHook) Stopping() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"Stopping", ""})
+}
+
 func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()

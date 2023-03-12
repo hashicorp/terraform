@@ -19,12 +19,25 @@ import (
 // so when accessing a State object concurrently it is the caller's
 // responsibility to ensure that only one write is in progress at a time
 // and that reads only occur when no write is in progress. The most common
-// way to acheive this is to wrap the State in a SyncState and use the
+// way to achieve this is to wrap the State in a SyncState and use the
 // higher-level atomic operations supported by that type.
 type State struct {
 	// Modules contains the state for each module. The keys in this map are
 	// an implementation detail and must not be used by outside callers.
 	Modules map[string]*Module
+
+	// CheckResults contains a snapshot of the statuses of checks at the
+	// end of the most recent update to the state. Callers might compare
+	// checks between runs to see if e.g. a previously-failing check has
+	// been fixed since the last run, or similar.
+	//
+	// CheckResults can be nil to indicate that there are no check results
+	// from the previous run at all, which is subtly different than the
+	// previous run having affirmatively recorded that there are no checks
+	// to run. For example, if this object was created from a state snapshot
+	// created by a version of Terraform that didn't yet support checks
+	// then this field will be nil.
+	CheckResults *CheckResults
 }
 
 // NewState constructs a minimal empty state, containing an empty root module.
@@ -412,7 +425,7 @@ func (s *State) MoveAbsResource(src, dst addrs.AbsResource) {
 // MaybeMoveAbsResource moves the given src AbsResource's current state to the
 // new dst address. This function will succeed if both the src address does not
 // exist in state and the dst address does; the return value indicates whether
-// or not the move occured. This function will panic if either the src does not
+// or not the move occurred. This function will panic if either the src does not
 // exist or the dst does exist (but not both).
 func (s *State) MaybeMoveAbsResource(src, dst addrs.AbsResource) bool {
 	// Get the source and destinatation addresses from state.

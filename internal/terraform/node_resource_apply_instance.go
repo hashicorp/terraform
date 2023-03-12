@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
 	"github.com/hashicorp/terraform/internal/states"
@@ -113,11 +114,16 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 	addr := n.ResourceInstanceAddr()
 
 	if n.Config == nil {
-		// This should not be possible, but we've got here in at least one
-		// case as discussed in the following issue:
-		//    https://github.com/hashicorp/terraform/issues/21258
-		// To avoid an outright crash here, we'll instead return an explicit
-		// error.
+		// If there is no config, and there is no change, then we have nothing
+		// to do and the change was left in the plan for informational
+		// purposes only.
+		changes := ctx.Changes()
+		csrc := changes.GetResourceInstanceChange(n.ResourceInstanceAddr(), states.CurrentGen)
+		if csrc == nil || csrc.Action == plans.NoOp {
+			log.Printf("[DEBUG] NodeApplyableResourceInstance: No config or planned change recorded for %s", n.Addr)
+			return nil
+		}
+
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource node has no configuration attached",
@@ -156,24 +162,48 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	if change == nil {
 		return diags
 	}
+	if change.Action != plans.Read && change.Action != plans.NoOp {
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", change.Action, n.Addr))
+	}
 
 	// In this particular call to applyDataSource we include our planned
 	// change, which signals that we expect this read to complete fully
 	// with no unknown values; it'll produce an error if not.
-	state, applyDiags := n.applyDataSource(ctx, change)
+	state, repeatData, applyDiags := n.applyDataSource(ctx, change)
 	diags = diags.Append(applyDiags)
 	if diags.HasErrors() {
 		return diags
 	}
 
-	diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
-	if diags.HasErrors() {
-		return diags
+	if state != nil {
+		// If n.applyDataSource returned a nil state object with no accompanying
+		// errors then it determined that the given change doesn't require
+		// actually reading the data (e.g. because it was already read during
+		// the plan phase) and so we're only running through here to get the
+		// extra details like precondition/postcondition checks.
+		diags = diags.Append(n.writeResourceInstanceState(ctx, state, workingState))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	diags = diags.Append(n.writeChange(ctx, nil, ""))
 
 	diags = diags.Append(updateStateHook(ctx))
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state/diff because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	checkDiags := evalCheckRules(
+		addrs.ResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, n.ResourceInstanceAddr(),
+		repeatData,
+		tfdiags.Error,
+	)
+	diags = diags.Append(checkDiags)
+
 	return diags
 }
 
@@ -202,6 +232,9 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// (these are handled by NodeDestroyResourceInstance instead)
 	if diffApply == nil || diffApply.Action == plans.Delete {
 		return diags
+	}
+	if diffApply.Action == plans.Read {
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", diffApply.Action, n.Addr))
 	}
 
 	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
@@ -238,7 +271,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -250,26 +283,26 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	state, readDiags = n.readResourceInstanceState(ctx, n.ResourceInstanceAddr())
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
-	}
-
 	diffApply = reducePlan(addr, diffApply, false)
 	// reducePlan may have simplified our planned change
 	// into a NoOp if it only requires destroying, since destroying
-	// is handled by NodeDestroyResourceInstance.
-	if diffApply == nil || diffApply.Action == plans.NoOp {
-		return diags
-	}
+	// is handled by NodeDestroyResourceInstance. If so, we'll
+	// still run through most of the logic here because we do still
+	// need to deal with other book-keeping such as marking the
+	// change as "complete", and running the author's postconditions.
 
 	diags = diags.Append(n.preApplyHook(ctx, diffApply))
 	if diags.HasErrors() {
 		return diags
 	}
 
-	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, n.CreateBeforeDestroy())
+	// If there is no change, there was nothing to apply, and we don't need to
+	// re-write the state, but we do need to re-evaluate postconditions.
+	if diffApply.Action == plans.NoOp {
+		return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+	}
+
+	state, applyDiags := n.apply(ctx, state, diffApply, n.Config, repeatData, n.CreateBeforeDestroy())
 	diags = diags.Append(applyDiags)
 
 	// We clear the change out here so that future nodes don't see a change
@@ -339,7 +372,23 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	diags = diags.Append(n.postApplyHook(ctx, state, diags.Err()))
 	diags = diags.Append(updateStateHook(ctx))
-	return diags
+
+	// Post-conditions might block further progress. We intentionally do this
+	// _after_ writing the state because we want to check against
+	// the result of the operation, and to fail on future operations
+	// until the user makes the condition succeed.
+	return diags.Append(n.managedResourcePostconditions(ctx, repeatData))
+}
+
+func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalContext, repeatData instances.RepetitionData) (diags tfdiags.Diagnostics) {
+
+	checkDiags := evalCheckRules(
+		addrs.ResourcePostcondition,
+		n.Config.Postconditions,
+		ctx, n.ResourceInstanceAddr(), repeatData,
+		tfdiags.Error,
+	)
+	return diags.Append(checkDiags)
 }
 
 // checkPlannedChange produces errors if the _actual_ expected value is not

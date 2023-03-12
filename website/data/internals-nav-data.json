@@ -1,0 +1,65 @@
+[
+  { "heading": "Terraform Internals" },
+  {
+    "title": "Overview", 
+    "path": ""
+   },
+  {
+    "title": "Credentials Helpers",
+    "path": "credentials-helpers"
+  },
+  {
+    "title": "Debugging Terraform",
+    "path": "debugging"
+  },
+  {
+    "title": "Module Registry Protocol",
+    "path": "module-registry-protocol"
+  },
+  {
+    "title": "Provider Network Mirror Protocol",
+    "path": "provider-network-mirror-protocol"
+  },
+  {
+    "title": "Provider Registry Protocol",
+    "path": "provider-registry-protocol"
+  },
+  {
+    "title": "Resource Graph",
+    "path": "graph"
+  },
+  {
+    "title": "Login Protocol",
+    "path": "login-protocol"
+  },
+  {
+    "title": "JSON Output Format",
+    "path": "json-format"
+  },
+  {
+    "title": "Remote Service Discovery",
+    "path": "remote-service-discovery"
+  },
+  {
+    "title": "Provider Metadata",
+    "path": "provider-meta"
+  },
+  {
+    "title": "Functions Metadata",
+    "path": "functions-meta"
+  },
+  {
+    "title": "Machine Readable UI",
+    "path": "machine-readable-ui",
+    "hidden": true
+  },
+  {
+    "title": "Archiving",
+    "path": "archiving",
+    "hidden": true
+  },
+  { "divider": true },
+  { "title": "Terraform CLI", "href": "/cli" },
+  { "divider": true },
+  { "title": "Configuration Language", "href": "/language" }
+]

@@ -12,7 +12,7 @@ import (
 // that the original tables can be restored at the conclusion of the calling
 // test:
 //
-//     defer experiments.OverrideForTesting(t, current, concluded)()
+//	defer experiments.OverrideForTesting(t, current, concluded)()
 //
 // This function modifies global variables that are normally fixed throughout
 // our execution, so this function must not be called from non-test code and

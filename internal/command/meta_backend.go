@@ -53,6 +53,10 @@ type BackendOpts struct {
 	// ForceLocal will force a purely local backend, including state.
 	// You probably don't want to set this.
 	ForceLocal bool
+
+	// ViewType will set console output format for the
+	// initialization operation (JSON or human-readable).
+	ViewType arguments.ViewType
 }
 
 // BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
@@ -96,14 +100,6 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 		var backendDiags tfdiags.Diagnostics
 		b, backendDiags = m.backendFromConfig(opts)
 		diags = diags.Append(backendDiags)
-
-		if opts.Init && b != nil && !diags.HasErrors() {
-			// Its possible that the currently selected workspace doesn't exist, so
-			// we call selectWorkspace to ensure an existing workspace is selected.
-			if err := m.selectWorkspace(b); err != nil {
-				diags = diags.Append(err)
-			}
-		}
 
 		if diags.HasErrors() {
 			return nil, diags
@@ -232,8 +228,11 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
 				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
 			})
+			if err != nil {
+				return fmt.Errorf("Couldn't create initial workspace: %w", err)
+			}
 			name = strings.TrimSpace(name)
-			if err != nil || name == "" {
+			if name == "" {
 				return fmt.Errorf("Couldn't create initial workspace: no name provided")
 			}
 			log.Printf("[TRACE] Meta.selectWorkspace: selecting the new TFC workspace requested by the user (%s)", name)
@@ -325,6 +324,9 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags)
+	if configureDiags.HasErrors() {
+		return nil, diags
+	}
 
 	// If the backend supports CLI initialization, do it.
 	if cli, ok := b.(backend.CLI); ok {
@@ -393,7 +395,7 @@ func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
 // This prepares the operation. After calling this, the caller is expected
 // to modify fields of the operation such as Sequence to specify what will
 // be called.
-func (m *Meta) Operation(b backend.Backend) *backend.Operation {
+func (m *Meta) Operation(b backend.Backend, vt arguments.ViewType) *backend.Operation {
 	schema := b.ConfigSchema()
 	workspace, err := m.Workspace()
 	if err != nil {
@@ -413,7 +415,7 @@ func (m *Meta) Operation(b backend.Backend) *backend.Operation {
 
 	stateLocker := clistate.NewNoopLocker()
 	if m.stateLock {
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		view := views.NewStateLocker(vt, m.View)
 		stateLocker = clistate.NewLocker(m.stateLockTimeout, view)
 	}
 
@@ -468,10 +470,15 @@ func (m *Meta) backendConfig(opts *BackendOpts) (*configs.Backend, int, tfdiags.
 
 	bf := backendInit.Backend(c.Type)
 	if bf == nil {
+		detail := fmt.Sprintf("There is no backend type named %q.", c.Type)
+		if msg, removed := backendInit.RemovedBackends[c.Type]; removed {
+			detail = msg
+		}
+
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid backend type",
-			Detail:   fmt.Sprintf("There is no backend type named %q.", c.Type),
+			Detail:   detail,
 			Subject:  &c.TypeRange,
 		})
 		return nil, 0, diags
@@ -608,9 +615,9 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			return nil, diags
 		}
 
-		return m.backend_c_r_S(c, cHash, sMgr, true)
+		return m.backend_c_r_S(c, cHash, sMgr, true, opts)
 
-	// Configuring a backend for the first time.
+	// Configuring a backend for the first time or -reconfigure flag was used
 	case c != nil && s.Backend.Empty():
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
@@ -631,9 +638,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			}
 			return nil, diags
 		}
-
-		return m.backend_C_r_s(c, cHash, sMgr)
-
+		return m.backend_C_r_s(c, cHash, sMgr, opts)
 	// Potentially changing a backend configuration
 	case c != nil && !s.Backend.Empty():
 		// We are not going to migrate if...
@@ -643,7 +648,15 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		// AND we're not providing any overrides. An override can mean a change overriding an unchanged backend block (indicated by the hash value).
 		if (uint64(cHash) == s.Backend.Hash) && (!opts.Init || opts.ConfigOverride == nil) {
 			log.Printf("[TRACE] Meta.Backend: using already-initialized, unchanged %q backend configuration", c.Type)
-			return m.savedBackend(sMgr)
+			savedBackend, diags := m.savedBackend(sMgr)
+			// Verify that selected workspace exist. Otherwise prompt user to create one
+			if opts.Init && savedBackend != nil {
+				if err := m.selectWorkspace(savedBackend); err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			}
+			return savedBackend, diags
 		}
 
 		// If our configuration (the result of both the literal configuration and given
@@ -665,6 +678,13 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 			if moreDiags.HasErrors() {
 				return nil, diags
 			}
+			// Verify that selected workspace exist. Otherwise prompt user to create one
+			if opts.Init && savedBackend != nil {
+				if err := m.selectWorkspace(savedBackend); err != nil {
+					diags = diags.Append(err)
+					return nil, diags
+				}
+			}
 
 			return savedBackend, diags
 		}
@@ -685,7 +705,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		}
 
 		log.Printf("[WARN] backend config has changed since last init")
-		return m.backend_C_r_S_changed(c, cHash, sMgr, true)
+		return m.backend_C_r_S_changed(c, cHash, sMgr, true, opts)
 
 	default:
 		diags = diags.Append(fmt.Errorf(
@@ -729,7 +749,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Terraform Cloud initialization required: please run \"terraform init\"",
-			fmt.Sprintf(strings.TrimSpace(errBackendInitCloudMigration), initReason),
+			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
@@ -829,8 +849,17 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 //-------------------------------------------------------------------
 
 // Unconfiguring a backend (moving from backend => local).
-func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_c_r_S(
+	c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
+
 	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
 
 	s := sMgr.State()
 
@@ -869,6 +898,7 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 		DestinationType: "local",
 		Source:          b,
 		Destination:     localB,
+		ViewType:        vt,
 	})
 	if err != nil {
 		diags = diags.Append(err)
@@ -897,8 +927,15 @@ func (m *Meta) backend_c_r_S(c *configs.Backend, cHash int, sMgr *clistate.Local
 }
 
 // Configuring a backend for the first time.
-func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.LocalState, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
 
 	// Grab a purely local backend to get the local state if it exists
 	localB, localBDiags := m.Backend(&BackendOpts{ForceLocal: true, Init: true})
@@ -954,6 +991,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 			DestinationType: c.Type,
 			Source:          localB,
 			Destination:     b,
+			ViewType:        vt,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -982,7 +1020,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags
 				}
-				if err := localState.PersistState(); err != nil {
+				if err := localState.PersistState(nil); err != nil {
 					diags = diags.Append(fmt.Errorf(errBackendMigrateLocalDelete, err))
 					return nil, diags
 				}
@@ -991,7 +1029,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 	}
 
 	if m.stateLock {
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		view := views.NewStateLocker(vt, m.View)
 		stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 		if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 			diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
@@ -1017,6 +1055,27 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		Hash:      uint64(cHash),
 	}
 
+	// Verify that selected workspace exists in the backend.
+	if opts.Init && b != nil {
+		err := m.selectWorkspace(b)
+		if err != nil {
+			diags = diags.Append(err)
+
+			// FIXME: A compatibility oddity with the 'remote' backend.
+			// As an awkward legacy UX, when the remote backend is configured and there
+			// are no workspaces, the output to the user saying that there are none and
+			// the user should create one with 'workspace new' takes the form of an
+			// error message - even though it's happy path, expected behavior.
+			//
+			// Therefore, only return nil with errored diags for everything else, and
+			// allow the remote backend to continue and write its configuration to state
+			// even though no workspace is selected.
+			if c.Type != "remote" {
+				return nil, diags
+			}
+		}
+	}
+
 	if err := sMgr.WriteState(s); err != nil {
 		diags = diags.Append(fmt.Errorf(errBackendWriteSaved, err))
 		return nil, diags
@@ -1037,8 +1096,15 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 }
 
 // Changing a previously saved backend.
-func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool) (backend.Backend, tfdiags.Diagnostics) {
+func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clistate.LocalState, output bool, opts *BackendOpts) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
+
+	vt := arguments.ViewJSON
+	// Set default viewtype if none was set as the StateLocker needs to know exactly
+	// what viewType we want to have.
+	if opts == nil || opts.ViewType != vt {
+		vt = arguments.ViewHuman
+	}
 
 	// Get the old state
 	s := sMgr.State()
@@ -1099,6 +1165,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 			DestinationType: c.Type,
 			Source:          oldB,
 			Destination:     b,
+			ViewType:        vt,
 		})
 		if err != nil {
 			diags = diags.Append(err)
@@ -1106,7 +1173,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		}
 
 		if m.stateLock {
-			view := views.NewStateLocker(arguments.ViewHuman, m.View)
+			view := views.NewStateLocker(vt, m.View)
 			stateLocker := clistate.NewLocker(m.stateLockTimeout, view)
 			if err := stateLocker.Lock(sMgr, "backend from plan"); err != nil {
 				diags = diags.Append(fmt.Errorf("Error locking state: %s", err))
@@ -1131,6 +1198,14 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		Type:      c.Type,
 		ConfigRaw: json.RawMessage(configJSON),
 		Hash:      uint64(cHash),
+	}
+
+	// Verify that selected workspace exist. Otherwise prompt user to create one
+	if opts.Init && b != nil {
+		if err := m.selectWorkspace(b); err != nil {
+			diags = diags.Append(err)
+			return b, diags
+		}
 	}
 
 	if err := sMgr.WriteState(s); err != nil {
@@ -1484,17 +1559,6 @@ use the current configuration.
 If the change reason above is incorrect, please verify your configuration
 hasn't changed and try again. At this point, no changes to your existing
 configuration or state have been made.
-`
-
-const errBackendInitCloudMigration = `
-Reason: %s.
-
-Migrating to Terraform Cloud requires reinitialization, to discover which Terraform Cloud workspaces belong to this configuration and to optionally migrate existing state to the corresponding Terraform Cloud workspaces.
-
-To re-initialize, run:
-  terraform init
-
-Terraform has not yet made changes to your existing configuration or state.
 `
 
 const errBackendInitCloud = `

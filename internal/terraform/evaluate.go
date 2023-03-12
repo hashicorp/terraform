@@ -10,7 +10,6 @@ import (
 	"github.com/agext/levenshtein"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -69,12 +68,13 @@ type Evaluator struct {
 // If the "self" argument is nil then the "self" object is not available
 // in evaluated expressions. Otherwise, it behaves as an alias for the given
 // address.
-func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable) *lang.Scope {
+func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable) *lang.Scope {
 	return &lang.Scope{
-		Data:     data,
-		SelfAddr: self,
-		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:  ".", // Always current working directory for now.
+		Data:       data,
+		SelfAddr:   self,
+		SourceAddr: source,
+		PureOnly:   e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:    ".", // Always current working directory for now.
 	}
 }
 
@@ -177,7 +177,7 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `each.value cannot be used in this context`,
-				Detail:   `A reference to "each.value" has been used in a context in which it unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`,
+				Detail:   `A reference to "each.value" has been used in a context in which it is unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.UnknownVal(cty.DynamicPseudoType), diags
@@ -248,7 +248,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// This is important because otherwise the validation walk will tend to be
 	// overly strict, requiring expressions throughout the configuration to
 	// be complicated to accommodate all possible inputs, whereas returning
-	// known here allows for simpler patterns like using input values as
+	// unknown here allows for simpler patterns like using input values as
 	// guards to broadly enable/disable resources, avoid processing things
 	// that are disabled, etc. Terraform's static validation leans towards
 	// being liberal in what it accepts because the subsequent plan walk has
@@ -267,28 +267,27 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		return cty.UnknownVal(config.Type), diags
 	}
 
+	// d.Evaluator.VariableValues should always contain valid "final values"
+	// for variables, which is to say that they have already had type
+	// conversions, validations, and default value handling applied to them.
+	// Those are the responsibility of the graph notes representing the
+	// variable declarations. Therefore here we just trust that we already
+	// have a correct value.
+
 	val, isSet := vals[addr.Name]
-	switch {
-	case !isSet:
-		// The config loader will ensure there is a default if the value is not
-		// set at all.
-		val = config.Default
-
-	case val.IsNull() && !config.Nullable && config.Default != cty.NilVal:
-		// If nullable=false a null value will use the configured default.
-		val = config.Default
-	}
-
-	var err error
-	val, err = convert.Convert(val, config.ConstraintType)
-	if err != nil {
-		// We should never get here because this problem should've been caught
-		// during earlier validation, but we'll do something reasonable anyway.
+	if !isSet {
+		// We should not be able to get here without having a valid value
+		// for every variable, so this always indicates a bug in either
+		// the graph builder (not including all the needed nodes) or in
+		// the graph nodes representing variables.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Incorrect variable type`,
-			Detail:   fmt.Sprintf(`The resolved value of variable %q is not appropriate: %s.`, addr.Name, err),
-			Subject:  &config.DeclRange,
+			Summary:  `Reference to unresolved input variable`,
+			Detail: fmt.Sprintf(
+				`The final value for %s is missing in Terraform's evaluation context. This is a bug in Terraform; please report it!`,
+				addr.Absolute(d.ModulePath),
+			),
+			Subject: rng.ToHCL().Ptr(),
 		})
 		val = cty.UnknownVal(config.Type)
 	}
@@ -377,6 +376,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// so we only need to store these by instance key.
 	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
 	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
+		val := output.Value
+		if output.Sensitive {
+			val = val.Mark(marks.Sensitive)
+		}
+
 		_, callInstance := output.Addr.Module.CallInstance()
 		instance, ok := stateMap[callInstance.Key]
 		if !ok {
@@ -384,7 +388,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			stateMap[callInstance.Key] = instance
 		}
 
-		instance[output.Addr.OutputValue.Name] = output.Value
+		instance[output.Addr.OutputValue.Name] = val
 	}
 
 	// Get all changes that reside for this module call within our path.
@@ -428,10 +432,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			instance[cfg.Name] = outputState
-
-			if cfg.Sensitive {
-				instance[cfg.Name] = outputState.Mark(marks.Sensitive)
-			}
 		}
 
 		// any pending changes override the state state values
@@ -696,27 +696,41 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				log.Printf("[ERROR] unknown instance %q referenced during %s", addr.Absolute(d.ModulePath), d.Operation)
 				return cty.DynamicVal, diags
 			}
-		default:
-			if d.Operation != walkValidate {
-				log.Printf("[ERROR] missing state for %q while in %s\n", addr.Absolute(d.ModulePath), d.Operation)
-			}
 
-			// Validation is done with only the configuration, so generate
-			// unknown values of the correct shape for evaluation.
+		case walkImport:
+			// Import does not yet plan resource changes, so new resources from
+			// config are not going to be found here. Once walkImport fully
+			// plans resources, this case should not longer be needed.
+			// In the single instance case, we can return a typed unknown value
+			// for the instance to better satisfy other expressions using the
+			// value. This of course will not help if statically known
+			// attributes are expected to be known elsewhere, but reduces the
+			// number of problematic configs for now.
+			// Unlike in plan and apply above we can't be sure the count or
+			// for_each instances are empty, so we return a DynamicVal. We
+			// don't really have a good value to return otherwise -- empty
+			// values will fail for direct index expressions, and unknown
+			// Lists and Maps could fail in some type unifications.
 			switch {
 			case config.Count != nil:
-				return cty.UnknownVal(cty.List(ty)), diags
+				return cty.DynamicVal, diags
 			case config.ForEach != nil:
-				return cty.UnknownVal(cty.Map(ty)), diags
+				return cty.DynamicVal, diags
 			default:
 				return cty.UnknownVal(ty), diags
 			}
+
+		default:
+			// We should only end up here during the validate walk,
+			// since later walks should have at least partial states populated
+			// for all resources in the configuration.
+			return cty.DynamicVal, diags
 		}
 	}
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
-	pendingDestroy := d.Evaluator.Changes.IsFullDestroy()
+	pendingDestroy := d.Operation == walkDestroy
 	for key, is := range rs.Instances {
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.
@@ -803,6 +817,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		instances[key] = val
 	}
 
+	// ret should be populated with a valid value in all cases below
 	var ret cty.Value
 
 	switch {

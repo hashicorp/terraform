@@ -3,165 +3,9 @@ package terraform
 import (
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/go-test/deep"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/zclconf/go-cty/cty"
 )
-
-func TestVariables(t *testing.T) {
-	tests := map[string]struct {
-		Module   string
-		Override map[string]cty.Value
-		Want     InputValues
-	}{
-		"config only": {
-			"vars-basic",
-			nil,
-			InputValues{
-				"a": &InputValue{
-					Value:      cty.StringVal("foo"),
-					SourceType: ValueFromConfig,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "testdata/vars-basic/main.tf",
-						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
-						End:      tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
-					},
-				},
-				"b": &InputValue{
-					Value:      cty.ListValEmpty(cty.String),
-					SourceType: ValueFromConfig,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "testdata/vars-basic/main.tf",
-						Start:    tfdiags.SourcePos{Line: 6, Column: 1, Byte: 55},
-						End:      tfdiags.SourcePos{Line: 6, Column: 13, Byte: 67},
-					},
-				},
-				"c": &InputValue{
-					Value:      cty.MapValEmpty(cty.String),
-					SourceType: ValueFromConfig,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "testdata/vars-basic/main.tf",
-						Start:    tfdiags.SourcePos{Line: 11, Column: 1, Byte: 113},
-						End:      tfdiags.SourcePos{Line: 11, Column: 13, Byte: 125},
-					},
-				},
-			},
-		},
-
-		"override": {
-			"vars-basic",
-			map[string]cty.Value{
-				"a": cty.StringVal("bar"),
-				"b": cty.ListVal([]cty.Value{
-					cty.StringVal("foo"),
-					cty.StringVal("bar"),
-				}),
-				"c": cty.MapVal(map[string]cty.Value{
-					"foo": cty.StringVal("bar"),
-				}),
-			},
-			InputValues{
-				"a": &InputValue{
-					Value:      cty.StringVal("bar"),
-					SourceType: ValueFromCaller,
-				},
-				"b": &InputValue{
-					Value: cty.ListVal([]cty.Value{
-						cty.StringVal("foo"),
-						cty.StringVal("bar"),
-					}),
-					SourceType: ValueFromCaller,
-				},
-				"c": &InputValue{
-					Value: cty.MapVal(map[string]cty.Value{
-						"foo": cty.StringVal("bar"),
-					}),
-					SourceType: ValueFromCaller,
-				},
-			},
-		},
-
-		"bools: config only": {
-			"vars-basic-bool",
-			nil,
-			InputValues{
-				"a": &InputValue{
-					Value:      cty.True,
-					SourceType: ValueFromConfig,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "testdata/vars-basic-bool/main.tf",
-						Start:    tfdiags.SourcePos{Line: 4, Column: 1, Byte: 177},
-						End:      tfdiags.SourcePos{Line: 4, Column: 13, Byte: 189},
-					},
-				},
-				"b": &InputValue{
-					Value:      cty.False,
-					SourceType: ValueFromConfig,
-					SourceRange: tfdiags.SourceRange{
-						Filename: "testdata/vars-basic-bool/main.tf",
-						Start:    tfdiags.SourcePos{Line: 8, Column: 1, Byte: 214},
-						End:      tfdiags.SourcePos{Line: 8, Column: 13, Byte: 226},
-					},
-				},
-			},
-		},
-
-		"bools: override with string": {
-			"vars-basic-bool",
-			map[string]cty.Value{
-				"a": cty.StringVal("foo"),
-				"b": cty.StringVal("bar"),
-			},
-			InputValues{
-				"a": &InputValue{
-					Value:      cty.StringVal("foo"),
-					SourceType: ValueFromCaller,
-				},
-				"b": &InputValue{
-					Value:      cty.StringVal("bar"),
-					SourceType: ValueFromCaller,
-				},
-			},
-		},
-
-		"bools: override with bool": {
-			"vars-basic-bool",
-			map[string]cty.Value{
-				"a": cty.False,
-				"b": cty.True,
-			},
-			InputValues{
-				"a": &InputValue{
-					Value:      cty.False,
-					SourceType: ValueFromCaller,
-				},
-				"b": &InputValue{
-					Value:      cty.True,
-					SourceType: ValueFromCaller,
-				},
-			},
-		},
-	}
-
-	for name, test := range tests {
-		// Wrapped in a func so we can get defers to work
-		t.Run(name, func(t *testing.T) {
-			m := testModule(t, test.Module)
-			fromConfig := DefaultVariableValues(m.Module.Variables)
-			overrides := InputValuesFromCaller(test.Override)
-			got := fromConfig.Override(overrides)
-
-			if !got.Identical(test.Want) {
-				t.Errorf("wrong result\ngot: %swant: %s", spew.Sdump(got), spew.Sdump(test.Want))
-			}
-			for _, problem := range deep.Equal(got, test.Want) {
-				t.Errorf(problem)
-			}
-		})
-	}
-}
 
 func TestCheckInputVariables(t *testing.T) {
 	c := testModule(t, "input-variables")
@@ -279,4 +123,26 @@ func TestCheckInputVariables(t *testing.T) {
 			t.Fatalf("unexpected errors: %s", diags.Err())
 		}
 	})
+}
+
+// testInputValuesUnset is a helper for constructing InputValues values for
+// situations where all of the root module variables are optional and a
+// test case intends to just use those default values and not override them
+// at all.
+//
+// In other words, this constructs an InputValues with one entry per given
+// input variable declaration where all of them are declared as unset.
+func testInputValuesUnset(decls map[string]*configs.Variable) InputValues {
+	if len(decls) == 0 {
+		return nil
+	}
+
+	ret := make(InputValues, len(decls))
+	for name := range decls {
+		ret[name] = &InputValue{
+			Value:      cty.NilVal,
+			SourceType: ValueFromUnknown,
+		}
+	}
+	return ret
 }

@@ -1,0 +1,128 @@
+---
+page_title: nonsensitive - Functions - Configuration Language
+description: >-
+  The nonsensitive function removes the sensitive marking from a value that
+  Terraform considers to be sensitive.
+---
+
+# `nonsensitive` Function
+
+-> **Note:** This function is only available in Terraform v0.15 and later.
+
+`nonsensitive` takes a sensitive value and returns a copy of that value with
+the sensitive marking removed, thereby exposing the sensitive value.
+
+~> **Warning:** Using this function indiscriminately will cause values that
+Terraform would normally have considered as sensitive to be treated as normal
+values and shown clearly in Terraform's output. Use this function only when
+you've derived a new value from a sensitive value in a way that eliminates the
+sensitive portions of the value.
+
+Normally Terraform tracks when you use expressions to derive a new value from
+a value that is marked as sensitive, so that the result can also be marked
+as sensitive.
+
+However, you may wish to write expressions that derive non-sensitive results
+from sensitive values. For example, if you know based on details of your
+particular system and its threat model that a SHA256 hash of a particular
+sensitive value is safe to include clearly in Terraform output, you could use
+the `nonsensitive` function to indicate that, overriding Terraform's normal
+conservative behavior:
+
+```hcl
+output "sensitive_example_hash" {
+  value = nonsensitive(sha256(var.sensitive_example))
+}
+```
+
+Another example might be if the original value is only partially sensitive and
+you've written expressions to separate the sensitive and non-sensitive parts:
+
+```hcl
+variable "mixed_content_json" {
+  description = "A JSON string containing a mixture of sensitive and non-sensitive values."
+  type        = string
+  sensitive   = true
+}
+
+locals {
+  # mixed_content is derived from var.mixed_content_json, so it
+  # is also considered to be sensitive.
+  mixed_content = jsondecode(var.mixed_content_json)
+
+  # password_from_json is derived from mixed_content, so it's
+  # also considered to be sensitive.
+  password_from_json = local.mixed_content["password"]
+
+  # username_from_json would normally be considered to be
+  # sensitive too, but system-specific knowledge tells us
+  # that the username is a non-sensitive fragment of the
+  # original document, and so we can override Terraform's
+  # determination.
+  username_from_json = nonsensitive(local.mixed_content["username"])
+}
+```
+
+When you use this function, it's your responsibility to ensure that the
+expression passed as its argument will remove all sensitive content from
+the sensitive value it depends on. By passing a value to `nonsensitive` you are
+declaring to Terraform that you have done all that is necessary to ensure that
+the resulting value has no sensitive content, even though it was derived
+from sensitive content. If a sensitive value appears in Terraform's output
+due to an inappropriate call to `nonsensitive` in your module, that's a bug in
+your module and not a bug in Terraform itself.
+**Use this function sparingly and only with due care.**
+
+`nonsensitive` will return an error if you pass a value that isn't marked
+as sensitive, because such a call would be redundant and potentially confusing
+or misleading to a future maintainer of your module. Use `nonsensitive` only
+after careful consideration and with definite intent.
+
+Consider including a comment adjacent to your call to explain to future
+maintainers what makes the usage safe and thus what invariants they must take
+care to preserve under future modifications.
+
+## Examples
+
+The following examples are from `terraform console` when running in the
+context of the example above with `variable "mixed_content_json"` and
+the local value `mixed_content`, with a valid JSON string assigned to
+`var.mixed_content_json`.
+
+```
+> var.mixed_content_json
+(sensitive value)
+> local.mixed_content
+(sensitive value)
+> local.mixed_content["password"]
+(sensitive value)
+> nonsensitive(local.mixed_content["username"])
+"zqb"
+> nonsensitive("clear")
+
+Error: Invalid function argument
+
+Invalid value for "value" parameter: the given value is not sensitive, so this
+call is redundant.
+```
+
+Note though that it's always your responsibility to use `nonsensitive` only
+when it's safe to do so. If you use `nonsensitive` with content that
+_ought to be_ considered sensitive then that content will be disclosed:
+
+```
+> nonsensitive(var.mixed_content_json)
+<<EOT
+{
+  "username": "zqb",
+  "password": "p4ssw0rd"
+}
+EOT
+> nonsensitive(local.mixed_content)
+{
+  "password" = "p4ssw0rd"
+  "username" = "zqb"
+}
+> nonsensitive(local.mixed_content["password"])
+"p4ssw0rd"
+```

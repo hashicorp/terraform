@@ -20,6 +20,14 @@ type Scope struct {
 	// or nil if the "self" object should not be available at all.
 	SelfAddr addrs.Referenceable
 
+	// SourceAddr is the address of the source item for the scope. This will
+	// affect any scoped resources that can be accessed from within this scope.
+	//
+	// If nil, access is assumed to be at the module level. So, in practice this
+	// only needs to be set for items that should be able to access something
+	// hidden in their own scope.
+	SourceAddr addrs.Referenceable
+
 	// BaseDir is the base directory used by any interpolation functions that
 	// accept filesystem paths as arguments.
 	BaseDir string

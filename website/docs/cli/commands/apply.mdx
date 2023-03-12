@@ -1,0 +1,120 @@
+---
+page_title: 'Command: apply'
+description: >-
+  The terraform apply command executes the actions proposed in a Terraform plan
+  to create, update, or destroy infrastructure.
+---
+
+# Command: apply
+
+The `terraform apply` command executes the actions proposed in a Terraform
+plan.
+
+> **Hands On:** Try the [Apply Terraform Configuration](/terraform/tutorials/cli/apply?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial to learn how Terraform applies a configuration, how Terraform recovers from errors during apply, and common ways to use this command.
+
+## Usage
+
+Usage: `terraform apply [options] [plan file]`
+
+
+
+### Automatic Plan Mode
+
+When you run `terraform apply` without passing a saved plan file, Terraform automatically creates a new execution plan as if you had run [`terraform plan`](/terraform/cli/commands/plan), prompts you to approve that plan, and takes the indicated actions. You can use all of the [planning modes](/terraform/cli/commands/plan#planning-modes) and
+[planning options](/terraform/cli/commands/plan#planning-options) to customize how Terraform will create the plan.
+
+You can pass the `-auto-approve` option to instruct Terraform to apply the plan without asking for confirmation.
+
+!> **Warning:** If you use `-auto-approve`, we recommend making sure that no one can change your infrastructure outside of your Terraform workflow. This minimizes the risk of unpredictable changes and configuration drift.
+
+### Saved Plan Mode
+
+When you pass a [saved plan file](/terraform/cli/commands/plan#out-filename) to `terraform apply`, Terraform takes the actions in the saved plan without prompting you for confirmation. You may want to use this two-step workflow when [running Terraform in automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+
+Use [`terraform show`](/terraform/cli/commands/show) to inspect a saved plan file before applying it.
+
+When using a saved plan, you cannot specify any additional planning modes or options. These options only affect Terraform's decisions about which
+actions to take, and the plan file contains the final results of those
+decisions.
+
+### Plan Options
+
+Without a saved plan file, `terraform apply` supports all planning modes and planning options available for `terraform plan`.
+
+-  **[Planning Modes](/terraform/cli/commands/plan#planning-modes):** These include `-destroy`, which creates a plan to destroy all remote objects, and `-refresh-only`, which creates a plan to update Terraform state and root module output values.
+- **[Planning Options](/terraform/cli/commands/plan#planning-options):** These include specifying which resource instances Terraform should replace, setting Terraform input variables, etc.
+
+### Apply Options
+
+The following options change how the apply command executes and reports on the apply operation.
+
+- `-auto-approve` - Skips interactive approval of plan before applying. This
+  option is ignored when you pass a previously-saved plan file, because
+  Terraform considers you passing the plan file as the approval and so
+  will never prompt in that case.
+
+- `-compact-warnings` - Shows any warning messages in a compact form which
+  includes only the summary messages, unless the warnings are accompanied by
+  at least one error and thus the warning text might be useful context for
+  the errors.
+
+- `-input=false` - Disables all of Terraform's interactive prompts. Note that
+  this also prevents Terraform from prompting for interactive approval of a
+  plan, so Terraform will conservatively assume that you do not wish to
+  apply the plan, causing the operation to fail. If you wish to run Terraform
+  in a non-interactive context, see
+  [Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) for some
+  different approaches.
+
+- `-json` - Enables the [machine readable JSON UI][machine-readable-ui] output.
+  This implies `-input=false`, so the configuration must have no unassigned
+  variable values to continue. To enable this flag, you must also either enable
+  the `-auto-approve` flag or specify a previously-saved plan.
+
+  [machine-readable-ui]: /terraform/internals/machine-readable-ui
+
+- `-lock=false` - Don't hold a state lock during the operation. This is
+  dangerous if others might concurrently run commands against the same
+  workspace.
+
+- `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
+
+- `-no-color` - Disables terminal formatting sequences in the output. Use this
+  if you are running Terraform in a context where its output will be
+  rendered by a system that cannot interpret terminal formatting.
+
+- `-parallelism=n` - Limit the number of concurrent operation as Terraform
+  [walks the graph](/terraform/internals/graph#walking-the-graph). Defaults to
+  10\.
+
+- All [planning modes](/terraform/cli/commands/plan#planning-modes) and
+[planning options](/terraform/cli/commands/plan#planning-options) for
+`terraform plan` - Customize how Terraform will create the plan. Only available when you run `terraform apply` without a saved plan file.
+
+For configurations using
+[the `local` backend](/terraform/language/settings/backends/local) only,
+`terraform apply` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).
+
+## Passing a Different Configuration Directory
+
+Terraform v0.13 and earlier also accepted a directory path in place of the
+plan file argument to `terraform apply`, in which case Terraform would use
+that directory as the root module instead of the current working directory.
+
+That usage was deprecated in Terraform v0.14 and removed in Terraform v0.15.
+If your workflow relies on overriding the root module directory, use
+[the `-chdir` global option](/terraform/cli/commands#switching-working-directory-with-chdir)
+instead, which works across all commands and makes Terraform consistently look
+in the given directory for all files it would normally read or write in the
+current working directory.
+
+If your previous use of this legacy pattern was also relying on Terraform
+writing the `.terraform` subdirectory into the current working directory even
+though the root module directory was overridden, use
+[the `TF_DATA_DIR` environment variable](/terraform/cli/config/environment-variables#tf_data_dir)
+to direct Terraform to write the `.terraform` directory to a location other
+than the current working directory.

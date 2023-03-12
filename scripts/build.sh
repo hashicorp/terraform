@@ -29,7 +29,7 @@ fi
 
 if ! which gox > /dev/null; then
     echo "==> Installing gox..."
-    go get github.com/mitchellh/gox
+    go install github.com/mitchellh/gox
 fi
 
 # Instruct gox to build statically linked binaries

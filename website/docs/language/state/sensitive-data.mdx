@@ -1,0 +1,37 @@
+---
+page_title: 'State: Sensitive Data'
+description: Sensitive data in Terraform state.
+---
+
+# Sensitive Data in State
+
+Terraform state can contain sensitive data, depending on the resources in use
+and your definition of "sensitive." The state contains resource IDs and all
+resource attributes. For resources such as databases, this may contain initial
+passwords.
+
+When using local state, state is stored in plain-text JSON files.
+
+When using [remote state](/terraform/language/state/remote), state is only ever held in
+memory when used by Terraform. It may be encrypted at rest, but this depends on
+the specific remote state backend.
+
+## Recommendations
+
+If you manage any sensitive data with Terraform (like database passwords, user
+passwords, or private keys), treat the state itself as sensitive data.
+
+Storing state remotely can provide better security. As of Terraform 0.9,
+Terraform does not persist state to the local disk when remote state is in use,
+and some backends can be configured to encrypt the state data at rest.
+
+For example:
+
+- [Terraform Cloud](https://cloud.hashicorp.com/products/terraform) always encrypts state at rest and
+  protects it with TLS in transit. Terraform Cloud also knows the identity of
+  the user requesting state and maintains a history of state changes. This can
+  be used to control access and track activity. [Terraform Enterprise](/terraform/enterprise)
+  also supports detailed audit logging.
+- The S3 backend supports encryption at rest when the `encrypt` option is
+  enabled. IAM policies and logging can be used to identify any invalid access.
+  Requests for the state go over a TLS connection.

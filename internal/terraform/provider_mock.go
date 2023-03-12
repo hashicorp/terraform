@@ -218,6 +218,11 @@ func (p *MockProvider) UpgradeResourceState(r providers.UpgradeResourceStateRequ
 	p.Lock()
 	defer p.Unlock()
 
+	if !p.ConfigureProviderCalled {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("Configure not called before UpgradeResourceState %q", r.TypeName))
+		return resp
+	}
+
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
 	if !ok {
 		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
@@ -349,6 +354,13 @@ func (p *MockProvider) PlanResourceChange(r providers.PlanResourceChangeRequest)
 
 	if p.PlanResourceChangeResponse != nil {
 		return *p.PlanResourceChangeResponse
+	}
+
+	// this is a destroy plan,
+	if r.ProposedNewState.IsNull() {
+		resp.PlannedState = r.ProposedNewState
+		resp.PlannedPrivate = r.PriorPrivate
+		return resp
 	}
 
 	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]

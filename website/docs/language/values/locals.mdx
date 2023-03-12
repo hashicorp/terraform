@@ -1,0 +1,87 @@
+---
+page_title: Local Values - Configuration Language
+description: >-
+  Local values assign a name to an expression that can be used multiple times
+  within a Terraform module.
+---
+
+# Local Values
+
+> **Hands-on:** Try the [Simplify Terraform Configuration with Locals](/terraform/tutorials/configuration-language/locals?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+A local value assigns a name to an [expression](/terraform/language/expressions),
+so you can use the name multiple times within a module instead of repeating
+the expression.
+
+If you're familiar with traditional programming languages, it can be useful to
+compare Terraform modules to function definitions:
+
+- [Input variables](/terraform/language/values/variables) are like function arguments.
+- [Output values](/terraform/language/values/outputs) are like function return values.
+- Local values are like a function's temporary local variables.
+
+-> **Note:** For brevity, local values are often referred to as just "locals"
+when the meaning is clear from context.
+
+## Declaring a Local Value
+
+A set of related local values can be declared together in a single `locals`
+block:
+
+```hcl
+locals {
+  service_name = "forum"
+  owner        = "Community Team"
+}
+```
+
+The expressions in local values are not limited to literal constants; they can
+also reference other values in the module in order to transform or combine them,
+including variables, resource attributes, or other local values:
+
+```hcl
+locals {
+  # Ids for multiple sets of EC2 instances, merged together
+  instance_ids = concat(aws_instance.blue.*.id, aws_instance.green.*.id)
+}
+
+locals {
+  # Common tags to be assigned to all resources
+  common_tags = {
+    Service = local.service_name
+    Owner   = local.owner
+  }
+}
+```
+
+## Using Local Values
+
+Once a local value is declared, you can reference it in
+[expressions](/terraform/language/expressions) as `local.<NAME>`.
+
+-> **Note:** Local values are _created_ by a `locals` block (plural), but you
+_reference_ them as attributes on an object named `local` (singular). Make sure
+to leave off the "s" when referencing a local value!
+
+```
+resource "aws_instance" "example" {
+  # ...
+
+  tags = local.common_tags
+}
+```
+
+A local value can only be accessed in expressions within the module where it
+was declared.
+
+## When To Use Local Values
+
+Local values can be helpful to avoid repeating the same values or expressions
+multiple times in a configuration, but if overused they can also make a
+configuration hard to read by future maintainers by hiding the actual values
+used.
+
+Use local values only in moderation, in situations where a single value or
+result is used in many places _and_ that value is likely to be changed in
+future. The ability to easily change the value in a central place is the key
+advantage of local values.

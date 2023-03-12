@@ -22,6 +22,7 @@ func TestExperimentsConfig(t *testing.T) {
 
 	t.Run("current", func(t *testing.T) {
 		parser := NewParser(nil)
+		parser.AllowLanguageExperiments(true)
 		mod, diags := parser.LoadConfigDir("testdata/experiments/current")
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
@@ -30,7 +31,7 @@ func TestExperimentsConfig(t *testing.T) {
 		want := &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  `Experimental feature "current" is active`,
-			Detail:   "Experimental features are subject to breaking changes in future minor or patch releases, based on feedback.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+			Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 			Subject: &hcl.Range{
 				Filename: "testdata/experiments/current/current_experiment.tf",
 				Start:    hcl.Pos{Line: 2, Column: 18, Byte: 29},
@@ -49,6 +50,7 @@ func TestExperimentsConfig(t *testing.T) {
 	})
 	t.Run("concluded", func(t *testing.T) {
 		parser := NewParser(nil)
+		parser.AllowLanguageExperiments(true)
 		_, diags := parser.LoadConfigDir("testdata/experiments/concluded")
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
@@ -70,6 +72,7 @@ func TestExperimentsConfig(t *testing.T) {
 	})
 	t.Run("concluded", func(t *testing.T) {
 		parser := NewParser(nil)
+		parser.AllowLanguageExperiments(true)
 		_, diags := parser.LoadConfigDir("testdata/experiments/unknown")
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
@@ -91,6 +94,7 @@ func TestExperimentsConfig(t *testing.T) {
 	})
 	t.Run("invalid", func(t *testing.T) {
 		parser := NewParser(nil)
+		parser.AllowLanguageExperiments(true)
 		_, diags := parser.LoadConfigDir("testdata/experiments/invalid")
 		if got, want := len(diags), 1; got != want {
 			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
@@ -104,6 +108,28 @@ func TestExperimentsConfig(t *testing.T) {
 				Filename: "testdata/experiments/invalid/invalid_experiments.tf",
 				Start:    hcl.Pos{Line: 2, Column: 17, Byte: 28},
 				End:      hcl.Pos{Line: 2, Column: 24, Byte: 35},
+			},
+		}
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("wrong error\n%s", diff)
+		}
+	})
+	t.Run("disallowed", func(t *testing.T) {
+		parser := NewParser(nil)
+		parser.AllowLanguageExperiments(false) // The default situation for release builds
+		_, diags := parser.LoadConfigDir("testdata/experiments/current")
+		if got, want := len(diags), 1; got != want {
+			t.Fatalf("wrong number of diagnostics %d; want %d", got, want)
+		}
+		got := diags[0]
+		want := &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Module uses experimental features`,
+			Detail:   `Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.`,
+			Subject: &hcl.Range{
+				Filename: "testdata/experiments/current/current_experiment.tf",
+				Start:    hcl.Pos{Line: 2, Column: 3, Byte: 14},
+				End:      hcl.Pos{Line: 2, Column: 14, Byte: 25},
 			},
 		}
 		if diff := cmp.Diff(want, got); diff != "" {

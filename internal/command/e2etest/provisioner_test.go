@@ -17,8 +17,7 @@ func TestProvisioner(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	tf := e2e.NewBinary(terraformBin, "testdata/provisioner")
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, "testdata/provisioner")
 
 	//// INIT
 	_, stderr, err := tf.Run("init")

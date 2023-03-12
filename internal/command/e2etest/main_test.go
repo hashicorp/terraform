@@ -11,6 +11,18 @@ import (
 
 var terraformBin string
 
+// canRunGoBuild is a short-term compromise to account for the fact that we
+// have a small number of tests that work by building helper programs using
+// "go build" at runtime, but we can't do that in our isolated test mode
+// driven by the make-archive.sh script.
+//
+// FIXME: Rework this a bit so that we build the necessary helper programs
+// (test plugins, etc) as part of the initial suite setup, and in the
+// make-archive.sh script, so that we can run all of the tests in both
+// situations with the tests just using the executable already built for
+// them, as we do for terraformBin.
+var canRunGoBuild bool
+
 func TestMain(m *testing.M) {
 	teardown := setup()
 	code := m.Run()
@@ -21,10 +33,10 @@ func TestMain(m *testing.M) {
 func setup() func() {
 	if terraformBin != "" {
 		// this is pre-set when we're running in a binary produced from
-		// the make-archive.sh script, since that builds a ready-to-go
-		// binary into the archive. However, we do need to turn it into
-		// an absolute path so that we can find it when we change the
-		// working directory during tests.
+		// the make-archive.sh script, since that is for testing an
+		// executable obtained from a real release package. However, we do
+		// need to turn it into an absolute path so that we can find it
+		// when we change the working directory during tests.
 		var err error
 		terraformBin, err = filepath.Abs(terraformBin)
 		if err != nil {
@@ -37,6 +49,11 @@ func setup() func() {
 
 	// Make the executable available for use in tests
 	terraformBin = tmpFilename
+
+	// Tests running in the ad-hoc testing mode are allowed to use "go build"
+	// and similar to produce other test executables.
+	// (See the comment on this variable's declaration for more information.)
+	canRunGoBuild = true
 
 	return func() {
 		os.Remove(tmpFilename)

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -16,6 +18,28 @@ type DiffTransformer struct {
 	Concrete ConcreteResourceInstanceNodeFunc
 	State    *states.State
 	Changes  *plans.Changes
+	Config   *configs.Config
+}
+
+// return true if the given resource instance has either Preconditions or
+// Postconditions defined in the configuration.
+func (t *DiffTransformer) hasConfigConditions(addr addrs.AbsResourceInstance) bool {
+	// unit tests may have no config
+	if t.Config == nil {
+		return false
+	}
+
+	cfg := t.Config.DescendentForInstance(addr.Module)
+	if cfg == nil {
+		return false
+	}
+
+	res := cfg.Module.ResourceByAddr(addr.ConfigResource().Resource)
+	if res == nil {
+		return false
+	}
+
+	return len(res.Preconditions) > 0 || len(res.Postconditions) > 0
 }
 
 func (t *DiffTransformer) Transform(g *Graph) error {
@@ -65,7 +89,11 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 		var update, delete, createBeforeDestroy bool
 		switch rc.Action {
 		case plans.NoOp:
-			continue
+			// For a no-op change we don't take any action but we still
+			// run any condition checks associated with the object, to
+			// make sure that they still hold when considering the
+			// results of other changes.
+			update = t.hasConfigConditions(addr)
 		case plans.Delete:
 			delete = true
 		case plans.DeleteThenCreate, plans.CreateThenDelete:
@@ -76,7 +104,10 @@ func (t *DiffTransformer) Transform(g *Graph) error {
 			update = true
 		}
 
-		if dk != states.NotDeposed && update {
+		// A deposed instance may only have a change of Delete or NoOp. A NoOp
+		// can happen if the provider shows it no longer exists during the most
+		// recent ReadResource operation.
+		if dk != states.NotDeposed && !(rc.Action == plans.Delete || rc.Action == plans.NoOp) {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Invalid planned change for deposed object",

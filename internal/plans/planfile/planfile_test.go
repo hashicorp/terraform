@@ -1,7 +1,6 @@
 package planfile
 
 import (
-	"io/ioutil"
 	"path/filepath"
 	"testing"
 
@@ -63,6 +62,7 @@ func TestRoundtrip(t *testing.T) {
 			Config:    plans.DynamicValue([]byte("config placeholder")),
 			Workspace: "default",
 		},
+		Checks: &states.CheckResults{},
 
 		// Due to some historical oddities in how we've changed modelling over
 		// time, we also include the states (without the corresponding file
@@ -84,11 +84,7 @@ func TestRoundtrip(t *testing.T) {
 		},
 	)
 
-	workDir, err := ioutil.TempDir("", "tf-planfile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	planFn := filepath.Join(workDir, "tfplan")
+	planFn := filepath.Join(t.TempDir(), "tfplan")
 
 	err = Create(planFn, CreateArgs{
 		ConfigSnapshot:       snapIn,

@@ -98,7 +98,6 @@ func TestRefreshJSON_outputs(t *testing.T) {
 				},
 				"password": map[string]interface{}{
 					"sensitive": true,
-					"value":     "horse-battery",
 					"type":      "string",
 				},
 			},

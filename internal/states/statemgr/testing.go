@@ -56,7 +56,7 @@ func TestFull(t *testing.T, s Full) {
 	}
 
 	// Test persistence
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -81,7 +81,7 @@ func TestFull(t *testing.T, s Full) {
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -104,7 +104,7 @@ func TestFull(t *testing.T, s Full) {
 	if err := s.WriteState(current); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := s.PersistState(); err != nil {
+	if err := s.PersistState(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -155,5 +155,9 @@ func TestFullInitialState() *states.State {
 		Module:   addrs.RootModule,
 	}
 	childMod.SetResourceProvider(rAddr, providerAddr)
+
+	state.RootModule().SetOutputValue("sensitive_output", cty.StringVal("it's a secret"), true)
+	state.RootModule().SetOutputValue("nonsensitive_output", cty.StringVal("hello, world!"), false)
+
 	return state
 }

@@ -41,7 +41,8 @@ func TestBackendConfig(t *testing.T, b Backend, c hcl.Body) Backend {
 	newObj, valDiags := b.PrepareConfig(obj)
 	diags = diags.Append(valDiags.InConfigBody(c, ""))
 
-	if len(diags) != 0 {
+	// it's valid for a Backend to have warnings (e.g. a Deprecation) as such we should only raise on errors
+	if diags.HasErrors() {
 		t.Fatal(diags.ErrWithWarnings())
 	}
 
@@ -131,7 +132,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := foo.WriteState(fooState); err != nil {
 			t.Fatal("error writing foo state:", err)
 		}
-		if err := foo.PersistState(); err != nil {
+		if err := foo.PersistState(nil); err != nil {
 			t.Fatal("error persisting foo state:", err)
 		}
 
@@ -159,7 +160,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		if err := bar.WriteState(barState); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
-		if err := bar.PersistState(); err != nil {
+		if err := bar.PersistState(nil); err != nil {
 			t.Fatalf("bad: %s", err)
 		}
 
@@ -218,12 +219,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 	}
 
 	// Delete some workspaces
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify the default state can't be deleted
-	if err := b.DeleteWorkspace(DefaultStateName); err == nil {
+	if err := b.DeleteWorkspace(DefaultStateName, true); err == nil {
 		t.Fatal("expected error")
 	}
 
@@ -241,7 +242,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

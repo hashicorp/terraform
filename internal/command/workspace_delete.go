@@ -165,7 +165,7 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 	// be delegated from the Backend to the State itself.
 	stateLocker.Unlock()
 
-	err = b.DeleteWorkspace(workspace)
+	err = b.DeleteWorkspace(workspace, force)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -190,7 +190,6 @@ func (c *WorkspaceDeleteCommand) Run(args []string) int {
 
 func (c *WorkspaceDeleteCommand) AutocompleteArgs() complete.Predictor {
 	return completePredictSequence{
-		complete.PredictNothing, // the "select" subcommand itself (already matched)
 		c.completePredictWorkspaceName(),
 		complete.PredictDirs(""),
 	}
@@ -211,7 +210,9 @@ Usage: terraform [global options] workspace delete [OPTIONS] NAME
 
 Options:
 
-  -force             Remove even a non-empty workspace.
+  -force             Remove a workspace even if it is managing resources.
+                     Terraform can no longer track or manage the workspace's
+                     infrastructure.
 
   -lock=false        Don't hold a state lock during the operation. This is
                      dangerous if others might concurrently run commands

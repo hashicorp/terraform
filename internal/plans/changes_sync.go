@@ -21,24 +21,6 @@ type ChangesSync struct {
 	changes *Changes
 }
 
-// IsFullDestroy returns true if the set of changes indicates we are doing a
-// destroy of all resources.
-func (cs *ChangesSync) IsFullDestroy() bool {
-	if cs == nil {
-		panic("FullDestroy on nil ChangesSync")
-	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
-
-	for _, c := range cs.changes.Resources {
-		if c.Action != Delete {
-			return false
-		}
-	}
-
-	return true
-}
-
 // AppendResourceInstanceChange records the given resource instance change in
 // the set of planned resource changes.
 //
@@ -80,7 +62,7 @@ func (cs *ChangesSync) GetResourceInstanceChange(addr addrs.AbsResourceInstance,
 	panic(fmt.Sprintf("unsupported generation value %#v", gen))
 }
 
-// GetChangesForConfigResource searched the set of resource instance
+// GetChangesForConfigResource searches the set of resource instance
 // changes and returns all changes related to a given configuration address.
 // This is be used to find possible changes related to a configuration
 // reference.
@@ -98,6 +80,27 @@ func (cs *ChangesSync) GetChangesForConfigResource(addr addrs.ConfigResource) []
 	defer cs.lock.Unlock()
 	var changes []*ResourceInstanceChangeSrc
 	for _, c := range cs.changes.InstancesForConfigResource(addr) {
+		changes = append(changes, c.DeepCopy())
+	}
+	return changes
+}
+
+// GetChangesForAbsResource searches the set of resource instance
+// changes and returns all changes related to a given configuration address.
+//
+// If no such changes exist, nil is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetChangesForAbsResource(addr addrs.AbsResource) []*ResourceInstanceChangeSrc {
+	if cs == nil {
+		panic("GetChangesForAbsResource on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+	var changes []*ResourceInstanceChangeSrc
+	for _, c := range cs.changes.InstancesForAbsResource(addr) {
 		changes = append(changes, c.DeepCopy())
 	}
 	return changes
@@ -164,6 +167,22 @@ func (cs *ChangesSync) GetOutputChange(addr addrs.AbsOutputValue) *OutputChangeS
 	return cs.changes.OutputValue(addr)
 }
 
+// GetRootOutputChanges searches the set of output changes for any that reside
+// the root module. If no such changes exist, nil is returned.
+//
+// The returned objects are a deep copy of the change recorded in the plan, so
+// callers may mutate them although it's generally better (less confusing) to
+// treat planned changes as immutable after they've been initially constructed.
+func (cs *ChangesSync) GetRootOutputChanges() []*OutputChangeSrc {
+	if cs == nil {
+		panic("GetRootOutputChanges on nil ChangesSync")
+	}
+	cs.lock.Lock()
+	defer cs.lock.Unlock()
+
+	return cs.changes.RootOutputValues()
+}
+
 // GetOutputChanges searches the set of output changes for any that reside in
 // module instances beneath the given module. If no changes exist, nil
 // is returned.
@@ -191,6 +210,7 @@ func (cs *ChangesSync) RemoveOutputChange(addr addrs.AbsOutputValue) {
 	defer cs.lock.Unlock()
 
 	addrStr := addr.String()
+
 	for i, o := range cs.changes.Outputs {
 		if o.Addr.String() != addrStr {
 			continue

@@ -1,0 +1,29 @@
+---
+page_title: 'Command: logout'
+description: >-
+  The terraform logout command is used to remove credentials stored by terraform
+  login.
+---
+
+# Command: logout
+
+The `terraform logout` command is used to remove credentials stored by
+`terraform login`. These credentials are API tokens for Terraform Cloud,
+Terraform Enterprise, or any other host that offers Terraform services.
+
+## Usage
+
+Usage: `terraform logout [hostname]`
+
+If you don't provide an explicit hostname, Terraform will assume you want to
+log out of Terraform Cloud at `app.terraform.io`.
+
+-> **Note:** the API token is only removed from local storage, not destroyed on
+the remote server, so it will remain valid until manually revoked.
+
+## Credentials Storage
+
+By default, Terraform will remove the token stored in plain text in a local CLI
+configuration file called `credentials.tfrc.json`. If you have configured a
+[credentials helper program](/terraform/cli/config/config-file#credentials-helpers), Terraform
+will use the helper's `forget` command to remove it.

@@ -1,7 +1,6 @@
 package command
 
 import (
-	"os"
 	"strings"
 	"testing"
 
@@ -97,9 +96,8 @@ func TestStateListWithNonExistentID(t *testing.T) {
 
 func TestStateList_backendDefaultState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-default"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -126,9 +124,8 @@ func TestStateList_backendDefaultState(t *testing.T) {
 
 func TestStateList_backendCustomState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -155,9 +152,8 @@ func TestStateList_backendCustomState(t *testing.T) {
 
 func TestStateList_backendOverrideState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-backend-custom"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()
@@ -184,8 +180,7 @@ func TestStateList_backendOverrideState(t *testing.T) {
 }
 
 func TestStateList_noState(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
+	testCwd(t)
 
 	p := testProvider()
 	ui := cli.NewMockUi()
@@ -204,9 +199,8 @@ func TestStateList_noState(t *testing.T) {
 
 func TestStateList_modules(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("state-list-nested-modules"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	p := testProvider()

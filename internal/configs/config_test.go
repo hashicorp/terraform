@@ -158,6 +158,12 @@ func TestConfigProviderRequirements(t *testing.T) {
 	}
 }
 
+func TestConfigProviderRequirementsDuplicate(t *testing.T) {
+	_, diags := testNestedModuleConfigFromDir(t, "testdata/duplicate-local-name")
+	assertDiagnosticCount(t, diags, 3)
+	assertDiagnosticSummary(t, diags, "Duplicate required provider")
+}
+
 func TestConfigProviderRequirementsShallow(t *testing.T) {
 	cfg, diags := testNestedModuleConfigFromDir(t, "testdata/provider-reqs")
 	// TODO: Version Constraint Deprecation.

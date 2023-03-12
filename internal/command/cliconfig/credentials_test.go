@@ -1,7 +1,6 @@
 package cliconfig
 
 import (
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -10,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 	svcauth "github.com/hashicorp/terraform-svchost/auth"
 )
 
@@ -85,14 +84,132 @@ func TestCredentialsForHost(t *testing.T) {
 			t.Errorf("wrong result\ngot:  %s\nwant: %s", got, want)
 		}
 	})
+	t.Run("set in environment", func(t *testing.T) {
+		envName := "TF_TOKEN_configured_example_com"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		expectedToken := "configured-by-env"
+		os.Setenv(envName, expectedToken)
+
+		creds, err := credSrc.ForHost(svchost.Hostname("configured.example.com"))
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("punycode name set in environment", func(t *testing.T) {
+		envName := "TF_TOKEN_env_xn--eckwd4c7cu47r2wf_com"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		expectedToken := "configured-by-env"
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("env.ドメイン名例.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("hyphens can be encoded as double underscores", func(t *testing.T) {
+		envName := "TF_TOKEN_env_xn____caf__dma_fr"
+		expectedToken := "configured-by-fallback"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("env.café.fr")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("periods are ok", func(t *testing.T) {
+		envName := "TF_TOKEN_configured.example.com"
+		expectedToken := "configured-by-env"
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		os.Setenv(envName, expectedToken)
+
+		hostname, _ := svchost.ForComparison("configured.example.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
+
+	t.Run("casing is insensitive", func(t *testing.T) {
+		envName := "TF_TOKEN_CONFIGUREDUPPERCASE_EXAMPLE_COM"
+		expectedToken := "configured-by-env"
+
+		os.Setenv(envName, expectedToken)
+		t.Cleanup(func() {
+			os.Unsetenv(envName)
+		})
+
+		hostname, _ := svchost.ForComparison("configureduppercase.example.com")
+		creds, err := credSrc.ForHost(hostname)
+
+		if err != nil {
+			t.Fatalf("unexpected error: %s", err)
+		}
+
+		if creds == nil {
+			t.Fatal("no credentials found")
+		}
+
+		if got := creds.Token(); got != expectedToken {
+			t.Errorf("wrong result\ngot: %s\nwant: %s", got, expectedToken)
+		}
+	})
 }
 
 func TestCredentialsStoreForget(t *testing.T) {
-	d, err := ioutil.TempDir("", "terraform-cliconfig-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(d)
+	d := t.TempDir()
 
 	mockCredsFilename := filepath.Join(d, "credentials.tfrc.json")
 

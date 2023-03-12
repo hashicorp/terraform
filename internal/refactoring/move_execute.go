@@ -26,9 +26,10 @@ import (
 // ApplyMoves expects exclusive access to the given state while it's running.
 // Don't read or write any part of the state structure until ApplyMoves returns.
 func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
-	ret := MoveResults{
-		Changes: make(map[addrs.UniqueKey]MoveSuccess),
-		Blocked: make(map[addrs.UniqueKey]MoveBlocked),
+	ret := makeMoveResults()
+
+	if len(stmts) == 0 {
+		return ret
 	}
 
 	// The methodology here is to construct a small graph of all of the move
@@ -39,12 +40,17 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 
 	g := buildMoveStatementGraph(stmts)
 
-	// If there are any cycles in the graph then we'll not take any action
-	// at all. The separate validation step should detect this and return
-	// an error.
-	if len(g.Cycles()) != 0 {
+	// If the graph is not valid the we will not take any action at all. The
+	// separate validation step should detect this and return an error.
+	if diags := validateMoveStatementGraph(g); diags.HasErrors() {
+		log.Printf("[ERROR] ApplyMoves: %s", diags.ErrWithWarnings())
 		return ret
 	}
+
+	// The graph must be reduced in order for ReverseDepthFirstWalk to work
+	// correctly, since it is built from following edges and can skip over
+	// dependencies if there is a direct edge to a transitive dependency.
+	g.TransitiveReduction()
 
 	// The starting nodes are the ones that don't depend on any other nodes.
 	startNodes := make(dag.Set, len(stmts))
@@ -62,42 +68,37 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 	log.Printf("[TRACE] refactoring.ApplyMoves: Processing 'moved' statements in the configuration\n%s", logging.Indent(g.String()))
 
 	recordOldAddr := func(oldAddr, newAddr addrs.AbsResourceInstance) {
-		oldAddrKey := oldAddr.UniqueKey()
-		newAddrKey := newAddr.UniqueKey()
-		if prevMove, exists := ret.Changes[oldAddrKey]; exists {
+		if prevMove, exists := ret.Changes.GetOk(oldAddr); exists {
 			// If the old address was _already_ the result of a move then
 			// we'll replace that entry so that our results summarize a chain
 			// of moves into a single entry.
-			delete(ret.Changes, oldAddrKey)
+			ret.Changes.Remove(oldAddr)
 			oldAddr = prevMove.From
 		}
-		ret.Changes[newAddrKey] = MoveSuccess{
+		ret.Changes.Put(newAddr, MoveSuccess{
 			From: oldAddr,
 			To:   newAddr,
-		}
+		})
 	}
 	recordBlockage := func(newAddr, wantedAddr addrs.AbsMoveable) {
-		ret.Blocked[newAddr.UniqueKey()] = MoveBlocked{
+		ret.Blocked.Put(newAddr, MoveBlocked{
 			Wanted: wantedAddr,
 			Actual: newAddr,
-		}
+		})
 	}
 
-	g.ReverseDepthFirstWalk(startNodes, func(v dag.Vertex, depth int) error {
+	for _, v := range g.ReverseTopologicalOrder() {
 		stmt := v.(*MoveStatement)
 
 		for _, ms := range state.Modules {
 			modAddr := ms.Addr
-			if !stmt.From.SelectsModule(modAddr) {
-				continue
-			}
 
-			// We now know that the current module is relevant but what
-			// we'll do with it depends on the object kind.
+			// We don't yet know that the current module is relevant, and
+			// we determine that differently for each the object kind.
 			switch kind := stmt.ObjectKind(); kind {
 			case addrs.MoveEndpointModule:
 				// For a module endpoint we just try the module address
-				// directly.
+				// directly, and execute the moves if it matches.
 				if newAddr, matches := modAddr.MoveDestination(stmt.From, stmt.To); matches {
 					log.Printf("[TRACE] refactoring.ApplyMoves: %s has moved to %s", modAddr, newAddr)
 
@@ -125,8 +126,15 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 					continue
 				}
 			case addrs.MoveEndpointResource:
-				// For a resource endpoint we need to search each of the
-				// resources and resource instances in the module.
+				// For a resource endpoint we require an exact containing
+				// module match, because by definition a matching resource
+				// cannot be nested any deeper than that.
+				if !stmt.From.SelectsModule(modAddr) {
+					continue
+				}
+
+				// We then need to search each of the resources and resource
+				// instances in the module.
 				for _, rs := range ms.Resources {
 					rAddr := rs.Addr
 					if newAddr, matches := rAddr.MoveDestination(stmt.From, stmt.To); matches {
@@ -174,9 +182,7 @@ func ApplyMoves(stmts []MoveStatement, state *states.State) MoveResults {
 				panic(fmt.Sprintf("unhandled move object kind %s", kind))
 			}
 		}
-
-		return nil
-	})
+	}
 
 	return ret
 }
@@ -238,11 +244,31 @@ func statementDependsOn(a, b *MoveStatement) bool {
 	//
 	// Since we are only interested in checking if A depends on B, we only need
 	// to check the 4 possibilities above which result in B being executed
-	// first.
-	return a.From.NestedWithin(b.To) ||
-		a.To.NestedWithin(b.To) ||
-		b.From.NestedWithin(a.From) ||
-		b.To.NestedWithin(a.From)
+	// first. If we're there's no dependency at all we can return immediately.
+	if !(a.From.NestedWithin(b.To) || a.To.NestedWithin(b.To) ||
+		b.From.NestedWithin(a.From) || b.To.NestedWithin(a.From)) {
+		return false
+	}
+
+	// If a nested move has a dependency, we need to rule out the possibility
+	// that this is a move inside a module only changing indexes. If an
+	// ancestor module is only changing the index of a nested module, any
+	// nested move statements are going to match both the From and To address
+	// when the base name is not changing, causing a cycle in the order of
+	// operations.
+
+	// if A is not declared in an ancestor module, then we can't be nested
+	// within a module index change.
+	if len(a.To.Module()) >= len(b.To.Module()) {
+		return true
+	}
+	// We only want the nested move statement to depend on the outer module
+	// move, so we only test this in the reverse direction.
+	if a.From.IsModuleReIndex(a.To) {
+		return false
+	}
+
+	return true
 }
 
 // MoveResults describes the outcome of an ApplyMoves call.
@@ -259,7 +285,7 @@ type MoveResults struct {
 	//
 	// In the return value from ApplyMoves, all of the keys are guaranteed to
 	// be unique keys derived from addrs.AbsResourceInstance values.
-	Changes map[addrs.UniqueKey]MoveSuccess
+	Changes addrs.Map[addrs.AbsResourceInstance, MoveSuccess]
 
 	// Blocked is a map from the unique keys of the final new
 	// resource instances addresses to information about where they "wanted"
@@ -275,7 +301,14 @@ type MoveResults struct {
 	//
 	// In the return value from ApplyMoves, all of the keys are guaranteed to
 	// be unique keys derived from values of addrs.AbsMoveable types.
-	Blocked map[addrs.UniqueKey]MoveBlocked
+	Blocked addrs.Map[addrs.AbsMoveable, MoveBlocked]
+}
+
+func makeMoveResults() MoveResults {
+	return MoveResults{
+		Changes: addrs.MakeMap[addrs.AbsResourceInstance, MoveSuccess](),
+		Blocked: addrs.MakeMap[addrs.AbsMoveable, MoveBlocked](),
+	}
 }
 
 type MoveSuccess struct {
@@ -294,15 +327,14 @@ type MoveBlocked struct {
 // If AddrMoved returns true, you can pass the same address to method OldAddr
 // to find its original address prior to moving.
 func (rs MoveResults) AddrMoved(newAddr addrs.AbsResourceInstance) bool {
-	_, ok := rs.Changes[newAddr.UniqueKey()]
-	return ok
+	return rs.Changes.Has(newAddr)
 }
 
 // OldAddr returns the old address of the given resource instance address, or
 // just returns back the same address if the given instance wasn't affected by
 // any move statements.
 func (rs MoveResults) OldAddr(newAddr addrs.AbsResourceInstance) addrs.AbsResourceInstance {
-	change, ok := rs.Changes[newAddr.UniqueKey()]
+	change, ok := rs.Changes.GetOk(newAddr)
 	if !ok {
 		return newAddr
 	}

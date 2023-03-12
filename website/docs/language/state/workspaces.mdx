@@ -1,0 +1,73 @@
+---
+page_title: 'State: Workspaces'
+description: >-
+  Workspaces allow the use of multiple states with a single configuration
+  directory.
+---
+
+# Workspaces
+
+Each Terraform configuration has an associated [backend](/terraform/language/settings/backends/configuration) that defines how Terraform executes operations and where Terraform stores persistent data, like [state](/terraform/language/state/purpose).
+
+The persistent data stored in the backend belongs to a workspace. The backend initially has only one workspace containing one Terraform state associated with that configuration. Some backends support multiple named workspaces, allowing multiple states to be associated with a single configuration. The configuration still has only one backend, but you can deploy multiple distinct instances of that configuration without configuring a new backend or changing authentication
+credentials.
+
+-> **Note**: The Terraform CLI workspaces are different from [workspaces in Terraform Cloud](/terraform/cloud-docs/workspaces). Refer to [Initializing and Migrating](/terraform/cli/cloud/migrating) for details about migrating a configuration with multiple workspaces to Terraform Cloud.
+
+## Backends Supporting Multiple Workspaces
+
+You can use multiple workspaces with the following backends:
+
+- [AzureRM](/terraform/language/settings/backends/azurerm)
+- [Consul](/terraform/language/settings/backends/consul)
+- [COS](/terraform/language/settings/backends/cos)
+- [GCS](/terraform/language/settings/backends/gcs)
+- [Kubernetes](/terraform/language/settings/backends/kubernetes)
+- [Local](/terraform/language/settings/backends/local)
+- [OSS](/terraform/language/settings/backends/oss)
+- [Postgres](/terraform/language/settings/backends/pg)
+- [Remote](/terraform/language/settings/backends/remote)
+- [S3](/terraform/language/settings/backends/s3)
+
+
+## Using Workspaces
+
+~> **Important:** Workspaces are not appropriate for system decomposition or deployments requiring separate credentials and access controls. Refer to [Use Cases](/terraform/cli/workspaces#use-cases) in the Terraform CLI documentation for details and recommended alternatives.
+
+Terraform starts with a single, default workspace named `default` that you cannot delete. If you have not created a new workspace, you are using the default workspace in your Terraform working directory.
+
+When you run `terraform plan` in a new workspace, Terraform does not access existing resources in other workspaces. These resources still physically exist, but you must switch workspaces to manage them.
+
+Refer to the [Terraform CLI workspaces](/terraform/cli/workspaces) documentation for full details about how to create and use workspaces.
+
+
+## Current Workspace Interpolation
+
+Within your Terraform configuration, you may include the name of the current
+workspace using the `${terraform.workspace}` interpolation sequence. This can
+be used anywhere interpolations are allowed.
+
+Referencing the current workspace is useful for changing behavior based
+on the workspace. For example, for non-default workspaces, it may be useful
+to spin up smaller cluster sizes. For example:
+
+```hcl
+resource "aws_instance" "example" {
+  count = "${terraform.workspace == "default" ? 5 : 1}"
+
+  # ... other arguments
+}
+```
+
+Another popular use case is using the workspace name as part of naming or
+tagging behavior:
+
+```hcl
+resource "aws_instance" "example" {
+  tags = {
+    Name = "web - ${terraform.workspace}"
+  }
+
+  # ... other arguments
+}
+```

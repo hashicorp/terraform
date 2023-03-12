@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -40,14 +38,12 @@ var (
 func TestNewContextRequiredVersion(t *testing.T) {
 	cases := []struct {
 		Name    string
-		Module  string
 		Version string
 		Value   string
 		Err     bool
 	}{
 		{
 			"no requirement",
-			"",
 			"0.1.0",
 			"",
 			false,
@@ -55,7 +51,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"doesn't match",
-			"",
 			"0.1.0",
 			"> 0.6.0",
 			true,
@@ -63,25 +58,22 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"matches",
-			"",
 			"0.7.0",
 			"> 0.6.0",
 			false,
 		},
 
 		{
-			"module matches",
-			"context-required-version-module",
-			"0.5.0",
-			"",
-			false,
+			"prerelease doesn't match with inequality",
+			"0.8.0",
+			"> 0.7.0-beta",
+			true,
 		},
 
 		{
-			"module doesn't match",
-			"context-required-version-module",
-			"0.4.0",
-			"",
+			"prerelease doesn't match with equality",
+			"0.7.0",
+			"0.7.0-beta",
 			true,
 		},
 	}
@@ -93,17 +85,72 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
 			defer func() { tfversion.SemVer = old }()
 
-			name := "context-required-version"
-			if tc.Module != "" {
-				name = tc.Module
-			}
-			mod := testModule(t, name)
+			mod := testModule(t, "context-required-version")
 			if tc.Value != "" {
 				constraint, err := version.NewConstraint(tc.Value)
 				if err != nil {
 					t.Fatalf("can't parse %q as version constraint", tc.Value)
 				}
 				mod.Module.CoreVersionConstraints = append(mod.Module.CoreVersionConstraints, configs.VersionConstraint{
+					Required: constraint,
+				})
+			}
+			c, diags := NewContext(&ContextOpts{})
+			if diags.HasErrors() {
+				t.Fatalf("unexpected NewContext errors: %s", diags.Err())
+			}
+
+			diags = c.Validate(mod)
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err())
+			}
+		})
+	}
+}
+
+func TestNewContextRequiredVersion_child(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+`,
+		"child/main.tf": `
+terraform {}
+`,
+	})
+
+	cases := map[string]struct {
+		Version    string
+		Constraint string
+		Err        bool
+	}{
+		"matches": {
+			"0.5.0",
+			">= 0.5.0",
+			false,
+		},
+		"doesn't match": {
+			"0.4.0",
+			">= 0.5.0",
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Reset the version for the tests
+			old := tfversion.SemVer
+			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
+			defer func() { tfversion.SemVer = old }()
+
+			if tc.Constraint != "" {
+				constraint, err := version.NewConstraint(tc.Constraint)
+				if err != nil {
+					t.Fatalf("can't parse %q as version constraint", tc.Constraint)
+				}
+				child := mod.Children["child"]
+				child.Module.CoreVersionConstraints = append(child.Module.CoreVersionConstraints, configs.VersionConstraint{
 					Required: constraint,
 				})
 			}
@@ -262,6 +309,14 @@ func testApplyFn(req providers.ApplyResourceChangeRequest) (resp providers.Apply
 
 func testDiffFn(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 	var planned map[string]cty.Value
+
+	// this is a destroy plan
+	if req.ProposedNewState.IsNull() {
+		resp.PlannedState = req.ProposedNewState
+		resp.PlannedPrivate = req.PriorPrivate
+		return resp
+	}
+
 	if !req.ProposedNewState.IsNull() {
 		planned = req.ProposedNewState.AsValueMap()
 	}
@@ -613,8 +668,8 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 	})
 }
 
-// contextForPlanViaFile is a helper that creates a temporary plan file, then
-// reads it back in again and produces a ContextOpts object containing the
+// contextOptsForPlanViaFile is a helper that creates a temporary plan file,
+// then reads it back in again and produces a ContextOpts object containing the
 // planned changes, prior state and config from the plan file.
 //
 // This is intended for testing the separated plan/apply workflow in a more
@@ -623,12 +678,8 @@ func testProviderSchema(name string) *providers.GetProviderSchemaResponse {
 // our context tests try to exercise lots of stuff at once and so having them
 // round-trip things through on-disk files is often an important part of
 // fully representing an old bug in a regression test.
-func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
-	dir, err := ioutil.TempDir("", "terraform-contextForPlanViaFile")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	defer os.RemoveAll(dir)
+func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, plan *plans.Plan) (*ContextOpts, *configs.Config, *plans.Plan, error) {
+	dir := t.TempDir()
 
 	// We'll just create a dummy statefile.File here because we're not going
 	// to run through any of the codepaths that care about Lineage/Serial/etc
@@ -655,7 +706,7 @@ func contextOptsForPlanViaFile(configSnap *configload.Snapshot, plan *plans.Plan
 	}
 
 	filename := filepath.Join(dir, "tfplan")
-	err = planfile.Create(filename, planfile.CreateArgs{
+	err := planfile.Create(filename, planfile.CreateArgs{
 		ConfigSnapshot:       configSnap,
 		PreviousRunStateFile: prevStateFile,
 		StateFile:            stateFile,

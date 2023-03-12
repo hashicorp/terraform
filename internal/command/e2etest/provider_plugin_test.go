@@ -13,10 +13,17 @@ import (
 // TestProviderProtocols verifies that Terraform can execute provider plugins
 // with both supported protocol versions.
 func TestProviderProtocols(t *testing.T) {
+	if !canRunGoBuild {
+		// We're running in a separate-build-then-run context, so we can't
+		// currently execute this test which depends on being able to build
+		// new executable at runtime.
+		//
+		// (See the comment on canRunGoBuild's declaration for more information.)
+		t.Skip("can't run without building a new provider executable")
+	}
 	t.Parallel()
 
-	tf := e2e.NewBinary(terraformBin, "testdata/provider-plugin")
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, "testdata/provider-plugin")
 
 	// In order to do a decent end-to-end test for this case we will need a real
 	// enough provider plugin to try to run and make sure we are able to
@@ -65,6 +72,16 @@ func TestProviderProtocols(t *testing.T) {
 	}
 
 	if !strings.Contains(stdout, "Apply complete! Resources: 2 added, 0 changed, 0 destroyed.") {
-		t.Fatalf("wrong output:\n%s", stdout)
+		t.Fatalf("wrong output:\nstdout:%s\nstderr%s", stdout, stderr)
+	}
+
+	/// DESTROY
+	stdout, stderr, err = tf.Run("destroy", "-auto-approve")
+	if err != nil {
+		t.Fatalf("unexpected apply error: %s\nstderr:\n%s", err, stderr)
+	}
+
+	if !strings.Contains(stdout, "Resources: 2 destroyed") {
+		t.Fatalf("wrong destroy output\nstdout:%s\nstderr:%s", stdout, stderr)
 	}
 }

@@ -1,0 +1,567 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.1.0-dev",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "foo"
+          },
+          "sensitive_values": {}
+        },
+        {
+          "address": "test_instance.test_backup",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test_backup",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "foo-backup"
+          },
+          "sensitive_values": {}
+        }
+      ],
+      "child_modules": [
+        {
+          "resources": [
+            {
+              "address": "module.child.test_instance.test_primary",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test_primary",
+              "provider_name": "registry.terraform.io/hashicorp/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "primary"
+              },
+              "sensitive_values": {}
+            },
+            {
+              "address": "module.child.test_instance.test_secondary",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test_secondary",
+              "provider_name": "registry.terraform.io/hashicorp/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "secondary"
+              },
+              "sensitive_values": {}
+            }
+          ],
+          "address": "module.child",
+          "child_modules": [
+            {
+              "resources": [
+                {
+                  "address": "module.child.module.grandchild.test_instance.test_alternate",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test_alternate",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "secondary"
+                  },
+                  "sensitive_values": {}
+                },
+                {
+                  "address": "module.child.module.grandchild.test_instance.test_main",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test_main",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "main"
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.child.module.grandchild"
+            }
+          ]
+        },
+        {
+          "resources": [
+            {
+              "address": "module.sibling.test_instance.test_primary",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test_primary",
+              "provider_name": "registry.terraform.io/hashicorp/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "primary"
+              },
+              "sensitive_values": {}
+            },
+            {
+              "address": "module.sibling.test_instance.test_secondary",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test_secondary",
+              "provider_name": "registry.terraform.io/hashicorp/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "secondary"
+              },
+              "sensitive_values": {}
+            }
+          ],
+          "address": "module.sibling",
+          "child_modules": [
+            {
+              "resources": [
+                {
+                  "address": "module.sibling.module.grandchild.test_instance.test_alternate",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test_alternate",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "secondary"
+                  },
+                  "sensitive_values": {}
+                },
+                {
+                  "address": "module.sibling.module.grandchild.test_instance.test_main",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test_main",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "main"
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.sibling.module.grandchild"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "test_instance.test",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "foo"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "test_instance.test_backup",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_backup",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "foo-backup"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.test_instance.test_primary",
+      "module_address": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_primary",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "primary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.test_instance.test_secondary",
+      "module_address": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_secondary",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "secondary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.test_instance.test_primary",
+      "module_address": "module.sibling",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_primary",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "primary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.test_instance.test_secondary",
+      "module_address": "module.sibling",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_secondary",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "secondary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.module.grandchild.test_instance.test_alternate",
+      "module_address": "module.child.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_alternate",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "secondary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.module.grandchild.test_instance.test_main",
+      "module_address": "module.child.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_main",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "main"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.module.grandchild.test_instance.test_alternate",
+      "module_address": "module.sibling.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_alternate",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "secondary"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.sibling.module.grandchild.test_instance.test_main",
+      "module_address": "module.sibling.module.grandchild",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test_main",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "main"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "test": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test",
+        "expressions": {
+          "region": {
+            "constant_value": "somewhere"
+          }
+        }
+      },
+      "test.backup": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test",
+        "alias": "backup",
+        "expressions": {
+          "region": {
+            "constant_value": "elsewhere"
+          }
+        }
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_config_key": "test",
+          "expressions": {
+            "ami": {
+              "constant_value": "foo"
+            }
+          },
+          "schema_version": 0
+        },
+        {
+          "address": "test_instance.test_backup",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test_backup",
+          "provider_config_key": "test.backup",
+          "expressions": {
+            "ami": {
+              "constant_value": "foo-backup"
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "module_calls": {
+        "child": {
+          "source": "./child",
+          "module": {
+            "resources": [
+              {
+                "address": "test_instance.test_primary",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test_primary",
+                "provider_config_key": "test",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "primary"
+                  }
+                },
+                "schema_version": 0
+              },
+              {
+                "address": "test_instance.test_secondary",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test_secondary",
+                "provider_config_key": "test.backup",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "secondary"
+                  }
+                },
+                "schema_version": 0
+              }
+            ],
+            "module_calls": {
+              "grandchild": {
+                "source": "./nested",
+                "module": {
+                  "resources": [
+                    {
+                      "address": "test_instance.test_alternate",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test_alternate",
+                      "provider_config_key": "test.backup",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "secondary"
+                        }
+                      },
+                      "schema_version": 0
+                    },
+                    {
+                      "address": "test_instance.test_main",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test_main",
+                      "provider_config_key": "test",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "main"
+                        }
+                      },
+                      "schema_version": 0
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "sibling": {
+          "source": "./child",
+          "module": {
+            "resources": [
+              {
+                "address": "test_instance.test_primary",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test_primary",
+                "provider_config_key": "test",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "primary"
+                  }
+                },
+                "schema_version": 0
+              },
+              {
+                "address": "test_instance.test_secondary",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test_secondary",
+                "provider_config_key": "test",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "secondary"
+                  }
+                },
+                "schema_version": 0
+              }
+            ],
+            "module_calls": {
+              "grandchild": {
+                "source": "./nested",
+                "module": {
+                  "resources": [
+                    {
+                      "address": "test_instance.test_alternate",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test_alternate",
+                      "provider_config_key": "test",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "secondary"
+                        }
+                      },
+                      "schema_version": 0
+                    },
+                    {
+                      "address": "test_instance.test_main",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test_main",
+                      "provider_config_key": "test",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "main"
+                        }
+                      },
+                      "schema_version": 0
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

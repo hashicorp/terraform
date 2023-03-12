@@ -5,8 +5,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // anyKeyImpl is the InstanceKey representation indicating a wildcard, which
@@ -179,8 +180,7 @@ func (e *MoveEndpointInModule) InModuleInstance(modInst ModuleInstance) AbsMovea
 // while selecting a particular object to move.
 //
 // This is a rather special-purpose function here mainly to support our
-// validation rule that a module can only traverse down into child modules
-// that belong to the same module package.
+// validation rule that a module can only traverse down into child modules.
 func (e *MoveEndpointInModule) ModuleCallTraversals() (Module, []ModuleCall) {
 	// We're returning []ModuleCall rather than Module here to make it clearer
 	// that this is a relative sequence of calls rather than an absolute
@@ -373,7 +373,7 @@ func (e *MoveEndpointInModule) CanChainFrom(other *MoveEndpointInModule) bool {
 	return false
 }
 
-// NestedWithin returns true if the reciever describes an address that is
+// NestedWithin returns true if the receiver describes an address that is
 // contained within one of the objects that the given other address could
 // select.
 func (e *MoveEndpointInModule) NestedWithin(other *MoveEndpointInModule) bool {
@@ -703,4 +703,38 @@ func (r AbsResourceInstance) MoveDestination(fromMatch, toMatch *MoveEndpointInM
 	default:
 		panic("unexpected object kind")
 	}
+}
+
+// IsModuleReIndex takes the From and To endpoints from a single move
+// statement, and returns true if the only changes are to module indexes, and
+// all non-absolute paths remain the same.
+func (from *MoveEndpointInModule) IsModuleReIndex(to *MoveEndpointInModule) bool {
+	// The statements must originate from the same module.
+	if !from.module.Equal(to.module) {
+		panic("cannot compare move expressions from different modules")
+	}
+
+	switch f := from.relSubject.(type) {
+	case AbsModuleCall:
+		switch t := to.relSubject.(type) {
+		case ModuleInstance:
+			// Generate a synthetic module to represent the full address of
+			// the module call. We're not actually comparing indexes, so the
+			// instance doesn't matter.
+			callAddr := f.Instance(NoKey).Module()
+			return callAddr.Equal(t.Module())
+		}
+
+	case ModuleInstance:
+		switch t := to.relSubject.(type) {
+		case AbsModuleCall:
+			callAddr := t.Instance(NoKey).Module()
+			return callAddr.Equal(f.Module())
+
+		case ModuleInstance:
+			return t.Module().Equal(f.Module())
+		}
+	}
+
+	return false
 }

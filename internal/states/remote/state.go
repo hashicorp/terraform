@@ -3,12 +3,15 @@ package remote
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
+
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/terraform/internal/terraform"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -44,6 +47,19 @@ func (s *State) State() *states.State {
 	defer s.mu.Unlock()
 
 	return s.state.DeepCopy()
+}
+
+func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	if err := s.RefreshState(); err != nil {
+		return nil, fmt.Errorf("Failed to load state: %s", err)
+	}
+
+	state := s.State()
+	if state == nil {
+		state = states.NewState()
+	}
+
+	return state.RootModule().OutputValues, nil
 }
 
 // StateForMigration is part of our implementation of statemgr.Migrator.
@@ -139,9 +155,12 @@ func (s *State) refreshState() error {
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState() error {
+func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	log.Printf("[DEBUG] states/remote: state read serial is: %d; serial is: %d", s.readSerial, s.serial)
+	log.Printf("[DEBUG] states/remote: state read lineage is: %s; lineage is: %s", s.readLineage, s.lineage)
 
 	if s.readState != nil {
 		lineageUnchanged := s.readLineage != "" && s.lineage == s.readLineage
@@ -160,13 +179,15 @@ func (s *State) PersistState() error {
 		if err != nil {
 			return fmt.Errorf("failed checking for existing remote state: %s", err)
 		}
+		log.Printf("[DEBUG] states/remote: after refresh, state read serial is: %d; serial is: %d", s.readSerial, s.serial)
+		log.Printf("[DEBUG] states/remote: after refresh, state read lineage is: %s; lineage is: %s", s.readLineage, s.lineage)
 		if s.lineage == "" { // indicates that no state snapshot is present yet
 			lineage, err := uuid.GenerateUUID()
 			if err != nil {
 				return fmt.Errorf("failed to generate initial lineage: %v", err)
 			}
 			s.lineage = lineage
-			s.serial = 0
+			s.serial++
 		}
 	}
 

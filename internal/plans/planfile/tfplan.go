@@ -8,6 +8,8 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
@@ -57,7 +59,10 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Resources: []*plans.ResourceInstanceChangeSrc{},
 		},
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
+		Checks:           &states.CheckResults{},
 	}
+
+	plan.Errored = rawPlan.Errored
 
 	switch rawPlan.UiMode {
 	case planproto.Mode_NORMAL:
@@ -87,6 +92,92 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		})
 	}
 
+	plan.Checks.ConfigResults = addrs.MakeMap[addrs.ConfigCheckable, *states.CheckResultAggregate]()
+	for _, rawCRs := range rawPlan.CheckResults {
+		aggr := &states.CheckResultAggregate{}
+		switch rawCRs.Status {
+		case planproto.CheckResults_UNKNOWN:
+			aggr.Status = checks.StatusUnknown
+		case planproto.CheckResults_PASS:
+			aggr.Status = checks.StatusPass
+		case planproto.CheckResults_FAIL:
+			aggr.Status = checks.StatusFail
+		case planproto.CheckResults_ERROR:
+			aggr.Status = checks.StatusError
+		default:
+			return nil, fmt.Errorf("aggregate check results for %s have unsupported status %#v", rawCRs.ConfigAddr, rawCRs.Status)
+		}
+
+		var objKind addrs.CheckableKind
+		switch rawCRs.Kind {
+		case planproto.CheckResults_RESOURCE:
+			objKind = addrs.CheckableResource
+		case planproto.CheckResults_OUTPUT_VALUE:
+			objKind = addrs.CheckableOutputValue
+		default:
+			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
+		}
+
+		// Some trickiness here: we only have an address parser for
+		// addrs.Checkable and not for addrs.ConfigCheckable, but that's okay
+		// because once we have an addrs.Checkable we can always derive an
+		// addrs.ConfigCheckable from it, and a ConfigCheckable should always
+		// be the same syntax as a Checkable with no index information and
+		// thus we can reuse the same parser for both here.
+		configAddrProxy, diags := addrs.ParseCheckableStr(objKind, rawCRs.ConfigAddr)
+		if diags.HasErrors() {
+			return nil, diags.Err()
+		}
+		configAddr := configAddrProxy.ConfigCheckable()
+		if configAddr.String() != configAddrProxy.String() {
+			// This is how we catch if the config address included index
+			// information that would be allowed in a Checkable but not
+			// in a ConfigCheckable.
+			return nil, fmt.Errorf("invalid checkable config address %s", rawCRs.ConfigAddr)
+		}
+
+		aggr.ObjectResults = addrs.MakeMap[addrs.Checkable, *states.CheckResultObject]()
+		for _, rawCR := range rawCRs.Objects {
+			objectAddr, diags := addrs.ParseCheckableStr(objKind, rawCR.ObjectAddr)
+			if diags.HasErrors() {
+				return nil, diags.Err()
+			}
+			if !addrs.Equivalent(objectAddr.ConfigCheckable(), configAddr) {
+				return nil, fmt.Errorf("checkable object %s should not be grouped under %s", objectAddr, configAddr)
+			}
+
+			obj := &states.CheckResultObject{
+				FailureMessages: rawCR.FailureMessages,
+			}
+			switch rawCR.Status {
+			case planproto.CheckResults_UNKNOWN:
+				obj.Status = checks.StatusUnknown
+			case planproto.CheckResults_PASS:
+				obj.Status = checks.StatusPass
+			case planproto.CheckResults_FAIL:
+				obj.Status = checks.StatusFail
+			case planproto.CheckResults_ERROR:
+				obj.Status = checks.StatusError
+			default:
+				return nil, fmt.Errorf("object check results for %s has unsupported status %#v", rawCR.ObjectAddr, rawCR.Status)
+			}
+
+			aggr.ObjectResults.Put(objectAddr, obj)
+		}
+		// If we ended up with no elements in the map then we'll just nil it,
+		// primarily just to make life easier for our round-trip tests.
+		if aggr.ObjectResults.Len() == 0 {
+			aggr.ObjectResults.Elems = nil
+		}
+
+		plan.Checks.ConfigResults.Put(configAddr, aggr)
+	}
+	// If we ended up with no elements in the map then we'll just nil it,
+	// primarily just to make life easier for our round-trip tests.
+	if plan.Checks.ConfigResults.Len() == 0 {
+		plan.Checks.ConfigResults.Elems = nil
+	}
+
 	for _, rawRC := range rawPlan.ResourceChanges {
 		change, err := resourceChangeFromTfplan(rawRC)
 		if err != nil {
@@ -105,6 +196,14 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 
 		plan.DriftedResources = append(plan.DriftedResources, change)
+	}
+
+	for _, rawRA := range rawPlan.RelevantAttributes {
+		ra, err := resourceAttrFromTfplan(rawRA)
+		if err != nil {
+			return nil, err
+		}
+		plan.RelevantAttributes = append(plan.RelevantAttributes, ra)
 	}
 
 	for _, rawTargetAddr := range rawPlan.TargetAddrs {
@@ -218,6 +317,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReplaceBecauseTainted
 	case planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST:
 		ret.ActionReason = plans.ResourceInstanceReplaceByRequest
+	case planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS:
+		ret.ActionReason = plans.ResourceInstanceReplaceByTriggers
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoResourceConfig
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_WRONG_REPETITION:
@@ -228,6 +329,12 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseEachKey
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoModule
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseConfigUnknown
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseDependencyPending
+	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET:
+		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoMoveTarget
 	default:
 		return nil, fmt.Errorf("resource has invalid action reason %s", rawChange.ActionReason)
 	}
@@ -351,9 +458,12 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
+		CheckResults:    []*planproto.CheckResults{},
 		ResourceChanges: []*planproto.ResourceInstanceChange{},
 		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
+
+	rawPlan.Errored = plan.Errored
 
 	switch plan.UIMode {
 	case plans.NormalMode:
@@ -391,6 +501,58 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		})
 	}
 
+	if plan.Checks != nil {
+		for _, configElem := range plan.Checks.ConfigResults.Elems {
+			crs := configElem.Value
+			pcrs := &planproto.CheckResults{
+				ConfigAddr: configElem.Key.String(),
+			}
+			switch crs.Status {
+			case checks.StatusUnknown:
+				pcrs.Status = planproto.CheckResults_UNKNOWN
+			case checks.StatusPass:
+				pcrs.Status = planproto.CheckResults_PASS
+			case checks.StatusFail:
+				pcrs.Status = planproto.CheckResults_FAIL
+			case checks.StatusError:
+				pcrs.Status = planproto.CheckResults_ERROR
+			default:
+				return fmt.Errorf("checkable configuration %s has unsupported aggregate status %s", configElem.Key, crs.Status)
+			}
+			switch kind := configElem.Key.CheckableKind(); kind {
+			case addrs.CheckableResource:
+				pcrs.Kind = planproto.CheckResults_RESOURCE
+			case addrs.CheckableOutputValue:
+				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
+			default:
+				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
+			}
+
+			for _, objectElem := range configElem.Value.ObjectResults.Elems {
+				cr := objectElem.Value
+				pcr := &planproto.CheckResults_ObjectResult{
+					ObjectAddr:      objectElem.Key.String(),
+					FailureMessages: objectElem.Value.FailureMessages,
+				}
+				switch cr.Status {
+				case checks.StatusUnknown:
+					pcr.Status = planproto.CheckResults_UNKNOWN
+				case checks.StatusPass:
+					pcr.Status = planproto.CheckResults_PASS
+				case checks.StatusFail:
+					pcr.Status = planproto.CheckResults_FAIL
+				case checks.StatusError:
+					pcr.Status = planproto.CheckResults_ERROR
+				default:
+					return fmt.Errorf("checkable object %s has unsupported status %s", objectElem.Key, crs.Status)
+				}
+				pcrs.Objects = append(pcrs.Objects, pcr)
+			}
+
+			rawPlan.CheckResults = append(rawPlan.CheckResults, pcrs)
+		}
+	}
+
 	for _, rc := range plan.Changes.Resources {
 		rawRC, err := resourceChangeToTfplan(rc)
 		if err != nil {
@@ -405,6 +567,14 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 			return err
 		}
 		rawPlan.ResourceDrift = append(rawPlan.ResourceDrift, rawRC)
+	}
+
+	for _, ra := range plan.RelevantAttributes {
+		rawRA, err := resourceAttrToTfplan(ra)
+		if err != nil {
+			return err
+		}
+		rawPlan.RelevantAttributes = append(rawPlan.RelevantAttributes, rawRA)
 	}
 
 	for _, targetAddr := range plan.TargetAddrs {
@@ -443,6 +613,39 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	}
 
 	return nil
+}
+
+func resourceAttrToTfplan(ra globalref.ResourceAttr) (*planproto.PlanResourceAttr, error) {
+	res := &planproto.PlanResourceAttr{}
+
+	res.Resource = ra.Resource.String()
+	attr, err := pathToTfplan(ra.Attr)
+	if err != nil {
+		return res, err
+	}
+	res.Attr = attr
+	return res, nil
+}
+
+func resourceAttrFromTfplan(ra *planproto.PlanResourceAttr) (globalref.ResourceAttr, error) {
+	var res globalref.ResourceAttr
+	if ra.Resource == "" {
+		return res, fmt.Errorf("missing resource address from relevant attribute")
+	}
+
+	instAddr, diags := addrs.ParseAbsResourceInstanceStr(ra.Resource)
+	if diags.HasErrors() {
+		return res, fmt.Errorf("invalid resource instance address %q in relevant attributes: %w", ra.Resource, diags.Err())
+	}
+
+	res.Resource = instAddr
+	path, err := pathFromTfplan(ra.Attr)
+	if err != nil {
+		return res, fmt.Errorf("invalid path in %q relevant attribute: %s", res.Resource, err)
+	}
+
+	res.Attr = path
+	return res, nil
 }
 
 func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto.ResourceInstanceChange, error) {
@@ -492,6 +695,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BECAUSE_TAINTED
 	case plans.ResourceInstanceReplaceByRequest:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_REQUEST
+	case plans.ResourceInstanceReplaceByTriggers:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_REPLACE_BY_TRIGGERS
 	case plans.ResourceInstanceDeleteBecauseNoResourceConfig:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_RESOURCE_CONFIG
 	case plans.ResourceInstanceDeleteBecauseWrongRepetition:
@@ -502,6 +707,12 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_EACH_KEY
 	case plans.ResourceInstanceDeleteBecauseNoModule:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MODULE
+	case plans.ResourceInstanceReadBecauseConfigUnknown:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN
+	case plans.ResourceInstanceReadBecauseDependencyPending:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING
+	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET
 	default:
 		return nil, fmt.Errorf("resource %s has unsupported action reason %s", change.Addr, change.ActionReason)
 	}

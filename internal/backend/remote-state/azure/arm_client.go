@@ -7,11 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/manicminer/hamilton/environments"
-
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
-	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
-
 	"github.com/Azure/azure-sdk-for-go/profiles/2017-03-09/resources/mgmt/resources"
 	armStorage "github.com/Azure/azure-sdk-for-go/services/storage/mgmt/2021-01-01/storage"
 	"github.com/Azure/go-autorest/autorest"
@@ -19,6 +14,10 @@ import (
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
 	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/terraform/version"
+	"github.com/manicminer/hamilton/environments"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
+	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
 )
 
 type ArmClient struct {
@@ -81,12 +80,19 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		// Managed Service Identity
 		MsiEndpoint: config.MsiEndpoint,
 
+		// OIDC
+		IDToken:             config.OIDCToken,
+		IDTokenFilePath:     config.OIDCTokenFilePath,
+		IDTokenRequestURL:   config.OIDCRequestURL,
+		IDTokenRequestToken: config.OIDCRequestToken,
+
 		// Feature Toggles
 		SupportsAzureCliToken:          true,
 		SupportsClientCertAuth:         true,
 		SupportsClientSecretAuth:       true,
 		SupportsManagedServiceIdentity: config.UseMsi,
-		UseMicrosoftGraph:              config.UseMicrosoftGraph,
+		SupportsOIDCAuth:               config.UseOIDC,
+		UseMicrosoftGraph:              true,
 	}
 	armConfig, err := builder.Build()
 	if err != nil {
@@ -104,37 +110,19 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 	}
 
 	sender := sender.BuildSender("backend/remote-state/azure")
-	var auth autorest.Authorizer
-	if builder.UseMicrosoftGraph {
-		log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Resource Manager..")
-		auth, err = armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Resource Manager..")
-		auth, err = armConfig.GetADALToken(ctx, sender, oauthConfig, env.TokenAudience)
-		if err != nil {
-			return nil, err
-		}
+	log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Resource Manager..")
+	auth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.ResourceManager, sender, oauthConfig, env.TokenAudience)
+	if err != nil {
+		return nil, err
 	}
 
 	if config.UseAzureADAuthentication {
-		if builder.UseMicrosoftGraph {
-			log.Printf("[DEBUG] Obtaining a MSAL / Microsoft Graph token for Storage..")
-			storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
-			if err != nil {
-				return nil, err
-			}
-			client.azureAdStorageAuth = &storageAuth
-		} else {
-			log.Printf("[DEBUG] Obtaining a ADAL / Azure Active Directory Graph token for Storage..")
-			storageAuth, err := armConfig.GetADALToken(ctx, sender, oauthConfig, env.ResourceIdentifiers.Storage)
-			if err != nil {
-				return nil, err
-			}
-			client.azureAdStorageAuth = &storageAuth
+		log.Printf("[DEBUG] Obtaining an MSAL / Microsoft Graph token for Storage..")
+		storageAuth, err := armConfig.GetMSALToken(ctx, hamiltonEnv.Storage, sender, oauthConfig, env.ResourceIdentifiers.Storage)
+		if err != nil {
+			return nil, err
 		}
+		client.azureAdStorageAuth = &storageAuth
 	}
 
 	accountsClient := armStorage.NewAccountsClientWithBaseURI(env.ResourceManagerEndpoint, armConfig.SubscriptionID)
@@ -247,7 +235,7 @@ func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Autho
 }
 
 func buildUserAgent() string {
-	userAgent := httpclient.UserAgentString()
+	userAgent := httpclient.TerraformUserAgent(version.Version)
 
 	// append the CloudShell version to the user agent if it exists
 	if azureAgent := os.Getenv("AZURE_HTTP_USER_AGENT"); azureAgent != "" {

@@ -10,9 +10,46 @@ import (
 
 func TestStaticValidateTraversal(t *testing.T) {
 	attrs := map[string]*Attribute{
-		"str":  {Type: cty.String, Optional: true},
-		"list": {Type: cty.List(cty.String), Optional: true},
-		"dyn":  {Type: cty.DynamicPseudoType, Optional: true},
+		"str":        {Type: cty.String, Optional: true},
+		"list":       {Type: cty.List(cty.String), Optional: true},
+		"dyn":        {Type: cty.DynamicPseudoType, Optional: true},
+		"deprecated": {Type: cty.String, Computed: true, Deprecated: true},
+		"nested_single": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingSingle,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_list": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingList,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_set": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingSet,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
+		"nested_map": {
+			Optional: true,
+			NestedType: &Object{
+				Nesting: NestingMap,
+				Attributes: map[string]*Attribute{
+					"optional": {Type: cty.String, Optional: true},
+				},
+			},
+		},
 	}
 	schema := &Block{
 		Attributes: attrs,
@@ -168,6 +205,26 @@ func TestStaticValidateTraversal(t *testing.T) {
 			`obj.map_block.anything.nonexist`,
 			`Unsupported attribute: This object has no argument, nested block, or exported attribute named "nonexist".`,
 		},
+		{
+			`obj.nested_single.optional`,
+			``,
+		},
+		{
+			`obj.nested_list[0].optional`,
+			``,
+		},
+		{
+			`obj.nested_set[0].optional`,
+			`Invalid index: Elements of a set are identified only by their value and don't have any separate index or key to select with, so it's only possible to perform operations across all elements of the set.`,
+		},
+		{
+			`obj.nested_map["key"].optional`,
+			``,
+		},
+		{
+			`obj.deprecated`,
+			`Deprecated attribute: The attribute "deprecated" is deprecated. Refer to the provider documentation for details.`,
+		},
 	}
 
 	for _, test := range tests {
@@ -187,8 +244,9 @@ func TestStaticValidateTraversal(t *testing.T) {
 					t.Errorf("unexpected error: %s", diags.Err().Error())
 				}
 			} else {
-				if diags.HasErrors() {
-					if got := diags.Err().Error(); got != test.WantError {
+				err := diags.ErrWithWarnings()
+				if err != nil {
+					if got := err.Error(); got != test.WantError {
 						t.Errorf("wrong error\ngot:  %s\nwant: %s", got, test.WantError)
 					}
 				} else {

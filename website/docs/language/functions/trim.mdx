@@ -1,0 +1,40 @@
+---
+page_title: trim - Functions - Configuration Language
+description: >-
+  The trim function removes the specified set of characters from the start and
+  end of
+
+  a given string.
+---
+
+# `trim` Function
+
+`trim` removes the specified set of characters from the start and end of the given
+string.
+
+```hcl
+trim(string, str_character_set)
+```
+
+Every occurrence of a character in the second argument is removed from the start
+and end of the string specified in the first argument.
+
+## Examples
+
+```
+> trim("?!hello?!", "!?")
+"hello"
+
+> trim("foobar", "far")
+"oob"
+
+> trim("   hello! world.!  ", "! ")
+"hello! world."
+```
+
+## Related Functions
+
+* [`trimprefix`](/terraform/language/functions/trimprefix) removes a word from the start of a string.
+* [`trimsuffix`](/terraform/language/functions/trimsuffix) removes a word from the end of a string.
+* [`trimspace`](/terraform/language/functions/trimspace) removes all types of whitespace from
+  both the start and the end of a string.

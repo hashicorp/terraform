@@ -1,0 +1,31 @@
+---
+page_title: Authentication - Terraform CLI
+description: >-
+  Documentation about the login and logout commands that help automate getting
+  an API token for your Terraform Cloud account.
+---
+
+# CLI Authentication
+
+> **Hands-on:** Try the [Authenticate the CLI with Terraform Cloud](/terraform/tutorials/cloud/cloud-login?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+[Terraform Cloud](https://cloud.hashicorp.com/products/terraform) and
+[Terraform Enterprise](/terraform/enterprise) are platforms that perform
+Terraform runs to provision infrastructure, offering a collaboration-focused
+environment that makes it easier for teams to use Terraform together. (For
+expediency, the content below refers to both products as "Terraform Cloud.")
+
+Terraform CLI integrates with Terraform Cloud in several ways — it can be a
+front-end for [CLI-driven runs](/terraform/cloud-docs/run/cli) in Terraform Cloud,
+and can also use Terraform Cloud as a state backend and a private module
+registry. All of these integrations require you to authenticate Terraform CLI
+with your Terraform Cloud account.
+
+The best way to handle CLI authentication is with the `login` and `logout`
+commands, which help automate the process of getting an API token for your
+Terraform Cloud user account.
+
+For details, see:
+
+- [The `terraform login` command](/terraform/cli/commands/login)
+- [The `terraform logout` command](/terraform/cli/commands/logout)

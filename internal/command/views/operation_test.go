@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/lang/globalref"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -107,7 +108,7 @@ func TestOperation_planNoChanges(t *testing.T) {
 			},
 			"No objects need to be destroyed.",
 		},
-		"drift detected in normal mode": {
+		"no drift detected in normal noop": {
 			func(schemas *terraform.Schemas) *plans.Plan {
 				addr := addrs.Resource{
 					Mode: addrs.ManagedResourceMode,
@@ -146,7 +147,54 @@ func TestOperation_planNoChanges(t *testing.T) {
 					DriftedResources: drs,
 				}
 			},
-			"to update the Terraform state to match, create and apply a refresh-only plan",
+			"No changes",
+		},
+		"drift detected in normal mode": {
+			func(schemas *terraform.Schemas) *plans.Plan {
+				addr := addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "test_resource",
+					Name: "somewhere",
+				}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+				schema, _ := schemas.ResourceTypeConfig(
+					addrs.NewDefaultProvider("test"),
+					addr.Resource.Resource.Mode,
+					addr.Resource.Resource.Type,
+				)
+				ty := schema.ImpliedType()
+				rc := &plans.ResourceInstanceChange{
+					Addr:        addr,
+					PrevRunAddr: addr,
+					ProviderAddr: addrs.RootModuleInstance.ProviderConfigDefault(
+						addrs.NewDefaultProvider("test"),
+					),
+					Change: plans.Change{
+						Action: plans.Update,
+						Before: cty.NullVal(ty),
+						After: cty.ObjectVal(map[string]cty.Value{
+							"id":  cty.StringVal("1234"),
+							"foo": cty.StringVal("bar"),
+						}),
+					},
+				}
+				rcs, err := rc.Encode(ty)
+				if err != nil {
+					panic(err)
+				}
+				drs := []*plans.ResourceInstanceChangeSrc{rcs}
+				changes := plans.NewChanges()
+				changes.Resources = drs
+				return &plans.Plan{
+					UIMode:           plans.NormalMode,
+					Changes:          changes,
+					DriftedResources: drs,
+					RelevantAttributes: []globalref.ResourceAttr{{
+						Resource: addr,
+						Attr:     cty.GetAttrPath("id"),
+					}},
+				}
+			},
+			"Objects have changed outside of Terraform",
 		},
 		"drift detected in refresh-only mode": {
 			func(schemas *terraform.Schemas) *plans.Plan {
@@ -293,6 +341,78 @@ plan. Resource actions are indicated with the following symbols:
   + create
 
 Terraform will perform the following actions:
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestOperation_planWithDatasource(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestOperation_planWithDatasourceAndDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
 
   # test_resource.foo will be created
   + resource "test_resource" "foo" {

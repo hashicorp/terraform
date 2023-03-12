@@ -18,6 +18,9 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -28,8 +31,6 @@ import (
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestContext2Apply_basic(t *testing.T) {
@@ -60,6 +61,148 @@ func TestContext2Apply_basic(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
+func TestContext2Apply_stop(t *testing.T) {
+	t.Parallel()
+
+	m := testModule(t, "apply-stop")
+	stopCh := make(chan struct{})
+	waitCh := make(chan struct{})
+	stoppedCh := make(chan struct{})
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"indefinite": {
+					Version: 1,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"result": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			log.Printf("[TRACE] TestContext2Apply_stop: no-op PlanResourceChange")
+			return providers.PlanResourceChangeResponse{
+				PlannedState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.UnknownVal(cty.String),
+				}),
+			}
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			// This will unblock the main test code once we reach this
+			// point, so that it'll then be guaranteed to call Stop
+			// while we're waiting in here.
+			close(waitCh)
+
+			log.Printf("[TRACE] TestContext2Apply_stop: ApplyResourceChange waiting for Stop call")
+			// This will block until StopFn closes this channel below.
+			<-stopCh
+			// This unblocks StopFn below, thereby acknowledging the request
+			// to stop.
+			close(stoppedCh)
+			return providers.ApplyResourceChangeResponse{
+				NewState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.StringVal("complete"),
+				}),
+			}
+		},
+		StopFn: func() error {
+			// Closing this channel will unblock the channel read in
+			// ApplyResourceChangeFn above.
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop called")
+			close(stopCh)
+			// This will block until ApplyResourceChange has reacted to
+			// being stopped.
+			log.Printf("[TRACE] TestContext2Apply_stop: Waiting for ApplyResourceChange to react to being stopped")
+			<-stoppedCh
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop is completing")
+			return nil
+		},
+	}
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.MustParseProviderSourceString("terraform.io/test/indefinite"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	// We'll reset the hook events before we apply because we only care about
+	// the apply-time events.
+	hook.Calls = hook.Calls[:0]
+
+	// We'll apply in the background so that we can call Stop in the foreground.
+	stateCh := make(chan *states.State)
+	go func(plan *plans.Plan) {
+		state, _ := ctx.Apply(plan, m)
+		stateCh <- state
+	}(plan)
+
+	// We'll wait until the provider signals that we've reached the
+	// ApplyResourceChange function, so we can guarantee the expected
+	// order of operations so our hook events below will always match.
+	t.Log("waiting for the apply phase to get started")
+	<-waitCh
+
+	// This will block until the apply operation has unwound, so we should
+	// be able to observe all of the apply side-effects afterwards.
+	t.Log("waiting for ctx.Stop to return")
+	ctx.Stop()
+
+	t.Log("waiting for apply goroutine to return state")
+	state := <-stateCh
+
+	t.Log("apply is all complete")
+	if state == nil {
+		t.Fatalf("final state is nil")
+	}
+
+	// Because we interrupted the apply phase while applying the resource,
+	// we should have halted immediately after we finished visiting that
+	// resource. We don't visit indefinite.bar at all.
+	gotEvents := hook.Calls
+	wantEvents := []*testHookCall{
+		{"PreDiff", "indefinite.foo"},
+		{"PostDiff", "indefinite.foo"},
+		{"PreApply", "indefinite.foo"},
+		{"Stopping", ""}, // Local backend uses this as a hint to persist the latest state snapshot
+		{"PostApply", "indefinite.foo"},
+		{"PostStateUpdate", ""}, // State gets updated one more time to include the apply result.
+	}
+	if diff := cmp.Diff(wantEvents, gotEvents); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+
+	rov := state.OutputValue(addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance))
+	if rov != nil && rov.Value != cty.NilVal && !rov.Value.IsNull() {
+		t.Errorf("'result' output value unexpectedly populated: %#v", rov.Value)
+	}
+
+	resourceAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "indefinite",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	rv := state.ResourceInstance(resourceAddr)
+	if rv == nil || rv.Current == nil {
+		t.Fatalf("no state entry for %s", resourceAddr)
+	}
+
+	resourceAddr.Resource.Resource.Name = "bar"
+	rv = state.ResourceInstance(resourceAddr)
+	if rv != nil && rv.Current != nil {
+		t.Fatalf("unexpected state entry for %s", resourceAddr)
 	}
 }
 
@@ -517,7 +660,7 @@ func TestContext2Apply_mapVarBetweenModules(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -1428,7 +1571,9 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 		}),
 	}
 
+	hook := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("null"): testProviderFuncFixed(p),
 		},
@@ -1448,6 +1593,13 @@ func TestContext2Apply_dataBasic(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyDataBasicStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+
+	if !hook.PreApplyCalled {
+		t.Fatal("PreApply not called for data source read")
+	}
+	if !hook.PostApplyCalled {
+		t.Fatal("PostApply not called for data source read")
 	}
 }
 
@@ -1503,10 +1655,8 @@ func TestContext2Apply_destroyData(t *testing.T) {
 	}
 
 	wantHookCalls := []*testHookCall{
-		{"PreDiff", "data.null_data_source.testing"},
-		{"PostDiff", "data.null_data_source.testing"},
-		{"PreDiff", "data.null_data_source.testing"},
-		{"PostDiff", "data.null_data_source.testing"},
+		{"PreApply", "data.null_data_source.testing"},
+		{"PostApply", "data.null_data_source.testing"},
 		{"PostStateUpdate", ""},
 	}
 	if !reflect.DeepEqual(hook.Calls, wantHookCalls) {
@@ -2262,7 +2412,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -2288,7 +2438,7 @@ func TestContext2Apply_countVariableRef(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -2327,13 +2477,13 @@ func TestContext2Apply_provisionerInterpCount(t *testing.T) {
 		Provisioners: provisioners,
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -2632,6 +2782,7 @@ func TestContext2Apply_orphanResource(t *testing.T) {
 	// The state should now be _totally_ empty, with just an empty root module
 	// (since that always exists) and no resources at all.
 	want = states.NewState()
+	want.CheckResults = &states.CheckResults{}
 	if !cmp.Equal(state, want) {
 		t.Fatalf("wrong state after step 2\ngot: %swant: %s", spew.Sdump(state), spew.Sdump(want))
 	}
@@ -3682,7 +3833,7 @@ func TestContext2Apply_multiVarOrder(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -3713,7 +3864,7 @@ func TestContext2Apply_multiVarOrderInterp(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -4704,9 +4855,7 @@ func TestContext2Apply_provisionerDestroy(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -4753,9 +4902,7 @@ func TestContext2Apply_provisionerDestroyFail(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -5720,7 +5867,7 @@ func TestContext2Apply_destroyModuleWithAttrsReferencingResource(t *testing.T) {
 
 		t.Logf("Step 2 plan: %s", legacyDiffComparisonString(plan.Changes))
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -5790,7 +5937,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCount(t *testing.T) {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -5908,7 +6055,7 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 		})
 
 		// First plan and apply a create operation
-		plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+		plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 		assertNoErrors(t, diags)
 
 		state, diags = ctx.Apply(plan, m)
@@ -5929,14 +6076,12 @@ func TestContext2Apply_destroyWithModuleVariableAndCountNested(t *testing.T) {
 		})
 
 		// First plan and apply a create operation
-		plan, diags := ctx.Plan(m, state, &PlanOpts{
-			Mode: plans.DestroyMode,
-		})
+		plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 		if diags.HasErrors() {
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -7024,6 +7169,12 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	// test did not match actual terraform behavior: the output remains in
 	// state.
 	//
+	// The reason it remains in the state is that we prune out the root module
+	// output values from the destroy graph as part of pruning out the "update"
+	// nodes for the resources, because otherwise the root module output values
+	// force the resources to stay in the graph and can therefore cause
+	// unwanted dependency cycles.
+	//
 	// TODO: Future refactoring may enable us to remove the output from state in
 	// this case, and that would be Just Fine - this test can be modified to
 	// expect 0 outputs.
@@ -7561,6 +7712,12 @@ func TestContext2Apply_vars(t *testing.T) {
 			Value:      cty.StringVal("us-east-1"),
 			SourceType: ValueFromCaller,
 		},
+		"bar": &InputValue{
+			// This one is not explicitly set but that's okay because it
+			// has a declared default, which Terraform Core will use instead.
+			Value:      cty.NilVal,
+			SourceType: ValueFromCaller,
+		},
 		"test_list": &InputValue{
 			Value: cty.ListVal([]cty.Value{
 				cty.StringVal("Hello"),
@@ -7876,13 +8033,13 @@ func TestContext2Apply_issue7824(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -7932,7 +8089,7 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
@@ -7951,13 +8108,13 @@ func TestContext2Apply_issue5254(t *testing.T) {
 		},
 	})
 
-	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("err: %s", diags.Err())
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8034,7 +8191,7 @@ func TestContext2Apply_targetedWithTaintedInState(t *testing.T) {
 	}
 
 	// Write / Read plan to simulate running it through a Plan file
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8297,7 +8454,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 			t.Fatalf("destroy plan err: %s", diags.Err())
 		}
 
-		ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+		ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 		if err != nil {
 			t.Fatalf("failed to round-trip through planfile: %s", err)
 		}
@@ -8845,7 +9002,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 		Providers: Providers,
 	})
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan failed: %s", diags.Err())
 	}
@@ -8853,7 +9010,7 @@ func TestContext2Apply_plannedInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -8904,9 +9061,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 		Providers: providers,
 	})
 
-	plan, diags := ctx.Plan(m, state, &PlanOpts{
-		Mode: plans.DestroyMode,
-	})
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.DestroyMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan failed: %s", diags.Err())
 	}
@@ -8914,7 +9069,7 @@ func TestContext2Apply_plannedDestroyInterpolatedCount(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
@@ -9435,7 +9590,7 @@ func TestContext2Apply_destroyDataCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -9674,7 +9829,7 @@ func TestContext2Apply_plannedConnectionRefs(t *testing.T) {
 		Hooks:        []Hook{hook},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	diags.HasErrors()
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
@@ -9786,7 +9941,7 @@ func TestContext2Apply_cbdCycle(t *testing.T) {
 	// We'll marshal and unmarshal the plan here, to ensure that we have
 	// a clean new context as would be created if we separately ran
 	// terraform plan -out=tfplan && terraform apply tfplan
-	ctxOpts, m, plan, err := contextOptsForPlanViaFile(snap, plan)
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -11036,6 +11191,13 @@ locals {
 	p := testProvider("test")
 
 	p.PlanResourceChangeFn = func(r providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if r.ProposedNewState.IsNull() {
+			resp.PlannedState = r.ProposedNewState
+			resp.PlannedPrivate = r.PriorPrivate
+			return resp
+		}
+
 		n := r.ProposedNewState.AsValueMap()
 
 		if r.PriorState.IsNull() {
@@ -11448,13 +11610,20 @@ resource "test_resource" "a" {
 `})
 
 	p := testProvider("test")
-	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// this is a destroy plan
+		if req.ProposedNewState.IsNull() {
+			resp.PlannedState = req.ProposedNewState
+			resp.PlannedPrivate = req.PriorPrivate
+			return resp
+		}
+
 		proposed := req.ProposedNewState.AsValueMap()
 		proposed["id"] = cty.UnknownVal(cty.String)
-		return providers.PlanResourceChangeResponse{
-			PlannedState:    cty.ObjectVal(proposed),
-			RequiresReplace: []cty.Path{{cty.GetAttrStep{Name: "value"}}},
-		}
+
+		resp.PlannedState = cty.ObjectVal(proposed)
+		resp.RequiresReplace = []cty.Path{{cty.GetAttrStep{Name: "value"}}}
+		return resp
 	}
 
 	ctx := testContext2(t, &ContextOpts{
@@ -11687,7 +11856,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags := ctx.Apply(plan, m)
@@ -11702,7 +11871,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags = ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags = ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	state, diags = ctx.Apply(plan, m)
@@ -11720,6 +11889,7 @@ resource "test_resource" "foo" {
 	plan, diags = ctx.Plan(m, state, &PlanOpts{
 		Mode: plans.NormalMode,
 		SetVariables: InputValues{
+			"sensitive_id": &InputValue{Value: cty.NilVal},
 			"sensitive_var": &InputValue{
 				Value: cty.StringVal("bar"),
 			},
@@ -11759,7 +11929,7 @@ resource "test_resource" "foo" {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("plan errors: %s", diags.Err())
 	}
@@ -11904,7 +12074,7 @@ resource "test_resource" "foo" {
 		)
 	})
 
-	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 
 	addr := mustResourceInstanceAddr("test_resource.foo")
@@ -11954,7 +12124,7 @@ resource "test_resource" "foo" {
 	// but this seems rather suspicious and we should ideally figure out what
 	// this test was originally intending to do and make it do that.
 	oldPlan := plan
-	_, diags = ctx2.Plan(m2, state, DefaultPlanOpts)
+	_, diags = ctx2.Plan(m2, state, SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	assertNoErrors(t, diags)
 	stateWithoutSensitive, diags := ctx.Apply(oldPlan, m)
 	assertNoErrors(t, diags)
@@ -11972,14 +12142,19 @@ resource "test_resource" "foo" {
 func TestContext2Apply_moduleVariableOptionalAttributes(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
-  experiments = [module_variable_optional_attrs]
-}
-
 variable "in" {
   type = object({
-	required = string
-	optional = optional(string)
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+    nested   = optional(
+      map(object({
+        a = optional(string, "foo")
+        b = optional(number, 5)
+      })), {
+        "boop": {}
+      }
+    )
   })
 }
 
@@ -12017,6 +12192,179 @@ output "out" {
 		// Because "optional" was marked as optional, it got silently filled
 		// in as a null value of string type rather than returning an error.
 		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" was marked as optional with a default value,
+		// and since it was omitted should be filled in with that default.
+		"default": cty.True,
+
+		// Nested is a complex structure which has fully described defaults,
+		// so again it should be filled with the default structure.
+		"nested": cty.MapVal(map[string]cty.Value{
+			"boop": cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("foo"),
+				"b": cty.NumberIntVal(5),
+			}),
+		}),
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestContext2Apply_moduleVariableOptionalAttributesDefault(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type    = object({
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+  })
+  default = {
+    required = "boop"
+  }
+}
+
+output "out" {
+  value = var.in
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ObjectVal(map[string]cty.Value{
+		"required": cty.StringVal("boop"),
+
+		// "optional" is not present in the variable default, so it is filled
+		// with null.
+		"optional": cty.NullVal(cty.String),
+
+		// Similarly, "default" is not present in the variable default, so its
+		// value is replaced with the type's specified default.
+		"default": cty.True,
+	})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestContext2Apply_moduleVariableOptionalAttributesDefaultNull(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type    = object({
+    required = string
+    optional = optional(string)
+    default  = optional(bool, true)
+  })
+  default = null
+}
+
+# Wrap the input variable in a tuple because a null output value is elided from
+# the plan, which prevents us from testing its type.
+output "out" {
+  value = [var.in]
+}
+`})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	// The null default value should be bound, after type converting to the
+	// full object type
+	want := cty.TupleVal([]cty.Value{cty.NullVal(cty.Object(map[string]cty.Type{
+		"required": cty.String,
+		"optional": cty.String,
+		"default":  cty.Bool,
+	}))})
+	if !want.RawEquals(got) {
+		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
+	}
+}
+
+func TestContext2Apply_moduleVariableOptionalAttributesDefaultChild(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+variable "in" {
+  type    = list(object({
+    a = optional(set(string))
+  }))
+  default = [
+	{ a = [ "foo" ] },
+	{ },
+  ]
+}
+
+module "child" {
+  source = "./child"
+  in     = var.in
+}
+
+output "out" {
+  value = module.child.out
+}
+`,
+		"child/main.tf": `
+variable "in" {
+  type    = list(object({
+    a = optional(set(string), [])
+  }))
+  default = []
+}
+
+output "out" {
+  value = var.in
+}
+`,
+	})
+
+	ctx := testContext2(t, &ContextOpts{})
+
+	// We don't specify a value for the variable here, relying on its defined
+	// default.
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	state, diags := ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatal(diags.ErrWithWarnings())
+	}
+
+	got := state.RootModule().OutputValues["out"].Value
+	want := cty.ListVal([]cty.Value{
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.SetVal([]cty.Value{cty.StringVal("foo")}),
+		}),
+		cty.ObjectVal(map[string]cty.Value{
+			"a": cty.SetValEmpty(cty.String),
+		}),
 	})
 	if !want.RawEquals(got) {
 		t.Fatalf("wrong result\ngot:  %#v\nwant: %#v", got, want)
@@ -12206,7 +12554,7 @@ func TestContext2Apply_dataSensitive(t *testing.T) {
 		},
 	})
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables)))
 	if diags.HasErrors() {
 		t.Fatalf("diags: %s", diags.Err())
 	} else {

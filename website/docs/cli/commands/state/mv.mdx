@@ -1,0 +1,191 @@
+---
+page_title: 'Command: state mv'
+description: >-
+  The `terraform state mv` command changes bindings in Terraform state,
+  associating existing remote objects with new resource instances.
+---
+
+# Command: state mv
+
+The main function of [Terraform state](/terraform/language/state) is
+to track the bindings between resource instance addresses in your configuration
+and the remote objects they represent. Normally Terraform automatically
+updates the state in response to actions taken when applying a plan, such as
+removing a binding for an remote object that has now been deleted.
+
+You can use `terraform state mv` in the less common situation where you wish
+to retain an existing remote object but track it as a different resource
+instance address in Terraform, such as if you have renamed a resource block
+or you have moved it into a different module in your configuration.
+
+## Usage
+
+Usage: `terraform state mv [options] SOURCE DESTINATION`
+
+Terraform will look in the current state for a resource instance, resource,
+or module that matches the given address, and if successful it will move the
+remote objects currently associated with the source to be tracked instead
+by the destination.
+
+Both the source and destination addresses must use
+[resource address syntax](/terraform/cli/state/resource-addressing), and
+they must both refer to the same kind of object: you can only move a resource
+instance to another resource instance, a whole module instance to another
+whole module instance, etc. Furthermore, if you are moving a resource or
+a resource instance then you can only move it to a new address with the
+same resource type.
+
+The most common uses for `terraform state mv` are when you have renamed a
+resource block in your configuration or you've moved a resource block into
+a child module, in both cases with the intention of retaining the existing
+object but tracking it under a new name. By default Terraform will understand
+moving or renaming a resource configuration as a request to delete the old
+object and create a new object at the new address, and so `terraform state mv`
+allows you to override that interpretation by pre-emptively attaching the
+existing object to the new address in Terraform.
+
+~> _Warning:_ If you are using Terraform in a collaborative environment, you
+must ensure that when you are using `terraform state mv` for a code refactoring
+purpose you communicate carefully with your coworkers to ensure that nobody
+makes any other changes between your configuration change and your
+`terraform state mv` command, because otherwise they might inadvertently create
+a plan that will destroy the old object and create a new object at the new
+address.
+
+This command also accepts the following options:
+
+- `-dry-run` - Report all of the resource instances that match the given
+  address without actually "forgetting" any of them.
+
+- `-lock=false` - Don't hold a state lock during the operation. This is
+  dangerous if others might concurrently run commands against the same
+  workspace.
+
+- `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
+
+For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
+only, `terraform state mv`
+also accepts the option
+[`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
+
+The legacy options [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+operate on a local state file only. Configurations using
+[the `remote` backend](/terraform/language/settings/backends/remote)
+must specify a local state file with the [`-state`](/terraform/language/settings/backends/local#command-line-arguments)
+option in order to use the [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
+options.
+
+For configurations using
+[the `local` state mv](/terraform/language/settings/backends/local) only,
+`terraform state mv` also accepts the legacy options
+[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments).
+
+## Example: Rename a Resource
+
+Renaming a resource means making a configuration change like the following:
+
+```diff
+-resource "packet_device" "worker" {
++resource "packet_device" "helper" {
+   # ...
+ }
+```
+
+To tell Terraform that it should treat the new "helper" resource as a rename
+of the old "worker" resource, you can pair the above configuration change
+with the following command:
+
+```shell
+terraform state mv packet_device.worker packet_device.helper
+```
+
+## Example: Move a Resource Into a Module
+
+If you originally wrote a resource in your root module but now wish to refactor
+it into a child module, you can move the `resource` block into the child
+module configuration, removing the original in the root module, and then
+run the following command to tell Terraform to treat it as a move:
+
+```shell
+terraform state mv packet_device.worker module.worker.packet_device.worker
+```
+
+In the above example the new resource has the same name but a different module
+address. You could also change the resource name at the same time, if the new
+module organization suggests a different naming scheme:
+
+```shell
+terraform state mv packet_device.worker module.worker.packet_device.main
+```
+
+## Example: Move a Module Into a Module
+
+You can also refactor an entire module into a child module. In the
+configuration, move the `module` block representing the module into a different
+module and then pair that change with a command like the following:
+
+```shell
+terraform state mv module.app module.parent.module.app
+```
+
+## Example: Move a Particular Instance of a Resource using `count`
+
+A resource defined with [the `count` meta-argument](/terraform/language/meta-arguments/count)
+has multiple instances that are each identified by an integer. You can
+select a particular instance by including an explicit index in your given
+address:
+
+```shell
+$ terraform state mv 'packet_device.worker[0]' 'packet_device.helper[0]'
+```
+
+A resource that doesn't use `count` or `for_each` has only a single resource
+instance whose address is the same as the resource itself, and so you can
+move from an address not containing an index to an address containing an index,
+or the opposite, as long as the address type you use matches whether and how
+each resource is configured:
+
+```shell
+$ terraform state mv 'packet_device.main' 'packet_device.all[0]'
+```
+
+Brackets (`[`, `]`) have a special meaning in some shells, so you may need to
+quote or escape the address in order to pass it literally to Terraform.
+The above examples show the typical quoting syntax for Unix-style shells.
+
+## Example: Move a Resource configured with for_each
+
+A resource defined with [the `for_each` meta-argument](/terraform/language/meta-arguments/for_each)
+has multiple instances that are each identified by an string. You can
+select a particular instance by including an explicit key in your given
+address.
+
+However, the syntax for strings includes quotes and the quote symbol often
+has special meaning in command shells, so you'll need to use the appropriate
+quoting and/or escaping syntax for the shell you are using. For example:
+
+Unix-style shells, such as on Linux or macOS:
+
+```shell
+terraform state mv 'packet_device.worker["example123"]' 'packet_device.helper["example456"]'
+```
+
+Windows Command Prompt (`cmd.exe`):
+
+```shell
+terraform state mv packet_device.worker[\"example123\"] packet_device.helper[\"example456\"]
+```
+
+PowerShell:
+
+```shell
+terraform state mv 'packet_device.worker[\"example123\"]' 'packet_device.helper[\"example456\"]'
+```
+
+Aside from the use of strings instead of integers for instance keys, the
+treatment of `for_each` resources is similar to `count` resources and so
+the same combinations of addresses with and without index components is
+valid as described in the previous section.

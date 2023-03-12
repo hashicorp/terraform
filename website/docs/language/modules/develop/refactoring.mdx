@@ -1,0 +1,448 @@
+---
+page_title: Refactoring
+description: How to make backward-compatible changes to modules already in use.
+---
+
+# Refactoring
+
+-> **Note:** Explicit refactoring declarations with `moved` blocks is available in Terraform v1.1 and later. For earlier Terraform versions or for refactoring actions too complex to express as `moved` blocks, you can
+use the [`terraform state mv` CLI command](/terraform/cli/commands/state/mv)
+as a separate step.
+
+In shared modules and long-lived configurations, you may eventually outgrow
+your initial module structure and resource names. For example, you might decide
+that what was previously one child module makes more sense as two separate
+modules and move a subset of the existing resources to the new one.
+
+Terraform compares previous state with new configuration, correlating by
+each module or resource's unique address. Therefore _by default_ Terraform
+understands moving or renaming an object as an intent to destroy the object
+at the old address and to create a new object at the new address.
+
+When you add `moved` blocks in your configuration to record where you've
+historically moved or renamed an object, Terraform treats an existing object at
+the old address as if it now belongs to the new address.
+
+> **Hands On:** Try the [Use Configuration to Move Resources](/terraform/tutorials/configuration-language/move-config) tutorial.
+
+## `moved` Block Syntax
+
+A `moved` block expects no labels and contains only `from` and `to` arguments:
+
+```hcl
+moved {
+  from = aws_instance.a
+  to   = aws_instance.b
+}
+```
+
+The example above records that the resource currently known as `aws_instance.b`
+was known as `aws_instance.a` in a previous version of this module.
+
+Before creating a new plan for `aws_instance.b`, Terraform first checks
+whether there is an existing object for `aws_instance.a` recorded in the state.
+If there is an existing object, Terraform renames that object to
+`aws_instance.b` and then proceeds with creating a plan. The resulting plan is
+as if the object had originally been created at `aws_instance.b`, avoiding any
+need to destroy it during apply.
+
+The `from` and `to` addresses both use a special addressing syntax that allows
+selecting modules, resources, and resources inside child modules. Below, we
+describe several refactoring use-cases and the appropriate addressing syntax
+for each situation.
+
+* [Renaming a Resource](#renaming-a-resource)
+* [Enabling `count` or `for_each` For a Resource](#enabling-count-or-for_each-for-a-resource)
+* [Renaming a Module Call](#renaming-a-module-call)
+* [Enabling `count` or `for_each` For a Module Call](#enabling-count-or-for_each-for-a-module-call)
+* [Splitting One Module into Multiple](#splitting-one-module-into-multiple)
+* [Removing `moved` blocks](#removing-moved-blocks)
+
+## Renaming a Resource
+
+Consider this example module with a resource configuration:
+
+```hcl
+resource "aws_instance" "a" {
+  count = 2
+
+  # (resource-type-specific configuration)
+}
+```
+
+Applying this configuration for the first time would cause Terraform to
+create `aws_instance.a[0]` and `aws_instance.a[1]`.
+
+If you later choose a different name for this resource, then you can change the
+name label in the `resource` block and record the old name inside a `moved` block:
+
+```hcl
+resource "aws_instance" "b" {
+  count = 2
+
+  # (resource-type-specific configuration)
+}
+
+moved {
+  from = aws_instance.a
+  to   = aws_instance.b
+}
+```
+
+When creating the next plan for each configuration using this module, Terraform
+treats any existing objects belonging to `aws_instance.a` as if they had
+been created for `aws_instance.b`: `aws_instance.a[0]` will be treated as
+`aws_instance.b[0]`, and `aws_instance.a[1]` as `aws_instance.b[1]`.
+
+New instances of the module, which _never_ had an
+`aws_instance.a`, will ignore the `moved` block and propose to create
+`aws_instance.b[0]` and `aws_instance.b[1]` as normal.
+
+Both of the addresses in this example referred to a resource as a whole, and
+so Terraform recognizes the move for all instances of the resource. That is,
+it covers both `aws_instance.a[0]` and `aws_instance.a[1]` without the need
+to identify each one separately.
+
+Each resource type has a separate schema and so objects of different types
+are not compatible. Therefore, although you can use `moved` to change the name
+of a resource, you _cannot_ use `moved` to change to a different resource type
+or to change a managed resource (a `resource` block) into a data resource
+(a `data` block).
+
+## Enabling `count` or `for_each` For a Resource
+
+Consider this example module containing a single-instance resource:
+
+```hcl
+resource "aws_instance" "a" {
+  # (resource-type-specific configuration)
+}
+```
+
+Applying this configuration would lead to Terraform creating an object
+bound to the address `aws_instance.a`.
+
+Later, you use [`for_each`](/terraform/language/meta-arguments/for_each) with this
+resource to systematically declare multiple instances. To preserve an object
+that was previously associated with `aws_instance.a` alone, you must add a
+`moved` block to specify which instance key the object will take in the new
+configuration:
+
+```hcl
+locals {
+  instances = tomap({
+    big = {
+      instance_type = "m3.large"
+    }
+    small = {
+      instance_type = "t2.medium"
+    }
+  })
+}
+
+resource "aws_instance" "a" {
+  for_each = local.instances
+
+  instance_type = each.value.instance_type
+  # (other resource-type-specific configuration)
+}
+
+moved {
+  from = aws_instance.a
+  to   = aws_instance.a["small"]
+}
+```
+
+The above will keep Terraform from planning to destroy any existing object at
+`aws_instance.a`, treating that object instead as if it were originally
+created as `aws_instance.a["small"]`.
+
+When at least one of the two addresses includes an instance key, like
+`["small"]` in the above example, Terraform understands both addresses as
+referring to specific _instances_ of a resource rather than the resource as a
+whole. That means you can use `moved` to switch between keys and to add and
+remove keys as you switch between `count`, `for_each`, or neither.
+
+The following are some other examples of valid `moved` blocks that record
+changes to resource instance keys in a similar way:
+
+```hcl
+# Both old and new configuration used "for_each", but the
+# "small" element was renamed to "tiny".
+moved {
+  from = aws_instance.b["small"]
+  to   = aws_instance.b["tiny"]
+}
+
+# The old configuration used "count" and the new configuration
+# uses "for_each", with the following mappings from
+# index to key:
+moved {
+  from = aws_instance.c[0]
+  to   = aws_instance.c["small"]
+}
+moved {
+  from = aws_instance.c[1]
+  to   = aws_instance.c["tiny"]
+}
+
+# The old configuration used "count", and the new configuration
+# uses neither "count" nor "for_each", and you want to keep
+# only the object at index 2.
+moved {
+  from = aws_instance.d[2]
+  to   = aws_instance.d
+}
+```
+
+-> **Note:** When you add `count` to an existing resource that didn't use it,
+Terraform automatically proposes to move the original object to instance zero,
+unless you write an `moved` block explicitly mentioning that resource.
+However, we recommend still writing out the corresponding `moved` block
+explicitly, to make the change clearer to future readers of the module.
+
+## Renaming a Module Call
+
+You can rename a call to a module in a similar way as renaming a resource.
+Consider the following original module version:
+
+```hcl
+module "a" {
+  source = "../modules/example"
+
+  # (module arguments)
+}
+```
+
+When applying this configuration, Terraform would prefix the addresses for
+any resources declared in this module with the module path `module.a`.
+For example, a resource `aws_instance.example` would have the full address
+`module.a.aws_instance.example`.
+
+If you later choose a better name for this module call, then you can change the
+name label in the `module` block and record the old name inside a `moved` block:
+
+```hcl
+module "b" {
+  source = "../modules/example"
+
+  # (module arguments)
+}
+
+moved {
+  from = module.a
+  to   = module.b
+}
+```
+
+When creating the next plan for each configuration using this module, Terraform
+will treat any existing object addresses beginning with `module.a` as if
+they had instead been created in `module.b`. `module.a.aws_instance.example`
+would be treated as `module.b.aws_instance.example`.
+
+Both of the addresses in this example referred to a module call as a whole, and
+so Terraform recognizes the move for all instances of the call. If this
+module call used `count` or `for_each` then it would apply to all of the
+instances, without the need to specify each one separately.
+
+## Enabling `count` or `for_each` For a Module Call
+
+Consider this example of a single-instance module:
+
+```hcl
+module "a" {
+  source = "../modules/example"
+
+  # (module arguments)
+}
+```
+
+Applying this configuration would cause Terraform to create objects whose
+addresses begin with `module.a`.
+
+In later module versions, you may need to use
+[`count`](/terraform/language/meta-arguments/count) with this resource to systematically
+declare multiple instances. To preserve an object that was previously associated
+with `aws_instance.a` alone, you can add a `moved` block to specify which
+instance key that object will take in the new configuration:
+
+```hcl
+module "a" {
+  source = "../modules/example"
+  count  = 3
+
+  # (module arguments)
+}
+
+moved {
+  from = module.a
+  to   = module.a[2]
+}
+```
+
+The configuration above directs Terraform to treat all objects in `module.a` as
+if they were originally created in `module.a[2]`. As a result, Terraform plans
+to create new objects only for `module.a[0]` and `module.a[1]`.
+
+When at least one of the two addresses includes an instance key, like
+`[2]` in the above example, Terraform will understand both addresses as
+referring to specific _instances_ of a module call rather than the module
+call as a whole. That means you can use `moved` to switch between keys and to
+add and remove keys as you switch between `count`, `for_each`, or neither.
+
+For more examples of recording moves associated with instances, refer to
+the similar section
+[Enabling `count` and `for_each` For a Resource](#enabling-count-or-for_each-for-a-resource).
+
+# Splitting One Module into Multiple
+
+As a module grows to support new requirements, it might eventually grow big
+enough to warrant splitting into two separate modules.
+
+Consider this example module:
+
+```hcl
+resource "aws_instance" "a" {
+  # (other resource-type-specific configuration)
+}
+
+resource "aws_instance" "b" {
+  # (other resource-type-specific configuration)
+}
+
+resource "aws_instance" "c" {
+  # (other resource-type-specific configuration)
+}
+```
+
+You can split this into two modules as follows:
+
+* `aws_instance.a` now belongs to module "x".
+* `aws_instance.b` also belongs to module "x".
+* `aws_instance.c` belongs module "y".
+
+To achieve this refactoring without replacing existing objects bound to the
+old resource addresses, you must:
+
+1. Write module "x", copying over the two resources it should contain.
+1. Write module "y", copying over the one resource it should contain.
+1. Edit the original module to no longer include any of these resources, and
+   instead to contain only shim configuration to migrate existing users.
+
+The new modules "x" and "y" should contain only `resource` blocks:
+
+```hcl
+# module "x"
+
+resource "aws_instance" "a" {
+  # (other resource-type-specific configuration)
+}
+
+resource "aws_instance" "b" {
+  # (other resource-type-specific configuration)
+}
+```
+
+```hcl
+# module "y"
+
+resource "aws_instance" "c" {
+  # (other resource-type-specific configuration)
+}
+```
+
+The original module, now only a shim for backward-compatibility, calls the
+two new modules and indicates that the resources moved into them:
+
+```hcl
+module "x" {
+  source = "../modules/x"
+
+  # ...
+}
+
+module "y" {
+  source = "../modules/y"
+
+  # ...
+}
+
+moved {
+  from = aws_instance.a
+  to   = module.x.aws_instance.a
+}
+
+moved {
+  from = aws_instance.b
+  to   = module.x.aws_instance.b
+}
+
+moved {
+  from = aws_instance.c
+  to   = module.y.aws_instance.c
+}
+```
+
+When an existing user of the original module upgrades to the new "shim"
+version, Terraform notices these three `moved` blocks and behaves
+as if the objects associated with the three old resource addresses were
+originally created inside the two new modules.
+
+New users of this family of modules may use either the combined shim module
+_or_ the two new modules separately. You may wish to communicate to your
+existing users that the old module is now deprecated and so they should use
+the two separate modules for any new needs.
+
+The multi-module refactoring situation is unusual in that it violates the
+typical rule that a parent module sees its child module as a "closed box",
+unaware of exactly which resources are declared inside it. This compromise
+assumes that all three of these modules are maintained by the same people
+and distributed together in a single
+[module package](/terraform/language/modules/sources#modules-in-package-sub-directories).
+
+Terraform resolves module references in `moved` blocks relative to the module
+instance they are defined in. For example, if the original module above were
+already a child module named `module.original`, the reference to
+`module.x.aws_instance.a` would resolve as
+`module.original.module.x.aws_instance.a`. A module may only make `moved`
+statements about its own objects and objects of its child modules.
+
+If you need to refer to resources within a module that was called using
+`count` or `for_each` meta-arguments, you must specify a specific instance
+key to use in order to match with the new location of the resource
+configuration:
+
+```hcl
+moved {
+  from = aws_instance.example
+  to   = module.new[2].aws_instance.example
+}
+```
+
+## Removing `moved` Blocks
+
+Over time, a long-lasting module may accumulate many `moved` blocks.
+
+Removing a `moved` block is a generally breaking change because any configurations that refer to the old address will plan to delete that existing object instead of move it. We strongly recommend that you retain all historical `moved` blocks from earlier versions of your modules to preserve the upgrade path for users of any previous version.
+
+If you do decide to remove `moved` blocks, proceed with caution. It can be safe to remove `moved` blocks when you are maintaining private modules within an organization and you are certain that all users have successfully run `terraform apply` with your new module version.
+
+If you need to rename or move the same object twice, we recommend documenting the full history
+using _chained_ `moved` blocks, where the new block refers to the existing block:
+
+```hcl
+moved {
+  from = aws_instance.a
+  to   = aws_instance.b
+}
+
+moved {
+  from = aws_instance.b
+  to   = aws_instance.c
+}
+```
+
+Recording a sequence of moves in this way allows for successful upgrades for
+both configurations with objects at `aws_instance.a` _and_ configurations with
+objects at `aws_instance.b`. In both cases, Terraform treats the existing
+object as if it had been originally created as `aws_instance.c`.

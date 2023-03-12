@@ -1,0 +1,65 @@
+---
+page_title: 'Command: taint'
+description: |-
+  The `terraform taint` command informs Terraform that a particular object
+  is damaged or degraded.
+---
+
+# Command: taint
+
+The `terraform taint` command informs Terraform that a particular object has
+become degraded or damaged. Terraform represents this by marking the
+object as "tainted" in the Terraform state, and Terraform will
+propose to replace it in the next plan you create.
+
+~> **Warning:** This command is deprecated. For Terraform v0.15.2 and later, we recommend using the `-replace` option with `terraform apply` instead (details below).
+
+## Recommended Alternative
+
+For Terraform v0.15.2 and later, we recommend using the [`-replace` option](/terraform/cli/commands/plan#replace-address) with `terraform apply` to force Terraform to replace an object even though there are no configuration changes that would require it.
+
+```
+$ terraform apply -replace="aws_instance.example[0]"
+```
+
+We recommend the `-replace` option because the change will be reflected in the Terraform plan, letting you understand how it will affect your infrastructure before you take any externally-visible action. When you use `terraform taint`, other users could create a new plan against your tainted object before you can review the effects.
+
+## Usage
+
+```
+$ terraform taint [options] <address>
+```
+
+The `address` argument is the address of the resource to mark as tainted.
+The address is in
+[the resource address syntax](/terraform/cli/state/resource-addressing),
+as shown in the output from other commands, such as:
+
+- `aws_instance.foo`
+- `aws_instance.bar[1]`
+- `aws_instance.baz[\"key\"]` (quotes in resource addresses must be escaped on the command line, so that they will not be interpreted by your shell)
+- `module.foo.module.bar.aws_instance.qux`
+
+This command accepts the following options:
+
+- `-allow-missing` - If specified, the command will succeed (exit code 0)
+  even if the resource is missing. The command might still return an error
+  for other situations, such as if there is a problem reading or writing
+  the state.
+
+- `-lock=false` - Disables Terraform's default behavior of attempting to take
+  a read/write lock on the state for the duration of the operation.
+
+- `-lock-timeout=DURATION` - Unless locking is disabled with `-lock=false`,
+  instructs Terraform to retry acquiring a lock for a period of time before
+  returning an error. The duration syntax is a number followed by a time
+  unit letter, such as "3s" for three seconds.
+
+For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote) only, `terraform taint`
+also accepts the option
+[`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
+
+For configurations using
+[the `local` backend](/terraform/language/settings/backends/local) only,
+`terraform taint` also accepts the legacy options
+[`-state`, `-state-out`, and `-backup`](/terraform/language/settings/backends/local#command-line-arguments).

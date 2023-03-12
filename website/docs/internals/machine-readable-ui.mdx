@@ -1,0 +1,601 @@
+---
+page_title: 'Internals: Machine-Readable UI'
+description: >-
+  Terraform provides a machine-readable streaming JSON UI output for plan,
+  apply, and refresh operations.
+---
+
+# Machine-Readable UI
+
+-> **Note:** This format is available in Terraform 0.15.3 and later.
+
+By default, many Terraform commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+
+For long-running commands such as `plan`, `apply`, and `refresh`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
+
+The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
+value `"1.0"`. The semantics of this version are:
+
+- We will increment the minor version, e.g. `"1.1"`, for backward-compatible
+  changes or additions. Ignore any object properties with unrecognized names to
+  remain forward-compatible with future minor versions.
+- We will increment the major version, e.g. `"2.0"`, for changes that are not
+  backward-compatible. Reject any input which reports an unsupported major
+  version.
+
+We will introduce new major versions only within the bounds of
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+
+## Sample JSON Output
+
+Below is sample output from running `terraform apply -json`:
+
+```javascript
+{"@level":"info","@message":"Terraform 0.15.4","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.275359-04:00","terraform":"0.15.4","type":"version","ui":"0.1.0"}
+{"@level":"info","@message":"random_pet.animal: Plan to create","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.705503-04:00","change":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"planned_change"}
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.705638-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"plan"},"type":"change_summary"}
+{"@level":"info","@message":"random_pet.animal: Creating...","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.825308-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"apply_start"}
+{"@level":"info","@message":"random_pet.animal: Creation complete after 0s [id=smart-lizard]","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.826179-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create","id_key":"id","id_value":"smart-lizard","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.869168-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"apply"},"type":"change_summary"}
+{"@level":"info","@message":"Outputs: 1","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.869280-04:00","outputs":{"pets":{"sensitive":false,"type":"string","value":"smart-lizard"}},"type":"outputs"}
+```
+
+Each line consists of a JSON object with several keys common to all messages. These are:
+
+- `@level`: this is normally "info", but can be "error" or "warn" when showing diagnostics
+- `@message`: a human-readable summary of the contents of this message
+- `@module`: always "terraform.ui" when rendering UI output
+- `@timestamp`: an RFC3339 timestamp of when the message was output
+- `type`: defines which kind of message this is and determines how to interpret other keys which may be present
+
+Clients presenting the logs as a user interface should handle unexpected message types by presenting at least the `@message` field to the user.
+
+Messages will be emitted as events occur to trigger them. This means that messages related to several resources may be interleaved (if Terraform is running with concurrency above 1). The [`resource` object value](#resource-object) can be used to link multiple messages about a single resource.
+
+## Message Types
+
+The following message types are supported:
+
+### Generic Messages
+
+- `version`: information about the Terraform version and the version of the schema used for the following messages
+- `log`: unstructured human-readable log lines
+- `diagnostic`: diagnostic warning or error messages; [see the `terraform validate` docs for more details on the format](/terraform/cli/commands/validate#json)
+
+### Operation Results
+
+- `resource_drift`: describes a detected change to a single resource made outside of Terraform
+- `planned_change`: describes a planned change to a single resource
+- `change_summary`: summary of all planned or applied changes
+- `outputs`: list of all root module outputs
+
+### Resource Progress
+
+- `apply_start`, `apply_progress`, `apply_complete`, `apply_errored`: sequence of messages indicating progress of a single resource through apply
+- `provision_start`, `provision_progress`, `provision_complete`, `provision_errored`: sequence of messages indicating progress of a single provisioner step
+- `refresh_start`, `refresh_complete`: sequence of messages indicating progress of a single resource through refresh
+
+## Version Message
+
+A machine-readable UI command output will always begin with a `version` message. The following message-specific keys are defined:
+
+- `terraform`: the Terraform version which emitted this message
+- `ui`: the machine-readable UI schema version defining the meaning of the following messages
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Terraform 0.15.4",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.275359-04:00",
+  "terraform": "0.15.4",
+  "type": "version",
+  "ui": "0.1.0"
+}
+```
+
+## Resource Drift
+
+If drift is detected during planning, Terraform will emit a `resource_drift` message for each resource which has changed outside of Terraform. This message has an embedded `change` object with the following keys:
+
+- `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
+- `action`: the action planned to be taken for the resource. Values: `update`, `delete`.
+
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "random_pet.animal: Drift detected (update)",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.705503-04:00",
+  "change": {
+    "resource": {
+      "addr": "random_pet.animal",
+      "module": "",
+      "resource": "random_pet.animal",
+      "implied_provider": "random",
+      "resource_type": "random_pet",
+      "resource_name": "animal",
+      "resource_key": null
+    },
+    "action": "update"
+  },
+  "type": "resource_drift"
+}
+```
+
+## Planned Change
+
+At the end of a plan or before an apply, Terraform will emit a `planned_change` message for each resource which has changes to apply. This message has an embedded `change` object with the following keys:
+
+- `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
+- `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
+- `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`, `move`.
+- `reason`: an optional reason for the change, only used when the action is `replace` or `delete`. Values:
+  - `tainted`: resource was marked as tainted
+  - `requested`: user requested that the resource be replaced, for example via the `-replace` plan flag
+  - `cannot_update`: changes to configuration force the resource to be deleted and created rather than updated
+  - `delete_because_no_resource_config`: no matching resource in configuration
+  - `delete_because_wrong_repetition`: resource instance key has no corresponding `count` or `for_each` in configuration
+  - `delete_because_count_index`: resource instance key is outside the range of the `count` argument
+  - `delete_because_each_key`: resource instance key is not included in the `for_each` argument
+  - `delete_because_no_module`: enclosing module instance is not in configuration
+
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "random_pet.animal: Plan to create",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.705503-04:00",
+  "change": {
+    "resource": {
+      "addr": "random_pet.animal",
+      "module": "",
+      "resource": "random_pet.animal",
+      "implied_provider": "random",
+      "resource_type": "random_pet",
+      "resource_name": "animal",
+      "resource_key": null
+    },
+    "action": "create"
+  },
+  "type": "planned_change"
+}
+```
+
+## Change Summary
+
+Terraform outputs a change summary when a plan or apply operation completes. Both message types include a `changes` object, which has the following keys:
+
+- `add`: count of resources to be created (including as part of replacement)
+- `change`: count of resources to be changed in-place
+- `remove`: count of resources to be destroyed (including as part of replacement)
+- `operation`: one of `plan`, `apply`, or `destroy`
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.869168-04:00",
+  "changes": {
+    "add": 1,
+    "change": 0,
+    "remove": 0,
+    "operation": "apply"
+  },
+  "type": "change_summary"
+}
+```
+
+## Outputs
+
+After a successful plan or apply, a message with type `outputs` contains the values of all root module output values. This message contains an `outputs` object, the keys of which are the output names. The outputs values are objects with the following keys:
+
+- `action`: for planned outputs, the action which will be taken for the output. Values: `noop`, `create`, `update`, `delete`
+- `value`: for applied outputs, the value of the output, encoded in JSON
+- `type`: for applied outputs, the detected HCL type of the output value
+- `sensitive`: boolean value, `true` if the output is sensitive and should be hidden from UI by default
+
+Note that `sensitive` outputs still include the `value` field, and integrating software should respect the sensitivity value as appropriate for the given use case.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Outputs: 1",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.869280-04:00",
+  "outputs": {
+    "pets": {
+      "sensitive": false,
+      "type": "string",
+      "value": "smart-lizard"
+    }
+  },
+  "type": "outputs"
+}
+```
+
+## Operation Messages
+
+Performing Terraform operations to a resource will often result in several messages being emitted. The message types include:
+
+- `apply_start`: when starting to apply changes for a resource
+- `apply_progress`: periodically, showing elapsed time output
+- `apply_complete`: on successful operation completion
+- `apply_errored`: when an error is encountered during the operation
+- `provision_start`: when starting a provisioner step
+- `provision_progress`: on provisioner output
+- `provision_complete`: on successful provisioning
+- `provision_errored`: when an error is enountered during provisioning
+- `refresh_start`: when reading a resource during refresh
+- `refresh_complete`: on successful refresh
+
+Each of these messages has a `hook` object, which has different fields for each type. All hooks have a [`resource` object](#resource-object) which identifies which resource is the subject of the operation.
+
+## Apply Start
+
+The `apply_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`
+- `id_key` and `id_value`: a key/value pair used to identify this instance of the resource, omitted when unknown
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "random_pet.animal: Creating...",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.825308-04:00",
+  "hook": {
+    "resource": {
+      "addr": "random_pet.animal",
+      "module": "",
+      "resource": "random_pet.animal",
+      "implied_provider": "random",
+      "resource_type": "random_pet",
+      "resource_name": "animal",
+      "resource_key": null
+    },
+    "action": "create"
+  },
+  "type": "apply_start"
+}
+```
+
+## Apply Progress
+
+The `apply_progress` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action being taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`
+- `elapsed_seconds`: time elapsed since the apply operation started, expressed as an integer number of seconds
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[4]: Still creating... [30s elapsed]",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-17T09:34:26.222465-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[4]",
+      "module": "",
+      "resource": "null_resource.none[4]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 4
+    },
+    "action": "create",
+    "elapsed_seconds": 30
+  },
+  "type": "apply_progress"
+}
+```
+
+## Apply Complete
+
+The `apply_complete` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`
+- `id_key` and `id_value`: a key/value pair used to identify this instance of the resource, omitted when unknown
+- `elapsed_seconds`: time elapsed since the apply operation started, expressed as an integer number of seconds
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "random_pet.animal: Creation complete after 0s [id=smart-lizard]",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-05-25T13:32:41.826179-04:00",
+  "hook": {
+    "resource": {
+      "addr": "random_pet.animal",
+      "module": "",
+      "resource": "random_pet.animal",
+      "implied_provider": "random",
+      "resource_type": "random_pet",
+      "resource_name": "animal",
+      "resource_key": null
+    },
+    "action": "create",
+    "id_key": "id",
+    "id_value": "smart-lizard",
+    "elapsed_seconds": 0
+  },
+  "type": "apply_complete"
+}
+```
+
+## Apply Errored
+
+The `apply_complete` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `action`: the action taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`
+- `elapsed_seconds`: time elapsed since the apply operation started, expressed as an integer number of seconds
+
+The exact detail of the error will be rendered as a separate `diagnostic` message.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: Creation errored after 10s",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T16:38:54.013910-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "action": "create",
+    "elapsed_seconds": 10
+  },
+  "type": "apply_errored"
+}
+```
+
+## Provision Start
+
+The `provision_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `provisioner`: the type of provisioner
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: Provisioning with 'local-exec'...",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T16:38:43.997431-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "provisioner": "local-exec"
+  },
+  "type": "provision_start"
+}
+```
+
+## Provision Progress
+
+The `provision_progress` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `provisioner`: the type of provisioner
+- `output`: the output log from the provisioner
+
+One `provision_progress` message is output for each log line received from the provisioner.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: (local-exec): Executing: [\"/bin/sh\" \"-c\" \"sleep 10 && exit 1\"]",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T16:38:43.997869-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "provisioner": "local-exec",
+    "output": "Executing: [\"/bin/sh\" \"-c\" \"sleep 10 && exit 1\"]"
+  },
+  "type": "provision_progress"
+}
+```
+
+## Provision Complete
+
+The `provision_complete` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `provisioner`: the type of provisioner
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: (local-exec) Provisioning complete",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-17T09:34:06.239043-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "provisioner": "local-exec"
+  },
+  "type": "provision_complete"
+}
+```
+
+## Provision Errored
+
+The `provision_errored` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `provisioner`: the type of provisioner
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: (local-exec) Provisioning errored",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T16:38:54.013572-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "provisioner": "local-exec"
+  },
+  "type": "provision_errored"
+}
+```
+
+## Refresh Start
+
+The `refresh_start` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `id_key` and `id_value`: a key/value pair used to identify this instance of the resource
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: Refreshing state... [id=1971614370559474622]",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T14:18:06.508915-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "id_key": "id",
+    "id_value": "1971614370559474622"
+  },
+  "type": "refresh_start"
+}
+```
+
+## Refresh Complete
+
+The `refresh_complete` message `hook` object has the following keys:
+
+- `resource`: a [`resource` object](#resource-object) identifying the resource
+- `id_key` and `id_value`: a key/value pair used to identify this instance of the resource
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "null_resource.none[0]: Refresh complete [id=1971614370559474622]",
+  "@module": "terraform.ui",
+  "@timestamp": "2021-03-26T14:18:06.509371-04:00",
+  "hook": {
+    "resource": {
+      "addr": "null_resource.none[0]",
+      "module": "",
+      "resource": "null_resource.none[0]",
+      "implied_provider": "null",
+      "resource_type": "null_resource",
+      "resource_name": "none",
+      "resource_key": 0
+    },
+    "id_key": "id",
+    "id_value": "1971614370559474622"
+  },
+  "type": "refresh_complete"
+}
+```
+
+## Resource Object
+
+The `resource` object is a decomposed structure representing a resource address in configuration, which is used to identify which resource a given message is associated with. The object has the following keys:
+
+- `addr`: the full unique address of the resource as a string
+- `module`: the address of the module containing the resource, in the form `module.foo.module.bar`, or an empty string for a root module resource
+- `resource`: the module-relative address, which is identical to `addr` for root module resources
+- `resource_type`: the type of resource being addressed
+- `resource_name`: the name label for the resource
+- `resource_key`: the address key (`count` or `for_each` value), or `null` if the neither are used
+- `implied_provider`: the provider type implied by the resource type; this may not reflect the resource's provider if provider aliases are used
+
+### Example
+
+```json
+{
+  "addr": "module.pets.random_pet.pet[\"friend\"]",
+  "module": "module.pets",
+  "resource": "random_pet.pet[\"friend\"]",
+  "implied_provider": "random",
+  "resource_type": "random_pet",
+  "resource_name": "pet",
+  "resource_key": "friend"
+}
+```

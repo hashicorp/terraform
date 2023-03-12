@@ -1,9 +1,5 @@
 package dag
 
-import (
-	"fmt"
-)
-
 // Edge represents an edge in the graph, with a source and target vertex.
 type Edge interface {
 	Source() Vertex
@@ -25,7 +21,7 @@ type basicEdge struct {
 }
 
 func (e *basicEdge) Hashcode() interface{} {
-	return fmt.Sprintf("%p-%p", e.S, e.T)
+	return [...]interface{}{e.S, e.T}
 }
 
 func (e *basicEdge) Source() Vertex {

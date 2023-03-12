@@ -1,0 +1,50 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_multiple_blocks.multiple_blocks",
+          "mode": "managed",
+          "name": "multiple_blocks",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "first_block": [
+              {},
+              {},
+              {}
+            ],
+            "second_block": [
+              {},
+              {}
+            ]
+          },
+          "type": "tfcoremock_multiple_blocks",
+          "values": {
+            "first_block": [
+              {
+                "id": "D35E88DA-BC3B-46D7-9E0B-4ED4582FA65A"
+              },
+              {
+                "id": "E60148A2-04D1-4EF8-90A2-45CAFC02C60D"
+              },
+              {
+                "id": "717C64FB-6A93-4763-A1EF-FE4C5B341488"
+              }
+            ],
+            "id": "DA051126-BAD6-4EB2-92E5-F0250DAF0B92",
+            "second_block": [
+              {
+                "id": "157660A9-D590-469E-BE28-83B8526428CA"
+              },
+              {
+                "id": "D080F298-2BA4-4DFA-A367-2C5FB0EA7BFE"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

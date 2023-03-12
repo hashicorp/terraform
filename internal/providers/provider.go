@@ -3,7 +3,6 @@ package providers
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -86,13 +85,19 @@ type GetProviderSchemaResponse struct {
 
 	// Diagnostics contains any warnings or errors from the method call.
 	Diagnostics tfdiags.Diagnostics
+
+	// ServerCapabilities lists optional features supported by the provider.
+	ServerCapabilities ServerCapabilities
 }
 
-// Schema pairs a provider or resource schema with that schema's version.
-// This is used to be able to upgrade the schema in UpgradeResourceState.
-type Schema struct {
-	Version int64
-	Block   *configschema.Block
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate availability
+// of certain forward-compatible changes which may be optional in a major
+// protocol version, but cannot be tested for directly.
+type ServerCapabilities struct {
+	// PlanDestroy signals that this provider expects to receive a
+	// PlanResourceChange call for resources that are to be destroyed.
+	PlanDestroy bool
 }
 
 type ValidateProviderConfigRequest struct {

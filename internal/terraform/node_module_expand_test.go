@@ -48,6 +48,18 @@ func TestNodeCloseModuleExecute(t *testing.T) {
 		}
 
 		// Since module.child has no resources, it should be removed
+		if _, ok := state.Modules["module.child"]; !ok {
+			t.Fatal("module.child should not be removed from state yet")
+		}
+
+		// the root module should do all the module cleanup
+		node = nodeCloseModule{addrs.RootModule}
+		diags = node.Execute(ctx, walkApply)
+		if diags.HasErrors() {
+			t.Fatalf("unexpected error: %s", diags.Err())
+		}
+
+		// Since module.child has no resources, it should be removed
 		if _, ok := state.Modules["module.child"]; ok {
 			t.Fatal("module.child was not removed from state")
 		}

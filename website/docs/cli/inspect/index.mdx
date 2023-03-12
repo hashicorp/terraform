@@ -1,0 +1,35 @@
+---
+page_title: Inspecting Infrastructure - Terraform CLI
+description: >-
+  Learn commands to inspect dependency information, outputs, etc. Use them for
+  integration or to understand your infrastructure.
+---
+
+# Inspecting Infrastructure
+
+Terraform configurations and state data include some highly structured
+information about the resources they manage; this includes dependency
+information, outputs (which are pieces of generated or discovered data that the
+configuration's author considers important enough to surface to users), and
+more.
+
+Terraform CLI includes some commands for inspecting or transforming this data.
+You can use these to integrate other tools with Terraform's infrastructure data,
+or just to gain a deeper or more holistic understanding of your infrastructure.
+
+- [The `terraform graph` command](/terraform/cli/commands/graph) creates a visual
+  representation of a configuration or a set of planned changes.
+- [The `terraform output` command](/terraform/cli/commands/output) can get the
+  values for the top-level [output values](/terraform/language/values/outputs) of
+  a configuration, which are often helpful when making use of the infrastructure
+  Terraform has provisioned.
+- [The `terraform show` command](/terraform/cli/commands/show) can generate
+  human-readable versions of a state file or plan file, or generate
+  machine-readable versions that can be integrated with other tools.
+- [The `terraform state list` command](/terraform/cli/commands/state/list) can list
+  the resources being managed by the current working directory and workspace,
+  providing a complete or filtered list.
+- [The `terraform state show` command](/terraform/cli/commands/state/show) can print
+  all of the attributes of a given resource being managed by the current working
+  directory and workspace, including generated read-only attributes like the
+  unique ID assigned by the cloud provider.

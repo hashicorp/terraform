@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/internal/backend"
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/getproviders"
@@ -34,13 +36,14 @@ type InitCommand struct {
 
 func (c *InitCommand) Run(args []string) int {
 	var flagFromModule, flagLockfile string
-	var flagBackend, flagGet, flagUpgrade bool
+	var flagBackend, flagCloud, flagGet, flagUpgrade bool
 	var flagPluginPath FlagStringSlice
 	flagConfigExtra := newRawFlags("-backend-config")
 
 	args = c.Meta.process(args)
 	cmdFlags := c.Meta.extendedFlagSet("init")
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
+	cmdFlags.BoolVar(&flagCloud, "cloud", true, "")
 	cmdFlags.Var(flagConfigExtra, "backend-config", "")
 	cmdFlags.StringVar(&flagFromModule, "from-module", "", "copy the source of the given module into the directory before init")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
@@ -56,6 +59,19 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
+	}
+
+	backendFlagSet := arguments.FlagIsSet(cmdFlags, "backend")
+	cloudFlagSet := arguments.FlagIsSet(cmdFlags, "cloud")
+
+	switch {
+	case backendFlagSet && cloudFlagSet:
+		c.Ui.Error("The -backend and -cloud options are aliases of one another and mutually-exclusive in their use")
+		return 1
+	case backendFlagSet:
+		flagCloud = flagBackend
+	case cloudFlagSet:
+		flagBackend = flagCloud
 	}
 
 	if c.migrateState && c.reconfigure {
@@ -138,39 +154,65 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// For Terraform v0.12 we introduced a special loading mode where we would
-	// use the 0.11-syntax-compatible "earlyconfig" package as a heuristic to
-	// identify situations where it was likely that the user was trying to use
-	// 0.11-only syntax that the upgrade tool might help with.
-	//
-	// However, as the language has moved on that is no longer a suitable
-	// heuristic in Terraform 0.13 and later: other new additions to the
-	// language can cause the main loader to disagree with earlyconfig, which
-	// would lead us to give poor advice about how to respond.
-	//
-	// For that reason, we no longer use a different error message in that
-	// situation, but for now we still use both codepaths because some of our
-	// initialization functionality remains built around "earlyconfig" and
-	// so we need to still load the module via that mechanism anyway until we
-	// can do some more invasive refactoring here.
-	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	// If _only_ the early loader encountered errors then that's unusual
-	// (it should generally be a superset of the normal loader) but we'll
-	// return those errors anyway since otherwise we'll probably get
-	// some weird behavior downstream. Errors from the early loader are
-	// generally not as high-quality since it has less context to work with.
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
-		// Errors from the early loader are generally not as high-quality since
-		// it has less context to work with.
+	// Load just the root module to begin backend and module initialization
+	rootModEarly, earlyConfDiags := c.loadSingleModule(path)
 
-		// TODO: It would be nice to check the version constraints in
-		// rootModEarly.RequiredCore and print out a hint if the module is
-		// declaring that it's not compatible with this version of Terraform,
-		// and that may be what caused earlyconfig to fail.
+	// There may be parsing errors in config loading but these will be shown later _after_
+	// checking for core version requirement errors. Not meeting the version requirement should
+	// be the first error displayed if that is an issue, but other operations are required
+	// before being able to check core version requirements.
+	if rootModEarly == nil {
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		diags = diags.Append(earlyConfDiags)
 		c.showDiagnostics(diags)
+
 		return 1
+	}
+
+	var back backend.Backend
+
+	// There may be config errors or backend init errors but these will be shown later _after_
+	// checking for core version requirement errors.
+	var backDiags tfdiags.Diagnostics
+	var backendOutput bool
+
+	switch {
+	case flagCloud && rootModEarly.CloudConfig != nil:
+		back, backendOutput, backDiags = c.initCloud(rootModEarly, flagConfigExtra)
+	case flagBackend:
+		back, backendOutput, backDiags = c.initBackend(rootModEarly, flagConfigExtra)
+	default:
+		// load the previously-stored backend config
+		back, backDiags = c.Meta.backendFromState()
+	}
+	if backendOutput {
+		header = true
+	}
+
+	var state *states.State
+
+	// If we have a functional backend (either just initialized or initialized
+	// on a previous run) we'll use the current state as a potential source
+	// of provider dependencies.
+	if back != nil {
+		c.ignoreRemoteVersionConflict(back)
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		sMgr, err := back.StateMgr(workspace)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
+
+		if err := sMgr.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+			return 1
+		}
+
+		state = sMgr.State()
 	}
 
 	if flagGet {
@@ -202,86 +244,33 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// If we pass the core version check, we want to show any errors from initializing the backend next,
+	// which will include syntax errors from loading the configuration. However, there's a special case
+	// where we are unable to load the backend from configuration or state _and_ the configuration has
+	// errors. In that case, we want to show a slightly friendlier error message for newcomers.
+	showBackendDiags := back != nil || rootModEarly.Backend != nil || rootModEarly.CloudConfig != nil
+	if showBackendDiags {
+		diags = diags.Append(backDiags)
+		if backDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	} else {
+		diags = diags.Append(earlyConfDiags)
+		if earlyConfDiags.HasErrors() {
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
+
+	// If everything is ok with the core version check and backend initialization,
+	// show other errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
 		c.showDiagnostics(diags)
 		return 1
-	}
-
-	var back backend.Backend
-
-	switch {
-	case config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
-	case flagBackend:
-		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
-	default:
-		// load the previously-stored backend config
-		be, backendDiags := c.Meta.backendFromState()
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		back = be
-	}
-
-	if back == nil {
-		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initialized
-		// by a previous run, so we must still expect that "back" may be nil
-		// in code that follows.
-		var backDiags tfdiags.Diagnostics
-		back, backDiags = c.Backend(&BackendOpts{Init: true})
-		if backDiags.HasErrors() {
-			// This is fine. We'll proceed with no backend, then.
-			back = nil
-		}
-	}
-
-	var state *states.State
-
-	// If we have a functional backend (either just initialized or initialized
-	// on a previous run) we'll use the current state as a potential source
-	// of provider dependencies.
-	if back != nil {
-		c.ignoreRemoteVersionConflict(back)
-		workspace, err := c.Workspace()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
-			return 1
-		}
-		sMgr, err := back.StateMgr(workspace)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
-			return 1
-		}
-
-		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-			return 1
-		}
-
-		state = sMgr.State()
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
@@ -326,7 +315,7 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(path string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	if len(earlyRoot.ModuleCalls) == 0 {
 		// Nothing to do
 		return false, false, nil
@@ -409,10 +398,15 @@ func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (b
 
 		bf := backendInit.Backend(backendType)
 		if bf == nil {
+			detail := fmt.Sprintf("There is no backend type named %q.", backendType)
+			if msg, removed := backendInit.RemovedBackends[backendType]; removed {
+				detail = msg
+			}
+
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no backend type named %q.", backendType),
+				Detail:   detail,
 				Subject:  &root.Backend.TypeRange,
 			})
 			return nil, true, diags
@@ -527,6 +521,11 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 	// Installation can be aborted by interruption signals
 	ctx, done := c.InterruptibleContext()
 	defer done()
+
+	// We want to print out a nice warning if we don't manage to pull
+	// checksums for all our providers. This is tracked via callbacks
+	// and incomplete providers are stored here for later analysis.
+	var incompleteProviders []string
 
 	// Because we're currently just streaming a series of events sequentially
 	// into the terminal, we're showing only a subset of the events to keep
@@ -769,6 +768,41 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 
 			c.Ui.Info(fmt.Sprintf("- Installed %s v%s (%s%s)", provider.ForDisplay(), version, authResult, keyID))
 		},
+		ProvidersLockUpdated: func(provider addrs.Provider, version getproviders.Version, localHashes []getproviders.Hash, signedHashes []getproviders.Hash, priorHashes []getproviders.Hash) {
+			// We're going to use this opportunity to track if we have any
+			// "incomplete" installs of providers. An incomplete install is
+			// when we are only going to write the local hashes into our lock
+			// file which means a `terraform init` command will fail in future
+			// when used on machines of a different architecture.
+			//
+			// We want to print a warning about this.
+
+			if len(signedHashes) > 0 {
+				// If we have any signedHashes hashes then we don't worry - as
+				// we know we retrieved all available hashes for this version
+				// anyway.
+				return
+			}
+
+			// If local hashes and prior hashes are exactly the same then
+			// it means we didn't record any signed hashes previously, and
+			// we know we're not adding any extra in now (because we already
+			// checked the signedHashes), so that's a problem.
+			//
+			// In the actual check here, if we have any priorHashes and those
+			// hashes are not the same as the local hashes then we're going to
+			// accept that this provider has been configured correctly.
+			if len(priorHashes) > 0 && !reflect.DeepEqual(localHashes, priorHashes) {
+				return
+			}
+
+			// Now, either signedHashes is empty, or priorHashes is exactly the
+			// same as our localHashes which means we never retrieved the
+			// signedHashes previously.
+			//
+			// Either way, this is bad. Let's complain/warn.
+			incompleteProviders = append(incompleteProviders, provider.ForDisplay())
+		},
 		ProvidersFetched: func(authResults map[addrs.Provider]*getproviders.PackageAuthenticationResult) {
 			thirdPartySigned := false
 			for _, authResult := range authResults {
@@ -782,18 +816,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
 					"https://www.terraform.io/docs/cli/plugins/signing.html"))
 			}
-		},
-		HashPackageFailure: func(provider addrs.Provider, version getproviders.Version, err error) {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Failed to validate installed provider",
-				fmt.Sprintf(
-					"Validating provider %s v%s failed: %s",
-					provider.ForDisplay(),
-					version,
-					err,
-				),
-			))
 		},
 	}
 	ctx = evts.OnContext(ctx)
@@ -852,6 +874,22 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
 			))
 			return true, false, diags
+		}
+
+		// Jump in here and add a warning if any of the providers are incomplete.
+		if len(incompleteProviders) > 0 {
+			// We don't really care about the order here, we just want the
+			// output to be deterministic.
+			sort.Slice(incompleteProviders, func(i, j int) bool {
+				return incompleteProviders[i] < incompleteProviders[j]
+			})
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				incompleteLockFileInformationHeader,
+				fmt.Sprintf(
+					incompleteLockFileInformationBody,
+					strings.Join(incompleteProviders, "\n  - "),
+					getproviders.CurrentPlatform.String())))
 		}
 
 		if previousLocks.Empty() {
@@ -992,6 +1030,7 @@ func (c *InitCommand) AutocompleteArgs() complete.Predictor {
 func (c *InitCommand) AutocompleteFlags() complete.Flags {
 	return complete.Flags{
 		"-backend":        completePredictBoolean,
+		"-cloud":          completePredictBoolean,
 		"-backend-config": complete.PredictFiles("*.tfvars"), // can also be key=value, but we can't "predict" that
 		"-force-copy":     complete.PredictNothing,
 		"-from-module":    completePredictModuleSource,
@@ -1026,17 +1065,22 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend initialization for this configuration
-                          and use the previously initialized backend instead.
+  -backend=false          Disable backend or Terraform Cloud initialization
+                          for this configuration and use what was previously
+                          initialized instead.
 
-  -backend-config=path    This can be either a path to an HCL file with key/value
+                          aliases: -cloud=false
+
+  -backend-config=path    Configuration to be merged with what is in the
+                          configuration file's 'backend' block. This can be
+                          either a path to an HCL file with key/value
                           assignments (same format as terraform.tfvars) or a
-                          'key=value' format. This is merged with what is in the
-                          configuration file. This can be specified multiple
+                          'key=value' format, and can be specified multiple
                           times. The backend type must be in the configuration
                           itself.
 
-  -force-copy             Suppress prompts about copying state data. This is
+  -force-copy             Suppress prompts about copying state data when
+                          initializating a new state backend. This is
                           equivalent to providing a "yes" to all confirmation
                           prompts.
 
@@ -1045,9 +1089,9 @@ Options:
 
   -get=false              Disable downloading modules for this configuration.
 
-  -input=false            Disable prompting for missing backend configuration
-                          values. This will result in an error if the backend
-                          configuration is not fully specified.
+  -input=false            Disable interactive prompts. Note that some actions may
+                          require interactive prompts and will error if input is
+                          disabled.
 
   -lock=false             Don't hold a state lock during backend migration.
                           This is dangerous if others might concurrently run
@@ -1062,10 +1106,10 @@ Options:
                           automatic installation of plugins. This flag can be used
                           multiple times.
 
-  -reconfigure            Reconfigure the backend, ignoring any saved
+  -reconfigure            Reconfigure a backend, ignoring any saved
                           configuration.
 
-  -migrate-state          Reconfigure the backend, and attempt to migrate any
+  -migrate-state          Reconfigure a backend, and attempt to migrate any
                           existing state.
 
   -upgrade                Install the latest module and provider versions
@@ -1076,8 +1120,12 @@ Options:
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
 
-  -ignore-remote-version  A rare option used for the remote backend only. See
-                          the remote backend documentation for more information.
+  -ignore-remote-version  A rare option used for Terraform Cloud and the remote backend
+                          only. Set this to ignore checking that the local and remote
+                          Terraform versions use compatible state representations, making
+                          an operation proceed even when there is a potential mismatch.
+                          See the documentation on configuring Terraform with
+                          Terraform Cloud for more information.
 
 `
 	return strings.TrimSpace(helpText)
@@ -1165,3 +1213,18 @@ Alternatively, upgrade to the latest version of Terraform for compatibility with
 
 // No version of the provider is compatible.
 const errProviderVersionIncompatible = `No compatible versions of provider %s were found.`
+
+// incompleteLockFileInformationHeader is the summary displayed to users when
+// the lock file has only recorded local hashes.
+const incompleteLockFileInformationHeader = `Incomplete lock file information for providers`
+
+// incompleteLockFileInformationBody is the body of text displayed to users when
+// the lock file has only recorded local hashes.
+const incompleteLockFileInformationBody = `Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:
+  - %s
+
+The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running on another platform will fail to install these providers.
+
+To calculate additional checksums for another platform, run:
+  terraform providers lock -platform=linux_amd64
+(where linux_amd64 is the platform to generate)`

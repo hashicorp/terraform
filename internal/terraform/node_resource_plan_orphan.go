@@ -121,47 +121,70 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		oldState = refreshedState
 	}
 
-	if !n.skipPlanChanges {
-		var change *plans.ResourceInstanceChange
-		change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
-		diags = diags.Append(destroyPlanDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// We might be able to offer an approximate reason for why we are
-		// planning to delete this object. (This is best-effort; we might
-		// sometimes not have a reason.)
-		change.ActionReason = n.deleteActionReason(ctx)
-
-		diags = diags.Append(n.writeChange(ctx, change, ""))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
-	} else {
-		// The working state should at least be updated with the result
-		// of upgrading and refreshing from above.
-		diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
+	// If we're skipping planning, all we need to do is write the state. If the
+	// refresh indicates the instance no longer exists, there is also nothing
+	// to plan because there is no longer any state and it doesn't exist in the
+	// config.
+	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
+		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 
-	return diags
+	var change *plans.ResourceInstanceChange
+	change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
+	diags = diags.Append(destroyPlanDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// We might be able to offer an approximate reason for why we are
+	// planning to delete this object. (This is best-effort; we might
+	// sometimes not have a reason.)
+	change.ActionReason = n.deleteActionReason(ctx)
+
+	diags = diags.Append(n.writeChange(ctx, change, ""))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 }
 
 func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {
 	cfg := n.Config
 	if cfg == nil {
-		// NOTE: We'd ideally detect if the containing module is what's missing
-		// and then use ResourceInstanceDeleteBecauseNoModule for that case,
-		// but we don't currently have access to the full configuration here,
-		// so we need to be less specific.
+		if !n.Addr.Equal(n.prevRunAddr(ctx)) {
+			// This means the resource was moved - see also
+			// ResourceInstanceChange.Moved() which calculates
+			// this the same way.
+			return plans.ResourceInstanceDeleteBecauseNoMoveTarget
+		}
+
 		return plans.ResourceInstanceDeleteBecauseNoResourceConfig
+	}
+
+	// If this is a resource instance inside a module instance that's no
+	// longer declared then we will have a config (because config isn't
+	// instance-specific) but the expander will know that our resource
+	// address's module path refers to an undeclared module instance.
+	if expander := ctx.InstanceExpander(); expander != nil { // (sometimes nil in MockEvalContext in tests)
+		validModuleAddr := expander.GetDeepestExistingModuleInstance(n.Addr.Module)
+		if len(validModuleAddr) != len(n.Addr.Module) {
+			// If we get here then at least one step in the resource's module
+			// path is to a module instance that doesn't exist at all, and
+			// so a missing module instance is the delete reason regardless
+			// of whether there might _also_ be a change to the resource
+			// configuration inside the module. (Conceptually the configurations
+			// inside the non-existing module instance don't exist at all,
+			// but they end up existing just as an artifact of the
+			// implementation detail that we detect module instance orphans
+			// only dynamically.)
+			return plans.ResourceInstanceDeleteBecauseNoModule
+		}
 	}
 
 	switch n.Addr.Resource.Key.(type) {

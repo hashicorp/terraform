@@ -1,0 +1,271 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.1.0-dev",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_name": "registry.terraform.io/hashicorp/test",
+          "schema_version": 0,
+          "values": {
+            "ami": "foo"
+          },
+          "sensitive_values": {}
+        }
+      ],
+      "child_modules": [
+        {
+          "resources": [
+            {
+              "address": "module.child.test_instance.test",
+              "mode": "managed",
+              "type": "test_instance",
+              "name": "test",
+              "provider_name": "registry.terraform.io/hashicorp/test",
+              "schema_version": 0,
+              "values": {
+                "ami": "bar"
+              },
+              "sensitive_values": {}
+            }
+          ],
+          "address": "module.child",
+          "child_modules": [
+            {
+              "resources": [
+                {
+                  "address": "module.child.module.no_requirements.test_instance.test",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "qux"
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.child.module.no_requirements"
+            },
+            {
+              "resources": [
+                {
+                  "address": "module.child.module.with_requirement.test_instance.test",
+                  "mode": "managed",
+                  "type": "test_instance",
+                  "name": "test",
+                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "schema_version": 0,
+                  "values": {
+                    "ami": "baz"
+                  },
+                  "sensitive_values": {}
+                }
+              ],
+              "address": "module.child.module.with_requirement"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "test_instance.test",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "foo"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.test_instance.test",
+      "module_address": "module.child",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "bar"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.module.no_requirements.test_instance.test",
+      "module_address": "module.child.module.no_requirements",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "qux"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    },
+    {
+      "address": "module.child.module.with_requirement.test_instance.test",
+      "module_address": "module.child.module.with_requirement",
+      "mode": "managed",
+      "type": "test_instance",
+      "name": "test",
+      "provider_name": "registry.terraform.io/hashicorp/test",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "ami": "baz"
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {}
+      }
+    }
+  ],
+  "configuration": {
+    "provider_config": {
+      "test": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test",
+        "expressions": {
+          "region": {
+            "constant_value": "somewhere"
+          }
+        }
+      },
+      "test.backup": {
+        "name": "test",
+        "full_name": "registry.terraform.io/hashicorp/test",
+        "alias": "backup",
+        "expressions": {
+          "region": {
+            "constant_value": "elsewhere"
+          }
+        }
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "test_instance.test",
+          "mode": "managed",
+          "type": "test_instance",
+          "name": "test",
+          "provider_config_key": "test",
+          "expressions": {
+            "ami": {
+              "constant_value": "foo"
+            }
+          },
+          "schema_version": 0
+        }
+      ],
+      "module_calls": {
+        "child": {
+          "source": "./child",
+          "module": {
+            "resources": [
+              {
+                "address": "test_instance.test",
+                "mode": "managed",
+                "type": "test_instance",
+                "name": "test",
+                "provider_config_key": "test.backup",
+                "expressions": {
+                  "ami": {
+                    "constant_value": "bar"
+                  }
+                },
+                "schema_version": 0
+              }
+            ],
+            "module_calls": {
+              "no_requirements": {
+                "source": "./nested-no-requirements",
+                "module": {
+                  "resources": [
+                    {
+                      "address": "test_instance.test",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test",
+                      "provider_config_key": "test.backup",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "qux"
+                        }
+                      },
+                      "schema_version": 0
+                    }
+                  ]
+                }
+              },
+              "with_requirement": {
+                "source": "./nested",
+                "depends_on": ["module.no_requirements"],
+                "module": {
+                  "resources": [
+                    {
+                      "address": "test_instance.test",
+                      "mode": "managed",
+                      "type": "test_instance",
+                      "name": "test",
+                      "provider_config_key": "test.backup",
+                      "expressions": {
+                        "ami": {
+                          "constant_value": "baz"
+                        }
+                      },
+                      "schema_version": 0
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -18,6 +18,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -31,9 +32,8 @@ import (
 
 func TestInit_empty(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -54,9 +54,8 @@ func TestInit_empty(t *testing.T) {
 
 func TestInit_multipleArgs(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, 0755)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -80,9 +79,8 @@ func TestInit_multipleArgs(t *testing.T) {
 
 func TestInit_fromModule_cwdDest(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	os.MkdirAll(td, os.ModePerm)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -109,11 +107,10 @@ func TestInit_fromModule_cwdDest(t *testing.T) {
 
 // https://github.com/hashicorp/terraform/issues/518
 func TestInit_fromModule_dstInSrc(t *testing.T) {
-	dir := tempDir(t)
+	dir := t.TempDir()
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	defer os.RemoveAll(dir)
 
 	// Change to the temporary directory
 	cwd, err := os.Getwd()
@@ -161,9 +158,8 @@ func TestInit_fromModule_dstInSrc(t *testing.T) {
 
 func TestInit_get(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -190,9 +186,8 @@ func TestInit_get(t *testing.T) {
 
 func TestInit_getUpgradeModules(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -222,9 +217,8 @@ func TestInit_getUpgradeModules(t *testing.T) {
 
 func TestInit_backend(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -249,9 +243,8 @@ func TestInit_backend(t *testing.T) {
 
 func TestInit_backendUnset(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	{
@@ -316,9 +309,8 @@ func TestInit_backendUnset(t *testing.T) {
 
 func TestInit_backendConfigFile(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	t.Run("good-config-file", func(t *testing.T) {
@@ -453,9 +445,8 @@ func TestInit_backendConfigFile(t *testing.T) {
 
 func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -489,9 +480,8 @@ func TestInit_backendConfigFilePowershellConfusion(t *testing.T) {
 
 func TestInit_backendReconfigure(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -537,9 +527,8 @@ func TestInit_backendReconfigure(t *testing.T) {
 
 func TestInit_backendConfigFileChange(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file-change"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -566,9 +555,8 @@ func TestInit_backendConfigFileChange(t *testing.T) {
 
 func TestInit_backendMigrateWhileLocked(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-migrate-while-locked"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -599,7 +587,7 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 	}
 
 	// Lock the source state
-	unlock, err := testLockState(testDataDir, "local-state.tfstate")
+	unlock, err := testLockState(t, testDataDir, "local-state.tfstate")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -620,9 +608,8 @@ func TestInit_backendMigrateWhileLocked(t *testing.T) {
 
 func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-file-change-migrate-existing"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -655,9 +642,8 @@ func TestInit_backendConfigFileChangeWithExistingState(t *testing.T) {
 
 func TestInit_backendConfigKV(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -684,9 +670,8 @@ func TestInit_backendConfigKV(t *testing.T) {
 
 func TestInit_backendConfigKVReInit(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-config-kv"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -748,9 +733,8 @@ func TestInit_backendConfigKVReInit(t *testing.T) {
 
 func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -797,9 +781,8 @@ func TestInit_backendConfigKVReInitWithConfigDiff(t *testing.T) {
 
 func TestInit_backendCli_no_config_block(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -824,9 +807,8 @@ func TestInit_backendCli_no_config_block(t *testing.T) {
 }
 
 func TestInit_backendReinitWithExtra(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend-empty"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	m := testMetaBackend(t, nil)
@@ -882,9 +864,8 @@ func TestInit_backendReinitWithExtra(t *testing.T) {
 
 // move option from config to -backend-config args
 func TestInit_backendReinitConfigToExtra(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -953,13 +934,10 @@ func TestInit_backendCloudInvalidOptions(t *testing.T) {
 	// of them will customize it a bit as part of their work.
 	setupTempDir := func(t *testing.T) func() {
 		t.Helper()
-		td := tempDir(t)
+		td := t.TempDir()
 		testCopyDir(t, testFixturePath("init-cloud-simple"), td)
 		unChdir := testChdir(t, td)
-		return func() {
-			unChdir()
-			os.RemoveAll(td)
-		}
+		return unChdir
 	}
 
 	// Some of the tests need a non-empty placeholder state file to work
@@ -1253,9 +1231,8 @@ prompts.
 
 // make sure inputFalse stops execution on migrate
 func TestInit_inputFalse(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-backend"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := new(cli.MockUi)
@@ -1332,9 +1309,8 @@ func TestInit_inputFalse(t *testing.T) {
 
 func TestInit_getProvider(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -1438,9 +1414,8 @@ func TestInit_getProvider(t *testing.T) {
 
 func TestInit_getProviderSource(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-source"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -1489,9 +1464,8 @@ func TestInit_getProviderSource(t *testing.T) {
 
 func TestInit_getProviderLegacyFromState(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-legacy-from-state"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -1531,9 +1505,8 @@ func TestInit_getProviderLegacyFromState(t *testing.T) {
 
 func TestInit_getProviderInvalidPackage(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-invalid-package"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	overrides := metaOverridesForProvider(testProvider())
@@ -1594,9 +1567,8 @@ func TestInit_getProviderInvalidPackage(t *testing.T) {
 
 func TestInit_getProviderDetectedLegacy(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-provider-detected-legacy"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// We need to construct a multisource with a mock source and a registry
@@ -1662,9 +1634,8 @@ func TestInit_getProviderDetectedLegacy(t *testing.T) {
 
 func TestInit_providerSource(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-required-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -1674,7 +1645,7 @@ func TestInit_providerSource(t *testing.T) {
 	})
 	defer close()
 
-	ui := new(cli.MockUi)
+	ui := cli.NewMockUi()
 	view, _ := testView(t)
 	m := Meta{
 		testingOverrides: metaOverridesForProvider(testProvider()),
@@ -1756,13 +1727,16 @@ func TestInit_providerSource(t *testing.T) {
 			},
 		),
 	}
+
 	if diff := cmp.Diff(gotProviderLocks, wantProviderLocks, depsfile.ProviderLockComparer); diff != "" {
 		t.Errorf("wrong version selections after upgrade\n%s", diff)
 	}
 
-	outputStr := ui.OutputWriter.String()
-	if want := "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(outputStr, want) {
-		t.Fatalf("unexpected output: %s\nexpected to include %q", outputStr, want)
+	if got, want := ui.OutputWriter.String(), "Installed hashicorp/test v1.2.3 (verified checksum)"; !strings.Contains(got, want) {
+		t.Fatalf("unexpected output: %s\nexpected to include %q", got, want)
+	}
+	if got, want := ui.ErrorWriter.String(), "\n  - hashicorp/source\n  - hashicorp/test\n  - hashicorp/test-beta"; !strings.Contains(got, want) {
+		t.Fatalf("wrong error message\nshould contain: %s\ngot:\n%s", want, got)
 	}
 }
 
@@ -1770,9 +1744,8 @@ func TestInit_cancelModules(t *testing.T) {
 	// This test runs `terraform init` as if SIGINT (or similar on other
 	// platforms) were sent to it, testing that it is interruptible.
 
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-registry-module"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Our shutdown channel is pre-closed so init will exit as soon as it
@@ -1808,9 +1781,8 @@ func TestInit_cancelProviders(t *testing.T) {
 	// This test runs `terraform init` as if SIGINT (or similar on other
 	// platforms) were sent to it, testing that it is interruptible.
 
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-required-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Use a provider source implementation which is designed to hang indefinitely,
@@ -1853,9 +1825,8 @@ func TestInit_cancelProviders(t *testing.T) {
 
 func TestInit_getUpgradePlugins(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -1979,9 +1950,8 @@ func TestInit_getUpgradePlugins(t *testing.T) {
 
 func TestInit_getProviderMissing(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -2019,9 +1989,8 @@ func TestInit_getProviderMissing(t *testing.T) {
 
 func TestInit_checkRequiredVersion(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-check-required-version"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	ui := cli.NewMockUi()
@@ -2102,9 +2071,10 @@ func TestInit_checkRequiredVersionFirst(t *testing.T) {
 
 func TestInit_providerLockFile(t *testing.T) {
 	// Create a temporary working directory that is empty
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-provider-lock-file"), td)
-	defer os.RemoveAll(td)
+	// The temporary directory does not have write permission (dr-xr-xr-x) after the copy
+	defer os.Chmod(td, os.ModePerm)
 	defer testChdir(t, td)()
 
 	providerSource, close := newMockProviderSource(t, map[string][]string{
@@ -2205,6 +2175,11 @@ provider "registry.terraform.io/hashicorp/test" {
 }
 `)
 
+	emptyUpdatedLockFile := strings.TrimSpace(`
+# This file is maintained automatically by "terraform init".
+# Manual edits may be lost in future updates.
+`)
+
 	cases := []struct {
 		desc      string
 		fixture   string
@@ -2224,12 +2199,30 @@ provider "registry.terraform.io/hashicorp/test" {
 			want:      updatedLockFile,
 		},
 		{
+			desc:      "unused provider",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{},
+			ok:        true,
+			want:      emptyUpdatedLockFile,
+		},
+		{
 			desc:      "readonly",
 			fixture:   "init-provider-lock-file",
 			providers: map[string][]string{"test": {"1.2.3"}},
 			input:     inputLockFile,
 			args:      []string{"-lockfile=readonly"},
 			ok:        true,
+			want:      inputLockFile,
+		},
+		{
+			desc:      "unused provider readonly",
+			fixture:   "init-provider-now-unused",
+			providers: map[string][]string{"test": {"1.2.3"}},
+			input:     inputLockFile,
+			args:      []string{"-lockfile=readonly"},
+			ok:        false,
 			want:      inputLockFile,
 		},
 		{
@@ -2267,9 +2260,8 @@ provider "registry.terraform.io/hashicorp/test" {
 	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			// Create a temporary working directory that is empty
-			td := tempDir(t)
+			td := t.TempDir()
 			testCopyDir(t, testFixturePath(tc.fixture), td)
-			defer os.RemoveAll(td)
 			defer testChdir(t, td)()
 
 			providerSource, close := newMockProviderSource(t, tc.providers)
@@ -2383,9 +2375,8 @@ func TestInit_pluginDirReset(t *testing.T) {
 
 // Test user-supplied -plugin-dir
 func TestInit_pluginDirProviders(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// An empty provider source
@@ -2481,9 +2472,8 @@ func TestInit_pluginDirProviders(t *testing.T) {
 
 // Test user-supplied -plugin-dir doesn't allow auto-install
 func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-get-providers"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// Our provider source has a suitable package for "between" available,
@@ -2559,9 +2549,8 @@ func TestInit_pluginDirProvidersDoesNotGet(t *testing.T) {
 
 // Verify that plugin-dir doesn't prevent discovery of internal providers
 func TestInit_pluginDirWithBuiltIn(t *testing.T) {
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-internal"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// An empty provider source
@@ -2598,9 +2587,8 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	//   explicit version number, which is not allowed because it's builtin.
 	// - an explicit dependency on terraform.io/builtin/nonexist, which does
 	//   not exist at all.
-	td := tempDir(t)
+	td := t.TempDir()
 	testCopyDir(t, testFixturePath("init-internal-invalid"), td)
-	defer os.RemoveAll(td)
 	defer testChdir(t, td)()
 
 	// An empty provider source
@@ -2630,6 +2618,96 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	}
 	if subStr := "Cannot use terraform.io/builtin/nonexist: this Terraform release"; !strings.Contains(errStr, subStr) {
 		t.Errorf("error output should mention the 'nonexist' provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxNoBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-no-backend"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxWithBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-with-backend"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-invalid"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should not include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should not mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported backend type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 }
 

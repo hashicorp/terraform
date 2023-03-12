@@ -1,0 +1,126 @@
+---
+page_title: The Module providers Meta-Argument - Configuration Language
+description: >-
+  The providers meta-argument specifies which provider configurations from a
+  parent module are available in a child module.
+---
+
+# The Module `providers` Meta-Argument
+
+In a [module call](/terraform/language/modules/syntax) block, the
+optional `providers` meta-argument specifies which
+[provider configurations](/terraform/language/providers/configuration) from the parent
+module will be available inside the child module.
+
+```hcl
+# The default "aws" configuration is used for AWS resources in the root
+# module where no explicit provider instance is selected.
+provider "aws" {
+  region = "us-west-1"
+}
+
+# An alternate configuration is also defined for a different
+# region, using the alias "usw2".
+provider "aws" {
+  alias  = "usw2"
+  region = "us-west-2"
+}
+
+# An example child module is instantiated with the alternate configuration,
+# so any AWS resources it defines will use the us-west-2 region.
+module "example" {
+  source    = "./example"
+  providers = {
+    aws = aws.usw2
+  }
+}
+```
+
+## Default Behavior: Inherit Default Providers
+
+If the child module does not declare any [configuration aliases](/terraform/language/modules/develop/providers#provider-aliases-within-modules),
+the `providers` argument is optional. If you omit it, a child module inherits
+all of the _default_ provider configurations from its parent module. (Default
+provider configurations are ones that don't use the `alias` argument.)
+
+If you specify a `providers` argument, it cancels this default behavior, and the
+child module will _only_ have access to the provider configurations you specify.
+
+## Usage and Behavior
+
+The value of `providers` is a map, where:
+
+- The keys are the provider configuration names used inside the child module.
+- The values are provider configuration names from the parent module.
+
+Both keys and values should be unquoted references to provider configurations.
+For default configurations, this is the local name of the provider; for
+alternate configurations, this is a `<PROVIDER>.<ALIAS>` reference.
+
+Within a child module, resources are assigned to provider configurations as
+normal — either Terraform chooses a default based on the name of the resource
+type, or the resource specifies an alternate configuration with the `provider`
+argument. If the module receives a `providers` map when it's called, the
+provider configuration names used within the module are effectively remapped to
+refer the specified configurations from the parent module.
+
+## When to Specify Providers
+
+There are two main reasons to use the `providers` argument:
+
+- Using different default provider configurations for a child module.
+- Configuring a module that requires multiple configurations of the same provider.
+
+### Changing Default Provider Configurations
+
+Most re-usable modules only use default provider configurations, which they can
+automatically inherit from their caller when `providers` is omitted.
+
+However, in Terraform configurations that use multiple configurations of the
+same provider, you might want some child modules to use the default provider
+configuration and other ones to use an alternate. (This usually happens when
+using one configuration to manage resources in multiple different regions of the
+same cloud provider.)
+
+By using the `providers` argument (like in the code example above), you can
+accommodate this without needing to edit the child module. Although the code
+within the child module always refers to the default provider configuration, the
+actual configuration of that default can be different for each instance.
+
+### Modules With Alternate Provider Configurations
+
+In rare cases, a single re-usable module might require multiple configurations
+of the same provider. For example, a module that configures connectivity between
+networks in two AWS regions is likely to need both a source and a destination
+region. In that case, the root module may look something like this:
+
+```hcl
+provider "aws" {
+  alias  = "usw1"
+  region = "us-west-1"
+}
+
+provider "aws" {
+  alias  = "usw2"
+  region = "us-west-2"
+}
+
+module "tunnel" {
+  source    = "./tunnel"
+  providers = {
+    aws.src = aws.usw1
+    aws.dst = aws.usw2
+  }
+}
+```
+
+Non-default provider configurations are never automatically inherited, so any
+module that works like this will always need a `providers` argument. The
+documentation for the module should specify all of the provider configuration
+names it needs.
+
+## More Information for Module Developers
+
+For more details and guidance about working with providers inside a re-usable
+child module, see
+[Module Development: Providers Within Modules](/terraform/language/modules/develop/providers).

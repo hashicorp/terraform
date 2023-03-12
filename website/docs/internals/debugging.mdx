@@ -1,0 +1,27 @@
+---
+page_title: Debugging
+description: >-
+  Terraform has detailed logs which can be enabled by setting the TF_LOG
+  environment variable to any value. This will cause detailed logs to appear on
+  stderr
+---
+
+# Debugging Terraform
+
+> **Hands-on:** Try the [Create Dynamic Expressions](/terraform/tutorials/configuration-language/troubleshooting-workflow#bug-reporting-best-practices?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+Terraform has detailed logs that you can enable by setting the `TF_LOG` environment variable to any value. Enabling this setting causes detailed logs to appear on `stderr`.
+
+You can set `TF_LOG` to one of the log levels (in order of decreasing verbosity) `TRACE`, `DEBUG`, `INFO`, `WARN` or `ERROR` to change the verbosity of the logs.
+
+Setting `TF_LOG` to `JSON` outputs logs at the `TRACE` level or higher, and uses a parseable JSON encoding as the formatting.
+
+~> **Warning:** The JSON encoding of log files is not considered a stable interface. It may change at any time, without warning. It is meant to support tooling that will be forthcoming, and that tooling is the only supported way to interact with JSON formatted logs.
+
+Logging can be enabled separately for terraform itself and the provider plugins
+using the `TF_LOG_CORE` or `TF_LOG_PROVIDER` environment variables. These take
+the same level arguments as `TF_LOG`, but only activate a subset of the logs.
+
+To persist logged output you can set `TF_LOG_PATH` in order to force the log to always be appended to a specific file when logging is enabled. Note that even when `TF_LOG_PATH` is set, `TF_LOG` must be set in order for any logging to be enabled.
+
+If you find a bug with Terraform, please include the detailed log by using a service such as gist.

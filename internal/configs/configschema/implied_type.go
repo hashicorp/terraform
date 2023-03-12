@@ -44,6 +44,9 @@ func (b *Block) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
+		}
 	}
 	for _, blockS := range b.BlockTypes {
 		if blockS.ContainsSensitive() {
@@ -51,6 +54,20 @@ func (b *Block) ContainsSensitive() bool {
 		}
 	}
 	return false
+}
+
+// ImpliedType returns the cty.Type that would result from decoding a Block's
+// ImpliedType and getting the resulting AttributeType.
+//
+// ImpliedType always returns a result, even if the given schema is
+// inconsistent. Code that creates configschema.Object objects should be tested
+// using the InternalValidate method to detect any inconsistencies that would
+// cause this method to fall back on defaults and assumptions.
+func (a *Attribute) ImpliedType() cty.Type {
+	if a.NestedType != nil {
+		return a.NestedType.specType().WithoutOptionalAttributesDeep()
+	}
+	return a.Type
 }
 
 // ImpliedType returns the cty.Type that would result from decoding a
@@ -108,8 +125,8 @@ func (o *Object) ContainsSensitive() bool {
 		if attrS.Sensitive {
 			return true
 		}
-		if attrS.NestedType != nil {
-			return attrS.NestedType.ContainsSensitive()
+		if attrS.NestedType != nil && attrS.NestedType.ContainsSensitive() {
+			return true
 		}
 	}
 	return false

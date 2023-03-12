@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty/gocty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty/gocty"
 )
 
 func TestValidateMoves(t *testing.T) {
@@ -334,7 +335,7 @@ Each resource can have moved from only one source resource.`,
 					`test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to resource in another module package": {
 			Statements: []MoveStatement{
@@ -344,7 +345,7 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.test.thing`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move from module call in another module package": {
 			Statements: []MoveStatement{
@@ -354,7 +355,7 @@ Each resource can have moved from only one source resource.`,
 					`module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move from an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
 		},
 		"move to module call in another module package": {
 			Statements: []MoveStatement{
@@ -364,7 +365,51 @@ Each resource can have moved from only one source resource.`,
 					`module.fake_external.module.b`,
 				),
 			},
-			WantError: `Cross-package move statement: This statement declares a move to an object declared in external module package "fake-external:///". Move statements can be only within a single module package.`,
+			WantError: ``,
+		},
+		"implied move from resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.test.thing`,
+					`test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to resource in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`test.thing`,
+					`module.fake_external.test.thing`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move from module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.fake_external.module.a`,
+					`module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
+		},
+		"implied move to module call in another module package": {
+			Statements: []MoveStatement{
+				makeTestImpliedMoveStmt(t,
+					``,
+					`module.a`,
+					`module.fake_external.module.b`,
+				),
+			},
+			// Implied move statements are not subject to the cross-package restriction
+			WantError: ``,
 		},
 		"move to a call that refers to another module package": {
 			Statements: []MoveStatement{
@@ -404,6 +449,58 @@ Each resource can have moved from only one source resource.`,
 			},
 			WantError: `Resource type mismatch: This statement declares a move from test.nonexist1[0] to other.single, which is a resource instance of a different type.`,
 		},
+		"crossing nested statements": {
+			// overlapping nested moves will result in a cycle.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, ``,
+					`module.nonexist.test.single`,
+					`module.count[0].test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.nonexist`,
+					`module.count[0]`,
+				),
+			},
+			WantError: `Cyclic dependency in move statements: The following chained move statements form a cycle, and so there is no final location to move objects to:
+  - test:1,1: module.nonexist → module.count[0]
+  - test:1,1: module.nonexist.test.single → module.count[0].test.count[0]
+
+A chain of move statements must end with an address that doesn't appear in any other statements, and which typically also refers to an object still declared in the configuration.`,
+		},
+		"fully contained nested statements": {
+			// we have to avoid a cycle because the nested moves appear in both
+			// the from and to address of the parent when only the module index
+			// is changing.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, `count`,
+					`test.count`,
+					`test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.count`,
+					`module.count[0]`,
+				),
+			},
+		},
+		"double fully contained nested statements": {
+			// we have to avoid a cycle because the nested moves appear in both
+			// the from and to address of the parent when only the module index
+			// is changing.
+			Statements: []MoveStatement{
+				makeTestMoveStmt(t, `count`,
+					`module.count`,
+					`module.count[0]`,
+				),
+				makeTestMoveStmt(t, `count.count`,
+					`test.count`,
+					`test.count[0]`,
+				),
+				makeTestMoveStmt(t, ``,
+					`module.count`,
+					`module.count[0]`,
+				),
+			},
+		},
 	}
 
 	for name, test := range tests {
@@ -437,7 +534,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), dir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
@@ -598,6 +695,13 @@ func makeTestMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatem
 	}
 }
 
+func makeTestImpliedMoveStmt(t *testing.T, moduleStr, fromStr, toStr string) MoveStatement {
+	t.Helper()
+	ret := makeTestMoveStmt(t, moduleStr, fromStr, toStr)
+	ret.Implied = true
+	return ret
+}
+
 var fakeExternalModuleSource = addrs.ModuleSourceRemote{
-	PackageAddr: addrs.ModulePackage("fake-external:///"),
+	Package: addrs.ModulePackage("fake-external:///"),
 }

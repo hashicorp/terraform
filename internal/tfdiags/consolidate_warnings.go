@@ -119,6 +119,10 @@ func (wg *warningGroup) FromExpr() *FromExpr {
 	return wg.Warnings[0].FromExpr()
 }
 
+func (wg *warningGroup) ExtraInfo() interface{} {
+	return wg.Warnings[0].ExtraInfo()
+}
+
 func (wg *warningGroup) Append(diag Diagnostic) {
 	if diag.Severity() != Warning {
 		panic("can't append a non-warning diagnostic to a warningGroup")

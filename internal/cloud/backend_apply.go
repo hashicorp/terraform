@@ -3,11 +3,13 @@ package cloud
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -100,7 +102,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
 
-	if mustConfirm {
+	if mustConfirm && b.input {
 		opts := &terraform.InputOpts{Id: "approve"}
 
 		if op.PlanMode == plans.DestroyMode {
@@ -117,6 +119,8 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		if err != nil && err != errRunApproved {
 			return r, err
 		}
+	} else if mustConfirm && !b.input {
+		return r, errApplyNeedsUIConfirmation
 	} else {
 		// If we don't need to ask for confirmation, insert a blank
 		// line to separate the ouputs.
@@ -131,46 +135,88 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		}
 	}
 
+	// Retrieve the run to get task stages.
+	// Task Stages are calculated upfront so we only need to call this once for the run.
+	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)
+	if err != nil {
+		return r, err
+	}
+
+	if stage, ok := taskStages[tfe.PreApply]; ok {
+		if err := b.waitTaskStage(stopCtx, cancelCtx, op, r, stage.ID, "Pre-apply Tasks"); err != nil {
+			return r, err
+		}
+	}
+
 	r, err = b.waitForRun(stopCtx, cancelCtx, op, "apply", r, w)
 	if err != nil {
 		return r, err
 	}
 
-	logs, err := b.client.Applies.Logs(stopCtx, r.Apply.ID)
+	err = b.renderApplyLogs(stopCtx, r)
 	if err != nil {
-		return r, generalError("Failed to retrieve logs", err)
+		return r, err
 	}
-	reader := bufio.NewReaderSize(logs, 64*1024)
+
+	return r, nil
+}
+
+func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
+	logs, err := b.client.Applies.Logs(ctx, run.Apply.ID)
+	if err != nil {
+		return err
+	}
 
 	if b.CLI != nil {
+		reader := bufio.NewReaderSize(logs, 64*1024)
 		skip := 0
+
 		for next := true; next; {
 			var l, line []byte
+			var err error
 
 			for isPrefix := true; isPrefix; {
 				l, isPrefix, err = reader.ReadLine()
 				if err != nil {
 					if err != io.EOF {
-						return r, generalError("Failed to read logs", err)
+						return generalError("Failed to read logs", err)
 					}
 					next = false
 				}
+
 				line = append(line, l...)
 			}
 
-			// Skip the first 3 lines to prevent duplicate output.
+			// Apply logs show the same Terraform info logs as shown in the plan logs
+			// (which contain version and os/arch information), we therefore skip to prevent duplicate output.
 			if skip < 3 {
 				skip++
 				continue
 			}
 
 			if next || len(line) > 0 {
-				b.CLI.Output(b.Colorize().Color(string(line)))
+				log := &jsonformat.JSONLog{}
+				if err := json.Unmarshal(line, log); err != nil {
+					// If we can not parse the line as JSON, we will simply
+					// print the line. This maintains backwards compatibility for
+					// users who do not wish to enable structured output in their
+					// workspace.
+					b.CLI.Output(string(line))
+					continue
+				}
+
+				if b.renderer != nil {
+					// Otherwise, we will print the log
+					err := b.renderer.RenderLog(log)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
 
-	return r, nil
+	return nil
 }
 
 const applyDefaultHeader = `

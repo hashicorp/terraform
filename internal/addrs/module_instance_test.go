@@ -162,9 +162,9 @@ func TestModuleInstance_IsDeclaredByCall(t *testing.T) {
 }
 
 func mustParseModuleInstanceStr(str string) ModuleInstance {
-	mi, err := ParseModuleInstanceStr(str)
-	if err != nil {
-		panic(err)
+	mi, diags := ParseModuleInstanceStr(str)
+	if diags.HasErrors() {
+		panic(diags.ErrWithWarnings())
 	}
 	return mi
 }

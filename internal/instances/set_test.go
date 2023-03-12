@@ -204,4 +204,8 @@ func TestSet(t *testing.T) {
 		t.Errorf("unexpected %T %s", input, input.String())
 	}
 
+	// ensure we can lookup non-existent addrs in a set without panic
+	if set.InstancesForModule(addrs.RootModule.Child("missing")) != nil {
+		t.Error("unexpected instances from missing module")
+	}
 }

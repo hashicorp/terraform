@@ -1,7 +1,6 @@
 package e2etest
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,21 +17,24 @@ import (
 // compromise for now to keep these tests relatively simple.
 
 func TestTerraformProvidersMirror(t *testing.T) {
+	testTerraformProvidersMirror(t, "terraform-providers-mirror")
+}
+
+func TestTerraformProvidersMirrorWithLockFile(t *testing.T) {
+	testTerraformProvidersMirror(t, "terraform-providers-mirror-with-lock-file")
+}
+
+func testTerraformProvidersMirror(t *testing.T, fixture string) {
 	// This test reaches out to releases.hashicorp.com to download the
 	// template and null providers, so it can only run if network access is
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	outputDir, err := ioutil.TempDir("", "terraform-e2etest-providers-mirror")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer os.RemoveAll(outputDir)
+	outputDir := t.TempDir()
 	t.Logf("creating mirror directory in %s", outputDir)
 
-	fixturePath := filepath.Join("testdata", "terraform-providers-mirror")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	fixturePath := filepath.Join("testdata", fixture)
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("providers", "mirror", "-platform=linux_amd64", "-platform=windows_386", outputDir)
 	if err != nil {

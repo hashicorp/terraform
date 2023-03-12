@@ -101,6 +101,14 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 				continue
 			}
 
+			if configV.IsNull() {
+				// Configuration cannot decode a block into a null value, but
+				// we could be dealing with a null returned by a legacy
+				// provider and inserted via ignore_changes. Fix the value in
+				// place so the length can still be compared.
+				configV = cty.ListValEmpty(configV.Type().ElementType())
+			}
+
 			plannedL := plannedV.LengthInt()
 			configL := configV.LengthInt()
 			if plannedL != configL {
@@ -257,6 +265,7 @@ func assertPlannedAttrValid(name string, attrS *configschema.Attribute, priorSta
 }
 
 func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, plannedV cty.Value, path cty.Path) []error {
+
 	var errs []error
 	if plannedV.RawEquals(configV) {
 		// This is the easy path: provider didn't change anything at all.
@@ -270,22 +279,28 @@ func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, pla
 		return errs
 	}
 
-	// the provider is allowed to insert values when the config is
-	// null, but only if the attribute is computed.
-	if configV.IsNull() {
-		if attrS.Computed {
-			return errs
-		}
+	switch {
+	// The provider can plan any value for a computed-only attribute. There may
+	// be a config value here in the case where a user used `ignore_changes` on
+	// a computed attribute and ignored the warning, or we failed to validate
+	// computed attributes in the config, but regardless it's not a plan error
+	// caused by the provider.
+	case attrS.Computed && !attrS.Optional:
+		return errs
 
+	// The provider is allowed to insert optional values when the config is
+	// null, but only if the attribute is computed.
+	case configV.IsNull() && attrS.Computed:
+		return errs
+
+	case configV.IsNull() && !plannedV.IsNull():
 		// if the attribute is not computed, then any planned value is incorrect
-		if !plannedV.IsNull() {
-			if attrS.Sensitive {
-				errs = append(errs, path.NewErrorf("sensitive planned value for a non-computed attribute"))
-			} else {
-				errs = append(errs, path.NewErrorf("planned value %#v for a non-computed attribute", plannedV))
-			}
-			return errs
+		if attrS.Sensitive {
+			errs = append(errs, path.NewErrorf("sensitive planned value for a non-computed attribute"))
+		} else {
+			errs = append(errs, path.NewErrorf("planned value %#v for a non-computed attribute", plannedV))
 		}
+		return errs
 	}
 
 	// If this attribute has a NestedType, validate the nested object

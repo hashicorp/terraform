@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
@@ -19,8 +21,8 @@ import (
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestLocalRun(t *testing.T) {
@@ -188,7 +190,7 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string) error {
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
 	return fmt.Errorf("unimplemented")
 }
 
@@ -220,6 +222,10 @@ func (s *stateStorageThatFailsRefresh) State() *states.State {
 	return nil
 }
 
+func (s *stateStorageThatFailsRefresh) GetRootOutputValues() (map[string]*states.OutputValue, error) {
+	return nil, fmt.Errorf("unimplemented")
+}
+
 func (s *stateStorageThatFailsRefresh) WriteState(*states.State) error {
 	return fmt.Errorf("unimplemented")
 }
@@ -228,6 +234,6 @@ func (s *stateStorageThatFailsRefresh) RefreshState() error {
 	return fmt.Errorf("intentionally failing for testing purposes")
 }
 
-func (s *stateStorageThatFailsRefresh) PersistState() error {
+func (s *stateStorageThatFailsRefresh) PersistState(schemas *terraform.Schemas) error {
 	return fmt.Errorf("unimplemented")
 }

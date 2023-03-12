@@ -1,0 +1,30 @@
+---
+page_title: 'Command: state pull'
+description: >-
+  The `terraform state pull` command is used to manually download and output the
+  state from remote state.
+---
+
+# Command: state pull
+
+The `terraform state pull` command is used to manually download and output
+the state from [remote state](/terraform/language/state/remote). This command also
+works with local state.
+
+## Usage
+
+Usage: `terraform state pull`
+
+This command downloads the state from its current location, upgrades the
+local copy to the latest state file version that is compatible with
+locally-installed Terraform, and outputs the raw format to stdout.
+
+This is useful for reading values out of state (potentially pairing this
+command with something like [jq](https://stedolan.github.io/jq/)). It is
+also useful if you need to make manual modifications to state.
+
+You cannot use this command to inspect the Terraform version of
+the remote state, as it will always be converted to the current Terraform
+version before output.
+
+-> **Note:** Terraform state files must be in UTF-8 format without a byte order mark (BOM). For PowerShell on Windows, use `Set-Content` to automatically encode files in UTF-8 format. For example, run `terraform state pull | sc terraform.tfstate`.

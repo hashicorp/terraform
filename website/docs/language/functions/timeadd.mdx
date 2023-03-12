@@ -1,0 +1,38 @@
+---
+page_title: timeadd - Functions - Configuration Language
+description: |-
+  The timeadd function adds a duration to a timestamp, returning a new
+  timestamp.
+---
+
+# `timeadd` Function
+
+`timeadd` adds a duration to a timestamp, returning a new timestamp.
+
+```hcl
+timeadd(timestamp, duration)
+```
+
+In the Terraform language, timestamps are conventionally represented as
+strings using [RFC 3339](https://tools.ietf.org/html/rfc3339)
+"Date and Time format" syntax. `timeadd` requires the `timestamp` argument
+to be a string conforming to this syntax.
+
+`duration` is a string representation of a time difference, consisting of
+sequences of number and unit pairs, like `"1.5h"` or `"1h30m"`. The accepted
+units are `"ns"`, `"us"` (or `"µs"`), `"ms"`, `"s"`, `"m"`, and `"h"`. The first
+number may be negative to indicate a negative duration, like `"-2h5m"`.
+
+The result is a string, also in RFC 3339 format, representing the result
+of adding the given direction to the given timestamp.
+
+## Examples
+
+```
+> timeadd("2017-11-22T00:00:00Z", "10m")
+2017-11-22T00:10:00Z
+```
+
+# Related Functions
+
+* [`timecmp`](/terraform/language/functions/timecmp) determines an ordering for two timestamps.

@@ -1,0 +1,168 @@
+---
+page_title: 'Command: providers lock'
+description: |-
+  The `terraform providers lock` command adds new provider selection information
+  to the dependency lock file without initializing the referenced providers.
+---
+
+# Command: terraform providers lock
+
+The `terraform providers lock` consults upstream registries (by default) in
+order to write provider dependency information into
+[the dependency lock file](/terraform/language/files/dependency-lock).
+
+The common way to update the dependency lock file is as a side-effect of normal
+provider installation during
+[`terraform init`](/terraform/cli/commands/init), but there are several situations where that
+automatic approach may not be sufficient:
+
+* If you are running Terraform in an environment that uses
+  [alternative provider installation methods](/terraform/cli/config/config-file#provider-installation),
+  such as filesystem or network mirrors, normal provider installation will not
+  access the origin registry for a provider and therefore Terraform will not
+  be able to populate all of the possible package checksums for the selected
+  provider versions.
+
+  If you use `terraform lock` to write the official release checksums for a
+  provider into the dependency lock file then future `terraform init` runs
+  will verify the packages available in your selected mirror against the
+  official checksums previously recorded, giving additional certainty that
+  the mirror is serving the provider packages it is claiming to.
+
+* If your team runs Terraform across a number of different platforms (e.g.
+  on both Windows and Linux) and the upstream registry for a provider is unable
+  to provide signed checksums using the latest hashing scheme, subsequent runs
+  of Terraform on other platforms may
+  [add additional checksums to the lock file](/terraform/language/files/dependency-lock#new-provider-package-checksums).
+  You can avoid that by pre-populating hashes for all of the platforms you
+  intend to use, using the `terraform providers lock` command.
+
+-> `terraform providers lock` is available only in Terraform v0.14 or later.
+
+## Usage
+
+Usage: `terraform providers lock [options] [providers...]`
+
+With no additional command line arguments, `terraform providers lock` will
+analyze the configuration in the current working directory to find all of
+the providers it depends on, and it will fetch the necessary data about those
+providers from their origin registries and then update
+[the dependency lock file](/terraform/language/files/dependency-lock) to
+include a selected version for each provider and all of the package checksums
+that are covered by the provider developer's cryptographic signature.
+
+~> **Warning:** The `terraform providers lock` command prints information
+about what it has fetched and whether each package was signed using a
+cryptographic signature, but it cannot automatically verify that the
+providers are trustworthy and that they comply with your local system
+policies or relevant regulations. Review the signing key information
+in the output to confirm that you trust all of the signers before committing
+the updated lock file to your version control system.
+
+If you list one or more provider source addresses on the command line then
+`terraform providers lock` will restrict its work only to those providers,
+leaving the lock entries for other providers (if any) unchanged.
+
+You can customize the default behavior using the following additional option:
+
+* `-fs-mirror=PATH` - Direct Terraform to look for provider packages in the
+  given local filesystem mirror directory, instead of in upstream registries.
+  The given directory must use the usual filesystem mirror directory layout.
+
+* `-net-mirror=URL` - Direct Terraform to look for provider packages in the
+  given network mirror service, instead of in upstream registries. The
+  given URL must implement
+  [the Terraform provider network mirror protocol](/terraform/internals/provider-network-mirror-protocol).
+
+* `-platform=OS_ARCH` - Specify a platform you intend to use to work with this
+  Terraform configuration. Terraform will ensure that the providers are all
+  available for the given platform and will save enough package checksums in
+  the lock file to support _at least_ the specified platforms.
+
+  Use this option multiple times to include checksums for multiple target
+  systems.
+
+  Target platform names consist of an operating system and a CPU
+  architecture. For example, `linux_amd64` selects the Linux operating system
+  running on an AMD64 or x86_64 CPU.
+
+  There is more detail on this option in the following section.
+
+## Specifying Target Platforms
+
+In your environment you may, for example, have both developers who work with
+your Terraform configuration on their Windows or macOS workstations _and_
+automated systems that apply the configuration while running on Linux.
+
+In that situation, you could choose to verify that all of your providers support
+all of those platforms, and to pre-populate the lock file with the necessary
+checksums, by running `terraform providers lock` and specifying those three
+platforms:
+
+```
+terraform providers lock \
+  -platform=windows_amd64 \ # 64-bit Windows
+  -platform=darwin_amd64 \  # 64-bit macOS
+  -platform=linux_amd64     # 64-bit Linux
+```
+
+(The above example uses Unix-style shell wrapping syntax for readability. If
+you are running the command on Windows then you will need to put all of the
+arguments on a single line, and remove the backslashes and comments.)
+
+## Lock Entries for In-house Providers
+
+An _in-house provider_ is one that isn't published on a real Terraform provider
+registry because it's developed and used only within a particular organization and
+distributed via either a filesystem mirror or network mirror.
+
+By default, `terraform providers lock` assumes all providers are available
+at a Terraform provider registry and tries to contact the origin registries
+in order to get access to the most detailed information about the provider
+packages.
+
+To create a lock entry for a particular provider that is available only in a
+local mirror, you can use either the `-fs-mirror` or `-net-mirror` command
+line options to override the default behavior of consulting the provider's
+origin registry:
+
+```
+terraform providers lock \
+  -fs-mirror=/usr/local/terraform/providers
+  -platform=windows_amd64 \
+  -platform=darwin_amd64 \
+  -platform=linux_amd64 \
+  tf.example.com/ourcompany/ourplatform
+```
+
+(The above example uses Unix-style shell wrapping syntax for readability. If
+you are running the command on Windows then you will need to put all of the
+arguments on a single line, and remove the backslashes.)
+
+Because the command above includes the provider source address
+`tf.example.com/ourcompany/ourplatform`, `terraform providers lock` will only
+attempt to access that particular provider and will leave the lock entries
+for any other providers unchanged. If you have a variety of different providers
+available from different sources, you can run `terraform providers lock`
+multiple times and specify a different subset of your providers each time.
+
+The `-fs-mirror` and `-net-mirror` options have the same meaning as
+`filesystem_mirror` and `network_mirror` blocks in
+[the provider installation methods configuration](/terraform/cli/config/config-file#provider-installation),
+but specify only a single method in order to be explicit about where you
+intend to derive the package checksum information from.
+
+Note that only an origin registry can provide official checksums covered by
+the original developer's cryptographic signature. Lock entries created from
+filesystem or network mirrors will therefore cover only the exact platforms
+you requested, and the recorded checksums will be those reported by the
+mirror, rather than the origin registry's official checksums. If you want
+to ensure that the recorded checksums are the ones signed by the original
+provider publisher, run this command _without_ either the `-fs-mirror` or
+`-net-mirror` options to fetch all information from origin registries.
+
+If you wish, you can publish your in-house providers via an in-house provider
+registry, which will then allow locking and installation of those providers
+without any special options or additional CLI configuration. For more
+information, see
+[the provider registry protocol](/terraform/internals/provider-registry-protocol).

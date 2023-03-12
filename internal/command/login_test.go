@@ -2,9 +2,7 @@ package command
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http/httptest"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -36,11 +34,7 @@ func TestLogin(t *testing.T) {
 	loginTestCase := func(test func(t *testing.T, c *LoginCommand, ui *cli.MockUi)) func(t *testing.T) {
 		return func(t *testing.T) {
 			t.Helper()
-			workDir, err := ioutil.TempDir("", "terraform-test-command-login")
-			if err != nil {
-				t.Fatalf("cannot create temporary directory: %s", err)
-			}
-			defer os.RemoveAll(workDir)
+			workDir := t.TempDir()
 
 			// We'll use this context to avoid asynchronous tasks outliving
 			// a single test run.

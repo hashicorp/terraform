@@ -326,6 +326,19 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
 	}
+
+	cfg = hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":         "us-west-1",
+		"bucket":         "tf-test",
+		"key":            "trailing-slash/",
+		"encrypt":        true,
+		"dynamodb_table": "dynamoTable",
+	})
+
+	_, diags = New().PrepareConfig(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected config validation error")
+	}
 }
 
 func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
@@ -478,7 +491,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	// Write the first state
 	stateMgr := &remote.State{Client: client}
 	stateMgr.WriteState(s1)
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -488,7 +501,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	client.path = b.path("s2")
 	stateMgr2 := &remote.State{Client: client}
 	stateMgr2.WriteState(s2)
-	if err := stateMgr2.PersistState(); err != nil {
+	if err := stateMgr2.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 
@@ -501,7 +514,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	// put a state in an env directory name
 	client.path = b.workspaceKeyPrefix + "/error"
 	stateMgr.WriteState(states.NewState())
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
@@ -511,7 +524,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	// add state with the wrong key for an existing env
 	client.path = b.workspaceKeyPrefix + "/s2/notTestState"
 	stateMgr.WriteState(states.NewState())
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := checkStateList(b, []string{"default", "s1", "s2"}); err != nil {
@@ -524,7 +537,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// delete the real workspace
-	if err := b.DeleteWorkspace("s2"); err != nil {
+	if err := b.DeleteWorkspace("s2", true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -550,7 +563,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	// add a state with a key that matches an existing environment dir name
 	client.path = b.workspaceKeyPrefix + "/s2/"
 	stateMgr.WriteState(states.NewState())
-	if err := stateMgr.PersistState(); err != nil {
+	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
 

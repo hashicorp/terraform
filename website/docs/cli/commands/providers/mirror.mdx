@@ -1,0 +1,63 @@
+---
+page_title: 'Command: providers mirror'
+description: |-
+  The `terraform providers mirror` command downloads the providers required
+  for the current configuration and copies them into a directory in the local
+  filesystem.
+---
+
+# Command: terraform providers mirror
+
+The `terraform providers mirror` command downloads the providers required
+for the current configuration and copies them into a directory in the local
+filesystem.
+
+In normal use, `terraform init` will automatically download needed providers
+from provider registries as part of initializing the current working directory.
+Sometimes Terraform is running in an environment where that isn't possible,
+such as on an isolated network without access to the Terraform Registry. In
+that case,
+[explicit installation method configuration](/terraform/cli/config/config-file#explicit-installation-method-configuration)
+allows you to configure Terraform, when running on a particular system, to
+consult only a local filesystem directory where you've created a local mirror
+of the necessary plugins, and to skip accessing the upstream registry at all.
+
+The `terraform providers mirror` command can automatically populate a directory
+that will be used as a local filesystem mirror in the provider installation
+configuration.
+
+-> `terraform providers mirror` is available only in Terraform v0.13 or later.
+
+## Usage
+
+Usage: `terraform providers mirror [options] <target-dir>`
+
+A single target directory is required. Terraform will create under that
+directory the path structure that is expected for filesystem-based provider
+plugin mirrors, populating it with `.zip` files containing the plugins
+themselves.
+
+Terraform will also generate various `.json` index files which contain suitable
+responses to implement
+[the network mirror protocol](/terraform/internals/provider-network-mirror-protocol),
+if you upload the resulting directory to a static website host. Terraform
+ignores those index files when using the directory as a filesystem mirror,
+because the directory entries themselves are authoritative in that case.
+
+This command supports the following additional option:
+
+* `-platform=OS_ARCH` - Choose which target platform to build a mirror for.
+  By default Terraform will obtain plugin packages suitable for the platform
+  where you run this command. Use this flag multiple times to include packages
+  for multiple target systems.
+
+  Target platform names consist of an operating system and a CPU
+  architecture. For example, `linux_amd64` selects the Linux operating system
+  running on an AMD64 or x86_64 CPU.
+
+You can run `terraform providers mirror` again on an existing mirror directory
+to update it with new packages. For example, you can add packages for a new
+target platform by re-running the command with the desired new `-platform=...`
+option, and it will place the packages for that new platform without removing
+packages you previously downloaded, merging the resulting set of packages
+together to update the JSON index files.

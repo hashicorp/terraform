@@ -2,8 +2,10 @@ package local
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -15,6 +17,9 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// test hook called between plan+apply during opApply
+var testHookStopPlanApply func()
 
 func (b *Local) opApply(
 	stopCtx context.Context,
@@ -49,7 +54,7 @@ func (b *Local) opApply(
 		op.ReportResult(runningOp, diags)
 		return
 	}
-	// the state was locked during succesfull context creation; unlock the state
+	// the state was locked during successful context creation; unlock the state
 	// when the operation completes
 	defer func() {
 		diags := op.StateLocker.Unlock()
@@ -64,6 +69,17 @@ func (b *Local) opApply(
 	// operation.
 	runningOp.State = lr.InputState
 
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+	// stateHook uses schemas for when it periodically persists state to the
+	// persistent storage backend.
+	stateHook.Schemas = schemas
+	stateHook.PersistInterval = 20 * time.Second // arbitrary interval that's hopefully a sweet spot
+
 	var plan *plans.Plan
 	// If we weren't given a plan, then we refresh/plan
 	if op.PlanFile == nil {
@@ -72,13 +88,22 @@ func (b *Local) opApply(
 		plan, moreDiags = lr.Core.Plan(lr.Config, lr.InputState, lr.PlanOpts)
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
-			op.ReportResult(runningOp, diags)
-			return
-		}
-
-		schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
+			// If Terraform Core generated a partial plan despite the errors
+			// then we'll make a best effort to render it. Terraform Core
+			// promises that if it returns a non-nil plan along with errors
+			// then the plan won't necessarily contain all of the needed
+			// actions but that any it does include will be properly-formed.
+			// plan.Errored will be true in this case, which our plan
+			// renderer can rely on to tailor its messaging.
+			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
+				schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+				// If schema loading returns errors then we'll just give up and
+				// ignore them to avoid distracting from the plan-time errors we're
+				// mainly trying to report here.
+				if !moreDiags.HasErrors() {
+					op.View.Plan(plan, schemas)
+				}
+			}
 			op.ReportResult(runningOp, diags)
 			return
 		}
@@ -87,6 +112,22 @@ func (b *Local) opApply(
 		hasUI := op.UIOut != nil && op.UIIn != nil
 		mustConfirm := hasUI && !op.AutoApprove && !trivialPlan
 		op.View.Plan(plan, schemas)
+
+		if testHookStopPlanApply != nil {
+			testHookStopPlanApply()
+		}
+
+		// Check if we've been stopped before going through confirmation, or
+		// skipping confirmation in the case of -auto-approve.
+		// This can currently happen if a single stop request was received
+		// during the final batch of resource plan calls, so no operations were
+		// forced to abort, and no errors were returned from Plan.
+		if stopCtx.Err() != nil {
+			diags = diags.Append(errors.New("execution halted"))
+			runningOp.Result = backend.OperationFailure
+			op.ReportResult(runningOp, diags)
+			return
+		}
 
 		if mustConfirm {
 			var desc, query string
@@ -142,6 +183,15 @@ func (b *Local) opApply(
 		}
 	} else {
 		plan = lr.Plan
+		if plan.Errored {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot apply incomplete plan",
+				"Terraform encountered an error when generating this plan, so it cannot be applied.",
+			))
+			op.ReportResult(runningOp, diags)
+			return
+		}
 		for _, change := range plan.Changes.Resources {
 			if change.Action != plans.NoOp {
 				op.View.PlannedChange(change)
@@ -168,9 +218,17 @@ func (b *Local) opApply(
 	}
 	diags = diags.Append(applyDiags)
 
+	// Even on error with an empty state, the state value should not be nil.
+	// Return early here to prevent corrupting any existing state.
+	if diags.HasErrors() && applyState == nil {
+		log.Printf("[ERROR] backend/local: apply returned nil state")
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	// Store the final state
 	runningOp.State = applyState
-	err := statemgr.WriteAndPersist(opState, applyState)
+	err := statemgr.WriteAndPersist(opState, applyState, schemas)
 	if err != nil {
 		// Export the state file from the state manager and assign the new
 		// state. This is needed to preserve the existing serial and lineage.

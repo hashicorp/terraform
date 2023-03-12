@@ -76,10 +76,25 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	reqs, moreDiags := config.ProviderRequirements()
 	diags = diags.Append(moreDiags)
 
+	// Read lock file
+	lockedDeps, lockedDepsDiags := c.Meta.lockedDependencies()
+	diags = diags.Append(lockedDepsDiags)
+
 	// If we have any error diagnostics already then we won't proceed further.
 	if diags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
+	}
+
+	// If lock file is present, validate it against configuration
+	if !lockedDeps.Empty() {
+		if errs := config.VerifyDependencySelections(lockedDeps); len(errs) > 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Inconsistent dependency lock file",
+				fmt.Sprintf("To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade\n got:%v", errs),
+			))
+		}
 	}
 
 	// Unlike other commands, this command always consults the origin registry
@@ -94,8 +109,9 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	// generality of go-getter but it's still handy to use the HTTP getter
 	// as an easy way to download over HTTP into a file on disk.
 	httpGetter := getter.HttpGetter{
-		Client: httpclient.New(),
-		Netrc:  true,
+		Client:                httpclient.New(),
+		Netrc:                 true,
+		XTerraformGetDisabled: true,
 	}
 
 	// The following logic is similar to that used by the provider installer
@@ -139,7 +155,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 			continue
 		}
 		selected := candidates.Newest()
-		if len(constraintsStr) > 0 {
+		if !lockedDeps.Empty() {
+			selected = lockedDeps.Provider(provider).Version()
+			c.Ui.Output(fmt.Sprintf("  - Selected v%s to match dependency lock file", selected.String()))
+		} else if len(constraintsStr) > 0 {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s to meet constraints %s", selected.String(), constraintsStr))
 		} else {
 			c.Ui.Output(fmt.Sprintf("  - Selected v%s with no constraints", selected.String()))

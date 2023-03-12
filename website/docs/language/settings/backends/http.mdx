@@ -1,0 +1,75 @@
+---
+page_title: 'Backend Type: http'
+description: Terraform can store state remotely at any valid HTTP endpoint.
+---
+
+# http
+
+Stores the state using a simple [REST](https://en.wikipedia.org/wiki/Representational_state_transfer) client.
+
+State will be fetched via GET, updated via POST, and purged with DELETE. The method used for updating is configurable.
+
+This backend optionally supports [state locking](/terraform/language/state/locking). When locking
+support is enabled it will use LOCK and UNLOCK requests providing the lock info in the body. The
+endpoint should return a 423: Locked or 409: Conflict with the holding lock info when it's already
+taken, 200: OK for success. Any other status will be considered an error. The ID of the holding lock
+info will be added as a query parameter to state updates requests.
+
+## Example Usage
+
+```hcl
+terraform {
+  backend "http" {
+    address = "http://myrest.api.com/foo"
+    lock_address = "http://myrest.api.com/foo"
+    unlock_address = "http://myrest.api.com/foo"
+  }
+}
+```
+
+## Data Source Configuration
+
+```hcl
+data "terraform_remote_state" "foo" {
+  backend = "http"
+  config = {
+    address = "http://my.rest.api.com"
+  }
+}
+```
+
+## Configuration Variables
+
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+
+The following configuration options / environment variables are supported:
+
+- `address` / `TF_HTTP_ADDRESS` - (Required) The address of the REST endpoint
+- `update_method` / `TF_HTTP_UPDATE_METHOD` - (Optional) HTTP method to use
+  when updating state. Defaults to `POST`.
+- `lock_address` / `TF_HTTP_LOCK_ADDRESS` - (Optional) The address of the lock
+  REST endpoint. Defaults to disabled.
+- `lock_method` / `TF_HTTP_LOCK_METHOD` - (Optional) The HTTP method to use
+  when locking. Defaults to `LOCK`.
+- `unlock_address` / `TF_HTTP_UNLOCK_ADDRESS` - (Optional) The address of the
+  unlock REST endpoint. Defaults to disabled.
+- `unlock_method` / `TF_HTTP_UNLOCK_METHOD` - (Optional) The HTTP method to use
+  when unlocking. Defaults to `UNLOCK`.
+- `username` / `TF_HTTP_USERNAME` - (Optional) The username for HTTP basic
+  authentication
+- `password` / `TF_HTTP_PASSWORD` - (Optional) The password for HTTP basic
+  authentication
+- `skip_cert_verification` - (Optional) Whether to skip TLS verification.
+  Defaults to `false`.
+- `retry_max` / `TF_HTTP_RETRY_MAX` – (Optional) The number of HTTP request
+  retries. Defaults to `2`.
+- `retry_wait_min` / `TF_HTTP_RETRY_WAIT_MIN` – (Optional) The minimum time in
+  seconds to wait between HTTP request attempts. Defaults to `1`.
+- `retry_wait_max` / `TF_HTTP_RETRY_WAIT_MAX` – (Optional) The maximum time in
+  seconds to wait between HTTP request attempts. Defaults to `30`.
+
+For mTLS authentication, the following three options may be set:
+
+ - `client_certificate_pem` / `TF_HTTP_CLIENT_CERTIFICATE_PEM` - (Optional) A PEM-encoded certificate used by the server to verify the client during mutual TLS (mTLS) authentication.
+ - `client_private_key_pem` /`TF_HTTP_CLIENT_PRIVATE_KEY_PEM` - (Optional) A PEM-encoded private key, required if client_certificate_pem is specified.
+ - `client_ca_certificate_pem` / `TF_HTTP_CLIENT_CA_CERTIFICATE_PEM` - (Optional) A PEM-encoded CA certificate chain used by the client to verify server certificates during TLS authentication.

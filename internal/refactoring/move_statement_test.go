@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -18,6 +19,15 @@ func TestImpliedMoveStatements(t *testing.T) {
 			Name: name,
 		}.Absolute(addrs.RootModuleInstance)
 	}
+
+	nestedResourceAddr := func(mod, name string) addrs.AbsResource {
+		return addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "foo",
+			Name: name,
+		}.Absolute(addrs.RootModuleInstance.Child(mod, addrs.NoKey))
+	}
+
 	instObjState := func() *states.ResourceInstanceObjectSrc {
 		return &states.ResourceInstanceObjectSrc{}
 	}
@@ -86,6 +96,19 @@ func TestImpliedMoveStatements(t *testing.T) {
 			instObjState(),
 			providerAddr,
 		)
+
+		// Add two resource nested in a module to ensure we find these
+		// recursively.
+		s.SetResourceInstanceCurrent(
+			nestedResourceAddr("child", "formerly_count").Instance(addrs.IntKey(0)),
+			instObjState(),
+			providerAddr,
+		)
+		s.SetResourceInstanceCurrent(
+			nestedResourceAddr("child", "now_count").Instance(addrs.NoKey),
+			instObjState(),
+			providerAddr,
+		)
 	})
 
 	explicitStmts := FindMoveStatements(rootCfg)
@@ -101,12 +124,37 @@ func TestImpliedMoveStatements(t *testing.T) {
 				End:      tfdiags.SourcePos{Line: 5, Column: 32, Byte: 211},
 			},
 		},
+
+		// Found implied moves in a nested module, ignoring the explicit moves
+		{
+			From:    addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			To:      addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "formerly_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			Implied: true,
+			DeclRange: tfdiags.SourceRange{
+				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
+				Start:    tfdiags.SourcePos{Line: 5, Column: 1, Byte: 180},
+				End:      tfdiags.SourcePos{Line: 5, Column: 32, Byte: 211},
+			},
+		},
+
 		{
 			From:    addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
 			To:      addrs.ImpliedMoveStatementEndpoint(resourceAddr("now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
 			Implied: true,
 			DeclRange: tfdiags.SourceRange{
 				Filename: "testdata/move-statement-implied/move-statement-implied.tf",
+				Start:    tfdiags.SourcePos{Line: 10, Column: 11, Byte: 282},
+				End:      tfdiags.SourcePos{Line: 10, Column: 12, Byte: 283},
+			},
+		},
+
+		// Found implied moves in a nested module, ignoring the explicit moves
+		{
+			From:    addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.NoKey), tfdiags.SourceRange{}),
+			To:      addrs.ImpliedMoveStatementEndpoint(nestedResourceAddr("child", "now_count").Instance(addrs.IntKey(0)), tfdiags.SourceRange{}),
+			Implied: true,
+			DeclRange: tfdiags.SourceRange{
+				Filename: "testdata/move-statement-implied/child/move-statement-implied.tf",
 				Start:    tfdiags.SourcePos{Line: 10, Column: 11, Byte: 282},
 				End:      tfdiags.SourcePos{Line: 10, Column: 12, Byte: 283},
 			},

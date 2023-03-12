@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,8 +17,10 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	tfversion "github.com/hashicorp/terraform/version"
 	"github.com/mitchellh/copystructure"
+
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 type MockClient struct {
@@ -26,9 +29,13 @@ type MockClient struct {
 	CostEstimates         *MockCostEstimates
 	Organizations         *MockOrganizations
 	Plans                 *MockPlans
+	PolicySetOutcomes     *MockPolicySetOutcomes
+	TaskStages            *MockTaskStages
+	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
 	StateVersions         *MockStateVersions
+	StateVersionOutputs   *MockStateVersionOutputs
 	Variables             *MockVariables
 	Workspaces            *MockWorkspaces
 }
@@ -40,11 +47,15 @@ func NewMockClient() *MockClient {
 	c.CostEstimates = newMockCostEstimates(c)
 	c.Organizations = newMockOrganizations(c)
 	c.Plans = newMockPlans(c)
+	c.TaskStages = newMockTaskStages(c)
+	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
 	c.StateVersions = newMockStateVersions(c)
+	c.StateVersionOutputs = newMockStateVersionOutputs(c)
 	c.Variables = newMockVariables(c)
 	c.Workspaces = newMockWorkspaces(c)
+	c.RedactedPlans = newMockRedactedPlans(c)
 	return c
 }
 
@@ -167,7 +178,7 @@ func newMockConfigurationVersions(client *MockClient) *MockConfigurationVersions
 	}
 }
 
-func (m *MockConfigurationVersions) List(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionListOptions) (*tfe.ConfigurationVersionList, error) {
+func (m *MockConfigurationVersions) List(ctx context.Context, workspaceID string, options *tfe.ConfigurationVersionListOptions) (*tfe.ConfigurationVersionList, error) {
 	cvl := &tfe.ConfigurationVersionList{}
 	for _, cv := range m.configVersions {
 		cvl.Items = append(cvl.Items, cv)
@@ -223,7 +234,20 @@ func (m *MockConfigurationVersions) Upload(ctx context.Context, url, path string
 	}
 	m.uploadPaths[cv.ID] = path
 	cv.Status = tfe.ConfigurationUploaded
+
+	return m.UploadTarGzip(ctx, url, nil)
+}
+
+func (m *MockConfigurationVersions) UploadTarGzip(ctx context.Context, url string, archive io.Reader) error {
 	return nil
+}
+
+func (m *MockConfigurationVersions) Archive(ctx context.Context, cvID string) error {
+	panic("not implemented")
+}
+
+func (m *MockConfigurationVersions) Download(ctx context.Context, cvID string) ([]byte, error) {
+	panic("not implemented")
 }
 
 type MockCostEstimates struct {
@@ -320,7 +344,7 @@ func newMockOrganizations(client *MockClient) *MockOrganizations {
 	}
 }
 
-func (m *MockOrganizations) List(ctx context.Context, options tfe.OrganizationListOptions) (*tfe.OrganizationList, error) {
+func (m *MockOrganizations) List(ctx context.Context, options *tfe.OrganizationListOptions) (*tfe.OrganizationList, error) {
 	orgl := &tfe.OrganizationList{}
 	for _, org := range m.organizations {
 		orgl.Items = append(orgl.Items, org)
@@ -370,6 +394,10 @@ func (m *MockOrganizations) Create(ctx context.Context, options tfe.Organization
 }
 
 func (m *MockOrganizations) Read(ctx context.Context, name string) (*tfe.Organization, error) {
+	return m.ReadWithOptions(ctx, name, tfe.OrganizationReadOptions{})
+}
+
+func (m *MockOrganizations) ReadWithOptions(ctx context.Context, name string, options tfe.OrganizationReadOptions) (*tfe.Organization, error) {
 	org, ok := m.organizations[name]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -392,7 +420,7 @@ func (m *MockOrganizations) Delete(ctx context.Context, name string) error {
 	return nil
 }
 
-func (m *MockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Capacity, error) {
+func (m *MockOrganizations) ReadCapacity(ctx context.Context, name string) (*tfe.Capacity, error) {
 	var pending, running int
 	for _, r := range m.client.Runs.Runs {
 		if r.Status == tfe.RunPending {
@@ -404,7 +432,7 @@ func (m *MockOrganizations) Capacity(ctx context.Context, name string) (*tfe.Cap
 	return &tfe.Capacity{Pending: pending, Running: running}, nil
 }
 
-func (m *MockOrganizations) Entitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
+func (m *MockOrganizations) ReadEntitlements(ctx context.Context, name string) (*tfe.Entitlements, error) {
 	return &tfe.Entitlements{
 		Operations:            true,
 		PrivateModuleRegistry: true,
@@ -415,7 +443,7 @@ func (m *MockOrganizations) Entitlements(ctx context.Context, name string) (*tfe
 	}, nil
 }
 
-func (m *MockOrganizations) RunQueue(ctx context.Context, name string, options tfe.RunQueueOptions) (*tfe.RunQueue, error) {
+func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, options tfe.ReadRunQueueOptions) (*tfe.RunQueue, error) {
 	rq := &tfe.RunQueue{}
 
 	for _, r := range m.client.Runs.Runs {
@@ -431,6 +459,58 @@ func (m *MockOrganizations) RunQueue(ctx context.Context, name string, options t
 	}
 
 	return rq, nil
+}
+
+type MockRedactedPlans struct {
+	client        *MockClient
+	redactedPlans map[string]*jsonformat.Plan
+}
+
+func newMockRedactedPlans(client *MockClient) *MockRedactedPlans {
+	return &MockRedactedPlans{
+		client:        client,
+		redactedPlans: make(map[string]*jsonformat.Plan),
+	}
+}
+
+func (m *MockRedactedPlans) create(cvID, workspaceID, planID string) error {
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	planPath := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"plan-redacted.json",
+	)
+
+	redactedPlanFile, err := os.Open(planPath)
+	if err != nil {
+		return err
+	}
+
+	raw, err := ioutil.ReadAll(redactedPlanFile)
+	if err != nil {
+		return err
+	}
+
+	redactedPlan := &jsonformat.Plan{}
+	err = json.Unmarshal(raw, redactedPlan)
+	if err != nil {
+		return err
+	}
+
+	m.redactedPlans[planID] = redactedPlan
+
+	return nil
+}
+
+func (m *MockRedactedPlans) Read(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+	if p, ok := m.redactedPlans[planID]; ok {
+		return p, nil
+	}
+	return nil, tfe.ErrResourceNotFound
 }
 
 type MockPlans struct {
@@ -525,13 +605,171 @@ func (m *MockPlans) Logs(ctx context.Context, planID string) (io.Reader, error) 
 	}, nil
 }
 
-func (m *MockPlans) JSONOutput(ctx context.Context, planID string) ([]byte, error) {
+func (m *MockPlans) ReadJSONOutput(ctx context.Context, planID string) ([]byte, error) {
 	planOutput, ok := m.planOutputs[planID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
 	}
 
 	return []byte(planOutput), nil
+}
+
+type MockTaskStages struct {
+	client *MockClient
+}
+
+func newMockTaskStages(client *MockClient) *MockTaskStages {
+	return &MockTaskStages{
+		client: client,
+	}
+}
+
+func (m *MockTaskStages) Override(ctx context.Context, taskStageID string, options tfe.TaskStageOverrideOptions) (*tfe.TaskStage, error) {
+	switch taskStageID {
+	case "ts-err":
+		return nil, errors.New("test error")
+
+	default:
+		return nil, nil
+	}
+}
+
+func (m *MockTaskStages) Read(ctx context.Context, taskStageID string, options *tfe.TaskStageReadOptions) (*tfe.TaskStage, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockTaskStages) List(ctx context.Context, runID string, options *tfe.TaskStageListOptions) (*tfe.TaskStageList, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+type MockPolicySetOutcomes struct {
+	client *MockClient
+}
+
+func newMockPolicySetOutcomes(client *MockClient) *MockPolicySetOutcomes {
+	return &MockPolicySetOutcomes{
+		client: client,
+	}
+}
+
+func (m *MockPolicySetOutcomes) List(ctx context.Context, policyEvaluationID string, options *tfe.PolicySetOutcomeListOptions) (*tfe.PolicySetOutcomeList, error) {
+	switch policyEvaluationID {
+	case "pol-pass":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "passed",
+							PolicyName:       "policy-pass",
+							Description:      "This policy will pass",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-passes",
+					PolicySetDescription: "This policy set will always pass",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 0,
+						Passed:          1,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	case "pol-fail":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "failed",
+							PolicyName:       "policy-fail",
+							Description:      "This policy will fail",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-fails",
+					PolicySetDescription: "This policy set will always fail",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 1,
+						Passed:          0,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+
+	case "adv-fail":
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "advisory",
+							Query:            "data.example.rule",
+							Status:           "failed",
+							PolicyName:       "policy-fail",
+							Description:      "This policy will fail",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-fails",
+					PolicySetDescription: "This policy set will always fail",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  1,
+						MandatoryFailed: 0,
+						Passed:          0,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	default:
+		return &tfe.PolicySetOutcomeList{
+			Items: []*tfe.PolicySetOutcome{
+				{
+					ID: policyEvaluationID,
+					Outcomes: []tfe.Outcome{
+						{
+							EnforcementLevel: "mandatory",
+							Query:            "data.example.rule",
+							Status:           "passed",
+							PolicyName:       "policy-pass",
+							Description:      "This policy will pass",
+						},
+					},
+					Overridable:          tfe.Bool(true),
+					Error:                "",
+					PolicySetName:        "policy-set-that-passes",
+					PolicySetDescription: "This policy set will always pass",
+					ResultCount: tfe.PolicyResultCount{
+						AdvisoryFailed:  0,
+						MandatoryFailed: 0,
+						Passed:          1,
+						Errored:         0,
+					},
+				},
+			},
+		}, nil
+	}
+}
+
+func (m *MockPolicySetOutcomes) Read(ctx context.Context, policySetOutcomeID string) (*tfe.PolicySetOutcome, error) {
+	return nil, nil
 }
 
 type MockPolicyChecks struct {
@@ -582,7 +820,7 @@ func (m *MockPolicyChecks) create(cvID, workspaceID string) (*tfe.PolicyCheck, e
 	return pc, nil
 }
 
-func (m *MockPolicyChecks) List(ctx context.Context, runID string, options tfe.PolicyCheckListOptions) (*tfe.PolicyCheckList, error) {
+func (m *MockPolicyChecks) List(ctx context.Context, runID string, options *tfe.PolicyCheckListOptions) (*tfe.PolicyCheckList, error) {
 	_, ok := m.client.Runs.Runs[runID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -714,7 +952,7 @@ func newMockRuns(client *MockClient) *MockRuns {
 	}
 }
 
-func (m *MockRuns) List(ctx context.Context, workspaceID string, options tfe.RunListOptions) (*tfe.RunList, error) {
+func (m *MockRuns) List(ctx context.Context, workspaceID string, options *tfe.RunListOptions) (*tfe.RunList, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -808,6 +1046,19 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		w.CurrentRun = r
 	}
 
+	r.Workspace = &tfe.Workspace{
+		ID:                         w.ID,
+		StructuredRunOutputEnabled: w.StructuredRunOutputEnabled,
+		TerraformVersion:           w.TerraformVersion,
+	}
+
+	if w.StructuredRunOutputEnabled {
+		err := m.client.RedactedPlans.create(options.ConfigurationVersion.ID, options.Workspace.ID, p.ID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if m.ModifyNewRun != nil {
 		// caller-provided callback may modify the run in-place to mimic
 		// side-effects that a real server might take in some situations.
@@ -849,14 +1100,17 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
 	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
-		if r.IsDestroy || bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) {
+		if r.IsDestroy ||
+			bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) ||
+			bytes.Contains(logs, []byte("1 to add, 1 to change, 0 to destroy")) {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
 			r.HasChanges = true
 			r.Permissions.CanApply = true
 		}
 
-		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) {
+		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) ||
+			bytes.Contains(logs, []byte("Error: Unsupported block type")) {
 			r.Actions.IsCancelable = false
 			r.HasChanges = false
 			r.Status = tfe.RunErrored
@@ -897,6 +1151,10 @@ func (m *MockRuns) ForceCancel(ctx context.Context, runID string, options tfe.Ru
 	panic("not implemented")
 }
 
+func (m *MockRuns) ForceExecute(ctx context.Context, runID string) error {
+	panic("implement me")
+}
+
 func (m *MockRuns) Discard(ctx context.Context, runID string, options tfe.RunDiscardOptions) error {
 	m.Lock()
 	defer m.Unlock()
@@ -915,6 +1173,7 @@ type MockStateVersions struct {
 	states        map[string][]byte
 	stateVersions map[string]*tfe.StateVersion
 	workspaces    map[string][]string
+	outputStates  map[string][]byte
 }
 
 func newMockStateVersions(client *MockClient) *MockStateVersions {
@@ -923,10 +1182,11 @@ func newMockStateVersions(client *MockClient) *MockStateVersions {
 		states:        make(map[string][]byte),
 		stateVersions: make(map[string]*tfe.StateVersion),
 		workspaces:    make(map[string][]string),
+		outputStates:  make(map[string][]byte),
 	}
 }
 
-func (m *MockStateVersions) List(ctx context.Context, options tfe.StateVersionListOptions) (*tfe.StateVersionList, error) {
+func (m *MockStateVersions) List(ctx context.Context, options *tfe.StateVersionListOptions) (*tfe.StateVersionList, error) {
 	svl := &tfe.StateVersionList{}
 	for _, sv := range m.stateVersions {
 		svl.Items = append(svl.Items, sv)
@@ -964,6 +1224,7 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	}
 
 	m.states[sv.DownloadURL] = state
+	m.outputStates[sv.ID] = []byte(*options.JSONStateOutputs)
 	m.stateVersions[sv.ID] = sv
 	m.workspaces[workspaceID] = append(m.workspaces[workspaceID], sv.ID)
 
@@ -982,11 +1243,11 @@ func (m *MockStateVersions) ReadWithOptions(ctx context.Context, svID string, op
 	return sv, nil
 }
 
-func (m *MockStateVersions) Current(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
-	return m.CurrentWithOptions(ctx, workspaceID, nil)
+func (m *MockStateVersions) ReadCurrent(ctx context.Context, workspaceID string) (*tfe.StateVersion, error) {
+	return m.ReadCurrentWithOptions(ctx, workspaceID, nil)
 }
 
-func (m *MockStateVersions) CurrentWithOptions(ctx context.Context, workspaceID string, options *tfe.StateVersionCurrentOptions) (*tfe.StateVersion, error) {
+func (m *MockStateVersions) ReadCurrentWithOptions(ctx context.Context, workspaceID string, options *tfe.StateVersionCurrentOptions) (*tfe.StateVersion, error) {
 	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
 	if !ok {
 		return nil, tfe.ErrResourceNotFound
@@ -1013,8 +1274,51 @@ func (m *MockStateVersions) Download(ctx context.Context, url string) ([]byte, e
 	return state, nil
 }
 
-func (m *MockStateVersions) Outputs(ctx context.Context, svID string, options tfe.StateVersionOutputsListOptions) ([]*tfe.StateVersionOutput, error) {
+func (m *MockStateVersions) ListOutputs(ctx context.Context, svID string, options *tfe.StateVersionOutputsListOptions) (*tfe.StateVersionOutputsList, error) {
 	panic("not implemented")
+}
+
+type MockStateVersionOutputs struct {
+	client  *MockClient
+	outputs map[string]*tfe.StateVersionOutput
+}
+
+func newMockStateVersionOutputs(client *MockClient) *MockStateVersionOutputs {
+	return &MockStateVersionOutputs{
+		client:  client,
+		outputs: make(map[string]*tfe.StateVersionOutput),
+	}
+}
+
+// This is a helper function in order to create mocks to be read later
+func (m *MockStateVersionOutputs) create(id string, svo *tfe.StateVersionOutput) {
+	m.outputs[id] = svo
+}
+
+func (m *MockStateVersionOutputs) Read(ctx context.Context, outputID string) (*tfe.StateVersionOutput, error) {
+	result, ok := m.outputs[outputID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	return result, nil
+}
+
+func (m *MockStateVersionOutputs) ReadCurrent(ctx context.Context, workspaceID string) (*tfe.StateVersionOutputsList, error) {
+	svl := &tfe.StateVersionOutputsList{}
+	for _, sv := range m.outputs {
+		svl.Items = append(svl.Items, sv)
+	}
+
+	svl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(svl.Items),
+	}
+
+	return svl, nil
 }
 
 type MockVariables struct {
@@ -1031,7 +1335,7 @@ func newMockVariables(client *MockClient) *MockVariables {
 	}
 }
 
-func (m *MockVariables) List(ctx context.Context, workspaceID string, options tfe.VariableListOptions) (*tfe.VariableList, error) {
+func (m *MockVariables) List(ctx context.Context, workspaceID string, options *tfe.VariableListOptions) (*tfe.VariableList, error) {
 	vl := m.workspaces[workspaceID]
 	return vl, nil
 }
@@ -1090,21 +1394,22 @@ func newMockWorkspaces(client *MockClient) *MockWorkspaces {
 	}
 }
 
-func (m *MockWorkspaces) List(ctx context.Context, organization string, options tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
+func (m *MockWorkspaces) List(ctx context.Context, organization string, options *tfe.WorkspaceListOptions) (*tfe.WorkspaceList, error) {
 	wl := &tfe.WorkspaceList{}
-
 	// Get all the workspaces that match the Search value
 	searchValue := ""
-	if options.Search != nil {
-		searchValue = *options.Search
-	}
-
 	var ws []*tfe.Workspace
 	var tags []string
 
-	if options.Tags != nil {
-		tags = strings.Split(*options.Tags, ",")
+	if options != nil {
+		if len(options.Search) > 0 {
+			searchValue = options.Search
+		}
+		if len(options.Tags) > 0 {
+			tags = strings.Split(options.Tags, ",")
+		}
 	}
+
 	for _, w := range m.workspaceIDs {
 		wTags := make(map[string]struct{})
 		for _, wTag := range w.Tags {
@@ -1134,8 +1439,10 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 
 	numPages := (len(ws) / 20) + 1
 	currentPage := 1
-	if options.PageNumber != 0 {
-		currentPage = options.PageNumber
+	if options != nil {
+		if options.PageNumber != 0 {
+			currentPage = options.PageNumber
+		}
 	}
 	previousPage := currentPage - 1
 	nextPage := currentPage + 1
@@ -1171,13 +1478,15 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		options.ExecutionMode = tfe.String("remote")
 	}
 	w := &tfe.Workspace{
-		ID:            GenerateID("ws-"),
-		Name:          *options.Name,
-		ExecutionMode: *options.ExecutionMode,
-		Operations:    *options.Operations,
+		ID:                         GenerateID("ws-"),
+		Name:                       *options.Name,
+		ExecutionMode:              *options.ExecutionMode,
+		Operations:                 *options.Operations,
+		StructuredRunOutputEnabled: false,
 		Permissions: &tfe.WorkspacePermissions{
-			CanQueueApply: true,
-			CanQueueRun:   true,
+			CanQueueApply:  true,
+			CanQueueRun:    true,
+			CanForceDelete: tfe.Bool(true),
 		},
 	}
 	if options.AutoApply != nil {
@@ -1186,11 +1495,13 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 	if options.VCSRepo != nil {
 		w.VCSRepo = &tfe.VCSRepo{}
 	}
+
 	if options.TerraformVersion != nil {
 		w.TerraformVersion = *options.TerraformVersion
 	} else {
 		w.TerraformVersion = tfversion.String()
 	}
+
 	var tags []*tfe.Tag
 	for _, tag := range options.Tags {
 		tags = append(tags, tag)
@@ -1291,6 +1602,11 @@ func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdate
 	if options.WorkingDirectory != nil {
 		w.WorkingDirectory = *options.WorkingDirectory
 	}
+
+	if options.StructuredRunOutputEnabled != nil {
+		w.StructuredRunOutputEnabled = *options.StructuredRunOutputEnabled
+	}
+
 	return nil
 }
 
@@ -1308,6 +1624,41 @@ func (m *MockWorkspaces) DeleteByID(ctx context.Context, workspaceID string) err
 	}
 	delete(m.workspaceIDs, workspaceID)
 	return nil
+}
+
+func (m *MockWorkspaces) SafeDelete(ctx context.Context, organization, workspace string) error {
+	w, ok := m.client.Workspaces.workspaceNames[workspace]
+
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	if w.Locked {
+		return errors.New("cannot safe delete locked workspace")
+	}
+
+	if w.ResourceCount > 0 {
+		return fmt.Errorf("cannot safe delete workspace with %d resources", w.ResourceCount)
+	}
+
+	return m.Delete(ctx, organization, workspace)
+}
+
+func (m *MockWorkspaces) SafeDeleteByID(ctx context.Context, workspaceID string) error {
+	w, ok := m.client.Workspaces.workspaceIDs[workspaceID]
+	if !ok {
+		return tfe.ErrResourceNotFound
+	}
+
+	if w.Locked {
+		return errors.New("cannot safe delete locked workspace")
+	}
+
+	if w.ResourceCount > 0 {
+		return fmt.Errorf("cannot safe delete workspace with %d resources", w.ResourceCount)
+	}
+
+	return m.DeleteByID(ctx, workspaceID)
 }
 
 func (m *MockWorkspaces) RemoveVCSConnection(ctx context.Context, organization, workspace string) (*tfe.Workspace, error) {
@@ -1372,7 +1723,7 @@ func (m *MockWorkspaces) UnassignSSHKey(ctx context.Context, workspaceID string)
 	panic("not implemented")
 }
 
-func (m *MockWorkspaces) RemoteStateConsumers(ctx context.Context, workspaceID string, options *tfe.RemoteStateConsumersListOptions) (*tfe.WorkspaceList, error) {
+func (m *MockWorkspaces) ListRemoteStateConsumers(ctx context.Context, workspaceID string, options *tfe.RemoteStateConsumersListOptions) (*tfe.WorkspaceList, error) {
 	panic("not implemented")
 }
 
@@ -1392,7 +1743,7 @@ func (m *MockWorkspaces) Readme(ctx context.Context, workspaceID string) (io.Rea
 	panic("not implemented")
 }
 
-func (m *MockWorkspaces) Tags(ctx context.Context, workspaceID string, options tfe.WorkspaceTagListOptions) (*tfe.TagList, error) {
+func (m *MockWorkspaces) ListTags(ctx context.Context, workspaceID string, options *tfe.WorkspaceTagListOptions) (*tfe.TagList, error) {
 	panic("not implemented")
 }
 

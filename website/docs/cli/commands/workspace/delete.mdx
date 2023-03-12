@@ -1,0 +1,43 @@
+---
+page_title: 'Command: workspace delete'
+description: The terraform workspace delete command is used to delete a workspace.
+---
+
+# Command: workspace delete
+
+The `terraform workspace delete` command is used to delete an existing workspace.
+
+## Usage
+
+Usage: `terraform workspace delete [OPTIONS] NAME [DIR]`
+
+This command will delete the specified workspace.
+
+To delete a workspace, it must already exist, it must not be tracking resources,
+and it must not be your current workspace. If the workspace is tracking resources,
+Terraform will not allow you to delete it unless the `-force` flag is specified.
+
+Additionally, different [backends](/terraform/language/settings/backends/configuration#backend-types) may implement other
+restrictions on whether a workspace is considered safe to delete without the `-force` flag, such as whether the workspace is locked.
+
+If you delete a workspace which is tracking resources (via `-force`), then resources
+may become "dangling". These are resources that physically exist but that
+Terraform can no longer manage. This is sometimes preferred: you may want
+Terraform to stop managing resources, so they can be managed some other way.
+Most of the time, however, this is not intended and so Terraform protects you
+from getting into this situation.
+
+The command-line flags are all optional. The only supported flags are:
+
+* `-force` - Delete the workspace even if it is tracking resources. After deletion, Terraform can no longer track or manage the workspace's infrastructure. Defaults to false.
+* `-lock=false` - Don't hold a state lock during the operation. This is
+  dangerous if others might concurrently run commands against the same
+  workspace.
+* `-lock-timeout=DURATION` - Duration to retry a state lock. Default 0s.
+
+## Example
+
+```
+$ terraform workspace delete example
+Deleted workspace "example".
+```

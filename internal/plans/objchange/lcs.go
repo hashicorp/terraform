@@ -4,6 +4,21 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+// ValueEqual provides an implementation of the equals function that can be
+// passed into LongestCommonSubsequence when comparing cty.Value types.
+func ValueEqual(x, y cty.Value) bool {
+	unmarkedX, xMarks := x.UnmarkDeep()
+	unmarkedY, yMarks := y.UnmarkDeep()
+	eqV := unmarkedX.Equals(unmarkedY)
+	if len(xMarks) != len(yMarks) {
+		eqV = cty.False
+	}
+	if eqV.IsKnown() && eqV.True() {
+		return true
+	}
+	return false
+}
+
 // LongestCommonSubsequence finds a sequence of values that are common to both
 // x and y, with the same relative ordering as in both collections. This result
 // is useful as a first step towards computing a diff showing added/removed
@@ -15,9 +30,9 @@ import (
 //
 // A pair of lists may have multiple longest common subsequences. In that
 // case, the one selected by this function is undefined.
-func LongestCommonSubsequence(xs, ys []cty.Value) []cty.Value {
+func LongestCommonSubsequence[V any](xs, ys []V, equals func(x, y V) bool) []V {
 	if len(xs) == 0 || len(ys) == 0 {
-		return make([]cty.Value, 0)
+		return make([]V, 0)
 	}
 
 	c := make([]int, len(xs)*len(ys))
@@ -26,14 +41,8 @@ func LongestCommonSubsequence(xs, ys []cty.Value) []cty.Value {
 
 	for y := 0; y < len(ys); y++ {
 		for x := 0; x < len(xs); x++ {
-			unmarkedX, xMarks := xs[x].UnmarkDeep()
-			unmarkedY, yMarks := ys[y].UnmarkDeep()
-			eqV := unmarkedX.Equals(unmarkedY)
-			if len(xMarks) != len(yMarks) {
-				eqV = cty.False
-			}
 			eq := false
-			if eqV.IsKnown() && eqV.True() {
+			if equals(xs[x], ys[y]) {
 				eq = true
 				eqs[(w*y)+x] = true // equality tests can be expensive, so cache it
 			}
@@ -66,7 +75,7 @@ func LongestCommonSubsequence(xs, ys []cty.Value) []cty.Value {
 	}
 
 	// The bottom right cell tells us how long our longest sequence will be
-	seq := make([]cty.Value, c[len(c)-1])
+	seq := make([]V, c[len(c)-1])
 
 	// Now we will walk back from the bottom right cell, finding again all
 	// of the equal pairs to construct our sequence.

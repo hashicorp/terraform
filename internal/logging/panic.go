@@ -26,18 +26,29 @@ shown below, and any additional information which may help replicate the issue.
 
 `
 
+// In case multiple goroutines panic concurrently, ensure only the first one
+// recovered by PanicHandler starts printing.
+var panicMutex sync.Mutex
+
 // PanicHandler is called to recover from an internal panic in Terraform, and
 // augments the standard stack trace with a more user friendly error message.
 // PanicHandler must be called as a defered function, and must be the first
 // defer called at the start of a new goroutine.
 func PanicHandler() {
+	// Have all managed goroutines checkin here, and prevent them from exiting
+	// if there's a panic in progress. While this can't lock the entire runtime
+	// to block progress, we can prevent some cases where Terraform may return
+	// early before the panic has been printed out.
+	panicMutex.Lock()
+	defer panicMutex.Unlock()
+
 	recovered := recover()
 	if recovered == nil {
 		return
 	}
 
 	fmt.Fprint(os.Stderr, panicOutput)
-	fmt.Fprint(os.Stderr, recovered)
+	fmt.Fprint(os.Stderr, recovered, "\n")
 
 	// When called from a deferred function, debug.PrintStack will include the
 	// full stack from the point of the pending panic.

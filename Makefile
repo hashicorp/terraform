@@ -1,6 +1,3 @@
-WEBSITE_REPO=github.com/hashicorp/terraform-website
-VERSION?="0.3.44"
-
 # generate runs `go generate` to build the dynamically generated
 # source files, except the protobuf stubs which are built instead with
 # "make protobuf".
@@ -18,38 +15,32 @@ protobuf:
 	go run ./tools/protobuf-compile .
 
 fmtcheck:
-	@sh -c "'$(CURDIR)/scripts/gofmtcheck.sh'"
+	"$(CURDIR)/scripts/gofmtcheck.sh"
+
+importscheck:
+	"$(CURDIR)/scripts/goimportscheck.sh"
 
 staticcheck:
-	@sh -c "'$(CURDIR)/scripts/staticcheck.sh'"
+	"$(CURDIR)/scripts/staticcheck.sh"
 
 exhaustive:
-	@sh -c "'$(CURDIR)/scripts/exhaustive.sh'"
+	"$(CURDIR)/scripts/exhaustive.sh"
 
+# Run this if working on the website locally to run in watch mode.
 website:
-ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
-	echo "$(WEBSITE_REPO) not found in your GOPATH (necessary for layouts and assets), get-ting..."
-	git clone https://$(WEBSITE_REPO) $(GOPATH)/src/$(WEBSITE_REPO)
-endif
-	$(eval WEBSITE_PATH := $(GOPATH)/src/$(WEBSITE_REPO))
-	@echo "==> Starting core website in Docker..."
-	@docker run \
-		--interactive \
-		--rm \
-		--tty \
-		--publish "4567:4567" \
-		--publish "35729:35729" \
-		--volume "$(shell pwd)/website:/website" \
-		--volume "$(shell pwd):/ext/terraform" \
-		--volume "$(WEBSITE_PATH)/content:/terraform-website" \
-		--volume "$(WEBSITE_PATH)/content/source/assets:/website/docs/assets" \
-		--volume "$(WEBSITE_PATH)/content/source/layouts:/website/docs/layouts" \
-		--workdir /terraform-website \
-		hashicorp/middleman-hashicorp:${VERSION}
+	$(MAKE) -C website website
+
+# Use this if you have run `website/build-local` to use the locally built image.
+website/local:
+	$(MAKE) -C website website/local
+
+# Run this to generate a new local Docker image.
+website/build-local:
+	$(MAKE) -C website website/build-local
 
 # disallow any parallelism (-j) for Make. This is necessary since some
 # commands during the build process create temporary files that collide
 # under parallel conditions.
 .NOTPARALLEL:
 
-.PHONY: fmtcheck generate protobuf website website-test staticcheck
+.PHONY: fmtcheck importscheck generate protobuf staticcheck website website/local website/build-local

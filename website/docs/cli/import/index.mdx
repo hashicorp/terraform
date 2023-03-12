@@ -1,0 +1,24 @@
+---
+page_title: Import
+description: >-
+  Terraform can import and manage existing infrastructure. This can help you
+  transition your infrastructure to Terraform.
+---
+
+# Import
+
+> **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+
+Terraform can import existing infrastructure resources. This functionality lets you bring existing resources under Terraform management.
+
+~> **Warning:** Terraform expects that each remote object is bound to only one resource address. You should import each remote object to only one Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. Refer to [State](/terraform/language/state) for more details.
+
+## State Only
+
+Terraform import can only import resources into the [state](/terraform/language/state). Importing does not generate configuration.
+
+Before you run `terraform import` you must manually write a `resource` configuration block for the resource. The resource block describes where Terraform should map the imported object.
+
+## Terraform Cloud
+
+When you use Terraform on the command line with Terraform Cloud, many commands like `apply` run inside your Terraform Cloud environment. However, the `import` command runs locally, so it does not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.

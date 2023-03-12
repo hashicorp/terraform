@@ -543,6 +543,13 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 				Module:   path,
 			}
 
+			if _, ok := t.providers[addr.String()]; ok {
+				// The config validation warns about this too, but we can't
+				// completely prevent it in v1.
+				log.Printf("[WARN] ProviderConfigTransformer: duplicate required_providers entry for %s", addr)
+				continue
+			}
+
 			abstract := &NodeAbstractProvider{
 				Addr: addr,
 			}
@@ -566,6 +573,13 @@ func (t *ProviderConfigTransformer) transformSingle(g *Graph, c *configs.Config)
 			Provider: fqn,
 			Alias:    p.Alias,
 			Module:   path,
+		}
+
+		if _, ok := t.providers[addr.String()]; ok {
+			// The abstract provider node may already have been added from the
+			// provider requirements.
+			log.Printf("[WARN] ProviderConfigTransformer: provider node %s already added", addr)
+			continue
 		}
 
 		abstract := &NodeAbstractProvider{

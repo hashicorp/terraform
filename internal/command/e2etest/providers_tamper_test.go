@@ -27,8 +27,7 @@ func TestProviderTampering(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "provider-tampering-base")
-	tf := e2e.NewBinary(terraformBin, fixturePath)
-	defer tf.Close()
+	tf := e2e.NewBinary(t, terraformBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("init")
 	if err != nil {
@@ -41,15 +40,18 @@ func TestProviderTampering(t *testing.T) {
 
 	seedDir := tf.WorkDir()
 	const providerVersion = "3.1.0" // must match the version in the fixture config
-	pluginDir := ".terraform/providers/registry.terraform.io/hashicorp/null/" + providerVersion + "/" + getproviders.CurrentPlatform.String()
-	pluginExe := pluginDir + "/terraform-provider-null_v" + providerVersion + "_x5"
+	pluginDir := filepath.Join(".terraform", "providers", "registry.terraform.io", "hashicorp", "null", providerVersion, getproviders.CurrentPlatform.String())
+	pluginExe := filepath.Join(pluginDir, "terraform-provider-null_v"+providerVersion+"_x5")
 	if getproviders.CurrentPlatform.OS == "windows" {
 		pluginExe += ".exe" // ugh
 	}
 
+	// filepath.Join here to make sure we get the right path separator
+	// for whatever OS we're running these tests on.
+	providerCacheDir := filepath.Join(".terraform", "providers")
+
 	t.Run("cache dir totally gone", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		err := os.RemoveAll(filepath.Join(workDir, ".terraform"))
@@ -61,7 +63,7 @@ func TestProviderTampering(t *testing.T) {
 		if err == nil {
 			t.Fatalf("unexpected plan success\nstdout:\n%s", stdout)
 		}
-		if want := `registry.terraform.io/hashicorp/null: there is no package for registry.terraform.io/hashicorp/null 3.1.0 cached in .terraform/providers`; !strings.Contains(stderr, want) {
+		if want := `registry.terraform.io/hashicorp/null: there is no package for registry.terraform.io/hashicorp/null 3.1.0 cached in ` + providerCacheDir; !strings.Contains(stderr, want) {
 			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
 		}
 		if want := `terraform init`; !strings.Contains(stderr, want) {
@@ -79,8 +81,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("cache dir totally gone, explicit backend", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		err := ioutil.WriteFile(filepath.Join(workDir, "backend.tf"), []byte(localBackendConfig), 0600)
@@ -115,8 +116,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("null plugin package modified before plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		err := ioutil.WriteFile(filepath.Join(workDir, pluginExe), []byte("tamper"), 0600)
@@ -128,7 +128,7 @@ func TestProviderTampering(t *testing.T) {
 		if err == nil {
 			t.Fatalf("unexpected plan success\nstdout:\n%s", stdout)
 		}
-		if want := `registry.terraform.io/hashicorp/null: the cached package for registry.terraform.io/hashicorp/null 3.1.0 (in .terraform/providers) does not match any of the checksums recorded in the dependency lock file`; !strings.Contains(stderr, want) {
+		if want := `registry.terraform.io/hashicorp/null: the cached package for registry.terraform.io/hashicorp/null 3.1.0 (in ` + providerCacheDir + `) does not match any of the checksums recorded in the dependency lock file`; !strings.Contains(stderr, want) {
 			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
 		}
 		if want := `terraform init`; !strings.Contains(stderr, want) {
@@ -136,8 +136,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("version constraint changed in config before plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		err := ioutil.WriteFile(filepath.Join(workDir, "provider-tampering-base.tf"), []byte(`
@@ -166,8 +165,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("lock file modified before plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		// NOTE: We're just emptying out the lock file here because that's
@@ -193,8 +191,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("lock file modified after plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		_, stderr, err := tf.Run("plan", "-out", "tfplan")
@@ -219,8 +216,7 @@ func TestProviderTampering(t *testing.T) {
 		}
 	})
 	t.Run("plugin cache dir entirely removed after plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		_, stderr, err := tf.Run("plan", "-out", "tfplan")
@@ -237,13 +233,12 @@ func TestProviderTampering(t *testing.T) {
 		if err == nil {
 			t.Fatalf("unexpected apply success\nstdout:\n%s", stdout)
 		}
-		if want := `registry.terraform.io/hashicorp/null: there is no package for registry.terraform.io/hashicorp/null 3.1.0 cached in .terraform/providers`; !strings.Contains(stderr, want) {
+		if want := `registry.terraform.io/hashicorp/null: there is no package for registry.terraform.io/hashicorp/null 3.1.0 cached in ` + providerCacheDir; !strings.Contains(stderr, want) {
 			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
 		}
 	})
 	t.Run("null plugin package modified after plan", func(t *testing.T) {
-		tf := e2e.NewBinary(terraformBin, seedDir)
-		defer tf.Close()
+		tf := e2e.NewBinary(t, terraformBin, seedDir)
 		workDir := tf.WorkDir()
 
 		_, stderr, err := tf.Run("plan", "-out", "tfplan")
@@ -260,7 +255,7 @@ func TestProviderTampering(t *testing.T) {
 		if err == nil {
 			t.Fatalf("unexpected apply success\nstdout:\n%s", stdout)
 		}
-		if want := `registry.terraform.io/hashicorp/null: the cached package for registry.terraform.io/hashicorp/null 3.1.0 (in .terraform/providers) does not match any of the checksums recorded in the dependency lock file`; !strings.Contains(stderr, want) {
+		if want := `registry.terraform.io/hashicorp/null: the cached package for registry.terraform.io/hashicorp/null 3.1.0 (in ` + providerCacheDir + `) does not match any of the checksums recorded in the dependency lock file`; !strings.Contains(stderr, want) {
 			t.Errorf("missing expected error message\nwant substring: %s\ngot:\n%s", want, stderr)
 		}
 	})

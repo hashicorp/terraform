@@ -1,0 +1,42 @@
+---
+page_title: sensitive - Functions - Configuration Language
+description: The sensitive function marks a value as being sensitive.
+---
+
+# `sensitive` Function
+
+-> **Note:** This function is only available in Terraform v0.15 and later.
+
+`sensitive` takes any value and returns a copy of it marked so that Terraform
+will treat it as sensitive, with the same meaning and behavior as for
+[sensitive input variables](/terraform/language/values/variables#suppressing-values-in-cli-output).
+
+Wherever possible we recommend marking your input variable and/or output value
+declarations as sensitive directly, instead of using this function, because in
+that case you can be sure that there is no way to refer to those values without
+Terraform automatically considering them as sensitive.
+
+The `sensitive` function might be useful in some less-common situations where a
+sensitive value arises from a definition _within_ your module, such as if you've
+loaded sensitive data from a file on disk as part of your configuration:
+
+```
+locals {
+  sensitive_content = sensitive(file("${path.module}/sensitive.txt"))
+}
+```
+
+However, we generally don't recommend writing sensitive values directly within
+your module any of the files you distribute statically as part of that module,
+because they may be exposed in other ways outside of Terraform's control.
+
+## Examples
+
+```
+> sensitive(1)
+(sensitive value)
+> sensitive("hello")
+(sensitive value)
+> sensitive([])
+(sensitive value)
+```

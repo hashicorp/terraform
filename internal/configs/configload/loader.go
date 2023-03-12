@@ -117,7 +117,7 @@ func (l *Loader) IsConfigDir(path string) bool {
 	return l.parser.IsConfigDir(path)
 }
 
-// ImportSources writes into the receiver's source code the given source
+// ImportSources writes into the receiver's source code map the given source
 // code buffers.
 //
 // This is useful in the situation where an ancillary loader is created for
@@ -125,7 +125,7 @@ func (l *Loader) IsConfigDir(path string) bool {
 // code from that loader must be imported into the "main" loader in order
 // to return source code snapshots in diagnostic messages.
 //
-//     loader.ImportSources(otherLoader.Sources())
+//	loader.ImportSources(otherLoader.Sources())
 func (l *Loader) ImportSources(sources map[string][]byte) {
 	p := l.Parser()
 	for name, src := range sources {
@@ -147,4 +147,17 @@ func (l *Loader) ImportSourcesFromSnapshot(snap *Snapshot) {
 			p.ForceFileSource(fullPath, src)
 		}
 	}
+}
+
+// AllowLanguageExperiments specifies whether subsequent LoadConfig (and
+// similar) calls will allow opting in to experimental language features.
+//
+// If this method is never called for a particular loader, the default behavior
+// is to disallow language experiments.
+//
+// Main code should set this only for alpha or development builds. Test code
+// is responsible for deciding for itself whether and how to call this
+// method.
+func (l *Loader) AllowLanguageExperiments(allowed bool) {
+	l.parser.AllowLanguageExperiments(allowed)
 }

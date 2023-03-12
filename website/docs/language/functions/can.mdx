@@ -1,0 +1,74 @@
+---
+page_title: can - Functions - Configuration Language
+description: |-
+  The can function tries to evaluate an expression given as an argument and
+  indicates whether the evaluation succeeded.
+---
+
+# `can` Function
+
+`can` evaluates the given expression and returns a boolean value indicating
+whether the expression produced a result without any errors.
+
+This is a special function that is able to catch errors produced when evaluating
+its argument. For most situations where you could use `can` it's better to use
+[`try`](/terraform/language/functions/try) instead, because it allows for more concise definition of
+fallback values for failing expressions.
+
+The primary purpose of `can` is to turn an error condition into a boolean
+validation result when writing
+[custom variable validation rules](/terraform/language/values/variables#custom-validation-rules).
+For example:
+
+```
+variable "timestamp" {
+  type        = string
+
+  validation {
+    # formatdate fails if the second argument is not a valid timestamp
+    condition     = can(formatdate("", var.timestamp))
+    error_message = "The timestamp argument requires a valid RFC 3339 timestamp."
+  }
+}
+```
+
+The `can` function can only catch and handle _dynamic_ errors resulting from
+access to data that isn't known until runtime. It will not catch errors
+relating to expressions that can be proven to be invalid for any input, such
+as a malformed resource reference.
+
+~> **Warning:** The `can` function is intended only for simple tests in
+variable validation rules. Although it can technically accept any sort of
+expression and be used elsewhere in the configuration, we recommend against
+using it in other contexts. For error handling elsewhere in the configuration,
+prefer to use [`try`](/terraform/language/functions/try).
+
+## Examples
+
+```
+> local.foo
+{
+  "bar" = "baz"
+}
+> can(local.foo.bar)
+true
+> can(local.foo.boop)
+false
+```
+
+The `can` function will _not_ catch errors relating to constructs that are
+provably invalid even before dynamic expression evaluation, such as a malformed
+reference or a reference to a top-level object that has not been declared:
+
+```
+> can(local.nonexist)
+
+Error: Reference to undeclared local value
+
+A local value with the name "nonexist" has not been declared.
+```
+
+## Related Functions
+
+* [`try`](/terraform/language/functions/try), which tries evaluating a sequence of expressions and
+  returns the result of the first one that succeeds.

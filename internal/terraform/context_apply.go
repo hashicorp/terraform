@@ -22,42 +22,41 @@ import (
 // resulting state which is likely to have been partially-updated.
 func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State, tfdiags.Diagnostics) {
 	defer c.acquireRun("apply")()
-	var diags tfdiags.Diagnostics
 
 	log.Printf("[DEBUG] Building and walking apply graph for %s plan", plan.UIMode)
 
-	graph, operation, moreDiags := c.applyGraph(plan, config, true)
-	if moreDiags.HasErrors() {
+	if plan.Errored {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cannot apply failed plan",
+			`The given plan is incomplete due to errors during planning, and so it cannot be applied.`,
+		))
 		return nil, diags
 	}
 
-	variables := InputValues{}
-	for name, dyVal := range plan.VariableValues {
-		val, err := dyVal.Decode(cty.DynamicPseudoType)
-		if err != nil {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Invalid variable value in plan",
-				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
-			))
-			continue
-		}
-
-		variables[name] = &InputValue{
-			Value:      val,
-			SourceType: ValueFromPlan,
-		}
+	graph, operation, diags := c.applyGraph(plan, config, true)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
 	workingState := plan.PriorState.DeepCopy()
 	walker, walkDiags := c.walk(graph, operation, &graphWalkOpts{
-		Config:             config,
-		InputState:         workingState,
-		Changes:            plan.Changes,
-		RootVariableValues: variables,
+		Config:     config,
+		InputState: workingState,
+		Changes:    plan.Changes,
+
+		// We need to propagate the check results from the plan phase,
+		// because that will tell us which checkable objects we're expecting
+		// to see updated results from during the apply step.
+		PlanTimeCheckResults: plan.Checks,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
+
+	// After the walk is finished, we capture a simplified snapshot of the
+	// check result data as part of the new state.
+	walker.State.RecordCheckResults(walker.Checks)
 
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
@@ -80,28 +79,88 @@ Note that the -target option is not suitable for routine use, and is provided on
 		))
 	}
 
+	// FIXME: we cannot check for an empty plan for refresh-only, because root
+	// outputs are always stored as changes. The final condition of the state
+	// also depends on some cleanup which happens during the apply walk. It
+	// would probably make more sense if applying a refresh-only plan were
+	// simply just returning the planned state and checks, but some extra
+	// cleanup is going to be needed to make the plan state match what apply
+	// would do. For now we can copy the checks over which were overwritten
+	// during the apply walk.
+	// Despite the intent of UIMode, it must still be used for apply-time
+	// differences in destroy plans too, so we can make use of that here as
+	// well.
+	if plan.UIMode == plans.RefreshOnlyMode {
+		newState.CheckResults = plan.Checks.DeepCopy()
+	}
+
 	return newState, diags
 }
 
 func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate bool) (*Graph, walkOperation, tfdiags.Diagnostics) {
-	graph, diags := (&ApplyGraphBuilder{
-		Config:       config,
-		Changes:      plan.Changes,
-		State:        plan.PriorState,
-		Plugins:      c.plugins,
-		Targets:      plan.TargetAddrs,
-		ForceReplace: plan.ForceReplaceAddrs,
-		Validate:     validate,
-	}).Build(addrs.RootModuleInstance)
+	var diags tfdiags.Diagnostics
+
+	variables := InputValues{}
+	for name, dyVal := range plan.VariableValues {
+		val, err := dyVal.Decode(cty.DynamicPseudoType)
+		if err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid variable value in plan",
+				fmt.Sprintf("Invalid value for variable %q recorded in plan file: %s.", name, err),
+			))
+			continue
+		}
+
+		variables[name] = &InputValue{
+			Value:      val,
+			SourceType: ValueFromPlan,
+		}
+	}
+	if diags.HasErrors() {
+		return nil, walkApply, diags
+	}
+
+	// The plan.VariableValues field only records variables that were actually
+	// set by the caller in the PlanOpts, so we may need to provide
+	// placeholders for any other variables that the user didn't set, in
+	// which case Terraform will once again use the default value from the
+	// configuration when we visit these variables during the graph walk.
+	for name := range config.Module.Variables {
+		if _, ok := variables[name]; ok {
+			continue
+		}
+		variables[name] = &InputValue{
+			Value:      cty.NilVal,
+			SourceType: ValueFromPlan,
+		}
+	}
 
 	operation := walkApply
 	if plan.UIMode == plans.DestroyMode {
-		// NOTE: This is a vestigial violation of the rule that we mustn't
-		// use plan.UIMode to affect apply-time behavior. It's a design error
-		// if anything downstream switches behavior when operation is set
-		// to walkDestroy, but we've not yet fully audited that.
+		// FIXME: Due to differences in how objects must be handled in the
+		// graph and evaluated during a complete destroy, we must continue to
+		// use plans.DestroyMode to switch on this behavior. If all objects
+		// which require special destroy handling can be tracked in the plan,
+		// then this switch will no longer be needed and we can remove the
+		// walkDestroy operation mode.
 		// TODO: Audit that and remove walkDestroy as an operation mode.
 		operation = walkDestroy
+	}
+
+	graph, moreDiags := (&ApplyGraphBuilder{
+		Config:             config,
+		Changes:            plan.Changes,
+		State:              plan.PriorState,
+		RootVariableValues: variables,
+		Plugins:            c.plugins,
+		Targets:            plan.TargetAddrs,
+		ForceReplace:       plan.ForceReplaceAddrs,
+		Operation:          operation,
+	}).Build(addrs.RootModuleInstance)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, walkApply, diags
 	}
 
 	return graph, operation, diags

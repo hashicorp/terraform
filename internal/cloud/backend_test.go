@@ -40,11 +40,11 @@ func TestCloud_backendWithName(t *testing.T) {
 		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", err)
 	}
 
-	if err := b.DeleteWorkspace("foo"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace("foo", true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", err)
 	}
 }
@@ -86,7 +86,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			expectedErr: `Invalid organization value: The "organization" attribute value must not be empty.`,
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
 		},
 		"null workspace": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -146,27 +146,310 @@ func TestCloud_PrepareConfig(t *testing.T) {
 	}
 }
 
+func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
+	cases := map[string]struct {
+		config      cty.Value
+		vars        map[string]string
+		expectedErr string
+	}{
+		"with no organization": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_ORGANIZATION": "example-org",
+			},
+		},
+		"with no organization attribute or env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars:        map[string]string{},
+			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
+		},
+		"null workspace": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "my-workspace",
+			},
+		},
+		"organization and workspace env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.NullVal(cty.String),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_ORGANIZATION": "hashicorp",
+				"TF_WORKSPACE":          "my-workspace",
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			s := testServer(t)
+			b := New(testDisco(s))
+
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil && tc.expectedErr != "" {
+				actualErr := valDiags.Err().Error()
+				if !strings.Contains(actualErr, tc.expectedErr) {
+					t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+				}
+			}
+		})
+	}
+}
+
+func TestCloud_configWithEnvVars(t *testing.T) {
+	cases := map[string]struct {
+		setup                 func(b *Cloud)
+		config                cty.Value
+		vars                  map[string]string
+		expectedOrganization  string
+		expectedHostname      string
+		expectedWorkspaceName string
+		expectedErr           string
+	}{
+		"with no organization specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.NullVal(cty.String),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_ORGANIZATION": "hashicorp",
+			},
+			expectedOrganization: "hashicorp",
+		},
+		"with both organization and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_ORGANIZATION": "we-should-not-see-this",
+			},
+			expectedOrganization: "hashicorp",
+		},
+		"with no hostname specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_HOSTNAME": "private.hashicorp.engineering",
+			},
+			expectedHostname: "private.hashicorp.engineering",
+		},
+		"with hostname and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.StringVal("private.hashicorp.engineering"),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("prod"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_HOSTNAME": "mycool.tfe-host.io",
+			},
+			expectedHostname: "private.hashicorp.engineering",
+		},
+		"an invalid workspace env var": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("hashicorp"),
+				"workspaces": cty.NullVal(cty.Object(map[string]cty.Type{
+					"name": cty.String,
+					"tags": cty.Set(cty.String),
+				})),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "i-dont-exist-in-org",
+			},
+			expectedErr: `Invalid workspace selection: Terraform failed to find workspace "i-dont-exist-in-org" in organization hashicorp`,
+		},
+		"workspaces and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.StringVal("mt-doom"),
+					"tags": cty.NullVal(cty.Set(cty.String)),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "shire",
+			},
+			expectedWorkspaceName: "mt-doom",
+		},
+		"env var workspace does not have specified tag": {
+			setup: func(b *Cloud) {
+				b.client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+					Name: tfe.String("mordor"),
+				})
+
+				b.client.Workspaces.Create(context.Background(), "mordor", tfe.WorkspaceCreateOptions{
+					Name: tfe.String("shire"),
+				})
+			},
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.SetVal([]cty.Value{
+						cty.StringVal("cloud"),
+					}),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "shire",
+			},
+			expectedErr: "Terraform failed to find workspace \"shire\" with the tags specified in your configuration:\n[cloud]",
+		},
+		"env var workspace has specified tag": {
+			setup: func(b *Cloud) {
+				b.client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+					Name: tfe.String("mordor"),
+				})
+
+				b.client.Workspaces.Create(context.Background(), "mordor", tfe.WorkspaceCreateOptions{
+					Name: tfe.String("shire"),
+					Tags: []*tfe.Tag{
+						{
+							Name: "hobbity",
+						},
+					},
+				})
+			},
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.SetVal([]cty.Value{
+						cty.StringVal("hobbity"),
+					}),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_WORKSPACE": "shire",
+			},
+			expectedWorkspaceName: "", // No error is raised, but workspace is not set
+		},
+		"with everything set as env vars": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.NullVal(cty.String),
+				"workspaces":   cty.NullVal(cty.String),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_ORGANIZATION": "mordor",
+				"TF_WORKSPACE":          "mt-doom",
+				"TF_CLOUD_HOSTNAME":     "mycool.tfe-host.io",
+			},
+			expectedOrganization:  "mordor",
+			expectedWorkspaceName: "mt-doom",
+			expectedHostname:      "mycool.tfe-host.io",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b, cleanup := testUnconfiguredBackend(t)
+			t.Cleanup(cleanup)
+
+			for k, v := range tc.vars {
+				os.Setenv(k, v)
+			}
+
+			t.Cleanup(func() {
+				for k := range tc.vars {
+					os.Unsetenv(k)
+				}
+			})
+
+			_, valDiags := b.PrepareConfig(tc.config)
+			if valDiags.Err() != nil {
+				t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
+			}
+
+			if tc.setup != nil {
+				tc.setup(b)
+			}
+
+			diags := b.Configure(tc.config)
+			if (diags.Err() != nil || tc.expectedErr != "") &&
+				(diags.Err() == nil || !strings.Contains(diags.Err().Error(), tc.expectedErr)) {
+				t.Fatalf("%s: unexpected configure result: %v", name, diags.Err())
+			}
+
+			if tc.expectedOrganization != "" && tc.expectedOrganization != b.organization {
+				t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
+			}
+
+			if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
+				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
+			}
+
+			if tc.expectedWorkspaceName != "" && tc.expectedWorkspaceName != b.WorkspaceMapping.Name {
+				t.Fatalf("%s: workspace name not valid: %s, expected: %s", name, b.WorkspaceMapping.Name, tc.expectedWorkspaceName)
+			}
+		})
+	}
+}
+
 func TestCloud_config(t *testing.T) {
 	cases := map[string]struct {
 		config  cty.Value
 		confErr string
 		valErr  string
 	}{
-		"with_a_nonexisting_organization": {
+		"with_a_non_tfe_host": {
 			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.NullVal(cty.String),
-				"organization": cty.StringVal("nonexisting"),
-				"token":        cty.NullVal(cty.String),
-				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
-				}),
-			}),
-			confErr: "organization \"nonexisting\" at host app.terraform.io not found",
-		},
-		"with_an_unknown_host": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.StringVal("nonexisting.local"),
+				"hostname":     cty.StringVal("nontfe.local"),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -174,7 +457,7 @@ func TestCloud_config(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			confErr: "Failed to request discovery document",
+			confErr: "Host nontfe.local does not provide a tfe service",
 		},
 		// localhost advertises TFE services, but has no token in the credentials
 		"without_a_token": {
@@ -249,22 +532,24 @@ func TestCloud_config(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		s := testServer(t)
-		b := New(testDisco(s))
+		t.Run(name, func(t *testing.T) {
+			b, cleanup := testUnconfiguredBackend(t)
+			t.Cleanup(cleanup)
 
-		// Validate
-		_, valDiags := b.PrepareConfig(tc.config)
-		if (valDiags.Err() != nil || tc.valErr != "") &&
-			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
-			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
-		}
+			// Validate
+			_, valDiags := b.PrepareConfig(tc.config)
+			if (valDiags.Err() != nil || tc.valErr != "") &&
+				(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
+				t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			}
 
-		// Configure
-		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() != nil || tc.confErr != "") &&
-			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
-			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
-		}
+			// Configure
+			confDiags := b.Configure(tc.config)
+			if (confDiags.Err() != nil || tc.confErr != "") &&
+				(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+				t.Fatalf("unexpected configure result: %v", confDiags.Err())
+			}
+		})
 	}
 }
 
@@ -531,7 +816,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 
 			for _, actual := range b.WorkspaceMapping.Tags {
 				if _, ok := expectedSet[actual]; !ok {
-					unexpected = append(missing, actual)
+					unexpected = append(unexpected, actual)
 				}
 			}
 
@@ -573,7 +858,7 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
@@ -691,7 +976,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion(t *testing.T) {
 		{"0.14.0", "0.14.1", "remote", false},
 		{"0.14.0", "1.0.99", "remote", false},
 		{"0.14.0", "1.1.0", "remote", false},
-		{"0.14.0", "1.2.0", "remote", true},
+		{"0.14.0", "1.3.0", "remote", true},
 		{"1.2.0", "1.2.99", "remote", false},
 		{"1.2.0", "1.3.0", "remote", true},
 		{"0.15.0", "latest", "remote", false},
@@ -854,5 +1139,81 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	wantDetail := "The local Terraform version (0.14.0) does not meet the version requirements for remote workspace hashicorp/app-prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
+	}
+}
+
+func TestClodBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+	safeDeleteWorkspaceName := "safe-delete-workspace"
+	forceDeleteWorkspaceName := "force-delete-workspace"
+
+	_, err := b.StateMgr(safeDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	_, err = b.StateMgr(forceDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	// sanity check that the mock now contains two workspaces
+	wl, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error fetching workspace names: %v", err)
+	}
+	if len(wl) != 2 {
+		t.Fatalf("expected 2 workspaced but got %d", len(wl))
+	}
+
+	c := context.Background()
+	safeDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, safeDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error fetching workspace: %v", err)
+	}
+
+	// Lock a workspace so that it should fail to be safe deleted
+	_, err = b.client.Workspaces.Lock(context.Background(), safeDeleteWorkspace.ID, tfe.WorkspaceLockOptions{Reason: tfe.String("test")})
+	if err != nil {
+		t.Fatalf("error locking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if err == nil {
+		t.Fatalf("workspace should have failed to safe delete")
+	}
+
+	// unlock the workspace and confirm that safe-delete now works
+	_, err = b.client.Workspaces.Unlock(context.Background(), safeDeleteWorkspace.ID)
+	if err != nil {
+		t.Fatalf("error unlocking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if err != nil {
+		t.Fatalf("error safe deleting workspace: %v", err)
+	}
+
+	// lock a workspace and then confirm that force deleting it works
+	forceDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, forceDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error fetching workspace: %v", err)
+	}
+	_, err = b.client.Workspaces.Lock(context.Background(), forceDeleteWorkspace.ID, tfe.WorkspaceLockOptions{Reason: tfe.String("test")})
+	if err != nil {
+		t.Fatalf("error locking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(forceDeleteWorkspaceName, true)
+	if err != nil {
+		t.Fatalf("error force deleting workspace: %v", err)
+	}
+}
+
+func TestClodBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+
+	err := b.DeleteWorkspace("non-existent-workspace", false)
+	if err != nil {
+		t.Fatalf("expected deleting a workspace which does not exist to succeed")
 	}
 }

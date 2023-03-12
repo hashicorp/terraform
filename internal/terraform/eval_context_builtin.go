@@ -6,6 +6,7 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -66,6 +67,7 @@ type BuiltinEvalContext struct {
 	ProvisionerLock       *sync.Mutex
 	ChangesValue          *plans.ChangesSync
 	StateValue            *states.SyncState
+	ChecksValue           *checks.State
 	RefreshStateValue     *states.SyncState
 	PrevRunStateValue     *states.SyncState
 	InstanceExpanderValue *instances.Expander
@@ -268,7 +270,7 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.EvaluationScope(self, keyData)
+	scope := ctx.EvaluationScope(self, nil, keyData)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -277,11 +279,125 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
+	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
+func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, repData instances.RepetitionData) (*addrs.Reference, bool, tfdiags.Diagnostics) {
+
+	// get the reference to lookup changes in the plan
+	ref, diags := evalReplaceTriggeredByExpr(expr, repData)
+	if diags.HasErrors() {
+		return nil, false, diags
+	}
+
+	var changes []*plans.ResourceInstanceChangeSrc
+	// store the address once we get it for validation
+	var resourceAddr addrs.Resource
+
+	// The reference is either a resource or resource instance
+	switch sub := ref.Subject.(type) {
+	case addrs.Resource:
+		resourceAddr = sub
+		rc := sub.Absolute(ctx.Path())
+		changes = ctx.Changes().GetChangesForAbsResource(rc)
+	case addrs.ResourceInstance:
+		resourceAddr = sub.ContainingResource()
+		rc := sub.Absolute(ctx.Path())
+		change := ctx.Changes().GetResourceInstanceChange(rc, states.CurrentGen)
+		if change != nil {
+			// we'll generate an error below if there was no change
+			changes = append(changes, change)
+		}
+	}
+
+	// Do some validation to make sure we are expecting a change at all
+	cfg := ctx.Evaluator.Config.Descendent(ctx.Path().Module())
+	resCfg := cfg.Module.ResourceByAddr(resourceAddr)
+	if resCfg == nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared resource`,
+			Detail:   fmt.Sprintf(`A resource %s has not been declared in %s`, ref.Subject, moduleDisplayAddr(ctx.Path())),
+			Subject:  expr.Range().Ptr(),
+		})
+		return nil, false, diags
+	}
+
+	if len(changes) == 0 {
+		// If the resource is valid there should always be at least one change.
+		diags = diags.Append(fmt.Errorf("no change found for %s in %s", ref.Subject, moduleDisplayAddr(ctx.Path())))
+		return nil, false, diags
+	}
+
+	// If we don't have a traversal beyond the resource, then we can just look
+	// for any change.
+	if len(ref.Remaining) == 0 {
+		for _, c := range changes {
+			switch c.ChangeSrc.Action {
+			// Only immediate changes to the resource will trigger replacement.
+			case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
+				return ref, true, diags
+			}
+		}
+
+		// no change triggered
+		return nil, false, diags
+	}
+
+	// This must be an instances to have a remaining traversal, which means a
+	// single change.
+	change := changes[0]
+
+	// Make sure the change is actionable. A create or delete action will have
+	// a change in value, but are not valid for our purposes here.
+	switch change.ChangeSrc.Action {
+	case plans.Update, plans.DeleteThenCreate, plans.CreateThenDelete:
+		// OK
+	default:
+		return nil, false, diags
+	}
+
+	// Since we have a traversal after the resource reference, we will need to
+	// decode the changes, which means we need a schema.
+	providerAddr := change.ProviderAddr
+	schema, err := ctx.ProviderSchema(providerAddr)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	resAddr := change.Addr.ContainingResource().Resource
+	resSchema, _ := schema.SchemaForResourceType(resAddr.Mode, resAddr.Type)
+	ty := resSchema.ImpliedType()
+
+	before, err := change.ChangeSrc.Before.Decode(ty)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	after, err := change.ChangeSrc.After.Decode(ty)
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, false, diags
+	}
+
+	path := traversalToPath(ref.Remaining)
+	attrBefore, _ := path.Apply(before)
+	attrAfter, _ := path.Apply(after)
+
+	if attrBefore == cty.NilVal || attrAfter == cty.NilVal {
+		replace := attrBefore != attrAfter
+		return ref, replace, diags
+	}
+
+	replace := !attrBefore.RawEquals(attrAfter)
+
+	return ref, replace, diags
+}
+
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	if !ctx.pathSet {
 		panic("context path not set")
 	}
@@ -291,7 +407,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	scope := ctx.Evaluator.Scope(data, self)
+	scope := ctx.Evaluator.Scope(data, self, source)
 
 	// ctx.PathValue is the path of the module that contains whatever
 	// expression the caller will be trying to evaluate, so this will
@@ -313,7 +429,21 @@ func (ctx *BuiltinEvalContext) Path() addrs.ModuleInstance {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance, vals map[string]cty.Value) {
+func (ctx *BuiltinEvalContext) SetRootModuleArgument(addr addrs.InputVariable, v cty.Value) {
+	ctx.VariableValuesLock.Lock()
+	defer ctx.VariableValuesLock.Unlock()
+
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", addr.Absolute(addrs.RootModuleInstance))
+	key := addrs.RootModuleInstance.String()
+	args := ctx.VariableValues[key]
+	if args == nil {
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
+	}
+	args[addr.Name] = v
+}
+
+func (ctx *BuiltinEvalContext) SetModuleCallArgument(callAddr addrs.ModuleCallInstance, varAddr addrs.InputVariable, v cty.Value) {
 	ctx.VariableValuesLock.Lock()
 	defer ctx.VariableValuesLock.Unlock()
 
@@ -321,18 +451,15 @@ func (ctx *BuiltinEvalContext) SetModuleCallArguments(n addrs.ModuleCallInstance
 		panic("context path not set")
 	}
 
-	childPath := n.ModuleInstance(ctx.PathValue)
+	childPath := callAddr.ModuleInstance(ctx.PathValue)
+	log.Printf("[TRACE] BuiltinEvalContext: Storing final value for variable %s", varAddr.Absolute(childPath))
 	key := childPath.String()
-
 	args := ctx.VariableValues[key]
 	if args == nil {
-		ctx.VariableValues[key] = vals
-		return
+		args = make(map[string]cty.Value)
+		ctx.VariableValues[key] = args
 	}
-
-	for k, v := range vals {
-		args[k] = v
-	}
+	args[varAddr.Name] = v
 }
 
 func (ctx *BuiltinEvalContext) GetVariableValue(addr addrs.AbsInputVariableInstance) cty.Value {
@@ -354,6 +481,10 @@ func (ctx *BuiltinEvalContext) Changes() *plans.ChangesSync {
 
 func (ctx *BuiltinEvalContext) State() *states.SyncState {
 	return ctx.StateValue
+}
+
+func (ctx *BuiltinEvalContext) Checks() *checks.State {
+	return ctx.ChecksValue
 }
 
 func (ctx *BuiltinEvalContext) RefreshState() *states.SyncState {

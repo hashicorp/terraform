@@ -26,6 +26,7 @@ import (
 type backendMigrateOpts struct {
 	SourceType, DestinationType string
 	Source, Destination         backend.Backend
+	ViewType                    arguments.ViewType
 
 	// Fields below are set internally when migrate is called
 
@@ -339,8 +340,13 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	if m.stateLock {
 		lockCtx := context.Background()
-
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		vt := arguments.ViewJSON
+		// Set default viewtype if none was set as the StateLocker needs to know exactly
+		// what viewType we want to have.
+		if opts == nil || opts.ViewType != vt {
+			vt = arguments.ViewHuman
+		}
+		view := views.NewStateLocker(vt, m.View)
 		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
 		lockerSource := locker.WithContext(lockCtx)
@@ -438,7 +444,11 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
-	if err := destinationState.PersistState(); err != nil {
+	// The backend is currently handled before providers are installed during init,
+	// so requiring schemas here could lead to a catch-22 where it requires some manual
+	// intervention to proceed far enough for provider installation. To avoid this,
+	// when migrating to TFC backend, the initial JSON varient of state won't be generated and stored.
+	if err := destinationState.PersistState(nil); err != nil {
 		return fmt.Errorf(strings.TrimSpace(errBackendStateCopy),
 			opts.SourceType, opts.DestinationType, err)
 	}
@@ -579,6 +589,21 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 		opts.sourceWorkspace = currentWorkspace
 
 		log.Printf("[INFO] backendMigrateTFC: single-to-single migration from source %s to destination %q", opts.sourceWorkspace, opts.destinationWorkspace)
+
+		// If the current workspace is has no state we do not need to ask
+		// if they want to migrate the state.
+		sourceState, err := opts.Source.StateMgr(currentWorkspace)
+		if err != nil {
+			return err
+		}
+		if err := sourceState.RefreshState(); err != nil {
+			return err
+		}
+		if sourceState.State().Empty() {
+			log.Printf("[INFO] backendMigrateTFC: skipping migration because source %s is empty", opts.sourceWorkspace)
+			return nil
+		}
+
 		// Run normal single-to-single state migration.
 		// This will handle both situations where the new cloud backend
 		// configuration is using a workspace.name strategy or workspace.tags
@@ -945,7 +970,7 @@ This will attempt to copy (with permission) all workspaces again.
 `
 
 const errBackendStateCopy = `
-Error copying state from the previous %q backend to the newly configured 
+Error copying state from the previous %q backend to the newly configured
 %q backend:
     %s
 

@@ -1,0 +1,207 @@
+---
+page_title: For Expressions - Configuration Language
+description: >-
+  For expressions transform complex input values into complex output values.
+  Learn how to filter inputs and how to group results.
+---
+
+# `for` Expressions
+
+A _`for` expression_ creates a complex type value by transforming
+another complex type value. Each element in the input value
+can correspond to either one or zero values in the result, and an arbitrary
+expression can be used to transform each input element into an output element.
+
+For example, if `var.list` were a list of strings, then the following expression
+would produce a tuple of strings with all-uppercase letters:
+
+```hcl
+[for s in var.list : upper(s)]
+```
+
+This `for` expression iterates over each element of `var.list`, and then
+evaluates the expression `upper(s)` with `s` set to each respective element.
+It then builds a new tuple value with all of the results of executing that
+expression in the same order.
+
+## Input Types
+
+A `for` expression's input (given after the `in` keyword) can be a list,
+a set, a tuple, a map, or an object.
+
+The above example showed a `for` expression with only a single temporary
+symbol `s`, but a `for` expression can optionally declare a pair of temporary
+symbols in order to use the key or index of each item too:
+
+```hcl
+[for k, v in var.map : length(k) + length(v)]
+```
+
+For a map or object type, like above, the `k` symbol refers to the key or
+attribute name of the current element. You can also use the two-symbol form
+with lists and tuples, in which case the additional symbol is the index
+of each element starting from zero, which conventionally has the symbol name
+`i` or `idx` unless it's helpful to choose a more specific name:
+
+```hcl
+[for i, v in var.list : "${i} is ${v}"]
+```
+
+The index or key symbol is always optional. If you specify only a single
+symbol after the `for` keyword then that symbol will always represent the
+_value_ of each element of the input collection.
+
+## Result Types
+
+The type of brackets around the `for` expression decide what type of result
+it produces.
+
+The above example uses `[` and `]`, which produces a tuple. If you use `{` and
+`}` instead, the result is an object and you must provide two result
+expressions that are separated by the `=>` symbol:
+
+```hcl
+{for s in var.list : s => upper(s)}
+```
+
+This expression produces an object whose attributes are the original elements
+from `var.list` and their corresponding values are the uppercase versions.
+For example, the resulting value might be as follows:
+
+```hcl
+{
+  foo = "FOO"
+  bar = "BAR"
+  baz = "BAZ"
+}
+```
+
+A `for` expression alone can only produce either an object value or a tuple
+value, but Terraform's automatic type conversion rules mean that you can
+typically use the results in locations where lists, maps, and sets are expected.
+
+## Filtering Elements
+
+A `for` expression can also include an optional `if` clause to filter elements
+from the source collection, producing a value with fewer elements than
+the source value:
+
+```
+[for s in var.list : upper(s) if s != ""]
+```
+
+One common reason for filtering collections in `for` expressions is to split
+a single source collection into two separate collections based on some
+criteria. For example, if the input `var.users` is a map of objects where the
+objects each have an attribute `is_admin` then you may wish to produce separate
+maps with admin vs non-admin objects:
+
+```hcl
+variable "users" {
+  type = map(object({
+    is_admin = bool
+  }))
+}
+
+locals {
+  admin_users = {
+    for name, user in var.users : name => user
+    if user.is_admin
+  }
+  regular_users = {
+    for name, user in var.users : name => user
+    if !user.is_admin
+  }
+}
+```
+
+## Element Ordering
+
+Because `for` expressions can convert from unordered types (maps, objects, sets)
+to ordered types (lists, tuples), Terraform must choose an implied ordering
+for the elements of an unordered collection.
+
+For maps and objects, Terraform sorts the elements by key or attribute name,
+using lexical sorting.
+
+For sets of strings, Terraform sorts the elements by their value, using
+lexical sorting.
+
+For sets of other types, Terraform uses an arbitrary ordering that may change in future versions. We recommend converting the expression result into a set to make it clear elsewhere in the configuration that the result is unordered. You can use [the `toset` function](/terraform/language/functions/toset)
+to concisely convert a `for` expression result to be of a set type.
+
+```hcl
+toset([for e in var.set : e.example])
+```
+
+## Grouping Results
+
+If the result type is an object (using `{` and `}` delimiters) then normally
+the given key expression must be unique across all elements in the result,
+or Terraform will return an error.
+
+Sometimes the resulting keys are _not_ unique, and so to support that situation
+Terraform supports a special _grouping mode_ which changes the result to support
+multiple elements per key.
+
+To activate grouping mode, add the symbol `...` after the value expression.
+For example:
+
+```hcl
+variable "users" {
+  type = map(object({
+    role = string
+  }))
+}
+
+locals {
+  users_by_role = {
+    for name, user in var.users : user.role => name...
+  }
+}
+```
+
+The above represents a situation where a module expects a map describing
+various users who each have a single "role", where the map keys are usernames.
+The usernames are guaranteed unique because they are map keys in the input,
+but many users may all share a single role name.
+
+The `local.users_by_role` expression inverts the input map so that the keys
+are the role names and the values are usernames, but the expression is in
+grouping mode (due to the `...` after `name`) and so the result will be a
+map of lists of strings, such as the following:
+
+```hcl
+{
+  "admin": [
+    "ps",
+  ],
+  "maintainer": [
+    "am",
+    "jb",
+    "kl",
+    "ma",
+  ],
+  "viewer": [
+    "st",
+    "zq",
+  ],
+}
+```
+
+Due to [the element ordering rules](#element-ordering), Terraform will sort
+the users lexically by username as part of evaluating the `for` expression,
+and so the usernames associated with each role will be lexically sorted
+after grouping.
+
+## Repeated Configuration Blocks
+
+The `for` expressions mechanism is for constructing collection values from
+other collection values within expressions, which you can then assign to
+individual resource arguments that expect complex values.
+
+Some resource types also define _nested block types_, which typically represent
+separate objects that belong to the containing resource in some way. You can't
+dynamically generate nested blocks using `for` expressions, but you _can_
+generate nested blocks for a resource dynamically using
+[`dynamic` blocks](/terraform/language/expressions/dynamic-blocks).

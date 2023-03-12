@@ -98,6 +98,23 @@ func (l *Locks) SetProvider(addr addrs.Provider, version getproviders.Version, c
 	return new
 }
 
+// RemoveProvider removes any existing lock file entry for the given provider.
+//
+// If the given provider did not already have a lock entry, RemoveProvider is
+// a no-op.
+//
+// Only lockable providers can be passed to this method. If you pass a
+// non-lockable provider address then this function will panic. Use
+// function ProviderIsLockable to determine whether a particular provider
+// should participate in the version locking mechanism.
+func (l *Locks) RemoveProvider(addr addrs.Provider) {
+	if !ProviderIsLockable(addr) {
+		panic(fmt.Sprintf("Locks.RemoveProvider with non-lockable provider %s", addr))
+	}
+
+	delete(l.providers, addr)
+}
+
 // SetProviderOverridden records that this particular Terraform process will
 // not pay attention to the recorded lock entry for the given provider, and
 // will instead access that provider's functionality in some other special
@@ -384,6 +401,30 @@ func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 // Do not modify the backing array of the returned slice.
 func (l *ProviderLock) AllHashes() []getproviders.Hash {
 	return l.hashes
+}
+
+// ContainsAll returns true if the hashes in this ProviderLock contains
+// all the hashes in the target.
+//
+// This function assumes the hashes are in each ProviderLock are sorted.
+// If the ProviderLock was created by the NewProviderLock constructor then
+// the hashes are guaranteed to be sorted.
+func (l *ProviderLock) ContainsAll(target *ProviderLock) bool {
+	if target == nil || len(target.hashes) == 0 {
+		return true
+	}
+
+	targetIndex := 0
+	for ix := 0; ix < len(l.hashes); ix++ {
+		if l.hashes[ix] == target.hashes[targetIndex] {
+			targetIndex++
+
+			if targetIndex >= len(target.hashes) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // PreferredHashes returns a filtered version of the AllHashes return value

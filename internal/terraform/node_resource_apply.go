@@ -49,6 +49,7 @@ func (n *nodeExpandApplyableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 			Addr:                 n.Addr.Resource.Absolute(module),
 		})
 	}
+	addRootNodeToGraph(&g)
 
 	return &g, nil
 }

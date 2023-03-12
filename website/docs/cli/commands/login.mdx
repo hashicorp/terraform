@@ -1,0 +1,45 @@
+---
+page_title: 'Command: login'
+description: >-
+  The terraform login command can be used to automatically obtain and save an
+  API token for Terraform Cloud, Terraform Enterprise, or any other host that
+  offers Terraform services.
+---
+
+# Command: login
+
+The `terraform login` command can be used to automatically obtain and save an
+API token for Terraform Cloud, Terraform Enterprise, or any other host that offers Terraform services.
+
+-> **Note:** This command is suitable only for use in interactive scenarios
+where it is possible to launch a web browser on the same host where Terraform
+is running. If you are running Terraform in an unattended automation scenario,
+you can
+[configure credentials manually in the CLI configuration](/terraform/cli/config/config-file#credentials).
+
+## Usage
+
+Usage: `terraform login [hostname]`
+
+If you don't provide an explicit hostname, Terraform will assume you want to
+log in to Terraform Cloud at `app.terraform.io`.
+
+## Credentials Storage
+
+By default, Terraform will obtain an API token and save it in plain text in a
+local CLI configuration file called `credentials.tfrc.json`. When you run
+`terraform login`, it will explain specifically where it intends to save
+the API token and give you a chance to cancel if the current configuration is
+not as desired.
+
+If you don't wish to store your API token in the default location, you can
+optionally configure a
+[credentials helper program](/terraform/cli/config/config-file#credentials-helpers) which knows
+how to store and later retrieve credentials in some other system, such as
+your organization's existing secrets management system.
+
+## Login Server Support
+
+The `terraform login` command works with any server supporting the
+[login protocol](/terraform/internals/login-protocol), including Terraform Cloud
+and Terraform Enterprise.

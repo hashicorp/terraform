@@ -7,6 +7,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
@@ -29,6 +30,7 @@ type ContextGraphWalker struct {
 	RefreshState       *states.SyncState       // Used for safe concurrent access to state
 	PrevRunState       *states.SyncState       // Used for safe concurrent access to state
 	Changes            *plans.ChangesSync      // Used for safe concurrent writes to changes
+	Checks             *checks.State           // Used for safe concurrent writes of checkable objects and their check results
 	InstanceExpander   *instances.Expander     // Tracks our gradual expansion of module and resource instances
 	MoveResults        refactoring.MoveResults // Read-only record of earlier processing of move statements
 	Operation          walkOperation
@@ -98,6 +100,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		ProvisionerCache:      w.provisionerCache,
 		ProvisionerLock:       &w.provisionerLock,
 		ChangesValue:          w.Changes,
+		ChecksValue:           w.Checks,
 		StateValue:            w.State,
 		RefreshStateValue:     w.RefreshState,
 		PrevRunStateValue:     w.PrevRunState,
