@@ -146,7 +146,7 @@ func TestInitProvidersLocalOnly(t *testing.T) {
 	// not work until you remove it.
 	//
 	// To avoid this, we will  "zero out" any existing cli config file.
-	tf.AddEnv("TF_CLI_CONFIG_FILE=\"\"")
+	tf.AddEnv("TF_CLI_CONFIG_FILE=")
 
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the

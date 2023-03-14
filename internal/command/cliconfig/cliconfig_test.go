@@ -8,6 +8,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // This is the directory where our test fixtures are.
@@ -52,6 +53,31 @@ func TestLoadConfig_envSubst(t *testing.T) {
 
 	if !reflect.DeepEqual(c, expected) {
 		t.Fatalf("bad: %#v", c)
+	}
+}
+
+func TestLoadConfig_non_existing_file(t *testing.T) {
+	tmpDir := os.TempDir()
+	cliTmpFile := filepath.Join(tmpDir, "dev.tfrc")
+
+	os.Setenv("TF_CLI_CONFIG_FILE", cliTmpFile)
+	defer os.Unsetenv("TF_CLI_CONFIG_FILE")
+
+	c, errs := LoadConfig()
+	if errs.HasErrors() || c.Validate().HasErrors() {
+		t.Fatalf("err: %s", errs)
+	}
+
+	hasOpenFileWarn := false
+	for _, err := range errs {
+		if err.Severity() == tfdiags.Warning && err.Description().Summary == "Unable to open CLI configuration file" {
+			hasOpenFileWarn = true
+			break
+		}
+	}
+
+	if !hasOpenFileWarn {
+		t.Fatal("expecting a warning message because of nonexisting CLI configuration file")
 	}
 }
 
