@@ -13,9 +13,10 @@ resources to your configuration, keep track of metadata, and to improve
 performance for large infrastructures.
 
 This state is stored by default in a local file named "terraform.tfstate",
-but it can also be stored remotely, which works better in a team environment.
+but we recommend [storing it in Terraform Cloud](/terraform/cloud-docs/migrate)
+to version, encrypt, and securely share it with your team.
 
-Terraform uses this local state to create plans and make changes to your
+Terraform uses state to determine which changes to make to your
 infrastructure. Prior to any operation, Terraform does a
 [refresh](/terraform/cli/commands/refresh) to update the state with the
 real infrastructure.
