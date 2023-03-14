@@ -643,6 +643,12 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 	}
 }
 
+// driftedResources is a best-effort attempt to compare the current and prior
+// state. If we cannot decode the prior state for some reason, this should only
+// return warnings to help the user correlate any missing resources in the
+// report. This is known to happen when targeting a subset of resources,
+// because the excluded instances will have been removed from the plan and
+// not upgraded.
 func (c *Context) driftedResources(config *configs.Config, oldState, newState *states.State, moves refactoring.MoveResults) ([]*plans.ResourceInstanceChangeSrc, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -690,35 +696,35 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 					addr.Resource.Resource.Type,
 				)
 				if schema == nil {
-					// This should never happen, but just in case
-					return nil, diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
 						"Missing resource schema from provider",
-						fmt.Sprintf("No resource schema found for %s.", addr.Resource.Resource.Type),
+						fmt.Sprintf("No resource schema found for %s when decoding prior state", addr.Resource.Resource.Type),
 					))
+					continue
 				}
 				ty := schema.ImpliedType()
 
 				oldObj, err := oldIS.Current.Decode(ty)
 				if err != nil {
-					// This should also never happen
-					return nil, diags.Append(tfdiags.Sourceless(
-						tfdiags.Error,
+					diags = diags.Append(tfdiags.Sourceless(
+						tfdiags.Warning,
 						"Failed to decode resource from state",
-						fmt.Sprintf("Error decoding %q from previous state: %s", addr.String(), err),
+						fmt.Sprintf("Error decoding %q from prior state: %s", addr.String(), err),
 					))
+					continue
 				}
 
 				var newObj *states.ResourceInstanceObject
 				if newIS != nil && newIS.Current != nil {
 					newObj, err = newIS.Current.Decode(ty)
 					if err != nil {
-						// This should also never happen
-						return nil, diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
+						diags = diags.Append(tfdiags.Sourceless(
+							tfdiags.Warning,
 							"Failed to decode resource from state",
 							fmt.Sprintf("Error decoding %q from prior state: %s", addr.String(), err),
 						))
+						continue
 					}
 				}
 
