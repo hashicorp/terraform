@@ -81,10 +81,9 @@ func (renderer Renderer) RenderHumanState(state State) {
 		return
 	}
 
-	opts := computed.RenderHumanOpts{
-		ShowUnchangedChildren: true,
-		HideDiffActionSymbols: true,
-	}
+	opts := computed.NewRenderHumanOpts(renderer.Colorize)
+	opts.ShowUnchangedChildren = true
+	opts.HideDiffActionSymbols = true
 
 	state.renderHumanStateModule(renderer, state.RootModule, opts, true)
 	state.renderHumanStateOutputs(renderer, opts)
@@ -119,11 +118,11 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 					return err
 				}
 
+				opts := computed.NewRenderHumanOpts(r.Colorize)
+				opts.ShowUnchangedChildren = true
+
 				outputDiff := change.ComputeDiffForType(ctype)
-				outputStr := outputDiff.RenderHuman(0, computed.RenderHumanOpts{
-					Colorize:              r.Colorize,
-					ShowUnchangedChildren: true,
-				})
+				outputStr := outputDiff.RenderHuman(0, opts)
 
 				msg := fmt.Sprintf("%s = %s", name, outputStr)
 				r.Streams.Println(msg)
