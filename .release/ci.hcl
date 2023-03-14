@@ -4,17 +4,16 @@ project "terraform" {
   // the team key is not used by CRT currently
   team = "terraform"
   slack {
-    notification_channel = "C02A58BNPU6" // TODO: Placeholder
+    notification_channel = "C011WJ112MD"
   }
   github {
     organization = "hashicorp"
     repository = "terraform"
 
     release_branches = [
-      "releng/**", // REMOVEME
       "main",
       "release/**",
-      "build-workflow-dev/**",
+      "v**.**",
     ]
   }
 }
