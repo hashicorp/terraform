@@ -11,8 +11,6 @@ on:
     branches:
       - main
       - 'v[0-9]+.[0-9]+'
-      - build-workflow-dev/*
-      - releng/*
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
