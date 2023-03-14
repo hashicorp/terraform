@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/go-azure-helpers/lang/response"
 	"log"
 	"net/http"
 
@@ -84,8 +85,10 @@ func (c *RemoteClient) Put(data []byte) error {
 	}
 
 	blob, err := c.giovanniBlobClient.GetProperties(ctx, c.accountName, c.containerName, c.keyName, getOptions)
-	if err != nil && blob.Response.Response != nil && blob.Response.Response.StatusCode != 404 {
-		return err
+	if err != nil {
+		if !response.WasNotFound(blob.Response.Response) {
+			return err
+		}
 	}
 
 	contentType := "application/json"
