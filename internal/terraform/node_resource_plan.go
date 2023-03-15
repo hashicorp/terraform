@@ -108,57 +108,6 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	expander := ctx.InstanceExpander()
 	moduleInstances := expander.ExpandModule(n.Addr.Module)
 
-	// Lock the state while we inspect it
-	state := ctx.State().Lock()
-
-	var orphans []*states.Resource
-	for _, res := range state.Resources(n.Addr) {
-		found := false
-		for _, m := range moduleInstances {
-			if m.Equal(res.Addr.Module) {
-				found = true
-				break
-			}
-		}
-		// The module instance of the resource in the state doesn't exist
-		// in the current config, so this whole resource is orphaned.
-		if !found {
-			orphans = append(orphans, res)
-		}
-	}
-
-	// We'll no longer use the state directly here, and the other functions
-	// we'll call below may use it so we'll release the lock.
-	state = nil
-	ctx.State().Unlock()
-
-	// The concrete resource factory we'll use for orphans
-	concreteResourceOrphan := func(a *NodeAbstractResourceInstance) *NodePlannableResourceInstanceOrphan {
-		// Add the config and state since we don't do that via transforms
-		a.Config = n.Config
-		a.ResolvedProvider = n.ResolvedProvider
-		a.Schema = n.Schema
-		a.ProvisionerSchemas = n.ProvisionerSchemas
-		a.ProviderMetas = n.ProviderMetas
-		a.Dependencies = n.dependencies
-
-		return &NodePlannableResourceInstanceOrphan{
-			NodeAbstractResourceInstance: a,
-			skipRefresh:                  n.skipRefresh,
-			skipPlanChanges:              n.skipPlanChanges,
-		}
-	}
-
-	for _, res := range orphans {
-		for key := range res.Instances {
-			addr := res.Addr.Instance(key)
-			abs := NewNodeAbstractResourceInstance(addr)
-			abs.AttachResourceState(res)
-			n := concreteResourceOrphan(abs)
-			g.Add(n)
-		}
-	}
-
 	// The above dealt with the expansion of the containing module, so now
 	// we need to deal with the expansion of the resource itself across all
 	// instances of the module.
@@ -188,6 +137,32 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, tf
 	if checkState := ctx.Checks(); checkState.ConfigHasChecks(n.NodeAbstractResource.Addr) {
 		checkState.ReportCheckableObjects(n.NodeAbstractResource.Addr, n.expandedInstances)
 	}
+
+	// Any resources that belong to module prefixes that aren't expanded yet
+	// get placeholder nodes that we'll use to record that they are deferred
+	// and produce a placeholder object for continued downstream partial
+	// evaluation.
+	// (This must come after calling n.expandResourceInstances because
+	// otherwise we won't have registered the expansion for the resource
+	// itself yet.)
+	possibleInstances := expander.UnknownResourceInstances(n.Addr)
+	for _, possibleInsts := range possibleInstances {
+		log.Printf("[TRACE] nodeExpandPlannableResource: exact instances not yet known for %s", possibleInsts)
+		n := &nodePartialExpandedResource{
+			Addr:               possibleInsts,
+			Config:             n.Config,
+			Schema:             n.Schema,
+			SchemaVersion:      n.SchemaVersion,
+			ProvisionerSchemas: n.ProvisionerSchemas,
+			Targets:            n.Targets,
+			ResolvedProvider:   n.ResolvedProvider,
+			skipRefresh:        n.skipRefresh,
+			skipPlanChanges:    n.skipPlanChanges,
+		}
+		g.Add(n)
+	}
+
+	n.expandResourceInstanceOrphans(&g, ctx, moduleInstances, possibleInstances)
 
 	addRootNodeToGraph(&g)
 
@@ -325,6 +300,74 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	g.Subsume(&instG.AcyclicGraph.Graph)
 
 	return diags
+}
+
+func (n *nodeExpandPlannableResource) expandResourceInstanceOrphans(g *Graph, ctx EvalContext, moduleInstances []addrs.ModuleInstance, possibleInstances addrs.Set[addrs.PartialExpandedResource]) error {
+	var diags tfdiags.Diagnostics
+
+	// Lock the state while we inspect it
+	state := ctx.State().Lock()
+
+	var orphans []*states.Resource
+	for _, res := range state.Resources(n.Addr) {
+		found := false
+		for _, m := range moduleInstances {
+			if m.Equal(res.Addr.Module) {
+				found = true
+				break
+			}
+		}
+		// The existing instance might belong to a resource or module whose
+		// expansion isn't known yet, so we don't know yet if it will still
+		// exist in desired state once the expansion is known; we'll just
+		// treat it as a placeholder for this run.
+		deferred := false
+		for _, possibleInsts := range possibleInstances {
+			if possibleInsts.MatchesResource(res.Addr) {
+				deferred = true
+				break
+			}
+		}
+		// The module instance of the resource in the state doesn't exist
+		// in the current config, so this whole resource is orphaned.
+		if !found && !deferred {
+			orphans = append(orphans, res)
+		}
+	}
+
+	// We'll no longer use the state directly here, and the other functions
+	// we'll call below may use it so we'll release the lock.
+	state = nil
+	ctx.State().Unlock()
+
+	// The concrete resource factory we'll use for orphans
+	concreteResourceOrphan := func(a *NodeAbstractResourceInstance) *NodePlannableResourceInstanceOrphan {
+		// Add the config and state since we don't do that via transforms
+		a.Config = n.Config
+		a.ResolvedProvider = n.ResolvedProvider
+		a.Schema = n.Schema
+		a.ProvisionerSchemas = n.ProvisionerSchemas
+		a.ProviderMetas = n.ProviderMetas
+		a.Dependencies = n.dependencies
+
+		return &NodePlannableResourceInstanceOrphan{
+			NodeAbstractResourceInstance: a,
+			skipRefresh:                  n.skipRefresh,
+			skipPlanChanges:              n.skipPlanChanges,
+		}
+	}
+
+	for _, res := range orphans {
+		for key := range res.Instances {
+			addr := res.Addr.Instance(key)
+			abs := NewNodeAbstractResourceInstance(addr)
+			abs.AttachResourceState(res)
+			n := concreteResourceOrphan(abs)
+			g.Add(n)
+		}
+	}
+
+	return diags.ErrWithWarnings()
 }
 
 // Import blocks are expanded in conjunction with their associated resource block.

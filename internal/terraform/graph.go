@@ -71,13 +71,30 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 		// is normally the context of our graph but can be overridden
 		// with a GraphNodeModuleInstance impl.
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeModuleInstance); ok {
+		switch pn := v.(type) {
+		case GraphNodeModuleInstance:
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
-		}
-		if pn, ok := v.(GraphNodePartialExpandedModule); ok {
+		case GraphNodePartialExpandedModule:
 			vertexCtx = walker.EnterPartialExpandedPath(pn.PartialExpandedModule())
 			defer walker.ExitPartialExpandedPath(pn.PartialExpandedModule())
+		case GraphNodeModuleEvalScope:
+			// This is a dynamic variant that combines the two cases above and
+			// the possibility to have no scope at all, for situations where
+			// the same node type needs to handle two or more kinds of
+			// evaluation.
+			switch evalScope := pn.ModuleEvalScope().(type) {
+			case addrs.ModuleInstance:
+				vertexCtx = walker.EnterPath(evalScope)
+				defer walker.ExitPath(evalScope)
+			case addrs.PartialExpandedModule:
+				vertexCtx = walker.EnterPartialExpandedPath(evalScope)
+				defer walker.ExitPartialExpandedPath(evalScope)
+			case nil:
+				// Fine but we don't have anything to do in this case.
+			default:
+				panic(fmt.Sprintf("unsupported addrs.ModuleEvalScope implementation %T", evalScope))
+			}
 		}
 
 		if g.checkAndApplyOverrides(ctx.Overrides(), v) {

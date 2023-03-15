@@ -142,15 +142,20 @@ func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
+	return referencesForResource(n.Addr, n.Config, n.Schema, n.ProvisionerSchemas)
+}
+
+func referencesForResource(addr addrs.ConfigResource, config *configs.Resource, schema *configschema.Block, provisionerSchemas map[string]*configschema.Block) []*addrs.Reference {
 	var result []*addrs.Reference
 	// If we have a config then we prefer to use that.
-	if c := n.Config; c != nil {
-		result = append(result, n.DependsOn()...)
+	if c := config; c != nil {
+		result = append(result, resourceDependsOn(addr, config)...)
 
-		if n.Schema == nil {
+		if schema == nil {
 			// Should never happen, but we'll log if it does so that we can
 			// see this easily when debugging.
-			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
+			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", addr)
+
 		}
 
 		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Count)
@@ -164,8 +169,8 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 		}
 
 		// ReferencesInBlock() requires a schema
-		if n.Schema != nil {
-			refs, _ = lang.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema)
+		if schema != nil {
+			refs, _ = lang.ReferencesInBlock(addrs.ParseRef, c.Config, schema)
 			result = append(result, refs...)
 		}
 
@@ -184,9 +189,9 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 					result = append(result, refs...)
 				}
 
-				schema := n.ProvisionerSchemas[p.Type]
+				schema := provisionerSchemas[p.Type]
 				if schema == nil {
-					log.Printf("[WARN] no schema for provisioner %q is attached to %s, so provisioner block references cannot be detected", p.Type, n.Name())
+					log.Printf("[WARN] no schema for provisioner %q is attached to %s, so provisioner block references cannot be detected", p.Type, addr)
 				}
 				refs, _ = lang.ReferencesInBlock(addrs.ParseRef, p.Config, schema)
 				result = append(result, refs...)
@@ -227,16 +232,19 @@ func (n *NodeAbstractResource) ImportReferences() []*addrs.Reference {
 }
 
 func (n *NodeAbstractResource) DependsOn() []*addrs.Reference {
-	var result []*addrs.Reference
-	if c := n.Config; c != nil {
+	return resourceDependsOn(n.Addr, n.Config)
+}
 
-		for _, traversal := range c.DependsOn {
+func resourceDependsOn(addr addrs.ConfigResource, config *configs.Resource) []*addrs.Reference {
+	var result []*addrs.Reference
+	if config != nil {
+		for _, traversal := range config.DependsOn {
 			ref, diags := addrs.ParseRef(traversal)
 			if diags.HasErrors() {
 				// We ignore this here, because this isn't a suitable place to return
 				// errors. This situation should be caught and rejected during
 				// validation.
-				log.Printf("[ERROR] Can't parse %#v from depends_on as reference: %s", traversal, diags.Err())
+				log.Printf("[ERROR] Can't parse %#v from depends_on of %s as reference: %s", traversal, addr, diags.Err())
 				continue
 			}
 

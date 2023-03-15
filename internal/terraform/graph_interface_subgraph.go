@@ -26,3 +26,18 @@ type GraphNodeModulePath interface {
 type GraphNodePartialExpandedModule interface {
 	PartialExpandedModule() addrs.PartialExpandedModule
 }
+
+// GraphNodeModuleEvalScope is a dynamic variant of both [GraphNodeModuleInstance]
+// and [GraphNodePartialExpandedModule] combined, which a node can implement
+// to dynamically choose between:
+//
+//    - nil, representing no module evaluation scope at all
+//    - an [addrs.ModuleInstance], representing an exact module instance with similar effect to implementing [GraphNodeModuleInstance]
+//    - an [addrs.PartialExpandedModule], representing a partial-expanded module instance with similar effect to implementing [GraphNodePartialExpandedModule]
+//
+// When calling a node's [GraphNodeExecutable] implementation, the graph
+// walker will pass an [EvalContext] with the appropriate module evaluation
+// scope (if any) pre-assigned.
+type GraphNodeModuleEvalScope interface {
+	ModuleEvalScope() addrs.ModuleEvalScope
+}

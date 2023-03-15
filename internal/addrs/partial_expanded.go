@@ -346,6 +346,45 @@ func (per PartialExpandedResource) AbsResource() (AbsResource, bool) {
 	}, true
 }
 
+// FullyExpandedModuleInstance returns the [ModuleInstance] that the receiver
+// belongs to if and only if it belongs to a fully-known module path.
+//
+// The second return value is true only if the first return value is valid.
+func (per PartialExpandedResource) FullyExpandedModuleInstance() (ModuleInstance, bool) {
+	if len(per.module.unexpandedSuffix) != 0 {
+		return nil, false
+	}
+	return per.module.expandedPrefix, true
+}
+
+// PartialExpandedModuleInstance returns the [PartialExpandedModule] that the
+// receiver belongs to if and only if the module path is not fully known.
+// For a fully-known path use [PartialExpandedResource.FullyExpandedModuleInstance]
+// instead, to obtain a [ModuleInstance]
+func (per PartialExpandedResource) PartialExpandedModuleInstance() (PartialExpandedModule, bool) {
+	// We can only reveal our module field's value if it has at least one
+	// expanded element, because otherwise it will violate the assumptions
+	// made in the exported API of PartialExpandedModule.
+	if len(per.module.unexpandedSuffix) == 0 {
+		return PartialExpandedModule{}, false
+	}
+	return per.module, true
+}
+
+// ModuleEvalScope returns the [ModuleEvalScope] that the receiver should
+// have its expressions evaluated in.
+func (per PartialExpandedResource) ModuleEvalScope() ModuleEvalScope {
+	if addr, ok := per.FullyExpandedModuleInstance(); ok {
+		return addr
+	} else if addr, ok := per.PartialExpandedModuleInstance(); ok {
+		return addr
+	} else {
+		// Should never get here because we should always have exactly one
+		// of the two address types above.
+		panic("unexpected ModuleEvalScope type for PartialExpandedResource")
+	}
+}
+
 // ConfigResource returns the unexpanded resource address that this
 // partially-expanded resource address originates from.
 func (per PartialExpandedResource) ConfigResource() ConfigResource {
