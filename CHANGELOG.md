@@ -1,15 +1,15 @@
-## 1.4.1 (Unreleased)
+## 1.4.1 (March 15, 2023)
 
 BUG FIXES:
 
-* Enables overriding modules that have the `depends_on` attribute set, while still preventing the `depends_on` attribute itself from being overridden. [GH-32796]
-* `terraform providers mirror`: when a dependency lock file is present, mirror the resolved providers versions, not the latest available based on configuration. [GH-32749]
-* Fixed module downloads from S3 URLs when using AWS IAM roles for service accounts (IRSA). [GH-32700]
-* hcl: Fix a crash in Terraform when attempting to apply defaults into an incompatible type. [GH-32775]
-* Prevent panic when creating a plan which errors before the planning process has begun. [GH-32818]
-* Fix the plan renderer skipping the "no changes" messages when there are no-op outputs within the plan. [GH-32820]
-* Prevent panic when rendering null nested primitive values in a state output. [GH-32840]
-* Warn when an invalid path is specified in `TF_CLI_CONFIG_FILE` [GH-32846]
+* Enables overriding modules that have the `depends_on` attribute set, while still preventing the `depends_on` attribute itself from being overridden. ([#32796](https://github.com/hashicorp/terraform/issues/32796))
+* `terraform providers mirror`: when a dependency lock file is present, mirror the resolved providers versions, not the latest available based on configuration. ([#32749](https://github.com/hashicorp/terraform/issues/32749))
+* Fixed module downloads from S3 URLs when using AWS IAM roles for service accounts (IRSA). ([#32700](https://github.com/hashicorp/terraform/issues/32700))
+* hcl: Fix a crash in Terraform when attempting to apply defaults into an incompatible type. ([#32775](https://github.com/hashicorp/terraform/issues/32775))
+* Prevent panic when creating a plan which errors before the planning process has begun. ([#32818](https://github.com/hashicorp/terraform/issues/32818))
+* Fix the plan renderer skipping the "no changes" messages when there are no-op outputs within the plan. ([#32820](https://github.com/hashicorp/terraform/issues/32820))
+* Prevent panic when rendering null nested primitive values in a state output. ([#32840](https://github.com/hashicorp/terraform/issues/32840))
+* Warn when an invalid path is specified in `TF_CLI_CONFIG_FILE` ([#32846](https://github.com/hashicorp/terraform/issues/32846))
 
 ## 1.4.0 (March 08, 2023)
 
