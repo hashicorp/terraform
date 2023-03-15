@@ -71,6 +71,8 @@ func TestContext2Apply_stop(t *testing.T) {
 	stopCh := make(chan struct{})
 	waitCh := make(chan struct{})
 	stoppedCh := make(chan struct{})
+	stopCalled := uint32(0)
+	applyStopped := uint32(0)
 	p := &MockProvider{
 		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
@@ -104,6 +106,7 @@ func TestContext2Apply_stop(t *testing.T) {
 			log.Printf("[TRACE] TestContext2Apply_stop: ApplyResourceChange waiting for Stop call")
 			// This will block until StopFn closes this channel below.
 			<-stopCh
+			atomic.AddUint32(&applyStopped, 1)
 			// This unblocks StopFn below, thereby acknowledging the request
 			// to stop.
 			close(stoppedCh)
@@ -117,6 +120,7 @@ func TestContext2Apply_stop(t *testing.T) {
 			// Closing this channel will unblock the channel read in
 			// ApplyResourceChangeFn above.
 			log.Printf("[TRACE] TestContext2Apply_stop: Stop called")
+			atomic.AddUint32(&stopCalled, 1)
 			close(stopCh)
 			// This will block until ApplyResourceChange has reacted to
 			// being stopped.
@@ -168,6 +172,18 @@ func TestContext2Apply_stop(t *testing.T) {
 		t.Fatalf("final state is nil")
 	}
 
+	if got, want := atomic.LoadUint32(&stopCalled), uint32(1); got != want {
+		t.Errorf("provider's Stop method was not called")
+	}
+	if got, want := atomic.LoadUint32(&applyStopped), uint32(1); got != want {
+		// This should not happen if things are working correctly but this is
+		// to catch weird situations such as if a bug in this test causes us
+		// to inadvertently stop Terraform before it reaches te apply phase,
+		// or if the apply operation fails in a way that causes it not to reach
+		// the ApplyResourceChange function.
+		t.Errorf("somehow provider's ApplyResourceChange didn't react to being stopped")
+	}
+
 	// Because we interrupted the apply phase while applying the resource,
 	// we should have halted immediately after we finished visiting that
 	// resource. We don't visit indefinite.bar at all.
@@ -176,12 +192,32 @@ func TestContext2Apply_stop(t *testing.T) {
 		{"PreDiff", "indefinite.foo"},
 		{"PostDiff", "indefinite.foo"},
 		{"PreApply", "indefinite.foo"},
-		{"Stopping", ""}, // Local backend uses this as a hint to persist the latest state snapshot
 		{"PostApply", "indefinite.foo"},
 		{"PostStateUpdate", ""}, // State gets updated one more time to include the apply result.
 	}
+	// The "Stopping" event gets sent to the hook asynchronously from the others
+	// because it is triggered in the ctx.Stop call above, rather than from
+	// the goroutine where ctx.Apply was running, and therefore it doesn't
+	// appear in a guaranteed position in gotEvents. We already checked above
+	// that the provider's Stop method was called, so we'll just strip that
+	// event out of our gotEvents.
+	seenStopped := false
+	for i, call := range gotEvents {
+		if call.Action == "Stopping" {
+			seenStopped = true
+			// We'll shift up everything else in the slice to create the
+			// effect of the Stopping event not having been present at all,
+			// which should therefore make this slice match "wantEvents".
+			copy(gotEvents[i:], gotEvents[i+1:])
+			gotEvents = gotEvents[:len(gotEvents)-1]
+			break
+		}
+	}
 	if diff := cmp.Diff(wantEvents, gotEvents); diff != "" {
 		t.Errorf("wrong hook events\n%s", diff)
+	}
+	if !seenStopped {
+		t.Errorf("'Stopping' event did not get sent to the hook")
 	}
 
 	rov := state.OutputValue(addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance))
