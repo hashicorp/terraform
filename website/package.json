@@ -2,9 +2,12 @@
   "name": "terraform-docs-preview",
   "private": "true",
   "scripts": {
-    "build": "./scripts/website-build.sh"
+    "build": "./scripts/website-build.sh",
+    "content-check": "hc-content --config base-docs"
   },
   "devDependencies": {
+    "@hashicorp/platform-cli": "^2.6.0",
+    "@hashicorp/platform-content-conformance": "^0.0.10",
     "next": "^12.1.0"
   },
   "engines": {

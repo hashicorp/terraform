@@ -23,7 +23,7 @@ See the full [changelog for more details](https://github.com/hashicorp/terraform
 
 Before this change Terraform could not determine the full set of checksums to include in the lockfile when installing a new provider for the first time. Now it can. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. 
 
-For more details and how to keep using the prior undesirable behavior, please see the [documentation](/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
+For more details and how to keep using the prior undesirable behavior, please see the [documentation](/terraform/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
 
 ## Hostname interpretation during terraform init
 
