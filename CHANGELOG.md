@@ -1,5 +1,10 @@
 ## 1.4.2 (Unreleased)
 
+BUG FIXES:
+
+* Fix bug in which certain uses of `setproduct` caused Terraform to crash [GH-32860]
+* Fix bug in which some provider plans were not being calculated correctly, leading to an "invalid plan" error [GH-32860]
+
 ## 1.4.1 (March 15, 2023)
 
 BUG FIXES:
