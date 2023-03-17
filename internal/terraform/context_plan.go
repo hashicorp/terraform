@@ -286,18 +286,6 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
-	if diags.HasErrors() {
-		// Non-nil plan along with errors indicates a non-applyable partial
-		// plan that's only suitable to be shown to the user as extra context
-		// to help understand the errors.
-		return plan, diags
-	}
-
-	// The refreshed state ends up with some placeholder objects in it for
-	// objects pending creation. We only really care about those being in
-	// the working state, since that's what we're going to use when applying,
-	// so we'll prune them all here.
-	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	return plan, diags
 }
@@ -338,10 +326,6 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 			"Terraform generated planned resource changes in a refresh-only plan. This is a bug in Terraform.",
 		))
 	}
-
-	// Prune out any placeholder objects we put in the state to represent
-	// objects that would need to be created.
-	plan.PriorState.SyncWrapper().RemovePlannedResourceInstanceObjects()
 
 	// We don't populate RelevantResources for a refresh-only plan, because
 	// they never have any planned actions and so no resource can ever be
@@ -580,9 +564,13 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	// we encountered errors, which we'll return as part of a non-nil plan
 	// so that e.g. the UI can show what was planned so far in case that extra
 	// context helps the user to understand the error messages we're returning.
-
 	prevRunState = walker.PrevRunState.Close()
+
+	// The refreshed state may have data resource objects which were deferred
+	// to apply and cannot be serialized.
+	walker.RefreshState.RemovePlannedResourceInstanceObjects()
 	priorState := walker.RefreshState.Close()
+
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
