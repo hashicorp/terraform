@@ -605,18 +605,13 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 	// out here and then we'll save the real unknown value in the planned
 	// changeset, if we have one on this graph walk.
 	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
-	sensitive := n.Config.Sensitive
-	unmarkedVal, valueMarks := val.UnmarkDeep()
 
-	// If the evaluated value contains sensitive marks, the output has no
-	// choice but to declare itself as "sensitive".
-	for mark := range valueMarks {
-		if mark == marks.Sensitive {
-			sensitive = true
-			break
-		}
+	// non-root outputs need to keep sensitive marks for evaluation, but are
+	// not serialized.
+	if n.Addr.Module.IsRoot() {
+		val, _ = val.UnmarkDeep()
+		val = cty.UnknownAsNull(val)
 	}
 
-	stateVal := cty.UnknownAsNull(unmarkedVal)
-	state.SetOutputValue(n.Addr, stateVal, sensitive)
+	state.SetOutputValue(n.Addr, val, n.Config.Sensitive)
 }
