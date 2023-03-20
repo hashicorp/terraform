@@ -513,10 +513,6 @@ func (n *NodeDestroyableOutput) DotNode(name string, opts *dag.DotOpts) *dag.Dot
 }
 
 func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.ChangesSync, val cty.Value) {
-	// If we have an active changeset then we'll first replicate the value in
-	// there and lookup the prior value in the state. This is used in
-	// preference to the state where present, since it *is* able to represent
-	// unknowns, while the state cannot.
 	if changes != nil && n.Planning {
 		// if this is a root module, try to get a before value from the state for
 		// the diff
@@ -538,8 +534,8 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 			}
 		}
 
-		// We will not show the value is either the before or after are marked
-		// as sensitivity. We can show the value again once sensitivity is
+		// We will not show the value if either the before or after are marked
+		// as sensitive. We can show the value again once sensitivity is
 		// removed from both the config and the state.
 		sensitiveChange := sensitiveBefore || n.Config.Sensitive
 
@@ -601,9 +597,6 @@ func (n *NodeApplyableOutput) setValue(state *states.SyncState, changes *plans.C
 		return
 	}
 
-	// The state itself doesn't represent unknown values, so we null them
-	// out here and then we'll save the real unknown value in the planned
-	// changeset, if we have one on this graph walk.
 	log.Printf("[TRACE] setValue: Saving value for %s in state", n.Addr)
 
 	// non-root outputs need to keep sensitive marks for evaluation, but are
