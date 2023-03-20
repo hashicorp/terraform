@@ -1074,8 +1074,15 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// If we plan to write or delete sensitive paths from state,
-	// this is an Update action
-	if action == plans.NoOp && !marksEqual(unmarkedPaths, priorPaths) {
+	// this is an Update action.
+	//
+	// We need to filter out any marks which may not apply to the new planned
+	// value before comparison. The one case where a provider is allowed to
+	// return a different value from the configuration is when a config change
+	// is not functionally significant and the prior state can be returned. If a
+	// new mark was also discarded from that config change, it needs to be
+	// ignored here to prevent an errant update action.
+	if action == plans.NoOp && !marksEqual(filterMarks(plannedNewVal, unmarkedPaths), priorPaths) {
 		action = plans.Update
 	}
 
