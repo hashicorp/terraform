@@ -13,6 +13,7 @@ project "terraform" {
     release_branches = [
       "main",
       "release/**",
+      "releng/**",
       "v**.**",
     ]
   }
