@@ -27,17 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
-      product-version-base: ${{ steps.get-product-version.outputs.product-version-base }}
-      product-version-pre: ${{ steps.get-product-version.outputs.product-version-pre }}
-      experiments: ${{ steps.get-product-version.outputs.experiments }}
-      go-ldflags: ${{ steps.get-product-version.outputs.go-ldflags }}
+      product-version-base: ${{ steps.get-product-version.outputs.base-product-version }}
+      product-version-pre: ${{ steps.get-product-version.outputs.prerelease-product-version }}
+      experiments: ${{ steps.get-ldflags.outputs.experiments }}
+      go-ldflags: ${{ steps.get-ldflags.outputs.go-ldflags }}
       pkg-name: ${{ steps.get-pkg-name.outputs.pkg-name }}
 
     steps:
       - uses: actions/checkout@v3
-      - name: Git Describe
-        id: git-describe
-        run: .github/scripts/fetch_raw_version.sh
       - name: Get Package Name
         id: get-pkg-name
         run: |
@@ -45,9 +42,12 @@ jobs:
           echo "pkg-name=${pkg_name}" | tee -a "${GITHUB_OUTPUT}"
       - name: Decide version number
         id: get-product-version
-        shell: bash
+        uses: hashicorp/actions-set-product-version@v1
+      - name: Determine experiments
+        id: get-ldflags
         env:
-          RAW_VERSION: ${{ steps.git-describe.outputs.raw-version }}
+          RAW_VERSION: ${{ steps.get-product-version.outputs.product-version }}
+        shell: bash
         run: .github/scripts/get_product_version.sh
       - name: Report chosen version number
         run: |
