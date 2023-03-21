@@ -191,6 +191,11 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								&states.CheckResultObject{
 									Status:          checks.StatusFail,
 									FailureMessages: []string{"Oh no!"},
+									Refs: [][]string{
+										{
+											"test_thing.woot",
+										},
+									},
 								},
 							),
 						),
@@ -210,6 +215,8 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								&states.CheckResultObject{
 									Status:          checks.StatusFail,
 									FailureMessages: []string{"check failed"},
+									// Intentionally leave Refs blank here to
+									// test backward compatibility.
 								},
 							),
 						),

@@ -1711,8 +1711,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.
-			var refs []addrs.Referenceable
-			refs = append(refs, n.Addr.Resource)
 			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error(), []addrs.Referenceable{n.Addr.Resource})
 
 			// Also, let's hide the errors so that execution can continue as

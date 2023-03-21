@@ -1230,6 +1230,7 @@ type Path_Step struct {
 	unknownFields protoimpl.UnknownFields
 
 	// Types that are assignable to Selector:
+	//
 	//	*Path_Step_AttributeName
 	//	*Path_Step_ElementKey
 	Selector isPath_Step_Selector `protobuf_oneof:"selector"`

@@ -47,6 +47,42 @@ func TestMarshalCheckStates(t *testing.T) {
 			&states.CheckResults{},
 			[]any{},
 		},
+		"success": {
+			&states.CheckResults{
+				ConfigResults: addrs.MakeMap(
+					addrs.MakeMapElem(resourceAAddr, &states.CheckResultAggregate{
+						Status: checks.StatusPass,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem(resourceAInstAddr, &states.CheckResultObject{
+								Status: checks.StatusPass,
+							}),
+						),
+					}),
+				),
+			},
+			[]any{
+				map[string]any{
+					"//": "EXPERIMENTAL: see docs for details",
+					"address": map[string]any{
+						"kind":       "resource",
+						"mode":       "managed",
+						"name":       "a",
+						"to_display": "test.a",
+						"type":       "test",
+					},
+					"instances": []any{
+						map[string]any{
+							"address": map[string]any{
+								"to_display":   `test.a["foo"]`,
+								"instance_key": "foo",
+							},
+							"status": "pass",
+						},
+					},
+					"status": "pass",
+				},
+			},
+		},
 		"failures": {
 			&states.CheckResults{
 				ConfigResults: addrs.MakeMap(
@@ -59,6 +95,8 @@ func TestMarshalCheckStates(t *testing.T) {
 									"Not enough boops.",
 									"Too many beeps.",
 								},
+								// Intentionally leave refs blank here to test
+								// backward compatibility.
 							}),
 						),
 					}),
@@ -69,6 +107,11 @@ func TestMarshalCheckStates(t *testing.T) {
 								Status: checks.StatusFail,
 								FailureMessages: []string{
 									"Splines are too pointy.",
+								},
+								Refs: [][]string{
+									{
+										"test.b",
+									},
 								},
 							}),
 						),
@@ -89,6 +132,11 @@ func TestMarshalCheckStates(t *testing.T) {
 								FailureMessages: []string{
 									"Not object-oriented enough.",
 								},
+								Refs: [][]string{
+									{
+										"output.b",
+									},
+								},
 							}),
 						),
 					}),
@@ -99,6 +147,11 @@ func TestMarshalCheckStates(t *testing.T) {
 								Status: checks.StatusFail,
 								FailureMessages: []string{
 									"Couldn't reverse the polarity.",
+								},
+								Refs: [][]string{
+									{
+										"data.notreal",
+									},
 								},
 							}),
 						),
@@ -121,6 +174,7 @@ func TestMarshalCheckStates(t *testing.T) {
 							"problems": []any{
 								map[string]any{
 									"message": "Couldn't reverse the polarity.",
+									"refs":    []any{"data.notreal"},
 								},
 							},
 							"status": "fail",
@@ -145,6 +199,7 @@ func TestMarshalCheckStates(t *testing.T) {
 							"problems": []any{
 								map[string]any{
 									"message": "Not object-oriented enough.",
+									"refs":    []any{"output.b"},
 								},
 							},
 							"status": "fail",
@@ -171,6 +226,7 @@ func TestMarshalCheckStates(t *testing.T) {
 							"problems": []any{
 								map[string]any{
 									"message": "Splines are too pointy.",
+									"refs":    []any{"test.b"},
 								},
 							},
 							"status": "fail",

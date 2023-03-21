@@ -150,11 +150,7 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 
 			var refs [][]string
 			for _, references := range rawCR.References {
-				var rs []string
-				for _, r := range references.References {
-					rs = append(rs, r)
-				}
-				refs = append(refs, rs)
+				refs = append(refs, references.References)
 			}
 
 			obj := &states.CheckResultObject{
@@ -549,11 +545,9 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 				var references []*planproto.CheckResults_ObjectResultReferences
 				for _, rs := range objectElem.Value.Refs {
-					refs := &planproto.CheckResults_ObjectResultReferences{}
-					for _, r := range rs {
-						refs.References = append(refs.References, r)
-					}
-					references = append(references, refs)
+					references = append(references, &planproto.CheckResults_ObjectResultReferences{
+						References: rs,
+					})
 				}
 
 				pcr := &planproto.CheckResults_ObjectResult{
