@@ -1,10 +1,9 @@
 ---
 name: build_terraform
 
-# This workflow is intended to be called by the build workflow for each Consul
-# binary that needs to be built and packaged. The crt make targets that are
-# utilized automatically determine build metadata and handle building and
-# packing consul.
+# This workflow is intended to be called by the build workflow. The crt make
+# targets that are utilized automatically determine build metadata and
+# handle building and packing Terraform.
 
 on:
   workflow_call:
@@ -12,6 +11,7 @@ on:
       cgo-enabled:
         type: string
         default: 0
+        required: true
       goos:
         required: true
         type: string
