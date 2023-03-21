@@ -1,5 +1,8 @@
 ## 1.4.3 (Unreleased)
 
+BUG FIXES:
+* Prevent sensitive values in non-root module outputs from marking the entire output as sensitive [GH-32891]
+
 ## 1.4.2 (March 16, 2023)
 
 BUG FIXES:
