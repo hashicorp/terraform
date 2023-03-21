@@ -79,60 +79,72 @@ event "promote-staging-docker" {
   }
 }
 
-// event "trigger-production" {
-// // This event is dispatched by the bob trigger-promotion command
-// // and is required - do not delete.
-// }
+event "trigger-production" {
+// This event is dispatched by the bob trigger-promotion command
+// and is required - do not delete.
+}
 
-// event "promote-production" {
-//   depends = ["trigger-production"]
-//   action "promote-production" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "promote-production"
-//   }
+event "promote-production" {
+  depends = ["trigger-production"]
+  action "promote-production" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-production"
+  }
 
-//   notification {
-//     on = "always"
-//   }
-// }
+  notification {
+    on = "always"
+  }
+}
 
-// event "promote-production-docker" {
-//   depends = ["promote-production"]
-//   action "promote-production-docker" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "promote-production-docker"
-//   }
+event "promote-production-docker" {
+  depends = ["promote-production"]
+  action "promote-production-docker" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-production-docker"
+  }
 
-//   notification {
-//     on = "always"
-//   }
-// }
+  notification {
+    on = "always"
+  }
+}
 
-// event "promote-production-packaging" {
-//   depends = ["promote-production-docker"]
-//   action "promote-production-packaging" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "promote-production-packaging"
-//   }
+event "promote-production-packaging" {
+  depends = ["promote-production-docker"]
+  action "promote-production-packaging" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-production-packaging"
+  }
 
-//   notification {
-//     on = "always"
-//   }
-// }
+  notification {
+    on = "always"
+  }
+}
 
-// event "update-ironbank" {
-//   depends = ["bump-version-patch"]
-//   action "update-ironbank" {
-//     organization = "hashicorp"
-//     repository = "crt-workflows-common"
-//     workflow = "update-ironbank"
-//   }
+event "update-ironbank" {
+  depends = ["bump-version-patch"]
+  action "update-ironbank" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "update-ironbank"
+  }
 
-//   notification {
-//     on = "always"
-//   }
-// }
+  notification {
+    on = "always"
+  }
+}
 
+event "crt-hook-tfc-upload" {
+  depends = ["update-ironbank"]
+  action "crt-hook-tfc-upload" {
+    organization = "hashicorp"
+    repository = "terraform-releases"
+    workflow = "crt-hook-tfc-upload"
+  }
+
+  notification {
+    on = "always"
+  }
+}
