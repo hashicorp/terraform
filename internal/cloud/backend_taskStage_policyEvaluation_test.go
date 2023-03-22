@@ -79,7 +79,7 @@ func TestCloud_runTaskStageWithPolicyEvaluation(t *testing.T) {
 		trs := policyEvaluationSummarizer{
 			cloud: b,
 		}
-		c.context.Poll(taskStageBackoffMin, taskStageBackoffMax, func(i int) (bool, error) {
+		c.context.Poll(0, 0, func(i int) (bool, error) {
 			cont, _, _ := trs.Summarize(c.context, c.writer, c.taskStage())
 			if cont {
 				return true, nil

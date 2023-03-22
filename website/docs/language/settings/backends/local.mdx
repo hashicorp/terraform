@@ -77,7 +77,7 @@ the three arguments would typically all be paths within a temporary
 directory used just for one operation.
 
 Because these old workflows predate the introduction of the possibility of
-[multiple workspaces](/language/state/workspaces), setting them
+[multiple workspaces](/terraform/language/state/workspaces), setting them
 overrides Terraform's usual behavior of selecting a different state filename
 based on the selected workspace. If you use all three of these options then
 the selected workspace has no effect on which filenames Terraform will select
@@ -89,7 +89,7 @@ backend type selected.
 
 We do not recommend using these options in new systems, even if you are running
 Terraform in automation. Instead,
-[select a different backend which supports remote state](/language/settings/backends/configuration) and configure it
+[select a different backend which supports remote state](/terraform/language/settings/backends/configuration) and configure it
 within your root module, which ensures that everyone working on your
 configuration will automatically retrieve and store state in the correct shared
 location without any special command line options.

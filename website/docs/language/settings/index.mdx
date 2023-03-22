@@ -33,11 +33,11 @@ following sections.
 ## Configuring Terraform Cloud
 
 The nested `cloud` block configures Terraform Cloud for enabling its
-[CLI-driven run workflow](/cloud-docs/run/cli).
+[CLI-driven run workflow](/terraform/cloud-docs/run/cli).
 
-- Refer to [Terraform Cloud Configuration](/language/settings/terraform-cloud) for a summary of the `cloud` block's syntax.
+- Refer to [Terraform Cloud Configuration](/terraform/language/settings/terraform-cloud) for a summary of the `cloud` block's syntax.
 
-- Refer to [Using Terraform Cloud](/cli/cloud) in the
+- Refer to [Using Terraform Cloud](/terraform/cli/cloud) in the
   Terraform CLI documentation for complete details about how to initialize and configure the Terraform Cloud CLI integration.
 
 ## Configuring a Terraform Backend
@@ -45,20 +45,20 @@ The nested `cloud` block configures Terraform Cloud for enabling its
 The nested `backend` block configures which state backend Terraform should use.
 
 The syntax and behavior of the `backend` block is described in [Backend
-Configuration](/language/settings/backends/configuration).
+Configuration](/terraform/language/settings/backends/configuration).
 
 ## Specifying a Required Terraform Version
 
-> **Hands-on:** Try the [Manage Terraform Versions](https://learn.hashicorp.com/tutorials/terraform/versions?in=terraform/configuration-language)  or [Manage Terraform Versions in Terraform Cloud](https://learn.hashicorp.com/tutorials/terraform/cloud-versions?in=terraform/cloud) tutorials.
+> **Hands-on:** Try the [Manage Terraform Versions](/terraform/tutorials/configuration-language/versions)  or [Manage Terraform Versions in Terraform Cloud](/terraform/tutorials/cloud/cloud-versions) tutorials.
 
 The `required_version` setting accepts a [version constraint
-string,](/language/expressions/version-constraints) which specifies which versions of Terraform
+string,](/terraform/language/expressions/version-constraints) which specifies which versions of Terraform
 can be used with your configuration.
 
 If the running version of Terraform doesn't match the constraints specified,
 Terraform will produce an error and exit without taking any further actions.
 
-When you use [child modules](/language/modules), each module can specify its own
+When you use [child modules](/terraform/language/modules), each module can specify its own
 version requirements. The requirements of all modules in the tree must be
 satisfied.
 
@@ -69,7 +69,7 @@ a minimum Terraform version that has behavior expected by the configuration.
 The `required_version` setting applies only to the version of Terraform CLI.
 Terraform's resource types are implemented by provider plugins,
 whose release cycles are independent of Terraform CLI and of each other.
-Use [the `required_providers` block](/language/providers/requirements) to manage
+Use [the `required_providers` block](/terraform/language/providers/requirements) to manage
 the expected versions for each provider you use.
 
 ## Specifying Provider Requirements
@@ -91,7 +91,7 @@ terraform {
 }
 ```
 
-For more information, see [Provider Requirements](/language/providers/requirements).
+For more information, see [Provider Requirements](/terraform/language/providers/requirements).
 
 ## Experimental Language Features
 
@@ -136,4 +136,4 @@ provider a module is using, if the provider defines a schema for it. This
 allows the provider to receive module-specific information, and is primarily
 intended for modules distributed by the same vendor as the associated provider.
 
-For more information, see [Provider Metadata](/internals/provider-meta).
+For more information, see [Provider Metadata](/terraform/internals/provider-meta).

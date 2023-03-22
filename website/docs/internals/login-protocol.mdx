@@ -8,18 +8,18 @@ description: >-
 # Server-side Login Protocol
 
 ~> **Note:** You don't need to read these docs to _use_
-[`terraform login`](/cli/commands/login).  The information below is for
+[`terraform login`](/terraform/cli/commands/login).  The information below is for
 anyone intending to implement the server side of `terraform login` in order to
 offer Terraform-native services in a third-party system.
 
 The `terraform login` command supports performing an OAuth 2.0 authorization
 request using configuration provided by the target host. You may wish to
 implement this protocol if you are producing a third-party implementation of
-any [Terraform-native services](/internals/remote-service-discovery),
+any [Terraform-native services](/terraform/internals/remote-service-discovery),
 such as a Terraform module registry.
 
 First, Terraform uses
-[remote service discovery](/internals/remote-service-discovery) to
+[remote service discovery](/terraform/internals/remote-service-discovery) to
 find the OAuth configuration for the host. The host must support the service
 name `login.v1` and define for it an object containing OAuth client
 configuration values, like this:

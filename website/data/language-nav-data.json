@@ -213,11 +213,6 @@
             "path": "modules/develop/refactoring"
           }
         ]
-      },
-      {
-        "title": "Module Testing Experiment",
-        "path": "modules/testing-experiment",
-        "hidden": true
       }
     ]
   },

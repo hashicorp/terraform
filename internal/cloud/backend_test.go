@@ -447,9 +447,9 @@ func TestCloud_config(t *testing.T) {
 		confErr string
 		valErr  string
 	}{
-		"with_an_unknown_host": {
+		"with_a_non_tfe_host": {
 			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.StringVal("nonexisting.local"),
+				"hostname":     cty.StringVal("nontfe.local"),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -457,7 +457,7 @@ func TestCloud_config(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			confErr: "Failed to request discovery document",
+			confErr: "Host nontfe.local does not provide a tfe service",
 		},
 		// localhost advertises TFE services, but has no token in the credentials
 		"without_a_token": {
@@ -532,22 +532,24 @@ func TestCloud_config(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		b, cleanup := testUnconfiguredBackend(t)
-		t.Cleanup(cleanup)
+		t.Run(name, func(t *testing.T) {
+			b, cleanup := testUnconfiguredBackend(t)
+			t.Cleanup(cleanup)
 
-		// Validate
-		_, valDiags := b.PrepareConfig(tc.config)
-		if (valDiags.Err() != nil || tc.valErr != "") &&
-			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
-			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
-		}
+			// Validate
+			_, valDiags := b.PrepareConfig(tc.config)
+			if (valDiags.Err() != nil || tc.valErr != "") &&
+				(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
+				t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			}
 
-		// Configure
-		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() != nil || tc.confErr != "") &&
-			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
-			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
-		}
+			// Configure
+			confDiags := b.Configure(tc.config)
+			if (confDiags.Err() != nil || tc.confErr != "") &&
+				(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+				t.Fatalf("unexpected configure result: %v", confDiags.Err())
+			}
+		})
 	}
 }
 

@@ -38,7 +38,9 @@ func TestDirFromModule_registry(t *testing.T) {
 	hooks := &testInstallHooks{}
 
 	reg := registry.NewClient(nil, nil)
-	diags := DirFromModule(context.Background(), dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modsDir, "hashicorp/module-installer-acctest/aws//examples/main", reg, hooks)
 	assertNoDiagnostics(t, diags)
 
 	v := version.Must(version.NewVersion("0.0.2"))
@@ -93,7 +95,7 @@ func TestDirFromModule_registry(t *testing.T) {
 		t.Fatalf("wrong installer calls\n%s", diff)
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modsDir,
 	})
 	if err != nil {
@@ -154,7 +156,9 @@ func TestDirFromModule_submodules(t *testing.T) {
 	}
 	modInstallDir := filepath.Join(dir, ".terraform/modules")
 
-	diags := DirFromModule(context.Background(), dir, modInstallDir, fromModuleDir, nil, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -173,7 +177,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 		return
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modInstallDir,
 	})
 	if err != nil {
@@ -246,7 +250,9 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	modInstallDir := ".terraform/modules"
 	sourceDir := "../local-modules"
-	diags := DirFromModule(context.Background(), ".", modInstallDir, sourceDir, nil, hooks)
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, ".", modInstallDir, sourceDir, nil, hooks)
 	assertNoDiagnostics(t, diags)
 	wantCalls := []testInstallHookCall{
 		{
@@ -265,7 +271,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 		return
 	}
 
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: modInstallDir,
 	})
 	if err != nil {

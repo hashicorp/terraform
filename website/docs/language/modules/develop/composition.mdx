@@ -193,7 +193,7 @@ Every module has implicit assumptions and guarantees that define what data it ex
 - **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
 - **Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
 
-We recommend using [custom conditions](/language/expressions/custom-conditions) help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+We recommend using [custom conditions](/terraform/language/expressions/custom-conditions) help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
 The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
 
@@ -331,7 +331,7 @@ Most modules contain `resource` blocks and thus describe infrastructure to be
 created and managed. It may sometimes be useful to write modules that do not
 describe any new infrastructure at all, but merely retrieve information about
 existing infrastructure that was created elsewhere using
-[data sources](/language/data-sources).
+[data sources](/terraform/language/data-sources).
 
 As with conventional modules, we suggest using this technique only when the
 module raises the level of abstraction in some way, in this case by
@@ -367,7 +367,7 @@ data sources, or it could read saved information from a Consul cluster using
 [`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys),
 or it might read the outputs directly from the state of the configuration that
 manages the network using
-[`terraform_remote_state`](/language/state/remote-state-data).
+[`terraform_remote_state`](/terraform/language/state/remote-state-data).
 
 The key benefit of this approach is that the source of this information can
 change over time without updating every configuration that depends on it.

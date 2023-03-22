@@ -1,10 +1,9 @@
 package jsonformat
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
-
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -19,8 +19,62 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
+
+func TestRenderHuman_EmptyPlan(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.NormalMode)
+
+	want := `
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
+func TestRenderHuman_EmptyOutputs(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	outputVal, _ := json.Marshal("some-text")
+	plan := Plan{
+		OutputChanges: map[string]jsonplan.Change{
+			"a_string": {
+				Actions: []string{"no-op"},
+				Before:  outputVal,
+				After:   outputVal,
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.NormalMode)
+
+	want := `
+No changes. Your infrastructure matches the configuration.
+
+Terraform has compared your real infrastructure against your configuration
+and found no differences, so no changes are needed.
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
 
 func TestResourceChange_primitiveTypes(t *testing.T) {
 	testCases := map[string]testCase{

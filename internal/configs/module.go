@@ -7,6 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
+
+	tfversion "github.com/hashicorp/terraform/version"
 )
 
 // Module is a container for a set of configuration constructs that are
@@ -588,4 +590,60 @@ func (m *Module) ImpliedProviderForUnqualifiedType(pType string) addrs.Provider 
 		return provider.Type
 	}
 	return addrs.ImpliedProviderForUnqualifiedType(pType)
+}
+
+func (m *Module) CheckCoreVersionRequirements(path addrs.Module, sourceAddr addrs.ModuleSource) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for _, constraint := range m.CoreVersionConstraints {
+		// Before checking if the constraints are met, check that we are not using any prerelease fields as these
+		// are not currently supported.
+		var prereleaseDiags hcl.Diagnostics
+		for _, required := range constraint.Required {
+			if required.Prerelease() {
+				prereleaseDiags = prereleaseDiags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid required_version constraint",
+					Detail: fmt.Sprintf(
+						"Prerelease version constraints are not supported: %s. Remove the prerelease information from the constraint. Prerelease versions of terraform will match constraints using their version core only.",
+						required.String()),
+					Subject: constraint.DeclRange.Ptr(),
+				})
+			}
+		}
+
+		if len(prereleaseDiags) > 0 {
+			// There were some prerelease fields in the constraints. Don't check the constraints as they will
+			// fail, and populate the diagnostics for these constraints with the prerelease diagnostics.
+			diags = diags.Extend(prereleaseDiags)
+			continue
+		}
+
+		if !constraint.Required.Check(tfversion.SemVer) {
+			switch {
+			case len(path) == 0:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported Terraform Core version",
+					Detail: fmt.Sprintf(
+						"This configuration does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+						tfversion.String(),
+					),
+					Subject: constraint.DeclRange.Ptr(),
+				})
+			default:
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Unsupported Terraform Core version",
+					Detail: fmt.Sprintf(
+						"Module %s (from %s) does not support Terraform version %s. To proceed, either choose another supported Terraform version or update this version constraint. Version constraints are normally set for good reason, so updating the constraint may lead to other errors or unexpected behavior.",
+						path, sourceAddr, tfversion.String(),
+					),
+					Subject: constraint.DeclRange.Ptr(),
+				})
+			}
+		}
+	}
+
+	return diags
 }

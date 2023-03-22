@@ -117,6 +117,26 @@ func TestModuleOverrideModule(t *testing.T) {
 				Byte:   17,
 			},
 		},
+		DependsOn: []hcl.Traversal{
+			{
+				hcl.TraverseRoot{
+					Name: "null_resource",
+					SrcRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/primary.tf",
+						Start:    hcl.Pos{Line: 11, Column: 17, Byte: 149},
+						End:      hcl.Pos{Line: 11, Column: 30, Byte: 162},
+					},
+				},
+				hcl.TraverseAttr{
+					Name: "test",
+					SrcRange: hcl.Range{
+						Filename: "testdata/valid-modules/override-module/primary.tf",
+						Start:    hcl.Pos{Line: 11, Column: 30, Byte: 162},
+						End:      hcl.Pos{Line: 11, Column: 35, Byte: 167},
+					},
+				},
+			},
+		},
 		Providers: []PassedProviderConfig{
 			{
 				InChild: &ProviderConfigRef{

@@ -7,9 +7,9 @@ description: >-
 
 # Manipulating Terraform State
 
-> **Hands-on:** Try the [Manage Resources in Terraform State](https://learn.hashicorp.com/tutorials/terraform/state-cli?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Manage Resources in Terraform State](/terraform/tutorials/state/state-cli?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Terraform uses [state data](/language/state) to remember which
+Terraform uses [state data](/terraform/language/state) to remember which
 real-world object corresponds to each resource in the configuration;
 this allows it to modify an existing object when its resource declaration
 changes.
@@ -21,12 +21,12 @@ infrastructure.
 
 Terraform CLI supports several workflows for interacting with state:
 
-- [Inspecting State](/cli/state/inspect)
-- [Forcing Re-creation](/cli/state/taint)
-- [Moving Resources](/cli/state/move)
+- [Inspecting State](/terraform/cli/state/inspect)
+- [Forcing Re-creation](/terraform/cli/state/taint)
+- [Moving Resources](/terraform/cli/state/move)
 - Importing Pre-existing Resources (documented in the
-  [Importing Infrastructure](/cli/import) section)
-- [Disaster Recovery](/cli/state/recover)
+  [Importing Infrastructure](/terraform/cli/import) section)
+- [Disaster Recovery](/terraform/cli/state/recover)
 
 ~> **Important:** Modifying state data outside a normal plan or apply can cause
 Terraform to lose track of managed resources, which might waste money, annoy

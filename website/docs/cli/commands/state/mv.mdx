@@ -7,7 +7,7 @@ description: >-
 
 # Command: state mv
 
-The main function of [Terraform state](/language/state) is
+The main function of [Terraform state](/terraform/language/state) is
 to track the bindings between resource instance addresses in your configuration
 and the remote objects they represent. Normally Terraform automatically
 updates the state in response to actions taken when applying a plan, such as
@@ -28,7 +28,7 @@ remote objects currently associated with the source to be tracked instead
 by the destination.
 
 Both the source and destination addresses must use
-[resource address syntax](/cli/state/resource-addressing), and
+[resource address syntax](/terraform/cli/state/resource-addressing), and
 they must both refer to the same kind of object: you can only move a resource
 instance to another resource instance, a whole module instance to another
 whole module instance, etc. Furthermore, if you are moving a resource or
@@ -66,22 +66,22 @@ This command also accepts the following options:
   returning an error. The duration syntax is a number followed by a time
   unit letter, such as "3s" for three seconds.
 
-For configurations using the [Terraform Cloud CLI integration](/cli/cloud) or the [`remote` backend](/language/settings/backends/remote)
+For configurations using the [Terraform Cloud CLI integration](/terraform/cli/cloud) or the [`remote` backend](/terraform/language/settings/backends/remote)
 only, `terraform state mv`
 also accepts the option
-[`-ignore-remote-version`](/cli/cloud/command-line-arguments#ignore-remote-version).
+[`-ignore-remote-version`](/terraform/cli/cloud/command-line-arguments#ignore-remote-version).
 
-The legacy options [`-backup` and `-backup-out`](/language/settings/backends/local#command-line-arguments)
+The legacy options [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
 operate on a local state file only. Configurations using
-[the `remote` backend](/language/settings/backends/remote)
-must specify a local state file with the [`-state`](/language/settings/backends/local#command-line-arguments)
-option in order to use the [`-backup` and `-backup-out`](/language/settings/backends/local#command-line-arguments)
+[the `remote` backend](/terraform/language/settings/backends/remote)
+must specify a local state file with the [`-state`](/terraform/language/settings/backends/local#command-line-arguments)
+option in order to use the [`-backup` and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments)
 options.
 
 For configurations using
-[the `local` state mv](/language/settings/backends/local) only,
+[the `local` state mv](/terraform/language/settings/backends/local) only,
 `terraform state mv` also accepts the legacy options
-[`-state`, `-state-out`, `-backup`, and `-backup-out`](/language/settings/backends/local#command-line-arguments).
+[`-state`, `-state-out`, `-backup`, and `-backup-out`](/terraform/language/settings/backends/local#command-line-arguments).
 
 ## Example: Rename a Resource
 
@@ -133,7 +133,7 @@ terraform state mv module.app module.parent.module.app
 
 ## Example: Move a Particular Instance of a Resource using `count`
 
-A resource defined with [the `count` meta-argument](/language/meta-arguments/count)
+A resource defined with [the `count` meta-argument](/terraform/language/meta-arguments/count)
 has multiple instances that are each identified by an integer. You can
 select a particular instance by including an explicit index in your given
 address:
@@ -158,7 +158,7 @@ The above examples show the typical quoting syntax for Unix-style shells.
 
 ## Example: Move a Resource configured with for_each
 
-A resource defined with [the `for_each` meta-argument](/language/meta-arguments/for_each)
+A resource defined with [the `for_each` meta-argument](/terraform/language/meta-arguments/for_each)
 has multiple instances that are each identified by an string. You can
 select a particular instance by including an explicit key in your given
 address.

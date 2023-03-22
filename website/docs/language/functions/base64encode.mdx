@@ -25,7 +25,7 @@ Base64 themselves, and so this function exists primarily to allow string
 data to be easily provided to resource types that expect Base64 bytes.
 
 `base64encode` is, in effect, a shorthand for calling
-[`textencodebase64`](/language/functions/textencodebase64) with the encoding name set to
+[`textencodebase64`](/terraform/language/functions/textencodebase64) with the encoding name set to
 `UTF-8`.
 
 ## Examples
@@ -37,12 +37,12 @@ SGVsbG8gV29ybGQ=
 
 ## Related Functions
 
-* [`base64decode`](/language/functions/base64decode) performs the opposite operation,
+* [`base64decode`](/terraform/language/functions/base64decode) performs the opposite operation,
   decoding Base64 data and interpreting it as a UTF-8 string.
-* [`textencodebase64`](/language/functions/textencodebase64) is a more general function that
+* [`textencodebase64`](/terraform/language/functions/textencodebase64) is a more general function that
   supports character encodings other than UTF-8.
-* [`base64gzip`](/language/functions/base64gzip) applies gzip compression to a string
+* [`base64gzip`](/terraform/language/functions/base64gzip) applies gzip compression to a string
   and returns the result with Base64 encoding all in one operation.
-* [`filebase64`](/language/functions/filebase64) reads a file from the local filesystem
+* [`filebase64`](/terraform/language/functions/filebase64) reads a file from the local filesystem
   and returns its raw bytes with Base64 encoding, without creating an
   intermediate Unicode string.

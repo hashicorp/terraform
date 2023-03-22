@@ -100,11 +100,19 @@ func (b *Local) opPlan(
 	// generate a partial saved plan file for external analysis.
 	diags = diags.Append(planDiags)
 
+	// Even if there are errors we need to handle anything that may be
+	// contained within the plan, so only exit if there is no data at all.
+	if plan == nil {
+		runningOp.PlanEmpty = true
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	// Record whether this plan includes any side-effects that could be applied.
 	runningOp.PlanEmpty = !plan.CanApply()
 
 	// Save the plan to disk
-	if path := op.PlanOutPath; path != "" && plan != nil {
+	if path := op.PlanOutPath; path != "" {
 		if op.PlanOutBackend == nil {
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.
@@ -154,15 +162,13 @@ func (b *Local) opPlan(
 
 	// Render the plan, if we produced one.
 	// (This might potentially be a partial plan with Errored set to true)
-	if plan != nil {
-		schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-		diags = diags.Append(moreDiags)
-		if moreDiags.HasErrors() {
-			op.ReportResult(runningOp, diags)
-			return
-		}
-		op.View.Plan(plan, schemas)
+	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
 	}
+	op.View.Plan(plan, schemas)
 
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially

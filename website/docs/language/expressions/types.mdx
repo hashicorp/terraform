@@ -51,7 +51,7 @@ characters, `"like this"`. There is also a "heredoc" syntax for more complex
 strings.
 
 String literals are the most complex kind of literal expression in
-Terraform, and have their own page of documentation. See [Strings](/language/expressions/strings)
+Terraform, and have their own page of documentation. See [Strings](/terraform/language/expressions/strings)
 for information about escape sequences, the heredoc syntax, interpolation, and
 template directives.
 
@@ -95,7 +95,7 @@ The values in a map
 can be arbitrary expressions.
 
 The keys in a map must be strings; they can be left unquoted if
-they are a valid [identifier](/language/syntax/configuration#identifiers), but must be quoted
+they are a valid [identifier](/terraform/language/syntax/configuration#identifiers), but must be quoted
 otherwise. You can use a non-literal string expression as a key by wrapping it in
 parentheses, like `(var.business_unit_tag_name) = "SRE"`.
 
@@ -126,7 +126,7 @@ offer different ways to restrict the allowed values for input variables and
 resource arguments.
 
 For complete details about these types (and an explanation of why the difference
-usually doesn't matter), see [Type Constraints](/language/expressions/type-constraints).
+usually doesn't matter), see [Type Constraints](/terraform/language/expressions/type-constraints).
 
 ## Type Conversion
 

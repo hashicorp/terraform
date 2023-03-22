@@ -83,14 +83,14 @@ version 1 of the module registry protocol:
 
 At present, the following service identifiers are in use:
 
-* `login.v1`: [login protocol version 1](/cli/commands/login)
-* `modules.v1`: [module registry API version 1](/internals/module-registry-protocol)
-* `providers.v1`: [provider registry API version 1](/internals/provider-registry-protocol)
+* `login.v1`: [login protocol version 1](/terraform/cli/commands/login)
+* `modules.v1`: [module registry API version 1](/terraform/internals/module-registry-protocol)
+* `providers.v1`: [provider registry API version 1](/terraform/internals/provider-registry-protocol)
 
 ## Authentication
 
 If credentials for the given hostname are available in
-[the CLI config](/cli/config/config-file#Credentials) through a `credentials_helper` or a host-specific environment variable, then they will be included in the request for the discovery document.
+[the CLI config](/terraform/cli/config/config-file#Credentials) through a `credentials_helper` or a host-specific environment variable, then they will be included in the request for the discovery document.
 
 The credentials may also be provided to endpoints declared in the discovery
 document, depending on the requirements of the service in question.

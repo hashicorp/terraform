@@ -9,7 +9,7 @@ description: |-
 
 HashiCorp Terraform is an infrastructure as code tool that lets you define both cloud and on-prem resources in human-readable configuration files that you can version, reuse, and share. You can then use a consistent workflow to provision and manage all of your infrastructure throughout its lifecycle. Terraform can manage low-level components like compute, storage, and networking resources, as well as high-level components like DNS entries and SaaS features.
 
-> **Hands On:** Try the Get Started tutorials to start managing infrastructure on popular cloud providers: [Amazon Web Services](https://learn.hashicorp.com/collections/terraform/aws-get-started), [Azure](https://learn.hashicorp.com/collections/terraform/azure-get-started), [Google Cloud Platform](https://learn.hashicorp.com/collections/terraform/gcp-get-started), [Oracle Cloud Infrastructure](https://learn.hashicorp.com/collections/terraform/oci-get-started), and [Docker](https://learn.hashicorp.com/collections/terraform/docker-get-started).
+> **Hands On:** Try the Get Started tutorials to start managing infrastructure on popular cloud providers: [Amazon Web Services](/terraform/tutorials/aws-get-started), [Azure](/terraform/tutorials/azure-get-started), [Google Cloud Platform](/terraform/tutorials/gcp-get-started), [Oracle Cloud Infrastructure](/terraform/tutorials/oci-get-started), and [Docker](/terraform/tutorials/docker-get-started).
 
 ## How does Terraform work?
 Terraform creates and manages resources on cloud platforms and other services through their application programming interfaces (APIs). Providers enable Terraform to work with virtually any platform or service with an accessible API.
@@ -36,11 +36,11 @@ HashiCorp co-founder and CTO Armon Dadgar explains how Terraform solves infrastr
 
 ### Manage any infrastructure
 
-Find providers for many of the platforms and services you already use in the [Terraform Registry](https://registry.terraform.io/). You can also [write your own](/plugin). Terraform takes an [immutable approach to infrastructure](https://www.hashicorp.com/resources/what-is-mutable-vs-immutable-infrastructure), reducing the complexity of upgrading or modifying your services and infrastructure.
+Find providers for many of the platforms and services you already use in the [Terraform Registry](https://registry.terraform.io/). You can also [write your own](/terraform/plugin). Terraform takes an [immutable approach to infrastructure](https://www.hashicorp.com/resources/what-is-mutable-vs-immutable-infrastructure), reducing the complexity of upgrading or modifying your services and infrastructure.
 
 ### Track your infrastructure
 
-Terraform generates a plan and prompts you for your approval before modifying your infrastructure. It also keeps track of your real infrastructure in a [state file](/language/state), which acts as a source of truth for your environment. Terraform uses the state file to determine the changes to make to your infrastructure so that it will match your configuration.
+Terraform generates a plan and prompts you for your approval before modifying your infrastructure. It also keeps track of your real infrastructure in a [state file](/terraform/language/state), which acts as a source of truth for your environment. Terraform uses the state file to determine the changes to make to your infrastructure so that it will match your configuration.
 
 ### Automate changes
 
@@ -48,13 +48,13 @@ Terraform configuration files are declarative, meaning that they describe the en
 
 ### Standardize configurations
 
-Terraform supports reusable configuration components called [modules](/language/modules) that define configurable collections of infrastructure, saving time and encouraging best practices. You can use publicly available modules from the Terraform Registry, or write your own.
+Terraform supports reusable configuration components called [modules](/terraform/language/modules) that define configurable collections of infrastructure, saving time and encouraging best practices. You can use publicly available modules from the Terraform Registry, or write your own.
 
 ### Collaborate
 
-Since your configuration is written in a file, you can commit it to a Version Control System (VCS) and use [Terraform Cloud](/intro/terraform-editions#terraform-cloud) to efficiently manage Terraform workflows across teams. Terraform Cloud runs Terraform in a consistent, reliable environment and provides secure access to shared state and secret data, role-based access controls, a private registry for sharing both modules and providers, and more.
+Since your configuration is written in a file, you can commit it to a Version Control System (VCS) and use [Terraform Cloud](/terraform/intro/terraform-editions#terraform-cloud) to efficiently manage Terraform workflows across teams. Terraform Cloud runs Terraform in a consistent, reliable environment and provides secure access to shared state and secret data, role-based access controls, a private registry for sharing both modules and providers, and more.
 
--> **Tip:** Learn more about [Terraform use cases](/intro/use-cases) and [how Terraform compares to alternatives](/intro/vs).
+-> **Tip:** Learn more about [Terraform use cases](/terraform/intro/use-cases) and [how Terraform compares to alternatives](/terraform/intro/vs).
 
 ## Community
 

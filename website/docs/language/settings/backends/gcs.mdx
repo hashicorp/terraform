@@ -10,7 +10,7 @@ description: >-
 Stores the state as an object in a configurable prefix in a pre-existing bucket on [Google Cloud Storage](https://cloud.google.com/storage/) (GCS).
 The bucket must exist prior to configuring the backend.
 
-This backend supports [state locking](/language/state/locking).
+This backend supports [state locking](/terraform/language/state/locking).
 
 ~> **Warning!** It is highly recommended that you enable
 [Object Versioning](https://cloud.google.com/storage/docs/object-versioning)
@@ -95,13 +95,13 @@ To get started, follow this guide: [Use customer-managed encryption keys](https:
 
 If you want to remove customer-managed keys from your backend configuration or change to a different customer-managed key, Terraform _can_ manage a state migration without manual intervention. This ability is because GCP stores customer-managed encryption keys and are accessible during the state migration process. However, these changes do not fully come into effect until the first write operation occurs on the state file after state migration occurs. In the first write operation after state migration, the file decrypts with the old key and then writes with the new encryption method. This method is equivalent to the [rewrite](https://cloud.google.com/storage/docs/gsutil/commands/rewrite) operation described in the customer-supplied encryption keys section. Because of the importance of the first write to state after state migration, you should not delete old KMS keys until any state file(s) encrypted with that key update.
 
-Customer-managed keys do not need to be sent in requests to read files from GCS buckets because decryption occurs automatically within GCS. This process means that if you use the `terraform_remote_state` [data source](/language/state/remote-state-data) to access KMS-encrypted state, you do not need to specify the KMS key in the data source's `config` object. 
+Customer-managed keys do not need to be sent in requests to read files from GCS buckets because decryption occurs automatically within GCS. This process means that if you use the `terraform_remote_state` [data source](/terraform/language/state/remote-state-data) to access KMS-encrypted state, you do not need to specify the KMS key in the data source's `config` object. 
 
 ~> **Important:** To use customer-managed encryption keys, you need to create a key and give your project's GCS service agent permission to use it with the Cloud KMS CryptoKey Encrypter/Decrypter predefined role. 
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform includes these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform includes these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options are supported:
 

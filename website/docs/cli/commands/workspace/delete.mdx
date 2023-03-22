@@ -17,7 +17,7 @@ To delete a workspace, it must already exist, it must not be tracking resources,
 and it must not be your current workspace. If the workspace is tracking resources,
 Terraform will not allow you to delete it unless the `-force` flag is specified.
 
-Additionally, different [backends](/language/settings/backends/configuration#backend-types) may implement other
+Additionally, different [backends](/terraform/language/settings/backends/configuration#backend-types) may implement other
 restrictions on whether a workspace is considered safe to delete without the `-force` flag, such as whether the workspace is locked.
 
 If you delete a workspace which is tracking resources (via `-force`), then resources

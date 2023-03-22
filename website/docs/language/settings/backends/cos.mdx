@@ -9,7 +9,7 @@ description: >-
 
 Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
 
-This backend supports [state locking](/language/state/locking).
+This backend supports [state locking](/terraform/language/state/locking).
 
 ~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
 on the COS bucket to allow for state recovery in the case of accidental deletions and human error.
@@ -31,7 +31,7 @@ Terraform state will be written into the file `terraform/state/terraform.tfstate
 
 ## Data Source Configuration
 
-To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/language/state/remote-state-data).
+To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 ```hcl
 data "terraform_remote_state" "foo" {
@@ -47,7 +47,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options or environment variables are supported:
 

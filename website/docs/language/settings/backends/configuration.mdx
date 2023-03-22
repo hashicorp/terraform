@@ -1,29 +1,31 @@
 ---
 page_title: Backend Configuration - Configuration Language
+description: >-
+  Use the `backend` block to control where Terraform stores state. Learn about the available state backends, the backend block, initializing backends, partial backend configuration, changing backend configuration, and unconfiguring a backend.
 ---
 
 # Backend Configuration
 
-A backend defines where Terraform stores its [state](/language/state) data files.
+A backend defines where Terraform stores its [state](/terraform/language/state) data files.
 
-Terraform uses persisted state data to keep track of the resources it manages. Most non-trivial Terraform configurations either [integrate with Terraform Cloud](/language/settings/terraform-cloud) or use a backend to store state remotely. This lets multiple people access the state data and work together on that collection of infrastructure resources.
+Terraform uses persisted state data to keep track of the resources it manages. Most non-trivial Terraform configurations either [integrate with Terraform Cloud](/terraform/language/settings/terraform-cloud) or use a backend to store state remotely. This lets multiple people access the state data and work together on that collection of infrastructure resources.
 
 This page describes how to configure a backend by adding the [`backend` block](#using-a-backend-block) to your configuration.
 
--> **Note:** In Terraform versions before 1.1.0, we classified backends as standard or enhanced. The enhanced label differentiated the [`remote` backend](/language/settings/backends/remote), which could both store state and perform Terraform operations. This classification has been removed. Refer to [Using Terraform Cloud](/cli/cloud) for details about storing state, executing remote operations, and using Terraform Cloud directly from Terraform.
+-> **Note:** In Terraform versions before 1.1.0, we classified backends as standard or enhanced. The enhanced label differentiated the [`remote` backend](/terraform/language/settings/backends/remote), which could both store state and perform Terraform operations. This classification has been removed. Refer to [Using Terraform Cloud](/terraform/cli/cloud) for details about storing state, executing remote operations, and using Terraform Cloud directly from Terraform.
 
 ## Available Backends
 
-By default, Terraform uses a backend called [`local`](/language/settings/backends/local), which stores state as a local file on disk. You can also configure one of the built-in backends included in this documentation.
+By default, Terraform uses a backend called [`local`](/terraform/language/settings/backends/local), which stores state as a local file on disk. You can also configure one of the built-in backends included in this documentation.
 
 Some of these backends act like plain remote disks for state files, while others support locking the state while operations are being performed. This helps prevent conflicts and inconsistencies. The built-in backends listed are the only backends. You cannot load additional backends as plugins.
 
--> **Note:** We removed the `artifactory`, `etcd`, `etcdv3`, `manta`, and `swift` backends in Terraform v1.3. Information about their behavior in older versions is still available in the [Terraform v1.2 documentation](/language/v1.2.x/settings/backends/configuration). For migration paths from these removed backends, refer to [Upgrading to Terraform v1.3](/language/v1.3.x/upgrade-guides).
+-> **Note:** We removed the `artifactory`, `etcd`, `etcdv3`, `manta`, and `swift` backends in Terraform v1.3. Information about their behavior in older versions is still available in the [Terraform v1.2 documentation](/terraform/language/v1.2.x/settings/backends/configuration). For migration paths from these removed backends, refer to [Upgrading to Terraform v1.3](/terraform/language/v1.3.x/upgrade-guides).
 
 ## Using a Backend Block
 
 You do not need to configure a backend when using Terraform Cloud because
-Terraform Cloud automatically manages state in the workspaces associated with your configuration. If your configuration includes a [`cloud` block](/language/settings/terraform-cloud), it cannot include a `backend` block.
+Terraform Cloud automatically manages state in the workspaces associated with your configuration. If your configuration includes a [`cloud` block](/terraform/language/settings/terraform-cloud), it cannot include a `backend` block.
 
 To configure a backend, add a nested `backend` block within the top-level
 `terraform` block. The following example configures the `remote` backend.
@@ -79,7 +81,7 @@ or state operations.
 
 After you initialize, Terraform creates a `.terraform/` directory locally. This directory contains the most recent backend configuration, including any authentication parameters you provided to the Terraform CLI. Do not check this directory into Git, as it may contain sensitive credentials for your remote backend.
 
-The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
+The local backend configuration is different and entirely separate from the `terraform.tfstate` file that contains [state data](/terraform/language/state) about your real-world infrastruture. Terraform stores the `terraform.tfstate` file in your remote backend.
 
 When you change backends, Terraform gives you the option to migrate
 your state to the new backend. This lets you adopt backends without losing
@@ -96,7 +98,7 @@ automatically by an automation script running Terraform. When some or all of
 the arguments are omitted, we call this a _partial configuration_.
 
 With a partial configuration, the remaining configuration arguments must be
-provided as part of [the initialization process](/cli/init).
+provided as part of [the initialization process](/terraform/cli/init).
 
 There are several ways to supply the remaining arguments:
 
@@ -179,12 +181,12 @@ both the configuration itself as well as the type of backend (for example
 from "consul" to "s3").
 
 Terraform will automatically detect any changes in your configuration
-and request a [reinitialization](/cli/init). As part of
+and request a [reinitialization](/terraform/cli/init). As part of
 the reinitialization process, Terraform will ask if you'd like to migrate
 your existing state to the new configuration. This allows you to easily
 switch from one backend to another.
 
-If you're using multiple [workspaces](/language/state/workspaces),
+If you're using multiple [workspaces](/terraform/language/state/workspaces),
 Terraform can copy all workspaces to the destination. If Terraform detects
 you have multiple workspaces, it will ask if this is what you want to do.
 
@@ -195,7 +197,7 @@ want to migrate your state. You can respond "no" in this scenario.
 
 If you no longer want to use any backend, you can simply remove the
 configuration from the file. Terraform will detect this like any other
-change and prompt you to [reinitialize](/cli/init).
+change and prompt you to [reinitialize](/terraform/cli/init).
 
 As part of the reinitialization, Terraform will ask if you'd like to migrate
 your state back down to normal local state. Once this is complete then

@@ -30,7 +30,7 @@ It's not valid to mix both named and unnamed capture groups in the same pattern.
 
 If the given pattern does not match at all, the `regex` raises an error. To
 _test_ whether a given pattern matches a string, use
-[`regexall`](/language/functions/regexall) and test that the result has length greater than
+[`regexall`](/terraform/language/functions/regexall) and test that the result has length greater than
 zero.
 
 The pattern is a string containing a mixture of literal characters and special
@@ -152,8 +152,8 @@ string.
 
 ## Related Functions
 
-- [`regexall`](/language/functions/regexall) searches for potentially multiple matches of a given pattern in a string.
-- [`replace`](/language/functions/replace) replaces a substring of a string with another string, optionally matching using the same regular expression syntax as `regex`.
+- [`regexall`](/terraform/language/functions/regexall) searches for potentially multiple matches of a given pattern in a string.
+- [`replace`](/terraform/language/functions/replace) replaces a substring of a string with another string, optionally matching using the same regular expression syntax as `regex`.
 
 If Terraform already has a more specialized function to parse the syntax you
 are trying to match, prefer to use that function instead. Regular expressions

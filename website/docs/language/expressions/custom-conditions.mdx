@@ -8,7 +8,7 @@ description: >-
 
 You can create conditions that produce custom error messages for several types of objects in a configuration. For example, you can add a condition to an input variable that checks whether incoming image IDs are formatted properly. Custom conditions can capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-> **Hands On:** Try the [Validate Modules with Custom Conditions](https://learn.hashicorp.com/tutorials/terraform/custom-conditions?in=terraform/configuration-language) tutorial.
+> **Hands On:** Try the [Validate Modules with Custom Conditions](/terraform/tutorials/configuration-language/custom-conditions) tutorial.
 
 This page explains the following:
   - Creating [validation conditions](#input-variable-validation) for input variables (Terraform v0.13.0 and later)
@@ -39,7 +39,7 @@ variable "image_id" {
 }
 ```
 
-If the failure of an expression determines the validation decision, use the [`can` function](/language/functions/can) as demonstrated in the following example.
+If the failure of an expression determines the validation decision, use the [`can` function](/terraform/language/functions/can) as demonstrated in the following example.
 
 ```hcl
 variable "image_id" {
@@ -104,7 +104,7 @@ Terraform evaluates output value preconditions before evaluating the `value` exp
 
 ### Continuous Validation in Terraform Cloud
 
-Terraform Cloud can automatically check whether the preconditions and postconditions in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `postcondition` to check whether an API gateway certificate is valid. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
+Terraform Cloud can automatically check whether the preconditions and postconditions in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `postcondition` to check whether an API gateway certificate is valid. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
 
 ### Examples
 
@@ -219,11 +219,11 @@ Use the logical operators `&&` (AND), `||` (OR), and `!` (NOT) to combine multip
   condition = var.name != "" && lower(var.name) == var.name
 ```
 
-You can also use arithmetic operators (e.g. `a + b`), equality operators (eg., `a == b`) and comparison operators (e.g., `a < b`). Refer to [Arithmetic and Logical Operators](/language/expressions/operators) for details.
+You can also use arithmetic operators (e.g. `a + b`), equality operators (eg., `a == b`) and comparison operators (e.g., `a < b`). Refer to [Arithmetic and Logical Operators](/terraform/language/expressions/operators) for details.
 
 ### `contains` Function
 
-Use the [`contains` function](/language/functions/contains) to test whether a given value is one of a set of predefined valid values.
+Use the [`contains` function](/terraform/language/functions/contains) to test whether a given value is one of a set of predefined valid values.
 
 ```hcl
   condition = contains(["STAGE", "PROD"], var.environment)
@@ -231,7 +231,7 @@ Use the [`contains` function](/language/functions/contains) to test whether a gi
 
 ### `length` Function
 
-Use the [`length` function](/language/functions/length) to test a collection's length and require a non-empty list or map.
+Use the [`length` function](/terraform/language/functions/length) to test a collection's length and require a non-empty list or map.
 
 ```hcl
   condition = length(var.items) != 0
@@ -240,7 +240,7 @@ This is a better approach than directly comparing with another collection using 
 
 ### `for` Expressions
 
-Use [`for` expressions](/language/expressions/for) in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
+Use [`for` expressions](/terraform/language/expressions/for) in conjunction with the functions `alltrue` and `anytrue` to test whether a condition holds for all or for any elements of a collection.
 
 ```hcl
   condition = alltrue([
@@ -250,7 +250,7 @@ Use [`for` expressions](/language/expressions/for) in conjunction with the funct
 
 ### `can` Function
 
-Use the [`can` function](/language/functions/can) to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
+Use the [`can` function](/terraform/language/functions/can) to concisely use the validity of an expression as a condition. It returns `true` if its given expression evaluates successfully and `false` if it returns any error, so you can use various other functions that typically return errors as a part of your condition expressions.
 
 For example, you can use `can` with `regex` to test if a string matches a particular pattern because `regex` returns an error when given a non-matching string.
 
@@ -308,7 +308,7 @@ resource "aws_instance" "example" {
 
 ### `each` and `count` Objects
 
-In blocks where [`for_each`](/language/meta-arguments/for_each) or [`count`](/language/meta-arguments/count)  are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
+In blocks where [`for_each`](/terraform/language/meta-arguments/for_each) or [`count`](/terraform/language/meta-arguments/count)  are set, use `each` and `count` objects to refer to other resources that are expanded in a chain.
 
 ```hcl
 variable "vpc_cidrs" {
@@ -354,7 +354,7 @@ The selected AMI must be tagged with the Component value "nomad-server".
 ```
 
 The `error_message` argument can be any expression that evaluates to a string.
-This includes literal strings, heredocs, and template expressions. You can use the [`format` function](/language/functions/format) to convert items of `null`, `list`, or `map` types into a formatted string. Multi-line
+This includes literal strings, heredocs, and template expressions. You can use the [`format` function](/terraform/language/functions/format) to convert items of `null`, `list`, or `map` types into a formatted string. Multi-line
 error messages are supported, and lines with leading whitespace will not be
 word wrapped.
 

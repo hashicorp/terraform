@@ -7,7 +7,7 @@ description: >-
 
 # Input Variables
 
-> **Hands-on:** Try the [Customize Terraform Configuration with Variables](https://learn.hashicorp.com/tutorials/terraform/variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Customize Terraform Configuration with Variables](/terraform/tutorials/configuration-language/variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 Input variables let you customize aspects of Terraform modules without altering
 the module's own source code. This functionality allows you to share modules across different
@@ -15,22 +15,22 @@ Terraform configurations, making your module composable and reusable.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.
-When you declare them in [child modules](/language/modules),
+When you declare them in [child modules](/terraform/language/modules),
 the calling module should pass values in the `module` block.
 
 If you're familiar with traditional programming languages, it can be useful to
 compare Terraform modules to function definitions:
 
 * Input variables are like function arguments.
-* [Output values](/language/values/outputs) are like function return values.
-* [Local values](/language/values/locals) are like a function's temporary local variables.
+* [Output values](/terraform/language/values/outputs) are like function return values.
+* [Local values](/terraform/language/values/locals) are like a function's temporary local variables.
 
 -> **Note:** For brevity, input variables are often referred to as just
 "variables" or "Terraform variables" when it is clear from context what sort of
 variable is being discussed. Other kinds of variables in Terraform include
 _environment variables_ (set by the shell where Terraform runs) and _expression
 variables_ (used to indirectly represent a value in an
-[expression](/language/expressions)).
+[expression](/terraform/language/expressions)).
 
 ## Declaring an Input Variable
 
@@ -68,11 +68,11 @@ be unique among all variables in the same module. This name is used to
 assign a value to the variable from outside and to reference the variable's
 value from within the module.
 
-The name of a variable can be any valid [identifier](/language/syntax/configuration#identifiers)
+The name of a variable can be any valid [identifier](/terraform/language/syntax/configuration#identifiers)
 _except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
-[module configuration blocks](/language/modules/syntax), and cannot be
+[module configuration blocks](/terraform/language/modules/syntax), and cannot be
 declared as variable names.
 
 ## Arguments
@@ -101,7 +101,7 @@ configuration.
 [inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
-[type of value](/language/expressions/types) that will be accepted as
+[type of value](/terraform/language/expressions/types) that will be accepted as
 the value for a variable. If no type constraint is set then a value of any type
 is accepted.
 
@@ -128,7 +128,7 @@ collections:
 The keyword `any` may be used to indicate that any type is acceptable. For
 more information on the meaning and behavior of these different types, as well
 as detailed information about automatic conversion of complex types, see
-[Type Constraints](/language/expressions/types).
+[Type Constraints](/terraform/language/expressions/types).
 
 If both the `type` and `default` arguments are specified, the given default
 value must be convertible to the specified type.
@@ -173,7 +173,7 @@ variable "image_id" {
   }
 }
 ```
-Refer to [Custom Condition Checks](/language/expressions/custom-conditions#input-variable-validation) for more details.
+Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#input-variable-validation) for more details.
 
 ### Suppressing Values in CLI Output
 
@@ -181,16 +181,16 @@ Refer to [Custom Condition Checks](/language/expressions/custom-conditions#input
 
 -> This feature was introduced in Terraform v0.14.0.
 
-> **Hands-on:** Try the [Protect Sensitive Input Variables](https://learn.hashicorp.com/tutorials/terraform/sensitive-variables?in=terraform/configuration-language&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Protect Sensitive Input Variables](/terraform/tutorials/configuration-language/sensitive-variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 Setting a variable as `sensitive` prevents Terraform from showing its value in
 the `plan` or `apply` output, when you use that variable elsewhere in your
 configuration.
 
-Terraform will still record sensitive values in the [state](/language/state),
+Terraform will still record sensitive values in the [state](/terraform/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/language/state/sensitive-data).
+[_Sensitive Data in State_](/terraform/language/state/sensitive-data).
 
 Declare a variable as sensitive by setting the `sensitive` argument to `true`:
 
@@ -241,13 +241,13 @@ disclosing the content of one block might imply the content of a sibling block.
 ```
 
 A provider can also
-[declare an attribute as sensitive](/plugin/sdkv2/best-practices/sensitive-state#using-the-sensitive-flag),
+[declare an attribute as sensitive](/terraform/plugin/sdkv2/best-practices/sensitive-state#using-the-sensitive-flag),
 which will cause Terraform to hide it from regular output regardless of how
 you assign it a value. For more information, see
-[Sensitive Resource Attributes](/language/expressions/references#sensitive-resource-attributes).
+[Sensitive Resource Attributes](/terraform/language/expressions/references#sensitive-resource-attributes).
 
 If you use a sensitive value as part of an
-[output value](/language/values/outputs) then Terraform will require
+[output value](/terraform/language/values/outputs) then Terraform will require
 you to also mark the output value itself as sensitive, to confirm that you
 intended to export it.
 
@@ -307,7 +307,7 @@ the collection or structure itself is not null.
 ## Using Input Variable Values
 
 Within the module that declared a variable, its value can be accessed from
-within [expressions](/language/expressions) as `var.<NAME>`,
+within [expressions](/terraform/language/expressions) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
 -> **Note:** Input variables are _created_ by a `variable` block, but you
@@ -328,7 +328,7 @@ the module where it was declared.
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Cloud workspace](/cloud-docs/workspaces/variables).
+* [In a Terraform Cloud workspace](/terraform/cloud-docs/workspaces/variables).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -337,7 +337,7 @@ can be set in a number of ways:
 The following sections describe these options in more detail. This section does
 not apply to _child_ modules, where values for input variables are instead
 assigned in the configuration of their parent module, as described in
-[_Modules_](/language/modules).
+[_Modules_](/terraform/language/modules).
 
 ### Variables on the Command Line
 
@@ -353,7 +353,7 @@ terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-de
 The above examples show appropriate syntax for Unix-style shells, such as on
 Linux or macOS. For more information on shell quoting, including additional
 examples for Windows Command Prompt, see
-[Input Variables on the Command Line](/cli/commands/plan#input-variables-on-the-command-line).
+[Input Variables on the Command Line](/terraform/cli/commands/plan#input-variables-on-the-command-line).
 
 You can use the `-var` option multiple times in a single command to set several
 different variables.
@@ -372,7 +372,7 @@ terraform apply -var-file="testing.tfvars"
 ```
 
 -> **Note:** This is how Terraform Cloud passes
-[workspace variables](/cloud-docs/workspaces/variables) to Terraform.
+[workspace variables](/terraform/cloud-docs/workspaces/variables) to Terraform.
 
 A variable definitions file uses the same basic syntax as Terraform language
 files, but consists only of variable name assignments:
@@ -426,7 +426,7 @@ and lower case letters as in the above example.
 
 When variable values are provided in a variable definitions file, you can use
 Terraform's usual syntax for
-[literal expressions](/language/expressions/types#literal-expressions)
+[literal expressions](/terraform/language/expressions/types#literal-expressions)
 to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment
@@ -452,7 +452,7 @@ For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
 For more information on quoting and escaping for `-var` arguments,
 see
-[Input Variables on the Command Line](/cli/commands/plan#input-variables-on-the-command-line).
+[Input Variables on the Command Line](/terraform/cli/commands/plan#input-variables-on-the-command-line).
 
 ### Values for Undeclared Variables
 
@@ -485,7 +485,7 @@ Will cause Terraform to warn you that there is no variable declared `"mosse"`, w
 you spot this mistake.
 
 If you use `.tfvars` files across multiple configurations and expect to continue to see this warning,
-you can use the [`-compact-warnings`](/cli/commands/plan#compact-warnings)
+you can use the [`-compact-warnings`](/terraform/cli/commands/plan#compact-warnings)
 option to simplify your output.
 
 If you provide values for undeclared variables on the [command line](#variables-on-the-command-line),

@@ -18,13 +18,13 @@ which can then be shared between all members of a team. Terraform supports
 storing state in [Terraform Cloud](https://www.hashicorp.com/products/terraform/),
 [HashiCorp Consul](https://www.consul.io/), Amazon S3, Azure Blob Storage, Google Cloud Storage, Alibaba Cloud OSS, and more.
 
-Remote state is implemented by a [backend](/language/settings/backends/configuration) or by
+Remote state is implemented by a [backend](/terraform/language/settings/backends/configuration) or by
 Terraform Cloud, both of which you can configure in your configuration's root module.
 
 ## Delegation and Teamwork
 
 Remote state allows you to share
-[output values](/language/values/outputs) with other configurations.
+[output values](/terraform/language/values/outputs) with other configurations.
 This allows your infrastructure to be decomposed into smaller components.
 
 Put another way, remote state also allows teams to share infrastructure
@@ -38,7 +38,7 @@ you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
 
 For example usage, see
-[the `terraform_remote_state` data source](/language/state/remote-state-data).
+[the `terraform_remote_state` data source](/terraform/language/state/remote-state-data).
 
 While remote state can be a convenient, built-in mechanism for sharing data
 between configurations, you may prefer to use more general stores to
@@ -52,7 +52,7 @@ another that consumes those values using
 ## Locking and Teamwork
 
 For fully-featured remote backends, Terraform can also use
-[state locking](/language/state/locking) to prevent concurrent runs of
+[state locking](/terraform/language/state/locking) to prevent concurrent runs of
 Terraform against the same state.
 
 [Terraform Cloud by HashiCorp](https://www.hashicorp.com/products/terraform/)

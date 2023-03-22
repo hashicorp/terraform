@@ -84,7 +84,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		}
 	}
 
-	if len(changes) == 0 && len(diffs.outputs) == 0 {
+	// Precompute the outputs early, so we can make a decision about whether we
+	// display the "there are no changes messages".
+	outputs := renderHumanDiffOutputs(renderer, diffs.outputs)
+
+	if len(changes) == 0 && len(outputs) == 0 {
 		// If we didn't find any changes to report at all then this is a
 		// "No changes" plan. How we'll present this depends on whether
 		// the plan is "applyable" and, if so, whether it had refresh changes
@@ -219,10 +223,9 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
 	}
 
-	diff := renderHumanDiffOutputs(renderer, diffs.outputs)
-	if len(diff) > 0 {
+	if len(outputs) > 0 {
 		renderer.Streams.Print("\nChanges to Outputs:\n")
-		renderer.Streams.Printf("%s\n", diff)
+		renderer.Streams.Printf("%s\n", outputs)
 
 		if len(counts) == 0 {
 			// If we have output changes but not resource changes then we

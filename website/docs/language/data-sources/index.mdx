@@ -11,10 +11,10 @@ description: >-
 _Data sources_ allow Terraform to use information defined outside of Terraform,
 defined by another separate Terraform configuration, or modified by functions.
 
-> **Hands-on:** Try the [Query Data Sources](https://learn.hashicorp.com/tutorials/terraform/data-sources) tutorial.
+> **Hands-on:** Try the [Query Data Sources](/terraform/tutorials/configuration-language/data-sources) tutorial.
 
-Each [provider](/language/providers) may offer data sources
-alongside its set of [resource](/language/resources)
+Each [provider](/terraform/language/providers) may offer data sources
+alongside its set of [resource](/terraform/language/resources)
 types.
 
 ## Using Data Sources
@@ -61,14 +61,14 @@ Each data resource is associated with a single data source, which determines
 the kind of object (or objects) it reads and what query constraint arguments
 are available.
 
-Each data source in turn belongs to a [provider](/language/providers),
+Each data source in turn belongs to a [provider](/terraform/language/providers),
 which is a plugin for Terraform that offers a collection of resource types and
 data sources that most often belong to a single cloud or on-premises
 infrastructure platform.
 
 Most of the items within the body of a `data` block are defined by and
 specific to the selected data source, and these arguments can make full
-use of [expressions](/language/expressions) and other dynamic
+use of [expressions](/terraform/language/expressions) and other dynamic
 Terraform language features.
 
 However, there are some "meta-arguments" that are defined by Terraform itself
@@ -115,7 +115,7 @@ operation, and is re-calculated each time a new plan is created.
 ## Data Resource Dependencies
 
 Data resources have the same dependency resolution behavior
-[as defined for managed resources](/language/resources/behavior#resource-dependencies).
+[as defined for managed resources](/terraform/language/resources/behavior#resource-dependencies).
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
 
@@ -149,13 +149,13 @@ data "aws_ami" "example" {
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 
 ## Multiple Resource Instances
 
-Data resources support [`count`](/language/meta-arguments/count)
-and [`for_each`](/language/meta-arguments/for_each)
+Data resources support [`count`](/terraform/language/meta-arguments/count)
+and [`for_each`](/terraform/language/meta-arguments/for_each)
 meta-arguments as defined for managed resources, with the same syntax and behavior.
 
 As with managed resources, when `count` or `for_each` is present it is important to
@@ -165,7 +165,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `provider` meta-argument](/language/meta-arguments/resource-provider)
+Data resources support [the `provider` meta-argument](/terraform/language/meta-arguments/resource-provider)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
@@ -202,7 +202,7 @@ and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
 configuration is dependent on the type; as with
-[resources](/language/resources), each provider on the
+[resources](/terraform/language/resources), each provider on the
 [Terraform Registry](https://registry.terraform.io/browse/providers) has its own
 documentation for configuring and using the data types it provides.
 
@@ -220,13 +220,13 @@ resource "aws_instance" "web" {
 ## Meta-Arguments
 
 As data sources are essentially a read only subset of resources, they also
-support the same [meta-arguments](/language/resources/syntax#meta-arguments) of resources
+support the same [meta-arguments](/terraform/language/resources/syntax#meta-arguments) of resources
 with the exception of the
-[`lifecycle` configuration block](/language/meta-arguments/lifecycle).
+[`lifecycle` configuration block](/terraform/language/meta-arguments/lifecycle).
 
 ### Non-Default Provider Configurations
 
-Similarly to [resources](/language/resources), when
+Similarly to [resources](/terraform/language/resources), when
 a module has multiple configurations for the same provider you can specify which
 configuration to use with the `provider` meta-argument:
 
@@ -239,7 +239,7 @@ data "aws_ami" "web" {
 ```
 
 See
-[The Resource `provider` Meta-Argument](/language/meta-arguments/resource-provider)
+[The Resource `provider` Meta-Argument](/terraform/language/meta-arguments/resource-provider)
 for more information.
 
 ## Data Source Lifecycle

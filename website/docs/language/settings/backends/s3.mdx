@@ -32,7 +32,7 @@ This assumes we have a bucket created called `mybucket`. The
 Terraform state is written to the key `path/to/my/key`.
 
 Note that for the access credentials we recommend using a
-[partial configuration](/language/settings/backends/configuration#partial-configuration).
+[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
 
 ### S3 Bucket Permissions
 
@@ -105,7 +105,7 @@ This is seen in the following AWS IAM Statement:
 
 To make use of the S3 remote state in another configuration, use the
 [`terraform_remote_state` data
-source](/language/state/remote-state-data).
+source](/terraform/language/state/remote-state-data).
 
 ```hcl
 data "terraform_remote_state" "network" {
@@ -144,7 +144,7 @@ This backend requires the configuration of the AWS Region and S3 state storage. 
 
 ### Credentials and Shared Configuration
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration is required:
 
@@ -182,7 +182,7 @@ The following configuration is optional:
 The following configuration is required:
 
 * `bucket` - (Required) Name of the S3 Bucket.
-* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/language/state/workspaces), the state path will be `/workspace_key_prefix/workspace_name/key` (see also the `workspace_key_prefix` configuration).
+* `key` - (Required) Path to the state file inside the S3 Bucket. When using a non-default [workspace](/terraform/language/state/workspaces), the state path will be `/workspace_key_prefix/workspace_name/key` (see also the `workspace_key_prefix` configuration).
 
 The following configuration is optional:
 
@@ -214,7 +214,7 @@ The S3 backend can be used in a number of different ways that make different
 tradeoffs between convenience, security, and isolation in such an organization.
 This section describes one such approach that aims to find a good compromise
 between these tradeoffs, allowing use of
-[Terraform's workspaces feature](/language/state/workspaces) to switch
+[Terraform's workspaces feature](/terraform/language/state/workspaces) to switch
 conveniently between multiple isolated deployments of the same configuration.
 
 Use this section as a starting-point for your approach, but note that
@@ -322,7 +322,7 @@ provider "aws" {
 
 If workspace IAM roles are centrally managed and shared across many separate
 Terraform configurations, the role ARNs could also be obtained via a data
-source such as [`terraform_remote_state`](/language/state/remote-state-data)
+source such as [`terraform_remote_state`](/terraform/language/state/remote-state-data)
 to avoid repeating these values.
 
 ### Creating and Selecting Workspaces
@@ -363,7 +363,7 @@ $ terraform apply
 ### Running Terraform in Amazon EC2
 
 Teams that make extensive use of Terraform for infrastructure management
-often [run Terraform in automation](https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+often [run Terraform in automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 to ensure a consistent operating environment and to limit access to the
 various secrets and other sensitive information that Terraform configurations
 tend to require.

@@ -43,9 +43,8 @@ require (
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/hcl v0.0.0-20170504190234-a4b07c25de5f
-	github.com/hashicorp/hcl/v2 v2.16.0
+	github.com/hashicorp/hcl/v2 v2.16.2
 	github.com/hashicorp/jsonapi v0.0.0-20210826224640-ee7dae0fb22d
-	github.com/hashicorp/terraform-config-inspect v0.0.0-20210209133302-4fd17a0faac2
 	github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
 	github.com/hashicorp/terraform-svchost v0.1.0
 	github.com/jmespath/go-jmespath v0.4.0
@@ -81,13 +80,14 @@ require (
 	github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b
 	github.com/zclconf/go-cty-yaml v1.0.3
 	golang.org/x/crypto v0.1.0
-	golang.org/x/mod v0.7.0
+	golang.org/x/mod v0.8.0
 	golang.org/x/net v0.7.0
 	golang.org/x/oauth2 v0.4.0
 	golang.org/x/sys v0.5.0
 	golang.org/x/term v0.5.0
-	golang.org/x/text v0.7.0
-	golang.org/x/tools v0.4.1-0.20221208213631-3f74d914ae6d
+	golang.org/x/text v0.8.0
+	golang.org/x/tools v0.6.0
+	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/api v0.102.0
 	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c
 	google.golang.org/grpc v1.50.1

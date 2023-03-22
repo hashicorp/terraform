@@ -23,7 +23,7 @@ publishing them on the public Terraform Registry.
 The public Terraform Registry implements a superset of the API described on
 this page, in order to capture additional information used in the registry UI.
 For information on those extensions, see
-[Terraform Registry HTTP API](/registry/api-docs). Third-party registry
+[Terraform Registry HTTP API](/terraform/registry/api-docs). Third-party registry
 implementations may choose to implement those extensions if desired, but
 Terraform CLI itself does not use them.
 
@@ -81,7 +81,7 @@ blocks have the same source address.
 ## Service Discovery
 
 The module registry protocol begins with Terraform CLI using
-[Terraform's remote service discovery protocol](/internals/remote-service-discovery),
+[Terraform's remote service discovery protocol](/terraform/internals/remote-service-discovery),
 with the hostname in the module address acting as the "User-facing Hostname".
 
 The service identifier for the module registry protocol is `modules.v1`.
@@ -209,10 +209,10 @@ A successful response has no body, and includes the location from which the
 module version's source can be downloaded in the `X-Terraform-Get` header.
 The value of this header accepts the same values as the `source` argument
 in a `module` block in Terraform configuration, as described in
-[Module Sources](/language/modules/sources),
+[Module Sources](/terraform/language/modules/sources),
 except that it may not recursively refer to another module registry address.
 
 The value of `X-Terraform-Get` may instead be a relative URL, indicated by
 beginning with `/`, `./` or `../`, in which case it is resolved relative to
 the full URL of the download endpoint to produce
-[an HTTP URL module source](/language/modules/sources#http-urls).
+[an HTTP URL module source](/terraform/language/modules/sources#http-urls).
