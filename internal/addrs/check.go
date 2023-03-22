@@ -2,6 +2,10 @@ package addrs
 
 import "fmt"
 
+// Check is the address of a check block within a module.
+//
+// For now, checks do not support meta arguments such as "count" or "for_each"
+// so this address uniquely describes a single check within a module.
 type Check struct {
 	referenceable
 	Name string
@@ -11,6 +15,8 @@ func (c Check) String() string {
 	return fmt.Sprintf("check.%s", c.Name)
 }
 
+// InModule returns a ConfigCheck from the receiver and the given module
+// address.
 func (c Check) InModule(modAddr Module) ConfigCheck {
 	return ConfigCheck{
 		Module: modAddr,
@@ -18,6 +24,8 @@ func (c Check) InModule(modAddr Module) ConfigCheck {
 	}
 }
 
+// Absolute returns an AbsCheck from the receiver and the given module instance
+// address.
 func (c Check) Absolute(modAddr ModuleInstance) AbsCheck {
 	return AbsCheck{
 		Module: modAddr,
@@ -35,6 +43,10 @@ func (c Check) UniqueKey() UniqueKey {
 
 func (c Check) uniqueKeySigil() {}
 
+// ConfigCheck is an address for a check block within a configuration.
+//
+// This contains a Check address and a Module address, meaning this describes
+// a check block within the entire configuration.
 type ConfigCheck struct {
 	Module Module
 	Check  Check
@@ -59,6 +71,12 @@ func (c ConfigCheck) String() string {
 	return fmt.Sprintf("%s.%s", c.Module, c.Check)
 }
 
+// AbsCheck is an absolute address for a check block under a given module path.
+//
+// This contains an actual ModuleInstance address (compared to the Module within
+// a ConfigCheck), meaning this uniquely describes a check block within the
+// entire configuration after any "count" or "foreach" meta arguments have been
+// evaluated on the containing module.
 type AbsCheck struct {
 	Module ModuleInstance
 	Check  Check
@@ -72,6 +90,11 @@ func (c AbsCheck) UniqueKey() UniqueKey {
 
 func (c AbsCheck) checkableSigil() {}
 
+// CheckRule returns an address for a given rule type within the check block.
+//
+// There will be at most one CheckDataResource rule within a check block (with
+// an index of 0). There will be at least one, but potentially many,
+// CheckAssertion rules within a check block.
 func (c AbsCheck) CheckRule(typ CheckRuleType, i int) CheckRule {
 	return CheckRule{
 		Container: c,
@@ -80,6 +103,7 @@ func (c AbsCheck) CheckRule(typ CheckRuleType, i int) CheckRule {
 	}
 }
 
+// ConfigCheckable returns the ConfigCheck address for this absolute reference.
 func (c AbsCheck) ConfigCheckable() ConfigCheckable {
 	return ConfigCheck{
 		Module: c.Module.Module(),
