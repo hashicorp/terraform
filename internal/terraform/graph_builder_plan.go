@@ -127,6 +127,13 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			Planning: true,
 		},
 
+		// Add nodes and edges for the check block assertions. Check block data
+		// sources were added earlier.
+		&checkTransformer{
+			Config:    b.Config,
+			Operation: b.Operation,
+		},
+
 		// Add orphan resources
 		&OrphanResourceInstanceTransformer{
 			Concrete: b.ConcreteResourceOrphan,

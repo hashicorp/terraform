@@ -83,6 +83,7 @@ const (
 	ReasonDeleteBecauseNoMoveTarget     ChangeReason = "delete_because_no_move_target"
 	ReasonReadBecauseConfigUnknown      ChangeReason = "read_because_config_unknown"
 	ReasonReadBecauseDependencyPending  ChangeReason = "read_because_dependency_pending"
+	ReasonReadBecauseCheckNested        ChangeReason = "read_because_check_nested"
 )
 
 func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason {
@@ -113,6 +114,8 @@ func changeReason(reason plans.ResourceInstanceChangeActionReason) ChangeReason 
 		return ReasonDeleteBecauseNoMoveTarget
 	case plans.ResourceInstanceReadBecauseDependencyPending:
 		return ReasonReadBecauseDependencyPending
+	case plans.ResourceInstanceReadBecauseCheckNested:
+		return ReasonReadBecauseCheckNested
 	default:
 		// This should never happen, but there's no good way to guarantee
 		// exhaustive handling of the enum, so a generic fall back is better

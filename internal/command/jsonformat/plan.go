@@ -361,6 +361,8 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			buf.WriteString("\n  # (config refers to values not yet known)")
 		case jsonplan.ResourceInstanceReadBecauseDependencyPending:
 			buf.WriteString("\n  # (depends on a resource or a module with changes pending)")
+		case jsonplan.ResourceInstanceReadBecauseCheckNested:
+			buf.WriteString("\n  # (config will be reloaded to verify a check block)")
 		}
 	case plans.Update:
 		switch changeCause {

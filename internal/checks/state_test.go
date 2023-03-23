@@ -62,6 +62,9 @@ func TestChecksHappyPath(t *testing.T) {
 	childOutput := addrs.OutputValue{
 		Name: "b",
 	}.InModule(moduleChild)
+	checkBlock := addrs.Check{
+		Name: "check",
+	}.InModule(addrs.RootModule)
 
 	// First some consistency checks to make sure our configuration is the
 	// shape we are relying on it to be.
@@ -76,6 +79,9 @@ func TestChecksHappyPath(t *testing.T) {
 	}
 	if addr := resourceNonExist; cfg.Module.ResourceByAddr(addr.Resource) != nil {
 		t.Fatalf("configuration includes %s, which is not supposed to exist", addr)
+	}
+	if addr := checkBlock; cfg.Module.Checks[addr.Check.Name] == nil {
+		t.Fatalf("configuration does not include %s", addr)
 	}
 
 	/////////////////////////////////////////////////////////////////////////
@@ -109,6 +115,10 @@ func TestChecksHappyPath(t *testing.T) {
 	if addr := resourceNonExist; checks.ConfigHasChecks(addr) {
 		t.Errorf("checks detected for %s, even though it doesn't exist", addr)
 	}
+	if addr := checkBlock; !checks.ConfigHasChecks(addr) {
+		t.Errorf("checks not detected for %s", addr)
+		missing++
+	}
 	if missing > 0 {
 		t.Fatalf("missing some configuration objects we'd need for subsequent testing")
 	}
@@ -124,6 +134,7 @@ func TestChecksHappyPath(t *testing.T) {
 			resourceC,
 			rootOutput,
 			childOutput,
+			checkBlock,
 		)
 		gotConfigAddrs := checks.AllConfigAddrs()
 		if diff := cmp.Diff(wantConfigAddrs, gotConfigAddrs); diff != "" {
@@ -153,6 +164,7 @@ func TestChecksHappyPath(t *testing.T) {
 	resourceInstC0 := resourceC.Resource.Absolute(moduleChildInst).Instance(addrs.IntKey(0))
 	resourceInstC1 := resourceC.Resource.Absolute(moduleChildInst).Instance(addrs.IntKey(1))
 	childOutputInst := childOutput.OutputValue.Absolute(moduleChildInst)
+	checkBlockInst := checkBlock.Check.Absolute(addrs.RootModuleInstance)
 
 	checks.ReportCheckableObjects(resourceA, addrs.MakeSet[addrs.Checkable](resourceInstA))
 	checks.ReportCheckResult(resourceInstA, addrs.ResourcePrecondition, 0, StatusPass)
@@ -172,6 +184,9 @@ func TestChecksHappyPath(t *testing.T) {
 	checks.ReportCheckableObjects(rootOutput, addrs.MakeSet[addrs.Checkable](rootOutputInst))
 	checks.ReportCheckResult(rootOutputInst, addrs.OutputPrecondition, 0, StatusPass)
 
+	checks.ReportCheckableObjects(checkBlock, addrs.MakeSet[addrs.Checkable](checkBlockInst))
+	checks.ReportCheckResult(checkBlockInst, addrs.CheckAssertion, 0, StatusPass)
+
 	/////////////////////////////////////////////////////////////////////////
 
 	// This "section" is simulating what we might do to report the results
@@ -185,7 +200,7 @@ func TestChecksHappyPath(t *testing.T) {
 				t.Errorf("incorrect final aggregate check status for %s: %s, but want %s", configAddr, got, want)
 			}
 		}
-		if got, want := configCount, 5; got != want {
+		if got, want := configCount, 6; got != want {
 			t.Errorf("incorrect number of known config addresses %d; want %d", got, want)
 		}
 	}
@@ -198,6 +213,7 @@ func TestChecksHappyPath(t *testing.T) {
 			resourceInstC0,
 			resourceInstC1,
 			childOutputInst,
+			checkBlockInst,
 		)
 		for _, addr := range objAddrs {
 			if got, want := checks.ObjectCheckStatus(addr), StatusPass; got != want {

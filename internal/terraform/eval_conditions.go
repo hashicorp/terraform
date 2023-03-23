@@ -67,9 +67,8 @@ type checkResult struct {
 	FailureMessage string
 }
 
-func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
+func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	const errInvalidCondition = "Invalid condition result"
 
 	refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
 	diags = diags.Append(moreDiags)
@@ -77,29 +76,47 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 	diags = diags.Append(moreDiags)
 	refs = append(refs, moreRefs...)
 
-	var selfReference addrs.Referenceable
-	// Only resource postconditions can refer to self
-	if typ == addrs.ResourcePostcondition {
+	var selfReference, sourceReference addrs.Referenceable
+	switch typ {
+	case addrs.ResourcePostcondition:
 		switch s := self.(type) {
 		case addrs.AbsResourceInstance:
+			// Only resource postconditions can refer to self
 			selfReference = s.Resource
 		default:
 			panic(fmt.Sprintf("Invalid self reference type %t", self))
 		}
+	case addrs.CheckAssertion:
+		switch s := self.(type) {
+		case addrs.AbsCheck:
+			// Only check blocks have scoped resources so need to specify their
+			// source.
+			sourceReference = s.Check
+		default:
+			panic(fmt.Sprintf("Invalid source reference type %t", self))
+		}
 	}
-	scope := ctx.EvaluationScope(selfReference, nil, keyData)
+	scope := ctx.EvaluationScope(selfReference, sourceReference, keyData)
 
 	hclCtx, moreDiags := scope.EvalContext(refs)
 	diags = diags.Append(moreDiags)
 
-	resultVal, hclDiags := rule.Condition.Value(hclCtx)
-	diags = diags.Append(hclDiags)
+	errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
+	diags = diags.Append(moreDiags)
 
+	return errorMessage, hclCtx, diags
+}
+
+func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
 	// NOTE: Intentionally not passing the caller's selected severity in here,
 	// because this reports errors in the configuration itself, not the failure
 	// of an otherwise-valid condition.
-	errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
-	diags = diags.Append(moreDiags)
+	errorMessage, hclCtx, diags := validateCheckRule(typ, rule, ctx, self, keyData)
+
+	const errInvalidCondition = "Invalid condition result"
+
+	resultVal, hclDiags := rule.Condition.Value(hclCtx)
+	diags = diags.Append(hclDiags)
 
 	if diags.HasErrors() {
 		log.Printf("[TRACE] evalCheckRule: %s: %s", typ, diags.Err().Error())
@@ -107,6 +124,19 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 	}
 
 	if !resultVal.IsKnown() {
+
+		// Check assertions warn if a status is unknown.
+		if typ == addrs.CheckAssertion {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagWarning,
+				Summary:     fmt.Sprintf("%s known after apply", typ.Description()),
+				Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
+				Subject:     rule.Condition.Range().Ptr(),
+				Expression:  rule.Condition,
+				EvalContext: hclCtx,
+			})
+		}
+
 		// We'll wait until we've learned more, then.
 		return checkResult{Status: checks.StatusUnknown}, diags
 	}

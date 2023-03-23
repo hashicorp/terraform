@@ -39,6 +39,7 @@ const (
 	ResourceInstanceDeleteBecauseNoMoveTarget     = "delete_because_no_move_target"
 	ResourceInstanceReadBecauseConfigUnknown      = "read_because_config_unknown"
 	ResourceInstanceReadBecauseDependencyPending  = "read_because_dependency_pending"
+	ResourceInstanceReadBecauseCheckNested        = "read_because_check_nested"
 )
 
 // Plan is the top-level representation of the json format of a plan. It includes
@@ -492,6 +493,8 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			r.ActionReason = ResourceInstanceReadBecauseConfigUnknown
 		case plans.ResourceInstanceReadBecauseDependencyPending:
 			r.ActionReason = ResourceInstanceReadBecauseDependencyPending
+		case plans.ResourceInstanceReadBecauseCheckNested:
+			r.ActionReason = ResourceInstanceReadBecauseCheckNested
 		default:
 			return nil, fmt.Errorf("resource %s has an unsupported action reason %s", r.Address, rc.ActionReason)
 		}
