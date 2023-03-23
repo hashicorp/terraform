@@ -32,11 +32,6 @@ func (b *BasicGraphBuilder) Build(path addrs.ModuleInstance) (*Graph, tfdiags.Di
 
 	var lastStepStr string
 	for _, step := range b.Steps {
-
-		if _, ok := step.(*checkTransformer); ok {
-			log.Printf("my line")
-		}
-
 		if step == nil {
 			continue
 		}
