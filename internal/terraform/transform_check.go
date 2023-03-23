@@ -92,7 +92,7 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 // This is generally only true for planning operations, as apply operations
 // recreate the expected checks from the plan.
 func (t *checkTransformer) ReportChecks() bool {
-	return t.Operation == walkPlan || t.Operation == walkPlanDestroy
+	return t.Operation == walkPlan
 }
 
 // ExecuteChecks returns true if this operation should actually execute any
@@ -102,7 +102,7 @@ func (t *checkTransformer) ReportChecks() bool {
 // graph, but they will only validate things like references and syntax.
 func (t *checkTransformer) ExecuteChecks() bool {
 	switch t.Operation {
-	case walkPlan, walkPlanDestroy, walkApply, walkDestroy:
+	case walkPlan, walkApply:
 		// We only actually execute the checks for plan and apply operations.
 		return true
 	default:
