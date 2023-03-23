@@ -23,6 +23,18 @@ func (t *checkTransformer) Transform(graph *Graph) error {
 }
 
 func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []dag.Vertex) error {
+
+	if t.Operation == walkDestroy || t.Operation == walkPlanDestroy {
+		// Don't include anything about checks during destroy operations.
+		//
+		// For other plan and normal apply operations we do everything, for
+		// destroy operations we do nothing. For any other operations we still
+		// include the check nodes, but we don't actually execute the checks
+		// instead we still validate their references and make sure their
+		// conditions make sense etc.
+		return nil
+	}
+
 	moduleAddr := cfg.Path
 
 	for _, check := range cfg.Module.Checks {
