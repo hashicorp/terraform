@@ -356,7 +356,7 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 	return r, diags
 }
 
-func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostics) {
+func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Diagnostics) {
 	var diags hcl.Diagnostics
 	r := &Resource{
 		Mode:      addrs.DataResourceMode,
@@ -387,11 +387,19 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 		})
 	}
 
-	if attr, exists := content.Attributes["count"]; exists {
+	if attr, exists := content.Attributes["count"]; exists && !nested {
 		r.Count = attr.Expr
+	} else if exists && nested {
+		// We don't allow count attributes in nested data blocks.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid "count" attribute`,
+			Detail:   `The "count" and "for_each" meta-arguments are not supported within nested data blocks.`,
+			Subject:  &attr.NameRange,
+		})
 	}
 
-	if attr, exists := content.Attributes["for_each"]; exists {
+	if attr, exists := content.Attributes["for_each"]; exists && !nested {
 		r.ForEach = attr.Expr
 		// Cannot have count and for_each on the same data block
 		if r.Count != nil {
@@ -402,6 +410,14 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 				Subject:  &attr.NameRange,
 			})
 		}
+	} else if exists && nested {
+		// We don't allow for_each attributes in nested data blocks.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Invalid "for_each" attribute`,
+			Detail:   `The "count" and "for_each" meta-arguments are not supported within nested data blocks.`,
+			Subject:  &attr.NameRange,
+		})
 	}
 
 	if attr, exists := content.Attributes["provider"]; exists {
@@ -442,6 +458,17 @@ func decodeDataBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagnostic
 			r.Config = hcl.MergeBodies([]hcl.Body{r.Config, block.Body})
 
 		case "lifecycle":
+			if nested {
+				// We don't allow lifecycle arguments in nested data blocks,
+				// the lifecycle is managed by the parent block.
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid lifecycle block",
+					Detail:   `Nested data blocks do not support "lifecycle" blocks as the lifecycle is managed by the containing block.`,
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
+
 			if seenLifecycle != nil {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
