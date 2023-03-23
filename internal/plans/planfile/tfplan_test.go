@@ -222,6 +222,25 @@ func TestTFPlanRoundTrip(t *testing.T) {
 						),
 					},
 				),
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Check{
+						Name: "check",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Check{
+									Name: "check",
+								}.Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"check failed"},
+								},
+							),
+						),
+					},
+				),
 			),
 		},
 		TargetAddrs: []addrs.Targetable{
