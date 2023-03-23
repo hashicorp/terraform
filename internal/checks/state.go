@@ -33,7 +33,7 @@ type State struct {
 	mu sync.Mutex
 
 	statuses    addrs.Map[addrs.ConfigCheckable, *configCheckableState]
-	failureMsgs addrs.Map[addrs.Check, string]
+	failureMsgs addrs.Map[addrs.CheckRule, string]
 }
 
 // configCheckableState is an internal part of type State that represents
@@ -53,7 +53,7 @@ type configCheckableState struct {
 	// associated with object declared by this configuration construct. Since
 	// checks are statically declared (even though the checkable objects
 	// aren't) we can compute this only from the configuration.
-	checkTypes map[addrs.CheckType]int
+	checkTypes map[addrs.CheckRuleType]int
 
 	// objects represents the set of dynamic checkable objects associated
 	// with this configuration construct. This is initially nil to represent
@@ -64,7 +64,7 @@ type configCheckableState struct {
 	// The leaf Status values will initially be StatusUnknown
 	// and then gradually updated by Terraform Core as it visits the
 	// individual checkable objects and reports their status.
-	objects addrs.Map[addrs.Checkable, map[addrs.CheckType][]Status]
+	objects addrs.Map[addrs.Checkable, map[addrs.CheckRuleType][]Status]
 }
 
 // NOTE: For the "Report"-prefixed methods that we use to gradually update
@@ -253,7 +253,7 @@ func (c *State) ObjectFailureMessages(addr addrs.Checkable) []string {
 	for checkType, checks := range checksByType {
 		for i, status := range checks {
 			if status == StatusFail {
-				checkAddr := addrs.NewCheck(addr, checkType, i)
+				checkAddr := addrs.NewCheckRule(addr, checkType, i)
 				msg := c.failureMsgs.Get(checkAddr)
 				if msg != "" {
 					ret = append(ret, msg)

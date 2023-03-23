@@ -329,8 +329,8 @@ func (r AbsResourceInstance) AffectedAbsResource() AbsResource {
 	}
 }
 
-func (r AbsResourceInstance) Check(t CheckType, i int) Check {
-	return Check{
+func (r AbsResourceInstance) CheckRule(t CheckRuleType, i int) CheckRule {
+	return CheckRule{
 		Container: r,
 		Type:      t,
 		Index:     i,
