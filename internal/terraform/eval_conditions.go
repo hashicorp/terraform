@@ -134,6 +134,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
+				Extra:       tfdiags.SkipConsolidateWarnings,
 			})
 		}
 
@@ -196,6 +197,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 		Subject:     rule.Condition.Range().Ptr(),
 		Expression:  rule.Condition,
 		EvalContext: hclCtx,
+		Extra:       tfdiags.SkipConsolidateWarnings,
 	})
 
 	return checkResult{

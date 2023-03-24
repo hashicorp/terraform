@@ -23,6 +23,17 @@ func TestConsolidateWarnings(t *testing.T) {
 			},
 		})
 		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Warning 5",
+			Detail:   fmt.Sprintf("This one has a subject %d but shouldn't consolidate", i),
+			Subject: &hcl.Range{
+				Filename: "foo.tf",
+				Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+				End:      hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			},
+			Extra: SkipConsolidateWarnings,
+		})
+		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Error 1",
 			Detail:   fmt.Sprintf("This one has a subject %d", i),
@@ -67,6 +78,16 @@ func TestConsolidateWarnings(t *testing.T) {
 			},
 		},
 		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "Warning 5",
+			Detail_:   "This one has a subject 0 but shouldn't consolidate",
+			Subject_: &SourceRange{
+				Filename: "foo.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
+		&rpcFriendlyDiag{
 			Severity_: Error,
 			Summary_:  "Error 1",
 			Detail_:   "This one has a subject 0",
@@ -98,6 +119,16 @@ func TestConsolidateWarnings(t *testing.T) {
 			},
 		},
 		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "Warning 5",
+			Detail_:   "This one has a subject 1 but shouldn't consolidate",
+			Subject_: &SourceRange{
+				Filename: "foo.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
+		&rpcFriendlyDiag{
 			Severity_: Error,
 			Summary_:  "Error 1",
 			Detail_:   "This one has a subject 1",
@@ -119,6 +150,16 @@ func TestConsolidateWarnings(t *testing.T) {
 
 		// Third set (no more Warning 1, because it's consolidated)
 		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "Warning 5",
+			Detail_:   "This one has a subject 2 but shouldn't consolidate",
+			Subject_: &SourceRange{
+				Filename: "foo.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
+		&rpcFriendlyDiag{
 			Severity_: Error,
 			Summary_:  "Error 1",
 			Detail_:   "This one has a subject 2",
@@ -139,6 +180,16 @@ func TestConsolidateWarnings(t *testing.T) {
 		},
 
 		// Fourth set (still no warning 1)
+		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "Warning 5",
+			Detail_:   "This one has a subject 3 but shouldn't consolidate",
+			Subject_: &SourceRange{
+				Filename: "foo.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
 		&rpcFriendlyDiag{
 			Severity_: Error,
 			Summary_:  "Error 1",
