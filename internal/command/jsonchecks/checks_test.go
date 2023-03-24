@@ -156,17 +156,6 @@ func TestMarshalCheckStates(t *testing.T) {
 							}),
 						),
 					}),
-					addrs.MakeMapElem(checkBlockAAddr, &states.CheckResultAggregate{
-						Status: checks.StatusFail,
-						ObjectResults: addrs.MakeMap(
-							addrs.MakeMapElem(checkBlockAInstAddr, &states.CheckResultObject{
-								Status: checks.StatusFail,
-								FailureMessages: []string{
-									"Couldn't reverse the polarity.",
-								},
-							}),
-						),
-					}),
 				),
 			},
 			[]any{
