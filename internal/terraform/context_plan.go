@@ -33,6 +33,10 @@ type PlanOpts struct {
 	// instance using its corresponding provider.
 	SkipRefresh bool
 
+	// AutoApprove specifies that this plan is to be auto approved, so Terraform
+	// will not wait for user approval before applying the plan.
+	AutoApprove bool
+
 	// PreDestroyRefresh indicated that this is being passed to a plan used to
 	// refresh the state immediately before a destroy plan.
 	// FIXME: This is a temporary fix to allow the pre-destroy refresh to
@@ -610,6 +614,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Targets:            opts.Targets,
 			ForceReplace:       opts.ForceReplace,
 			skipRefresh:        opts.SkipRefresh,
+			autoApprove:        opts.AutoApprove,
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 		}).Build(addrs.RootModuleInstance)
@@ -622,6 +627,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
 			skipRefresh:        opts.SkipRefresh,
+			autoApprove:        opts.AutoApprove,
 			skipPlanChanges:    true, // this activates "refresh only" mode.
 			Operation:          walkPlan,
 		}).Build(addrs.RootModuleInstance)
@@ -634,6 +640,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			Plugins:            c.plugins,
 			Targets:            opts.Targets,
 			skipRefresh:        opts.SkipRefresh,
+			autoApprove:        opts.AutoApprove,
 			Operation:          walkPlanDestroy,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlanDestroy, diags

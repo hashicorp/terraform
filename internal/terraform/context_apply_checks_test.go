@@ -32,6 +32,7 @@ func TestContextChecks(t *testing.T) {
 		planError    string
 		apply        map[string]checksTestingStatus
 		applyError   string
+		autoApprove  bool
 		state        *states.State
 		provider     *MockProvider
 		providerHook func(*MockProvider)
@@ -61,6 +62,57 @@ check "passing" {
 					status: checks.StatusPass,
 				},
 			},
+			provider: &MockProvider{
+				Meta: "checks",
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					DataSources: map[string]providers.Schema{
+						"checks_object": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"number": {
+										Type:     cty.Number,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					return providers.ReadDataSourceResponse{
+						State: cty.ObjectVal(map[string]cty.Value{
+							"number": cty.NumberIntVal(0),
+						}),
+					}
+				},
+			},
+		},
+		"passing_auto_approve": {
+			configs: map[string]string{
+				"main.tf": `
+provider "checks" {}
+
+check "passing" {
+  data "checks_object" "positive" {}
+
+  assert {
+    condition     = data.checks_object.positive.number >= 0
+    error_message = "negative number"
+  }
+}
+`,
+			},
+			plan: map[string]checksTestingStatus{
+				"passing": {
+					status: checks.StatusUnknown,
+				},
+			},
+			apply: map[string]checksTestingStatus{
+				"passing": {
+					status: checks.StatusPass,
+				},
+			},
+			autoApprove: true,
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -607,7 +659,8 @@ check "error" {
 			}
 
 			plan, diags := ctx.Plan(configs, initialState, &PlanOpts{
-				Mode: plans.NormalMode,
+				Mode:        plans.NormalMode,
+				AutoApprove: test.autoApprove,
 			})
 			if validateError(t, "planning", test.planError, diags) {
 				return

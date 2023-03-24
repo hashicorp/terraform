@@ -49,6 +49,9 @@ type PlanGraphBuilder struct {
 	// skipRefresh indicates that we should skip refreshing managed resources
 	skipRefresh bool
 
+	// autoApprove indicates that this plan will be auto approved.
+	autoApprove bool
+
 	// preDestroyRefresh indicates that we are executing the refresh which
 	// happens immediately before a destroy plan, which happens to use the
 	// normal planing mode so skipPlanChanges cannot be set.
@@ -130,8 +133,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		// Add nodes and edges for the check block assertions. Check block data
 		// sources were added earlier.
 		&checkTransformer{
-			Config:    b.Config,
-			Operation: b.Operation,
+			Config:           b.Config,
+			Operation:        b.Operation,
+			AutoApprovedPlan: b.autoApprove,
 		},
 
 		// Add orphan resources

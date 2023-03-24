@@ -14,6 +14,15 @@ type checkTransformer struct {
 
 	// Operation is the current operation this node will be part of.
 	Operation walkOperation
+
+	// AutoApprovedPlan is true if we are executing a plan, and it has been told
+	// to auto approve.
+	//
+	// The graph will skip executing checks during an auto approved plan, since
+	// the checks will be redone during the apply stage and reporting them
+	// during the plan just pollutes the output since the user can't respond
+	// to anything the checks say anyway (since the plan has been preapproved).
+	AutoApprovedPlan bool
 }
 
 var _ GraphTransformer = (*checkTransformer)(nil)
@@ -115,8 +124,11 @@ func (t *checkTransformer) ReportChecks() bool {
 func (t *checkTransformer) ExecuteChecks() bool {
 	switch t.Operation {
 	case walkPlan, walkApply:
-		// We only actually execute the checks for plan and apply operations.
-		return true
+		// We normally execute the checks for plan and apply operations, but if
+		// a plan is being auto approved we don't get any benefit from executing
+		// the checks twice in a row with no opportunity for the user to process
+		// the check results.
+		return !t.AutoApprovedPlan
 	default:
 		// For everything else, we still want to validate the checks make sense
 		// logically and syntactically, but we won't actually resolve the check
