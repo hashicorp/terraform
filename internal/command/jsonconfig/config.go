@@ -42,6 +42,7 @@ type module struct {
 	Resources   []resource            `json:"resources,omitempty"`
 	ModuleCalls map[string]moduleCall `json:"module_calls,omitempty"`
 	Variables   variables             `json:"variables,omitempty"`
+	Checks      []check               `json:"checks,omitempty"`
 }
 
 type moduleCall struct {
@@ -109,6 +110,24 @@ type output struct {
 	Expression  expression `json:"expression,omitempty"`
 	DependsOn   []string   `json:"depends_on,omitempty"`
 	Description string     `json:"description,omitempty"`
+}
+
+// check is the representation of a single check block in config.
+type check struct {
+	// Address is the absolute resource address.
+	Address string `json:"address,omitempty"`
+
+	Name string `json:"name,omitempty"`
+
+	// Rules contains config details for each of the check rules in this check
+	// block.
+	Rules []checkRule `json:"rules,omitempty"`
+}
+
+// checkRule is a single assertion rule within a check block.
+type checkRule struct {
+	// Expressions represent the condition and error message expressions for a
+	Expressions map[string]interface{} `json:"expressions,omitempty"`
 }
 
 type provisioner struct {
@@ -317,6 +336,8 @@ func marshalModule(c *configs.Config, schemas *terraform.Schemas, addr string) (
 	rs = append(managedResources, dataResources...)
 	module.Resources = rs
 
+	module.Checks = marshalChecks(c.Module.Checks)
+
 	outputs := make(map[string]output)
 	for _, v := range c.Module.Outputs {
 		o := output{
@@ -514,6 +535,29 @@ func marshalResources(resources map[string]*configs.Resource, schemas *terraform
 		return rs[i].Address < rs[j].Address
 	})
 	return rs, nil
+}
+
+func marshalChecks(checks map[string]*configs.Check) []check {
+	var cs []check
+	for _, k := range checks {
+		c := check{
+			Address: k.Addr().String(),
+			Name:    k.Name,
+		}
+
+		for _, assert := range k.Asserts {
+			c.Rules = append(c.Rules, checkRule{
+				map[string]interface{}{
+					"condition":     marshalExpression(assert.Condition),
+					"error_message": marshalExpression(assert.ErrorMessage),
+				},
+			})
+		}
+
+		cs = append(cs, c)
+	}
+
+	return cs
 }
 
 // Flatten all resource provider keys in a module and its descendents, such
