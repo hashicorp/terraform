@@ -3,6 +3,8 @@
 BUG FIXES:
 * Prevent sensitive values in non-root module outputs from marking the entire output as sensitive [GH-32891]
 * Fix the handling of planned data source objects when storing a failed plan [GH-32876]
+* Don't fail during plan generation when targeting prevents resources with schema changes from performing a state upgrade [GH-32900]
+
 
 ## 1.4.2 (March 16, 2023)
 
