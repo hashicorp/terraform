@@ -15,12 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/httpclient"
 )
 
-// We borrow the "unpack a zip file into a target directory" logic from
-// go-getter, even though we're not otherwise using go-getter here.
-// (We don't need the same flexibility as we have for modules, because
-// providers _always_ come from provider registries, which have a very
-// specific protocol and set of expectations.)
-var unzip = getter.ZipDecompressor{}
+var unzip = ZipDecompressor{}
 
 func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	url := meta.Location.String()
