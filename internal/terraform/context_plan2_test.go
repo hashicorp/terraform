@@ -4035,3 +4035,66 @@ func TestContext2Plan_dataSourceReadPlanError(t *testing.T) {
 		t.Fatalf("failed to round-trip through planfile: %s", err)
 	}
 }
+
+func TestContext2Plan_ignoredMarkedValue(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  map = {
+    prior = "value"
+    new   = sensitive("ignored")
+  }
+}
+`})
+
+	testProvider := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": providers.Schema{
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"map": {
+								Type:     cty.Map(cty.String),
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	testProvider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		// We're going to ignore any changes here and return the prior state.
+		resp.PlannedState = req.PriorState
+		return resp
+	}
+
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"map":{"prior":"value"}}`),
+			Dependencies: []addrs.ConfigResource{},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+
+	// plan+apply to create the initial state
+	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	for _, c := range plan.Changes.Resources {
+		if c.Action != plans.NoOp {
+			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
+		}
+	}
+}
