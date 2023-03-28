@@ -658,11 +658,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		return plan, state, keyData, diags.Append(err)
 	}
 
-	checkRuleSeverity := tfdiags.Error
-	if n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
-	}
-
 	if plannedChange != nil {
 		// If we already planned the action, we stick to that plan
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
@@ -684,6 +679,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
+	checkRuleSeverity := CheckSeverityError
+	if n.preDestroyRefresh {
+		checkRuleSeverity = CheckSeverityWarning
+	}
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,
@@ -1543,7 +1543,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 // value, but it still matches the previous state, then we can record a NoNop
 // change. If the states don't match then we record a Read change so that the
 // new value is applied to the state.
-func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity tfdiags.Severity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRuleSeverity CheckSeverity, skipPlanChanges bool) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var keyData instances.RepetitionData
 	var configVal cty.Value
@@ -1852,7 +1852,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		addrs.ResourcePrecondition,
 		n.Config.Preconditions,
 		ctx, n.Addr, keyData,
-		tfdiags.Error,
+		CheckSeverityError,
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {

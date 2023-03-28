@@ -62,6 +62,7 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 					addr:          addr,
 					config:        cfg,
 					executeChecks: t.ExecuteChecks(),
+					raiseChecks:   !t.AutoApprovedPlan,
 				}
 			},
 		}
@@ -124,15 +125,21 @@ func (t *checkTransformer) ReportChecks() bool {
 func (t *checkTransformer) ExecuteChecks() bool {
 	switch t.Operation {
 	case walkPlan, walkApply:
-		// We normally execute the checks for plan and apply operations, but if
-		// a plan is being auto approved we don't get any benefit from executing
-		// the checks twice in a row with no opportunity for the user to process
-		// the check results.
-		return !t.AutoApprovedPlan
+		return true
 	default:
 		// For everything else, we still want to validate the checks make sense
 		// logically and syntactically, but we won't actually resolve the check
 		// conditions.
 		return false
 	}
+}
+
+// RaiseChecks returns true if this operation should report the results of the
+// checks as well as executing them.
+//
+// In practice, we don't show the check results during an auto approved plan
+// simply because the apply operation will happen immediately and also report
+// more relevant check results.
+func (t *checkTransformer) RaiseChecks() bool {
+	return !t.AutoApprovedPlan
 }

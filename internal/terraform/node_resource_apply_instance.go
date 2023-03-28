@@ -200,7 +200,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr(),
 		repeatData,
-		tfdiags.Error,
+		CheckSeverityError,
 	)
 	diags = diags.Append(checkDiags)
 
@@ -386,7 +386,7 @@ func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalCo
 		addrs.ResourcePostcondition,
 		n.Config.Postconditions,
 		ctx, n.ResourceInstanceAddr(), repeatData,
-		tfdiags.Error,
+		CheckSeverityError,
 	)
 	return diags.Append(checkDiags)
 }

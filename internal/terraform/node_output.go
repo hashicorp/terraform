@@ -325,9 +325,9 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 	// Checks are not evaluated during a destroy. The checks may fail, may not
 	// be valid, or may not have been registered at all.
 	if !n.DestroyApply {
-		checkRuleSeverity := tfdiags.Error
+		checkRuleSeverity := CheckSeverityError
 		if n.RefreshOnly {
-			checkRuleSeverity = tfdiags.Warning
+			checkRuleSeverity = CheckSeverityWarning
 		}
 		checkDiags := evalCheckRules(
 			addrs.OutputPrecondition,

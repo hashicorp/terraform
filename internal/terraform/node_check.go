@@ -117,6 +117,12 @@ type nodeCheckAssert struct {
 	// operations, but we still want to validate our config during
 	// other operations.
 	executeChecks bool
+
+	// We only want to report the checks during select operations.
+	//
+	// For example, when a plan is auto approved we won't pollute the output
+	// with check results from the plan that can't be used by the user.
+	raiseChecks bool
 }
 
 func (n *nodeCheckAssert) ModulePath() addrs.Module {
@@ -139,14 +145,18 @@ func (n *nodeCheckAssert) Execute(ctx EvalContext, _ walkOperation) tfdiags.Diag
 			return nil
 		}
 
+		severity := CheckSeverityWarning
+		if !n.raiseChecks {
+			severity = CheckSeveritySkip
+		}
+
 		return evalCheckRules(
 			addrs.CheckAssertion,
 			n.config.Asserts,
 			ctx,
 			n.addr,
 			EvalDataForNoInstanceKey,
-			tfdiags.Warning)
-
+			severity)
 	}
 
 	// Otherwise let's still validate the config and references and return

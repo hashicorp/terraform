@@ -18,6 +18,27 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
+type CheckSeverity int
+
+const (
+	CheckSeveritySkip    CheckSeverity = iota // Will not raise diags.
+	CheckSeverityWarning                      // Will raise tfdiags.Warning
+	CheckSeverityError                        // Will raise tfdiags.Error
+)
+
+func (severity CheckSeverity) toHCLDiagnostic() hcl.DiagnosticSeverity {
+	switch severity {
+	case CheckSeverityWarning:
+		return hcl.DiagWarning
+	case CheckSeverityError:
+		return hcl.DiagError
+	case CheckSeveritySkip:
+		return hcl.DiagInvalid
+	default:
+		panic(fmt.Sprintf("unrecognised severity: %d", severity))
+	}
+}
+
 // evalCheckRules ensures that all of the given check rules pass against
 // the given HCL evaluation context.
 //
@@ -27,7 +48,7 @@ import (
 //
 // If any of the rules do not pass, the returned diagnostics will contain
 // errors. Otherwise, it will either be empty or contain only warnings.
-func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, diagSeverity tfdiags.Severity) tfdiags.Diagnostics {
+func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity CheckSeverity) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	checkState := ctx.Checks()
@@ -44,8 +65,6 @@ func evalCheckRules(typ addrs.CheckRuleType, rules []*configs.CheckRule, ctx Eva
 		// Nothing to do
 		return nil
 	}
-
-	severity := diagSeverity.ToHCL()
 
 	for i, rule := range rules {
 		result, ruleDiags := evalCheckRule(typ, rule, ctx, self, keyData, severity)
@@ -107,7 +126,7 @@ func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx Eva
 	return errorMessage, hclCtx, diags
 }
 
-func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity hcl.DiagnosticSeverity) (checkResult, tfdiags.Diagnostics) {
+func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData, severity CheckSeverity) (checkResult, tfdiags.Diagnostics) {
 	// NOTE: Intentionally not passing the caller's selected severity in here,
 	// because this reports errors in the configuration itself, not the failure
 	// of an otherwise-valid condition.
@@ -182,21 +201,24 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 		return checkResult{Status: status}, diags
 	}
 
-	errorMessageForDiags := errorMessage
-	if errorMessageForDiags == "" {
-		errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
+	hclSeverity := severity.toHCLDiagnostic()
+	if hclSeverity != hcl.DiagInvalid {
+		errorMessageForDiags := errorMessage
+		if errorMessageForDiags == "" {
+			errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
+		}
+		diags = diags.Append(&hcl.Diagnostic{
+			// The caller gets to choose the severity of this one, because we
+			// treat condition failures as warnings in the presence of
+			// certain special planning options.
+			Severity:    hclSeverity,
+			Summary:     fmt.Sprintf("%s failed", typ.Description()),
+			Detail:      errorMessageForDiags,
+			Subject:     rule.Condition.Range().Ptr(),
+			Expression:  rule.Condition,
+			EvalContext: hclCtx,
+		})
 	}
-	diags = diags.Append(&hcl.Diagnostic{
-		// The caller gets to choose the severity of this one, because we
-		// treat condition failures as warnings in the presence of
-		// certain special planning options.
-		Severity:    severity,
-		Summary:     fmt.Sprintf("%s failed", typ.Description()),
-		Detail:      errorMessageForDiags,
-		Subject:     rule.Condition.Range().Ptr(),
-		Expression:  rule.Condition,
-		EvalContext: hclCtx,
-	})
 
 	return checkResult{
 		Status:         status,

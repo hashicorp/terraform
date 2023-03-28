@@ -82,9 +82,9 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 
-	checkRuleSeverity := tfdiags.Error
+	checkRuleSeverity := CheckSeverityError
 	if n.skipPlanChanges || n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
+		checkRuleSeverity = CheckSeverityWarning
 	}
 
 	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
@@ -128,9 +128,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
 
-	checkRuleSeverity := tfdiags.Error
+	checkRuleSeverity := CheckSeverityError
 	if n.skipPlanChanges || n.preDestroyRefresh {
-		checkRuleSeverity = tfdiags.Warning
+		checkRuleSeverity = CheckSeverityWarning
 	}
 
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
