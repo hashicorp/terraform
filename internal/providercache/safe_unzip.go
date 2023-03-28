@@ -2,6 +2,7 @@ package providercache
 
 import (
 	"archive/zip"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -125,7 +126,55 @@ func writeAtomically(dstName string, src io.Reader, fmode os.FileMode) error {
 		return fmt.Errorf("cannot set mode to 0%o: %v", fmode, err)
 	}
 	if err = os.Rename(tmpName, dstName); err != nil {
-		return fmt.Errorf("cannot rename temp file: %v", err)
+		// It's possible for different users to share the same cache directory,
+		// and sometimes terraform downloads providers when it shouldn't.
+		// As a last resort, compare new and old file, if they are identical
+		// we are still good.
+		contentIsIdentical, err2 := compareFileContent(tmpName, dstName)
+		if err2 != nil {
+			return err2
+		}
+		if !contentIsIdentical {
+			return fmt.Errorf("cannot rename files, and content is different: %v", err)
+		}
 	}
 	return nil
+}
+
+// Compare the contents of two files. If the contents are the same, return true.
+// We very strongly suspect the files to be the same, so we just do a full
+// content compare.
+func compareFileContent(file1, file2 string) (bool, error) {
+	f1, err := os.Open(file1)
+	if err != nil {
+		return false, err
+	}
+	defer f1.Close()
+	f2, err := os.Open(file2)
+	if err != nil {
+		return false, err
+	}
+	defer f2.Close()
+
+	buf1 := make([]byte, 4096)
+	buf2 := make([]byte, 4096)
+	for {
+		len1, err1 := io.ReadFull(f1, buf1)
+		len2, err2 := io.ReadFull(f2, buf2)
+		if len1 != len2 {
+			return false, nil
+		}
+		if !bytes.Equal(buf1[:len1], buf2[:len2]) {
+			return false, nil
+		}
+		if (err1 == io.EOF && err2 == io.EOF) || (err1 == io.ErrUnexpectedEOF && err2 == io.ErrUnexpectedEOF) {
+			return true, nil
+		}
+		if err1 != nil {
+			return false, err1
+		}
+		if err2 != nil {
+			return false, err2
+		}
+	}
 }
