@@ -15,8 +15,6 @@ import (
 	"github.com/hashicorp/terraform/internal/httpclient"
 )
 
-var unzip = ZipDecompressor{}
-
 func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targetDir string, allowedHashes []getproviders.Hash) (*getproviders.PackageAuthenticationResult, error) {
 	url := meta.Location.String()
 
@@ -128,7 +126,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 	// match the allowed hashes and so our caller should catch that after
 	// we return if so.
 
-	err := unzip.Decompress(targetDir, filename, true, 0000)
+	err := unzip(targetDir, filename)
 	if err != nil {
 		return authResult, err
 	}
