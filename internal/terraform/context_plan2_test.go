@@ -4001,3 +4001,37 @@ output "out" {
 	})
 	assertNoErrors(t, diags)
 }
+
+// Make sure the data sources in the prior state are serializeable even if
+// there were an error in the plan.
+func TestContext2Plan_dataSourceReadPlanError(t *testing.T) {
+	m, snap := testModuleWithSnapshot(t, "data-source-read-with-plan-error")
+	awsProvider := testProvider("aws")
+	testProvider := testProvider("test")
+
+	testProvider.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		resp.PlannedState = req.ProposedNewState
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("oops"))
+		return resp
+	}
+
+	state := states.NewState()
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"):  testProviderFuncFixed(awsProvider),
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testProvider),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if !diags.HasErrors() {
+		t.Fatalf("expected plan error")
+	}
+
+	// make sure we can serialize the plan even if there were an error
+	_, _, _, err := contextOptsForPlanViaFile(t, snap, plan)
+	if err != nil {
+		t.Fatalf("failed to round-trip through planfile: %s", err)
+	}
+}
