@@ -70,23 +70,28 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 			// actual checks.
 			g.Connect(dag.BasicEdge(expand, report))
 
-			// This part ensures we report our checks before our nested data
-			// block executes and attempts to report on a check.
-			for _, other := range allNodes {
-				if resource, isResource := other.(GraphNodeConfigResource); isResource {
-					resourceAddr := resource.ResourceAddr()
-					if !resourceAddr.Module.Equal(moduleAddr) {
-						// This resource isn't in the same module as our check
-						// so skip it.
-						continue
-					}
+			if check.DataResource != nil {
+				// If we have a nested data source, we need to make sure we
+				// also report the check before the data source executes.
+				//
+				// We loop through all the nodes in the graph to find the one
+				// that contains our data source and connect it.
+				for _, other := range allNodes {
+					if resource, isResource := other.(GraphNodeConfigResource); isResource {
+						resourceAddr := resource.ResourceAddr()
+						if !resourceAddr.Module.Equal(moduleAddr) {
+							// This resource isn't in the same module as our check
+							// so skip it.
+							continue
+						}
 
-					resourceCfg := cfg.Module.ResourceByAddr(resourceAddr.Resource)
-					if resourceCfg != nil && resourceCfg.Container != nil && resourceCfg.Container.Accessible(check.Addr()) {
-						// Make sure we report our checks before we execute any
-						// embedded data resource.
-						g.Connect(dag.BasicEdge(other, report))
-						continue
+						resourceCfg := cfg.Module.ResourceByAddr(resourceAddr.Resource)
+						if resourceCfg != nil && resourceCfg.Container != nil && resourceCfg.Container.Accessible(check.Addr()) {
+							// Make sure we report our checks before we execute any
+							// embedded data resource.
+							g.Connect(dag.BasicEdge(other, report))
+							continue
+						}
 					}
 				}
 			}
