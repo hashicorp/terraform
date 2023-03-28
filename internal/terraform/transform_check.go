@@ -76,6 +76,10 @@ func (t *checkTransformer) transform(g *Graph, cfg *configs.Config, allNodes []d
 			}
 			g.Add(report)
 
+			// Make sure we report our checks before we start executing the
+			// actual checks.
+			g.Connect(dag.BasicEdge(expand, report))
+
 			// This part ensures we report our checks before our nested data
 			// block executes and attempts to report on a check.
 			for _, other := range allNodes {
