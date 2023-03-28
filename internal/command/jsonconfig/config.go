@@ -127,6 +127,7 @@ type check struct {
 // checkRule is a single assertion rule within a check block.
 type checkRule struct {
 	// Expressions represent the condition and error message expressions for a
+	// single check rule.
 	Expressions map[string]interface{} `json:"expressions,omitempty"`
 }
 
