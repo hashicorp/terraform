@@ -9,10 +9,11 @@ import (
 	"strings"
 )
 
-// Based on https://github.com/hashicorp/go-getter
-// Simplified, removed dead code
-
-func unzip(dst, src string) error {
+// safeUnzip safely unzips a zip file named src into dstDir
+// Based on https://github.com/hashicorp/go-getter ZipDecompressor.Decompress()
+// Simplified, removed dead code due to how we call it.
+// Changed to use atomic writer.
+func safeUnzip(dstDir, src string) error {
 	// Open the zip
 	zipR, err := zip.OpenReader(src)
 	if err != nil {
@@ -33,7 +34,7 @@ func unzip(dst, src string) error {
 			return fmt.Errorf("entry contains '..': %s", f.Name)
 		}
 
-		path := filepath.Join(dst, f.Name)
+		path := filepath.Join(dstDir, f.Name)
 
 		if f.FileInfo().IsDir() {
 			// A directory, just make the directory and continue unarchiving...
@@ -59,7 +60,7 @@ func unzip(dst, src string) error {
 			return err
 		}
 
-		err = copyReader(path, srcF, f.Mode())
+		err = writeAtomically(path, srcF, f.Mode())
 		srcF.Close()
 		if err != nil {
 			return err
@@ -86,22 +87,45 @@ func containsDotDot(v string) bool {
 
 func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
 
-// copyReader copies from an io.Reader into a file, using umask to create the dst file
-// copied from https://github.com/hashicorp/go-getter get_file_copy.go
-func copyReader(dst string, src io.Reader, fmode os.FileMode) error {
-	dstF, err := os.OpenFile(dst, os.O_RDWR|os.O_CREATE|os.O_TRUNC, fmode)
-	if err != nil {
-		return err
+// writeAtomically copies from an io.Reader into a file atomically.
+// It guarantees that the file is complete and has the correct file
+// mode before it becomes accessible at its final name, will handle
+// multiple callers trying to create the same file simultaneously,
+// and avoids ETXTBSY problems when overwriting running executables.
+//
+// Adapted from from https://github.com/hashicorp/go-getter get_file_copy.go copyReader()
+func writeAtomically(dstName string, src io.Reader, fmode os.FileMode) error {
+	dir, file := filepath.Split(dstName)
+	if dir == "" {
+		dir = "."
 	}
-	defer dstF.Close()
-
-	_, err = io.Copy(dstF, src)
+	tmpFile, err := os.CreateTemp(dir, file)
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot create temp file: %v", err)
 	}
+	tmpName := tmpFile.Name()
+	defer func() {
+		if err != nil {
+			// Ignore errors in cleanup, just do the best we can
+			_ = tmpFile.Close()
+			_ = os.Remove(tmpName)
+		}
+	}()
 
-	// Explicitly chmod; the process umask is unconditionally applied otherwise.
-	// We'll mask the mode with our own umask, but that may be different than
-	// the process umask
-	return os.Chmod(dst, fmode)
+	if _, err = io.Copy(tmpFile, src); err != nil {
+		return fmt.Errorf("cannot write to temp file: %v", err)
+	}
+	if err = tmpFile.Sync(); err != nil {
+		return fmt.Errorf("cannot flush tmp file: %v", err)
+	}
+	if err = tmpFile.Close(); err != nil {
+		return fmt.Errorf("cannot close tmp file: %v", err)
+	}
+	if err = os.Chmod(tmpName, fmode); err != nil {
+		return fmt.Errorf("cannot set mode to 0%o: %v", fmode, err)
+	}
+	if err = os.Rename(tmpName, dstName); err != nil {
+		return fmt.Errorf("cannot rename temp file: %v", err)
+	}
+	return nil
 }

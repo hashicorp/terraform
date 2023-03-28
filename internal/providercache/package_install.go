@@ -126,7 +126,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 	// match the allowed hashes and so our caller should catch that after
 	// we return if so.
 
-	err := unzip(targetDir, filename)
+	err := safeUnzip(targetDir, filename)
 	if err != nil {
 		return authResult, err
 	}
