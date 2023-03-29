@@ -13,7 +13,6 @@ project "terraform" {
     release_branches = [
       "main",
       "release/**",
-      "releng/**",
       "v**.**",
     ]
   }
@@ -54,6 +53,7 @@ event "trigger-staging" {
 }
 
 event "promote-staging" {
+  depends = ["trigger-staging"]
   action "promote-staging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
@@ -72,6 +72,19 @@ event "promote-staging-docker" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "promote-staging-docker"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "promote-staging-packaging" {
+  depends = ["promote-staging-docker"]
+  action "promote-staging-packaging" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-staging-packaging"
   }
 
   notification {
@@ -124,7 +137,7 @@ event "promote-production-packaging" {
 }
 
 event "update-ironbank" {
-  depends = ["bump-version-patch"]
+  depends = ["promote-production-packaging"]
   action "update-ironbank" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
