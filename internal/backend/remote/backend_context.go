@@ -22,8 +22,10 @@ func (b *Remote) LocalRun(op *backend.Operation) (*backend.LocalRun, statemgr.Fu
 	var diags tfdiags.Diagnostics
 	ret := &backend.LocalRun{
 		PlanOpts: &terraform.PlanOpts{
-			Mode:    op.PlanMode,
-			Targets: op.Targets,
+			Mode:            op.PlanMode,
+			Targets:         op.Targets,
+			AutoApprove:     op.AutoApprove,
+			PlanDuringApply: op.Type == backend.OperationTypeApply,
 		},
 	}
 
