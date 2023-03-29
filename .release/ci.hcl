@@ -137,7 +137,7 @@ event "promote-production-packaging" {
 }
 
 event "update-ironbank" {
-  depends = ["bump-version-patch"]
+  depends = ["promote-production-packaging"]
   action "update-ironbank" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
