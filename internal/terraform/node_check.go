@@ -1,8 +1,9 @@
 package terraform
 
 import (
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"log"
+
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
