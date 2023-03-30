@@ -1,10 +1,12 @@
+## 1.4.4 (Unreleased)
+
 ## 1.4.3 (March 30, 2023)
 
 BUG FIXES:
-* Prevent sensitive values in non-root module outputs from marking the entire output as sensitive [#32891](https://github.com/hashicorp/terraform/issues/32891)
-* Fix the handling of planned data source objects when storing a failed plan [#32876](https://github.com/hashicorp/terraform/issues/32876)
-* Don't fail during plan generation when targeting prevents resources with schema changes from performing a state upgrade [#32900](https://github.com/hashicorp/terraform/issues/32900)
-* Skip planned changes in sensitive marks when the changed attribute is discarded by the provider [#32892](https://github.com/hashicorp/terraform/issues/32892)
+* Prevent sensitive values in non-root module outputs from marking the entire output as sensitive ([#32891](https://github.com/hashicorp/terraform/issues/32891))
+* Fix the handling of planned data source objects when storing a failed plan ([#32876](https://github.com/hashicorp/terraform/issues/32876))
+* Don't fail during plan generation when targeting prevents resources with schema changes from performing a state upgrade ([#32900](https://github.com/hashicorp/terraform/issues/32900))
+* Skip planned changes in sensitive marks when the changed attribute is discarded by the provider ([#32892](https://github.com/hashicorp/terraform/issues/32892))
 
 ## 1.4.2 (March 16, 2023)
 
