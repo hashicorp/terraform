@@ -1,4 +1,8 @@
-## 1.4.4 (Unreleased)
+## 1.4.4 (March 30, 2023)
+
+Due to an incident while migrating build systems for the 1.4.3 release where 
+`CGO_ENABLED=0` was not set, we are rebuilding that version as 1.4.4 with the 
+flag set. No other changes have been made between 1.4.3 and 1.4.4.
 
 ## 1.4.3 (March 30, 2023)
 
