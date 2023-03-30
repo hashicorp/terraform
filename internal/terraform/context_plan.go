@@ -651,12 +651,7 @@ func (c *Context) checksPostProcessing(diags tfdiags.Diagnostics, changes *plans
 	if opts.AutoApprove || (opts.PlanDuringApply && changes.Empty() && len(drift) == 0) {
 		var filtered tfdiags.Diagnostics
 		for _, diag := range diags {
-			switch diag.Description().Summary {
-			case fmt.Sprintf("%s known after apply", addrs.CheckDataResource.Description()):
-				continue
-			case fmt.Sprintf("%s failed", addrs.CheckAssertion.Description()):
-				continue
-			default:
+			if !tfdiags.IsFromCheckBlock(diag) {
 				filtered = filtered.Append(diag)
 			}
 		}

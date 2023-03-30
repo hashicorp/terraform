@@ -127,14 +127,14 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 
 		// Check assertions warn if a status is unknown.
 		if typ == addrs.CheckAssertion {
-			diags = diags.Append(&hcl.Diagnostic{
+			diags = diags.Append(tfdiags.AsCheckBlockDiagnostic(&hcl.Diagnostic{
 				Severity:    hcl.DiagWarning,
 				Summary:     fmt.Sprintf("%s known after apply", typ.Description()),
 				Detail:      "The condition could not be evaluated at this time, a result will be known when this plan is applied.",
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
-			})
+			}))
 		}
 
 		// We'll wait until we've learned more, then.
@@ -186,7 +186,7 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 	if errorMessageForDiags == "" {
 		errorMessageForDiags = "This check failed, but has an invalid error message as described in the other accompanying messages."
 	}
-	diags = diags.Append(&hcl.Diagnostic{
+	diag := &hcl.Diagnostic{
 		// The caller gets to choose the severity of this one, because we
 		// treat condition failures as warnings in the presence of
 		// certain special planning options.
@@ -196,7 +196,13 @@ func evalCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalCon
 		Subject:     rule.Condition.Range().Ptr(),
 		Expression:  rule.Condition,
 		EvalContext: hclCtx,
-	})
+	}
+
+	if typ == addrs.CheckAssertion {
+		diags = diags.Append(tfdiags.AsCheckBlockDiagnostic(diag))
+	} else {
+		diags = diags.Append(diag)
+	}
 
 	return checkResult{
 		Status:         status,
