@@ -1689,6 +1689,115 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// When validating collections we start by comparing length, which
+		// requires guarding for any unknown values incorrectly returned by the
+		// provider.
+		"nested collection attrs planned unknown": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"list": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"map": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			// provider cannot override the config
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"list": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"map": cty.UnknownVal(cty.Map(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+			}),
+			[]string{
+				`.set: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.list: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.map: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
+			},
+		},
 	}
 
 	for name, test := range tests {
