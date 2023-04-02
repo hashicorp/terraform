@@ -20,8 +20,8 @@ in the main Terraform language, including interpolation sequences delimited with
 `${` ... `}`. This function just allows longer template sequences to be factored
 out into a separate file for readability.
 
-The "vars" argument must be a map. Within the template file, each of the keys
-in the map is available as a variable for interpolation. The template may
+The "vars" argument must be an object. Within the template file, each of the
+keys in the map is available as a variable for interpolation. The template may
 also use any other function available in the Terraform language, except that
 recursive calls to `templatefile` are not permitted. Variable names must
 each start with a letter, followed by zero or more letters, digits, or
