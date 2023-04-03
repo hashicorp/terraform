@@ -43,8 +43,7 @@ There are no official packages available for other architectures, such as
 The HashiCorp APT server contains release repositories for a variety of
 supported distributions, which are outlined in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
 
-
-## Choosing Terraform Versions
+## Installing a Specific Version of Terraform
 
 The HashiCorp APT repositories contain multiple versions of Terraform, but
 because the packages are all named `terraform` it is impossible to install
@@ -59,22 +58,33 @@ see which versions are currently available in the repository index:
 apt policy terraform
 ```
 
-There may be multiple package releases for a particular Terraform version if
-we need to publish an updated package for any reason. In that case, the
-subsequent releases will have an additional suffix, like `0.13.4-2`. In these
-cases, the Terraform executable inside the package should be unchanged, but its
-metadata and other contents may be different.
-
-You can select a specific version to install by including it in the
-`apt install` command line, as follows:
-
-```bash
-sudo apt install terraform=0.14.0
-```
-
 If your workflow requires using multiple versions of Terraform at the same
 time, for example when working through a gradual upgrade where not all
 of your configurations are upgraded yet, we recommend that you use the
 official release `.zip` files instead of the APT packages, so you can install
 multiple versions at once and then select which to use for each command you
 run.
+
+### Terraform 1.4.3 and Later
+
+As of Terraform 1.4.3, all published packages include a revision number by
+default, starting with `-1`. This change means that in the case that we need
+to publish an updated package for any reason, installers can automatically
+retrieve the latest revision. You can learn more about this packaging change
+in [the announcement](https://discuss.hashicorp.com/t/linux-packaging-debian-revision-change/42403).
+
+You can install the latest revision for a particular version by including the
+version in the `apt install` command, as follows:
+
+```bash
+sudo apt install terraform=1.4.4-*
+```
+
+### Terraform 1.4.2 and Earlier
+
+Terraform 1.4.2 and earlier did not include a revision number for the first
+revision, so you can use the following pattern to install a specific version:
+
+```bash
+sudo apt install terraform=1.4.0
+```
