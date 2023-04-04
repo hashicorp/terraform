@@ -3,6 +3,7 @@ package terraform
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -37,6 +38,7 @@ type ContextGraphWalker struct {
 	StopContext        context.Context
 	RootVariableValues InputValues
 	Config             *configs.Config
+	PlanTimestamp      time.Time
 
 	// This is an output. Do not set this, nor read it while a graph walk
 	// is in progress.
@@ -85,6 +87,7 @@ func (w *ContextGraphWalker) EvalContext() EvalContext {
 		Plugins:            w.Context.plugins,
 		VariableValues:     w.variableValues,
 		VariableValuesLock: &w.variableValuesLock,
+		PlanTimestamp:      w.PlanTimestamp,
 	}
 
 	ctx := &BuiltinEvalContext{

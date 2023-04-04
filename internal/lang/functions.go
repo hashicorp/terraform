@@ -159,6 +159,12 @@ func (s *Scope) Functions() map[string]function.Function {
 			s.funcs["type"] = funcs.TypeFunc
 		}
 
+		if !s.ConsoleMode {
+			// The plantimestamp function doesn't make sense in the terraform
+			// console.
+			s.funcs["plantimestamp"] = funcs.MakeStaticTimestampFunc(s.PlanTimestamp)
+		}
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.

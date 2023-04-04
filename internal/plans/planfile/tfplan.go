@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
@@ -244,6 +245,10 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			Config:    config,
 			Workspace: rawBackend.Workspace,
 		}
+	}
+
+	if plan.Timestamp, err = time.Parse(time.RFC3339, rawPlan.Timestamp); err != nil {
+		return nil, fmt.Errorf("invalid value for timestamp %s: %s", rawPlan.Timestamp, err)
 	}
 
 	return plan, nil
@@ -607,6 +612,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Config:    valueToTfplan(plan.Backend.Config),
 		Workspace: plan.Backend.Workspace,
 	}
+
+	rawPlan.Timestamp = plan.Timestamp.Format(time.RFC3339)
 
 	src, err := proto.Marshal(rawPlan)
 	if err != nil {
