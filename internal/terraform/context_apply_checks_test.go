@@ -719,7 +719,7 @@ check "error" {
 			}
 
 			plan, diags := ctx.Plan(configs, initialState, &PlanOpts{
-				Mode:        plans.NormalMode,
+				Mode: plans.NormalMode,
 			})
 			if validateCheckDiagnostics(t, "planning", test.planWarning, test.planError, diags) {
 				return

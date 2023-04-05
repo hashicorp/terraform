@@ -33,14 +33,6 @@ type PlanOpts struct {
 	// instance using its corresponding provider.
 	SkipRefresh bool
 
-	// AutoApprove specifies that this plan is to be auto approved, so Terraform
-	// will not wait for user approval before applying the plan.
-	AutoApprove bool
-
-	// PlanDuringApply specifies that this plan is running as part of a larger
-	// apply operation, one in which there was no pre-computed plan.
-	PlanDuringApply bool
-
 	// PreDestroyRefresh indicated that this is being passed to a plan used to
 	// refresh the state immediately before a destroy plan.
 	// FIXME: This is a temporary fix to allow the pre-destroy refresh to
@@ -582,8 +574,6 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	driftedResources, driftDiags := c.driftedResources(config, prevRunState, priorState, moveResults)
 	diags = diags.Append(driftDiags)
 
-	diags = c.checksPostProcessing(diags, changes, driftedResources, opts)
-
 	plan := &plans.Plan{
 		UIMode:           opts.Mode,
 		Changes:          changes,
@@ -639,25 +629,6 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 		// The above should cover all plans.Mode values
 		panic(fmt.Sprintf("unsupported plan mode %s", mode))
 	}
-}
-
-// checksPostProcessing scans through the diagnostics, finds any produced by
-// checks blocks, and filters/modifiers them based on some metadata about the
-// current plan operation.
-//
-// Specifically, we remove diagnostics for checks when running an auto-approved
-// plan or when running a plan during an apply that has produced no changes.
-func (c *Context) checksPostProcessing(diags tfdiags.Diagnostics, changes *plans.Changes, drift []*plans.ResourceInstanceChangeSrc, opts *PlanOpts) tfdiags.Diagnostics {
-	if opts.AutoApprove || (opts.PlanDuringApply && changes.Empty() && len(drift) == 0) {
-		var filtered tfdiags.Diagnostics
-		for _, diag := range diags {
-			if !tfdiags.IsFromCheckBlock(diag) {
-				filtered = filtered.Append(diag)
-			}
-		}
-		return filtered
-	}
-	return diags
 }
 
 // driftedResources is a best-effort attempt to compare the current and prior
