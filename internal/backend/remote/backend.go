@@ -694,7 +694,18 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
-	return &remote.State{Client: client}, nil
+	return &remote.State{
+		Client: client,
+
+		// client.runID will be set if we're running a the Terraform Cloud
+		// or Terraform Enterprise remote execution environment, in which
+		// case we'll disable intermediate snapshots to avoid extra storage
+		// costs for Terraform Enterprise customers.
+		// Other implementations of the remote state protocol should not run
+		// in contexts where there's a "TFE Run ID" and so are not affected
+		// by this special case.
+		DisableIntermediateSnapshots: client.runID != "",
+	}, nil
 }
 
 func isLocalExecutionMode(execMode string) bool {
