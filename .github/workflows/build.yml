@@ -101,7 +101,7 @@ jobs:
       package-name: ${{ needs.get-product-version.outputs.pkg-name }}
       product-version: ${{ needs.get-product-version.outputs.product-version }}
       ld-flags: ${{ needs.get-product-version.outputs.go-ldflags }}
-      cgo-enabled: ${{ matrix.cgo }}
+      cgo-enabled: ${{ matrix.cgo-enabled }}
       runson: ${{ matrix.runson }}
     secrets: inherit
     strategy:
@@ -149,7 +149,7 @@ jobs:
           dockerfile: .github/workflows/build-Dockerfile
           tags: |
             docker.io/hashicorp/${{env.repo}}:${{env.version}}
-            986891699432.dkr.ecr.us-east-1.amazonaws.com/hashicorp/${{env.repo}}:${{env.version}}
+            public.ecr.aws/hashicorp/${{env.repo}}:${{env.version}}
 
   e2etest-build:
     name: Build e2etest for ${{ matrix.goos }}_${{ matrix.goarch }}

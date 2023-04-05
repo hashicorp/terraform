@@ -34,7 +34,6 @@ func TestContextChecks(t *testing.T) {
 		apply        map[string]checksTestingStatus
 		applyError   string
 		applyWarning string
-		autoApprove  bool
 		state        *states.State
 		provider     *MockProvider
 		providerHook func(*MockProvider)
@@ -89,57 +88,6 @@ check "passing" {
 				},
 			},
 		},
-		"passing_auto_approve": {
-			configs: map[string]string{
-				"main.tf": `
-provider "checks" {}
-
-check "passing" {
-  data "checks_object" "positive" {}
-
-  assert {
-    condition     = data.checks_object.positive.number >= 0
-    error_message = "negative number"
-  }
-}
-`,
-			},
-			plan: map[string]checksTestingStatus{
-				"passing": {
-					status: checks.StatusPass,
-				},
-			},
-			apply: map[string]checksTestingStatus{
-				"passing": {
-					status: checks.StatusPass,
-				},
-			},
-			autoApprove: true,
-			provider: &MockProvider{
-				Meta: "checks",
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					DataSources: map[string]providers.Schema{
-						"checks_object": {
-							Block: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"number": {
-										Type:     cty.Number,
-										Computed: true,
-									},
-								},
-							},
-						},
-					},
-				},
-				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
-					return providers.ReadDataSourceResponse{
-						State: cty.ObjectVal(map[string]cty.Value{
-							"number": cty.NumberIntVal(0),
-						}),
-					}
-				},
-			},
-		},
 		"failing": {
 			configs: map[string]string{
 				"main.tf": `
@@ -169,60 +117,6 @@ check "failing" {
 				},
 			},
 			applyWarning: "Check block assertion failed: negative number",
-			provider: &MockProvider{
-				Meta: "checks",
-				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
-					DataSources: map[string]providers.Schema{
-						"checks_object": {
-							Block: &configschema.Block{
-								Attributes: map[string]*configschema.Attribute{
-									"number": {
-										Type:     cty.Number,
-										Computed: true,
-									},
-								},
-							},
-						},
-					},
-				},
-				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
-					return providers.ReadDataSourceResponse{
-						State: cty.ObjectVal(map[string]cty.Value{
-							"number": cty.NumberIntVal(-1),
-						}),
-					}
-				},
-			},
-		},
-		"failing_auto_approve": {
-			configs: map[string]string{
-				"main.tf": `
-provider "checks" {}
-
-check "failing" {
-  data "checks_object" "positive" {}
-
-  assert {
-    condition     = data.checks_object.positive.number >= 0
-    error_message = "negative number"
-  }
-}
-`,
-			},
-			plan: map[string]checksTestingStatus{
-				"failing": {
-					status:   checks.StatusFail,
-					messages: []string{"negative number"},
-				},
-			},
-			apply: map[string]checksTestingStatus{
-				"failing": {
-					status:   checks.StatusFail,
-					messages: []string{"negative number"},
-				},
-			},
-			applyWarning: "Check block assertion failed: negative number",
-			autoApprove:  true,
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -540,6 +434,107 @@ check "error" {
 					}
 				},
 			},
+		}, "failing nested data source should prevent checks from executing": {
+			configs: map[string]string{
+				"main.tf": `
+provider "checks" {}
+
+resource "checks_object" "resource_block" {
+  number = -1
+}
+
+check "error" {
+  data "checks_object" "data_block" {}
+
+  assert {
+    condition = checks_object.resource_block.number >= 0
+    error_message = "negative number"
+  }
+}
+`,
+			},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "checks_object",
+						Name: "resource_block",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"number": -1}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					})
+			}),
+			plan: map[string]checksTestingStatus{
+				"error": {
+					status: checks.StatusFail,
+					messages: []string{
+						"data source read failed: something bad happened and the provider couldn't read the data source",
+					},
+				},
+			},
+			planWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
+			apply: map[string]checksTestingStatus{
+				"error": {
+					status: checks.StatusFail,
+					messages: []string{
+						"data source read failed: something bad happened and the provider couldn't read the data source",
+					},
+				},
+			},
+			applyWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
+			provider: &MockProvider{
+				Meta: "checks",
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"checks_object": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"number": {
+										Type:     cty.Number,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+					DataSources: map[string]providers.Schema{
+						"checks_object": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"number": {
+										Type:     cty.Number,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return providers.PlanResourceChangeResponse{
+						PlannedState: cty.ObjectVal(map[string]cty.Value{
+							"number": cty.NumberIntVal(-1),
+						}),
+					}
+				},
+				ApplyResourceChangeFn: func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					return providers.ApplyResourceChangeResponse{
+						NewState: cty.ObjectVal(map[string]cty.Value{
+							"number": cty.NumberIntVal(-1),
+						}),
+					}
+				},
+				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					return providers.ReadDataSourceResponse{
+						Diagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "data source read failed", "something bad happened and the provider couldn't read the data source")},
+					}
+				},
+			},
 		},
 		"check failing in state and passing after plan and apply": {
 			configs: map[string]string{
@@ -725,7 +720,6 @@ check "error" {
 
 			plan, diags := ctx.Plan(configs, initialState, &PlanOpts{
 				Mode:        plans.NormalMode,
-				AutoApprove: test.autoApprove,
 			})
 			if validateCheckDiagnostics(t, "planning", test.planWarning, test.planError, diags) {
 				return

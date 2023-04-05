@@ -3,6 +3,8 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -92,10 +94,26 @@ func (n *nodeExpandCheck) DynamicExpand(ctx EvalContext) (*Graph, error) {
 func (n *nodeExpandCheck) References() []*addrs.Reference {
 	var refs []*addrs.Reference
 	for _, assert := range n.config.Asserts {
+		// Check blocks reference anything referenced by conditions or messages
+		// in their check rules.
 		condition, _ := lang.ReferencesInExpr(assert.Condition)
 		message, _ := lang.ReferencesInExpr(assert.ErrorMessage)
 		refs = append(refs, condition...)
 		refs = append(refs, message...)
+	}
+	if n.config.DataResource != nil {
+		// We'll also always reference our nested data block if it exists, as
+		// there is nothing enforcing that it has to also be referenced by our
+		// conditions or messages.
+		//
+		// We don't need to make this addr absolute, because the check block and
+		// the data resource are always within the same module/instance.
+		traversal, _ := hclsyntax.ParseTraversalAbs(
+			[]byte(n.config.DataResource.Addr().String()),
+			n.config.DataResource.DeclRange.Filename,
+			n.config.DataResource.DeclRange.Start)
+		ref, _ := addrs.ParseRef(traversal)
+		refs = append(refs, ref)
 	}
 	return refs
 }

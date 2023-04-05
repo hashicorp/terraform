@@ -13,7 +13,6 @@ project "terraform" {
     release_branches = [
       "main",
       "release/**",
-      "releng/**",
       "v**.**",
     ]
   }
@@ -54,6 +53,7 @@ event "trigger-staging" {
 }
 
 event "promote-staging" {
+  depends = ["trigger-staging"]
   action "promote-staging" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
@@ -72,6 +72,19 @@ event "promote-staging-docker" {
     organization = "hashicorp"
     repository = "crt-workflows-common"
     workflow = "promote-staging-docker"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "promote-staging-packaging" {
+  depends = ["promote-staging-docker"]
+  action "promote-staging-packaging" {
+    organization = "hashicorp"
+    repository = "crt-workflows-common"
+    workflow = "promote-staging-packaging"
   }
 
   notification {
@@ -123,21 +136,24 @@ event "promote-production-packaging" {
   }
 }
 
-event "update-ironbank" {
-  depends = ["bump-version-patch"]
-  action "update-ironbank" {
-    organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "update-ironbank"
-  }
+// commenting the ironbank update for now until it is all set up on the Ironbank side
 
-  notification {
-    on = "always"
-  }
-}
+// event "update-ironbank" {
+//   depends = ["promote-production-packaging"]
+//   action "update-ironbank" {
+//     organization = "hashicorp"
+//     repository = "crt-workflows-common"
+//     workflow = "update-ironbank"
+//   }
+
+//   notification {
+//     on = "always"
+//   }
+// }
 
 event "crt-hook-tfc-upload" {
-  depends = ["update-ironbank"]
+  // this will need to be changed back to update-ironbank once the Ironbank setup is done
+  depends = ["promote-production-packaging"]
   action "crt-hook-tfc-upload" {
     organization = "hashicorp"
     repository = "terraform-releases"
