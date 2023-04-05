@@ -21,6 +21,8 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	uuid "github.com/hashicorp/go-uuid"
+
+	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
@@ -66,6 +68,7 @@ remote state version.
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
+var _ local.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -221,6 +224,14 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.readLineage = s.lineage
 	s.readSerial = s.serial
 	return nil
+}
+
+// ShouldPersistIntermediateState implements local.IntermediateStateConditionalPersister
+func (*State) ShouldPersistIntermediateState(info *local.IntermediateStatePersistInfo) bool {
+	// We currently don't create intermediate snapshots for Terraform Cloud or
+	// Terraform Enterprise at all, to avoid extra storage costs for Terraform
+	// Enterprise customers.
+	return false
 }
 
 func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, state, jsonState, jsonStateOutputs []byte) error {

@@ -11,6 +11,7 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 
+	"github.com/hashicorp/terraform/internal/backend/local"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -39,10 +40,17 @@ type State struct {
 	serial, readSerial   uint64
 	state, readState     *states.State
 	disableLocks         bool
+
+	// If this is set then the state manager will decline to store intermediate
+	// state snapshots created while a Terraform Core apply operation is in
+	// progress. Otherwise (by default) it will accept persistent snapshots
+	// using the default rules defined in the local backend.
+	DisableIntermediateSnapshots bool
 }
 
 var _ statemgr.Full = (*State)(nil)
 var _ statemgr.Migrator = (*State)(nil)
+var _ local.IntermediateStateConditionalPersister = (*State)(nil)
 
 // statemgr.Reader impl.
 func (s *State) State() *states.State {
@@ -217,6 +225,14 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.readLineage = s.lineage
 	s.readSerial = s.serial
 	return nil
+}
+
+// ShouldPersistIntermediateState implements local.IntermediateStateConditionalPersister
+func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePersistInfo) bool {
+	if s.DisableIntermediateSnapshots {
+		return false
+	}
+	return local.DefaultIntermediateStatePersistRule(info)
 }
 
 // Lock calls the Client's Lock method if it's implemented.
