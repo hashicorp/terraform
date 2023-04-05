@@ -30,8 +30,10 @@ func TestContextChecks(t *testing.T) {
 		configs      map[string]string
 		plan         map[string]checksTestingStatus
 		planError    string
+		planWarning  string
 		apply        map[string]checksTestingStatus
 		applyError   string
+		applyWarning string
 		state        *states.State
 		provider     *MockProvider
 		providerHook func(*MockProvider)
@@ -107,12 +109,14 @@ check "failing" {
 					messages: []string{"negative number"},
 				},
 			},
+			planWarning: "Check block assertion failed: negative number",
 			apply: map[string]checksTestingStatus{
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"negative number"},
 				},
 			},
+			applyWarning: "Check block assertion failed: negative number",
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -164,12 +168,14 @@ check "failing" {
 					messages: []string{"positive number"},
 				},
 			},
+			planWarning: "Check block assertion failed: positive number",
 			apply: map[string]checksTestingStatus{
 				"failing": {
 					status:   checks.StatusFail,
 					messages: []string{"positive number"},
 				},
 			},
+			applyWarning: "Check block assertion failed: positive number",
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -229,6 +235,7 @@ check "nested_data_block" {
 					messages: []string{"negative number"},
 				},
 			},
+			planWarning: "2 warnings:\n\n- Check block assertion failed: negative number\n- Check block assertion failed: negative number",
 			apply: map[string]checksTestingStatus{
 				"nested_data_block": {
 					status: checks.StatusPass,
@@ -238,6 +245,7 @@ check "nested_data_block" {
 					messages: []string{"negative number"},
 				},
 			},
+			applyWarning: "Check block assertion failed: negative number",
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -300,6 +308,7 @@ check "resource_block" {
 					status: checks.StatusUnknown,
 				},
 			},
+			planWarning: "Check block assertion known after apply: The condition could not be evaluated at this time, a result will be known when this plan is applied.",
 			apply: map[string]checksTestingStatus{
 				"resource_block": {
 					status: checks.StatusPass,
@@ -393,6 +402,7 @@ check "error" {
 					},
 				},
 			},
+			planWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
 			apply: map[string]checksTestingStatus{
 				"error": {
 					status: checks.StatusFail,
@@ -401,6 +411,7 @@ check "error" {
 					},
 				},
 			},
+			applyWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
 			provider: &MockProvider{
 				Meta: "checks",
 				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
@@ -416,6 +427,107 @@ check "error" {
 							},
 						},
 					},
+				},
+				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
+					return providers.ReadDataSourceResponse{
+						Diagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "data source read failed", "something bad happened and the provider couldn't read the data source")},
+					}
+				},
+			},
+		}, "failing nested data source should prevent checks from executing": {
+			configs: map[string]string{
+				"main.tf": `
+provider "checks" {}
+
+resource "checks_object" "resource_block" {
+  number = -1
+}
+
+check "error" {
+  data "checks_object" "data_block" {}
+
+  assert {
+    condition = checks_object.resource_block.number >= 0
+    error_message = "negative number"
+  }
+}
+`,
+			},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "checks_object",
+						Name: "resource_block",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status:    states.ObjectReady,
+						AttrsJSON: []byte(`{"number": -1}`),
+					},
+					addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					})
+			}),
+			plan: map[string]checksTestingStatus{
+				"error": {
+					status: checks.StatusFail,
+					messages: []string{
+						"data source read failed: something bad happened and the provider couldn't read the data source",
+					},
+				},
+			},
+			planWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
+			apply: map[string]checksTestingStatus{
+				"error": {
+					status: checks.StatusFail,
+					messages: []string{
+						"data source read failed: something bad happened and the provider couldn't read the data source",
+					},
+				},
+			},
+			applyWarning: "data source read failed: something bad happened and the provider couldn't read the data source",
+			provider: &MockProvider{
+				Meta: "checks",
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"checks_object": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"number": {
+										Type:     cty.Number,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+					DataSources: map[string]providers.Schema{
+						"checks_object": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"number": {
+										Type:     cty.Number,
+										Computed: true,
+									},
+								},
+							},
+						},
+					},
+				},
+				PlanResourceChangeFn: func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+					return providers.PlanResourceChangeResponse{
+						PlannedState: cty.ObjectVal(map[string]cty.Value{
+							"number": cty.NumberIntVal(-1),
+						}),
+					}
+				},
+				ApplyResourceChangeFn: func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+					return providers.ApplyResourceChangeResponse{
+						NewState: cty.ObjectVal(map[string]cty.Value{
+							"number": cty.NumberIntVal(-1),
+						}),
+					}
 				},
 				ReadDataSourceFn: func(request providers.ReadDataSourceRequest) providers.ReadDataSourceResponse {
 					return providers.ReadDataSourceResponse{
@@ -609,7 +721,7 @@ check "error" {
 			plan, diags := ctx.Plan(configs, initialState, &PlanOpts{
 				Mode: plans.NormalMode,
 			})
-			if validateError(t, "planning", test.planError, diags) {
+			if validateCheckDiagnostics(t, "planning", test.planWarning, test.planError, diags) {
 				return
 			}
 			validateCheckResults(t, "planning", test.plan, plan.Checks)
@@ -621,7 +733,7 @@ check "error" {
 			}
 
 			state, diags := ctx.Apply(plan, configs)
-			if validateError(t, "apply", test.applyError, diags) {
+			if validateCheckDiagnostics(t, "apply", test.applyWarning, test.applyError, diags) {
 				return
 			}
 			validateCheckResults(t, "apply", test.apply, state.CheckResults)
@@ -629,14 +741,29 @@ check "error" {
 	}
 }
 
-func validateError(t *testing.T, stage string, expected string, actual tfdiags.Diagnostics) bool {
-	if expected != "" {
+func validateCheckDiagnostics(t *testing.T, stage string, expectedWarning, expectedError string, actual tfdiags.Diagnostics) bool {
+	if expectedError != "" {
 		if !actual.HasErrors() {
-			t.Errorf("expected %s to error with \"%s\", but no errors were returned", stage, expected)
-		} else if expected != actual.Err().Error() {
-			t.Errorf("expected %s to error with \"%s\" but found \"%s\"", stage, expected, actual.Err())
+			t.Errorf("expected %s to error with \"%s\", but no errors were returned", stage, expectedError)
+		} else if expectedError != actual.Err().Error() {
+			t.Errorf("expected %s to error with \"%s\" but found \"%s\"", stage, expectedError, actual.Err())
 		}
+
+		// If we expected an error then we won't finish the rest of the test.
 		return true
+	}
+
+	if expectedWarning != "" {
+		warnings := actual.ErrWithWarnings()
+		if actual.ErrWithWarnings() == nil {
+			t.Errorf("expected %s to warn with \"%s\", but no errors were returned", stage, expectedWarning)
+		} else if expectedWarning != warnings.Error() {
+			t.Errorf("expected %s to warn with \"%s\" but found \"%s\"", stage, expectedWarning, warnings)
+		}
+	} else {
+		if actual.ErrWithWarnings() != nil {
+			t.Errorf("expected %s to produce no diagnostics but found \"%s\"", stage, actual.ErrWithWarnings())
+		}
 	}
 
 	assertNoErrors(t, actual)
