@@ -22,6 +22,7 @@ ENHANCEMENTS:
 
 * Terraform CLI's local operations mode will now attempt to persist state snapshots to the state storage backend periodically during the apply step, thereby reducing the window for lost data if the Terraform process is aborted unexpectedly. [GH-32680]
 * If Terraform CLI receives SIGINT (or its equivalent on non-Unix platforms) during the apply step then it will immediately try to persist the latest state snapshot to the state storage backend, with the assumption that a graceful shutdown request often typically followed by a hard abort some time later if the graceful shutdown doesn't complete fast enough. [GH-32680]
+* `pg` backend: Now accepts the environment variable `PGDATABASE` as an alternative way to specify the connection string. [GH-32526]
 
 BUG FIXES:
 
