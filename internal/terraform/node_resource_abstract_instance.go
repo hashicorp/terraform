@@ -439,7 +439,7 @@ func (n *NodeAbstractResourceInstance) planDestroy(ctx EvalContext, currentState
 		Change: plans.Change{
 			Action: plans.Delete,
 			Before: currentState.Value,
-			After:  cty.NullVal(cty.DynamicPseudoType),
+			After:  nullVal,
 		},
 		Private:      resp.PlannedPrivate,
 		ProviderAddr: n.ResolvedProvider,
