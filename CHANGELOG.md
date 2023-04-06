@@ -1,6 +1,7 @@
 ## 1.4.5 (Unreleased)
 
 * Revert change from [GH-32892] due to an upstream crash.
+* Fix planned destroy value which would cause `terraform_data` to fail when being replaced with `create_before_destroy` [GH-32988]
 
 ## 1.4.4 (March 30, 2023)
 
