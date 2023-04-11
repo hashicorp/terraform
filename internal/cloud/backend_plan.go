@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -428,10 +429,10 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return nil
 	}
 
-	// Only call the renderer if the remote workspace has structured run output
-	// enabled. The plan output will have already been rendered when the logs
-	// were read if this wasn't the case.
-	if run.Workspace.StructuredRunOutputEnabled && b.renderer != nil {
+	// Determine whether we should call the renderer to generate the plan output
+	// in human readable format. Otherwise we risk duplicate plan output since
+	// plan output may be contained in the streamed log file.
+	if ok, err := b.shouldRenderStructuredRunOutput(run); ok {
 		// Fetch the redacted plan.
 		redacted, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
 		if err != nil {
@@ -440,9 +441,54 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 
 		// Render plan output.
 		b.renderer.RenderHumanPlan(*redacted, op.PlanMode)
+	} else if err != nil {
+		return err
 	}
 
 	return nil
+}
+
+// shouldRenderStructuredRunOutput ensures the remote workspace has structured
+// run output enabled and, if using Terraform Enterprise, ensures it is a release
+// that supports enabling SRO for CLI-driven runs. The plan output will have
+// already been rendered when the logs were read if this wasn't the case.
+func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
+	if b.renderer == nil || !run.Workspace.StructuredRunOutputEnabled {
+		return false, nil
+	}
+
+	// If the cloud backend is configured against TFC, we only require that
+	// the workspace has structured run output enabled.
+	if b.client.IsCloud() && run.Workspace.StructuredRunOutputEnabled {
+		fmt.Println("we should see this")
+		return true, nil
+	}
+
+	// If the cloud backend is configured against TFE, ensure the release version
+	// supports enabling SRO for CLI runs.
+	if b.client.IsEnterprise() {
+		tfeVersion := b.client.RemoteTFEVersion()
+		if tfeVersion != "" {
+			v := strings.Split(tfeVersion[1:], "-")
+			releaseDate, err := strconv.Atoi(v[0])
+			if err != nil {
+				return false, err
+			}
+
+			fmt.Println(releaseDate)
+
+			// Any release older than 202302-1 will not support enabling SRO for
+			// CLI-driven runs
+			if releaseDate < 202302 {
+				return false, nil
+			} else if run.Workspace.StructuredRunOutputEnabled {
+				return true, nil
+			}
+		}
+	}
+
+	// Version of TFE is unknowable
+	return false, nil
 }
 
 const planDefaultHeader = `
