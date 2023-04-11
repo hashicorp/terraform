@@ -460,7 +460,6 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 	// If the cloud backend is configured against TFC, we only require that
 	// the workspace has structured run output enabled.
 	if b.client.IsCloud() && run.Workspace.StructuredRunOutputEnabled {
-		fmt.Println("we should see this")
 		return true, nil
 	}
 
@@ -474,8 +473,6 @@ func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
 			if err != nil {
 				return false, err
 			}
-
-			fmt.Println(releaseDate)
 
 			// Any release older than 202302-1 will not support enabling SRO for
 			// CLI-driven runs
