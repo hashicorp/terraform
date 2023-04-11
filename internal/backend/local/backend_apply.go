@@ -180,6 +180,32 @@ func (b *Local) opApply(
 				runningOp.Result = backend.OperationFailure
 				return
 			}
+		} else {
+			// If we didn't ask for confirmation from the user, and they have
+			// included any failing checks in their configuration, then they
+			// will see a very confusing output after the apply operation
+			// completes. This is because all the diagnostics from the plan
+			// operation will now be shown alongside the diagnostics from the
+			// apply operation. For check diagnostics, the plan output is
+			// irrelevant and simple noise after the same set of checks have
+			// been executed again during the apply stage. As such, we are going
+			// to remove all diagnostics marked as check diagnostics at this
+			// stage, so we will only show the user the check results from the
+			// apply operation.
+			//
+			// Note, if we did ask for approval then we would have displayed the
+			// plan check results at that point which is useful as the user can
+			// use them to make a decision about whether to apply the changes.
+			// It's just that if we didn't ask for approval then showing the
+			// user the checks from the plan alongside the checks from the apply
+			// is needlessly confusing.
+			var filteredDiags tfdiags.Diagnostics
+			for _, diag := range diags {
+				if !tfdiags.IsFromCheckBlock(diag) {
+					filteredDiags = filteredDiags.Append(diag)
+				}
+			}
+			diags = filteredDiags
 		}
 	} else {
 		plan = lr.Plan

@@ -43,6 +43,13 @@ func (diags Diagnostics) ConsolidateWarnings(threshold int) Diagnostics {
 			continue
 		}
 
+		if _, ok := diag.(CheckBlockDiagnostic); ok {
+			// Check diagnostics are never consolidated, the users have asked
+			// to be informed about each of these.
+			newDiags = newDiags.Append(diag)
+			continue
+		}
+
 		desc := diag.Description()
 		summary := desc.Summary
 		if g, ok := warningGroups[summary]; ok {

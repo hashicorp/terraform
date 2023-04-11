@@ -1685,7 +1685,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// We have a complete configuration with no dependencies to wait on, so we
 	// can read the data source into the state.
 	newVal, readDiags := n.readDataSource(ctx, configVal)
-	diags = diags.Append(readDiags)
 
 	// Now we've loaded the data, and diags tells us whether we were successful
 	// or not, we are going to create our plannedChange and our
@@ -1709,7 +1708,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 		// and handle the error. We'll also create the plannedChange if
 		// appropriate.
 
-		if diags.HasErrors() {
+		if readDiags.HasErrors() {
 			// If we had errors, then we can cover that up by marking the new
 			// state as unknown.
 			unmarkedConfigVal, configMarkPaths := configVal.UnmarkDeepWithPaths()
@@ -1718,12 +1717,13 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
-
-			// Also, let's hide the errors so that execution can continue as
-			// normal.
-			diags = tfdiags.WithErrorsAsWarnings(diags)
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
 		}
+
+		// Any warning or error diagnostics we'll wrap with some special checks
+		// diagnostics. This is so we can identify them later, and so they'll
+		// only report as warnings.
+		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
 
 		if !skipPlanChanges {
 			// refreshOnly plans cannot produce planned changes, so we only do
@@ -1740,9 +1740,9 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 				ActionReason: plans.ResourceInstanceReadBecauseCheckNested,
 			}
 		}
-
 	}
 
+	diags = diags.Append(readDiags)
 	if !diags.HasErrors() {
 		// Finally, let's make our new state.
 		plannedNewState = &states.ResourceInstanceObject{
@@ -1883,20 +1883,26 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	}
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
-	diags = diags.Append(readDiags)
-
 	if check, nested := n.nestedInCheckBlock(); nested {
-		// We're just going to jump in here and hide away any erros for nested
+		// We're just going to jump in here and hide away any errors for nested
 		// data blocks.
-		if diags.HasErrors() {
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, diags.Err().Error())
-			return nil, keyData, tfdiags.WithErrorsAsWarnings(diags)
+		if readDiags.HasErrors() {
+			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
+			diags = diags.Append(tfdiags.AsCheckBlockDiagnostics(readDiags))
+			return nil, keyData, diags
 		}
+
+		// Even though we know there are no errors here, we still want to
+		// identify these diags has having been generated from a check block.
+		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
 
 		// If no errors, just remember to report this as a success and continue
 		// as normal.
 		ctx.Checks().ReportCheckResult(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, checks.StatusPass)
-	} else if diags.HasErrors() {
+	}
+
+	diags = diags.Append(readDiags)
+	if readDiags.HasErrors() {
 		return nil, keyData, diags
 	}
 
