@@ -2,6 +2,7 @@ package cloud
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -1248,5 +1249,122 @@ func TestCloud_planOtherError(t *testing.T) {
 	if !strings.Contains(err.Error(),
 		"Terraform Cloud returned an unexpected error:\n\nI'm a little teacup") {
 		t.Fatalf("expected error message, got: %s", err.Error())
+	}
+}
+
+func TestCloud_planShouldRenderSRO(t *testing.T) {
+	t.Run("when instance is TFC", func(t *testing.T) {
+		handlers := map[string]func(http.ResponseWriter, *http.Request){
+			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-API-Version", "2.5")
+				w.Header().Set("TFP-AppName", "Terraform Cloud")
+			},
+		}
+		b, bCleanup := testBackendWithHandlers(t, handlers)
+		t.Cleanup(bCleanup)
+		b.renderer = &jsonformat.Renderer{}
+
+		t.Run("and SRO is enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: true,
+				},
+			}
+			assertSRORendered(t, b, r, true)
+		})
+
+		t.Run("and SRO is not enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: false,
+				},
+			}
+			assertSRORendered(t, b, r, false)
+		})
+
+	})
+
+	t.Run("when instance is TFE and version supports CLI SRO", func(t *testing.T) {
+		handlers := map[string]func(http.ResponseWriter, *http.Request){
+			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-API-Version", "2.5")
+				w.Header().Set("TFP-AppName", "Terraform Enterprise")
+				w.Header().Set("X-TFE-Version", "v202303-1")
+			},
+		}
+		b, bCleanup := testBackendWithHandlers(t, handlers)
+		t.Cleanup(bCleanup)
+		b.renderer = &jsonformat.Renderer{}
+
+		t.Run("and SRO is enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: true,
+				},
+			}
+			assertSRORendered(t, b, r, true)
+		})
+
+		t.Run("and SRO is not enabled", func(t *testing.T) {
+			r := &tfe.Run{
+				Workspace: &tfe.Workspace{
+					StructuredRunOutputEnabled: false,
+				},
+			}
+			assertSRORendered(t, b, r, false)
+		})
+	})
+
+	t.Run("when instance is a known unsupported TFE release", func(t *testing.T) {
+		handlers := map[string]func(http.ResponseWriter, *http.Request){
+			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-API-Version", "2.5")
+				w.Header().Set("TFP-AppName", "Terraform Enterprise")
+				w.Header().Set("X-TFE-Version", "v202208-1")
+			},
+		}
+		b, bCleanup := testBackendWithHandlers(t, handlers)
+		t.Cleanup(bCleanup)
+		b.renderer = &jsonformat.Renderer{}
+
+		r := &tfe.Run{
+			Workspace: &tfe.Workspace{
+				StructuredRunOutputEnabled: true,
+			},
+		}
+		assertSRORendered(t, b, r, false)
+	})
+
+	t.Run("when instance is an unknown TFE release", func(t *testing.T) {
+		handlers := map[string]func(http.ResponseWriter, *http.Request){
+			"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("TFP-API-Version", "2.5")
+			},
+		}
+		b, bCleanup := testBackendWithHandlers(t, handlers)
+		t.Cleanup(bCleanup)
+		b.renderer = &jsonformat.Renderer{}
+
+		r := &tfe.Run{
+			Workspace: &tfe.Workspace{
+				StructuredRunOutputEnabled: true,
+			},
+		}
+		assertSRORendered(t, b, r, false)
+	})
+
+}
+
+func assertSRORendered(t *testing.T, b *Cloud, r *tfe.Run, shouldRender bool) {
+	got, err := b.shouldRenderStructuredRunOutput(r)
+	if err != nil {
+		t.Fatalf("expected no error: %v", err)
+	}
+	if shouldRender != got {
+		t.Fatalf("expected SRO to be rendered: %t, got %t", shouldRender, got)
 	}
 }
