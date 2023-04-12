@@ -1,7 +1,7 @@
-## 1.4.5 (Unreleased)
+## 1.4.5 (April 12, 2023)
 
-* Revert change from [GH-32892] due to an upstream crash.
-* Fix planned destroy value which would cause `terraform_data` to fail when being replaced with `create_before_destroy` [GH-32988]
+* Revert change from [[#32892](https://github.com/hashicorp/terraform/issues/32892)] due to an upstream crash.
+* Fix planned destroy value which would cause `terraform_data` to fail when being replaced with `create_before_destroy` ([#32988](https://github.com/hashicorp/terraform/issues/32988))
 
 ## 1.4.4 (March 30, 2023)
 
