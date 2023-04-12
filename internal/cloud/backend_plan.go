@@ -293,6 +293,11 @@ in order to capture the filesystem context the remote workspace expects:
 			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
+	// Render any warnings that were raised during run creation
+	if err := b.renderRunWarnings(stopCtx, b.client, r.ID); err != nil {
+		return r, err
+	}
+
 	// Retrieve the run to get task stages.
 	// Task Stages are calculated upfront so we only need to call this once for the run.
 	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)

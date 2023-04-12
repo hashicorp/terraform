@@ -34,6 +34,7 @@ type MockClient struct {
 	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
 	Runs                  *MockRuns
+	RunEvents             *MockRunEvents
 	StateVersions         *MockStateVersions
 	StateVersionOutputs   *MockStateVersionOutputs
 	Variables             *MockVariables
@@ -51,6 +52,7 @@ func NewMockClient() *MockClient {
 	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Runs = newMockRuns(c)
+	c.RunEvents = newMockRunEvents(c)
 	c.StateVersions = newMockStateVersions(c)
 	c.StateVersionOutputs = newMockStateVersionOutputs(c)
 	c.Variables = newMockVariables(c)
@@ -1166,6 +1168,31 @@ func (m *MockRuns) Discard(ctx context.Context, runID string, options tfe.RunDis
 	r.Status = tfe.RunDiscarded
 	r.Actions.IsConfirmable = false
 	return nil
+}
+
+type MockRunEvents struct{}
+
+func newMockRunEvents(_ *MockClient) *MockRunEvents {
+	return &MockRunEvents{}
+}
+
+// List all the runs events of the given run.
+func (m *MockRunEvents) List(ctx context.Context, runID string, options *tfe.RunEventListOptions) (*tfe.RunEventList, error) {
+	return &tfe.RunEventList{
+		Items: []*tfe.RunEvent{},
+	}, nil
+}
+
+func (m *MockRunEvents) Read(ctx context.Context, runEventID string) (*tfe.RunEvent, error) {
+	return m.ReadWithOptions(ctx, runEventID, nil)
+}
+
+func (m *MockRunEvents) ReadWithOptions(ctx context.Context, runEventID string, options *tfe.RunEventReadOptions) (*tfe.RunEvent, error) {
+	return &tfe.RunEvent{
+		ID:        GenerateID("re-"),
+		Action:    "created",
+		CreatedAt: time.Now(),
+	}, nil
 }
 
 type MockStateVersions struct {
