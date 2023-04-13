@@ -17,7 +17,7 @@ func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Di
 	// so we're going to add them back in here.
 	//
 	// This only affects attributes and not nested attributes or blocks, so we
-	// only perform this fix in this function and not the equivalence map
+	// only perform this fix in this function and not the equivalent map
 	// functions for nested attributes and blocks.
 
 	// There is actually a difference between a null map and an empty map for
