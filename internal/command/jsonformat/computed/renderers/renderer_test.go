@@ -24,6 +24,103 @@ func TestRenderers_Human(t *testing.T) {
 		expected string
 		opts     computed.RenderHumanOpts
 	}{
+		// We're using the string "null" in these tests to demonstrate the
+		// difference between rendering an actual string and rendering a null
+		// value.
+		"primitive_create_string": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "null", cty.String),
+				Action:   plans.Create,
+			},
+			expected: "\"null\"",
+		},
+		"primitive_delete_string": {
+			diff: computed.Diff{
+				Renderer: Primitive("null", nil, cty.String),
+				Action:   plans.Delete,
+			},
+			expected: "\"null\" -> null",
+		},
+		"primitive_update_string_to_null": {
+			diff: computed.Diff{
+				Renderer: Primitive("null", nil, cty.String),
+				Action:   plans.Update,
+			},
+			expected: "\"null\" -> null",
+		},
+		"primitive_update_string_from_null": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "null", cty.String),
+				Action:   plans.Update,
+			},
+			expected: "null -> \"null\"",
+		},
+		"primitive_update_multiline_string_to_null": {
+			diff: computed.Diff{
+				Renderer: Primitive("nu\nll", nil, cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+      - nu
+      - ll
+      + null
+    EOT
+`,
+		},
+		"primitive_update_multiline_string_from_null": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "nu\nll", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+<<-EOT
+      - null
+      + nu
+      + ll
+    EOT
+`,
+		},
+		"primitive_update_json_string_to_null": {
+			diff: computed.Diff{
+				Renderer: Primitive("[null]", nil, cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+jsonencode(
+        [
+          - null,
+        ]
+    ) -> null
+`,
+		},
+		"primitive_update_json_string_from_null": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, "[null]", cty.String),
+				Action:   plans.Update,
+			},
+			expected: `
+null -> jsonencode(
+        [
+          + null,
+        ]
+    )
+`,
+		},
+		"primitive_create_null_string": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, nil, cty.String),
+				Action:   plans.Create,
+			},
+			expected: "null",
+		},
+		"primitive_delete_null_string": {
+			diff: computed.Diff{
+				Renderer: Primitive(nil, nil, cty.String),
+				Action:   plans.Delete,
+			},
+			expected: "null",
+		},
 		"primitive_create": {
 			diff: computed.Diff{
 				Renderer: Primitive(nil, 1.0, cty.Number),

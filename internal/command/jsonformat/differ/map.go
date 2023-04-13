@@ -12,7 +12,39 @@ import (
 
 func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Diff {
 	mapValue := change.asMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+
+	// The jsonplan package will have stripped out unknowns from our after value
+	// so we're going to add them back in here.
+	//
+	// This only affects attributes and not nested attributes or blocks, so we
+	// only perform this fix in this function and not the equivalence map
+	// functions for nested attributes and blocks.
+
+	// There is actually a difference between a null map and an empty map for
+	// purposes of calculating a delete, create, or update operation.
+
+	var after map[string]interface{}
+	if mapValue.After != nil {
+		after = make(map[string]interface{})
+	}
+
+	for key, value := range mapValue.After {
+		after[key] = value
+	}
+	for key, _ := range mapValue.Unknown {
+		if _, ok := after[key]; ok {
+			// Then this unknown value was in after, this probably means it has
+			// a child that is unknown rather than being unknown itself. As
+			// such, we'll skip over it. Note, it doesn't particularly matter if
+			// an element is in both places - it's just important we actually
+			// do cover all the elements. We want a complete union and
+			// duplicates are no concern.
+			continue
+		}
+		after[key] = nil
+	}
+
+	elements, current := collections.TransformMap(mapValue.Before, after, func(key string) computed.Diff {
 		value := mapValue.getChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
