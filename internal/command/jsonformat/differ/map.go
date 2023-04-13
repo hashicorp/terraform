@@ -31,14 +31,14 @@ func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Di
 	for key, value := range mapValue.After {
 		after[key] = value
 	}
-	for key, _ := range mapValue.Unknown {
+	for key := range mapValue.Unknown {
 		if _, ok := after[key]; ok {
 			// Then this unknown value was in after, this probably means it has
 			// a child that is unknown rather than being unknown itself. As
 			// such, we'll skip over it. Note, it doesn't particularly matter if
 			// an element is in both places - it's just important we actually
-			// do cover all the elements. We want a complete union and
-			// duplicates are no concern.
+			// do cover all the elements. We want a complete union and therefore
+			// duplicates are no cause for concern as long as we dedupe here.
 			continue
 		}
 		after[key] = nil
