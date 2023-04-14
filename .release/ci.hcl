@@ -92,19 +92,6 @@ event "promote-staging-packaging" {
   }
 }
 
-event "crt-hook-tfc-upload-staging" {
-  depends = ["promote-staging-packaging"]
-  action "crt-hook-tfc-upload-staging" {
-    organization = "hashicorp"
-    repository = "terraform-releases"
-    workflow = "crt-hook-tfc-upload-staging"
-  }
-
-  notification {
-    on = "always"
-  }
-}
-
 event "trigger-production" {
 // This event is dispatched by the bob trigger-promotion command
 // and is required - do not delete.
@@ -164,9 +151,30 @@ event "promote-production-packaging" {
 //   }
 // }
 
-event "crt-hook-tfc-upload" {
+// For the time being we execute our TFC staging upload during the production
+// release as we still use the production binary during the upload process.
+// This means the release process has to have pushed the new binary to
+// releases.hashicorp.com before we can do the upload in staging, hence this
+// action needs to run at this stage.
+// TODO: Update the crt-hook-tfc-upload-staging action to retrieve the binary
+//       from somewhere that is available during the staging process, and move
+//       this even to happen during the staging release.
+event "crt-hook-tfc-upload-staging" {
   // this will need to be changed back to update-ironbank once the Ironbank setup is done
   depends = ["promote-production-packaging"]
+  action "crt-hook-tfc-upload-staging" {
+    organization = "hashicorp"
+    repository = "terraform-releases"
+    workflow = "crt-hook-tfc-upload-staging"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "crt-hook-tfc-upload" {
+  depends = ["crt-hook-tfc-upload-staging"]
   action "crt-hook-tfc-upload" {
     organization = "hashicorp"
     repository = "terraform-releases"
