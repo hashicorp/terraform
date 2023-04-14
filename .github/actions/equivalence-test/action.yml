@@ -45,13 +45,13 @@ runs:
         
         changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
         if [[ $changed == "true" ]]; then
-          echo "found changes, and pushing new golden files into branch ${{ env.target-branch }}."
+          echo "found changes, and pushing new golden files into branch ${{ inputs.target-terraform-branch }}."
 
           git config user.email "52939924+teamterraform@users.noreply.github.com"
           git config user.name "The Terraform Team"
 
           git add ./testing/equivalence-tests/outputs
-          git commit -m"Automated equivalence test golden file update for release ${{ env.terraform-version }}."
+          git commit -m"Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
           git push
         else
           echo "found no changes, so not pushing any updates."
