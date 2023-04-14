@@ -164,16 +164,3 @@ event "crt-hook-tfc-upload" {
     on = "always"
   }
 }
-
-event "crt-hook-equivalence-test" {
-  depends = ["crt-hook-tfc-upload"]
-  action "crt-hook-equivalence-test" {
-    organization = "hashicorp"
-    repository = "terraform"
-    workflow = "crt-hook-equivalence-test"
-  }
-
-  notification {
-    on = "always"
-  }
-}

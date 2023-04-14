@@ -21,7 +21,7 @@ Commands:
     download_equivalence_test_binary downloads the equivalence testing binary
     for a given version and places it at the target path.
 
-    ./equivalence-test.sh download_equivalence_test_binary v0.3.0 ./bin/terraform-equivalence-testing linux amd64
+    ./equivalence-test.sh download_equivalence_test_binary 0.3.0 ./bin/terraform-equivalence-testing linux amd64
 
   download_terraform_binary <version> <target> <os> <arch>
     download_terraform_binary downloads the terraform release binary for a given
@@ -47,8 +47,8 @@ function download_equivalence_test_binary {
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases" > releases.json
 
-  ASSET="terraform-equivalence-testing_${VERSION}_${OS}_${ARCH}.zip"
-  ASSET_ID=$(jq -r --arg VERSION "$VERSION" --arg ASSET "$ASSET" '.[] | select(.name == $VERSION) | .assets[] | select(.name == $ASSET) | .id' releases.json)
+  ASSET="terraform-equivalence-testing_v${VERSION}_${OS}_${ARCH}.zip"
+  ASSET_ID=$(jq -r --arg VERSION "v$VERSION" --arg ASSET "$ASSET" '.[] | select(.name == $VERSION) | .assets[] | select(.name == $ASSET) | .id' releases.json)
 
   mkdir -p zip
   curl -L \
