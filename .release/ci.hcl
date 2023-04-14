@@ -92,6 +92,19 @@ event "promote-staging-packaging" {
   }
 }
 
+event "crt-hook-tfc-upload-staging" {
+  depends = ["promote-staging-packaging"]
+  action "crt-hook-tfc-upload-staging" {
+    organization = "hashicorp"
+    repository = "terraform-releases"
+    workflow = "crt-hook-tfc-upload-staging"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
 event "trigger-production" {
 // This event is dispatched by the bob trigger-promotion command
 // and is required - do not delete.
@@ -158,6 +171,19 @@ event "crt-hook-tfc-upload" {
     organization = "hashicorp"
     repository = "terraform-releases"
     workflow = "crt-hook-tfc-upload"
+  }
+
+  notification {
+    on = "always"
+  }
+}
+
+event "crt-hook-equivalence-test" {
+  depends = ["crt-hook-tfc-upload"]
+  action "crt-hook-equivalence-test" {
+    organization = "hashicorp"
+    repository = "terraform"
+    workflow = "crt-hook-equivalence-test"
   }
 
   notification {
