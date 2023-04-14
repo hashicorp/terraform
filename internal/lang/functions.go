@@ -78,6 +78,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"formatlist":       stdlib.FormatListFunc,
 			"indent":           stdlib.IndentFunc,
 			"index":            funcs.IndexFunc, // stdlib.IndexFunc is not compatible
+			"ipincidr":         funcs.IpInCIDRSubnetFunc,
 			"join":             stdlib.JoinFunc,
 			"jsondecode":       stdlib.JSONDecodeFunc,
 			"jsonencode":       stdlib.JSONEncodeFunc,
