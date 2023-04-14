@@ -43,6 +43,13 @@ var (
 		tfeHost: {"token": testCred},
 	})
 	testBackendSingleWorkspaceName = "app-prod"
+	defaultTFCPing                 = map[string]func(http.ResponseWriter, *http.Request){
+		"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("TFP-API-Version", "2.5")
+			w.Header().Set("TFP-AppName", "Terraform Cloud")
+		},
+	}
 )
 
 // mockInput is a mock implementation of terraform.UIInput.
@@ -79,7 +86,7 @@ func testBackendWithName(t *testing.T) (*Cloud, func()) {
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, defaultTFCPing)
 }
 
 func testBackendWithTags(t *testing.T) (*Cloud, func()) {
@@ -96,7 +103,7 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 			),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, nil)
 }
 
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
@@ -109,7 +116,20 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, nil)
+}
+
+func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal(testBackendSingleWorkspaceName),
+			"tags": cty.NullVal(cty.Set(cty.String)),
+		}),
+	})
+	return testBackend(t, obj, handlers)
 }
 
 func testCloudState(t *testing.T) *State {
@@ -186,8 +206,13 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 	return b, cleanup
 }
 
-func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
-	s := testServer(t)
+func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+	var s *httptest.Server
+	if handlers != nil {
+		s = testServerWithHandlers(handlers)
+	} else {
+		s = testServer(t)
+	}
 	b := New(testDisco(s))
 
 	// Configure the backend so the client is created.
