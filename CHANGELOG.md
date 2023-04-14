@@ -1,5 +1,10 @@
 ## 1.4.6 (Unreleased)
 
+BUG FIXES
+
+* Fix bug when rendering plans that include null strings. ([#33029](https://github.com/hashicorp/terraform/issues/33029))
+* Fix bug when rendering plans that include unknown values in maps. ([#33029](https://github.com/hashicorp/terraform/issues/33029))
+
 ## 1.4.5 (April 12, 2023)
 
 * Revert change from [[#32892](https://github.com/hashicorp/terraform/issues/32892)] due to an upstream crash.
