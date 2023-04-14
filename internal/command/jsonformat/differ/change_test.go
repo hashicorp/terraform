@@ -2552,6 +2552,95 @@ func TestRelevantAttributes(t *testing.T) {
 	}
 }
 
+func TestSpecificCases(t *testing.T) {
+	// This is a special test that can contain any combination of individual
+	// cases and will execute against them. For testing/fixing specific issues
+	// you can generally put the test case in here.
+	tcs := map[string]struct {
+		input    Change
+		block    *jsonprovider.Block
+		validate renderers.ValidateDiffFunction
+	}{
+		"issues/33016/unknown": {
+			input: Change{
+				Before: nil,
+				After: map[string]interface{}{
+					"triggers": map[string]interface{}{},
+				},
+				Unknown: map[string]interface{}{
+					"id": true,
+					"triggers": map[string]interface{}{
+						"rotation": true,
+					},
+				},
+				BeforeSensitive: false,
+				AfterSensitive: map[string]interface{}{
+					"triggers": map[string]interface{}{},
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"id": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"triggers": {
+						AttributeType: unmarshalType(t, cty.Map(cty.String)),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id": renderers.ValidateUnknown(nil, plans.Create, false),
+				"triggers": renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+					"rotation": renderers.ValidateUnknown(nil, plans.Create, false),
+				}, plans.Create, false),
+			}, nil, nil, nil, nil, plans.Create, false),
+		},
+		"issues/33016/null": {
+			input: Change{
+				Before: nil,
+				After: map[string]interface{}{
+					"triggers": map[string]interface{}{
+						"rotation": nil,
+					},
+				},
+				Unknown: map[string]interface{}{
+					"id":       true,
+					"triggers": map[string]interface{}{},
+				},
+				BeforeSensitive: false,
+				AfterSensitive: map[string]interface{}{
+					"triggers": map[string]interface{}{},
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"id": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"triggers": {
+						AttributeType: unmarshalType(t, cty.Map(cty.String)),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id": renderers.ValidateUnknown(nil, plans.Create, false),
+				"triggers": renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
+					"rotation": renderers.ValidatePrimitive(nil, nil, plans.Create, false),
+				}, plans.Create, false),
+			}, nil, nil, nil, nil, plans.Create, false),
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
+		})
+	}
+}
+
 // unmarshalType converts a cty.Type into a json.RawMessage understood by the
 // schema. It also lets the testing framework handle any errors to keep the API
 // clean.

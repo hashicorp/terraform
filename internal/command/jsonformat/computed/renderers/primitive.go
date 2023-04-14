@@ -88,7 +88,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s", str.String, forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s%s", str.RenderSimple(), forcesReplacement(diff.Replace, opts))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -102,13 +102,18 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
 	case plans.Delete:
 		str := evaluatePrimitiveString(renderer.before, opts)
+		if str.IsNull {
+			// We don't put the null suffix (-> null) here because the final
+			// render or null -> null would look silly.
+			return fmt.Sprintf("%s%s", str.RenderSimple(), forcesReplacement(diff.Replace, opts))
+		}
 
 		if str.Json != nil {
 			return renderer.renderStringDiffAsJson(diff, indent, opts, str, evaluatedString{})
 		}
 
 		if !str.IsMultiline {
-			return fmt.Sprintf("%q%s%s", str.String, nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s%s%s", str.RenderSimple(), nullSuffix(diff.Action, opts), forcesReplacement(diff.Replace, opts))
 		}
 
 		// We are creating a single multiline string, so let's split by the new
@@ -141,7 +146,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		}
 
 		if !beforeString.IsMultiline && !afterString.IsMultiline {
-			return fmt.Sprintf("%q %s %q%s", beforeString.String, opts.Colorize.Color("[yellow]->[reset]"), afterString.String, forcesReplacement(diff.Replace, opts))
+			return fmt.Sprintf("%s %s %s%s", beforeString.RenderSimple(), opts.Colorize.Color("[yellow]->[reset]"), afterString.RenderSimple(), forcesReplacement(diff.Replace, opts))
 		}
 
 		beforeLines := strings.Split(beforeString.String, "\n")
