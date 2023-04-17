@@ -1,0 +1,45 @@
+name: crt-hook-equivalence-tests
+
+on:
+  repository_dispatch:
+    types:
+      - crt-hook-equivalence-tests::terraform::*
+
+permissions:
+  contents: write
+
+jobs:
+  parse-metadata:
+    name: "Parse metadata.json"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      target-branch: ${{ steps.parse.outputs.target-branch }}
+    steps:
+      - name: parse
+        id: parse
+        env:
+          METADATA_PAYLOAD: ${{ toJSON(github.event.client_payload.payload) }}
+        run: |
+          VERSION=$(echo ${METADATA_PAYLOAD} | jq -r '.version')
+          TARGET_BRANCH=$(./.github/scripts/equivalence-test.sh get-target-branch "$VERSION")
+          
+          echo "target-branch=$TARGET_BRANCH" >> "GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  run-equivalence-tests:
+    runs-on: ubuntu-latest
+    name: "Run equivalence tests"
+    needs:
+      - parse-metadata
+    steps:
+      - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
+        with:
+          ref: ${{ needs.parse-metadata.outputs.target-branch }}
+      - uses: ./.github/actions/equivalence-test
+        with:
+          target-terraform-version: ${{ needs.parse-metadata.outputs.version }}
+          target-terraform-branch: ${{ needs.parse-metadata.outputs.target-branch }}
+          target-equivalence-test-version: 0.3.0
+          target-os: linux
+          target-arch: amd64
