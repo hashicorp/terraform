@@ -14,13 +14,13 @@ Terraform will perform the following actions:
               - "29B6824A-5CB6-4C25-A359-727BAFEF25EB",
               - "7E90963C-BE32-4411-B9DD-B02E7FE75766",
             ],
+          - [],
           + [
               + "29B6824A-5CB6-4C25-A359-727BAFEF25EB",
             ],
           + [
               + "7E90963C-BE32-4411-B9DD-B02E7FE75766",
             ],
-          - [],
             # (1 unchanged element hidden)
         ]
     }
