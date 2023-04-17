@@ -51,7 +51,7 @@ runs:
           git config user.name "The Terraform Team"
 
           git add ./testing/equivalence-tests/outputs
-          git commit -m"Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
+          git commit -m "Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
           git push
         else
           echo "found no changes, so not pushing any updates."
