@@ -9,7 +9,7 @@ inputs:
     required: true
   target-equivalence-test-version:
     description: "The version of the Terraform equivalence tests to use."
-    default: "v0.3.0"
+    default: "0.3.0"
   target-os:
     description: "Current operating system"
     default: "linux"
@@ -22,7 +22,7 @@ runs:
     - name: "download equivalence test binary"
       shell: bash
       run: |
-        ./.github/scripts/equivalence-test.sh download-equivalence-test-binary \
+        ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
           ${{ inputs.target-equivalence-test-version }} \
           ./bin/equivalence-tests \
           ${{ inputs.target-os }} \
@@ -30,15 +30,15 @@ runs:
     - name: "download terraform binary"
       shell: bash
       run: |
-        ./.github/scripts/equivalence-test.sh download-terraform-binary \
+        ./.github/scripts/equivalence-test.sh download_terraform_binary \
           ${{ inputs.target-terraform-version }} \
-          ./bin/equivalence-tests \
+          ./bin/terraform \
           ${{ inputs.target-os }} \
           ${{ inputs.target-arch }}
     - name: "run and update equivalence tests"
       shell: bash
       run: |
-        ./bin/equivalence-tests \
+        ./bin/equivalence-tests update \
           --tests=testing/equivalence-tests/tests \
           --goldens=testing/equivalence-tests/outputs \
           --binary=$(pwd)/bin/terraform

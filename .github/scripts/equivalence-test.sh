@@ -59,6 +59,7 @@ function download_equivalence_test_binary {
   unzip -p "zip/$ASSET" terraform-equivalence-testing > "$TARGET"
   chmod u+x "$TARGET"
   rm -r zip
+  rm releases.json
 }
 
 function download_terraform_binary {
