@@ -2042,3 +2042,46 @@ resource "test_resource" "b" {
 	_, diags = ctx.Apply(plan, m)
 	assertNoErrors(t, diags)
 }
+
+func TestContext2Apply_destroyUnusedModuleProvider(t *testing.T) {
+	// an unsued provider within a module should not be called during destroy
+	unusedProvider := testProvider("unused")
+	testProvider := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):   testProviderFuncFixed(testProvider),
+			addrs.NewDefaultProvider("unused"): testProviderFuncFixed(unusedProvider),
+		},
+	})
+
+	unusedProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		resp.Diagnostics = resp.Diagnostics.Append(errors.New("configuration failed"))
+		return resp
+	}
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+
+resource "test_resource" "test" {
+}
+`,
+
+		"mod/main.tf": `
+provider "unused" {
+}
+
+resource "unused_resource" "test" {
+}
+`,
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
