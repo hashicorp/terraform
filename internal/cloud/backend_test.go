@@ -647,7 +647,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 		}),
 	})
 
-	b, bCleanup := testBackend(t, config)
+	b, bCleanup := testBackend(t, config, nil)
 	defer bCleanup()
 
 	// Make sure the workspace doesn't exist yet -- otherwise, we can't test what
