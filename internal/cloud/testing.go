@@ -241,6 +241,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
@@ -312,6 +313,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
