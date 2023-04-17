@@ -6,6 +6,7 @@ package pg
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -18,6 +19,8 @@ import (
 	"github.com/lib/pq"
 )
 
+var databaseName string
+
 // Function to skip a test unless in ACCeptance test mode.
 //
 // A running Postgres server identified by env variable
@@ -28,9 +31,16 @@ func testACC(t *testing.T) {
 		t.Log("pg backend tests require setting TF_ACC")
 		t.Skip()
 	}
-	if os.Getenv("DATABASE_URL") == "" {
-		os.Setenv("DATABASE_URL", "postgres://localhost/terraform_backend_pg_test?sslmode=disable")
+	databaseUrl, found := os.LookupEnv("DATABASE_URL")
+	if !found {
+		databaseUrl = "postgres://localhost/terraform_backend_pg_test?sslmode=disable"
+		os.Setenv("DATABASE_URL", databaseUrl)
 	}
+	u, err := url.Parse(databaseUrl)
+	if err != nil {
+		t.Fatal(err)
+	}
+	databaseName = u.Path[1:]
 }
 
 func TestBackend_impl(t *testing.T) {
@@ -42,10 +52,11 @@ func TestBackendConfig(t *testing.T) {
 	connStr := getDatabaseUrl()
 
 	testCases := []struct {
-		Name        string
-		EnvVars     map[string]string
-		Config      map[string]interface{}
-		ExpectError string
+		Name                     string
+		EnvVars                  map[string]string
+		Config                   map[string]interface{}
+		ExpectConfigurationError string
+		ExpectConnectionError    string
 	}{
 		{
 			Name: "valid-config",
@@ -55,20 +66,70 @@ func TestBackendConfig(t *testing.T) {
 			},
 		},
 		{
-			Name: "missing-conn-str",
+			Name: "missing-conn_str-defaults-to-localhost",
+			EnvVars: map[string]string{
+				"PGSSLMODE":  "disable",
+				"PGDATABASE": databaseName,
+			},
 			Config: map[string]interface{}{
 				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
 			},
-			ExpectError: `The attribute "conn_str" is required, but no definition was found.`,
 		},
 		{
 			Name: "conn-str-env-var",
 			EnvVars: map[string]string{
-				"PGDATABASE": connStr,
+				"PG_CONN_STR": connStr,
 			},
 			Config: map[string]interface{}{
 				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
 			},
+		},
+		{
+			Name: "setting-credentials-using-env-vars",
+			EnvVars: map[string]string{
+				"PGUSER":     "baduser",
+				"PGPASSWORD": "badpassword",
+			},
+			Config: map[string]interface{}{
+				"conn_str":    connStr,
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+			ExpectConnectionError: `role "baduser" does not exist`,
+		},
+		{
+			Name: "host-in-env-vars",
+			EnvVars: map[string]string{
+				"PGHOST": "hostthatdoesnotexist",
+			},
+			Config: map[string]interface{}{
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+			ExpectConnectionError: `no such host`,
+		},
+		{
+			Name: "boolean-env-vars",
+			EnvVars: map[string]string{
+				"PGSSLMODE":               "disable",
+				"PG_SKIP_SCHEMA_CREATION": "f",
+				"PG_SKIP_TABLE_CREATION":  "f",
+				"PG_SKIP_INDEX_CREATION":  "f",
+				"PGDATABASE":              databaseName,
+			},
+			Config: map[string]interface{}{
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+		},
+		{
+			Name: "wrong-boolean-env-vars",
+			EnvVars: map[string]string{
+				"PGSSLMODE":               "disable",
+				"PG_SKIP_SCHEMA_CREATION": "foo",
+				"PGDATABASE":              databaseName,
+			},
+			Config: map[string]interface{}{
+				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+			},
+			ExpectConfigurationError: `error getting default for "skip_schema_creation"`,
 		},
 	}
 
@@ -97,12 +158,12 @@ func TestBackendConfig(t *testing.T) {
 			newObj, valDiags := b.PrepareConfig(obj)
 			diags = diags.Append(valDiags.InConfigBody(config, ""))
 
-			if tc.ExpectError != "" {
+			if tc.ExpectConfigurationError != "" {
 				if !diags.HasErrors() {
 					t.Fatal("error expected but got none")
 				}
-				if !strings.Contains(diags.ErrWithWarnings().Error(), tc.ExpectError) {
-					t.Fatalf("failed to find %q in %s", tc.ExpectError, diags.ErrWithWarnings())
+				if !strings.Contains(diags.ErrWithWarnings().Error(), tc.ExpectConfigurationError) {
+					t.Fatalf("failed to find %q in %s", tc.ExpectConfigurationError, diags.ErrWithWarnings())
 				}
 				return
 			} else if diags.HasErrors() {
@@ -112,7 +173,16 @@ func TestBackendConfig(t *testing.T) {
 			obj = newObj
 
 			confDiags := b.Configure(obj)
-			if len(confDiags) != 0 {
+			if tc.ExpectConnectionError != "" {
+				err := confDiags.InConfigBody(config, "").ErrWithWarnings()
+				if err == nil {
+					t.Fatal("error expected but got none")
+				}
+				if !strings.Contains(err.Error(), tc.ExpectConnectionError) {
+					t.Fatalf("failed to find %q in %s", tc.ExpectConnectionError, err)
+				}
+				return
+			} else if len(confDiags) != 0 {
 				confDiags = confDiags.InConfigBody(config, "")
 				t.Fatal(confDiags.ErrWithWarnings())
 			}
