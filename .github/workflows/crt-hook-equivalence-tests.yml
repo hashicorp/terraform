@@ -32,7 +32,6 @@ jobs:
     name: "Run equivalence tests"
     needs:
       - parse-metadata
-      - target-branch
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
         with:
@@ -41,6 +40,6 @@ jobs:
         with:
           target-terraform-version: ${{ needs.parse-metadata.outputs.version }}
           target-terraform-branch: ${{ needs.parse-metadata.outputs.target-branch }}
-          target-equivalence-test-version: v0.3.0
+          target-equivalence-test-version: 0.3.0
           target-os: linux
           target-arch: amd64
