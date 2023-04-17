@@ -4,6 +4,7 @@ BUG FIXES
 
 * Fix bug when rendering plans that include null strings. ([#33029](https://github.com/hashicorp/terraform/issues/33029))
 * Fix bug when rendering plans that include unknown values in maps. ([#33029](https://github.com/hashicorp/terraform/issues/33029))
+* Fix bug where the plan would render twice when using older versions of TFE as a backend. ([#33018](https://github.com/hashicorp/terraform/issues/33018))
 
 ## 1.4.5 (April 12, 2023)
 
