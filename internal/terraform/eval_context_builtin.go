@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/checks"
@@ -194,6 +195,24 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 		TerraformVersion: version.String(),
 		Config:           cfg,
 	}
+
+	providersTypes := ctx.Evaluator.Config.ResourceTypesByProvider(addr.Provider)
+	// also collect any known types from the prior state
+	if ctx.PrevRunStateValue != nil {
+		providersTypes = providersTypes.Union(ctx.PrevRunStateValue.ManagedResourceTypesByProvider(addr.Provider))
+	}
+
+	for _, res := range providersTypes {
+		switch res.Mode {
+		case addrs.ManagedResourceMode:
+			req.ResourceTypes = append(req.ResourceTypes, res.Type)
+		case addrs.DataResourceMode:
+			req.DataSources = append(req.DataSources, res.Type)
+		}
+	}
+
+	sort.Strings(req.ResourceTypes)
+	sort.Strings(req.DataSources)
 
 	resp := p.ConfigureProvider(req)
 	return resp.Diagnostics

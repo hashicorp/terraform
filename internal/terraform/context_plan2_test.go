@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"testing"
@@ -4096,5 +4097,87 @@ resource "test_object" "a" {
 		if c.Action != plans.NoOp {
 			t.Errorf("unexpected %s change for %s", c.Action, c.Addr)
 		}
+	}
+}
+
+func TestContext2Plan_configureProviderResourceTypes(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+data "test_data_source" "a" {
+}
+
+resource "test_resource" "a" {
+}
+
+resource "test_instance" "a" {
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("ok"),
+			"foo": cty.StringVal("ok"),
+		}),
+	}
+
+	p.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		resources := []string{"test_instance", "test_resource"}
+		dataSources := []string{"test_data_source"}
+
+		if !reflect.DeepEqual(req.ResourceTypes, resources) {
+			t.Fatalf(`expected %q, got %q`, resources, req.ResourceTypes)
+		}
+		if !reflect.DeepEqual(req.DataSources, dataSources) {
+			t.Fatalf(`expected %q, got %q`, dataSources, req.DataSources)
+		}
+
+		return resp
+	}
+
+	stateProvider := testProvider("state")
+	stateProvider.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
+		State: cty.ObjectVal(map[string]cty.Value{
+			"id":  cty.StringVal("ok"),
+			"foo": cty.StringVal("ok"),
+		}),
+	}
+
+	stateProvider.ConfigureProviderFn = func(req providers.ConfigureProviderRequest) (resp providers.ConfigureProviderResponse) {
+		resources := []string{"state_instance"}
+
+		if !reflect.DeepEqual(req.ResourceTypes, resources) {
+			t.Fatalf(`expected %q, got %q`, resources, req.ResourceTypes)
+		}
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"):  testProviderFuncFixed(p),
+			addrs.NewDefaultProvider("state"): testProviderFuncFixed(stateProvider),
+		},
+	})
+
+	state := states.NewState()
+	root := state.RootModule()
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("state_instance.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			Dependencies: []addrs.ConfigResource{},
+			AttrsJSON:    []byte(`{}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/state"]`),
+	)
+
+	// plan+apply to create the initial state
+	opts := SimplePlanOpts(plans.NormalMode, testInputValuesUnset(m.Module.Variables))
+	_, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	if !stateProvider.ConfigureProviderCalled {
+		t.Error("stateProvider.ConfigureProvider not called")
 	}
 }

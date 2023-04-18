@@ -173,6 +173,9 @@ type ConfigureProviderRequest struct {
 
 	// Config is the complete configuration value for the provider.
 	Config cty.Value
+
+	ResourceTypes []string
+	DataSources   []string
 }
 
 type ConfigureProviderResponse struct {
