@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -418,4 +419,61 @@ func TestConfigAddProviderRequirements(t *testing.T) {
 	}
 	diags = cfg.addProviderRequirements(reqs, true)
 	assertNoDiagnostics(t, diags)
+}
+
+func TestConfigResourcesByProviderType(t *testing.T) {
+	t.Run("testdata/valid-modules/nested-providers-fqns", func(t *testing.T) {
+		cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/nested-providers-fqns")
+		assertNoDiagnostics(t, diags)
+
+		providerTypes := map[addrs.Provider]addrs.Set[addrs.ResourceType]{
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "bar", "test"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.ManagedResourceMode, "test_instance"},
+			),
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "foo", "test"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.DataResourceMode, "test_resource"},
+				addrs.ResourceType{addrs.ManagedResourceMode, "test_instance"},
+			),
+
+			addrs.NewDefaultProvider("test"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.ManagedResourceMode, "test_instance"},
+			),
+		}
+
+		for provider, want := range providerTypes {
+			got := cfg.ResourceTypesByProvider(provider)
+
+			if !reflect.DeepEqual(want, got) {
+				t.Errorf("%q wanted %q, got %q", provider, want, got)
+			}
+		}
+	})
+
+	t.Run("testdata/valid-modules/implied-providers", func(t *testing.T) {
+		cfg, diags := testNestedModuleConfigFromDir(t, "testdata/valid-modules/implied-providers")
+		assertNoDiagnostics(t, diags)
+
+		providerTypes := map[addrs.Provider]addrs.Set[addrs.ResourceType]{
+			addrs.NewProvider("registry.acme.corp", "acme", "foo"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.DataResourceMode, "foo_resource"},
+				addrs.ResourceType{addrs.ManagedResourceMode, "foo_resource"},
+			),
+			addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.DataResourceMode, "whatever_resource"},
+				addrs.ResourceType{addrs.ManagedResourceMode, "whatever_resource"},
+			),
+			addrs.NewDefaultProvider("bar"): addrs.MakeSet[addrs.ResourceType](
+				addrs.ResourceType{addrs.DataResourceMode, "bar_resource"},
+				addrs.ResourceType{addrs.ManagedResourceMode, "bar_resource"},
+			),
+		}
+
+		for provider, want := range providerTypes {
+			got := cfg.ResourceTypesByProvider(provider)
+
+			if !reflect.DeepEqual(want, got) {
+				t.Errorf("%q wanted %q, got %q", provider, want, got)
+			}
+		}
+	})
 }

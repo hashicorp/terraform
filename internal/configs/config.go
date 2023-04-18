@@ -279,6 +279,27 @@ func (c *Config) VerifyDependencySelections(depLocks *depsfile.Locks) []error {
 	return errs
 }
 
+// ResourceTypesByProvider returns the set of managed and data resource types
+// which are present in the configuration and provided by the given provider.
+func (c *Config) ResourceTypesByProvider(ty addrs.Provider) addrs.Set[addrs.ResourceType] {
+	set := addrs.MakeSet[addrs.ResourceType]()
+	c.DeepEach(func(c *Config) {
+		for _, res := range c.Module.ManagedResources {
+			if res.Provider.Equals(ty) {
+				set.Add(addrs.ResourceType{res.Mode, res.Type})
+			}
+		}
+
+		for _, res := range c.Module.DataResources {
+			if res.Provider.Equals(ty) {
+				set.Add(addrs.ResourceType{res.Mode, res.Type})
+			}
+		}
+	})
+
+	return set
+}
+
 // ProviderRequirements searches the full tree of modules under the receiver
 // for both explicit and implicit dependencies on providers.
 //
