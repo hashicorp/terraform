@@ -318,6 +318,8 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 		Config: &proto.DynamicValue{
 			Msgpack: mp,
 		},
+		ResourceTypes: r.ResourceTypes,
+		DataSources:   r.DataSources,
 	}
 
 	protoResp, err := p.client.Configure(p.ctx, protoReq)
