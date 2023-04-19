@@ -991,6 +991,77 @@ func TestState_MoveModule(t *testing.T) {
 	})
 }
 
+func TestStateManagedResourceTypesByProvider(t *testing.T) {
+	testProvider := addrs.NewDefaultProvider("test")
+	wizbangProvider := addrs.NewDefaultProvider("wizbang")
+
+	state := NewState()
+	boop := addrs.RootModuleInstance.Child("boop", addrs.NoKey)
+	state.EnsureModule(boop).SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "test_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status: ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: testProvider,
+			Module:   addrs.RootModule,
+		},
+	)
+
+	bloam := addrs.RootModuleInstance.Child("bloam", addrs.StringKey("a"))
+	// data sources are not called based on the state, so we don't need to
+	// return this type
+	state.EnsureModule(bloam).SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.DataResourceMode,
+			Type: "wizbang_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status: ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: wizbangProvider,
+			Module:   bloam.Module(),
+		},
+	)
+	state.EnsureModule(bloam).SetResourceInstanceCurrent(
+		addrs.Resource{
+			Mode: addrs.ManagedResourceMode,
+			Type: "wizbang_thing",
+			Name: "foo",
+		}.Instance(addrs.NoKey),
+		&ResourceInstanceObjectSrc{
+			Status: ObjectReady,
+		},
+		addrs.AbsProviderConfig{
+			Provider: wizbangProvider,
+			Module:   bloam.Module(),
+		},
+	)
+
+	providerTypes := map[addrs.Provider]addrs.Set[addrs.ResourceType]{
+		testProvider: addrs.MakeSet[addrs.ResourceType](
+			addrs.ResourceType{addrs.ManagedResourceMode, "test_thing"},
+		),
+		wizbangProvider: addrs.MakeSet[addrs.ResourceType](
+			addrs.ResourceType{addrs.ManagedResourceMode, "wizbang_thing"},
+		),
+	}
+
+	for provider, want := range providerTypes {
+		got := state.ManagedResourceTypesByProvider(provider)
+
+		if !reflect.DeepEqual(want, got) {
+			t.Errorf("%q wanted %q, got %q", provider, want, got)
+		}
+	}
+}
+
 func mustParseModuleInstanceStr(str string) addrs.ModuleInstance {
 	addr, diags := addrs.ParseModuleInstanceStr(str)
 	if diags.HasErrors() {

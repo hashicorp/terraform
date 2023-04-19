@@ -195,6 +195,15 @@ func (s *SyncState) ResourceInstanceObject(addr addrs.AbsResourceInstance, gen G
 	return inst.GetGeneration(gen).DeepCopy()
 }
 
+// ManagedResourceTypesByProvider returns the set of managed resource types
+// present in the state which were created with the given provider type.
+func (s *SyncState) ManagedResourceTypesByProvider(provider addrs.Provider) addrs.Set[addrs.ResourceType] {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	return s.state.ManagedResourceTypesByProvider(provider)
+}
+
 // SetResourceMeta updates the resource-level metadata for the resource at
 // the given address, creating the containing module state and resource state
 // as a side-effect if not already present.

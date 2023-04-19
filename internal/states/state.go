@@ -280,6 +280,26 @@ func (s *State) AllResourceInstanceObjectAddrs() []struct {
 	return ret
 }
 
+func (s *State) ManagedResourceTypesByProvider(provider addrs.Provider) addrs.Set[addrs.ResourceType] {
+	if s == nil {
+		return nil
+	}
+
+	set := addrs.MakeSet[addrs.ResourceType]()
+	for _, ms := range s.Modules {
+		for _, res := range ms.Resources {
+			if res.Addr.Resource.Mode != addrs.ManagedResourceMode {
+				continue
+			}
+			if res.ProviderConfig.Provider.Equals(provider) {
+				addr := res.Addr.Resource
+				set.Add(addrs.ResourceType{addr.Mode, addr.Type})
+			}
+		}
+	}
+	return set
+}
+
 // ResourceInstance returns the state for the resource instance with the given
 // address, or nil if no such resource is tracked in the state.
 func (s *State) ResourceInstance(addr addrs.AbsResourceInstance) *ResourceInstance {
