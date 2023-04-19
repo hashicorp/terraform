@@ -454,6 +454,25 @@ func (v ConfigResource) CheckableKind() CheckableKind {
 	return CheckableResource
 }
 
+// ResourceType is the pair of mode and type name for a resource.
+// This is not precisely an address, but it is sometimes useful to describe a
+// resource type independent from it's relation to the configuration.
+type ResourceType struct {
+	Mode ResourceMode
+	Type string
+}
+
+func (r ResourceType) String() string {
+	if r.Mode == DataResourceMode {
+		return "data." + r.Type
+	}
+	return r.Type
+}
+
+func (r ResourceType) UniqueKey() UniqueKey {
+	return configResourceKey(r.String())
+}
+
 type configResourceKey string
 
 func (k configResourceKey) uniqueKeySigil() {}
