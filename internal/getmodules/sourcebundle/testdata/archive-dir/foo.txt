@@ -1,0 +1,1 @@
+../external-dir/foo.txt

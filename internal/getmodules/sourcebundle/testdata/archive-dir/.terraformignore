@@ -1,0 +1,20 @@
+# comments are ignored
+ # extra spaces are irrelevant
+# ignore a file
+   baz.txt
+# below is an empty line
+
+# ignore a directory
+terraform.d/
+# exclude ignoring a directory at the root
+!/terraform.d/
+# ignore a file at a subpath
+**/foo/bar.tf
+# ignore files with specific endings
+foo/*.md
+# character groups
+bar/something-[a-z].txt
+# ignore a file
+boop.txt
+# but not one at the current directory
+!/boop.txt
