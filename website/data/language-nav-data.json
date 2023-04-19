@@ -575,6 +575,10 @@
             "href": "/language/functions/formatdate"
           },
           {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
+          },
+          {
             "title": "<code>timeadd</code>",
             "href": "/language/functions/timeadd"
           },
