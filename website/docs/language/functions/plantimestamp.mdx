@@ -22,8 +22,8 @@ as a way to validate time sensitive resources such as TLS certificates.
 
 There are circumstances, such as during a Terraform [Refresh-only](/terraform/cli/commands/plan#planning-modes) plan, where
 the value for this function will be recomputed but not propagated to resources
-defined within the configuration. As such, it is recommended that function only
-be used to compare against timestamps exported by providers and not against
+defined within the configuration. As such, it is recommended that this function
+only be used to compare against timestamps exported by providers and not against
 timestamps generated in the configuration.
 
 The `plantimestamp` function is not available within the Terraform console.
