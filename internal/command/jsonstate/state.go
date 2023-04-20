@@ -398,7 +398,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				s := SensitiveAsBool(riObj.Value)
+				value, marks := riObj.Value.UnmarkDeepWithPaths()
+				if schema.ContainsSensitive() {
+					marks = append(marks, schema.ValueMarks(value, nil)...)
+				}
+				s := SensitiveAsBool(value.MarkWithPaths(marks))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -445,7 +449,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				s := SensitiveAsBool(riObj.Value)
+				value, marks := riObj.Value.UnmarkDeepWithPaths()
+				if schema.ContainsSensitive() {
+					marks = append(marks, schema.ValueMarks(value, nil)...)
+				}
+				s := SensitiveAsBool(value.MarkWithPaths(marks))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
