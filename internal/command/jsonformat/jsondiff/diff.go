@@ -1,13 +1,13 @@
 package jsondiff
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"reflect"
 
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
