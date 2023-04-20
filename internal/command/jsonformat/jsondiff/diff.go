@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
@@ -150,7 +150,6 @@ func (opts JsonOpts) processObject(before, after map[string]interface{}, relevan
 			// Mark non-relevant attributes as unchanged.
 			afterChild = beforeChild
 			afterExplicit = beforeExplicit
-
 		}
 
 		return opts.Transform(beforeChild, afterChild, beforeExplicit, afterExplicit, childRelevantAttributes)

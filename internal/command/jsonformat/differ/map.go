@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
@@ -10,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Diff {
-	mapValue := change.asMap()
+func computeAttributeDiffAsMap(change structured.Change, elementType cty.Type) computed.Diff {
+	mapValue := change.AsMap()
 
 	// The jsonplan package will have stripped out unknowns from our after value
 	// so we're going to add them back in here.
@@ -45,25 +46,25 @@ func (change Change) computeAttributeDiffAsMap(elementType cty.Type) computed.Di
 	}
 
 	elements, current := collections.TransformMap(mapValue.Before, after, func(key string) computed.Diff {
-		value := mapValue.getChild(key)
+		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			value = value.AsNoOp()
 		}
-		return value.ComputeDiffForType(elementType)
+		return ComputeDiffForType(value, elementType)
 	})
 	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*jsonprovider.Attribute) computed.Diff {
-	mapValue := change.asMap()
+func computeAttributeDiffAsNestedMap(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
+	mapValue := change.AsMap()
 	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
-		value := mapValue.getChild(key)
+		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			value = value.AsNoOp()
 		}
-		return value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
+		return computeDiffForNestedAttribute(value, &jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
@@ -71,14 +72,14 @@ func (change Change) computeAttributeDiffAsNestedMap(attributes map[string]*json
 	return computed.NewDiff(renderers.NestedMap(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeBlockDiffsAsMap(block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
-	mapValue := change.asMap()
+func computeBlockDiffsAsMap(change structured.Change, block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
+	mapValue := change.AsMap()
 	return collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
-		value := mapValue.getChild(key)
+		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			value = value.AsNoOp()
 		}
-		return value.ComputeDiffForBlock(block)
+		return ComputeDiffForBlock(value, block)
 	})
 }
