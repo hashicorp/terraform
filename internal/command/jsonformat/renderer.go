@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
@@ -112,7 +113,7 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 		if len(log.Outputs) > 0 {
 			r.Streams.Println(r.Colorize.Color("[bold][green]Outputs:[reset]"))
 			for name, output := range log.Outputs {
-				change := differ.FromJsonViewsOutput(output)
+				change := structured.FromJsonViewsOutput(output)
 				ctype, err := ctyjson.UnmarshalType(output.Type)
 				if err != nil {
 					return err
@@ -121,7 +122,7 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 				opts := computed.NewRenderHumanOpts(r.Colorize)
 				opts.ShowUnchangedChildren = true
 
-				outputDiff := change.ComputeDiffForType(ctype)
+				outputDiff := differ.ComputeDiffForType(change, ctype)
 				outputStr := outputDiff.RenderHuman(0, opts)
 
 				msg := fmt.Sprintf("%s = %s", name, outputStr)

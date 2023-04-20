@@ -4,26 +4,27 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveBlock(block); ok {
+func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) computed.Diff {
+	if sensitive, ok := checkForSensitiveBlock(change, block); ok {
 		return sensitive
 	}
 
-	if unknown, ok := change.checkForUnknownBlock(block); ok {
+	if unknown, ok := checkForUnknownBlock(change, block); ok {
 		return unknown
 	}
 
-	current := change.getDefaultActionForIteration()
+	current := change.GetDefaultActionForIteration()
 
-	blockValue := change.asMap()
+	blockValue := change.AsMap()
 
 	attributes := make(map[string]computed.Diff)
 	for key, attr := range block.Attributes {
-		childValue := blockValue.getChild(key)
+		childValue := blockValue.GetChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
@@ -43,7 +44,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 		childValue.BeforeExplicit = false
 		childValue.AfterExplicit = false
 
-		childChange := childValue.ComputeDiffForAttribute(attr)
+		childChange := ComputeDiffForAttribute(childValue, attr)
 		if childChange.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 			// Don't record nil values at all in blocks.
 			continue
@@ -64,20 +65,20 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 	}
 
 	for key, blockType := range block.BlockTypes {
-		childValue := blockValue.getChild(key)
+		childValue := blockValue.GetChild(key)
 
 		if !childValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			childValue = childValue.AsNoOp()
 		}
 
-		beforeSensitive := childValue.isBeforeSensitive()
-		afterSensitive := childValue.isAfterSensitive()
+		beforeSensitive := childValue.IsBeforeSensitive()
+		afterSensitive := childValue.IsAfterSensitive()
 		forcesReplacement := childValue.ReplacePaths.Matches()
 
 		switch NestingMode(blockType.NestingMode) {
 		case nestingModeSet:
-			diffs, action := childValue.computeBlockDiffsAsSet(blockType.Block)
+			diffs, action := computeBlockDiffsAsSet(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -85,7 +86,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllSetBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeList:
-			diffs, action := childValue.computeBlockDiffsAsList(blockType.Block)
+			diffs, action := computeBlockDiffsAsList(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -93,7 +94,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllListBlock(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeMap:
-			diffs, action := childValue.computeBlockDiffsAsMap(blockType.Block)
+			diffs, action := computeBlockDiffsAsMap(childValue, blockType.Block)
 			if action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue
@@ -101,7 +102,7 @@ func (change Change) ComputeDiffForBlock(block *jsonprovider.Block) computed.Dif
 			blocks.AddAllMapBlocks(key, diffs, forcesReplacement, beforeSensitive, afterSensitive)
 			current = collections.CompareActions(current, action)
 		case nestingModeSingle, nestingModeGroup:
-			diff := childValue.ComputeDiffForBlock(blockType.Block)
+			diff := ComputeDiffForBlock(childValue, blockType.Block)
 			if diff.Action == plans.NoOp && childValue.Before == nil && childValue.After == nil {
 				// Don't record nil values in blocks.
 				continue

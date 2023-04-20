@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
@@ -10,16 +11,16 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeDiffAsObject(attributes map[string]cty.Type) computed.Diff {
-	attributeDiffs, action := processObject(change, attributes, func(value Change, ctype cty.Type) computed.Diff {
-		return value.ComputeDiffForType(ctype)
+func computeAttributeDiffAsObject(change structured.Change, attributes map[string]cty.Type) computed.Diff {
+	attributeDiffs, action := processObject(change, attributes, func(value structured.Change, ctype cty.Type) computed.Diff {
+		return ComputeDiffForType(value, ctype)
 	})
 	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeAttributeDiffAsNestedObject(attributes map[string]*jsonprovider.Attribute) computed.Diff {
-	attributeDiffs, action := processObject(change, attributes, func(value Change, attribute *jsonprovider.Attribute) computed.Diff {
-		return value.ComputeDiffForAttribute(attribute)
+func computeAttributeDiffAsNestedObject(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
+	attributeDiffs, action := processObject(change, attributes, func(value structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
+		return ComputeDiffForAttribute(value, attribute)
 	})
 	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.Matches())
 }
@@ -35,13 +36,13 @@ func (change Change) computeAttributeDiffAsNestedObject(attributes map[string]*j
 // Also, as it generic we cannot make this function a method on Change as you
 // can't create generic methods on structs. Instead, we make this a generic
 // function that receives the value as an argument.
-func processObject[T any](v Change, attributes map[string]T, computeDiff func(Change, T) computed.Diff) (map[string]computed.Diff, plans.Action) {
+func processObject[T any](v structured.Change, attributes map[string]T, computeDiff func(structured.Change, T) computed.Diff) (map[string]computed.Diff, plans.Action) {
 	attributeDiffs := make(map[string]computed.Diff)
-	mapValue := v.asMap()
+	mapValue := v.AsMap()
 
-	currentAction := v.getDefaultActionForIteration()
+	currentAction := v.GetDefaultActionForIteration()
 	for key, attribute := range attributes {
-		attributeValue := mapValue.getChild(key)
+		attributeValue := mapValue.GetChild(key)
 
 		if !attributeValue.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.

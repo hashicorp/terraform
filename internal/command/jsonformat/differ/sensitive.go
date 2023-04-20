@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -11,27 +12,27 @@ import (
 
 type CreateSensitiveRenderer func(computed.Diff, bool, bool) computed.DiffRenderer
 
-func (change Change) checkForSensitiveType(ctype cty.Type) (computed.Diff, bool) {
-	return change.checkForSensitive(renderers.Sensitive, func(value Change) computed.Diff {
-		return value.ComputeDiffForType(ctype)
+func checkForSensitiveType(change structured.Change, ctype cty.Type) (computed.Diff, bool) {
+	return checkForSensitive(change, renderers.Sensitive, func(value structured.Change) computed.Diff {
+		return ComputeDiffForType(value, ctype)
 	})
 }
 
-func (change Change) checkForSensitiveNestedAttribute(attribute *jsonprovider.NestedType) (computed.Diff, bool) {
-	return change.checkForSensitive(renderers.Sensitive, func(value Change) computed.Diff {
-		return value.computeDiffForNestedAttribute(attribute)
+func checkForSensitiveNestedAttribute(change structured.Change, attribute *jsonprovider.NestedType) (computed.Diff, bool) {
+	return checkForSensitive(change, renderers.Sensitive, func(value structured.Change) computed.Diff {
+		return computeDiffForNestedAttribute(value, attribute)
 	})
 }
 
-func (change Change) checkForSensitiveBlock(block *jsonprovider.Block) (computed.Diff, bool) {
-	return change.checkForSensitive(renderers.SensitiveBlock, func(value Change) computed.Diff {
-		return value.ComputeDiffForBlock(block)
+func checkForSensitiveBlock(change structured.Change, block *jsonprovider.Block) (computed.Diff, bool) {
+	return checkForSensitive(change, renderers.SensitiveBlock, func(value structured.Change) computed.Diff {
+		return ComputeDiffForBlock(value, block)
 	})
 }
 
-func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedDiff func(value Change) computed.Diff) (computed.Diff, bool) {
-	beforeSensitive := change.isBeforeSensitive()
-	afterSensitive := change.isAfterSensitive()
+func checkForSensitive(change structured.Change, create CreateSensitiveRenderer, computedDiff func(value structured.Change) computed.Diff) (computed.Diff, bool) {
+	beforeSensitive := change.IsBeforeSensitive()
+	afterSensitive := change.IsAfterSensitive()
 
 	if !beforeSensitive && !afterSensitive {
 		return computed.Diff{}, false
@@ -44,7 +45,7 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 	// The change can choose what to do with this information, in most cases
 	// it will just be ignored in favour of printing `(sensitive value)`.
 
-	value := Change{
+	value := structured.Change{
 		BeforeExplicit:     change.BeforeExplicit,
 		AfterExplicit:      change.AfterExplicit,
 		Before:             change.Before,
@@ -74,18 +75,4 @@ func (change Change) checkForSensitive(create CreateSensitiveRenderer, computedD
 	}
 
 	return computed.NewDiff(create(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches()), true
-}
-
-func (change Change) isBeforeSensitive() bool {
-	if sensitive, ok := change.BeforeSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
-}
-
-func (change Change) isAfterSensitive() bool {
-	if sensitive, ok := change.AfterSensitive.(bool); ok {
-		return sensitive
-	}
-	return false
 }

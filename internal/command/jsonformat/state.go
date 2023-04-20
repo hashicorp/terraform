@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 )
@@ -63,9 +64,11 @@ func (state State) renderHumanStateModule(renderer Renderer, module jsonstate.Mo
 		schema := state.GetSchema(resource)
 		switch resource.Mode {
 		case jsonstate.ManagedResourceMode:
-			renderer.Streams.Printf("resource %q %q %s", resource.Type, resource.Name, differ.FromJsonResource(resource).ComputeDiffForBlock(schema.Block).RenderHuman(0, opts))
+			change := structured.FromJsonResource(resource)
+			renderer.Streams.Printf("resource %q %q %s", resource.Type, resource.Name, differ.ComputeDiffForBlock(change, schema.Block).RenderHuman(0, opts))
 		case jsonstate.DataResourceMode:
-			renderer.Streams.Printf("data %q %q %s", resource.Type, resource.Name, differ.FromJsonResource(resource).ComputeDiffForBlock(schema.Block).RenderHuman(0, opts))
+			change := structured.FromJsonResource(resource)
+			renderer.Streams.Printf("data %q %q %s", resource.Type, resource.Name, differ.ComputeDiffForBlock(change, schema.Block).RenderHuman(0, opts))
 		default:
 			panic("found unrecognized resource mode: " + resource.Mode)
 		}
@@ -91,13 +94,14 @@ func (state State) renderHumanStateOutputs(renderer Renderer, opts computed.Rend
 
 		for _, key := range keys {
 			output := state.RootModuleOutputs[key]
+			change := structured.FromJsonOutput(output)
 			ctype, err := ctyjson.UnmarshalType(output.Type)
 			if err != nil {
 				// We can actually do this without the type, so even if we fail
 				// to work out the type let's just render this anyway.
-				renderer.Streams.Printf("%s = %s\n", key, differ.FromJsonOutput(state.RootModuleOutputs[key]).ComputeDiffForOutput().RenderHuman(0, opts))
+				renderer.Streams.Printf("%s = %s\n", key, differ.ComputeDiffForOutput(change).RenderHuman(0, opts))
 			} else {
-				renderer.Streams.Printf("%s = %s\n", key, differ.FromJsonOutput(state.RootModuleOutputs[key]).ComputeDiffForType(ctype).RenderHuman(0, opts))
+				renderer.Streams.Printf("%s = %s\n", key, differ.ComputeDiffForType(change, ctype).RenderHuman(0, opts))
 			}
 		}
 	}

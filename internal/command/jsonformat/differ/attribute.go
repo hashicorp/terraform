@@ -1,6 +1,7 @@
 package differ
 
 import (
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
@@ -9,42 +10,42 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (change Change) ComputeDiffForAttribute(attribute *jsonprovider.Attribute) computed.Diff {
+func ComputeDiffForAttribute(change structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
 	if attribute.AttributeNestedType != nil {
-		return change.computeDiffForNestedAttribute(attribute.AttributeNestedType)
+		return computeDiffForNestedAttribute(change, attribute.AttributeNestedType)
 	}
-	return change.ComputeDiffForType(unmarshalAttribute(attribute))
+	return ComputeDiffForType(change, unmarshalAttribute(attribute))
 }
 
-func (change Change) computeDiffForNestedAttribute(nested *jsonprovider.NestedType) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveNestedAttribute(nested); ok {
+func computeDiffForNestedAttribute(change structured.Change, nested *jsonprovider.NestedType) computed.Diff {
+	if sensitive, ok := checkForSensitiveNestedAttribute(change, nested); ok {
 		return sensitive
 	}
 
-	if computed, ok := change.checkForUnknownNestedAttribute(nested); ok {
+	if computed, ok := checkForUnknownNestedAttribute(change, nested); ok {
 		return computed
 	}
 
 	switch NestingMode(nested.NestingMode) {
 	case nestingModeSingle, nestingModeGroup:
-		return change.computeAttributeDiffAsNestedObject(nested.Attributes)
+		return computeAttributeDiffAsNestedObject(change, nested.Attributes)
 	case nestingModeMap:
-		return change.computeAttributeDiffAsNestedMap(nested.Attributes)
+		return computeAttributeDiffAsNestedMap(change, nested.Attributes)
 	case nestingModeList:
-		return change.computeAttributeDiffAsNestedList(nested.Attributes)
+		return computeAttributeDiffAsNestedList(change, nested.Attributes)
 	case nestingModeSet:
-		return change.computeAttributeDiffAsNestedSet(nested.Attributes)
+		return computeAttributeDiffAsNestedSet(change, nested.Attributes)
 	default:
 		panic("unrecognized nesting mode: " + nested.NestingMode)
 	}
 }
 
-func (change Change) ComputeDiffForType(ctype cty.Type) computed.Diff {
-	if sensitive, ok := change.checkForSensitiveType(ctype); ok {
+func ComputeDiffForType(change structured.Change, ctype cty.Type) computed.Diff {
+	if sensitive, ok := checkForSensitiveType(change, ctype); ok {
 		return sensitive
 	}
 
-	if computed, ok := change.checkForUnknownType(ctype); ok {
+	if computed, ok := checkForUnknownType(change, ctype); ok {
 		return computed
 	}
 
@@ -56,19 +57,19 @@ func (change Change) ComputeDiffForType(ctype cty.Type) computed.Diff {
 		// function computeChangeForDynamicValues(), but external callers will
 		// only be in this situation when processing outputs so this function
 		// is named for their benefit.
-		return change.ComputeDiffForOutput()
+		return ComputeDiffForOutput(change)
 	case ctype.IsPrimitiveType():
-		return change.computeAttributeDiffAsPrimitive(ctype)
+		return computeAttributeDiffAsPrimitive(change, ctype)
 	case ctype.IsObjectType():
-		return change.computeAttributeDiffAsObject(ctype.AttributeTypes())
+		return computeAttributeDiffAsObject(change, ctype.AttributeTypes())
 	case ctype.IsMapType():
-		return change.computeAttributeDiffAsMap(ctype.ElementType())
+		return computeAttributeDiffAsMap(change, ctype.ElementType())
 	case ctype.IsListType():
-		return change.computeAttributeDiffAsList(ctype.ElementType())
+		return computeAttributeDiffAsList(change, ctype.ElementType())
 	case ctype.IsTupleType():
-		return change.computeAttributeDiffAsTuple(ctype.TupleElementTypes())
+		return computeAttributeDiffAsTuple(change, ctype.TupleElementTypes())
 	case ctype.IsSetType():
-		return change.computeAttributeDiffAsSet(ctype.ElementType())
+		return computeAttributeDiffAsSet(change, ctype.ElementType())
 	default:
 		panic("unrecognized type: " + ctype.FriendlyName())
 	}
