@@ -19,13 +19,11 @@ import (
 	"github.com/lib/pq"
 )
 
-var databaseName string
-
 // Function to skip a test unless in ACCeptance test mode.
 //
 // A running Postgres server identified by env variable
 // DATABASE_URL is required for acceptance tests.
-func testACC(t *testing.T) {
+func testACC(t *testing.T) string {
 	skip := os.Getenv("TF_ACC") == ""
 	if skip {
 		t.Log("pg backend tests require setting TF_ACC")
@@ -40,7 +38,7 @@ func testACC(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	databaseName = u.Path[1:]
+	return u.Path[1:]
 }
 
 func TestBackend_impl(t *testing.T) {
@@ -48,7 +46,7 @@ func TestBackend_impl(t *testing.T) {
 }
 
 func TestBackendConfig(t *testing.T) {
-	testACC(t)
+	databaseName := testACC(t)
 	connStr := getDatabaseUrl()
 
 	testCases := []struct {
