@@ -10,10 +10,14 @@ import (
 )
 
 func checkForUnknownType(change structured.Change, ctype cty.Type) (computed.Diff, bool) {
-	return checkForUnknown(change, false, func(value structured.Change) computed.Diff {
-		return ComputeDiffForType(value, ctype)
-	})
+	return change.CheckForUnknown(
+		false,
+		processUnknown,
+		createProcessUnknownWithBefore(func(value structured.Change) computed.Diff {
+			return ComputeDiffForType(value, ctype)
+		}))
 }
+
 func checkForUnknownNestedAttribute(change structured.Change, attribute *jsonprovider.NestedType) (computed.Diff, bool) {
 
 	// We want our child attributes to show up as computed instead of deleted.
@@ -23,9 +27,12 @@ func checkForUnknownNestedAttribute(change structured.Change, attribute *jsonpro
 		childUnknown[key] = true
 	}
 
-	return checkForUnknown(change, childUnknown, func(value structured.Change) computed.Diff {
-		return computeDiffForNestedAttribute(value, attribute)
-	})
+	return change.CheckForUnknown(
+		childUnknown,
+		processUnknown,
+		createProcessUnknownWithBefore(func(value structured.Change) computed.Diff {
+			return computeDiffForNestedAttribute(value, attribute)
+		}))
 }
 
 func checkForUnknownBlock(change structured.Change, block *jsonprovider.Block) (computed.Diff, bool) {
@@ -37,37 +44,20 @@ func checkForUnknownBlock(change structured.Change, block *jsonprovider.Block) (
 		childUnknown[key] = true
 	}
 
-	return checkForUnknown(change, childUnknown, func(value structured.Change) computed.Diff {
-		return ComputeDiffForBlock(value, block)
-	})
+	return change.CheckForUnknown(
+		childUnknown,
+		processUnknown,
+		createProcessUnknownWithBefore(func(value structured.Change) computed.Diff {
+			return ComputeDiffForBlock(value, block)
+		}))
 }
 
-func checkForUnknown(change structured.Change, childUnknown interface{}, computeDiff func(value structured.Change) computed.Diff) (computed.Diff, bool) {
-	unknown := change.IsUnknown()
+func processUnknown(current structured.Change) computed.Diff {
+	return asDiff(current, renderers.Unknown(computed.Diff{}))
+}
 
-	if !unknown {
-		return computed.Diff{}, false
+func createProcessUnknownWithBefore(computeDiff func(value structured.Change) computed.Diff) structured.ProcessUnknownWithBefore {
+	return func(current structured.Change, before structured.Change) computed.Diff {
+		return asDiff(current, renderers.Unknown(computeDiff(before)))
 	}
-
-	// No matter what we do here, we want to treat the after value as explicit.
-	// This is because it is going to be null in the value, and we don't want
-	// the functions in this package to assume this means it has been deleted.
-	change.AfterExplicit = true
-
-	if change.Before == nil {
-		return asDiff(change, renderers.Unknown(computed.Diff{})), true
-	}
-
-	// If we get here, then we have a before value. We're going to model a
-	// delete operation and our renderer later can render the overall change
-	// accurately.
-
-	beforeValue := structured.Change{
-		Before:             change.Before,
-		BeforeSensitive:    change.BeforeSensitive,
-		Unknown:            childUnknown,
-		ReplacePaths:       change.ReplacePaths,
-		RelevantAttributes: change.RelevantAttributes,
-	}
-	return asDiff(change, renderers.Unknown(computeDiff(beforeValue))), true
 }

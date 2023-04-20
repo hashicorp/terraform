@@ -69,27 +69,76 @@ func (m ChangeMap) GetChild(key string) Change {
 	}
 }
 
-// Keys returns all the possible keys for this map. The keys for the map are
-// potentially hidden and spread across multiple internal data structures and
-// so this function conveniently packages them up.
-func (m ChangeMap) Keys() []string {
-	var keys []string
+// ExplicitKeys returns the keys in the Before and After, as opposed to AllKeys
+// which also includes keys from the additional meta structures (like the
+// sensitive and unknown values).
+//
+// This function is useful for processing nested attributes and repeated blocks
+// where the unknown and sensitive structs contain information about the actual
+// attributes, while the before and after structs hold the actual nested values.
+func (m ChangeMap) ExplicitKeys() []string {
+	keys := make(map[string]bool)
 	for before := range m.Before {
-		keys = append(keys, before)
+		if _, ok := keys[before]; ok {
+			continue
+		}
+		keys[before] = true
 	}
 	for after := range m.After {
-		keys = append(keys, after)
+		if _, ok := keys[after]; ok {
+			continue
+		}
+		keys[after] = true
+	}
+
+	var dedupedKeys []string
+	for key := range keys {
+		dedupedKeys = append(dedupedKeys, key)
+	}
+	return dedupedKeys
+}
+
+// AllKeys returns all the possible keys for this map. The keys for the map are
+// potentially hidden and spread across multiple internal data structures and
+// so this function conveniently packages them up.
+func (m ChangeMap) AllKeys() []string {
+	keys := make(map[string]bool)
+	for before := range m.Before {
+		if _, ok := keys[before]; ok {
+			continue
+		}
+		keys[before] = true
+	}
+	for after := range m.After {
+		if _, ok := keys[after]; ok {
+			continue
+		}
+		keys[after] = true
 	}
 	for unknown := range m.Unknown {
-		keys = append(keys, unknown)
+		if _, ok := keys[unknown]; ok {
+			continue
+		}
+		keys[unknown] = true
 	}
 	for sensitive := range m.AfterSensitive {
-		keys = append(keys, sensitive)
+		if _, ok := keys[sensitive]; ok {
+			continue
+		}
+		keys[sensitive] = true
 	}
 	for sensitive := range m.BeforeSensitive {
-		keys = append(keys, sensitive)
+		if _, ok := keys[sensitive]; ok {
+			continue
+		}
+		keys[sensitive] = true
 	}
-	return keys
+
+	var dedupedKeys []string
+	for key := range keys {
+		dedupedKeys = append(dedupedKeys, key)
+	}
+	return dedupedKeys
 }
 
 func getFromGenericMap(generic map[string]interface{}, key string) (interface{}, bool) {
