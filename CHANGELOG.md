@@ -10,6 +10,8 @@ NEW FEATURES:
     Unlike the existing `precondition` and `postcondition` blocks, Terraform will not halt execution should the scoped data block fail or error or if any of the assertions fail. 
     This allows practitioners to continually validate the state of their infrastructure outside the usual lifecycle management cycle. 
 
+* Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
+
 UPGRADE NOTES:
 
 * This is the last version of Terraform for which macOS 10.13 High Sierra or 10.14 Mojave are officially supported. Future Terraform versions may not function correctly on these older versions of macOS.
