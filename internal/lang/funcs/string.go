@@ -103,3 +103,29 @@ var ReplaceFunc = function.New(&function.Spec{
 func Replace(str, substr, replace cty.Value) (cty.Value, error) {
 	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
 }
+
+// StrContainsFunc constructs a function that checks if a string contains
+// a substring using strings.Contains
+var StrContainsFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "substr",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		str := args[0].AsString()
+		substr := args[1].AsString()
+
+		if strings.Contains(str, substr) {
+			return cty.True, nil
+		}
+
+		return cty.False, nil
+	},
+})
