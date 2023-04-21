@@ -11,7 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -6654,12 +6655,11 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			jsonschemas := jsonprovider.MarshalForRenderer(tfschemas)
+			change := structured.FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher())
 			renderer := Renderer{Colorize: color}
 			diff := diff{
 				change: jsonchanges[0],
-				diff: differ.
-					FromJsonChange(jsonchanges[0].Change, attribute_path.AlwaysMatcher()).
-					ComputeDiffForBlock(jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
+				diff:   differ.ComputeDiffForBlock(change, jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
 			}
 			output, _ := renderHumanDiff(renderer, diff, proposedChange)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {

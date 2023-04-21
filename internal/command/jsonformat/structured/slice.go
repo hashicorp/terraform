@@ -1,7 +1,7 @@
-package differ
+package structured
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 )
 
 // ChangeSlice is a Change that represents a Tuple, Set, or List type, and has
@@ -31,7 +31,10 @@ type ChangeSlice struct {
 	RelevantAttributes attribute_path.Matcher
 }
 
-func (change Change) asSlice() ChangeSlice {
+// AsSlice converts the Change into a slice representation by converting the
+// internal Before, After, Unknown, BeforeSensitive, and AfterSensitive data
+// structures into generic slices.
+func (change Change) AsSlice() ChangeSlice {
 	return ChangeSlice{
 		Before:             genericToSlice(change.Before),
 		After:              genericToSlice(change.After),
@@ -43,7 +46,9 @@ func (change Change) asSlice() ChangeSlice {
 	}
 }
 
-func (s ChangeSlice) getChild(beforeIx, afterIx int) Change {
+// GetChild safely packages up a Change object for the given child, handling
+// all the cases where the data might be null or a static boolean.
+func (s ChangeSlice) GetChild(beforeIx, afterIx int) Change {
 	before, beforeExplicit := getFromGenericSlice(s.Before, beforeIx)
 	after, afterExplicit := getFromGenericSlice(s.After, afterIx)
 	unknown, _ := getFromGenericSlice(s.Unknown, afterIx)

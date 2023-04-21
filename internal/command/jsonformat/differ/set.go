@@ -8,27 +8,28 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeDiffAsSet(elementType cty.Type) computed.Diff {
+func computeAttributeDiffAsSet(change structured.Change, elementType cty.Type) computed.Diff {
 	var elements []computed.Diff
-	current := change.getDefaultActionForIteration()
-	change.processSet(func(value Change) {
-		element := value.ComputeDiffForType(elementType)
+	current := change.GetDefaultActionForIteration()
+	processSet(change, func(value structured.Change) {
+		element := ComputeDiffForType(value, elementType)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
 	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*jsonprovider.Attribute) computed.Diff {
+func computeAttributeDiffAsNestedSet(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	var elements []computed.Diff
-	current := change.getDefaultActionForIteration()
-	change.processSet(func(value Change) {
-		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
+	current := change.GetDefaultActionForIteration()
+	processSet(change, func(value structured.Change) {
+		element := computeDiffForNestedAttribute(value, &jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
@@ -38,19 +39,19 @@ func (change Change) computeAttributeDiffAsNestedSet(attributes map[string]*json
 	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeBlockDiffsAsSet(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+func computeBlockDiffsAsSet(change structured.Change, block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
 	var elements []computed.Diff
-	current := change.getDefaultActionForIteration()
-	change.processSet(func(value Change) {
-		element := value.ComputeDiffForBlock(block)
+	current := change.GetDefaultActionForIteration()
+	processSet(change, func(value structured.Change) {
+		element := ComputeDiffForBlock(value, block)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
 	return elements, current
 }
 
-func (change Change) processSet(process func(value Change)) {
-	sliceValue := change.asSlice()
+func processSet(change structured.Change, process func(value structured.Change)) {
+	sliceValue := change.AsSlice()
 
 	foundInBefore := make(map[int]int)
 	foundInAfter := make(map[int]int)
@@ -67,8 +68,8 @@ func (change Change) processSet(process func(value Change)) {
 				continue
 			}
 
-			child := sliceValue.getChild(ix, jx)
-			if reflect.DeepEqual(child.Before, child.After) && child.isBeforeSensitive() == child.isAfterSensitive() && !child.isUnknown() {
+			child := sliceValue.GetChild(ix, jx)
+			if reflect.DeepEqual(child.Before, child.After) && child.IsBeforeSensitive() == child.IsAfterSensitive() && !child.IsUnknown() {
 				matched = true
 				foundInBefore[ix] = jx
 				foundInAfter[jx] = ix
@@ -80,7 +81,7 @@ func (change Change) processSet(process func(value Change)) {
 		}
 	}
 
-	clearRelevantStatus := func(change Change) Change {
+	clearRelevantStatus := func(change structured.Change) structured.Change {
 		// It's actually really difficult to render the diffs when some indices
 		// within a slice are relevant and others aren't. To make this simpler
 		// we just treat all children of a relevant list or set as also
@@ -112,11 +113,11 @@ func (change Change) processSet(process func(value Change)) {
 
 	for ix := 0; ix < len(sliceValue.Before); ix++ {
 		if jx := foundInBefore[ix]; jx >= 0 {
-			child := clearRelevantStatus(sliceValue.getChild(ix, jx))
+			child := clearRelevantStatus(sliceValue.GetChild(ix, jx))
 			process(child)
 			continue
 		}
-		child := clearRelevantStatus(sliceValue.getChild(ix, len(sliceValue.After)))
+		child := clearRelevantStatus(sliceValue.GetChild(ix, len(sliceValue.After)))
 		process(child)
 	}
 
@@ -125,7 +126,7 @@ func (change Change) processSet(process func(value Change)) {
 			// Then this value was handled in the previous for loop.
 			continue
 		}
-		child := clearRelevantStatus(sliceValue.getChild(len(sliceValue.Before), jx))
+		child := clearRelevantStatus(sliceValue.GetChild(len(sliceValue.Before), jx))
 		process(child)
 	}
 }
