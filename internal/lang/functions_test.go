@@ -908,8 +908,12 @@ func TestFunctions(t *testing.T) {
 
 		"strcontains": {
 			{
-				`includes("hello", "llo")`,
+				`strcontains("hello", "llo")`,
 				cty.BoolVal(true),
+			},
+			{
+				`strcontains("hello", "a")`,
+				cty.BoolVal(false),
 			},
 		},
 

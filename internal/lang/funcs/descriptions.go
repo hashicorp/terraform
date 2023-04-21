@@ -391,6 +391,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`startswith` takes two values: a string to check and a prefix string. The function returns true if the string begins with that exact prefix.",
 		ParamDescription: []string{"", ""},
 	},
+	"strcontains": {
+		Description:      "`strcontains` takes two values: a string to check and an expected substring. The function returns true if the string has the substring contained within it.",
+		ParamDescription: []string{"", ""},
+	},
 	"strrev": {
 		Description:      "`strrev` reverses the characters in a string. Note that the characters are treated as _Unicode characters_ (in technical terms, Unicode [grapheme cluster boundaries](https://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries) are respected).",
 		ParamDescription: []string{""},

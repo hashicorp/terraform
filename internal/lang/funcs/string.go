@@ -104,8 +104,8 @@ func Replace(str, substr, replace cty.Value) (cty.Value, error) {
 	return ReplaceFunc.Call([]cty.Value{str, substr, replace})
 }
 
-// StrContainsFunc constructs a function that checks if a string contains
-// a substring using strings.Contains
+// StrContainsFunc searches a given string for another given substring,
+// if found the function returns true, otherwise returns false.
 var StrContainsFunc = function.New(&function.Spec{
 	Params: []function.Parameter{
 		{
