@@ -8,6 +8,32 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 )
 
+// StrContainsFunc constructs a function that checks if a string contains
+// a substring using strings.Contains
+var StrContainsFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "str",
+			Type: cty.String,
+		},
+		{
+			Name: "substr",
+			Type: cty.String,
+		},
+	},
+	Type: function.StaticReturnType(cty.Bool),
+	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
+		str := args[0].AsString()
+		substr := args[1].AsString()
+
+		if strings.Contains(str, substr) {
+			return cty.True, nil
+		}
+
+		return cty.False, nil
+	},
+})
+
 // StartsWithFunc constructs a function that checks if a string starts with
 // a specific prefix using strings.HasPrefix
 var StartsWithFunc = function.New(&function.Spec{

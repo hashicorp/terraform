@@ -117,6 +117,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sort":             stdlib.SortFunc,
 			"split":            stdlib.SplitFunc,
 			"startswith":       funcs.StartsWithFunc,
+			"strcontains":      funcs.StrContainsFunc,
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"sum":              funcs.SumFunc,

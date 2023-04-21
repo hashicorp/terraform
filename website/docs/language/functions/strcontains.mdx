@@ -1,0 +1,25 @@
+---
+page_title: strcontains - Functions - Configuration Language
+description: |-
+  The strcontains function checks whether a given string can be found within another string.
+---
+
+# `strcontains` Function
+
+`strcontains` function checks whether a substring is within another string.
+
+```hcl
+strcontains(string, substr)
+```
+
+## Examples
+
+```
+> strcontains("hello world", "wor")
+true
+```
+
+```
+> strcontains("hello world", "wod")
+false
+```
