@@ -27,9 +27,17 @@ createdb terraform_backend
 
 This `createdb` command is found in [Postgres client applications](https://www.postgresql.org/docs/10/reference-client.html) which are installed along with the database server.
 
-We recommend using a
-[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration)
-for the `conn_str` variable, because it typically contains access credentials that should not be committed to source control:
+
+### Using environment variables
+
+We recommend using environment variables to configure the `pg` backend in order
+not to have sensitive credentials written to  disk and committed to source
+control.
+
+The `pg` backend supports the standard [`libpq` environment variables](https://www.postgresql.org/docs/current/libpq-envars.html).
+
+The backend can be configured either by giving the whole configuration as an
+environment variable:
 
 ```hcl
 terraform {
@@ -37,16 +45,26 @@ terraform {
 }
 ```
 
-Then, set the credentials when initializing the configuration:
-
+```shellsession
+$ export PG_CONN_STR=postgres://user:pass@db.example.com/terraform_backend
+$ terraform init
 ```
-terraform init -backend-config="conn_str=postgres://user:pass@db.example.com/terraform_backend"
+
+or just the sensitive parameters:
+
+```hcl
+terraform {
+  backend "pg" {
+    conn_str = "postgres://db.example.com/terraform_backend"
+  }
+}
 ```
 
-To use a Postgres server running on the same machine as Terraform, configure localhost with SSL disabled:
-
-```
-terraform init -backend-config="conn_str=postgres://localhost/terraform_backend?sslmode=disable"
+```shellsession
+$ export PGUSER=user
+$ read -s PGPASSWORD
+$ export PGPASSWORD
+$ terraform init
 ```
 
 ## Data Source Configuration
@@ -68,11 +86,11 @@ data "terraform_remote_state" "network" {
 
 The following configuration options or environment variables are supported:
 
-- `conn_str` - (Required) Postgres connection string; a `postgres://` URL. `conn_str` can also be set using the `PGDATABASE` environment variable.
-- `schema_name` - Name of the automatically-managed Postgres schema, default `terraform_remote_state`.
-- `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Terraform won't try to create the schema, this is useful when it has already been created by a database administrator.
-- `skip_table_creation` - If set to `true`, the Postgres table must already exist. Terraform won't try to create the table, this is useful when it has already been created by a database administrator.
-- `skip_index_creation` - If set to `true`, the Postgres index must already exist. Terraform won't try to create the index, this is useful when it has already been created by a database administrator.
+- `conn_str` - Postgres connection string; a `postgres://` URL. The `PG_CONN_STR` and [standard `libpq`](https://www.postgresql.org/docs/current/libpq-envars.html) environment variables can also be used to indicate how to connect to the PostgreSQL database.
+- `schema_name` - Name of the automatically-managed Postgres schema, default to `terraform_remote_state`. Can also be set using the `PG_SCHEMA_NAME` environment variable.
+- `skip_schema_creation` - If set to `true`, the Postgres schema must already exist. Can also be set using the `PG_SKIP_SCHEMA_CREATION` environment variable. Terraform won't try to create the schema, this is useful when it has already been created by a database administrator.
+- `skip_table_creation` - If set to `true`, the Postgres table must already exist. Can also be set using the `PG_SKIP_TABLE_CREATION` environment variable. Terraform won't try to create the table, this is useful when it has already been created by a database administrator.
+- `skip_index_creation` - If set to `true`, the Postgres index must already exist. Can also be set using the `PG_SKIP_INDEX_CREATION` environment variable. Terraform won't try to create the index, this is useful when it has already been created by a database administrator.
 
 ## Technical Design
 
