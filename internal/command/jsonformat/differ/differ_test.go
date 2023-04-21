@@ -9,7 +9,8 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -41,12 +42,12 @@ func TestValue_SimpleBlocks(t *testing.T) {
 	// individual test cases within blocks for some simple tests.
 
 	tcs := map[string]struct {
-		input    Change
+		input    structured.Change
 		block    *jsonprovider.Block
 		validate renderers.ValidateDiffFunction
 	}{
 		"delete_with_null_sensitive_value": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"normal_attribute": "some value",
 				},
@@ -71,7 +72,7 @@ func TestValue_SimpleBlocks(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Delete, false),
 		},
 		"create_with_null_sensitive_value": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"normal_attribute": "some value",
@@ -107,7 +108,7 @@ func TestValue_SimpleBlocks(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
-			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
+			tc.validate(t, ComputeDiffForBlock(tc.input, tc.block))
 		})
 	}
 }
@@ -119,7 +120,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 	// types of collections.
 
 	tcs := map[string]struct {
-		input                Change
+		input                structured.Change
 		attributes           map[string]cty.Type
 		validateSingleDiff   renderers.ValidateDiffFunction
 		validateObject       renderers.ValidateDiffFunction
@@ -133,7 +134,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 		validateSetDiffs *SetDiff
 	}{
 		"create": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"attribute_one": "new",
@@ -149,7 +150,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateReplace: false,
 		},
 		"delete": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -165,7 +166,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateReplace: false,
 		},
 		"create_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"attribute_one": "new",
@@ -191,7 +192,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				false),
 		},
 		"delete_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -209,7 +210,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			}, plans.Delete, false), true, false, plans.Delete, false),
 		},
 		"create_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  nil,
 				After:   nil,
 				Unknown: true,
@@ -220,7 +221,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateSingleDiff: renderers.ValidateUnknown(nil, plans.Create, false),
 		},
 		"update_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -250,7 +251,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"create_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After: map[string]interface{}{
 					"attribute_one": "new",
@@ -280,7 +281,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"create_attribute_from_explicit_null": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": nil,
 				},
@@ -312,7 +313,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"delete_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -342,7 +343,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"delete_attribute_to_explicit_null": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -374,7 +375,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"update_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -408,7 +409,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"create_sensitive_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After: map[string]interface{}{
 					"attribute_one": "new",
@@ -441,7 +442,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"delete_sensitive_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -474,7 +475,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"update_sensitive_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -514,7 +515,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"create_computed_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After:  map[string]interface{}{},
 				Unknown: map[string]interface{}{
@@ -531,7 +532,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateReplace: false,
 		},
 		"update_computed_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -569,7 +570,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"ignores_unset_fields": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After:  map[string]interface{}{},
 			},
@@ -581,7 +582,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateReplace: false,
 		},
 		"update_replace_self": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -620,7 +621,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"update_replace_attribute": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old",
 				},
@@ -659,7 +660,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			},
 		},
 		"update_includes_relevant_attributes": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"attribute_one": "old_one",
 					"attribute_two": "old_two",
@@ -740,17 +741,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateObject != nil {
-					tc.validateObject(t, tc.input.ComputeDiffForAttribute(attribute))
+					tc.validateObject(t, ComputeDiffForAttribute(tc.input, attribute))
 					return
 				}
 
 				if tc.validateSingleDiff != nil {
-					tc.validateSingleDiff(t, tc.input.ComputeDiffForAttribute(attribute))
+					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace)
-				validate(t, tc.input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(tc.input, attribute))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -764,7 +765,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -772,14 +773,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -790,7 +791,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				input := wrapChangeInSlice(tc.input)
 
 				if tc.validateList != nil {
-					tc.validateList(t, input.ComputeDiffForAttribute(attribute))
+					tc.validateList(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -798,7 +799,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -806,14 +807,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -830,7 +831,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -838,7 +839,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -846,14 +847,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 		})
 
@@ -875,17 +876,17 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				}
 
 				if tc.validateNestedObject != nil {
-					tc.validateNestedObject(t, tc.input.ComputeDiffForAttribute(attribute))
+					tc.validateNestedObject(t, ComputeDiffForAttribute(tc.input, attribute))
 					return
 				}
 
 				if tc.validateSingleDiff != nil {
-					tc.validateSingleDiff(t, tc.input.ComputeDiffForAttribute(attribute))
+					tc.validateSingleDiff(t, ComputeDiffForAttribute(tc.input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace)
-				validate(t, tc.input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(tc.input, attribute))
 			})
 
 			t.Run("map", func(t *testing.T) {
@@ -910,7 +911,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -918,14 +919,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -950,7 +951,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -958,14 +959,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -993,7 +994,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateNestedObject))
 						return ret
 					}(), collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -1001,7 +1002,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
@@ -1009,14 +1010,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
 					}, collectionDefaultAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace),
 				}, collectionDefaultAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 		})
 	}
@@ -1223,7 +1224,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			t.Run("single", func(t *testing.T) {
-				input := Change{
+				input := structured.Change{
 					Before: map[string]interface{}{
 						"block_type": tc.before,
 					},
@@ -1246,10 +1247,10 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 				validate := renderers.ValidateBlock(nil, map[string]renderers.ValidateDiffFunction{
 					"block_type": tc.validate,
 				}, nil, nil, nil, plans.Update, false)
-				validate(t, input.ComputeDiffForBlock(block))
+				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("map", func(t *testing.T) {
-				input := Change{
+				input := structured.Change{
 					Before: map[string]interface{}{
 						"block_type": map[string]interface{}{
 							"one": tc.before,
@@ -1278,10 +1279,10 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						"one": tc.validate,
 					},
 				}, nil, plans.Update, false)
-				validate(t, input.ComputeDiffForBlock(block))
+				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("list", func(t *testing.T) {
-				input := Change{
+				input := structured.Change{
 					Before: map[string]interface{}{
 						"block_type": []interface{}{
 							tc.before,
@@ -1310,10 +1311,10 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						tc.validate,
 					},
 				}, nil, nil, plans.Update, false)
-				validate(t, input.ComputeDiffForBlock(block))
+				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("set", func(t *testing.T) {
-				input := Change{
+				input := structured.Change{
 					Before: map[string]interface{}{
 						"block_type": []interface{}{
 							tc.before,
@@ -1345,7 +1346,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						return []renderers.ValidateDiffFunction{tc.validate}
 					}(),
 				}, plans.Update, false)
-				validate(t, input.ComputeDiffForBlock(block))
+				validate(t, ComputeDiffForBlock(input, block))
 			})
 		})
 	}
@@ -1353,18 +1354,18 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 
 func TestValue_Outputs(t *testing.T) {
 	tcs := map[string]struct {
-		input        Change
+		input        structured.Change
 		validateDiff renderers.ValidateDiffFunction
 	}{
 		"primitive_create": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  "new",
 			},
 			validateDiff: renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 		},
 		"object_create": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"element_one": "new_one",
@@ -1377,7 +1378,7 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Create, false),
 		},
 		"list_create": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: []interface{}{
 					"new_one",
@@ -1390,14 +1391,14 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Create, false),
 		},
 		"primitive_update": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  "new",
 			},
 			validateDiff: renderers.ValidatePrimitive("old", "new", plans.Update, false),
 		},
 		"object_update": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
 					"element_two": "old_two",
@@ -1413,7 +1414,7 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Update, false),
 		},
 		"list_update": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{
 					"old_one",
 					"old_two",
@@ -1431,14 +1432,14 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Update, false),
 		},
 		"primitive_delete": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  nil,
 			},
 			validateDiff: renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 		},
 		"object_delete": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
 					"element_two": "old_two",
@@ -1451,7 +1452,7 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Delete, false),
 		},
 		"list_delete": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{
 					"old_one",
 					"old_two",
@@ -1464,7 +1465,7 @@ func TestValue_Outputs(t *testing.T) {
 			}, plans.Delete, false),
 		},
 		"primitive_to_list": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After: []interface{}{
 					"new_one",
@@ -1479,7 +1480,7 @@ func TestValue_Outputs(t *testing.T) {
 				}, plans.Create, false), plans.Update, false),
 		},
 		"primitive_to_object": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After: map[string]interface{}{
 					"element_one": "new_one",
@@ -1494,7 +1495,7 @@ func TestValue_Outputs(t *testing.T) {
 				}, plans.Create, false), plans.Update, false),
 		},
 		"list_to_primitive": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{
 					"old_one",
 					"old_two",
@@ -1510,7 +1511,7 @@ func TestValue_Outputs(t *testing.T) {
 				plans.Update, false),
 		},
 		"list_to_object": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{
 					"old_one",
 					"old_two",
@@ -1531,7 +1532,7 @@ func TestValue_Outputs(t *testing.T) {
 				}, plans.Create, false), plans.Update, false),
 		},
 		"object_to_primitive": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
 					"element_two": "old_two",
@@ -1547,7 +1548,7 @@ func TestValue_Outputs(t *testing.T) {
 				plans.Update, false),
 		},
 		"object_to_list": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element_one": "old_one",
 					"element_two": "old_two",
@@ -1580,7 +1581,7 @@ func TestValue_Outputs(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
-			tc.validateDiff(t, tc.input.ComputeDiffForOutput())
+			tc.validateDiff(t, ComputeDiffForOutput(tc.input))
 		})
 	}
 }
@@ -1591,27 +1592,27 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 	// contexts of collections.
 
 	tcs := map[string]struct {
-		input              Change
+		input              structured.Change
 		attribute          cty.Type
 		validateDiff       renderers.ValidateDiffFunction
 		validateSliceDiffs []renderers.ValidateDiffFunction // Lists are special in some cases.
 	}{
 		"primitive_create": {
-			input: Change{
+			input: structured.Change{
 				After: "new",
 			},
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive(nil, "new", plans.Create, false),
 		},
 		"primitive_delete": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 			},
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive("old", nil, plans.Delete, false),
 		},
 		"primitive_update": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  "new",
 			},
@@ -1623,7 +1624,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"primitive_set_explicit_null": {
-			input: Change{
+			input: structured.Change{
 				Before:        "old",
 				After:         nil,
 				AfterExplicit: true,
@@ -1636,7 +1637,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"primitive_unset_explicit_null": {
-			input: Change{
+			input: structured.Change{
 				BeforeExplicit: true,
 				Before:         nil,
 				After:          "new",
@@ -1649,7 +1650,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"primitive_create_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:         nil,
 				After:          "new",
 				AfterSensitive: true,
@@ -1658,7 +1659,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidatePrimitive(nil, "new", plans.Create, false), false, true, plans.Create, false),
 		},
 		"primitive_delete_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          "old",
 				BeforeSensitive: true,
 				After:           nil,
@@ -1667,7 +1668,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidatePrimitive("old", nil, plans.Delete, false), true, false, plans.Delete, false),
 		},
 		"primitive_update_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          "old",
 				BeforeSensitive: true,
 				After:           "new",
@@ -1681,7 +1682,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"primitive_create_computed": {
-			input: Change{
+			input: structured.Change{
 				Before:  nil,
 				After:   nil,
 				Unknown: true,
@@ -1690,7 +1691,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(nil, plans.Create, false),
 		},
 		"primitive_update_computed": {
-			input: Change{
+			input: structured.Change{
 				Before:  "old",
 				After:   nil,
 				Unknown: true,
@@ -1703,7 +1704,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"primitive_update_replace": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  "new",
 				ReplacePaths: &attribute_path.PathMatcher{
@@ -1720,7 +1721,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"noop": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  "old",
 			},
@@ -1728,7 +1729,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			validateDiff: renderers.ValidatePrimitive("old", "old", plans.NoOp, false),
 		},
 		"dynamic": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  "new",
 			},
@@ -1740,7 +1741,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			},
 		},
 		"dynamic_type_change": {
-			input: Change{
+			input: structured.Change{
 				Before: "old",
 				After:  4.0,
 			},
@@ -1773,7 +1774,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			t.Run("direct", func(t *testing.T) {
-				tc.validateDiff(t, tc.input.ComputeDiffForAttribute(&jsonprovider.Attribute{
+				tc.validateDiff(t, ComputeDiffForAttribute(tc.input, &jsonprovider.Attribute{
 					AttributeType: unmarshalType(t, tc.attribute),
 				}))
 			})
@@ -1787,7 +1788,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("list", func(t *testing.T) {
@@ -1798,14 +1799,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceDiffs != nil {
 					validate := renderers.ValidateList(tc.validateSliceDiffs, defaultCollectionsAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
 			t.Run("set", func(t *testing.T) {
@@ -1816,14 +1817,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				if tc.validateSliceDiffs != nil {
 					validate := renderers.ValidateSet(tc.validateSliceDiffs, defaultCollectionsAction, false)
-					validate(t, input.ComputeDiffForAttribute(attribute))
+					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
 				}, defaultCollectionsAction, false)
-				validate(t, input.ComputeDiffForAttribute(attribute))
+				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 		})
 	}
@@ -1834,12 +1835,12 @@ func TestValue_CollectionAttributes(t *testing.T) {
 	// generally cover editing collections except in special cases as editing
 	// collections is handled automatically by other functions.
 	tcs := map[string]struct {
-		input        Change
+		input        structured.Change
 		attribute    *jsonprovider.Attribute
 		validateDiff renderers.ValidateDiffFunction
 	}{
 		"map_create_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  map[string]interface{}{},
 			},
@@ -1849,7 +1850,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateMap(nil, plans.Create, false),
 		},
 		"map_create_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"element_one": "one",
@@ -1865,7 +1866,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Create, false),
 		},
 		"map_delete_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After:  nil,
 			},
@@ -1875,7 +1876,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateMap(nil, plans.Delete, false),
 		},
 		"map_delete_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element_one": "one",
 					"element_two": "two",
@@ -1891,7 +1892,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Delete, false),
 		},
 		"map_create_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:         nil,
 				After:          map[string]interface{}{},
 				AfterSensitive: true,
@@ -1902,7 +1903,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateMap(nil, plans.Create, false), false, true, plans.Create, false),
 		},
 		"map_update_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"element": "one",
 				},
@@ -1918,7 +1919,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Update, false), true, true, plans.Update, false),
 		},
 		"map_delete_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          map[string]interface{}{},
 				BeforeSensitive: true,
 				After:           nil,
@@ -1929,7 +1930,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateMap(nil, plans.Delete, false), true, false, plans.Delete, false),
 		},
 		"map_create_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  nil,
 				After:   map[string]interface{}{},
 				Unknown: true,
@@ -1940,7 +1941,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(nil, plans.Create, false),
 		},
 		"map_update_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{},
 				After: map[string]interface{}{
 					"element": "one",
@@ -1953,7 +1954,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(renderers.ValidateMap(nil, plans.Delete, false), plans.Update, false),
 		},
 		"list_create_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  []interface{}{},
 			},
@@ -1963,7 +1964,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateList(nil, plans.Create, false),
 		},
 		"list_create_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  []interface{}{"one", "two"},
 			},
@@ -1976,7 +1977,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Create, false),
 		},
 		"list_delete_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{},
 				After:  nil,
 			},
@@ -1986,7 +1987,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateList(nil, plans.Delete, false),
 		},
 		"list_delete_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{"one", "two"},
 				After:  nil,
 			},
@@ -1999,7 +2000,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Delete, false),
 		},
 		"list_create_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:         nil,
 				After:          []interface{}{},
 				AfterSensitive: true,
@@ -2010,7 +2011,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateList(nil, plans.Create, false), false, true, plans.Create, false),
 		},
 		"list_update_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          []interface{}{"one"},
 				BeforeSensitive: true,
 				After:           []interface{}{},
@@ -2024,7 +2025,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Update, false), true, true, plans.Update, false),
 		},
 		"list_delete_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          []interface{}{},
 				BeforeSensitive: true,
 				After:           nil,
@@ -2035,7 +2036,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateList(nil, plans.Delete, false), true, false, plans.Delete, false),
 		},
 		"list_create_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  nil,
 				After:   []interface{}{},
 				Unknown: true,
@@ -2046,7 +2047,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(nil, plans.Create, false),
 		},
 		"list_update_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  []interface{}{},
 				After:   []interface{}{"one"},
 				Unknown: true,
@@ -2057,7 +2058,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(renderers.ValidateList(nil, plans.Delete, false), plans.Update, false),
 		},
 		"set_create_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  []interface{}{},
 			},
@@ -2067,7 +2068,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSet(nil, plans.Create, false),
 		},
 		"set_create_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After:  []interface{}{"one", "two"},
 			},
@@ -2080,7 +2081,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Create, false),
 		},
 		"set_delete_empty": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{},
 				After:  nil,
 			},
@@ -2090,7 +2091,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSet(nil, plans.Delete, false),
 		},
 		"set_delete_populated": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{"one", "two"},
 				After:  nil,
 			},
@@ -2103,7 +2104,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Delete, false),
 		},
 		"set_create_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:         nil,
 				After:          []interface{}{},
 				AfterSensitive: true,
@@ -2114,7 +2115,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateSet(nil, plans.Create, false), false, true, plans.Create, false),
 		},
 		"set_update_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          []interface{}{"one"},
 				BeforeSensitive: true,
 				After:           []interface{}{},
@@ -2128,7 +2129,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			}, plans.Update, false), true, true, plans.Update, false),
 		},
 		"set_delete_sensitive": {
-			input: Change{
+			input: structured.Change{
 				Before:          []interface{}{},
 				BeforeSensitive: true,
 				After:           nil,
@@ -2139,7 +2140,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateSensitive(renderers.ValidateSet(nil, plans.Delete, false), true, false, plans.Delete, false),
 		},
 		"set_create_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  nil,
 				After:   []interface{}{},
 				Unknown: true,
@@ -2150,7 +2151,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(nil, plans.Create, false),
 		},
 		"set_update_unknown": {
-			input: Change{
+			input: structured.Change{
 				Before:  []interface{}{},
 				After:   []interface{}{"one"},
 				Unknown: true,
@@ -2161,7 +2162,7 @@ func TestValue_CollectionAttributes(t *testing.T) {
 			validateDiff: renderers.ValidateUnknown(renderers.ValidateSet(nil, plans.Delete, false), plans.Update, false),
 		},
 		"tuple_primitive": {
-			input: Change{
+			input: structured.Change{
 				Before: []interface{}{
 					"one",
 					2.0,
@@ -2195,19 +2196,19 @@ func TestValue_CollectionAttributes(t *testing.T) {
 		}
 
 		t.Run(name, func(t *testing.T) {
-			tc.validateDiff(t, tc.input.ComputeDiffForAttribute(tc.attribute))
+			tc.validateDiff(t, ComputeDiffForAttribute(tc.input, tc.attribute))
 		})
 	}
 }
 
 func TestRelevantAttributes(t *testing.T) {
 	tcs := map[string]struct {
-		input    Change
+		input    structured.Change
 		block    *jsonprovider.Block
 		validate renderers.ValidateDiffFunction
 	}{
 		"simple_attributes": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"id":     "old_id",
 					"ignore": "doesn't matter",
@@ -2240,7 +2241,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"nested_attributes": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"list_block": []interface{}{
 						map[string]interface{}{
@@ -2297,7 +2298,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, plans.Update, false),
 		},
 		"nested_attributes_in_object": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"object": map[string]interface{}{
 						"id": "old_id",
@@ -2333,7 +2334,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"elements_in_list": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"list": []interface{}{
 						0, 1, 2, 3, 4,
@@ -2384,7 +2385,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"elements_in_map": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"map": map[string]interface{}{
 						"key_one":   "value_one",
@@ -2433,7 +2434,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"elements_in_set": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"set": []interface{}{
 						0, 1, 2, 3, 4,
@@ -2473,7 +2474,7 @@ func TestRelevantAttributes(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Update, false),
 		},
 		"dynamic_types": {
-			input: Change{
+			input: structured.Change{
 				Before: map[string]interface{}{
 					"dynamic_nested_type": map[string]interface{}{
 						"nested_id": "nomatch",
@@ -2547,7 +2548,7 @@ func TestRelevantAttributes(t *testing.T) {
 			tc.input.ReplacePaths = &attribute_path.PathMatcher{}
 		}
 		t.Run(name, func(t *testing.T) {
-			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
+			tc.validate(t, ComputeDiffForBlock(tc.input, tc.block))
 		})
 	}
 }
@@ -2557,12 +2558,12 @@ func TestSpecificCases(t *testing.T) {
 	// cases and will execute against them. For testing/fixing specific issues
 	// you can generally put the test case in here.
 	tcs := map[string]struct {
-		input    Change
+		input    structured.Change
 		block    *jsonprovider.Block
 		validate renderers.ValidateDiffFunction
 	}{
 		"issues/33016/unknown": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"triggers": map[string]interface{}{},
@@ -2598,7 +2599,7 @@ func TestSpecificCases(t *testing.T) {
 			}, nil, nil, nil, nil, plans.Create, false),
 		},
 		"issues/33016/null": {
-			input: Change{
+			input: structured.Change{
 				Before: nil,
 				After: map[string]interface{}{
 					"triggers": map[string]interface{}{
@@ -2636,7 +2637,7 @@ func TestSpecificCases(t *testing.T) {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
-			tc.validate(t, tc.input.ComputeDiffForBlock(tc.block))
+			tc.validate(t, ComputeDiffForBlock(tc.input, tc.block))
 		})
 	}
 }
@@ -2654,7 +2655,7 @@ func unmarshalType(t *testing.T, ctyType cty.Type) json.RawMessage {
 
 // wrapChangeInSlice does the same as wrapChangeInMap, except it wraps it into a
 // slice internally.
-func wrapChangeInSlice(input Change) Change {
+func wrapChangeInSlice(input structured.Change) structured.Change {
 	return wrapChange(input, float64(0), func(value interface{}, unknown interface{}, explicit bool) interface{} {
 		switch value.(type) {
 		case nil:
@@ -2669,9 +2670,10 @@ func wrapChangeInSlice(input Change) Change {
 	})
 }
 
-// wrapChangeInMap access a single Change and returns a new Change that represents
-// a map with a single element. That single element is the input value.
-func wrapChangeInMap(input Change) Change {
+// wrapChangeInMap access a single structured.Change and returns a new
+// structured.Change that represents a map with a single element. That single
+// element is the input value.
+func wrapChangeInMap(input structured.Change) structured.Change {
 	return wrapChange(input, "element", func(value interface{}, unknown interface{}, explicit bool) interface{} {
 		switch value.(type) {
 		case nil:
@@ -2689,7 +2691,7 @@ func wrapChangeInMap(input Change) Change {
 	})
 }
 
-func wrapChange(input Change, step interface{}, wrap func(interface{}, interface{}, bool) interface{}) Change {
+func wrapChange(input structured.Change, step interface{}, wrap func(interface{}, interface{}, bool) interface{}) structured.Change {
 
 	replacePaths := &attribute_path.PathMatcher{}
 	for _, path := range input.ReplacePaths.(*attribute_path.PathMatcher).Paths {
@@ -2715,7 +2717,7 @@ func wrapChange(input Change, step interface{}, wrap func(interface{}, interface
 		relevantAttributes = newRelevantAttributes
 	}
 
-	return Change{
+	return structured.Change{
 		Before:             wrap(input.Before, nil, input.BeforeExplicit),
 		After:              wrap(input.After, input.Unknown, input.AfterExplicit),
 		Unknown:            wrap(input.Unknown, nil, false),

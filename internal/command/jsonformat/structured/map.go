@@ -1,7 +1,7 @@
-package differ
+package structured
 
 import (
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 )
 
 // ChangeMap is a Change that represents a Map or an Object type, and has
@@ -32,7 +32,10 @@ type ChangeMap struct {
 	RelevantAttributes attribute_path.Matcher
 }
 
-func (change Change) asMap() ChangeMap {
+// AsMap converts the Change into an object or map representation by converting
+// the internal Before, After, Unknown, BeforeSensitive, and AfterSensitive
+// data structures into generic maps.
+func (change Change) AsMap() ChangeMap {
 	return ChangeMap{
 		Before:             genericToMap(change.Before),
 		After:              genericToMap(change.After),
@@ -44,7 +47,9 @@ func (change Change) asMap() ChangeMap {
 	}
 }
 
-func (m ChangeMap) getChild(key string) Change {
+// GetChild safely packages up a Change object for the given child, handling
+// all the cases where the data might be null or a static boolean.
+func (m ChangeMap) GetChild(key string) Change {
 	before, beforeExplicit := getFromGenericMap(m.Before, key)
 	after, afterExplicit := getFromGenericMap(m.After, key)
 	unknown, _ := getFromGenericMap(m.Unknown, key)
@@ -62,6 +67,29 @@ func (m ChangeMap) getChild(key string) Change {
 		ReplacePaths:       m.ReplacePaths.GetChildWithKey(key),
 		RelevantAttributes: m.RelevantAttributes.GetChildWithKey(key),
 	}
+}
+
+// Keys returns all the possible keys for this map. The keys for the map are
+// potentially hidden and spread across multiple internal data structures and
+// so this function conveniently packages them up.
+func (m ChangeMap) Keys() []string {
+	var keys []string
+	for before := range m.Before {
+		keys = append(keys, before)
+	}
+	for after := range m.After {
+		keys = append(keys, after)
+	}
+	for unknown := range m.Unknown {
+		keys = append(keys, unknown)
+	}
+	for sensitive := range m.AfterSensitive {
+		keys = append(keys, sensitive)
+	}
+	for sensitive := range m.BeforeSensitive {
+		keys = append(keys, sensitive)
+	}
+	return keys
 }
 
 func getFromGenericMap(generic map[string]interface{}, key string) (interface{}, bool) {

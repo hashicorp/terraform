@@ -5,14 +5,15 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 )
 
-func (change Change) ComputeDiffForOutput() computed.Diff {
-	if sensitive, ok := change.checkForSensitiveType(cty.DynamicPseudoType); ok {
+func ComputeDiffForOutput(change structured.Change) computed.Diff {
+	if sensitive, ok := checkForSensitiveType(change, cty.DynamicPseudoType); ok {
 		return sensitive
 	}
 
-	if unknown, ok := change.checkForUnknownType(cty.DynamicPseudoType); ok {
+	if unknown, ok := checkForUnknownType(change, cty.DynamicPseudoType); ok {
 		return unknown
 	}
 

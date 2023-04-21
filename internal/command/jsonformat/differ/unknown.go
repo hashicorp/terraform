@@ -4,18 +4,17 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 )
 
-func (change Change) checkForUnknownType(ctype cty.Type) (computed.Diff, bool) {
-	return change.checkForUnknown(false, func(value Change) computed.Diff {
-		return value.ComputeDiffForType(ctype)
+func checkForUnknownType(change structured.Change, ctype cty.Type) (computed.Diff, bool) {
+	return checkForUnknown(change, false, func(value structured.Change) computed.Diff {
+		return ComputeDiffForType(value, ctype)
 	})
 }
-func (change Change) checkForUnknownNestedAttribute(attribute *jsonprovider.NestedType) (computed.Diff, bool) {
+func checkForUnknownNestedAttribute(change structured.Change, attribute *jsonprovider.NestedType) (computed.Diff, bool) {
 
 	// We want our child attributes to show up as computed instead of deleted.
 	// Let's populate that here.
@@ -24,12 +23,12 @@ func (change Change) checkForUnknownNestedAttribute(attribute *jsonprovider.Nest
 		childUnknown[key] = true
 	}
 
-	return change.checkForUnknown(childUnknown, func(value Change) computed.Diff {
-		return value.computeDiffForNestedAttribute(attribute)
+	return checkForUnknown(change, childUnknown, func(value structured.Change) computed.Diff {
+		return computeDiffForNestedAttribute(value, attribute)
 	})
 }
 
-func (change Change) checkForUnknownBlock(block *jsonprovider.Block) (computed.Diff, bool) {
+func checkForUnknownBlock(change structured.Change, block *jsonprovider.Block) (computed.Diff, bool) {
 
 	// We want our child attributes to show up as computed instead of deleted.
 	// Let's populate that here.
@@ -38,13 +37,13 @@ func (change Change) checkForUnknownBlock(block *jsonprovider.Block) (computed.D
 		childUnknown[key] = true
 	}
 
-	return change.checkForUnknown(childUnknown, func(value Change) computed.Diff {
-		return value.ComputeDiffForBlock(block)
+	return checkForUnknown(change, childUnknown, func(value structured.Change) computed.Diff {
+		return ComputeDiffForBlock(value, block)
 	})
 }
 
-func (change Change) checkForUnknown(childUnknown interface{}, computeDiff func(value Change) computed.Diff) (computed.Diff, bool) {
-	unknown := change.isUnknown()
+func checkForUnknown(change structured.Change, childUnknown interface{}, computeDiff func(value structured.Change) computed.Diff) (computed.Diff, bool) {
+	unknown := change.IsUnknown()
 
 	if !unknown {
 		return computed.Diff{}, false
@@ -56,26 +55,19 @@ func (change Change) checkForUnknown(childUnknown interface{}, computeDiff func(
 	change.AfterExplicit = true
 
 	if change.Before == nil {
-		return change.asDiff(renderers.Unknown(computed.Diff{})), true
+		return asDiff(change, renderers.Unknown(computed.Diff{})), true
 	}
 
 	// If we get here, then we have a before value. We're going to model a
 	// delete operation and our renderer later can render the overall change
 	// accurately.
 
-	beforeValue := Change{
+	beforeValue := structured.Change{
 		Before:             change.Before,
 		BeforeSensitive:    change.BeforeSensitive,
 		Unknown:            childUnknown,
 		ReplacePaths:       change.ReplacePaths,
 		RelevantAttributes: change.RelevantAttributes,
 	}
-	return change.asDiff(renderers.Unknown(computeDiff(beforeValue))), true
-}
-
-func (change Change) isUnknown() bool {
-	if unknown, ok := change.Unknown.(bool); ok {
-		return unknown
-	}
-	return false
+	return asDiff(change, renderers.Unknown(computeDiff(beforeValue))), true
 }

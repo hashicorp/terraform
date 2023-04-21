@@ -6,16 +6,17 @@ import (
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ/attribute_path"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.Diff {
-	sliceValue := change.asSlice()
+func computeAttributeDiffAsList(change structured.Change, elementType cty.Type) computed.Diff {
+	sliceValue := change.AsSlice()
 
 	processIndices := func(beforeIx, afterIx int) computed.Diff {
-		value := sliceValue.getChild(beforeIx, afterIx)
+		value := sliceValue.GetChild(beforeIx, afterIx)
 
 		// It's actually really difficult to render the diffs when some indices
 		// within a slice are relevant and others aren't. To make this simpler
@@ -37,7 +38,7 @@ func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.D
 		// after.
 		value.RelevantAttributes = attribute_path.AlwaysMatcher()
 
-		return value.ComputeDiffForType(elementType)
+		return ComputeDiffForType(value, elementType)
 	}
 
 	isObjType := func(_ interface{}) bool {
@@ -48,11 +49,11 @@ func (change Change) computeAttributeDiffAsList(elementType cty.Type) computed.D
 	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jsonprovider.Attribute) computed.Diff {
+func computeAttributeDiffAsNestedList(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	var elements []computed.Diff
-	current := change.getDefaultActionForIteration()
-	change.processNestedList(func(value Change) {
-		element := value.computeDiffForNestedAttribute(&jsonprovider.NestedType{
+	current := change.GetDefaultActionForIteration()
+	processNestedList(change, func(value structured.Change) {
+		element := computeDiffForNestedAttribute(value, &jsonprovider.NestedType{
 			Attributes:  attributes,
 			NestingMode: "single",
 		})
@@ -62,21 +63,21 @@ func (change Change) computeAttributeDiffAsNestedList(attributes map[string]*jso
 	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.Matches())
 }
 
-func (change Change) computeBlockDiffsAsList(block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
+func computeBlockDiffsAsList(change structured.Change, block *jsonprovider.Block) ([]computed.Diff, plans.Action) {
 	var elements []computed.Diff
-	current := change.getDefaultActionForIteration()
-	change.processNestedList(func(value Change) {
-		element := value.ComputeDiffForBlock(block)
+	current := change.GetDefaultActionForIteration()
+	processNestedList(change, func(value structured.Change) {
+		element := ComputeDiffForBlock(value, block)
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
 	return elements, current
 }
 
-func (change Change) processNestedList(process func(value Change)) {
-	sliceValue := change.asSlice()
+func processNestedList(change structured.Change, process func(value structured.Change)) {
+	sliceValue := change.AsSlice()
 	for ix := 0; ix < len(sliceValue.Before) || ix < len(sliceValue.After); ix++ {
-		value := sliceValue.getChild(ix, ix)
+		value := sliceValue.GetChild(ix, ix)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
 			value = value.AsNoOp()
