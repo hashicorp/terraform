@@ -338,6 +338,10 @@
             "href": "/language/functions/startswith"
           },
           {
+            "title": "<code>strcontains</code>",
+            "href": "/language/functions/strcontains"
+          },
+          {
             "title": "<code>strrev</code>",
             "href": "/language/functions/strrev"
           },
