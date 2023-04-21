@@ -575,6 +575,10 @@
             "href": "/language/functions/formatdate"
           },
           {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
+          },
+          {
             "title": "<code>timeadd</code>",
             "href": "/language/functions/timeadd"
           },
@@ -814,6 +818,7 @@
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
       { "title": "range", "path": "functions/range", "hidden": true },
       { "title": "regex", "path": "functions/regex", "hidden": true },

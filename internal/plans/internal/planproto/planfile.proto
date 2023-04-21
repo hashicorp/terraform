@@ -82,6 +82,9 @@ message Plan {
     // RelevantAttributes lists individual resource attributes from
     // ResourceDrift which may have contributed to the plan changes.
     repeated resource_attr relevant_attributes = 15;
+
+    // timestamp is the record of truth for when the plan happened.
+    string timestamp = 21;
 }
 
 // Mode describes the planning mode that created the plan.

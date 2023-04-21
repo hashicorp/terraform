@@ -427,6 +427,10 @@ var DescriptionList = map[string]descriptionEntry{
 		Description:      "`timestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format.",
 		ParamDescription: []string{},
 	},
+	"plantimestamp": {
+		Description:      "`plantimestamp` returns a UTC timestamp string in [RFC 3339](https://tools.ietf.org/html/rfc3339) format, fixed to a constant time representing the time of the plan.",
+		ParamDescription: []string{},
+	},
 	"title": {
 		Description:      "`title` converts the first letter of each word in the given string to uppercase.",
 		ParamDescription: []string{""},

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -58,6 +59,7 @@ type plan struct {
 	Config             json.RawMessage   `json:"configuration,omitempty"`
 	RelevantAttributes []ResourceAttr    `json:"relevant_attributes,omitempty"`
 	Checks             json.RawMessage   `json:"checks,omitempty"`
+	Timestamp          string            `json:"timestamp,omitempty"`
 }
 
 func newPlan() *plan {
@@ -193,6 +195,7 @@ func Marshal(
 ) ([]byte, error) {
 	output := newPlan()
 	output.TerraformVersion = version.String()
+	output.Timestamp = p.Timestamp.Format(time.RFC3339)
 
 	err := output.marshalPlanVariables(p.VariableValues, config.Module.Variables)
 	if err != nil {

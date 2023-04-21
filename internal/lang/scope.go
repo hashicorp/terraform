@@ -2,6 +2,7 @@ package lang
 
 import (
 	"sync"
+	"time"
 
 	"github.com/zclconf/go-cty/cty/function"
 
@@ -49,6 +50,10 @@ type Scope struct {
 	// ConsoleMode can be set to true to request any console-only functions are
 	// included in this scope.
 	ConsoleMode bool
+
+	// PlanTimestamp is a timestamp representing when the plan was made. It will
+	// either have been generated during this operation or read from the plan.
+	PlanTimestamp time.Time
 }
 
 // SetActiveExperiments allows a caller to declare that a set of experiments

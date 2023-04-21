@@ -6,23 +6,21 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
-	"github.com/hashicorp/terraform/version"
-
 	"github.com/hashicorp/terraform/internal/states"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/version"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by

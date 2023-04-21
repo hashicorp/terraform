@@ -2,6 +2,7 @@ package plans
 
 import (
 	"sort"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -83,6 +84,9 @@ type Plan struct {
 	// order to report to the user any out-of-band changes we've detected.
 	PrevRunState *states.State
 	PriorState   *states.State
+
+	// Timestamp is the record of truth for when the plan happened.
+	Timestamp time.Time
 }
 
 // CanApply returns true if and only if the recieving plan includes content

@@ -6,6 +6,7 @@ import (
 	"log"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/zclconf/go-cty/cty"
 
@@ -527,14 +528,17 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		return nil, diags
 	}
 
+	timestamp := time.Now().UTC()
+
 	// If we get here then we should definitely have a non-nil "graph", which
 	// we can now walk.
 	changes := plans.NewChanges()
 	walker, walkDiags := c.walk(graph, walkOp, &graphWalkOpts{
-		Config:      config,
-		InputState:  prevRunState,
-		Changes:     changes,
-		MoveResults: moveResults,
+		Config:            config,
+		InputState:        prevRunState,
+		Changes:           changes,
+		MoveResults:       moveResults,
+		PlanTimeTimestamp: timestamp,
 	})
 	diags = diags.Append(walker.NonFatalDiagnostics)
 	diags = diags.Append(walkDiags)
@@ -581,6 +585,7 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 		PrevRunState:     prevRunState,
 		PriorState:       priorState,
 		Checks:           states.NewCheckResults(walker.Checks),
+		Timestamp:        timestamp,
 
 		// Other fields get populated by Context.Plan after we return
 	}
