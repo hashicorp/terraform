@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
+	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
 	"github.com/hashicorp/terraform/internal/plans"
 )
@@ -183,7 +184,17 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 }
 
 func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, indent int, opts computed.RenderHumanOpts, before evaluatedString, after evaluatedString) string {
-	jsonDiff := RendererJsonOpts().Transform(before.Json, after.Json, diff.Action != plans.Create, diff.Action != plans.Delete, attribute_path.AlwaysMatcher())
+	jsonDiff := RendererJsonOpts().Transform(structured.Change{
+		BeforeExplicit:     diff.Action != plans.Create,
+		AfterExplicit:      diff.Action != plans.Delete,
+		Before:             before.Json,
+		After:              after.Json,
+		Unknown:            false,
+		BeforeSensitive:    false,
+		AfterSensitive:     false,
+		ReplacePaths:       attribute_path.Empty(false),
+		RelevantAttributes: attribute_path.AlwaysMatcher(),
+	})
 
 	action := diff.Action
 
