@@ -7,7 +7,7 @@ BUG FIXES
 * Fix bug where the plan would render twice when using older versions of TFE as a backend. ([#33018](https://github.com/hashicorp/terraform/issues/33018))
 * Fix bug where sensitive and unknown metadata was not being propagated to dynamic types while rendering plans. ([#33057](https://github.com/hashicorp/terraform/issues/33057))
 * Fix bug where sensitive metadata from the schema was not being included in the `terraform show -json` output. ([#33059](https://github.com/hashicorp/terraform/issues/33059))
-* Fix bug where the computed attributes were not being rendered with the `# forces replacement` suffix. ([#33065](https://github.com/hashicorp/terraform/issues/33065))
+* Fix bug where computed attributes were not being rendered with the `# forces replacement` suffix. ([#33065](https://github.com/hashicorp/terraform/issues/33065))
 
 ## 1.4.5 (April 12, 2023)
 
