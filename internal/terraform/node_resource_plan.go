@@ -311,16 +311,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
-		// check if this node is being imported first
-		for _, importTarget := range n.importTargets {
-			if importTarget.Addr.Equal(a.Addr) {
-				return &graphNodeImportState{
-					Addr:             importTarget.Addr,
-					ID:               importTarget.ID,
-					ResolvedProvider: n.ResolvedProvider,
-				}
-			}
-		}
+		var m *NodePlannableResourceInstance
 
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
@@ -332,7 +323,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		a.Dependencies = n.dependencies
 		a.preDestroyRefresh = n.preDestroyRefresh
 
-		return &NodePlannableResourceInstance{
+		m = &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
 
 			// By the time we're walking, we've figured out whether we need
@@ -343,6 +334,18 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			skipPlanChanges:          n.skipPlanChanges,
 			forceReplace:             n.forceReplace,
 		}
+
+		// check if this node is being imported first
+		for _, importTarget := range n.importTargets {
+			if importTarget.Addr.Equal(a.Addr) {
+				m.importTarget = ImportTarget{
+					ID:   n.importTargets[0].ID,
+					Addr: n.importTargets[0].Addr,
+				}
+			}
+		}
+
+		return m
 	}
 
 	// The concrete resource factory we'll use for orphans

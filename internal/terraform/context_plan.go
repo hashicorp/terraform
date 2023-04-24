@@ -70,6 +70,10 @@ type PlanOpts struct {
 	// outside of Terraform), thereby hopefully replacing it with a
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
+
+	// ImportTargets is a list of target resources to import. These resources
+	// will be added to the plan graph.
+	ImportTargets []*ImportTarget
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -285,6 +289,7 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
+	opts.ImportTargets = c.findImportBlocks(config)
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
@@ -505,6 +510,17 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
+func (c *Context) findImportBlocks(config *configs.Config) []*ImportTarget {
+	var importTargets []*ImportTarget
+	for _, ic := range config.Module.Import {
+		importTargets = append(importTargets, &ImportTarget{
+			Addr: ic.To,
+			ID:   ic.ID,
+		})
+	}
+	return importTargets
+}
+
 func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*plans.Plan, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	log.Printf("[DEBUG] Building and walking plan graph for %s", opts.Mode)
@@ -605,6 +621,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:        opts.SkipRefresh,
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
+			ImportTargets:      opts.ImportTargets,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
@@ -784,7 +801,7 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 // (as opposed to graphs as an implementation detail) intended only for use
 // by the "terraform graph" command when asked to render a plan-time graph.
 //
-// The result of this is intended only for rendering ot the user as a dot
+// The result of this is intended only for rendering to the user as a dot
 // graph, and so may change in future in order to make the result more useful
 // in that context, even if drifts away from the physical graph that Terraform
 // Core currently uses as an implementation detail of planning.

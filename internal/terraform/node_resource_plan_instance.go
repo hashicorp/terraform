@@ -5,13 +5,14 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -37,6 +38,10 @@ type NodePlannableResourceInstance struct {
 	// replaceTriggeredBy stores references from replace_triggered_by which
 	// triggered this instance to be replaced.
 	replaceTriggeredBy []*addrs.Reference
+
+	// importTarget, if populated, contains the information necessary to plan
+	// an import of this resource.
+	importTarget ImportTarget
 }
 
 var (
@@ -133,7 +138,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -144,10 +149,109 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, readDiags := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
+	// If the resource is to be imported, we now ask the provider for an Import
+	// and a Refresh, and save the resulting state to instanceRefreshState.
+	if n.importTarget.ID != "" {
+		absAddr := addr.Resource.Absolute(ctx.Path())
+
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PreImportState(absAddr, n.importTarget.ID)
+		}))
+		if diags.HasErrors() {
+			return diags
+		}
+
+		resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+			TypeName: addr.Resource.Resource.Type,
+			ID:       n.importTarget.ID,
+		})
+		diags = diags.Append(resp.Diagnostics)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		imported := resp.ImportedResources
+
+		if len(imported) == 0 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Import returned no resources",
+				fmt.Sprintf("While attempting to import with ID %s, the provider"+
+					"returned no instance states.",
+					n.importTarget.ID,
+				),
+			))
+			return diags
+		}
+		for _, obj := range imported {
+			log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
+		}
+		if len(imported) > 1 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Multiple import states not supported",
+				fmt.Sprintf("While attempting to import with ID %s, the provider "+
+					"returned multiple resource instance states. This "+
+					"is not currently supported.",
+					n.importTarget.ID,
+				),
+			))
+			return diags
+		}
+
+		// call post-import hook
+		diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostImportState(absAddr, imported)
+		}))
+
+		if imported[0].TypeName == "" {
+			diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+			return diags
+		}
+
+		importedState := imported[0].AsInstanceObject()
+
+		// refresh
+		riNode := &NodeAbstractResourceInstance{
+			Addr: n.importTarget.Addr,
+			NodeAbstractResource: NodeAbstractResource{
+				ResolvedProvider: n.ResolvedProvider,
+			},
+		}
+		importedState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+		diags = diags.Append(refreshDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+
+		// verify the existence of the imported resource
+		if importedState.Value.IsNull() {
+			var diags tfdiags.Diagnostics
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Cannot import non-existent remote object",
+				fmt.Sprintf(
+					"While attempting to import an existing object to %q, "+
+						"the provider detected that no object exists with the given id. "+
+						"Only pre-existing objects can be imported; check that the id "+
+						"is correct and that it is associated with the provider's "+
+						"configured region or endpoint, or use \"terraform apply\" to "+
+						"create a new remote object for this resource.",
+					n.importTarget.Addr,
+				),
+			))
+			return diags
+		}
+
+		diags = diags.Append(riNode.writeResourceInstanceState(ctx, importedState, workingState))
+		instanceRefreshState = importedState
+	} else {
+		var readDiags tfdiags.Diagnostics
+		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
+		diags = diags.Append(readDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	// We'll save a snapshot of what we just read from the state into the
@@ -226,6 +330,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
+		}
+
+		if n.importTarget.ID != "" {
+			change.Importing = true
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
