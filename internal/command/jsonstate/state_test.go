@@ -226,7 +226,49 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
+				},
+			},
+			false,
+		},
+		"single resource_with_sensitive": {
+			map[string]*states.Resource{
+				"test_thing.baz": {
+					Addr: addrs.AbsResource{
+						Resource: addrs.Resource{
+							Mode: addrs.ManagedResourceMode,
+							Type: "test_thing",
+							Name: "bar",
+						},
+					},
+					Instances: map[addrs.InstanceKey]*states.ResourceInstance{
+						addrs.NoKey: {
+							Current: &states.ResourceInstanceObjectSrc{
+								Status:    states.ObjectReady,
+								AttrsJSON: []byte(`{"woozles":"confuzles","foozles":"sensuzles"}`),
+							},
+						},
+					},
+					ProviderConfig: addrs.AbsProviderConfig{
+						Provider: addrs.NewDefaultProvider("test"),
+						Module:   addrs.RootModule,
+					},
+				},
+			},
+			testSchemas(),
+			[]Resource{
+				{
+					Address:      "test_thing.bar",
+					Mode:         "managed",
+					Type:         "test_thing",
+					Name:         "bar",
+					Index:        nil,
+					ProviderName: "registry.terraform.io/hashicorp/test",
+					AttributeValues: AttributeValues{
+						"foozles": json.RawMessage(`"sensuzles"`),
+						"woozles": json.RawMessage(`"confuzles"`),
+					},
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 			},
 			false,
@@ -343,7 +385,7 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 			},
 			false,
@@ -385,7 +427,7 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 			},
 			false,
@@ -430,7 +472,7 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 			},
 			false,
@@ -478,7 +520,7 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 				{
 					Address:      "test_thing.bar",
@@ -492,7 +534,7 @@ func TestMarshalResources(t *testing.T) {
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
 					},
-					SensitiveValues: json.RawMessage("{}"),
+					SensitiveValues: json.RawMessage("{\"foozles\":true}"),
 				},
 			},
 			false,
