@@ -122,6 +122,18 @@ type Change struct {
 	// consists of one or more steps, each of which will be a number or a
 	// string.
 	ReplacePaths json.RawMessage `json:"replace_paths,omitempty"`
+
+	// Importing is true if the resource is being imported as part of this
+	// change.
+	//
+	// Importing is compatible with the following actions: no-op, update,
+	// replace. This bool should never be true unless the action is one of
+	// these.
+	//
+	// The simplest case, in which Importing is true and the action is no-op,
+	// represents Terraform's plan to import the resource into the state without
+	// making any further changes via the resource's provider.
+	Importing bool `json:"importing"`
 }
 
 type output struct {
@@ -442,6 +454,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			BeforeSensitive: json.RawMessage(beforeSensitive),
 			AfterSensitive:  json.RawMessage(afterSensitive),
 			ReplacePaths:    replacePaths,
+			Importing:       rc.Importing,
 		}
 
 		if rc.DeposedKey != states.NotDeposed {

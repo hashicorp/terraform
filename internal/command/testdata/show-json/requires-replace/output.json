@@ -42,7 +42,8 @@
                 },
                 "after_sensitive": {},
                 "before_sensitive": {},
-                "replace_paths": [["ami"]]
+                "replace_paths": [["ami"]],
+                "importing": false
             },
             "action_reason": "replace_because_cannot_update"
         }

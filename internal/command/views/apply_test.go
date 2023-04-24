@@ -105,7 +105,7 @@ func TestApply_resourceCount(t *testing.T) {
 	}{
 		"apply": {
 			false,
-			"Apply complete! Resources: 1 added, 2 changed, 3 destroyed.",
+			"Apply complete! Resources: 1 added, 0 imported, 2 changed, 3 destroyed.",
 		},
 		"destroy": {
 			true,

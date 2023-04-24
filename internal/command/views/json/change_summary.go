@@ -14,6 +14,7 @@ type ChangeSummary struct {
 	Add       int       `json:"add"`
 	Change    int       `json:"change"`
 	Remove    int       `json:"remove"`
+	Import    int       `json:"import"`
 	Operation Operation `json:"operation"`
 }
 
@@ -23,12 +24,12 @@ type ChangeSummary struct {
 func (cs *ChangeSummary) String() string {
 	switch cs.Operation {
 	case OperationApplied:
-		return fmt.Sprintf("Apply complete! Resources: %d added, %d changed, %d destroyed.", cs.Add, cs.Change, cs.Remove)
+		return fmt.Sprintf("Apply complete! Resources: %d added, %d imported, %d changed, %d destroyed.", cs.Add, cs.Import, cs.Change, cs.Remove)
 	case OperationDestroyed:
 		return fmt.Sprintf("Destroy complete! Resources: %d destroyed.", cs.Remove)
 	case OperationPlanned:
-		return fmt.Sprintf("Plan: %d to add, %d to change, %d to destroy.", cs.Add, cs.Change, cs.Remove)
+		return fmt.Sprintf("Plan: %d to add, %d to import, %d to change, %d to destroy.", cs.Add, cs.Import, cs.Change, cs.Remove)
 	default:
-		return fmt.Sprintf("%s: %d add, %d change, %d destroy", cs.Operation, cs.Add, cs.Change, cs.Remove)
+		return fmt.Sprintf("%s: %d add, %d import, %d change, %d destroy", cs.Operation, cs.Add, cs.Import, cs.Change, cs.Remove)
 	}
 }

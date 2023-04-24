@@ -53,7 +53,8 @@
                 "after_sensitive": {
                   "ami": true
                 },
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         }
     ],

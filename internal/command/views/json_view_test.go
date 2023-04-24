@@ -126,7 +126,8 @@ func TestJSONView_PlannedChange(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "planned_change",
 			"change": map[string]interface{}{
-				"action": "create",
+				"action":    "create",
+				"importing": false,
 				"resource": map[string]interface{}{
 					"addr":             `module.foo.test_instance.bar["boop"]`,
 					"implied_provider": "test",
@@ -167,7 +168,8 @@ func TestJSONView_ResourceDrift(t *testing.T) {
 			"@module":  "terraform.ui",
 			"type":     "resource_drift",
 			"change": map[string]interface{}{
-				"action": "update",
+				"action":    "update",
+				"importing": false,
 				"resource": map[string]interface{}{
 					"addr":             `module.foo.test_instance.bar["boop"]`,
 					"implied_provider": "test",
@@ -190,6 +192,7 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 	jv.ChangeSummary(&viewsjson.ChangeSummary{
 		Add:       1,
 		Change:    2,
+		Import:    4,
 		Remove:    3,
 		Operation: viewsjson.OperationApplied,
 	})
@@ -197,12 +200,13 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 	want := []map[string]interface{}{
 		{
 			"@level":   "info",
-			"@message": "Apply complete! Resources: 1 added, 2 changed, 3 destroyed.",
+			"@message": "Apply complete! Resources: 1 added, 4 imported, 2 changed, 3 destroyed.",
 			"@module":  "terraform.ui",
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"add":       float64(1),
 				"change":    float64(2),
+				"import":    float64(4),
 				"remove":    float64(3),
 				"operation": "apply",
 			},

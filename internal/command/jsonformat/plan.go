@@ -66,7 +66,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 	var changes []diff
 	for _, diff := range diffs.changes {
 		action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-		if action == plans.NoOp && !diff.Moved() {
+		if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
 			// Don't show anything for NoOp changes.
 			continue
 		}
@@ -78,7 +78,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		changes = append(changes, diff)
 
 		// Don't count move-only changes
-		if action != plans.NoOp {
+		if action != plans.NoOp || diff.Importing() {
 			willPrintResourceChanges = true
 			counts[action]++
 		}
@@ -182,22 +182,26 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 			"\nTerraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:",
 			renderer.Streams.Stdout.Columns()))
 		if counts[plans.Create] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Create)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Create, false)))
 		}
 		if counts[plans.Update] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Update)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Update, false)))
 		}
 		if counts[plans.Delete] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Delete)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Delete, false)))
 		}
 		if counts[plans.DeleteThenCreate] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.DeleteThenCreate)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.DeleteThenCreate, false)))
 		}
 		if counts[plans.CreateThenDelete] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.CreateThenDelete)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.CreateThenDelete, false)))
 		}
 		if counts[plans.Read] > 0 {
-			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Read)))
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Read, false)))
+		}
+		if counts[plans.NoOp] > 0 {
+			// If we got here, we have NoOp import changes
+			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.NoOp, true)))
 		}
 	}
 
@@ -217,8 +221,9 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		}
 
 		renderer.Streams.Printf(
-			renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+			renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to import, %d to change, %d to destroy.\n"),
 			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+			counts[plans.NoOp],
 			counts[plans.Update],
 			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
 	}
@@ -332,7 +337,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	// the computed actions of these.
 
 	action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-	if action == plans.NoOp && (len(diff.change.PreviousAddress) == 0 || diff.change.PreviousAddress == diff.change.Address) {
+	if action == plans.NoOp && (len(diff.change.PreviousAddress) == 0 || diff.change.PreviousAddress == diff.change.Address) && !diff.Importing() {
 		// Skip resource changes that have nothing interesting to say.
 		return "", false
 	}
@@ -441,6 +446,10 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", resource.PreviousAddress, dispAddr))
 			break
 		}
+		if resource.Change.Importing {
+			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
+			break
+		}
 		fallthrough
 	default:
 		// should never happen, since the above is exhaustive
@@ -463,13 +472,16 @@ func resourceChangeHeader(change jsonplan.ResourceChange) string {
 	return fmt.Sprintf("%s \"%s\" \"%s\"", mode, change.Type, change.Name)
 }
 
-func actionDescription(action plans.Action) string {
+func actionDescription(action plans.Action, importing bool) string {
 	switch action {
 	case plans.Create:
 		return "  [green]+[reset] create"
 	case plans.Delete:
 		return "  [red]-[reset] destroy"
 	case plans.Update:
+		if importing {
+			return "  [magenta]&[reset]/[yellow]~[reset] import and update in-place"
+		}
 		return "  [yellow]~[reset] update in-place"
 	case plans.CreateThenDelete:
 		return "[green]+[reset]/[red]-[reset] create replacement and then destroy"
@@ -477,6 +489,11 @@ func actionDescription(action plans.Action) string {
 		return "[red]-[reset]/[green]+[reset] destroy and then create replacement"
 	case plans.Read:
 		return " [cyan]<=[reset] read (data resources)"
+	case plans.NoOp:
+		if importing {
+			return "  [magenta]&[reset] import"
+		}
+		return " unsupported NoOp action (this is a bug in the plan renderer)"
 	default:
 		panic(fmt.Sprintf("unrecognized change type: %s", action.String()))
 	}

@@ -28,6 +28,10 @@ type Diff struct {
 	// Every single change could potentially add this suffix, so we embed it in
 	// the change as common functionality instead of in the specific renderers.
 	Replace bool
+
+	// Importing is true when the resource is being imported as part of the
+	// change.
+	Importing bool
 }
 
 // NewDiff creates a new Diff object with the provided renderer, action and

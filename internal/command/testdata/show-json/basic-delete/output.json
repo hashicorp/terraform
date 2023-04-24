@@ -52,7 +52,8 @@
                 },
                 "after_unknown": {},
                 "after_sensitive": {},
-                "before_sensitive": {}
+                "before_sensitive": {},
+                "importing": false
             }
         },
         {
@@ -73,7 +74,8 @@
                 "after": null,
                 "after_unknown": {},
                 "after_sensitive": false,
-                "before_sensitive": {}
+                "before_sensitive": {},
+                "importing": false
             }
         }
     ],

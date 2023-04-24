@@ -90,7 +90,8 @@
                     "ami": "bar"
                 },
                 "after_sensitive": {},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         },
         {
@@ -112,7 +113,8 @@
                     "ami": "bar"
                 },
                 "after_sensitive": {},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         },
         {
@@ -134,7 +136,8 @@
                     "ami": "bar"
                 },
                 "after_sensitive": {},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         }
     ],

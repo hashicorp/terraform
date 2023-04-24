@@ -57,7 +57,8 @@
           "id": true
         },
         "before_sensitive": false,
-        "after_sensitive": {}
+        "after_sensitive": {},
+        "importing": false
       }
     },
     {
@@ -79,7 +80,8 @@
           "id": true
         },
         "before_sensitive": false,
-        "after_sensitive": {}
+        "after_sensitive": {},
+        "importing": false
       }
     }
   ],

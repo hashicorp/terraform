@@ -10,6 +10,7 @@ const (
 	DeleteThenCreate Action = '∓'
 	CreateThenDelete Action = '±'
 	Delete           Action = '-'
+	Import           Action = '&'
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type Action

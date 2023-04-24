@@ -440,6 +440,8 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 		ret.AfterValMarks = afterValMarks
 	}
 
+	ret.Importing = rawChange.Importing
+
 	return ret, nil
 }
 
@@ -781,6 +783,8 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	default:
 		return nil, fmt.Errorf("invalid change action %s", change.Action)
 	}
+
+	ret.Importing = change.Importing
 
 	return ret, nil
 }

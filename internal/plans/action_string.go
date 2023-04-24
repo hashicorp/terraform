@@ -15,34 +15,38 @@ func _() {
 	_ = x[DeleteThenCreate-8723]
 	_ = x[CreateThenDelete-177]
 	_ = x[Delete-45]
+	_ = x[Import-38]
 }
 
 const (
 	_Action_name_0 = "NoOp"
-	_Action_name_1 = "Create"
-	_Action_name_2 = "Delete"
-	_Action_name_3 = "Update"
-	_Action_name_4 = "CreateThenDelete"
-	_Action_name_5 = "Read"
-	_Action_name_6 = "DeleteThenCreate"
+	_Action_name_1 = "Import"
+	_Action_name_2 = "Create"
+	_Action_name_3 = "Delete"
+	_Action_name_4 = "Update"
+	_Action_name_5 = "CreateThenDelete"
+	_Action_name_6 = "Read"
+	_Action_name_7 = "DeleteThenCreate"
 )
 
 func (i Action) String() string {
 	switch {
 	case i == 0:
 		return _Action_name_0
-	case i == 43:
+	case i == 38:
 		return _Action_name_1
-	case i == 45:
+	case i == 43:
 		return _Action_name_2
-	case i == 126:
+	case i == 45:
 		return _Action_name_3
-	case i == 177:
+	case i == 126:
 		return _Action_name_4
-	case i == 8592:
+	case i == 177:
 		return _Action_name_5
-	case i == 8723:
+	case i == 8592:
 		return _Action_name_6
+	case i == 8723:
+		return _Action_name_7
 	default:
 		return "Action(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

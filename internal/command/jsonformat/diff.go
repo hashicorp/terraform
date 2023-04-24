@@ -75,7 +75,7 @@ type diffs struct {
 
 func (d diffs) Empty() bool {
 	for _, change := range d.changes {
-		if change.diff.Action != plans.NoOp || change.Moved() {
+		if change.diff.Action != plans.NoOp || change.Moved() || change.Importing() {
 			return false
 		}
 	}
@@ -96,4 +96,8 @@ type diff struct {
 
 func (d diff) Moved() bool {
 	return len(d.change.PreviousAddress) > 0 && d.change.PreviousAddress != d.change.Address
+}
+
+func (d diff) Importing() bool {
+	return d.change.Change.Importing
 }

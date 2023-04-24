@@ -100,7 +100,8 @@
                     "password": "secret"
                 },
                 "after_sensitive": {"ami": true, "password": true},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         },
         {
@@ -123,7 +124,8 @@
                     "password": "secret"
                 },
                 "after_sensitive": {"ami": true, "password": true},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         },
         {
@@ -146,7 +148,8 @@
                     "password": "secret"
                 },
                 "after_sensitive": {"ami": true, "password": true},
-                "before_sensitive": false
+                "before_sensitive": false,
+                "importing": false
             }
         }
     ],

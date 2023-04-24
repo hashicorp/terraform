@@ -78,7 +78,8 @@
                 },
                 "after_unknown": {},
                 "after_sensitive": {},
-                "before_sensitive": {}
+                "before_sensitive": {},
+                "importing": false,
             }
         },
         {
@@ -101,7 +102,8 @@
                 },
                 "after_unknown": {},
                 "after_sensitive": {},
-                "before_sensitive": {}
+                "before_sensitive": {},
+                "importing": false
             }
         }
     ],

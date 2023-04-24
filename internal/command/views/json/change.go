@@ -8,9 +8,10 @@ import (
 
 func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *ResourceInstanceChange {
 	c := &ResourceInstanceChange{
-		Resource: newResourceAddr(change.Addr),
-		Action:   changeAction(change.Action),
-		Reason:   changeReason(change.ActionReason),
+		Resource:  newResourceAddr(change.Addr),
+		Action:    changeAction(change.Action),
+		Reason:    changeReason(change.ActionReason),
+		Importing: change.Importing,
 	}
 	if !change.Addr.Equal(change.PrevRunAddr) {
 		if c.Action == ActionNoOp {
@@ -18,6 +19,10 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		}
 		pr := newResourceAddr(change.PrevRunAddr)
 		c.PreviousResource = &pr
+	}
+
+	if change.Importing {
+		c.Action = ActionImport
 	}
 
 	return c
@@ -28,6 +33,7 @@ type ResourceInstanceChange struct {
 	PreviousResource *ResourceAddr `json:"previous_resource,omitempty"`
 	Action           ChangeAction  `json:"action"`
 	Reason           ChangeReason  `json:"reason,omitempty"`
+	Importing        bool          `json:"importing,omitempty"`
 }
 
 func (c *ResourceInstanceChange) String() string {
@@ -44,6 +50,7 @@ const (
 	ActionUpdate  ChangeAction = "update"
 	ActionReplace ChangeAction = "replace"
 	ActionDelete  ChangeAction = "delete"
+	ActionImport  ChangeAction = "import"
 )
 
 func changeAction(action plans.Action) ChangeAction {
