@@ -399,10 +399,11 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	// "Moved" blocks just append, because they are all independent
+	// "Moved" and "import" blocks just append, because they are all independent
 	// of one another at this level. (We handle any references between
 	// them at runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
+	m.Import = append(m.Import, file.Import...)
 
 	return diags
 }
@@ -581,6 +582,15 @@ func (m *Module) mergeFile(file *File) hcl.Diagnostics {
 			Severity: hcl.DiagError,
 			Summary:  "Cannot override 'moved' blocks",
 			Detail:   "Records of moved objects can appear only in normal files, not in override files.",
+			Subject:  m.DeclRange.Ptr(),
+		})
+	}
+
+	for _, m := range file.Import {
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Cannot override 'import' blocks",
+			Detail:   "Import blocks can appear only in normal files, not in override files.",
 			Subject:  m.DeclRange.Ptr(),
 		})
 	}
