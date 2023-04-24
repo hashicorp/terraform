@@ -56,7 +56,9 @@
               "id": "placeheld",
               "password": null
             },
-            "sensitive_values": {}
+            "sensitive_values": {
+              "password": true
+            }
           },
           {
             "address": "test_instance.foo",
@@ -70,7 +72,9 @@
               "id": "placeholder",
               "password": null
             },
-            "sensitive_values": {}
+            "sensitive_values": {
+              "password": true
+            }
           }
         ]
       }
