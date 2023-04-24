@@ -408,6 +408,25 @@ jsonencode(
 			},
 			expected: "0 -> (known after apply)",
 		},
+		"computed_create_forces_replacement": {
+			diff: computed.Diff{
+				Renderer: Unknown(computed.Diff{}),
+				Action:   plans.Create,
+				Replace:  true,
+			},
+			expected: "(known after apply) # forces replacement",
+		},
+		"computed_update_forces_replacement": {
+			diff: computed.Diff{
+				Renderer: Unknown(computed.Diff{
+					Renderer: Primitive(0.0, nil, cty.Number),
+					Action:   plans.Delete,
+				}),
+				Action:  plans.Update,
+				Replace: true,
+			},
+			expected: "0 -> (known after apply) # forces replacement",
+		},
 		"object_created": {
 			diff: computed.Diff{
 				Renderer: Object(map[string]computed.Diff{}),
