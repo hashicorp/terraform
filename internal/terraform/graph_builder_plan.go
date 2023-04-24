@@ -191,7 +191,9 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 
 		// DestroyEdgeTransformer is only required during a plan so that the
 		// TargetsTransformer can determine which nodes to keep in the graph.
-		&DestroyEdgeTransformer{},
+		&DestroyEdgeTransformer{
+			Operation: b.Operation,
+		},
 
 		&pruneUnusedNodesTransformer{
 			skip: b.Operation != walkPlanDestroy,
