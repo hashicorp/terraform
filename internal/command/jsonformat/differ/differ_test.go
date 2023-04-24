@@ -2553,6 +2553,111 @@ func TestRelevantAttributes(t *testing.T) {
 	}
 }
 
+func TestDynamicPseudoType(t *testing.T) {
+	tcs := map[string]struct {
+		input    structured.Change
+		validate renderers.ValidateDiffFunction
+	}{
+		"after_sensitive_in_dynamic_type": {
+			input: structured.Change{
+				Before: nil,
+				After: map[string]interface{}{
+					"key": "value",
+				},
+				Unknown:         false,
+				BeforeSensitive: false,
+				AfterSensitive: map[string]interface{}{
+					"key": true,
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			validate: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+				"key": renderers.ValidateSensitive(renderers.ValidatePrimitive(nil, "value", plans.Create, false), false, true, plans.Create, false),
+			}, plans.Create, false),
+		},
+		"before_sensitive_in_dynamic_type": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"key": "value",
+				},
+				After:   nil,
+				Unknown: false,
+				BeforeSensitive: map[string]interface{}{
+					"key": true,
+				},
+				AfterSensitive:     false,
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			validate: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+				"key": renderers.ValidateSensitive(renderers.ValidatePrimitive("value", nil, plans.Delete, false), true, false, plans.Delete, false),
+			}, plans.Delete, false),
+		},
+		"sensitive_in_dynamic_type": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"key": "before",
+				},
+				After: map[string]interface{}{
+					"key": "after",
+				},
+				Unknown: false,
+				BeforeSensitive: map[string]interface{}{
+					"key": true,
+				},
+				AfterSensitive: map[string]interface{}{
+					"key": true,
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			validate: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+				"key": renderers.ValidateSensitive(renderers.ValidatePrimitive("before", "after", plans.Update, false), true, true, plans.Update, false),
+			}, plans.Update, false),
+		},
+		"create_unknown_in_dynamic_type": {
+			input: structured.Change{
+				Before: nil,
+				After:  map[string]interface{}{},
+				Unknown: map[string]interface{}{
+					"key": true,
+				},
+				BeforeSensitive:    false,
+				AfterSensitive:     false,
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			validate: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+				"key": renderers.ValidateUnknown(nil, plans.Create, false),
+			}, plans.Create, false),
+		},
+		"update_unknown_in_dynamic_type": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"key": "before",
+				},
+				After: map[string]interface{}{},
+				Unknown: map[string]interface{}{
+					"key": true,
+				},
+				BeforeSensitive:    false,
+				AfterSensitive:     false,
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+			},
+			validate: renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+				"key": renderers.ValidateUnknown(renderers.ValidatePrimitive("before", nil, plans.Delete, false), plans.Update, false),
+			}, plans.Update, false),
+		},
+	}
+	for key, tc := range tcs {
+		t.Run(key, func(t *testing.T) {
+			tc.validate(t, ComputeDiffForType(tc.input, cty.DynamicPseudoType))
+		})
+	}
+}
+
 func TestSpecificCases(t *testing.T) {
 	// This is a special test that can contain any combination of individual
 	// cases and will execute against them. For testing/fixing specific issues

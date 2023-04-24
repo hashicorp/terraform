@@ -13,39 +13,7 @@ import (
 
 func computeAttributeDiffAsMap(change structured.Change, elementType cty.Type) computed.Diff {
 	mapValue := change.AsMap()
-
-	// The jsonplan package will have stripped out unknowns from our after value
-	// so we're going to add them back in here.
-	//
-	// This only affects attributes and not nested attributes or blocks, so we
-	// only perform this fix in this function and not the equivalent map
-	// functions for nested attributes and blocks.
-
-	// There is actually a difference between a null map and an empty map for
-	// purposes of calculating a delete, create, or update operation.
-
-	var after map[string]interface{}
-	if mapValue.After != nil {
-		after = make(map[string]interface{})
-	}
-
-	for key, value := range mapValue.After {
-		after[key] = value
-	}
-	for key := range mapValue.Unknown {
-		if _, ok := after[key]; ok {
-			// Then this unknown value was in after, this probably means it has
-			// a child that is unknown rather than being unknown itself. As
-			// such, we'll skip over it. Note, it doesn't particularly matter if
-			// an element is in both places - it's just important we actually
-			// do cover all the elements. We want a complete union and therefore
-			// duplicates are no cause for concern as long as we dedupe here.
-			continue
-		}
-		after[key] = nil
-	}
-
-	elements, current := collections.TransformMap(mapValue.Before, after, func(key string) computed.Diff {
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, mapValue.AllKeys(), func(key string) computed.Diff {
 		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
@@ -58,7 +26,7 @@ func computeAttributeDiffAsMap(change structured.Change, elementType cty.Type) c
 
 func computeAttributeDiffAsNestedMap(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	mapValue := change.AsMap()
-	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+	elements, current := collections.TransformMap(mapValue.Before, mapValue.After, mapValue.ExplicitKeys(), func(key string) computed.Diff {
 		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.
@@ -74,7 +42,7 @@ func computeAttributeDiffAsNestedMap(change structured.Change, attributes map[st
 
 func computeBlockDiffsAsMap(change structured.Change, block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {
 	mapValue := change.AsMap()
-	return collections.TransformMap(mapValue.Before, mapValue.After, func(key string) computed.Diff {
+	return collections.TransformMap(mapValue.Before, mapValue.After, mapValue.ExplicitKeys(), func(key string) computed.Diff {
 		value := mapValue.GetChild(key)
 		if !value.RelevantAttributes.MatchesPartial() {
 			// Mark non-relevant attributes as unchanged.

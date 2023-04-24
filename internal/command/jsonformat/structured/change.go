@@ -162,8 +162,6 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 	}
 }
 
-// AsDiff
-
 // CalculateAction does a very simple analysis to make the best guess at the
 // action this change describes. For complex types such as objects, maps, lists,
 // or sets it is likely more efficient to work out the action directly instead
@@ -219,6 +217,40 @@ func (change Change) AsNoOp() Change {
 		Unknown:            false,
 		BeforeSensitive:    change.BeforeSensitive,
 		AfterSensitive:     change.BeforeSensitive,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
+	}
+}
+
+// AsDelete returns the current change as if it is a Delete operation.
+//
+// Basically it replaces all the after values with nil or false.
+func (change Change) AsDelete() Change {
+	return Change{
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      false,
+		Before:             change.Before,
+		After:              nil,
+		Unknown:            nil,
+		BeforeSensitive:    change.BeforeSensitive,
+		AfterSensitive:     nil,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
+	}
+}
+
+// AsCreate returns the current change as if it is a Create operation.
+//
+// Basically it replaces all the before values with nil or false.
+func (change Change) AsCreate() Change {
+	return Change{
+		BeforeExplicit:     false,
+		AfterExplicit:      change.AfterExplicit,
+		Before:             nil,
+		After:              change.After,
+		Unknown:            change.Unknown,
+		BeforeSensitive:    nil,
+		AfterSensitive:     change.AfterSensitive,
 		ReplacePaths:       change.ReplacePaths,
 		RelevantAttributes: change.RelevantAttributes,
 	}
