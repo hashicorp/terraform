@@ -46,7 +46,8 @@ type Module struct {
 	ManagedResources map[string]*Resource
 	DataResources    map[string]*Resource
 
-	Moved []*Moved
+	Moved  []*Moved
+	Import []*Import
 
 	Checks map[string]*Check
 }
@@ -82,7 +83,8 @@ type File struct {
 	ManagedResources []*Resource
 	DataResources    []*Resource
 
-	Moved []*Moved
+	Moved  []*Moved
+	Import []*Import
 
 	Checks []*Check
 }

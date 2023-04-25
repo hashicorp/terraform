@@ -198,6 +198,10 @@ type ChangeSrc struct {
 	// the path+mark combinations allow us to re-mark the value later
 	// when, for example, displaying the diff to the UI.
 	BeforeValMarks, AfterValMarks []cty.PathValueMarks
+
+	// Importing is true if the resource is being imported as part of the
+	// change.
+	Importing bool
 }
 
 // Decode unmarshals the raw representations of the before and after values

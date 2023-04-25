@@ -505,6 +505,10 @@ type Change struct {
 	// either as the values themselves or as nested elements within known
 	// collections/structures.
 	Before, After cty.Value
+
+	// Importing is true if the resource is being imported as part of the
+	// change.
+	Importing bool
 }
 
 // Encode produces a variant of the reciever that has its change values
