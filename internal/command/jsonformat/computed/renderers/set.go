@@ -52,7 +52,7 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	var buf bytes.Buffer
 	buf.WriteString(fmt.Sprintf("[%s\n", forcesReplacement(displayForcesReplacementInSelf, opts)))
 	for _, element := range renderer.elements {
-		if element.Action == plans.NoOp && !opts.ShowUnchangedChildren {
+		if element.Action == plans.NoOp && !showUnchangedChildren(element, opts) {
 			unchangedElements++
 			continue
 		}
@@ -60,13 +60,13 @@ func (renderer setRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 		for _, warning := range element.WarningsHuman(indent+1, opts) {
 			buf.WriteString(fmt.Sprintf("%s%s\n", formatIndent(indent+1), warning))
 		}
-		buf.WriteString(fmt.Sprintf("%s%s%s,\n", formatIndent(indent+1), writeDiffActionSymbol(element.Action, elementOpts), element.RenderHuman(indent+1, elementOpts)))
+		buf.WriteString(fmt.Sprintf("%s%s%s,\n", formatIndent(indent+1), writeDiffActionSymbol(element, elementOpts), element.RenderHuman(indent+1, elementOpts)))
 	}
 
 	if unchangedElements > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), unchanged("element", unchangedElements, opts)))
+		buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeNoOpSymbol(opts), unchanged("element", unchangedElements, opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s]%s", formatIndent(indent), writeDiffActionSymbol(plans.NoOp, opts), nullSuffix(diff.Action, opts)))
+	buf.WriteString(fmt.Sprintf("%s%s]%s", formatIndent(indent), writeNoOpSymbol(opts), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }

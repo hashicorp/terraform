@@ -95,12 +95,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		// We are creating a single multiline string, so let's split by the new
 		// line character. While we are doing this, we are going to insert our
 		// indents and make sure each line is formatted correctly.
-		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts))), "\n")
+		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeNoOpSymbol(opts))), "\n")
 
 		// We now just need to do the same for the first entry in lines, because
 		// we split on the new line characters which won't have been at the
 		// beginning of the first line.
-		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
+		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeNoOpSymbol(opts), lines[0])
 	case plans.Delete:
 		str := evaluatePrimitiveString(renderer.before, opts)
 		if str.IsNull {
@@ -120,12 +120,12 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		// We are creating a single multiline string, so let's split by the new
 		// line character. While we are doing this, we are going to insert our
 		// indents and make sure each line is formatted correctly.
-		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts))), "\n")
+		lines = strings.Split(strings.ReplaceAll(str.String, "\n", fmt.Sprintf("\n%s%s", formatIndent(indent+1), writeNoOpSymbol(opts))), "\n")
 
 		// We now just need to do the same for the first entry in lines, because
 		// we split on the new line characters which won't have been at the
 		// beginning of the first line.
-		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), lines[0])
+		lines[0] = fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeNoOpSymbol(opts), lines[0])
 	default:
 		beforeString := evaluatePrimitiveString(renderer.before, opts)
 		afterString := evaluatePrimitiveString(renderer.after, opts)
@@ -156,16 +156,16 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 
 		processIndices := func(beforeIx, afterIx int) {
 			if beforeIx < 0 || beforeIx >= len(beforeLines) {
-				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Create, opts), afterLines[afterIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeActionSymbol(plans.Create, diff.Importing, opts), afterLines[afterIx]))
 				return
 			}
 
 			if afterIx < 0 || afterIx >= len(afterLines) {
-				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.Delete, opts), beforeLines[beforeIx]))
+				lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeActionSymbol(plans.Delete, diff.Importing, opts), beforeLines[beforeIx]))
 				return
 			}
 
-			lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), beforeLines[beforeIx]))
+			lines = append(lines, fmt.Sprintf("%s%s%s", formatIndent(indent+1), writeNoOpSymbol(opts), beforeLines[beforeIx]))
 		}
 		isObjType := func(_ string) bool {
 			return false
@@ -180,7 +180,7 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 		forcesReplacement(diff.Replace, opts),
 		strings.Join(lines, "\n"),
 		formatIndent(indent),
-		writeDiffActionSymbol(plans.NoOp, opts),
+		writeNoOpSymbol(opts),
 		nullSuffix(diff.Action, opts))
 }
 
@@ -234,7 +234,7 @@ func (renderer primitiveRenderer) renderStringDiffAsJson(diff computed.Diff, ind
 	}
 
 	if strings.Contains(renderedJsonDiff, "\n") {
-		return fmt.Sprintf("jsonencode(%s\n%s%s%s%s\n%s%s)%s", whitespace, formatIndent(indent+1), writeDiffActionSymbol(action, opts), renderedJsonDiff, replace, formatIndent(indent), writeDiffActionSymbol(plans.NoOp, opts), nullSuffix(diff.Action, opts))
+		return fmt.Sprintf("jsonencode(%s\n%s%s%s%s\n%s%s)%s", whitespace, formatIndent(indent+1), writeActionSymbol(action, diff.Importing, opts), renderedJsonDiff, replace, formatIndent(indent), writeNoOpSymbol(opts), nullSuffix(diff.Action, opts))
 	}
 	return fmt.Sprintf("jsonencode(%s)%s%s", renderedJsonDiff, whitespace, replace)
 }

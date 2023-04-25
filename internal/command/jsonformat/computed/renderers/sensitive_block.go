@@ -23,7 +23,7 @@ type sensitiveBlockRenderer struct {
 }
 
 func (renderer sensitiveBlockRenderer) RenderHuman(diff computed.Diff, indent int, opts computed.RenderHumanOpts) string {
-	cachedLinePrefix := fmt.Sprintf("%s%s", formatIndent(indent), writeDiffActionSymbol(plans.NoOp, opts))
+	cachedLinePrefix := fmt.Sprintf("%s%s", formatIndent(indent), writeNoOpSymbol(opts))
 	return fmt.Sprintf("{%s\n%s  # At least one attribute in this block is (or was) sensitive,\n%s  # so its contents will not be displayed.\n%s}",
 		forcesReplacement(diff.Replace, opts), cachedLinePrefix, cachedLinePrefix, cachedLinePrefix)
 }

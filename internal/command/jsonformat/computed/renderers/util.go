@@ -76,15 +76,32 @@ func hclEscapeString(str string) string {
 	return fmt.Sprintf("%q", str)
 }
 
-// writeDiffActionSymbol writes out the symbols for the associated action, and
+// writeDiffActionSymbol is a shortcut for writeActionSymbol, allowing the
+// caller to directly supply a computed.Diff object to simplify the external
+// functions.
+func writeDiffActionSymbol(diff computed.Diff, opts computed.RenderHumanOpts) string {
+	return writeActionSymbol(diff.Action, diff.Importing, opts)
+}
+
+// writeNoOpSymbol is a shortcut for writeActionSymbol, automatically supplying
+// the values for a NoOp action.
+func writeNoOpSymbol(opts computed.RenderHumanOpts) string {
+	return writeActionSymbol(plans.NoOp, false, opts)
+}
+
+// writeActionSymbol writes out the symbols for the associated action, and
 // handles localized colorization of the symbol as well as indenting the symbol
 // to be 4 spaces wide.
 //
 // If the opts has HideDiffActionSymbols set then this function returns an empty
 // string.
-func writeDiffActionSymbol(action plans.Action, opts computed.RenderHumanOpts) string {
+func writeActionSymbol(action plans.Action, importing bool, opts computed.RenderHumanOpts) string {
 	if opts.HideDiffActionSymbols {
 		return ""
 	}
-	return fmt.Sprintf("%s ", opts.Colorize.Color(format.DiffActionSymbol(action)))
+	return fmt.Sprintf("%s ", opts.Colorize.Color(format.DiffActionSymbol(action, importing)))
+}
+
+func showUnchangedChildren(diff computed.Diff, opts computed.RenderHumanOpts) bool {
+	return diff.Importing || opts.ShowUnchangedChildren
 }

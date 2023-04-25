@@ -164,7 +164,7 @@ func ResourceChange(
 	if change.Moved() && change.Action == plans.NoOp {
 		buf.WriteString("    ")
 	} else {
-		buf.WriteString(color.Color(DiffActionSymbol(change.Action)) + " ")
+		buf.WriteString(color.Color(DiffActionSymbol(change.Action, false)) + " ")
 	}
 
 	switch addr.Resource.Resource.Mode {
@@ -2002,7 +2002,7 @@ func ctyNullBlockSetAsEmpty(in cty.Value) cty.Value {
 // colorstring.Colorize, will produce a result that can be written
 // to a terminal to produce a symbol made of three printable
 // characters, possibly interspersed with VT100 color codes.
-func DiffActionSymbol(action plans.Action) string {
+func DiffActionSymbol(action plans.Action, importing bool) string {
 	switch action {
 	case plans.DeleteThenCreate:
 		return "[red]-[reset]/[green]+[reset]"
@@ -2017,6 +2017,9 @@ func DiffActionSymbol(action plans.Action) string {
 	case plans.Update:
 		return "  [yellow]~[reset]"
 	case plans.NoOp:
+		if importing {
+			return "  [magenta]&[reset]"
+		}
 		return "   "
 	default:
 		return "  ?"

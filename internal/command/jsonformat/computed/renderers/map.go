@@ -75,7 +75,7 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 	for _, key := range keys {
 		element := renderer.elements[key]
 
-		if element.Action == plans.NoOp && !opts.ShowUnchangedChildren {
+		if element.Action == plans.NoOp && !showUnchangedChildren(element, opts) {
 			// Don't render NoOp operations when we are compact display.
 			unchangedElements++
 			continue
@@ -91,17 +91,17 @@ func (renderer mapRenderer) RenderHuman(diff computed.Diff, indent int, opts com
 		}
 
 		if renderer.alignKeys {
-			buf.WriteString(fmt.Sprintf("%s%s%-*s = %s%s\n", formatIndent(indent+1), writeDiffActionSymbol(element.Action, elementOpts), maximumKeyLen, escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
+			buf.WriteString(fmt.Sprintf("%s%s%-*s = %s%s\n", formatIndent(indent+1), writeDiffActionSymbol(element, elementOpts), maximumKeyLen, escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
 		} else {
-			buf.WriteString(fmt.Sprintf("%s%s%s = %s%s\n", formatIndent(indent+1), writeDiffActionSymbol(element.Action, elementOpts), escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
+			buf.WriteString(fmt.Sprintf("%s%s%s = %s%s\n", formatIndent(indent+1), writeDiffActionSymbol(element, elementOpts), escapedKeys[key], element.RenderHuman(indent+1, elementOpts), comma))
 		}
 
 	}
 
 	if unchangedElements > 0 {
-		buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeDiffActionSymbol(plans.NoOp, opts), unchanged("element", unchangedElements, opts)))
+		buf.WriteString(fmt.Sprintf("%s%s%s\n", formatIndent(indent+1), writeNoOpSymbol(opts), unchanged("element", unchangedElements, opts)))
 	}
 
-	buf.WriteString(fmt.Sprintf("%s%s}%s", formatIndent(indent), writeDiffActionSymbol(plans.NoOp, opts), nullSuffix(diff.Action, opts)))
+	buf.WriteString(fmt.Sprintf("%s%s}%s", formatIndent(indent), writeNoOpSymbol(opts), nullSuffix(diff.Action, opts)))
 	return buf.String()
 }
