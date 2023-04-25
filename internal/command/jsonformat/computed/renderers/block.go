@@ -115,7 +115,7 @@ func (renderer blockRenderer) RenderHuman(diff computed.Diff, indent int, opts c
 					action = plans.Update
 				}
 
-				diff = computed.NewDiff(SensitiveBlock(diff, renderer.blocks.BeforeSensitiveBlocks[key], renderer.blocks.AfterSensitiveBlocks[key]), action, diff.Replace)
+				diff = computed.NewDiff(SensitiveBlock(diff, renderer.blocks.BeforeSensitiveBlocks[key], renderer.blocks.AfterSensitiveBlocks[key]), action, diff.Replace, diff.Importing)
 			}
 
 			if diff.Action == plans.NoOp && !opts.ShowUnchangedChildren {

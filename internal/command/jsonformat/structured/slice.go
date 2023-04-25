@@ -29,6 +29,9 @@ type ChangeSlice struct {
 
 	// RelevantAttributes matches the same attributes in Change exactly.
 	RelevantAttributes attribute_path.Matcher
+
+	// Importing matches the same attribute in Change exactly.
+	Importing bool
 }
 
 // AsSlice converts the Change into a slice representation by converting the
@@ -43,6 +46,7 @@ func (change Change) AsSlice() ChangeSlice {
 		AfterSensitive:     genericToSlice(change.AfterSensitive),
 		ReplacePaths:       change.ReplacePaths,
 		RelevantAttributes: change.RelevantAttributes,
+		Importing:          change.Importing,
 	}
 }
 
@@ -70,6 +74,10 @@ func (s ChangeSlice) GetChild(beforeIx, afterIx int) Change {
 		AfterSensitive:     afterSensitive,
 		ReplacePaths:       s.ReplacePaths.GetChildWithIndex(mostRelevantIx),
 		RelevantAttributes: s.RelevantAttributes.GetChildWithIndex(mostRelevantIx),
+
+		// Importing cascades, so if a parent is importing then all children
+		// are as well.
+		Importing: s.Importing,
 	}
 }
 

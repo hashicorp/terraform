@@ -114,5 +114,5 @@ func ComputeDiffForBlock(change structured.Change, block *jsonprovider.Block) co
 		}
 	}
 
-	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.Block(attributes, blocks), current, change.ReplacePaths.Matches(), change.Importing)
 }

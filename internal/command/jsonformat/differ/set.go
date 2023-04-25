@@ -22,7 +22,7 @@ func computeAttributeDiffAsSet(change structured.Change, elementType cty.Type) c
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.Set(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeAttributeDiffAsNestedSet(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -36,7 +36,7 @@ func computeAttributeDiffAsNestedSet(change structured.Change, attributes map[st
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.NestedSet(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeBlockDiffsAsSet(change structured.Change, block *jsonprovider.Block) ([]computed.Diff, plans.Action) {

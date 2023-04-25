@@ -23,5 +23,5 @@ func computeAttributeDiffAsTuple(change structured.Change, elementTypes []cty.Ty
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	}
-	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }

@@ -11,12 +11,12 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-type TransformPrimitiveJson func(before, after interface{}, ctype cty.Type, action plans.Action) computed.Diff
-type TransformObjectJson func(map[string]computed.Diff, plans.Action) computed.Diff
-type TransformArrayJson func([]computed.Diff, plans.Action) computed.Diff
-type TransformUnknownJson func(computed.Diff, plans.Action) computed.Diff
-type TransformSensitiveJson func(computed.Diff, bool, bool, plans.Action) computed.Diff
-type TransformTypeChangeJson func(before, after computed.Diff, action plans.Action) computed.Diff
+type TransformPrimitiveJson func(before, after interface{}, ctype cty.Type, action plans.Action, importing bool) computed.Diff
+type TransformObjectJson func(map[string]computed.Diff, plans.Action, bool) computed.Diff
+type TransformArrayJson func([]computed.Diff, plans.Action, bool) computed.Diff
+type TransformUnknownJson func(computed.Diff, plans.Action, bool) computed.Diff
+type TransformSensitiveJson func(computed.Diff, bool, bool, plans.Action, bool) computed.Diff
+type TransformTypeChangeJson func(before, after computed.Diff, action plans.Action, importing bool) computed.Diff
 
 // JsonOpts defines the external callback functions that callers should
 // implement to process the supplied diffs.
@@ -57,7 +57,7 @@ func (opts JsonOpts) Transform(change structured.Change) computed.Diff {
 
 	b := opts.processUpdate(change.AsDelete(), beforeType)
 	a := opts.processUpdate(change.AsCreate(), afterType)
-	return opts.TypeChange(b, a, plans.Update)
+	return opts.TypeChange(b, a, plans.Update, change.Importing)
 }
 
 func (opts JsonOpts) processUpdate(change structured.Change, jtype Type) computed.Diff {
@@ -95,7 +95,7 @@ func (opts JsonOpts) processPrimitive(change structured.Change, ctype cty.Type) 
 		action = plans.Update
 	}
 
-	return opts.Primitive(change.Before, change.After, ctype, action)
+	return opts.Primitive(change.Before, change.After, ctype, action, change.Importing)
 }
 
 func (opts JsonOpts) processArray(change structured.ChangeSlice) computed.Diff {
@@ -116,33 +116,36 @@ func (opts JsonOpts) processArray(change structured.ChangeSlice) computed.Diff {
 		return GetType(value) == Object
 	}
 
-	return opts.Array(collections.TransformSlice(change.Before, change.After, processIndices, isObjType))
+	elements, action := collections.TransformSlice(change.Before, change.After, processIndices, isObjType)
+	return opts.Array(elements, action, change.Importing)
 }
 
 func (opts JsonOpts) processObject(change structured.ChangeMap) computed.Diff {
-	return opts.Object(collections.TransformMap(change.Before, change.After, change.AllKeys(), func(key string) computed.Diff {
+	elements, action := collections.TransformMap(change.Before, change.After, change.AllKeys(), func(key string) computed.Diff {
 		child := change.GetChild(key)
 		if !child.RelevantAttributes.MatchesPartial() {
 			child = child.AsNoOp()
 		}
 
 		return opts.Transform(child)
-	}))
+	})
+
+	return opts.Object(elements, action, change.Importing)
 }
 
 func (opts JsonOpts) processUnknown(change structured.Change) (computed.Diff, bool) {
 	return change.CheckForUnknown(
 		false,
 		func(current structured.Change) computed.Diff {
-			return opts.Unknown(computed.Diff{}, plans.Create)
+			return opts.Unknown(computed.Diff{}, plans.Create, change.Importing)
 		}, func(current structured.Change, before structured.Change) computed.Diff {
-			return opts.Unknown(opts.Transform(before), plans.Update)
+			return opts.Unknown(opts.Transform(before), plans.Update, change.Importing)
 		},
 	)
 }
 
 func (opts JsonOpts) processSensitive(change structured.Change) (computed.Diff, bool) {
 	return change.CheckForSensitive(opts.Transform, func(inner computed.Diff, beforeSensitive, afterSensitive bool, action plans.Action) computed.Diff {
-		return opts.Sensitive(inner, beforeSensitive, afterSensitive, action)
+		return opts.Sensitive(inner, beforeSensitive, afterSensitive, action, change.Importing)
 	})
 }

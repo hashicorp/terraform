@@ -15,14 +15,14 @@ func computeAttributeDiffAsObject(change structured.Change, attributes map[strin
 	attributeDiffs, action := processObject(change, attributes, func(value structured.Change, ctype cty.Type) computed.Diff {
 		return ComputeDiffForType(value, ctype)
 	})
-	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.Object(attributeDiffs), action, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeAttributeDiffAsNestedObject(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
 	attributeDiffs, action := processObject(change, attributes, func(value structured.Change, attribute *jsonprovider.Attribute) computed.Diff {
 		return ComputeDiffForAttribute(value, attribute)
 	})
-	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.NestedObject(attributeDiffs), action, change.ReplacePaths.Matches(), change.Importing)
 }
 
 // processObject steps through the children of value as if it is an object and

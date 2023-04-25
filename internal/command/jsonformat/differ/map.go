@@ -21,7 +21,7 @@ func computeAttributeDiffAsMap(change structured.Change, elementType cty.Type) c
 		}
 		return ComputeDiffForType(value, elementType)
 	})
-	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.Map(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeAttributeDiffAsNestedMap(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -37,7 +37,7 @@ func computeAttributeDiffAsNestedMap(change structured.Change, attributes map[st
 			NestingMode: "single",
 		})
 	})
-	return computed.NewDiff(renderers.NestedMap(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.NestedMap(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeBlockDiffsAsMap(change structured.Change, block *jsonprovider.Block) (map[string]computed.Diff, plans.Action) {

@@ -140,10 +140,11 @@ func (renderer primitiveRenderer) renderStringDiff(diff computed.Diff, indent in
 			// renderer for this so let's keep it simple.
 			return computed.NewDiff(
 				TypeChange(
-					computed.NewDiff(Primitive(renderer.before, nil, cty.String), plans.Delete, false),
-					computed.NewDiff(Primitive(nil, renderer.after, cty.String), plans.Create, false)),
+					computed.NewDiff(Primitive(renderer.before, nil, cty.String), plans.Delete, false, diff.Importing),
+					computed.NewDiff(Primitive(nil, renderer.after, cty.String), plans.Create, false, diff.Importing)),
 				diff.Action,
-				diff.Replace).RenderHuman(indent, opts)
+				diff.Replace,
+				diff.Importing).RenderHuman(indent, opts)
 		}
 
 		if !beforeString.IsMultiline && !afterString.IsMultiline {

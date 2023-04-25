@@ -46,7 +46,7 @@ func computeAttributeDiffAsList(change structured.Change, elementType cty.Type) 
 	}
 
 	elements, current := collections.TransformSlice(sliceValue.Before, sliceValue.After, processIndices, isObjType)
-	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.List(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeAttributeDiffAsNestedList(change structured.Change, attributes map[string]*jsonprovider.Attribute) computed.Diff {
@@ -60,7 +60,7 @@ func computeAttributeDiffAsNestedList(change structured.Change, attributes map[s
 		elements = append(elements, element)
 		current = collections.CompareActions(current, element.Action)
 	})
-	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.Matches())
+	return computed.NewDiff(renderers.NestedList(elements), current, change.ReplacePaths.Matches(), change.Importing)
 }
 
 func computeBlockDiffsAsList(change structured.Change, block *jsonprovider.Block) ([]computed.Diff, plans.Action) {

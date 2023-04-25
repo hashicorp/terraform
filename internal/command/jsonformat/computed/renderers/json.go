@@ -16,23 +16,23 @@ import (
 // our JSON string rendering here.
 func RendererJsonOpts() jsondiff.JsonOpts {
 	return jsondiff.JsonOpts{
-		Primitive: func(before, after interface{}, ctype cty.Type, action plans.Action) computed.Diff {
-			return computed.NewDiff(Primitive(before, after, ctype), action, false)
+		Primitive: func(before, after interface{}, ctype cty.Type, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(Primitive(before, after, ctype), action, false, importing)
 		},
-		Object: func(elements map[string]computed.Diff, action plans.Action) computed.Diff {
-			return computed.NewDiff(Object(elements), action, false)
+		Object: func(elements map[string]computed.Diff, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(Object(elements), action, false, importing)
 		},
-		Array: func(elements []computed.Diff, action plans.Action) computed.Diff {
-			return computed.NewDiff(List(elements), action, false)
+		Array: func(elements []computed.Diff, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(List(elements), action, false, importing)
 		},
-		Unknown: func(diff computed.Diff, action plans.Action) computed.Diff {
-			return computed.NewDiff(Unknown(diff), action, false)
+		Unknown: func(diff computed.Diff, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(Unknown(diff), action, false, importing)
 		},
-		Sensitive: func(diff computed.Diff, beforeSensitive bool, afterSensitive bool, action plans.Action) computed.Diff {
-			return computed.NewDiff(Sensitive(diff, beforeSensitive, afterSensitive), action, false)
+		Sensitive: func(diff computed.Diff, beforeSensitive bool, afterSensitive bool, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(Sensitive(diff, beforeSensitive, afterSensitive), action, false, importing)
 		},
-		TypeChange: func(before, after computed.Diff, action plans.Action) computed.Diff {
-			return computed.NewDiff(TypeChange(before, after), action, false)
+		TypeChange: func(before, after computed.Diff, action plans.Action, importing bool) computed.Diff {
+			return computed.NewDiff(TypeChange(before, after), action, false, importing)
 		},
 	}
 }

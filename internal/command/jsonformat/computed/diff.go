@@ -22,21 +22,29 @@ type Diff struct {
 	// update, etc.).
 	Action plans.Action
 
-	// Replace tells the Change that it should add the `# forces replacement`
+	// Replace tells the Diff that it should add the `# forces replacement`
 	// suffix.
 	//
 	// Every single change could potentially add this suffix, so we embed it in
-	// the change as common functionality instead of in the specific renderers.
+	// the diff as common functionality instead of in the specific renderers.
 	Replace bool
+
+	// Importing tells the Diff that it should be rendered in full and replace
+	// the action symbol with the ampersand: '&'.
+	//
+	// Every kind of change can be imported, so we embed it in the diff as
+	// common functionality instead of in the specific renderers.
+	Importing bool
 }
 
 // NewDiff creates a new Diff object with the provided renderer, action and
 // replace context.
-func NewDiff(renderer DiffRenderer, action plans.Action, replace bool) Diff {
+func NewDiff(renderer DiffRenderer, action plans.Action, replace, importing bool) Diff {
 	return Diff{
-		Renderer: renderer,
-		Action:   action,
-		Replace:  replace,
+		Renderer:  renderer,
+		Action:    action,
+		Replace:   replace,
+		Importing: importing,
 	}
 }
 

@@ -12,15 +12,15 @@ import (
 
 type ValidateDiffFunction func(t *testing.T, diff computed.Diff)
 
-func validateDiff(t *testing.T, diff computed.Diff, expectedAction plans.Action, expectedReplace bool) {
-	if diff.Replace != expectedReplace || diff.Action != expectedAction {
-		t.Errorf("\nreplace:\n\texpected:%t\n\tactual:%t\naction:\n\texpected:%s\n\tactual:%s", expectedReplace, diff.Replace, expectedAction, diff.Action)
+func validateDiff(t *testing.T, diff computed.Diff, expectedAction plans.Action, expectedReplace bool, expectedImporting bool) {
+	if diff.Replace != expectedReplace || diff.Action != expectedAction || diff.Importing != expectedImporting {
+		t.Errorf("\nreplace:\n\texpected:%t\n\tactual:%t\naction:\n\texpected:%s\n\tactual:%s\nimporting:\n\texpected:%t\n\tactual:%t", expectedReplace, diff.Replace, expectedAction, diff.Action, expectedImporting, diff.Importing)
 	}
 }
 
-func ValidatePrimitive(before, after interface{}, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidatePrimitive(before, after interface{}, action plans.Action, replace, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		primitive, ok := diff.Renderer.(*primitiveRenderer)
 		if !ok {
@@ -37,9 +37,9 @@ func ValidatePrimitive(before, after interface{}, action plans.Action, replace b
 	}
 }
 
-func ValidateObject(attributes map[string]ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateObject(attributes map[string]ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		object, ok := diff.Renderer.(*objectRenderer)
 		if !ok {
@@ -55,9 +55,9 @@ func ValidateObject(attributes map[string]ValidateDiffFunction, action plans.Act
 	}
 }
 
-func ValidateNestedObject(attributes map[string]ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateNestedObject(attributes map[string]ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		object, ok := diff.Renderer.(*objectRenderer)
 		if !ok {
@@ -73,9 +73,9 @@ func ValidateNestedObject(attributes map[string]ValidateDiffFunction, action pla
 	}
 }
 
-func ValidateMap(elements map[string]ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateMap(elements map[string]ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		m, ok := diff.Renderer.(*mapRenderer)
 		if !ok {
@@ -119,9 +119,9 @@ func validateKeys[C, V any](t *testing.T, actual map[string]C, expected map[stri
 	}
 }
 
-func ValidateList(elements []ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateList(elements []ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		list, ok := diff.Renderer.(*listRenderer)
 		if !ok {
@@ -137,9 +137,9 @@ func ValidateList(elements []ValidateDiffFunction, action plans.Action, replace 
 	}
 }
 
-func ValidateNestedList(elements []ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateNestedList(elements []ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		list, ok := diff.Renderer.(*listRenderer)
 		if !ok {
@@ -155,9 +155,9 @@ func ValidateNestedList(elements []ValidateDiffFunction, action plans.Action, re
 	}
 }
 
-func ValidateSet(elements []ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateSet(elements []ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		set, ok := diff.Renderer.(*setRenderer)
 		if !ok {
@@ -187,9 +187,10 @@ func ValidateBlock(
 	mapBlocks map[string]map[string]ValidateDiffFunction,
 	setBlocks map[string][]ValidateDiffFunction,
 	action plans.Action,
-	replace bool) ValidateDiffFunction {
+	replace bool,
+	importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		block, ok := diff.Renderer.(*blockRenderer)
 		if !ok {
@@ -259,9 +260,9 @@ func ValidateBlock(
 	}
 }
 
-func ValidateTypeChange(before, after ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateTypeChange(before, after ValidateDiffFunction, action plans.Action, replace, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		typeChange, ok := diff.Renderer.(*typeChangeRenderer)
 		if !ok {
@@ -274,9 +275,9 @@ func ValidateTypeChange(before, after ValidateDiffFunction, action plans.Action,
 	}
 }
 
-func ValidateSensitive(inner ValidateDiffFunction, beforeSensitive, afterSensitive bool, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateSensitive(inner ValidateDiffFunction, beforeSensitive, afterSensitive bool, action plans.Action, replace, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		sensitive, ok := diff.Renderer.(*sensitiveRenderer)
 		if !ok {
@@ -292,9 +293,9 @@ func ValidateSensitive(inner ValidateDiffFunction, beforeSensitive, afterSensiti
 	}
 }
 
-func ValidateUnknown(before ValidateDiffFunction, action plans.Action, replace bool) ValidateDiffFunction {
+func ValidateUnknown(before ValidateDiffFunction, action plans.Action, replace bool, importing bool) ValidateDiffFunction {
 	return func(t *testing.T, diff computed.Diff) {
-		validateDiff(t, diff, action, replace)
+		validateDiff(t, diff, action, replace, importing)
 
 		unknown, ok := diff.Renderer.(*unknownRenderer)
 		if !ok {

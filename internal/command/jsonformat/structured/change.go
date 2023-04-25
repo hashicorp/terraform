@@ -86,6 +86,10 @@ type Change struct {
 	// that we should display. Any element/attribute not matched by this Matcher
 	// should be skipped.
 	RelevantAttributes attribute_path.Matcher
+
+	// Importing is true if the overall change describes a resource being
+	// imported during the operation.
+	Importing bool
 }
 
 // FromJsonChange unmarshals the raw []byte values in the jsonplan.Change
@@ -99,6 +103,7 @@ func FromJsonChange(change jsonplan.Change, relevantAttributes attribute_path.Ma
 		AfterSensitive:     unmarshalGeneric(change.AfterSensitive),
 		ReplacePaths:       attribute_path.Parse(change.ReplacePaths, false),
 		RelevantAttributes: relevantAttributes,
+		Importing:          change.Importing,
 	}
 }
 
@@ -119,6 +124,10 @@ func FromJsonResource(resource jsonstate.Resource) Change {
 		// are relevant.
 		ReplacePaths:       attribute_path.Empty(false),
 		RelevantAttributes: attribute_path.AlwaysMatcher(),
+
+		// Importing is only relevant during a resource change, we'll explicitly
+		// set this to false here.
+		Importing: false,
 	}
 }
 
@@ -139,6 +148,10 @@ func FromJsonOutput(output jsonstate.Output) Change {
 		// are relevant.
 		ReplacePaths:       attribute_path.Empty(false),
 		RelevantAttributes: attribute_path.AlwaysMatcher(),
+
+		// Importing is only relevant during a resource change, we'll explicitly
+		// set this to false here.
+		Importing: false,
 	}
 }
 
@@ -159,6 +172,10 @@ func FromJsonViewsOutput(output viewsjson.Output) Change {
 		// are relevant.
 		ReplacePaths:       attribute_path.Empty(false),
 		RelevantAttributes: attribute_path.AlwaysMatcher(),
+
+		// Importing is only relevant during a resource change, we'll explicitly
+		// set this to false here.
+		Importing: false,
 	}
 }
 

@@ -17,7 +17,7 @@ func checkForSensitiveType(change structured.Change, ctype cty.Type) (computed.D
 		func(value structured.Change) computed.Diff {
 			return ComputeDiffForType(value, ctype)
 		}, func(inner computed.Diff, beforeSensitive, afterSensitive bool, action plans.Action) computed.Diff {
-			return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches())
+			return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches(), change.Importing)
 		},
 	)
 }
@@ -27,7 +27,7 @@ func checkForSensitiveNestedAttribute(change structured.Change, attribute *jsonp
 		func(value structured.Change) computed.Diff {
 			return computeDiffForNestedAttribute(value, attribute)
 		}, func(inner computed.Diff, beforeSensitive, afterSensitive bool, action plans.Action) computed.Diff {
-			return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches())
+			return computed.NewDiff(renderers.Sensitive(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches(), change.Importing)
 		},
 	)
 }
@@ -37,7 +37,7 @@ func checkForSensitiveBlock(change structured.Change, block *jsonprovider.Block)
 		func(value structured.Change) computed.Diff {
 			return ComputeDiffForBlock(value, block)
 		}, func(inner computed.Diff, beforeSensitive, afterSensitive bool, action plans.Action) computed.Diff {
-			return computed.NewDiff(renderers.SensitiveBlock(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches())
+			return computed.NewDiff(renderers.SensitiveBlock(inner, beforeSensitive, afterSensitive), action, change.ReplacePaths.Matches(), change.Importing)
 		},
 	)
 }

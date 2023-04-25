@@ -8,5 +8,5 @@ import (
 // asDiff is a helper function to abstract away some simple and common
 // functionality when converting a renderer into a concrete diff.
 func asDiff(change structured.Change, renderer computed.DiffRenderer) computed.Diff {
-	return computed.NewDiff(renderer, change.CalculateAction(), change.ReplacePaths.Matches())
+	return computed.NewDiff(renderer, change.CalculateAction(), change.ReplacePaths.Matches(), change.Importing)
 }

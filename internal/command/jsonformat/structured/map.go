@@ -30,6 +30,9 @@ type ChangeMap struct {
 
 	// RelevantAttributes matches the same attributes in Change exactly.
 	RelevantAttributes attribute_path.Matcher
+
+	// Importing matches the same attribute in Change exactly.
+	Importing bool
 }
 
 // AsMap converts the Change into an object or map representation by converting
@@ -44,6 +47,7 @@ func (change Change) AsMap() ChangeMap {
 		AfterSensitive:     genericToMap(change.AfterSensitive),
 		ReplacePaths:       change.ReplacePaths,
 		RelevantAttributes: change.RelevantAttributes,
+		Importing:          change.Importing,
 	}
 }
 
@@ -66,6 +70,10 @@ func (m ChangeMap) GetChild(key string) Change {
 		AfterSensitive:     afterSensitive,
 		ReplacePaths:       m.ReplacePaths.GetChildWithKey(key),
 		RelevantAttributes: m.RelevantAttributes.GetChildWithKey(key),
+
+		// Importing cascades, so if a parent is importing then all children
+		// are as well.
+		Importing: m.Importing,
 	}
 }
 
