@@ -26,7 +26,7 @@ import (
 // incremented for any change to this format that requires changes to a
 // consuming parser.
 const (
-	FormatVersion = "1.1"
+	FormatVersion = "1.2"
 
 	ResourceInstanceReplaceBecauseCannotUpdate    = "replace_because_cannot_update"
 	ResourceInstanceReplaceBecauseTainted         = "replace_because_tainted"
@@ -122,6 +122,12 @@ type Change struct {
 	// consists of one or more steps, each of which will be a number or a
 	// string.
 	ReplacePaths json.RawMessage `json:"replace_paths,omitempty"`
+
+	// Importing indicates this change is being imported as part of this
+	// operation. This works in tandem with the Actions field to fully describe
+	// the change. For example, if importing is true and the action is a no-op
+	// then this resource is being imported without any changes.
+	Importing bool `json:"importing,omitempty"`
 }
 
 type output struct {
@@ -442,6 +448,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			BeforeSensitive: json.RawMessage(beforeSensitive),
 			AfterSensitive:  json.RawMessage(afterSensitive),
 			ReplacePaths:    replacePaths,
+			Importing:       rc.Importing,
 		}
 
 		if rc.DeposedKey != states.NotDeposed {
@@ -593,6 +600,10 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 			AfterUnknown:    a,
 			BeforeSensitive: json.RawMessage(sensitive),
 			AfterSensitive:  json.RawMessage(sensitive),
+
+			// Just to be explicit, outputs cannot be imported so this is always
+			// false.
+			Importing: false,
 		}
 
 		outputChanges[oc.Addr.OutputValue.Name] = c
