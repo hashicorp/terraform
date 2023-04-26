@@ -37,5 +37,4 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
 
 ## Contribution Guides
 
-* [Maintainer Etiquette](./maintainer-etiquette.md): guidelines and expectations
-  for those who serve as Pull Request reviewers, issue triagers, etc.
+* [Contributing to Terraform](https://github.com/hashicorp/terraform/blob/7ae272fe3184b3c0c6dc066b2d1bc86ac14606bd/.github/CONTRIBUTING.md): a complete guideline for those who want to contribute to this project.
