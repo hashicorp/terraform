@@ -1,4 +1,4 @@
-## 1.4.6 (Unreleased)
+## 1.4.6 (April 26, 2023)
 
 BUG FIXES
 
