@@ -4,9 +4,10 @@ project {
   license        = "MPL-2.0"
   copyright_year = 2014
 
-  # (OPTIONAL) A list of globs that should not have copyright/license headers.
-  # Supports doublestar glob patterns for more flexibility in defining which
-  # files or folders should be ignored
+  # The HashiCorp CLA grants an irrevocable license to use community
+  # contributions but does not include full copyright assignment.
+  copyright_holder = "Hashicorp, Inc. and community contributors"
+
   header_ignore = [
     "**/*.tf",
     "**/testdata/**",
