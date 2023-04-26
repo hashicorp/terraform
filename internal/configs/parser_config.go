@@ -30,7 +30,6 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 }
 
 func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
-
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -162,6 +161,13 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 				file.Moved = append(file.Moved, cfg)
 			}
 
+		case "import":
+			cfg, cfgDiags := decodeImportBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Import = append(file.Import, cfg)
+			}
+
 		case "check":
 			cfg, cfgDiags := decodeCheckBlock(block, override)
 			diags = append(diags, cfgDiags...)
@@ -258,6 +264,9 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "moved",
+		},
+		{
+			Type: "import",
 		},
 		{
 			Type:       "check",
