@@ -58,7 +58,7 @@ jobs:
           go_version: ${{ inputs.go-version }}
           os: ${{ inputs.goos }}
           arch: ${{ inputs.goarch }}
-          reproducible: report
+          reproducible: nope
           instructions: |-
             mkdir dist out
             set -x
