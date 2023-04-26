@@ -10,5 +10,6 @@ project {
   header_ignore = [
     "**/*.tf",
     "**/testdata/**",
+    "**/*.pb.go",
   ]
 }
