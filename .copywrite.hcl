@@ -11,5 +11,7 @@ project {
     "**/*.tf",
     "**/testdata/**",
     "**/*.pb.go",
+    "**/*_string.go",
+    "**/mock*.go",
   ]
 }
