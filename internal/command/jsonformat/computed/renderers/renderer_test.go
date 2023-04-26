@@ -2197,6 +2197,337 @@ jsonencode(
 )
 `,
 		},
+		"import_primitive": {
+			diff: computed.Diff{
+				Renderer:  Primitive("value", "value", cty.String),
+				Action:    plans.NoOp,
+				Importing: true,
+			},
+			expected: "\"value\"",
+		},
+		"import_primitive_create": {
+			diff: computed.Diff{
+				Renderer:  Primitive(nil, "value", cty.String),
+				Action:    plans.Create,
+				Importing: true,
+			},
+			expected: "\"value\"",
+		},
+		"import_primitive_update": {
+			diff: computed.Diff{
+				Renderer:  Primitive("old", "new", cty.String),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: "\"old\" -> \"new\"",
+		},
+		"import_primitive_delete": {
+			diff: computed.Diff{
+				Renderer:  Primitive("value", nil, cty.String),
+				Action:    plans.Delete,
+				Importing: true,
+			},
+			expected: "\"value\" -> null",
+		},
+		"import_list": {
+			diff: computed.Diff{
+				Renderer: List([]computed.Diff{
+					{
+						Renderer:  Primitive(0.0, 0.0, cty.Number),
+						Action:    plans.NoOp,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(-1.0, 1.0, cty.Number),
+						Action:    plans.Update,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(2.0, nil, cty.Number),
+						Action:    plans.Delete,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(nil, 3.0, cty.Number),
+						Action:    plans.Create,
+						Importing: true,
+					},
+				}),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: `
+[
+      & 0,
+      ~ -1 -> 1,
+      - 2,
+      + 3,
+    ]
+`,
+		},
+		"import_set": {
+			diff: computed.Diff{
+				Renderer: Set([]computed.Diff{
+					{
+						Renderer:  Primitive(0.0, 0.0, cty.Number),
+						Action:    plans.NoOp,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(-1.0, 1.0, cty.Number),
+						Action:    plans.Update,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(2.0, nil, cty.Number),
+						Action:    plans.Delete,
+						Importing: true,
+					},
+					{
+						Renderer:  Primitive(nil, 3.0, cty.Number),
+						Action:    plans.Create,
+						Importing: true,
+					},
+				}),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: `
+[
+      & 0,
+      ~ -1 -> 1,
+      - 2,
+      + 3,
+    ]
+`,
+		},
+		"import_object": {
+			diff: computed.Diff{
+				Renderer: Object(map[string]computed.Diff{
+					"aa": {
+						Renderer:  Primitive("aa", "aa", cty.String),
+						Action:    plans.NoOp,
+						Importing: true,
+					},
+					"ab": {
+						Renderer:  Primitive(nil, "ab", cty.String),
+						Action:    plans.Create,
+						Importing: true,
+					},
+					"bb": {
+						Renderer:  Primitive("bb", "ac", cty.String),
+						Action:    plans.Update,
+						Importing: true,
+					},
+					"ba": {
+						Renderer:  Primitive("ba", nil, cty.String),
+						Action:    plans.Delete,
+						Importing: true,
+					},
+				}),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: `
+{
+      & aa = "aa"
+      + ab = "ab"
+      - ba = "ba"
+      ~ bb = "bb" -> "ac"
+    }
+`,
+		},
+		"import_map": {
+			diff: computed.Diff{
+				Renderer: Map(map[string]computed.Diff{
+					"aa": {
+						Renderer:  Primitive("aa", "aa", cty.String),
+						Action:    plans.NoOp,
+						Importing: true,
+					},
+					"ab": {
+						Renderer:  Primitive(nil, "ab", cty.String),
+						Action:    plans.Create,
+						Importing: true,
+					},
+					"bb": {
+						Renderer:  Primitive("bb", "ac", cty.String),
+						Action:    plans.Update,
+						Importing: true,
+					},
+					"ba": {
+						Renderer:  Primitive("ba", nil, cty.String),
+						Action:    plans.Delete,
+						Importing: true,
+					},
+				}),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: `
+{
+      & "aa" = "aa"
+      + "ab" = "ab"
+      - "ba" = "ba" -> null
+      ~ "bb" = "bb" -> "ac"
+    }
+`,
+		},
+		"import_block": {
+			diff: computed.Diff{
+				Renderer: Block(map[string]computed.Diff{
+					"aa": {
+						Renderer:  Primitive("aa", "aa", cty.String),
+						Action:    plans.NoOp,
+						Importing: true,
+					},
+					"ab": {
+						Renderer:  Primitive(nil, "ab", cty.String),
+						Action:    plans.Create,
+						Importing: true,
+					},
+					"bb": {
+						Renderer:  Primitive("bb", "ac", cty.String),
+						Action:    plans.Update,
+						Importing: true,
+					},
+					"ba": {
+						Renderer:  Primitive("ba", nil, cty.String),
+						Action:    plans.Delete,
+						Importing: true,
+					},
+				}, Blocks{
+					SingleBlocks: map[string]computed.Diff{
+						"block_aa": {
+							Renderer: Block(map[string]computed.Diff{
+								"aa": {
+									Renderer:  Primitive("aa", "aa", cty.String),
+									Action:    plans.NoOp,
+									Importing: true,
+								},
+								"ab": {
+									Renderer:  Unknown(computed.Diff{}),
+									Action:    plans.Create,
+									Importing: true,
+								},
+								"bb": {
+									Renderer:  Primitive("bb", "ac", cty.String),
+									Action:    plans.Update,
+									Importing: true,
+								},
+								"ba": {
+									Renderer:  Primitive("ba", nil, cty.String),
+									Action:    plans.Delete,
+									Importing: true,
+								},
+							}, Blocks{}),
+							Action:    plans.Update,
+							Importing: true,
+						},
+					},
+					ListBlocks: map[string][]computed.Diff{
+						"block_ab": {
+							{
+								Renderer: Block(map[string]computed.Diff{
+									"aa": {
+										Renderer:  Primitive("aa", "aa", cty.String),
+										Action:    plans.NoOp,
+										Importing: true,
+									},
+								}, Blocks{}),
+								Action:    plans.NoOp,
+								Importing: true,
+							},
+							{
+								Renderer: Block(map[string]computed.Diff{
+									"aa": {
+										Renderer:  Primitive("ab", "ab", cty.String),
+										Action:    plans.Update,
+										Importing: true,
+									},
+								}, Blocks{}),
+								Action:    plans.Update,
+								Importing: true,
+							},
+						},
+					},
+					SetBlocks: map[string][]computed.Diff{
+						"block_ac": {
+							{
+								Renderer: Block(map[string]computed.Diff{
+									"aa": {
+										Renderer:  Primitive("aa", "aa", cty.String),
+										Action:    plans.NoOp,
+										Importing: true,
+									},
+								}, Blocks{}),
+								Action:    plans.NoOp,
+								Importing: true,
+							},
+							{
+								Renderer: Block(map[string]computed.Diff{
+									"aa": {
+										Renderer:  Primitive("ab", "ab", cty.String),
+										Action:    plans.Update,
+										Importing: true,
+									},
+								}, Blocks{}),
+								Action:    plans.Update,
+								Importing: true,
+							},
+						},
+					},
+					MapBlocks:     map[string]map[string]computed.Diff{},
+					ReplaceBlocks: map[string]bool{},
+					BeforeSensitiveBlocks: map[string]bool{
+						"block_ab": true,
+					},
+					AfterSensitiveBlocks: map[string]bool{
+						"block_ab": true,
+						"block_ac": true,
+					},
+				}),
+				Action:    plans.Update,
+				Importing: true,
+			},
+			expected: `
+{
+      & aa = "aa"
+      + ab = "ab"
+      - ba = "ba" -> null
+      ~ bb = "bb" -> "ac"
+
+      ~ block_aa {
+          & aa = "aa"
+          + ab = (known after apply)
+          - ba = "ba" -> null
+          ~ bb = "bb" -> "ac"
+        }
+
+      & block_ab {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+      ~ block_ab {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+
+      # Warning: this block will be marked as sensitive and will not
+      # display in UI output after applying this change.
+      ~ block_ac {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+      # Warning: this block will be marked as sensitive and will not
+      # display in UI output after applying this change.
+      ~ block_ac {
+          # At least one attribute in this block is (or was) sensitive,
+          # so its contents will not be displayed.
+        }
+    }
+`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

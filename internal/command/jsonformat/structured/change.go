@@ -222,55 +222,54 @@ func (change Change) GetDefaultActionForIteration() plans.Action {
 	return plans.NoOp
 }
 
+func (change Change) Copy() Change {
+	return Change{
+		BeforeExplicit:     change.BeforeExplicit,
+		AfterExplicit:      change.AfterExplicit,
+		Before:             change.Before,
+		After:              change.After,
+		Unknown:            change.Unknown,
+		BeforeSensitive:    change.BeforeSensitive,
+		AfterSensitive:     change.AfterSensitive,
+		ReplacePaths:       change.ReplacePaths,
+		RelevantAttributes: change.RelevantAttributes,
+		Importing:          change.Importing,
+	}
+}
+
 // AsNoOp returns the current change as if it is a NoOp operation.
 //
 // Basically it replaces all the after values with the before values.
 func (change Change) AsNoOp() Change {
-	return Change{
-		BeforeExplicit:     change.BeforeExplicit,
-		AfterExplicit:      change.BeforeExplicit,
-		Before:             change.Before,
-		After:              change.Before,
-		Unknown:            false,
-		BeforeSensitive:    change.BeforeSensitive,
-		AfterSensitive:     change.BeforeSensitive,
-		ReplacePaths:       change.ReplacePaths,
-		RelevantAttributes: change.RelevantAttributes,
-	}
+	cp := change.Copy()
+	cp.AfterExplicit = cp.BeforeExplicit
+	cp.AfterSensitive = cp.BeforeSensitive
+	cp.After = cp.Before
+	cp.Unknown = false
+	return cp
 }
 
 // AsDelete returns the current change as if it is a Delete operation.
 //
 // Basically it replaces all the after values with nil or false.
 func (change Change) AsDelete() Change {
-	return Change{
-		BeforeExplicit:     change.BeforeExplicit,
-		AfterExplicit:      false,
-		Before:             change.Before,
-		After:              nil,
-		Unknown:            nil,
-		BeforeSensitive:    change.BeforeSensitive,
-		AfterSensitive:     nil,
-		ReplacePaths:       change.ReplacePaths,
-		RelevantAttributes: change.RelevantAttributes,
-	}
+	cp := change.Copy()
+	cp.AfterExplicit = false
+	cp.AfterSensitive = nil
+	cp.After = nil
+	cp.Unknown = nil
+	return cp
 }
 
 // AsCreate returns the current change as if it is a Create operation.
 //
 // Basically it replaces all the before values with nil or false.
 func (change Change) AsCreate() Change {
-	return Change{
-		BeforeExplicit:     false,
-		AfterExplicit:      change.AfterExplicit,
-		Before:             nil,
-		After:              change.After,
-		Unknown:            change.Unknown,
-		BeforeSensitive:    nil,
-		AfterSensitive:     change.AfterSensitive,
-		ReplacePaths:       change.ReplacePaths,
-		RelevantAttributes: change.RelevantAttributes,
-	}
+	cp := change.Copy()
+	cp.BeforeExplicit = false
+	cp.BeforeSensitive = nil
+	cp.Before = nil
+	return cp
 }
 
 func unmarshalGeneric(raw json.RawMessage) interface{} {

@@ -57,17 +57,9 @@ func (change Change) CheckForSensitive(processInner ProcessSensitiveInner, creat
 	// The change can choose what to do with this information, in most cases
 	// it will just be ignored in favour of printing `(sensitive value)`.
 
-	value := Change{
-		BeforeExplicit:     change.BeforeExplicit,
-		AfterExplicit:      change.AfterExplicit,
-		Before:             change.Before,
-		After:              change.After,
-		Unknown:            change.Unknown,
-		BeforeSensitive:    false,
-		AfterSensitive:     false,
-		ReplacePaths:       change.ReplacePaths,
-		RelevantAttributes: change.RelevantAttributes,
-	}
+	value := change.Copy()
+	value.BeforeSensitive = false
+	value.AfterSensitive = false
 
 	inner := processInner(value)
 

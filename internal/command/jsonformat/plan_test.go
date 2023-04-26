@@ -77,6 +77,299 @@ and found no differences, so no changes are needed.
 	}
 }
 
+func marshalJson(t *testing.T, data interface{}) json.RawMessage {
+	result, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("failed to marshal json: %v", err)
+	}
+	return result
+}
+
+func TestRenderHuman_Imports(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+
+	schemas := map[string]*jsonprovider.Provider{
+		"test": {
+			ResourceSchemas: map[string]*jsonprovider.Schema{
+				"test_resource": {
+					Block: &jsonprovider.Block{
+						Attributes: map[string]*jsonprovider.Attribute{
+							"id": {
+								AttributeType: marshalJson(t, "string"),
+							},
+							"value": {
+								AttributeType: marshalJson(t, "string"),
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tcs := map[string]struct {
+		plan   Plan
+		output string
+	}{
+		"simple_import": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"no-op"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: true,
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported
+  & resource "test_resource" "resource" {
+      & id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      & value = "Hello, World!"
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_update": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"update"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, Universe!",
+							}),
+							Importing: true,
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported and then updated in-place
+  & resource "test_resource" "resource" {
+      & id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      ~ value = "Hello, World!" -> "Hello, Universe!"
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_create": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"create"},
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: true,
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported and then created
+  & resource "test_resource" "resource" {
+      + id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      + value = "Hello, World!"
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_delete": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"delete"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: true,
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported and then destroyed
+  & resource "test_resource" "resource" {
+      - id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E" -> null
+      - value = "Hello, World!" -> null
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_read": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"read"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: true,
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported and then read during apply
+  & resource "test_resource" "resource" {
+      & id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      & value = "Hello, World!"
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+		"import_and_replace": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"create", "delete"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "9794FB1F-7260-442F-830C-F2D450E90CE3",
+								"value": "Hello, World!",
+							}),
+							ReplacePaths: marshalJson(t, [][]string{{"id"}}),
+							Importing:    true,
+						},
+						ActionReason: "",
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  & import
+
+Terraform will perform the following actions:
+
+  # test_resource.resource must be imported and then replaced
+  & resource "test_resource" "resource" {
+      ~ id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E" -> "9794FB1F-7260-442F-830C-F2D450E90CE3" # forces replacement
+      & value = "Hello, World!"
+    }
+
+Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+`,
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+
+			plan := tc.plan
+			plan.PlanFormatVersion = jsonplan.FormatVersion
+			plan.ProviderFormatVersion = jsonprovider.FormatVersion
+			plan.ProviderSchemas = schemas
+
+			renderer := Renderer{
+				Colorize: color,
+				Streams:  streams,
+			}
+			plan.renderHuman(renderer, plans.NormalMode)
+
+			got := done(t).Stdout()
+			want := tc.output
+			if diff := cmp.Diff(want, got); len(diff) > 0 {
+				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+			}
+		})
+	}
+}
+
 func TestResourceChange_primitiveTypes(t *testing.T) {
 	testCases := map[string]testCase{
 		"creation": {

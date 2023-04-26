@@ -3,6 +3,7 @@ package differ
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/zclconf/go-cty/cty"
@@ -129,6 +130,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 		validateDiffs        map[string]renderers.ValidateDiffFunction
 		validateList         renderers.ValidateDiffFunction
 		validateReplace      bool
+		validateImport       bool
 		validateAction       plans.Action
 		// Sets break changes out differently to the other collections, so they
 		// have their own entry.
@@ -571,6 +573,41 @@ func TestValue_ObjectAttributes(t *testing.T) {
 			validateAction:  plans.NoOp,
 			validateReplace: false,
 		},
+		"update_import": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"attribute_one": "old",
+				},
+				After: map[string]interface{}{
+					"attribute_one": "new",
+				},
+				Importing: true,
+			},
+			attributes: map[string]cty.Type{
+				"attribute_one": cty.String,
+			},
+			validateDiffs: map[string]renderers.ValidateDiffFunction{
+				"attribute_one": renderers.ValidatePrimitive("old", "new", plans.Update, false, true),
+			},
+			validateAction: plans.Update,
+			validateImport: true,
+			validateSetDiffs: &SetDiff{
+				Before: SetDiffEntry{
+					ObjectDiff: map[string]renderers.ValidateDiffFunction{
+						"attribute_one": renderers.ValidatePrimitive("old", nil, plans.Delete, false, true),
+					},
+					Action:    plans.Delete,
+					Importing: true,
+				},
+				After: SetDiffEntry{
+					ObjectDiff: map[string]renderers.ValidateDiffFunction{
+						"attribute_one": renderers.ValidatePrimitive(nil, "new", plans.Create, false, true),
+					},
+					Action:    plans.Create,
+					Importing: true,
+				},
+			},
+		},
 		"update_replace_self": {
 			input: structured.Change{
 				Before: map[string]interface{}{
@@ -740,7 +777,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					return
 				}
 
-				validate := renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false)
+				validate := renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(tc.input, attribute))
 			})
 
@@ -754,7 +791,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateObject != nil {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -762,14 +799,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
-					"element": renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
-				}, collectionDefaultAction, false, false)
+					"element": renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
+				}, collectionDefaultAction, false, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -788,7 +825,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateObject != nil {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -796,14 +833,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
-					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
-				}, collectionDefaultAction, false, false)
+					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
+				}, collectionDefaultAction, false, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -820,7 +857,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.Before.Validate(renderers.ValidateObject))
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateObject))
 						return ret
-					}(), collectionDefaultAction, false, false)
+					}(), collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -828,7 +865,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateObject != nil {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -836,13 +873,13 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
-					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
+					renderers.ValidateObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
 				}, collectionDefaultAction, false, false)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
@@ -875,7 +912,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 					return
 				}
 
-				validate := renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false)
+				validate := renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(tc.input, attribute))
 			})
 
@@ -900,7 +937,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateNestedObject != nil {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateNestedObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -908,14 +945,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 						"element": tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
-					"element": renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
-				}, collectionDefaultAction, false, false)
+					"element": renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
+				}, collectionDefaultAction, false, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -940,7 +977,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateNestedObject != nil {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -948,14 +985,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateNestedList([]renderers.ValidateDiffFunction{
-					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
-				}, collectionDefaultAction, false, false)
+					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
+				}, collectionDefaultAction, false, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -983,7 +1020,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 						ret = append(ret, tc.validateSetDiffs.Before.Validate(renderers.ValidateNestedObject))
 						ret = append(ret, tc.validateSetDiffs.After.Validate(renderers.ValidateNestedObject))
 						return ret
-					}(), collectionDefaultAction, false, false)
+					}(), collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -991,7 +1028,7 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateNestedObject != nil {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateNestedObject,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
@@ -999,14 +1036,14 @@ func TestValue_ObjectAttributes(t *testing.T) {
 				if tc.validateSingleDiff != nil {
 					validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 						tc.validateSingleDiff,
-					}, collectionDefaultAction, false, false)
+					}, collectionDefaultAction, false, tc.validateImport)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
-					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, false),
-				}, collectionDefaultAction, false, false)
+					renderers.ValidateNestedObject(tc.validateDiffs, tc.validateAction, tc.validateReplace, tc.validateImport),
+				}, collectionDefaultAction, false, tc.validateImport)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 		})
@@ -1022,6 +1059,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 		before      interface{}
 		after       interface{}
 		block       *jsonprovider.Block
+		importing   bool
 		validate    renderers.ValidateDiffFunction
 		validateSet []renderers.ValidateDiffFunction
 	}{
@@ -1208,9 +1246,64 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 				renderers.ValidateBlock(nil, nil, nil, nil, nil, plans.Create, false, false),
 			},
 		},
+		"import": {
+			before: map[string]interface{}{
+				"attribute_one": "value",
+				"block_one": map[string]interface{}{
+					"attribute_one": "value",
+				},
+			},
+			after: map[string]interface{}{
+				"attribute_one": "value",
+				"block_one": map[string]interface{}{
+					"attribute_one": "value",
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"attribute_one": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+				BlockTypes: map[string]*jsonprovider.BlockType{
+					"block_one": {
+						Block: &jsonprovider.Block{
+							Attributes: map[string]*jsonprovider.Attribute{
+								"attribute_one": {
+									AttributeType: unmarshalType(t, cty.String),
+								},
+							},
+						},
+						NestingMode: "single",
+					},
+				},
+			},
+			importing: true,
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"attribute_one": renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+			}, map[string]renderers.ValidateDiffFunction{
+				"block_one": renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+					"attribute_one": renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+				}, nil, nil, nil, nil, plans.NoOp, false, true),
+			}, nil, nil, nil, plans.NoOp, false, true),
+			validateSet: []renderers.ValidateDiffFunction{
+				renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+					"attribute_one": renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+				}, map[string]renderers.ValidateDiffFunction{
+					"block_one": renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+						"attribute_one": renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+					}, nil, nil, nil, nil, plans.NoOp, false, true),
+				}, nil, nil, nil, plans.NoOp, false, true),
+			},
+		},
 	}
 	for name, tmp := range tcs {
 		tc := tmp
+
+		expectedAction := plans.Update
+		if name == "import" {
+			expectedAction = plans.NoOp
+		}
 
 		t.Run(name, func(t *testing.T) {
 			t.Run("single", func(t *testing.T) {
@@ -1223,6 +1316,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					},
 					ReplacePaths:       &attribute_path.PathMatcher{},
 					RelevantAttributes: attribute_path.AlwaysMatcher(),
+					Importing:          tc.importing,
 				}
 
 				block := &jsonprovider.Block{
@@ -1236,7 +1330,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 
 				validate := renderers.ValidateBlock(nil, map[string]renderers.ValidateDiffFunction{
 					"block_type": tc.validate,
-				}, nil, nil, nil, plans.Update, false, false)
+				}, nil, nil, nil, expectedAction, false, tc.importing)
 				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("map", func(t *testing.T) {
@@ -1253,6 +1347,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					},
 					ReplacePaths:       &attribute_path.PathMatcher{},
 					RelevantAttributes: attribute_path.AlwaysMatcher(),
+					Importing:          tc.importing,
 				}
 
 				block := &jsonprovider.Block{
@@ -1268,7 +1363,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					"block_type": {
 						"one": tc.validate,
 					},
-				}, nil, plans.Update, false, false)
+				}, nil, expectedAction, false, tc.importing)
 				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("list", func(t *testing.T) {
@@ -1285,6 +1380,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					},
 					ReplacePaths:       &attribute_path.PathMatcher{},
 					RelevantAttributes: attribute_path.AlwaysMatcher(),
+					Importing:          tc.importing,
 				}
 
 				block := &jsonprovider.Block{
@@ -1300,7 +1396,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					"block_type": {
 						tc.validate,
 					},
-				}, nil, nil, plans.Update, false, false)
+				}, nil, nil, expectedAction, false, tc.importing)
 				validate(t, ComputeDiffForBlock(input, block))
 			})
 			t.Run("set", func(t *testing.T) {
@@ -1317,6 +1413,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 					},
 					ReplacePaths:       &attribute_path.PathMatcher{},
 					RelevantAttributes: attribute_path.AlwaysMatcher(),
+					Importing:          tc.importing,
 				}
 
 				block := &jsonprovider.Block{
@@ -1335,7 +1432,7 @@ func TestValue_BlockAttributesAndNestedBlocks(t *testing.T) {
 						}
 						return []renderers.ValidateDiffFunction{tc.validate}
 					}(),
-				}, plans.Update, false, false)
+				}, expectedAction, false, tc.importing)
 				validate(t, ComputeDiffForBlock(input, block))
 			})
 		})
@@ -1570,6 +1667,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 	tcs := map[string]struct {
 		input              structured.Change
 		attribute          cty.Type
+		validateImporting  bool
 		validateDiff       renderers.ValidateDiffFunction
 		validateSliceDiffs []renderers.ValidateDiffFunction // Lists are special in some cases.
 	}{
@@ -1704,6 +1802,16 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 			attribute:    cty.String,
 			validateDiff: renderers.ValidatePrimitive("old", "old", plans.NoOp, false, false),
 		},
+		"import": {
+			input: structured.Change{
+				Before:    "value",
+				After:     "value",
+				Importing: true,
+			},
+			attribute:         cty.String,
+			validateDiff:      renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+			validateImporting: true,
+		},
 		"dynamic": {
 			input: structured.Change{
 				Before: "old",
@@ -1715,6 +1823,16 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				renderers.ValidatePrimitive("old", nil, plans.Delete, false, false),
 				renderers.ValidatePrimitive(nil, "new", plans.Create, false, false),
 			},
+		},
+		"dynamic_import": {
+			input: structured.Change{
+				Before:    "value",
+				After:     "value",
+				Importing: true,
+			},
+			attribute:         cty.DynamicPseudoType,
+			validateDiff:      renderers.ValidatePrimitive("value", "value", plans.NoOp, false, true),
+			validateImporting: true,
 		},
 		"dynamic_type_change": {
 			input: structured.Change{
@@ -1741,7 +1859,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 		}
 
 		defaultCollectionsAction := plans.Update
-		if name == "noop" {
+		if name == "noop" || strings.HasSuffix(name, "import") {
 			defaultCollectionsAction = plans.NoOp
 		}
 
@@ -1760,7 +1878,7 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 
 				validate := renderers.ValidateMap(map[string]renderers.ValidateDiffFunction{
 					"element": tc.validateDiff,
-				}, defaultCollectionsAction, false, false)
+				}, defaultCollectionsAction, false, tc.validateImporting)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -1771,14 +1889,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				}
 
 				if tc.validateSliceDiffs != nil {
-					validate := renderers.ValidateList(tc.validateSliceDiffs, defaultCollectionsAction, false, false)
+					validate := renderers.ValidateList(tc.validateSliceDiffs, defaultCollectionsAction, false, tc.validateImporting)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateList([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
-				}, defaultCollectionsAction, false, false)
+				}, defaultCollectionsAction, false, tc.validateImporting)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 
@@ -1789,14 +1907,14 @@ func TestValue_PrimitiveAttributes(t *testing.T) {
 				}
 
 				if tc.validateSliceDiffs != nil {
-					validate := renderers.ValidateSet(tc.validateSliceDiffs, defaultCollectionsAction, false, false)
+					validate := renderers.ValidateSet(tc.validateSliceDiffs, defaultCollectionsAction, false, tc.validateImporting)
 					validate(t, ComputeDiffForAttribute(input, attribute))
 					return
 				}
 
 				validate := renderers.ValidateSet([]renderers.ValidateDiffFunction{
 					tc.validateDiff,
-				}, defaultCollectionsAction, false, false)
+				}, defaultCollectionsAction, false, tc.validateImporting)
 				validate(t, ComputeDiffForAttribute(input, attribute))
 			})
 		})
@@ -2526,6 +2644,101 @@ func TestRelevantAttributes(t *testing.T) {
 	}
 }
 
+func TestImporting(t *testing.T) {
+	tcs := map[string]struct {
+		input    structured.Change
+		validate renderers.ValidateDiffFunction
+	}{
+		"noop": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"id":   "64D0DA06-5D93-4E9E-9534-E04BA33B77B2",
+					"name": "resource",
+				},
+				After: map[string]interface{}{
+					"id":   "64D0DA06-5D93-4E9E-9534-E04BA33B77B2",
+					"name": "resource",
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+				Importing:          true,
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id":   renderers.ValidatePrimitive("64D0DA06-5D93-4E9E-9534-E04BA33B77B2", "64D0DA06-5D93-4E9E-9534-E04BA33B77B2", plans.NoOp, false, true),
+				"name": renderers.ValidatePrimitive("resource", "resource", plans.NoOp, false, true),
+			}, nil, nil, nil, nil, plans.NoOp, false, true),
+		},
+		"update": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"id":   "64D0DA06-5D93-4E9E-9534-E04BA33B77B2",
+					"name": "old",
+				},
+				After: map[string]interface{}{
+					"id":   "15763673-AA45-424A-988C-933F65A1B56A",
+					"name": "new",
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+				Importing:          true,
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id":   renderers.ValidatePrimitive("64D0DA06-5D93-4E9E-9534-E04BA33B77B2", "15763673-AA45-424A-988C-933F65A1B56A", plans.Update, false, true),
+				"name": renderers.ValidatePrimitive("old", "new", plans.Update, false, true),
+			}, nil, nil, nil, nil, plans.Update, false, true),
+		},
+		"delete": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"id":   "64D0DA06-5D93-4E9E-9534-E04BA33B77B2",
+					"name": "old",
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+				Importing:          true,
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id":   renderers.ValidatePrimitive("64D0DA06-5D93-4E9E-9534-E04BA33B77B2", nil, plans.Delete, false, true),
+				"name": renderers.ValidatePrimitive("old", nil, plans.Delete, false, true),
+			}, nil, nil, nil, nil, plans.Delete, false, true),
+		},
+		"unknown_and_sensitive_create": {
+			input: structured.Change{
+				After: map[string]interface{}{
+					"name": "secret",
+				},
+				AfterSensitive: map[string]interface{}{
+					"name": true,
+				},
+				Unknown: map[string]interface{}{
+					"id": true,
+				},
+				ReplacePaths:       attribute_path.Empty(false),
+				RelevantAttributes: attribute_path.AlwaysMatcher(),
+				Importing:          true,
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"id":   renderers.ValidateUnknown(nil, plans.Create, false, true),
+				"name": renderers.ValidateSensitive(renderers.ValidatePrimitive(nil, "secret", plans.Create, false, true), false, true, plans.Create, false, true),
+			}, nil, nil, nil, nil, plans.Create, false, true),
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			tc.validate(t, ComputeDiffForBlock(tc.input, &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"id": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+					"name": {
+						AttributeType: unmarshalType(t, cty.String),
+					},
+				},
+			}))
+		})
+	}
+}
+
 func TestDynamicPseudoType(t *testing.T) {
 	tcs := map[string]struct {
 		input    structured.Change
@@ -2803,5 +3016,6 @@ func wrapChange(input structured.Change, step interface{}, wrap func(interface{}
 		AfterSensitive:     wrap(input.AfterSensitive, nil, false),
 		ReplacePaths:       replacePaths,
 		RelevantAttributes: relevantAttributes,
+		Importing:          input.Importing,
 	}
 }
