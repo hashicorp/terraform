@@ -9,5 +9,6 @@ project {
   # files or folders should be ignored
   header_ignore = [
     "**/*.tf",
+    "**/testdata/**",
   ]
 }
