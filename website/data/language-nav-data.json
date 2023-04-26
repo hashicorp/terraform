@@ -851,6 +851,7 @@
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },
+	  { "title": "strcontains", "path": "functions/strcontains", "hidden": true},
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },
