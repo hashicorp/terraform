@@ -43,6 +43,10 @@ type nodeExpandPlannableResource struct {
 	// structure in the future, as we need to compare for equality and take the
 	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
+
+	// legacyImportMode is set if the graph is being constructed following an
+	// invocation of the legacy "terraform import" CLI command.
+	legacyImportMode bool
 }
 
 var (
@@ -313,6 +317,20 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
 		var m *NodePlannableResourceInstance
 
+		// If we're in legacy import mode (the import CLI command), we only need
+		// to return the import node, not a plannable resource node.
+		if n.legacyImportMode {
+			for _, importTarget := range n.importTargets {
+				if importTarget.Addr.Equal(a.Addr) {
+					return &graphNodeImportState{
+						Addr:             importTarget.Addr,
+						ID:               importTarget.ID,
+						ResolvedProvider: n.ResolvedProvider,
+					}
+				}
+			}
+		}
+
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
@@ -335,12 +353,13 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			forceReplace:             n.forceReplace,
 		}
 
-		// check if this node is being imported first
 		for _, importTarget := range n.importTargets {
 			if importTarget.Addr.Equal(a.Addr) {
+				// If we get here, we're definitely not in legacy import mode,
+				// so go ahead and plan the resource changes including import.
 				m.importTarget = ImportTarget{
-					ID:   n.importTargets[0].ID,
-					Addr: n.importTargets[0].Addr,
+					ID:   importTarget.ID,
+					Addr: importTarget.Addr,
 				}
 			}
 		}
