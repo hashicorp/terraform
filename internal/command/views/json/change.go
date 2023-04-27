@@ -12,12 +12,31 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		Action:   changeAction(change.Action),
 		Reason:   changeReason(change.ActionReason),
 	}
+
+	// The order here matters, we want the moved action to take precedence over
+	// the import action. We're basically taking "the most recent action" as the
+	// primary action in the streamed logs. That is to say, that if a resource
+	// is imported and then moved in a single operation then the change for that
+	// resource will be reported as ActionMove while the Importing flag will
+	// still be set to true.
+	//
+	// Since both the moved and imported actions only overwrite a NoOp this
+	// behaviour is consistent across the other actions as well. Something that
+	// is imported and then updated, or moved and then updated, will have the
+	// ActionUpdate as the recognised action for the change.
+
 	if !change.Addr.Equal(change.PrevRunAddr) {
 		if c.Action == ActionNoOp {
 			c.Action = ActionMove
 		}
 		pr := newResourceAddr(change.PrevRunAddr)
 		c.PreviousResource = &pr
+	}
+	if len(change.Importing.ID) > 0 {
+		if c.Action == ActionNoOp {
+			c.Action = ActionImport
+		}
+		c.Importing = &Importing{ID: change.Importing.ID}
 	}
 
 	return c
@@ -28,6 +47,7 @@ type ResourceInstanceChange struct {
 	PreviousResource *ResourceAddr `json:"previous_resource,omitempty"`
 	Action           ChangeAction  `json:"action"`
 	Reason           ChangeReason  `json:"reason,omitempty"`
+	Importing        *Importing    `json:"importing,omitempty"`
 }
 
 func (c *ResourceInstanceChange) String() string {
@@ -44,6 +64,7 @@ const (
 	ActionUpdate  ChangeAction = "update"
 	ActionReplace ChangeAction = "replace"
 	ActionDelete  ChangeAction = "delete"
+	ActionImport  ChangeAction = "import"
 )
 
 func changeAction(action plans.Action) ChangeAction {
