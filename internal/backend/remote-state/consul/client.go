@@ -232,8 +232,8 @@ func (c *RemoteClient) Put(data []byte) error {
 		// transaction was rolled back
 		if !ok {
 			message := ""
-			for _, respError := resp.Errors {
-				message += respError.What,
+			for _, respError := range resp.Errors {
+				message += respError.What
 			}
 			return fmt.Errorf("consul CAS failed with transaction errors: %s", message)
 		}
