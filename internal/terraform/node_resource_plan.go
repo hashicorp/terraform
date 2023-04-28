@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -196,12 +195,6 @@ func (n *nodeExpandPlannableResource) DynamicExpand(ctx EvalContext) (*Graph, er
 // object instances for this resource instance.
 func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalContext, resAddr addrs.AbsResource, g *Graph, instAddrs addrs.Set[addrs.Checkable]) error {
 	var diags tfdiags.Diagnostics
-
-	if n.Config == nil {
-		// Nothing to do, then.
-		log.Printf("[TRACE] nodeExpandPlannableResource: no configuration present for %s", n.Name())
-		return diags.ErrWithWarnings()
-	}
 
 	// The rest of our work here needs to know which module instance it's
 	// working in, so that it can evaluate expressions in the appropriate scope.
