@@ -11,6 +11,8 @@ NEW FEATURES:
     This allows practitioners to continually validate the state of their infrastructure outside the usual lifecycle management cycle. 
 
 * Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
+* Adds a new `strcontains` function that checks whether a given string contains a given substring. [GH-33069]
+
 
 UPGRADE NOTES:
 
