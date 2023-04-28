@@ -37,6 +37,10 @@ func (c *Changes) Empty() bool {
 		if res.Action != NoOp || res.Moved() {
 			return false
 		}
+
+		if res.Importing {
+			return false
+		}
 	}
 
 	for _, out := range c.Outputs {
