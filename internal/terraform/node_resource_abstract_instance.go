@@ -9,12 +9,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -648,18 +650,71 @@ func (n *NodeAbstractResourceInstance) plan(
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
-	forceReplace []addrs.AbsResourceInstance) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+	forceReplace []addrs.AbsResourceInstance,
+	generateConfig bool,
+) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var state *states.ResourceInstanceObject
 	var plan *plans.ResourceInstanceChange
 	var keyData instances.RepetitionData
+	var generatedConfig *configs.Resource
 
-	config := *n.Config
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return plan, state, keyData, diags.Append(err)
 	}
+
+	if providerSchema == nil {
+		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
+		return plan, state, keyData, diags
+	}
+	schema, _ := providerSchema.SchemaForResourceAddr(resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
+		return plan, state, keyData, diags
+	}
+
+	// If we're importing and generating config, generate it now.
+	var generatedHCL string
+	if n.Config == nil {
+		if !generateConfig {
+			panic("n.Config should only be nil at this point if we are generating config, so kmoe made a mistake")
+		}
+
+		// Generate the HCL string first, then parse the HCL body from it
+		// We generate the HCL twice: once without the enclosing resource block,
+		// for use in the plan node, and once with the resource block, to
+		// render with the plan.
+		generatedHCL, err = generateHCLString(n.Addr, currentState, schema)
+		if err != nil {
+			return plan, state, keyData, diags.Append(fmt.Errorf("could not generate HCL string for %s: %w", n.Addr, err))
+		}
+
+		generatedHCLAttributes, err := generateHCLStringAttributes(n.Addr, currentState, schema)
+		if err != nil {
+			return plan, state, keyData, diags.Append(fmt.Errorf("could not generate HCL string for %s: %w", n.Addr, err))
+		}
+
+		// parse the "file" as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "yolo", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		if hclDiags.HasErrors() {
+			return plan, state, keyData, diags.Append(hclDiags)
+		}
+
+		generatedConfig = &configs.Resource{
+			Mode:     addrs.ManagedResourceMode,
+			Type:     n.Addr.Resource.Resource.Type,
+			Name:     n.Addr.Resource.Resource.Name,
+			Config:   synthHCLFile.Body,
+			Managed:  &configs.ManagedResource{},
+			Provider: n.ResolvedProvider.Provider,
+		}
+		n.Config = generatedConfig
+	}
+
+	config := *n.Config
 
 	checkRuleSeverity := tfdiags.Error
 	if n.preDestroyRefresh {
@@ -671,18 +726,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
 	}
 
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
-		return plan, state, keyData, diags
-	}
-
 	// Evaluate the configuration
-	schema, _ := providerSchema.SchemaForResourceAddr(resource)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return plan, state, keyData, diags
-	}
 
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 
@@ -1124,7 +1168,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			// Pass the marked planned value through in our change
 			// to propogate through evaluation.
 			// Marks will be removed when encoding.
-			After: plannedNewVal,
+			After:           plannedNewVal,
+			GeneratedConfig: generatedHCL,
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
@@ -1144,6 +1189,41 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	return plan, state, keyData, diags
+}
+
+// generateHCLString produces a string in HCL format for the given resource
+// state and schema.
+func generateHCLString(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, error) {
+	filteredSchema := schema.OmitReadOnly()
+	filteredSchema = schema.OmitAttr("id")
+	// TODO also filter out Deprecated
+
+	// TODO KEM this approach relies on guessing what kinds of validation errors could
+	// occur with the values the provider returns. This needs to fail more quietly and
+	// degrade to something "easier" to generate.
+
+	generatedConfig, err := genconfig.GenerateConfigForResource(addr, filteredSchema, state.Value)
+	if err != nil {
+		return "", err
+	}
+	return generatedConfig, nil
+}
+
+// generateHCLString produces a string in HCL format for the given resource
+// state and schema.
+func generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, error) {
+	filteredSchema := schema.OmitReadOnly()
+	filteredSchema = schema.OmitAttr("id") // HACK
+
+	// TODO KEM this approach relies on guessing what kinds of validation errors could
+	// occur with the values the provider returns. This needs to fail more quietly and
+	// degrade to something "easier" to generate.
+
+	generatedConfig, err := genconfig.GenerateAttributesForResource(addr, filteredSchema, state.Value)
+	if err != nil {
+		return "", err
+	}
+	return generatedConfig, nil
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {
