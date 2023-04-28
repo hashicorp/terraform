@@ -202,6 +202,12 @@ type ChangeSrc struct {
 	// Importing is true if the resource is being imported as part of the
 	// change.
 	Importing bool
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Decode unmarshals the raw representations of the before and after values
@@ -230,9 +236,10 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 	}
 
 	return &Change{
-		Action:    cs.Action,
-		Before:    before.MarkWithPaths(cs.BeforeValMarks),
-		After:     after.MarkWithPaths(cs.AfterValMarks),
-		Importing: cs.Importing,
+		Action:          cs.Action,
+		Before:          before.MarkWithPaths(cs.BeforeValMarks),
+		After:           after.MarkWithPaths(cs.AfterValMarks),
+		Importing:       cs.Importing,
+		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }
