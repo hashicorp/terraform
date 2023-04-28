@@ -230,8 +230,9 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 	}
 
 	return &Change{
-		Action: cs.Action,
-		Before: before.MarkWithPaths(cs.BeforeValMarks),
-		After:  after.MarkWithPaths(cs.AfterValMarks),
+		Action:    cs.Action,
+		Before:    before.MarkWithPaths(cs.BeforeValMarks),
+		After:     after.MarkWithPaths(cs.AfterValMarks),
+		Importing: cs.Importing,
 	}, nil
 }

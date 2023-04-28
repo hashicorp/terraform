@@ -131,10 +131,6 @@ func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
 }
 
-func (n *NodeAbstractResource) Import(addr *ImportTarget) {
-
-}
-
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
 	// If we have a config then we prefer to use that.
