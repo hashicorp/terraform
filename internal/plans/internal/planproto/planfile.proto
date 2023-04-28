@@ -147,6 +147,10 @@ message Change {
     // Importing, if true, specifies that the resource is being imported as part
     // of the change.
     Importing importing = 5;
+
+    // GeneratedConfig contains any configuration that was generated as part of
+    // the change, as an HCL string.
+    string generated_config = 6;
 }
 
 // ResourceInstanceActionReason sometimes provides some additional user-facing
