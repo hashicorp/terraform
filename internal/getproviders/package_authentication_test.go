@@ -5,16 +5,28 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
-	// TODO: replace crypto/openpgp since it is deprecated
-	// https://github.com/golang/go/issues/44226
-	//lint:file-ignore SA1019 openpgp is deprecated but there are no good alternatives yet
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
+
+func TestMain(m *testing.M) {
+	openpgpConfig = &packet.Config{
+		Time: func() time.Time {
+			// Scientifically chosen time that satisfies the validity periods of all
+			// of the keys and signatures used.
+			t, _ := time.Parse(time.RFC3339, "2021-04-25T16:00:00-07:00")
+			return t
+		},
+	}
+	os.Exit(m.Run())
+}
 
 func TestPackageAuthenticationResult(t *testing.T) {
 	tests := []struct {
@@ -490,7 +502,7 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 					TrustSignature: testOtherKeyTrustSignatureArmor,
 				},
 			},
-			"error verifying trust signature: openpgp: invalid signature: hash tag doesn't match",
+			"error verifying trust signature: openpgp: invalid signature: RSA verification failure",
 		},
 	}
 
