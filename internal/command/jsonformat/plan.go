@@ -463,7 +463,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			printedMoved = true
 			break
 		}
-		if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 {
+		if resource.Change.Importing != nil {
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
 			printedImported = true
 			break
@@ -478,10 +478,22 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address && !printedMoved {
 		buf.WriteString(fmt.Sprintf("  # [reset](moved from %s)\n", resource.PreviousAddress))
 	}
-	if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 && !printedImported {
-		buf.WriteString(fmt.Sprintf("  # [reset](imported from \"%s\")\n", resource.Change.Importing.ID))
+	if resource.Change.Importing != nil && !printedImported {
+		// We want to make this as forward compatible as possible, and we know
+		// the ID may be removed from the Importing metadata in favour of
+		// something else.
+		// As Importing metadata is loaded from a JSON struct, the effect of it
+		// being removed in the future will mean this renderer will receive it
+		// as an empty string
+		if len(resource.Change.Importing.ID) > 0 {
+			buf.WriteString(fmt.Sprintf("  # [reset](imported from \"%s\")\n", resource.Change.Importing.ID))
+		} else {
+			// This means we're trying to render a plan from a future version
+			// and we didn't get given the ID. So we'll do our best.
+			buf.WriteString("  # [reset](will be imported first)\n")
+		}
 	}
-	if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 && (action == plans.CreateThenDelete || action == plans.DeleteThenCreate) {
+	if resource.Change.Importing != nil && (action == plans.CreateThenDelete || action == plans.DeleteThenCreate) {
 		buf.WriteString("  # [reset][yellow]Warning: this will destroy the imported resource[reset]\n")
 	}
 

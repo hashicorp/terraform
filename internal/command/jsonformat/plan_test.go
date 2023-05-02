@@ -269,6 +269,47 @@ Terraform will perform the following actions:
 Plan: 0 to add, 1 to import, 1 to change, 0 to destroy.
 `,
 		},
+		"import_and_update_with_no_id": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"update"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, Universe!",
+							}),
+							Importing: &jsonplan.Importing{},
+						},
+					},
+				},
+			},
+			output: `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be updated in-place
+  # (will be imported first)
+  ~ resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+      ~ value = "Hello, World!" -> "Hello, Universe!"
+    }
+
+Plan: 0 to add, 1 to import, 1 to change, 0 to destroy.
+`,
+		},
 		"import_and_replace": {
 			plan: Plan{
 				ResourceChanges: []jsonplan.ResourceChange{

@@ -99,5 +99,5 @@ func (d diff) Moved() bool {
 }
 
 func (d diff) Importing() bool {
-	return d.change.Change.Importing != nil && len(d.change.Change.Importing.ID) > 0
+	return d.change.Change.Importing != nil
 }

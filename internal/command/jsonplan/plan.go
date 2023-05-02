@@ -123,9 +123,11 @@ type Change struct {
 	// string.
 	ReplacePaths json.RawMessage `json:"replace_paths,omitempty"`
 
-	// Importing nests the import metadata about this operation. If importing
-	// is present, and the ID field within is not empty then a resource is being
-	// imported as part of this change.
+	// Importing contains the import metadata about this operation. If importing
+	// is present (ie. not null) then the change is an import operation in
+	// addition to anything mentioned in the actions field. The actual contents
+	// of the Importing struct is subject to change, so downstream consumers
+	// should treat any values in here as strictly optional.
 	Importing *Importing `json:"importing,omitempty"`
 }
 
@@ -133,7 +135,7 @@ type Change struct {
 type Importing struct {
 	// The original ID of this resource used to target it as part of planned
 	// import operation.
-	ID string `json:"id"`
+	ID string `json:"id,omitempty"`
 }
 
 type output struct {
@@ -447,7 +449,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 		}
 
 		var importing *Importing
-		if len(rc.Importing.ID) > 0 {
+		if rc.Importing != nil {
 			importing = &Importing{ID: rc.Importing.ID}
 		}
 
