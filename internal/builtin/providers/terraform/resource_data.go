@@ -150,17 +150,14 @@ func applyDataStoreResourceChange(req providers.ApplyResourceChangeRequest) (res
 	return resp
 }
 
-// TODO: This isn't very useful even for examples, because terraform_data has
-// no way to refresh the full resource value from only the import ID. This
-// minimal implementation allows the import to succeed, and can be extended
-// once the configuration is available during import.
 func importDataStore(req providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
-	schema := dataStoreResourceSchema()
-	v := cty.ObjectVal(map[string]cty.Value{
-		"id": cty.StringVal(req.ID),
-	})
-	state, err := schema.Block.CoerceValue(v)
-	resp.Diagnostics = resp.Diagnostics.Append(err)
+	// importing of this synthetic resource only consists of inserting the
+	// import ID into the given configuration, then adding the output value.
+	cfg := req.Config.AsValueMap()
+
+	cfg["id"] = cty.StringVal(req.ID)
+	cfg["output"] = cfg["input"]
+	state := cty.ObjectVal(cfg)
 
 	resp.ImportedResources = []providers.ImportedResource{
 		{
