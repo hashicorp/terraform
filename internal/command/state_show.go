@@ -142,6 +142,10 @@ func (c *StateShowCommand) Run(args []string) int {
 	)
 
 	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
+	if err != nil {
+		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
+	}
+
 	jstate := jsonformat.State{
 		StateFormatVersion:    jsonstate.FormatVersion,
 		ProviderFormatVersion: jsonprovider.FormatVersion,
