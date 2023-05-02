@@ -323,13 +323,20 @@ type ImportResourceStateRequest struct {
 	// ID is a string with which the provider can identify the resource to be
 	// imported.
 	ID string
+
+	// Config is the resource configuration at the time of import. Required
+	// fields may be missing in the config value, and the config may be
+	// entirely null depending on the mode of import.
+	Config cty.Value
 }
 
 type ImportResourceStateResponse struct {
-	// ImportedResources contains one or more state values related to the
-	// imported resource. It is not required that these be complete, only that
-	// there is enough identifying information for the provider to successfully
-	// update the states in ReadResource.
+	// ImportedResources contains one state value related to the imported
+	// resource. It is not required that the value be complete, only that there
+	// is enough identifying information for the provider to successfully
+	// update the state in ReadResource.
+	// Multiple state values are deprecated, and providers should only return a
+	// single state value with a TypeName matching the ImportState request.
 	ImportedResources []ImportedResource
 
 	// Diagnostics contains any warnings or errors from the method call.

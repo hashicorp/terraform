@@ -563,10 +563,22 @@ func (p *GRPCProvider) ImportResourceState(r providers.ImportResourceStateReques
 		resp.Diagnostics = schema.Diagnostics
 		return resp
 	}
+	resSchema, ok := schema.ResourceTypes[r.TypeName]
+	if !ok {
+		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("unknown resource type %q", r.TypeName))
+		return resp
+	}
+
+	configMP, err := msgpack.Marshal(r.Config, resSchema.Block.ImpliedType())
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(err)
+		return resp
+	}
 
 	protoReq := &proto6.ImportResourceState_Request{
 		TypeName: r.TypeName,
 		Id:       r.ID,
+		Config:   &proto6.DynamicValue{Msgpack: configMP},
 	}
 
 	protoResp, err := p.client.ImportResourceState(p.ctx, protoReq)

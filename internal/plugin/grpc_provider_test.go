@@ -652,6 +652,7 @@ func TestGRPCProvider_ImportResourceState(t *testing.T) {
 	resp := p.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: "resource",
 		ID:       "foo",
+		Config:   cty.NullVal(cty.DynamicPseudoType),
 	})
 
 	checkDiags(t, resp.Diagnostics)
@@ -695,6 +696,7 @@ func TestGRPCProvider_ImportResourceStateJSON(t *testing.T) {
 	resp := p.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: "resource",
 		ID:       "foo",
+		Config:   cty.NullVal(cty.DynamicPseudoType),
 	})
 
 	checkDiags(t, resp.Diagnostics)
