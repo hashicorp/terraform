@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package statemgr
 
 // The functions in this file are helper wrappers for common sequences of

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package getmodules contains the low-level functionality for fetching
 // remote module packages. It's essentially just a thin wrapper around
 // go-getter.
