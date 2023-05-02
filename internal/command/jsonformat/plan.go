@@ -63,10 +63,11 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 
 	willPrintResourceChanges := false
 	counts := make(map[plans.Action]int)
+	importingCount := 0
 	var changes []diff
 	for _, diff := range diffs.changes {
 		action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-		if action == plans.NoOp && !diff.Moved() {
+		if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
 			// Don't show anything for NoOp changes.
 			continue
 		}
@@ -76,6 +77,10 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		}
 
 		changes = append(changes, diff)
+
+		if diff.Importing() {
+			importingCount++
+		}
 
 		// Don't count move-only changes
 		if action != plans.NoOp {
@@ -216,11 +221,20 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 			}
 		}
 
-		renderer.Streams.Printf(
-			renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
-			counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
-			counts[plans.Update],
-			counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		if importingCount > 0 {
+			renderer.Streams.Printf(
+				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to import, %d to change, %d to destroy.\n"),
+				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+				importingCount,
+				counts[plans.Update],
+				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		} else {
+			renderer.Streams.Printf(
+				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to change, %d to destroy.\n"),
+				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+				counts[plans.Update],
+				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		}
 	}
 
 	if len(outputs) > 0 {
@@ -332,14 +346,18 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	// the computed actions of these.
 
 	action := jsonplan.UnmarshalActions(diff.change.Change.Actions)
-	if action == plans.NoOp && (len(diff.change.PreviousAddress) == 0 || diff.change.PreviousAddress == diff.change.Address) {
+	if action == plans.NoOp && !diff.Moved() && !diff.Importing() {
 		// Skip resource changes that have nothing interesting to say.
 		return "", false
 	}
 
 	var buf bytes.Buffer
 	buf.WriteString(renderer.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
-	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, computed.NewRenderHumanOpts(renderer.Colorize))))
+
+	opts := computed.NewRenderHumanOpts(renderer.Colorize)
+	opts.ShowUnchangedChildren = diff.Importing()
+
+	buf.WriteString(fmt.Sprintf("%s %s %s", renderer.Colorize.Color(format.DiffActionSymbol(action)), resourceChangeHeader(diff.change), diff.diff.RenderHuman(0, opts)))
 	return buf.String(), true
 }
 
@@ -350,6 +368,9 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	if len(resource.Deposed) != 0 {
 		dispAddr = fmt.Sprintf("%s (deposed object %s)", dispAddr, resource.Deposed)
 	}
+
+	var printedMoved bool
+	var printedImported bool
 
 	switch action {
 	case plans.Create:
@@ -439,6 +460,12 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	case plans.NoOp:
 		if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address {
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] has moved to [bold]%s[reset]", resource.PreviousAddress, dispAddr))
+			printedMoved = true
+			break
+		}
+		if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 {
+			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
+			printedImported = true
 			break
 		}
 		fallthrough
@@ -448,8 +475,14 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 	}
 	buf.WriteString("\n")
 
-	if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address && action != plans.NoOp {
+	if len(resource.PreviousAddress) > 0 && resource.PreviousAddress != resource.Address && !printedMoved {
 		buf.WriteString(fmt.Sprintf("  # [reset](moved from %s)\n", resource.PreviousAddress))
+	}
+	if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 && !printedImported {
+		buf.WriteString(fmt.Sprintf("  # [reset](imported from \"%s\")\n", resource.Change.Importing.ID))
+	}
+	if resource.Change.Importing != nil && len(resource.Change.Importing.ID) > 0 && (action == plans.CreateThenDelete || action == plans.DeleteThenCreate) {
+		buf.WriteString("  # [reset][yellow]Warning: this will destroy the imported resource[reset]\n")
 	}
 
 	return buf.String()
