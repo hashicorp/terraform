@@ -38,7 +38,7 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 
-		if res.Importing {
+		if res.Importing != nil {
 			return false
 		}
 	}
@@ -497,6 +497,16 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	}, err
 }
 
+// Importing is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
+type Importing struct {
+	// ID is the original ID of the imported resource.
+	ID string
+}
+
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
@@ -518,9 +528,12 @@ type Change struct {
 	// collections/structures.
 	Before, After cty.Value
 
-	// Importing is true if the resource is being imported as part of the
+	// Importing is present if the resource is being imported as part of this
 	// change.
-	Importing bool
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *Importing
 
 	// GeneratedConfig contains any HCL config generated for this resource
 	// during planning, as a string. If GeneratedConfig is populated, Importing
@@ -560,13 +573,18 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
+	var importing *ImportingSrc
+	if c.Importing != nil {
+		importing = &ImportingSrc{ID: c.Importing.ID}
+	}
+
 	return &ChangeSrc{
-		Action:          c.Action,
-		Before:          beforeDV,
-		After:           afterDV,
-		BeforeValMarks:  beforeVM,
-		AfterValMarks:   afterVM,
-		Importing:       c.Importing,
+		Action:         c.Action,
+		Before:         beforeDV,
+		After:          afterDV,
+		BeforeValMarks: beforeVM,
+		AfterValMarks:  afterVM,
+		Importing:      importing,
 		GeneratedConfig: c.GeneratedConfig,
 	}, nil
 }

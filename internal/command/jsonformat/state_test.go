@@ -7,7 +7,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -26,56 +25,39 @@ func TestState(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 
 	tests := []struct {
-		State *format.StateOpts
-		Want  string
+		State   *states.State
+		Schemas *terraform.Schemas
+		Want    string
 	}{
 		{
-			&format.StateOpts{
-				State:   &states.State{},
-				Color:   color,
-				Schemas: &terraform.Schemas{},
-			},
-			"The state file is empty. No resources are represented.\n",
+			State:   &states.State{},
+			Schemas: &terraform.Schemas{},
+			Want:    "The state file is empty. No resources are represented.\n",
 		},
 		{
-			&format.StateOpts{
-				State:   basicState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			basicStateOutput,
+			State:   basicState(t),
+			Schemas: testSchemas(),
+			Want:    basicStateOutput,
 		},
 		{
-			&format.StateOpts{
-				State:   nestedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			nestedStateOutput,
+			State:   nestedState(t),
+			Schemas: testSchemas(),
+			Want:    nestedStateOutput,
 		},
 		{
-			&format.StateOpts{
-				State:   deposedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			deposedNestedStateOutput,
+			State:   deposedState(t),
+			Schemas: testSchemas(),
+			Want:    deposedNestedStateOutput,
 		},
 		{
-			&format.StateOpts{
-				State:   onlyDeposedState(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			onlyDeposedOutput,
+			State:   onlyDeposedState(t),
+			Schemas: testSchemas(),
+			Want:    onlyDeposedOutput,
 		},
 		{
-			&format.StateOpts{
-				State:   stateWithMoreOutputs(t),
-				Color:   color,
-				Schemas: testSchemas(),
-			},
-			stateWithMoreOutputsOutput,
+			State:   stateWithMoreOutputs(t),
+			Schemas: testSchemas(),
+			Want:    stateWithMoreOutputsOutput,
 		},
 	}
 
@@ -83,8 +65,8 @@ func TestState(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 
 			root, outputs, err := jsonstate.MarshalForRenderer(&statefile.File{
-				State: tt.State.State,
-			}, tt.State.Schemas)
+				State: tt.State,
+			}, tt.Schemas)
 
 			if err != nil {
 				t.Errorf("found err: %v", err)
@@ -102,7 +84,7 @@ func TestState(t *testing.T) {
 				RootModule:            root,
 				RootModuleOutputs:     outputs,
 				ProviderFormatVersion: jsonprovider.FormatVersion,
-				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.State.Schemas),
+				ProviderSchemas:       jsonprovider.MarshalForRenderer(tt.Schemas),
 			})
 
 			result := done(t).All()

@@ -143,7 +143,7 @@ message Change {
 
     // Importing, if true, specifies that the resource is being imported as part
     // of the change.
-    bool importing = 5;
+    Importing importing = 5;
 
     // GeneratedConfig contains any configuration that was generated as part of
     // the change, as an HCL string.
@@ -304,4 +304,11 @@ message Path {
         }
     }
     repeated Step steps = 1;
+}
+
+// Importing contains the embedded metadata about the import operation if this
+// change describes it.
+message Importing {
+    // The original ID of the resource.
+    string id = 1;
 }
