@@ -769,22 +769,22 @@ func TestOperationJSON_planWithImport(t *testing.T) {
 				{
 					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(vpc),
 					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(vpc),
-					ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp, Importing: plans.ImportingSrc{ID: "DECD6D77"}},
+					ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
 				},
 				{
 					Addr:        boop.Instance(addrs.IntKey(1)).Absolute(vpc),
 					PrevRunAddr: boop.Instance(addrs.IntKey(1)).Absolute(vpc),
-					ChangeSrc:   plans.ChangeSrc{Action: plans.Delete, Importing: plans.ImportingSrc{ID: "DECD6D77"}},
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Delete, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
 				},
 				{
 					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(root),
 					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(root),
-					ChangeSrc:   plans.ChangeSrc{Action: plans.CreateThenDelete, Importing: plans.ImportingSrc{ID: "DECD6D77"}},
+					ChangeSrc:   plans.ChangeSrc{Action: plans.CreateThenDelete, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
 				},
 				{
 					Addr:        beep.Instance(addrs.NoKey).Absolute(root),
 					PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(root),
-					ChangeSrc:   plans.ChangeSrc{Action: plans.Update, Importing: plans.ImportingSrc{ID: "DECD6D77"}},
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Update, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
 				},
 			},
 		},

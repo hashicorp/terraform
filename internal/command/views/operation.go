@@ -213,7 +213,7 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			continue
 		}
 
-		if len(change.Importing.ID) > 0 {
+		if change.Importing != nil {
 			cs.Import++
 		}
 
@@ -229,7 +229,7 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			cs.Remove++
 		}
 
-		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || len(change.Importing.ID) > 0 {
+		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}

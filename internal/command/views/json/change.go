@@ -32,7 +32,7 @@ func NewResourceInstanceChange(change *plans.ResourceInstanceChangeSrc) *Resourc
 		pr := newResourceAddr(change.PrevRunAddr)
 		c.PreviousResource = &pr
 	}
-	if len(change.Importing.ID) > 0 {
+	if change.Importing != nil {
 		if c.Action == ActionNoOp {
 			c.Action = ActionImport
 		}
