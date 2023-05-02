@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package statemgr defines the interfaces and some supporting functionality
 // for "state managers", which are components responsible for writing state
 // to some persistent storage and then later retrieving it.

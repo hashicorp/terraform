@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package gcs implements remote storage of state on Google Cloud Storage (GCS).
 package gcs
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package cliconfig has the types representing and the logic to load CLI-level
 // configuration settings.
 //
