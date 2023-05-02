@@ -38,7 +38,7 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 
-		if len(res.Importing.ID) > 0 {
+		if res.Importing != nil {
 			return false
 		}
 	}
@@ -493,7 +493,13 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	}, err
 }
 
+// Importing is the part of a ChangeSrc that describes the embedded import
+// action.
+//
+// The fields in here are subject to change, so downstream consumers should be
+// prepared for backwards compatibility in case the contents changes.
 type Importing struct {
+	// ID is the original ID of the imported resource.
 	ID string
 }
 
@@ -518,9 +524,12 @@ type Change struct {
 	// collections/structures.
 	Before, After cty.Value
 
-	// Importing is true if the resource is being imported as part of the
+	// Importing is present if the resource is being imported as part of this
 	// change.
-	Importing Importing
+	//
+	// Use the simple presence of this field to detect if a ChangeSrc is to be
+	// imported, the contents of this structure may be modified going forward.
+	Importing *Importing
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -554,9 +563,9 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
-	var importing ImportingSrc
-	if len(c.Importing.ID) > 0 {
-		importing = ImportingSrc{ID: c.Importing.ID}
+	var importing *ImportingSrc
+	if c.Importing != nil {
+		importing = &ImportingSrc{ID: c.Importing.ID}
 	}
 
 	return &ChangeSrc{
