@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 type graphNodeImportState struct {
@@ -93,6 +94,7 @@ func (n *graphNodeImportState) Execute(ctx EvalContext, op walkOperation) (diags
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: n.Addr.Resource.Resource.Type,
 		ID:       n.ID,
+		Config:   cty.NullVal(cty.DynamicPseudoType),
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
