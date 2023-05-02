@@ -182,6 +182,13 @@ func (ocs *OutputChangeSrc) DeepCopy() *OutputChangeSrc {
 	return &ret
 }
 
+// ImportingSrc is the part of a ChangeSrc that describes the embedded import
+// action.
+type ImportingSrc struct {
+	// ID is the original ID of the imported resource.
+	ID string
+}
+
 // ChangeSrc is a not-yet-decoded Change.
 type ChangeSrc struct {
 	// Action defines what kind of change is being made.
@@ -201,7 +208,7 @@ type ChangeSrc struct {
 
 	// Importing is true if the resource is being imported as part of the
 	// change.
-	Importing bool
+	Importing ImportingSrc
 }
 
 // Decode unmarshals the raw representations of the before and after values
@@ -229,10 +236,15 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 		}
 	}
 
+	var importing Importing
+	if len(cs.Importing.ID) > 0 {
+		importing = Importing{ID: cs.Importing.ID}
+	}
+
 	return &Change{
 		Action:    cs.Action,
 		Before:    before.MarkWithPaths(cs.BeforeValMarks),
 		After:     after.MarkWithPaths(cs.AfterValMarks),
-		Importing: cs.Importing,
+		Importing: importing,
 	}, nil
 }

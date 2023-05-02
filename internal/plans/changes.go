@@ -38,7 +38,7 @@ func (c *Changes) Empty() bool {
 			return false
 		}
 
-		if res.Importing {
+		if len(res.Importing.ID) > 0 {
 			return false
 		}
 	}
@@ -493,6 +493,10 @@ func (oc *OutputChange) Encode() (*OutputChangeSrc, error) {
 	}, err
 }
 
+type Importing struct {
+	ID string
+}
+
 // Change describes a single change with a given action.
 type Change struct {
 	// Action defines what kind of change is being made.
@@ -516,7 +520,7 @@ type Change struct {
 
 	// Importing is true if the resource is being imported as part of the
 	// change.
-	Importing bool
+	Importing Importing
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -550,12 +554,17 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 		return nil, err
 	}
 
+	var importing ImportingSrc
+	if len(c.Importing.ID) > 0 {
+		importing = ImportingSrc{ID: c.Importing.ID}
+	}
+
 	return &ChangeSrc{
 		Action:         c.Action,
 		Before:         beforeDV,
 		After:          afterDV,
 		BeforeValMarks: beforeVM,
 		AfterValMarks:  afterVM,
-		Importing:      c.Importing,
+		Importing:      importing,
 	}, nil
 }
