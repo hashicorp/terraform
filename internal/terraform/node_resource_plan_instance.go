@@ -162,9 +162,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
+	importing := n.importTarget.ID != ""
+
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
-	if n.importTarget.ID != "" {
+	if importing {
 		instanceRefreshState, diags = n.importState(ctx, addr, provider, providerSchema, keyData)
 	} else {
 		var readDiags tfdiags.Diagnostics
@@ -202,7 +204,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Refresh, maybe
-	if !n.skipRefresh {
+	// Imported resources are already refreshed
+	if !n.skipRefresh && !importing {
 		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
@@ -389,14 +392,14 @@ func (n *NodePlannableResourceInstance) importState(
 	provider providers.Interface,
 	providerSchema *ProviderSchema,
 	keyData instances.RepetitionData,
-) (instanceRefreshState *states.ResourceInstanceObject, diags tfdiags.Diagnostics) {
+) (importedState *states.ResourceInstanceObject, diags tfdiags.Diagnostics) {
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreImportState(absAddr, n.importTarget.ID)
 	}))
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 	schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
 
@@ -421,7 +424,7 @@ func (n *NodePlannableResourceInstance) importState(
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	imported := resp.ImportedResources
@@ -435,7 +438,7 @@ func (n *NodePlannableResourceInstance) importState(
 				n.importTarget.ID,
 			),
 		))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	for _, obj := range imported {
@@ -451,7 +454,7 @@ func (n *NodePlannableResourceInstance) importState(
 				n.importTarget.ID,
 			),
 		))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	// call post-import hook
@@ -461,10 +464,10 @@ func (n *NodePlannableResourceInstance) importState(
 
 	if imported[0].TypeName == "" {
 		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
-	importedState := imported[0].AsInstanceObject()
+	importedState = imported[0].AsInstanceObject()
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
@@ -476,7 +479,7 @@ func (n *NodePlannableResourceInstance) importState(
 	importedState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return importedState, diags
 	}
 
 	// verify the existence of the imported resource
@@ -495,12 +498,11 @@ func (n *NodePlannableResourceInstance) importState(
 				n.importTarget.Addr,
 			),
 		))
-		return instanceRefreshState, diags
+		return importedState, diags
 	}
 
-	diags = diags.Append(riNode.writeResourceInstanceState(ctx, importedState, workingState))
-	instanceRefreshState = importedState
-	return instanceRefreshState, diags
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, importedState, refreshState))
+	return importedState, diags
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
