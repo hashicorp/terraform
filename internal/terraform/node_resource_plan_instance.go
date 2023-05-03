@@ -152,10 +152,20 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	// In refresh-only mode we need to evaluate the for-each expression in
+	// order to supply the value to the pre- and post-condition check
+	// blocks. This has the unfortunate edge case of a refresh-only plan
+	// executing with a for-each map which has the same keys but different
+	// values, which could result in a post-condition check relying on that
+	// value being inaccurate. Unless we decide to store the value of the
+	// for-each expression in state, this is unavoidable.
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if n.importTarget.ID != "" {
-		instanceRefreshState, diags = n.importState(ctx, addr, provider)
+		instanceRefreshState, diags = n.importState(ctx, addr, provider, providerSchema, keyData)
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -236,7 +246,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		change, instancePlanState, repeatData, planDiags := n.plan(
-			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, keyData,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
@@ -308,20 +318,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		)
 		diags = diags.Append(checkDiags)
 	} else {
-		// In refresh-only mode we need to evaluate the for-each expression in
-		// order to supply the value to the pre- and post-condition check
-		// blocks. This has the unfortunate edge case of a refresh-only plan
-		// executing with a for-each map which has the same keys but different
-		// values, which could result in a post-condition check relying on that
-		// value being inaccurate. Unless we decide to store the value of the
-		// for-each expression in state, this is unavoidable.
-		forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
-		repeatData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
-
 		checkDiags := evalCheckRules(
 			addrs.ResourcePrecondition,
 			n.Config.Preconditions,
-			ctx, addr, repeatData,
+			ctx, addr, keyData,
 			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
@@ -344,7 +344,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		checkDiags = evalCheckRules(
 			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
-			ctx, addr, repeatData,
+			ctx, addr, keyData,
 			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
@@ -383,7 +383,13 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (instanceRefreshState *states.ResourceInstanceObject, diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(
+	ctx EvalContext,
+	addr addrs.AbsResourceInstance,
+	provider providers.Interface,
+	providerSchema *ProviderSchema,
+	keyData instances.RepetitionData,
+) (instanceRefreshState *states.ResourceInstanceObject, diags tfdiags.Diagnostics) {
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
@@ -392,10 +398,26 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
 	}
+	schema, _ := providerSchema.SchemaForResourceAddr(addr.Resource.Resource)
+
+	// We need to evaluate the config here in order to send it to the provider.
+	// Because we may be attempting to automatically generate parts of this
+	// configuration, there could be missing required values which will cause
+	// evaluation to fail. For now this is only a best-effort to give the
+	// providers whatever known values are in the configuration to aid in the
+	// import process.
+	configVal, _, configDiags := ctx.EvaluateBlock(n.Config.Config, schema, nil, keyData)
+	diags = diags.Append(configDiags)
+	if configDiags.HasErrors() {
+		log.Printf("[WARN] %s configuration returned errors during evaluation: %v", n.Addr, diags.Err())
+	}
+
+	configVal, _ = configVal.UnmarkDeep()
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: addr.Resource.Resource.Type,
 		ID:       n.importTarget.ID,
+		Config:   configVal,
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -415,6 +437,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		))
 		return instanceRefreshState, diags
 	}
+
 	for _, obj := range imported {
 		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
 	}

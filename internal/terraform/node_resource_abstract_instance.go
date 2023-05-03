@@ -648,11 +648,11 @@ func (n *NodeAbstractResourceInstance) plan(
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
-	forceReplace []addrs.AbsResourceInstance) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+	forceReplace []addrs.AbsResourceInstance,
+	keyData instances.RepetitionData) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var state *states.ResourceInstanceObject
 	var plan *plans.ResourceInstanceChange
-	var keyData instances.RepetitionData
 
 	config := *n.Config
 	resource := n.Addr.Resource.Resource
@@ -683,10 +683,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
 		return plan, state, keyData, diags
 	}
-
-	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
-
-	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
 
 	checkDiags := evalCheckRules(
 		addrs.ResourcePrecondition,

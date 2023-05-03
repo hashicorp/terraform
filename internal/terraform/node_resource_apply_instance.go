@@ -272,9 +272,12 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
+	keyData := EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
+
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, keyData)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
