@@ -29,7 +29,7 @@ import (
 // incremented for any change to this format that requires changes to a
 // consuming parser.
 const (
-	FormatVersion = "1.1"
+	FormatVersion = "1.2"
 
 	ResourceInstanceReplaceBecauseCannotUpdate    = "replace_because_cannot_update"
 	ResourceInstanceReplaceBecauseTainted         = "replace_because_tainted"
@@ -125,6 +125,20 @@ type Change struct {
 	// consists of one or more steps, each of which will be a number or a
 	// string.
 	ReplacePaths json.RawMessage `json:"replace_paths,omitempty"`
+
+	// Importing contains the import metadata about this operation. If importing
+	// is present (ie. not null) then the change is an import operation in
+	// addition to anything mentioned in the actions field. The actual contents
+	// of the Importing struct is subject to change, so downstream consumers
+	// should treat any values in here as strictly optional.
+	Importing *Importing `json:"importing,omitempty"`
+}
+
+// Importing is a nested object for the resource import metadata.
+type Importing struct {
+	// The original ID of this resource used to target it as part of planned
+	// import operation.
+	ID string `json:"id,omitempty"`
 }
 
 type output struct {
@@ -437,6 +451,11 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			return nil, err
 		}
 
+		var importing *Importing
+		if rc.Importing != nil {
+			importing = &Importing{ID: rc.Importing.ID}
+		}
+
 		r.Change = Change{
 			Actions:         actionString(rc.Action.String()),
 			Before:          json.RawMessage(before),
@@ -445,6 +464,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			BeforeSensitive: json.RawMessage(beforeSensitive),
 			AfterSensitive:  json.RawMessage(afterSensitive),
 			ReplacePaths:    replacePaths,
+			Importing:       importing,
 		}
 
 		if rc.DeposedKey != states.NotDeposed {
@@ -596,6 +616,10 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 			AfterUnknown:    a,
 			BeforeSensitive: json.RawMessage(sensitive),
 			AfterSensitive:  json.RawMessage(sensitive),
+
+			// Just to be explicit, outputs cannot be imported so this is always
+			// nil.
+			Importing: nil,
 		}
 
 		outputChanges[oc.Addr.OutputValue.Name] = c

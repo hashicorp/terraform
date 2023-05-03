@@ -5,8 +5,10 @@ package jsonformat
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/mitchellh/colorstring"
+	ctyjson "github.com/zclconf/go-cty/cty/json"
 
 	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
@@ -18,7 +20,6 @@ import (
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/terminal"
-	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
 type JSONLogType string
@@ -49,6 +50,31 @@ const (
 	LogVersion           JSONLogType = "version"
 )
 
+func incompatibleVersions(localVersion, remoteVersion string) bool {
+	var parsedLocal, parsedRemote float64
+	var err error
+
+	if parsedLocal, err = strconv.ParseFloat(localVersion, 64); err != nil {
+		return false
+	}
+	if parsedRemote, err = strconv.ParseFloat(remoteVersion, 64); err != nil {
+		return false
+	}
+
+	// If the local version is less than the remote version then the remote
+	// version might contain things the local version doesn't know about, so
+	// we're going to say they are incompatible.
+	//
+	// So far, we have built the renderer and the json packages to be backwards
+	// compatible so if the local version is greater than the remote version
+	// then that is okay, we'll still render a complete and correct plan.
+	//
+	// Note, this might change in the future. For example, if we introduce a
+	// new major version in one of the formats the renderer may no longer be
+	// backward compatible.
+	return parsedLocal < parsedRemote
+}
+
 type Renderer struct {
 	Streams  *terminal.Streams
 	Colorize *colorstring.Colorize
@@ -57,11 +83,7 @@ type Renderer struct {
 }
 
 func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...PlanRendererOpt) {
-	// TODO(liamcervante): Tidy up this detection of version differences, we
-	// should only report warnings when the plan is generated using a newer
-	// version then we are executing. We could also look into major vs minor
-	// version differences. This should work for alpha testing in the meantime.
-	if plan.PlanFormatVersion != jsonplan.FormatVersion || plan.ProviderFormatVersion != jsonprovider.FormatVersion {
+	if incompatibleVersions(jsonplan.FormatVersion, plan.PlanFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, plan.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
 			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This plan was generated using a different version of Terraform, the diff presented here may be missing representations of recent features."),
 			renderer.Streams.Stdout.Columns()))
@@ -71,11 +93,7 @@ func (renderer Renderer) RenderHumanPlan(plan Plan, mode plans.Mode, opts ...Pla
 }
 
 func (renderer Renderer) RenderHumanState(state State) {
-	// TODO(liamcervante): Tidy up this detection of version differences, we
-	// should only report warnings when the plan is generated using a newer
-	// version then we are executing. We could also look into major vs minor
-	// version differences. This should work for alpha testing in the meantime.
-	if state.StateFormatVersion != jsonstate.FormatVersion || state.ProviderFormatVersion != jsonprovider.FormatVersion {
+	if incompatibleVersions(jsonstate.FormatVersion, state.StateFormatVersion) || incompatibleVersions(jsonprovider.FormatVersion, state.ProviderFormatVersion) {
 		renderer.Streams.Println(format.WordWrap(
 			renderer.Colorize.Color("\n[bold][red]Warning:[reset][bold] This state was retrieved using a different version of Terraform, the state presented here maybe missing representations of recent features."),
 			renderer.Streams.Stdout.Columns()))
@@ -94,7 +112,7 @@ func (renderer Renderer) RenderHumanState(state State) {
 	state.renderHumanStateOutputs(renderer, opts)
 }
 
-func (r Renderer) RenderLog(log *JSONLog) error {
+func (renderer Renderer) RenderLog(log *JSONLog) error {
 	switch log.Type {
 	case LogRefreshComplete,
 		LogVersion,
@@ -106,16 +124,16 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 		return nil
 
 	case LogApplyStart, LogApplyComplete, LogRefreshStart, LogProvisionStart, LogResourceDrift:
-		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s[reset]"), log.Message)
-		r.Streams.Println(msg)
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s[reset]"), log.Message)
+		renderer.Streams.Println(msg)
 
 	case LogDiagnostic:
-		diag := format.DiagnosticFromJSON(log.Diagnostic, r.Colorize, 78)
-		r.Streams.Print(diag)
+		diag := format.DiagnosticFromJSON(log.Diagnostic, renderer.Colorize, 78)
+		renderer.Streams.Print(diag)
 
 	case LogOutputs:
 		if len(log.Outputs) > 0 {
-			r.Streams.Println(r.Colorize.Color("[bold][green]Outputs:[reset]"))
+			renderer.Streams.Println(renderer.Colorize.Color("[bold][green]Outputs:[reset]"))
 			for name, output := range log.Outputs {
 				change := structured.FromJsonViewsOutput(output)
 				ctype, err := ctyjson.UnmarshalType(output.Type)
@@ -123,14 +141,14 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 					return err
 				}
 
-				opts := computed.NewRenderHumanOpts(r.Colorize)
+				opts := computed.NewRenderHumanOpts(renderer.Colorize)
 				opts.ShowUnchangedChildren = true
 
 				outputDiff := differ.ComputeDiffForType(change, ctype)
 				outputStr := outputDiff.RenderHuman(0, opts)
 
 				msg := fmt.Sprintf("%s = %s", name, outputStr)
-				r.Streams.Println(msg)
+				renderer.Streams.Println(msg)
 			}
 		}
 
@@ -140,19 +158,19 @@ func (r Renderer) RenderLog(log *JSONLog) error {
 		resource := log.Hook["resource"].(map[string]interface{})
 		resourceAddr := resource["addr"].(string)
 
-		msg := fmt.Sprintf(r.Colorize.Color("[bold]%s: (%s):[reset] %s"),
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold]%s: (%s):[reset] %s"),
 			resourceAddr, provisioner, output)
-		r.Streams.Println(msg)
+		renderer.Streams.Println(msg)
 
 	case LogChangeSummary:
 		// Normally, we will only render the apply change summary since the renderer
 		// generates a plan change summary for us
-		msg := fmt.Sprintf(r.Colorize.Color("[bold][green]%s[reset]"), log.Message)
-		r.Streams.Println("\n" + msg + "\n")
+		msg := fmt.Sprintf(renderer.Colorize.Color("[bold][green]%s[reset]"), log.Message)
+		renderer.Streams.Println("\n" + msg + "\n")
 
 	default:
 		// If the log type is not a known log type, we will just print the log message
-		r.Streams.Println(log.Message)
+		renderer.Streams.Println(log.Message)
 	}
 
 	return nil
