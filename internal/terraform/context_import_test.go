@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/zclconf/go-cty/cty"
@@ -1043,3 +1044,165 @@ aws_instance.foo:
   provider = provider["registry.terraform.io/hashicorp/aws"]
   foo = bar
 `
+
+func TestContext2Import_planResourceConfig(t *testing.T) {
+	// test_string is only set in config, and cannot be filled in by the
+	// provider during refresh.
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "123"
+}
+
+import {
+  to   = test_object.a
+  id   = "bop"
+}
+`,
+	})
+
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Computed: true,
+			},
+			"test_string": {
+				Type:     cty.String,
+				Optional: true,
+			},
+		},
+	}
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse.ResourceTypes["test_object"] = providers.Schema{Block: schema}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
+		if req.Config.IsNull() {
+			t.Error("missing config in ImportResourceState")
+		}
+		cfg := req.Config.AsValueMap()
+		cfg["id"] = cty.StringVal(req.ID)
+		state := cty.ObjectVal(cfg)
+
+		resp.ImportedResources = []providers.ImportedResource{
+			{
+				TypeName: req.TypeName,
+				State:    state,
+			},
+		}
+		return resp
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+	expectedState := cty.ObjectVal(map[string]cty.Value{
+		"id":          cty.StringVal("bop"),
+		"test_string": cty.StringVal("123"),
+	})
+	after, err := instPlan.After.Decode(schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !after.RawEquals(expectedState) {
+		t.Fatalf("expected %#v, got %#v\n", expectedState, after)
+	}
+}
+
+func TestContext2Import_planResourceConfigWithUnknown(t *testing.T) {
+	// test_string is only set in config, and cannot be filled in by the
+	// provider during refresh.
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = test_object.b.id
+}
+
+resource "test_object" "b" {
+  test_string = "required"
+}
+
+import {
+  to   = test_object.a
+  id   = "bop"
+}
+`,
+	})
+
+	schema := &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"id": {
+				Type:     cty.String,
+				Computed: true,
+			},
+			"test_string": {
+				Type:     cty.String,
+				Required: true,
+			},
+		},
+	}
+
+	p := simpleMockProvider()
+	p.GetProviderSchemaResponse.ResourceTypes["test_object"] = providers.Schema{Block: schema}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
+		if req.Config.IsNull() {
+			t.Error("missing config in ImportResourceState")
+		}
+		cfg := req.Config.AsValueMap()
+		cfg["id"] = cty.StringVal(req.ID)
+		state := cty.ObjectVal(cfg)
+
+		resp.ImportedResources = []providers.ImportedResource{
+			{
+				TypeName: req.TypeName,
+				State:    state,
+			},
+		}
+		return resp
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+	expectedState := cty.ObjectVal(map[string]cty.Value{
+		"id":          cty.StringVal("bop"),
+		"test_string": cty.UnknownVal(cty.String),
+	})
+	after, err := instPlan.After.Decode(schema.ImpliedType())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !after.RawEquals(expectedState) {
+		t.Fatalf("expected %#v, got %#v\n", expectedState, after)
+	}
+}
