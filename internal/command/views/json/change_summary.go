@@ -25,16 +25,12 @@ func (cs *ChangeSummary) String() string {
 
 	// TODO(liamcervante): For now, we only include the import count in the plan
 	//   output. This is because counting the imports during the apply is tricky
-	//   and we need to use the hooks to get this information back. Currently,
-	//   there is a PostImportState function on the hooks. This is almost
-	//   certainly not being called in the right place for plannable import
-	//   (since this hasn't been implemented yet).
+	//   and we need to use the actual implementation which isn't ready yet.
 	//
 	//   We should absolutely fix this before we launch to alpha, but we can't
 	//   do it right now. So we have implemented as much as we can (the plan)
 	//   and will revisit this alongside the concrete implementation of the
-	//   Terraform graph when we can concretely place the hook in the right
-	//   place, introduce a new one, or modify an existing one.
+	//   Terraform graph.
 
 	switch cs.Operation {
 	case OperationApplied:
