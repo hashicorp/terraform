@@ -1085,6 +1085,7 @@ import {
 	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 		if req.Config.IsNull() {
 			t.Error("missing config in ImportResourceState")
+			return resp
 		}
 		cfg := req.Config.AsValueMap()
 		cfg["id"] = cty.StringVal(req.ID)
@@ -1168,6 +1169,7 @@ import {
 	p.ImportResourceStateFn = func(req providers.ImportResourceStateRequest) (resp providers.ImportResourceStateResponse) {
 		if req.Config.IsNull() {
 			t.Error("missing config in ImportResourceState")
+			return resp
 		}
 		cfg := req.Config.AsValueMap()
 		cfg["id"] = cty.StringVal(req.ID)

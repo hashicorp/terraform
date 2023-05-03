@@ -415,6 +415,12 @@ func (n *NodePlannableResourceInstance) importState(
 		log.Printf("[WARN] %s configuration returned errors during evaluation: %v", n.Addr, diags.Err())
 	}
 
+	// make sure we have a valid value even if there were errors
+	if configVal == cty.NilVal {
+		configVal = cty.NullVal(cty.DynamicPseudoType)
+	}
+	configVal, _ = schema.CoerceValue(configVal)
+
 	configVal, _ = configVal.UnmarkDeep()
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
@@ -433,7 +439,7 @@ func (n *NodePlannableResourceInstance) importState(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Import returned no resources",
-			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+			fmt.Sprintf("While attempting to import with ID %q, the provider "+
 				"returned no instance states.",
 				n.importTarget.ID,
 			),
@@ -448,7 +454,7 @@ func (n *NodePlannableResourceInstance) importState(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Multiple import states not supported",
-			fmt.Sprintf("While attempting to import with ID %s, the provider "+
+			fmt.Sprintf("While attempting to import with ID %q, the provider "+
 				"returned multiple resource instance states. This "+
 				"is not currently supported.",
 				n.importTarget.ID,
@@ -464,6 +470,11 @@ func (n *NodePlannableResourceInstance) importState(
 
 	if imported[0].TypeName == "" {
 		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+		return nil, diags
+	}
+
+	if imported[0].TypeName != addr.Resource.Resource.Type {
+		diags = diags.Append(fmt.Errorf("import of %s resulted in unexpected instance type %q", n.importTarget.Addr.String(), imported[0].TypeName))
 		return nil, diags
 	}
 
