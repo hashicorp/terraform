@@ -676,26 +676,23 @@ func (n *NodeAbstractResourceInstance) plan(
 	// If we're importing and generating config, generate it now.
 	var generatedHCL string
 	if n.Config == nil {
+		var generatedDiags tfdiags.Diagnostics
+
 		if !generateConfig {
-			panic("n.Config should only be nil at this point if we are generating config, so kmoe made a mistake")
+			return plan, state, keyData, diags.Append(fmt.Errorf("could not find config for %s", n.Addr))
 		}
 
-		// Generate the HCL string first, then parse the HCL body from it
-		// We generate the HCL twice: once without the enclosing resource block,
-		// for use in the plan node, and once with the resource block, to
-		// render with the plan.
-		generatedHCL, err = generateHCLString(n.Addr, currentState, schema)
-		if err != nil {
-			return plan, state, keyData, diags.Append(fmt.Errorf("could not generate HCL string for %s: %w", n.Addr, err))
-		}
+		// Generate the HCL string first, then parse the HCL body from it.
+		// First we generate the contents of the resource block for use within
+		// the planning node. Then we wrap it in an enclosing resource block to
+		// pass into the plan for rendering.
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, currentState, schema)
+		diags = diags.Append(generatedDiags)
 
-		generatedHCLAttributes, err := generateHCLStringAttributes(n.Addr, currentState, schema)
-		if err != nil {
-			return plan, state, keyData, diags.Append(fmt.Errorf("could not generate HCL string for %s: %w", n.Addr, err))
-		}
+		generatedHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
 
 		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "yolo", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
 		if hclDiags.HasErrors() {
 			return plan, state, keyData, diags.Append(hclDiags)
 		}
@@ -1188,39 +1185,19 @@ func (n *NodeAbstractResourceInstance) plan(
 	return plan, state, keyData, diags
 }
 
-// generateHCLString produces a string in HCL format for the given resource
-// state and schema.
-func generateHCLString(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, error) {
-	filteredSchema := schema.OmitReadOnly()
-	filteredSchema = schema.OmitAttr("id")
-	// TODO also filter out Deprecated
+// generateHCLStringAttributes produces a string in HCL format for the given
+// resource state and schema without the surrounding block.
+func (n *NodeAbstractResource) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
+	filteredSchema := schema.Filter(
+		configschema.FilterOr(configschema.FilterReadOnlyAttributes, configschema.FilterDeprecatedAttribute),
+		configschema.FilterDeprecatedBlock)
 
-	// TODO KEM this approach relies on guessing what kinds of validation errors could
-	// occur with the values the provider returns. This needs to fail more quietly and
-	// degrade to something "easier" to generate.
-
-	generatedConfig, err := genconfig.GenerateConfigForResource(addr, filteredSchema, state.Value)
-	if err != nil {
-		return "", err
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
 	}
-	return generatedConfig, nil
-}
 
-// generateHCLString produces a string in HCL format for the given resource
-// state and schema.
-func generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, error) {
-	filteredSchema := schema.OmitReadOnly()
-	filteredSchema = schema.OmitAttr("id") // HACK
-
-	// TODO KEM this approach relies on guessing what kinds of validation errors could
-	// occur with the values the provider returns. This needs to fail more quietly and
-	// degrade to something "easier" to generate.
-
-	generatedConfig, err := genconfig.GenerateAttributesForResource(addr, filteredSchema, state.Value)
-	if err != nil {
-		return "", err
-	}
-	return generatedConfig, nil
+	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {

@@ -84,6 +84,10 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		allResources = append(allResources, r)
 	}
 
+	// Take a copy of the import targets, so we can edit them as we go.
+	var importTargets []*ImportTarget
+	importTargets = append(importTargets, t.importTargets...)
+
 	for _, r := range allResources {
 		relAddr := r.Addr()
 
@@ -96,8 +100,11 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		// filter them down to the applicable addresses.
 		var imports []*ImportTarget
 		configAddr := relAddr.InModule(path)
-		for _, i := range t.importTargets {
+		for ix, i := range importTargets {
 			if target := i.Addr.ContainingResource().Config(); target.Equal(configAddr) {
+				// This import target has been claimed by an actual resource,
+				// so we remove it from the targets.
+				importTargets = append(importTargets[:ix], importTargets[ix+1:]...)
 				imports = append(imports, i)
 			}
 		}
@@ -108,6 +115,22 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 				Module:   path,
 			},
 			importTargets: imports,
+		}
+
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+
+		g.Add(node)
+	}
+
+	// If any import targets were not claimed by resources, then we will
+	// generate config for them.
+	for _, i := range importTargets {
+		abstract := &NodeAbstractResource{
+			Addr:          i.Addr.ConfigResource(),
+			importTargets: []*ImportTarget{i},
 		}
 
 		var node dag.Vertex = abstract

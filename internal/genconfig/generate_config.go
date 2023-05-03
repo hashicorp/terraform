@@ -2,6 +2,8 @@ package genconfig
 
 import (
 	"fmt"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"sort"
 	"strings"
 
@@ -11,83 +13,56 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-func GenerateAttributesForResource(addr addrs.AbsResourceInstance,
+// GenerateResourceContents generates HCL configuration code for the provided
+// resource and state value.
+//
+// If you want tot generate actual valid Terraform code you should follow this
+// call up with a call to WrapResourceContents, which will place a Terraform
+// resource header around the attributes and blocks returned by this function.
+func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,
-	stateVal cty.Value) (string, error) {
+	pc addrs.LocalProviderConfig,
+	stateVal cty.Value) (string, tfdiags.Diagnostics) {
 	var buf strings.Builder
 
-	// KEM: This doesn't quite work yet as the provider pc is not plumbed in.
-	// if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
-	// 	buf.WriteString(strings.Repeat(" ", 2))
-	// 	buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
-	// }
+	var diags tfdiags.Diagnostics
+
+	if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
+		buf.WriteString(strings.Repeat(" ", 2))
+		buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
+	}
 
 	stateVal = omitUnknowns(stateVal)
-
 	if stateVal.RawEquals(cty.NilVal) {
-		if err := writeConfigAttributes(&buf, schema.Attributes, 2); err != nil {
-			return "", err
-		}
-		if err := writeConfigBlocks(&buf, schema.BlockTypes, 2); err != nil {
-			return "", err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, &buf, schema.Attributes, 2))
+		diags = diags.Append(writeConfigBlocks(addr, &buf, schema.BlockTypes, 2))
 	} else {
-		if err := writeConfigAttributesFromExisting(&buf, stateVal, schema.Attributes, 2); err != nil {
-			return "", err
-		}
-		if err := writeConfigBlocksFromExisting(&buf, stateVal, schema.BlockTypes, 2); err != nil {
-			return "", err
-		}
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, &buf, stateVal, schema.Attributes, 2))
+		diags = diags.Append(writeConfigBlocksFromExisting(addr, &buf, stateVal, schema.BlockTypes, 2))
 	}
 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-
-	return string(formatted), nil
+	return string(formatted), diags
 }
 
-func GenerateConfigForResource(addr addrs.AbsResourceInstance,
-	schema *configschema.Block,
-	// pc addrs.LocalProviderConfig,
-	stateVal cty.Value) (string, error) {
+func WrapResourceContents(addr addrs.AbsResourceInstance, config string) string {
 	var buf strings.Builder
+
 	buf.WriteString(fmt.Sprintf("resource %q %q {\n", addr.Resource.Resource.Type, addr.Resource.Resource.Name))
-
-	// FIXME KEM
-	// if pc.LocalName != addr.Resource.Resource.ImpliedProvider() || pc.Alias != "" {
-	// 	buf.WriteString(strings.Repeat(" ", 2))
-	// 	buf.WriteString(fmt.Sprintf("provider = %s\n", pc.StringCompact()))
-	// }
-
-	stateVal = omitUnknowns(stateVal)
-
-	if stateVal.RawEquals(cty.NilVal) {
-		if err := writeConfigAttributes(&buf, schema.Attributes, 2); err != nil {
-			return "", err
-		}
-		if err := writeConfigBlocks(&buf, schema.BlockTypes, 2); err != nil {
-			return "", err
-		}
-	} else {
-		if err := writeConfigAttributesFromExisting(&buf, stateVal, schema.Attributes, 2); err != nil {
-			return "", err
-		}
-		if err := writeConfigBlocksFromExisting(&buf, stateVal, schema.BlockTypes, 2); err != nil {
-			return "", err
-		}
-	}
-
+	buf.WriteString(config)
 	buf.WriteString("}")
 
 	// The output better be valid HCL which can be parsed and formatted.
 	formatted := hclwrite.Format([]byte(buf.String()))
-
-	return string(formatted), nil
+	return string(formatted)
 }
 
-func writeConfigAttributes(buf *strings.Builder, attrs map[string]*configschema.Attribute, indent int) error {
+func writeConfigAttributes(addr addrs.AbsResourceInstance, buf *strings.Builder, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if len(attrs) == 0 {
-		return nil
+		return diags
 	}
 
 	// Get a list of sorted attribute names so the output will be consistent between runs.
@@ -101,9 +76,7 @@ func writeConfigAttributes(buf *strings.Builder, attrs map[string]*configschema.
 		name := keys[i]
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
-			if err := writeConfigNestedTypeAttribute(buf, name, attrS, indent); err != nil {
-				return err
-			}
+			diags = diags.Append(writeConfigNestedTypeAttribute(addr, buf, name, attrS, indent))
 			continue
 		}
 		if attrS.Required {
@@ -111,7 +84,13 @@ func writeConfigAttributes(buf *strings.Builder, attrs map[string]*configschema.
 			buf.WriteString(fmt.Sprintf("%s = ", name))
 			tok := hclwrite.TokensForValue(attrS.EmptyValue())
 			if _, err := tok.WriteTo(buf); err != nil {
-				return err
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Skipped part of config generation",
+					Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
+					Extra:    err,
+				})
+				continue
 			}
 			writeAttrTypeConstraint(buf, attrS)
 		} else if attrS.Optional {
@@ -119,17 +98,24 @@ func writeConfigAttributes(buf *strings.Builder, attrs map[string]*configschema.
 			buf.WriteString(fmt.Sprintf("%s = ", name))
 			tok := hclwrite.TokensForValue(attrS.EmptyValue())
 			if _, err := tok.WriteTo(buf); err != nil {
-				return err
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Skipped part of config generation",
+					Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
+					Extra:    err,
+				})
+				continue
 			}
 			writeAttrTypeConstraint(buf, attrS)
 		}
 	}
-	return nil
+	return diags
 }
 
-func writeConfigAttributesFromExisting(buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) error {
+func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, attrs map[string]*configschema.Attribute, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
 	if len(attrs) == 0 {
-		return nil
+		return diags
 	}
 
 	// Get a list of sorted attribute names so the output will be consistent between runs.
@@ -143,9 +129,7 @@ func writeConfigAttributesFromExisting(buf *strings.Builder, stateVal cty.Value,
 		name := keys[i]
 		attrS := attrs[name]
 		if attrS.NestedType != nil {
-			if err := writeConfigNestedTypeAttributeFromExisting(buf, name, attrS, stateVal, indent); err != nil {
-				return err
-			}
+			writeConfigNestedTypeAttributeFromExisting(addr, buf, name, attrS, stateVal, indent)
 			continue
 		}
 
@@ -172,19 +156,27 @@ func writeConfigAttributesFromExisting(buf *strings.Builder, stateVal cty.Value,
 			} else {
 				tok := hclwrite.TokensForValue(val)
 				if _, err := tok.WriteTo(buf); err != nil {
-					return err
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "Skipped part of config generation",
+						Detail:   fmt.Sprintf("Could not create attribute %s in %s when generating import configuration. The plan will likely report the missing attribute as being deleted.", name, addr),
+						Extra:    err,
+					})
+					continue
 				}
 			}
 
 			buf.WriteString("\n")
 		}
 	}
-	return nil
+	return diags
 }
 
-func writeConfigBlocks(buf *strings.Builder, blocks map[string]*configschema.NestedBlock, indent int) error {
+func writeConfigBlocks(addr addrs.AbsResourceInstance, buf *strings.Builder, blocks map[string]*configschema.NestedBlock, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if len(blocks) == 0 {
-		return nil
+		return diags
 	}
 
 	// Get a list of sorted block names so the output will be consistent between runs.
@@ -197,60 +189,50 @@ func writeConfigBlocks(buf *strings.Builder, blocks map[string]*configschema.Nes
 	for i := range names {
 		name := names[i]
 		blockS := blocks[name]
-		if err := writeConfigNestedBlock(buf, name, blockS, indent); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigNestedBlock(addr, buf, name, blockS, indent))
 	}
-	return nil
+	return diags
 }
 
-func writeConfigNestedBlock(buf *strings.Builder, name string, schema *configschema.NestedBlock, indent int) error {
+func writeConfigNestedBlock(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 		writeBlockTypeConstraint(buf, schema)
-		if err := writeConfigAttributes(buf, schema.Attributes, indent+2); err != nil {
-			return err
-		}
-		if err := writeConfigBlocks(buf, schema.BlockTypes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigBlocks(addr, buf, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	case configschema.NestingList, configschema.NestingSet:
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 		writeBlockTypeConstraint(buf, schema)
-		if err := writeConfigAttributes(buf, schema.Attributes, indent+2); err != nil {
-			return err
-		}
-		if err := writeConfigBlocks(buf, schema.BlockTypes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigBlocks(addr, buf, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	case configschema.NestingMap:
 		buf.WriteString(strings.Repeat(" ", indent))
 		// we use an arbitrary placeholder key (block label) "key"
 		buf.WriteString(fmt.Sprintf("%s \"key\" {", name))
 		writeBlockTypeConstraint(buf, schema)
-		if err := writeConfigAttributes(buf, schema.Attributes, indent+2); err != nil {
-			return err
-		}
-		if err := writeConfigBlocks(buf, schema.BlockTypes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigBlocks(addr, buf, schema.BlockTypes, indent+2))
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	default:
 		// This should not happen, the above should be exhaustive.
-		return fmt.Errorf("unsupported NestingMode %s", schema.Nesting.String())
+		panic(fmt.Errorf("unsupported NestingMode %s", schema.Nesting.String()))
 	}
 }
 
-func writeConfigNestedTypeAttribute(buf *strings.Builder, name string, schema *configschema.Attribute, indent int) error {
+func writeConfigNestedTypeAttribute(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	buf.WriteString(strings.Repeat(" ", indent))
 	buf.WriteString(fmt.Sprintf("%s = ", name))
 
@@ -258,44 +240,40 @@ func writeConfigNestedTypeAttribute(buf *strings.Builder, name string, schema *c
 	case configschema.NestingSingle:
 		buf.WriteString("{")
 		writeAttrTypeConstraint(buf, schema)
-		if err := writeConfigAttributes(buf, schema.NestedType.Attributes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.NestedType.Attributes, indent+2))
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	case configschema.NestingList, configschema.NestingSet:
 		buf.WriteString("[{")
 		writeAttrTypeConstraint(buf, schema)
-		if err := writeConfigAttributes(buf, schema.NestedType.Attributes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.NestedType.Attributes, indent+2))
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("}]\n")
-		return nil
+		return diags
 	case configschema.NestingMap:
 		buf.WriteString("{")
 		writeAttrTypeConstraint(buf, schema)
 		buf.WriteString(strings.Repeat(" ", indent+2))
 		// we use an arbitrary placeholder key "key"
 		buf.WriteString("key = {\n")
-		if err := writeConfigAttributes(buf, schema.NestedType.Attributes, indent+4); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributes(addr, buf, schema.NestedType.Attributes, indent+4))
 		buf.WriteString(strings.Repeat(" ", indent+2))
 		buf.WriteString("}\n")
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	default:
 		// This should not happen, the above should be exhaustive.
-		return fmt.Errorf("unsupported NestingMode %s", schema.NestedType.Nesting.String())
+		panic(fmt.Errorf("unsupported NestingMode %s", schema.NestedType.Nesting.String()))
 	}
 }
 
-func writeConfigBlocksFromExisting(buf *strings.Builder, stateVal cty.Value, blocks map[string]*configschema.NestedBlock, indent int) error {
+func writeConfigBlocksFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, stateVal cty.Value, blocks map[string]*configschema.NestedBlock, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	if len(blocks) == 0 {
-		return nil
+		return diags
 	}
 
 	// Get a list of sorted block names so the output will be consistent between runs.
@@ -314,21 +292,21 @@ func writeConfigBlocksFromExisting(buf *strings.Builder, stateVal cty.Value, blo
 			continue
 		}
 		blockVal := stateVal.GetAttr(name)
-		if err := writeConfigNestedBlockFromExisting(buf, name, blockS, blockVal, indent); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigNestedBlockFromExisting(addr, buf, name, blockS, blockVal, indent))
 	}
 
-	return nil
+	return diags
 }
 
-func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) error {
+func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.Attribute, stateVal cty.Value, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	switch schema.NestedType.Nesting {
 	case configschema.NestingSingle:
 		if schema.Sensitive || stateVal.IsMarked() {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
-			return nil
+			return diags
 		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s = {\n", name))
@@ -337,14 +315,12 @@ func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name strin
 		// to null as needed), but it protects against panics in tests (and any
 		// really weird and unlikely cases).
 		if !stateVal.Type().HasAttribute(name) {
-			return nil
+			return diags
 		}
 		nestedVal := stateVal.GetAttr(name)
-		if err := writeConfigAttributesFromExisting(buf, nestedVal, schema.NestedType.Attributes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 
 	case configschema.NestingList, configschema.NestingSet:
 		buf.WriteString(strings.Repeat(" ", indent))
@@ -352,7 +328,7 @@ func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name strin
 
 		if schema.Sensitive || stateVal.IsMarked() {
 			buf.WriteString("] # sensitive\n")
-			return nil
+			return diags
 		}
 
 		buf.WriteString("\n")
@@ -368,15 +344,13 @@ func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name strin
 			}
 
 			buf.WriteString("{\n")
-			if err := writeConfigAttributesFromExisting(buf, listVals[i], schema.NestedType.Attributes, indent+4); err != nil {
-				return err
-			}
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("},\n")
 		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("]\n")
-		return nil
+		return diags
 
 	case configschema.NestingMap:
 		buf.WriteString(strings.Repeat(" ", indent))
@@ -384,7 +358,7 @@ func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name strin
 
 		if schema.Sensitive || stateVal.IsMarked() {
 			buf.WriteString(" } # sensitive\n")
-			return nil
+			return diags
 		}
 
 		buf.WriteString("\n")
@@ -406,23 +380,23 @@ func writeConfigNestedTypeAttributeFromExisting(buf *strings.Builder, name strin
 			}
 
 			buf.WriteString("\n")
-			if err := writeConfigAttributesFromExisting(buf, vals[key], schema.NestedType.Attributes, indent+4); err != nil {
-				return err
-			}
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.NestedType.Attributes, indent+4))
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString("}\n")
 		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 
 	default:
 		// This should not happen, the above should be exhaustive.
-		return fmt.Errorf("unsupported NestingMode %s", schema.NestedType.Nesting.String())
+		panic(fmt.Errorf("unsupported NestingMode %s", schema.NestedType.Nesting.String()))
 	}
 }
 
-func writeConfigNestedBlockFromExisting(buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) error {
+func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *strings.Builder, name string, schema *configschema.NestedBlock, stateVal cty.Value, indent int) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
 		buf.WriteString(strings.Repeat(" ", indent))
@@ -431,41 +405,33 @@ func writeConfigNestedBlockFromExisting(buf *strings.Builder, name string, schem
 		// If the entire value is marked, don't print any nested attributes
 		if stateVal.IsMarked() {
 			buf.WriteString("} # sensitive\n")
-			return nil
+			return diags
 		}
 		buf.WriteString("\n")
-		if err := writeConfigAttributesFromExisting(buf, stateVal, schema.Attributes, indent+2); err != nil {
-			return err
-		}
-		if err := writeConfigBlocksFromExisting(buf, stateVal, schema.BlockTypes, indent+2); err != nil {
-			return err
-		}
+		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, stateVal, schema.Attributes, indent+2))
+		diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, stateVal, schema.BlockTypes, indent+2))
 		buf.WriteString("}\n")
-		return nil
+		return diags
 	case configschema.NestingList, configschema.NestingSet:
 		if stateVal.IsMarked() {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return nil
+			return diags
 		}
 		listVals := ctyCollectionValues(stateVal)
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString(fmt.Sprintf("%s {\n", name))
-			if err := writeConfigAttributesFromExisting(buf, listVals[i], schema.Attributes, indent+2); err != nil {
-				return err
-			}
-			if err := writeConfigBlocksFromExisting(buf, listVals[i], schema.BlockTypes, indent+2); err != nil {
-				return err
-			}
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, listVals[i], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, listVals[i], schema.BlockTypes, indent+2))
 			buf.WriteString("}\n")
 		}
-		return nil
+		return diags
 	case configschema.NestingMap:
 		// If the entire value is marked, don't print any nested attributes
 		if stateVal.IsMarked() {
 			buf.WriteString(fmt.Sprintf("%s {} # sensitive\n", name))
-			return nil
+			return diags
 		}
 
 		vals := stateVal.AsValueMap()
@@ -480,23 +446,18 @@ func writeConfigNestedBlockFromExisting(buf *strings.Builder, name string, schem
 			// This entire map element is marked
 			if vals[key].IsMarked() {
 				buf.WriteString("} # sensitive\n")
-				return nil
+				return diags
 			}
 			buf.WriteString("\n")
-
-			if err := writeConfigAttributesFromExisting(buf, vals[key], schema.Attributes, indent+2); err != nil {
-				return err
-			}
-			if err := writeConfigBlocksFromExisting(buf, vals[key], schema.BlockTypes, indent+2); err != nil {
-				return err
-			}
+			diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, vals[key], schema.Attributes, indent+2))
+			diags = diags.Append(writeConfigBlocksFromExisting(addr, buf, vals[key], schema.BlockTypes, indent+2))
 			buf.WriteString(strings.Repeat(" ", indent))
 			buf.WriteString("}\n")
 		}
-		return nil
+		return diags
 	default:
 		// This should not happen, the above should be exhaustive.
-		return fmt.Errorf("unsupported NestingMode %s", schema.Nesting.String())
+		panic(fmt.Errorf("unsupported NestingMode %s", schema.Nesting.String()))
 	}
 }
 
