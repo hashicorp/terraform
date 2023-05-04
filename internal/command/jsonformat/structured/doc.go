@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package structured contains the structured representation of the JSON changes
 // returned by the jsonplan package.
 //

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package depsfile contains the logic for reading and writing Terraform's
 // dependency lock and development override configuration files.
 //

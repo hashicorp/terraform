@@ -37,4 +37,4 @@ to [the main Terraform CLI documentation](https://www.terraform.io/docs/cli/inde
 
 ## Contribution Guides
 
-* [Contributing to Terraform](.github/CONTRIBUTING.md): a complete guideline for those who want to contribute to this project.
+* [Contributing to Terraform](../.github/CONTRIBUTING.md): a complete guideline for those who want to contribute to this project.

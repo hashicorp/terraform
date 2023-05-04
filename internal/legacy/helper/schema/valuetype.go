@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package schema
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=ValueType valuetype.go

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonformat
 
 import (
@@ -96,4 +99,8 @@ type diff struct {
 
 func (d diff) Moved() bool {
 	return len(d.change.PreviousAddress) > 0 && d.change.PreviousAddress != d.change.Address
+}
+
+func (d diff) Importing() bool {
+	return d.change.Change.Importing != nil
 }

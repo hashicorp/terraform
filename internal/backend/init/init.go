@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package init contains the list of backends that can be initialized and
 // basic helper functions for initializing those backends.
 package init

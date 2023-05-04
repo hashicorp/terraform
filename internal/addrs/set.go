@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package addrs
 
 // Set represents a set of addresses of types that implement UniqueKeyer.

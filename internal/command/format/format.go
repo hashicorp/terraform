@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package format contains helpers for formatting various Terraform
 // structures for human-readabout output.
 //
