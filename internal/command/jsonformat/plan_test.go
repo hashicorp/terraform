@@ -27,6 +27,70 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
+func TestRenderHuman_nullSensitiveOutput(t *testing.T) {
+	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
+	streams, done := terminal.StreamsForTesting(t)
+
+	plan := Plan{
+		OutputChanges: map[string]jsonplan.Change{
+			"a_string": {
+				Actions: []string{"update"},
+				Before: marshalJson(t, map[string]interface{}{
+					"tags": []interface{}{
+						map[string]interface{}{
+							"key": marshalJson(t, "old"),
+						},
+						nil,
+					},
+				}),
+				After: marshalJson(t, map[string]interface{}{
+					"tags": []interface{}{
+						map[string]interface{}{
+							"key": marshalJson(t, "new"),
+						},
+						nil,
+					},
+				}),
+				BeforeSensitive: marshalJson(t, map[string]interface{}{
+					"tags": []interface{}{
+						map[string]interface{}{},
+						map[string]interface{}{},
+					},
+				}),
+				AfterSensitive: marshalJson(t, map[string]interface{}{
+					"tags": []interface{}{
+						map[string]interface{}{},
+						map[string]interface{}{},
+					},
+				}),
+			},
+		},
+	}
+
+	renderer := Renderer{Colorize: color, Streams: streams}
+	plan.renderHuman(renderer, plans.NormalMode)
+
+	want := `
+Changes to Outputs:
+  ~ a_string = {
+      ~ tags = [
+          ~ {
+              ~ key = "old" -> "new"
+            },
+            null,
+        ]
+    }
+
+You can apply this plan to save these new output values to the Terraform
+state, without changing any real infrastructure.
+`
+
+	got := done(t).Stdout()
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
 func TestRenderHuman_EmptyPlan(t *testing.T) {
 	color := &colorstring.Colorize{Colors: colorstring.DefaultColors, Disable: true}
 	streams, done := terminal.StreamsForTesting(t)
