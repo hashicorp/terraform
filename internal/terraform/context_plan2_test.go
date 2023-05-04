@@ -4301,3 +4301,63 @@ import {
 		}
 	})
 }
+
+func TestContext2Plan_importRefreshOnce(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "bar"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	readCalled := 0
+	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
+		readCalled++
+		state, _ := simpleTestSchema().CoerceValue(cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}))
+
+		return providers.ReadResourceResponse{
+			NewState: state,
+		}
+	}
+
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+		ForceReplace: []addrs.AbsResourceInstance{
+			addr,
+		},
+	})
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	if readCalled > 1 {
+		t.Error("ReadResource called multiple times for import")
+	}
+}
