@@ -226,9 +226,9 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 
 		if importingCount > 0 {
 			renderer.Streams.Printf(
-				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to add, %d to import, %d to change, %d to destroy.\n"),
-				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
+				renderer.Colorize.Color("\n[bold]Plan:[reset] %d to import, %d to add, %d to change, %d to destroy.\n"),
 				importingCount,
+				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
 				counts[plans.Update],
 				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
 		} else {
