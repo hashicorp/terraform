@@ -35,8 +35,18 @@ type ConfigTransformer struct {
 	// Do not apply this transformer.
 	skip bool
 
-	// configuration resources that are to be imported
+	// importTargets specifies a slice of addresses that will have state
+	// imported for them.
 	importTargets []*ImportTarget
+
+	// generateConfigForImportTargets tells the graph to generate config for any
+	// import targets that are not contained within config.
+	//
+	// If this is false and an import target has no config, the graph will
+	// simply import the state for the target and any follow-up operations will
+	// try to delete the imported resource unless the config is updated
+	// manually.
+	generateConfigForImportTargets bool
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -128,20 +138,22 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		g.Add(node)
 	}
 
-	// If any import targets were not claimed by resources, then we will
-	// generate config for them.
-	for _, i := range importTargets {
-		abstract := &NodeAbstractResource{
-			Addr:          i.Addr.ConfigResource(),
-			importTargets: []*ImportTarget{i},
-		}
+	if t.generateConfigForImportTargets {
+		// If any import targets were not claimed by resources, then we will
+		// generate config for them.
+		for _, i := range importTargets {
+			abstract := &NodeAbstractResource{
+				Addr:          i.Addr.ConfigResource(),
+				importTargets: []*ImportTarget{i},
+			}
 
-		var node dag.Vertex = abstract
-		if f := t.Concrete; f != nil {
-			node = f(abstract)
-		}
+			var node dag.Vertex = abstract
+			if f := t.Concrete; f != nil {
+				node = f(abstract)
+			}
 
-		g.Add(node)
+			g.Add(node)
+		}
 	}
 
 	return nil
