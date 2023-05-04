@@ -678,11 +678,11 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// If we're importing and generating config, generate it now.
 	var generatedHCL string
-	if n.Config == nil {
+	if generateConfig {
 		var generatedDiags tfdiags.Diagnostics
 
-		if !generateConfig {
-			return plan, state, keyData, diags.Append(fmt.Errorf("could not find config for %s", n.Addr))
+		if n.Config != nil {
+			return plan, state, keyData, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
 		}
 
 		// Generate the HCL string first, then parse the HCL body from it.

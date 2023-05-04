@@ -123,6 +123,60 @@ resource "tfcoremock_simple_resource" "empty" {
   }
 }`,
 		},
+		"simple_resource_with_partial_state": {
+			schema: &configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"list_block": {
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_value": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Nesting: configschema.NestingSingle,
+					},
+				},
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Optional: true,
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id": cty.StringVal("D2320658"),
+				"list_block": cty.ObjectVal(map[string]cty.Value{
+					"nested_value": cty.StringVal("Hello, solar system!"),
+				}),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  value = null
+  list_block {
+    nested_value = "Hello, solar system!"
+  }
+}`,
+		},
 		"simple_resource_with_alternate_provider": {
 			schema: &configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{

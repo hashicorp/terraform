@@ -2,15 +2,16 @@ package genconfig
 
 import (
 	"fmt"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclwrite"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // GenerateResourceContents generates HCL configuration code for the provided
@@ -147,7 +148,7 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			if val.Type() == cty.String {
 				// SHAMELESS HACK: If we have "" for an optional value, assume
 				// it is actually null, due to the legacy SDK.
-				if attrS.Optional && len(val.AsString()) == 0 {
+				if !val.IsNull() && attrS.Optional && len(val.AsString()) == 0 {
 					val = attrS.EmptyValue()
 				}
 			}
@@ -473,7 +474,6 @@ func writeAttrTypeConstraint(buf *strings.Builder, schema *configschema.Attribut
 	} else {
 		buf.WriteString(fmt.Sprintf("%s\n", schema.Type.FriendlyName()))
 	}
-	return
 }
 
 func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedBlock) {
@@ -482,7 +482,6 @@ func writeBlockTypeConstraint(buf *strings.Builder, schema *configschema.NestedB
 	} else {
 		buf.WriteString(" # OPTIONAL block\n")
 	}
-	return
 }
 
 // copied from command/format/diff

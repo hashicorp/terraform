@@ -142,6 +142,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config) er
 		// If any import targets were not claimed by resources, then we will
 		// generate config for them.
 		for _, i := range importTargets {
+			if !i.Addr.Module.IsRoot() {
+				// We only generate config for resources imported into the root
+				// module.
+				continue
+			}
+
 			abstract := &NodeAbstractResource{
 				Addr:          i.Addr.ConfigResource(),
 				importTargets: []*ImportTarget{i},
