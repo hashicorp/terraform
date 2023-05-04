@@ -205,6 +205,7 @@ func TestJSONView_ChangeSummary(t *testing.T) {
 			"type":     "change_summary",
 			"changes": map[string]interface{}{
 				"add":       float64(1),
+				"import":    float64(0),
 				"change":    float64(2),
 				"remove":    float64(3),
 				"operation": "apply",
