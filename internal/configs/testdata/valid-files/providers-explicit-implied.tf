@@ -14,6 +14,11 @@ resource "null_resource" "foo" {
 
 }
 
+import {
+  id = "directory/filename"
+  to = local_file.foo
+}
+
 terraform {
   required_providers {
     test = {

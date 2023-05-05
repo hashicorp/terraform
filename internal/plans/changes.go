@@ -582,12 +582,12 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	}
 
 	return &ChangeSrc{
-		Action:         c.Action,
-		Before:         beforeDV,
-		After:          afterDV,
-		BeforeValMarks: beforeVM,
-		AfterValMarks:  afterVM,
-		Importing:      importing,
+		Action:          c.Action,
+		Before:          beforeDV,
+		After:           afterDV,
+		BeforeValMarks:  beforeVM,
+		AfterValMarks:   afterVM,
+		Importing:       importing,
 		GeneratedConfig: c.GeneratedConfig,
 	}, nil
 }
