@@ -31,6 +31,7 @@ ENHANCEMENTS:
 BUG FIXES:
 
 * `terraform init`: Fixed crash with invalid blank module name. [GH-32781]
+* `moved` blocks: Fixed a typo in the error message that Terraform raises when you use `-target` to exclude an object that has been moved. [GH-33149]
 
 ## Previous Releases
 
