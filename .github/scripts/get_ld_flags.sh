@@ -17,10 +17,10 @@ VERSION="${RAW_VERSION#v}"
 #IFS='-' read -r BASE_VERSION PRERELEASE <<< "$VERSION"
 
 EXPERIMENTS_ENABLED=0
-if [[ "$PRERELEASE" == alpha* ]]; then
+if [[ "PRERELEASE_VERSION" == alpha* ]]; then
 EXPERIMENTS_ENABLED=1
 fi
-if [[ "$PRERELEASE" == dev* ]]; then
+if [[ "PRERELEASE_VERSION" == dev* ]]; then
 EXPERIMENTS_ENABLED=1
 fi
 
