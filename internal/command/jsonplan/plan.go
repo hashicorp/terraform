@@ -132,6 +132,14 @@ type Change struct {
 	// of the Importing struct is subject to change, so downstream consumers
 	// should treat any values in here as strictly optional.
 	Importing *Importing `json:"importing,omitempty"`
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning as a string.
+	//
+	// If this is populated, then Importing should also be populated but this
+	// might change in the future. However, nNot all Importing changes will
+	// contain generated config.
+	GeneratedConfig string `json:"generated_config,omitempty"`
 }
 
 // Importing is a nested object for the resource import metadata.
@@ -465,6 +473,7 @@ func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schema
 			AfterSensitive:  json.RawMessage(afterSensitive),
 			ReplacePaths:    replacePaths,
 			Importing:       importing,
+			GeneratedConfig: rc.GeneratedConfig,
 		}
 
 		if rc.DeposedKey != states.NotDeposed {
