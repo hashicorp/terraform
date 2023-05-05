@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package moduletest contains the support code for some experimental features
 // we're using to evaluate strategies for having an opinionated approach to
 // testing of Terraform modules.

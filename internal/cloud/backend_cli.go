@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cloud
 
 import (
@@ -12,16 +15,14 @@ func (b *Cloud) CLIInit(opts *backend.CLIOpts) error {
 			return err
 		}
 	}
+	renderer := jsonformat.NewRenderer(opts.Streams, opts.CLIColor, jsonformat.LoadGeneratedConfigWriter)
 
 	b.CLI = opts.CLI
 	b.CLIColor = opts.CLIColor
 	b.ContextOpts = opts.ContextOpts
 	b.runningInAutomation = opts.RunningInAutomation
 	b.input = opts.Input
-	b.renderer = &jsonformat.Renderer{
-		Streams:  opts.Streams,
-		Colorize: opts.CLIColor,
-	}
+	b.renderer = &renderer
 
 	return nil
 }

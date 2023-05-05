@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 ######################################################
 # NOTE: This file is managed by the Digital Team's   #
 # Terraform configuration @ hashicorp/mktg-terraform #

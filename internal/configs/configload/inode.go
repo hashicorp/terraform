@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 //go:build linux || darwin || openbsd || netbsd || solaris || dragonfly
 // +build linux darwin openbsd netbsd solaris dragonfly
 

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 name: equivalence-test
 description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests"
 inputs:

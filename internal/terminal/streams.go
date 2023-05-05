@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package terminal encapsulates some platform-specific logic for detecting
 // if we're running in a terminal and, if so, properly configuring that
 // terminal to meet the assumptions that the rest of Terraform makes.

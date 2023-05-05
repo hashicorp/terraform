@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package plans
 
 // Mode represents the various mutually-exclusive modes for creating a plan.

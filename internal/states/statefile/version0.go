@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package statefile
 
 // looksLikeVersion0 sniffs for the signature indicating a version 0 state

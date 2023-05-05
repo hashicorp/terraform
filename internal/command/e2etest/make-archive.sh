@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 
 # For normal use this package can just be tested with "go test" as standard,
 # but this script is an alternative to allow the tests to be run somewhere

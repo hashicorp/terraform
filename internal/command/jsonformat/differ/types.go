@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package differ
 
 // NestingMode is a wrapper around a string type to describe the various

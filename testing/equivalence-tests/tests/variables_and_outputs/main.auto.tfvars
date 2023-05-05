@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 list_no_default = [
   {
     required_attribute = "D92053D5-948A-4E5E-80BF-E53F0DB33EB5",

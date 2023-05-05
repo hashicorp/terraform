@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package planproto is home to the Go stubs generated from the tfplan protobuf
 // schema.
 //

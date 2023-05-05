@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package addrs
 
 // AbsMoveable is an interface implemented by address types that can be either
