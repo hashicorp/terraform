@@ -257,10 +257,10 @@ func (cs *ChangeSrc) Decode(ty cty.Type) (*Change, error) {
 	}
 
 	return &Change{
-		Action:    cs.Action,
-		Before:    before.MarkWithPaths(cs.BeforeValMarks),
-		After:     after.MarkWithPaths(cs.AfterValMarks),
-		Importing: importing,
+		Action:          cs.Action,
+		Before:          before.MarkWithPaths(cs.BeforeValMarks),
+		After:           after.MarkWithPaths(cs.AfterValMarks),
+		Importing:       importing,
 		GeneratedConfig: cs.GeneratedConfig,
 	}, nil
 }
