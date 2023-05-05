@@ -144,7 +144,7 @@ Terraform will perform the following actions:
         value = "Hello, World!"
     }
 
-Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 `,
 		},
 		"simple_import_with_generated_config": {
@@ -194,7 +194,7 @@ Terraform will perform the following actions:
         value = "Hello, World!"
     }
 
-Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 `,
 		},
 		"import_and_move": {
@@ -234,7 +234,7 @@ Terraform will perform the following actions:
         value = "Hello, World!"
     }
 
-Plan: 0 to add, 1 to import, 0 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 `,
 		},
 		"import_move_and_update": {
@@ -279,7 +279,7 @@ Terraform will perform the following actions:
       ~ value = "Hello, World!" -> "Hello, Universe!"
     }
 
-Plan: 0 to add, 1 to import, 1 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 `,
 		},
 		"import_and_update": {
@@ -322,7 +322,7 @@ Terraform will perform the following actions:
       ~ value = "Hello, World!" -> "Hello, Universe!"
     }
 
-Plan: 0 to add, 1 to import, 1 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 `,
 		},
 		"import_and_update_with_no_id": {
@@ -363,7 +363,7 @@ Terraform will perform the following actions:
       ~ value = "Hello, World!" -> "Hello, Universe!"
     }
 
-Plan: 0 to add, 1 to import, 1 to change, 0 to destroy.
+Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 `,
 		},
 		"import_and_replace": {
@@ -409,7 +409,7 @@ Terraform will perform the following actions:
         value = "Hello, World!"
     }
 
-Plan: 1 to add, 1 to import, 0 to change, 1 to destroy.
+Plan: 1 to import, 1 to add, 0 to change, 1 to destroy.
 `,
 		},
 	}
