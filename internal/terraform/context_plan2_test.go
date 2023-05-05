@@ -1574,7 +1574,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			tfdiags.Sourceless(
 				tfdiags.Error,
 				"Moved resource instances excluded by targeting",
-				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options to not fully cover all of those resource instances.
+				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.
 
 To create a valid plan, either remove your -target=... options altogether or add the following additional target options:
   -target="test_object.a"
@@ -1614,7 +1614,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			tfdiags.Sourceless(
 				tfdiags.Error,
 				"Moved resource instances excluded by targeting",
-				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options to not fully cover all of those resource instances.
+				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.
 
 To create a valid plan, either remove your -target=... options altogether or add the following additional target options:
   -target="test_object.b"
@@ -1654,7 +1654,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 			tfdiags.Sourceless(
 				tfdiags.Error,
 				"Moved resource instances excluded by targeting",
-				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options to not fully cover all of those resource instances.
+				`Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.
 
 To create a valid plan, either remove your -target=... options altogether or add the following additional target options:
   -target="test_object.a"
