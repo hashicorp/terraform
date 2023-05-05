@@ -26,7 +26,7 @@ import (
 func TestUiHookPreApply_create(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 	h.resources = map[string]uiResourceState{
 		"test_instance.foo": {
 			Op:    uiResourceCreate,
@@ -83,7 +83,7 @@ func TestUiHookPreApply_create(t *testing.T) {
 func TestUiHookPreApply_periodicTimer(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 	h.periodicUiTimer = 1 * time.Second
 	h.resources = map[string]uiResourceState{
 		"test_instance.foo": {
@@ -147,7 +147,7 @@ test_instance.foo: Still modifying... [id=test, 3s elapsed]
 func TestUiHookPreApply_destroy(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 	h.resources = map[string]uiResourceState{
 		"test_instance.foo": {
 			Op:    uiResourceDestroy,
@@ -206,7 +206,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
 	view.Configure(&arguments.View{NoColor: false})
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 	h.resources = map[string]uiResourceState{
 		"test_instance.foo[\"[red]\"]": {
 			Op:    uiResourceCreate,
@@ -258,7 +258,7 @@ func TestUiHookPostApply_colorInterpolation(t *testing.T) {
 func TestUiHookPostApply_emptyState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 	h.resources = map[string]uiResourceState{
 		"data.google_compute_zones.available": {
 			Op:    uiResourceDestroy,
@@ -302,7 +302,7 @@ func TestUiHookPostApply_emptyState(t *testing.T) {
 func TestPreProvisionInstanceStep(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -395,7 +395,7 @@ test_instance.foo (winrm): bar
 		t.Run(name, func(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewView(streams)
-			h := NewUiHook(view)
+			h := NewUiHook(view, TerraformOperationApply)
 
 			h.ProvisionOutput(addr, tc.provisioner, tc.input)
 			result := done(t)
@@ -412,7 +412,7 @@ test_instance.foo (winrm): bar
 func TestPreRefresh(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -445,7 +445,7 @@ func TestPreRefresh(t *testing.T) {
 func TestPreRefresh_noID(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationApply)
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -473,10 +473,10 @@ func TestPreRefresh_noID(t *testing.T) {
 }
 
 // Test the very simple PreImportState hook.
-func TestPreImportState(t *testing.T) {
+func TestPreImportState_Import(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationImport)
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,
@@ -499,13 +499,39 @@ func TestPreImportState(t *testing.T) {
 	}
 }
 
+func TestPreImportState_Plan(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	view := NewView(streams)
+	h := NewUiHook(view, TerraformOperationPlan)
+
+	addr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "test_instance",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+
+	action, err := h.PreImportState(addr, "test")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	if action != terraform.HookActionContinue {
+		t.Fatalf("Expected hook to continue, given: %#v", action)
+	}
+	result := done(t)
+
+	if got, want := result.Stdout(), "test_instance.foo: Importing state... [id=test]\n"; got != want {
+		t.Fatalf("unexpected output\n got: %q\nwant: %q", got, want)
+	}
+}
+
 // Test the PostImportState UI hook. Again, this hook behaviour seems odd to
 // me (see below), so please don't consider these tests as justification for
 // keeping this behaviour.
 func TestPostImportState(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	view := NewView(streams)
-	h := NewUiHook(view)
+	h := NewUiHook(view, TerraformOperationImport)
 
 	addr := addrs.Resource{
 		Mode: addrs.ManagedResourceMode,

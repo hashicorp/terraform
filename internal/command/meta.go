@@ -605,8 +605,8 @@ func (m *Meta) process(args []string) []string {
 }
 
 // uiHook returns the UiHook to use with the context.
-func (m *Meta) uiHook() *views.UiHook {
-	return views.NewUiHook(m.View)
+func (m *Meta) uiHook(operation views.TerraformOperation) *views.UiHook {
+	return views.NewUiHook(m.View, operation)
 }
 
 // confirm asks a yes/no confirmation.

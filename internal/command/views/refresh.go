@@ -35,7 +35,6 @@ func NewRefresh(vt arguments.ViewType, view *View) Refresh {
 		return &RefreshHuman{
 			view:         view,
 			inAutomation: view.RunningInAutomation(),
-			countHook:    &countHook{},
 		}
 	default:
 		panic(fmt.Sprintf("unknown view type %v", vt))
@@ -48,8 +47,6 @@ type RefreshHuman struct {
 	view *View
 
 	inAutomation bool
-
-	countHook *countHook
 }
 
 var _ Refresh = (*RefreshHuman)(nil)
@@ -67,8 +64,7 @@ func (v *RefreshHuman) Operation() Operation {
 
 func (v *RefreshHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
-		v.countHook,
-		NewUiHook(v.view),
+		NewUiHook(v.view, TerraformOperationRefresh),
 	}
 }
 

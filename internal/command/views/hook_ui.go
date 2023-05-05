@@ -25,11 +25,12 @@ import (
 const defaultPeriodicUiTimer = 10 * time.Second
 const maxIdLen = 80
 
-func NewUiHook(view *View) *UiHook {
+func NewUiHook(view *View, operation TerraformOperation) *UiHook {
 	return &UiHook{
 		view:            view,
 		periodicUiTimer: defaultPeriodicUiTimer,
 		resources:       make(map[string]uiResourceState),
+		operation:       operation,
 	}
 }
 
@@ -43,6 +44,8 @@ type UiHook struct {
 
 	resources     map[string]uiResourceState
 	resourcesLock sync.Mutex
+
+	operation TerraformOperation
 }
 
 var _ terraform.Hook = (*UiHook)(nil)
@@ -69,6 +72,15 @@ const (
 	uiResourceDestroy
 	uiResourceRead
 	uiResourceNoOp
+)
+
+type TerraformOperation byte
+
+const (
+	TerraformOperationApply TerraformOperation = iota
+	TerraformOperationPlan
+	TerraformOperationImport
+	TerraformOperationRefresh
 )
 
 func (h *UiHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -282,25 +294,36 @@ func (h *UiHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generatio
 }
 
 func (h *UiHook) PreImportState(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold]%s: Importing from ID %q..."),
-		addr, importID,
-	))
+	if h.operation == TerraformOperationImport {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing from ID %q..."),
+			addr, importID,
+		))
+	} else {
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold]%s: Importing state... [id=%s]"),
+			addr, importID,
+		))
+	}
 	return terraform.HookActionContinue, nil
 }
 
 func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (terraform.HookAction, error) {
-	h.println(fmt.Sprintf(
-		h.view.colorize.Color("[reset][bold][green]%s: Import prepared!"),
-		addr,
-	))
-	for _, s := range imported {
-		h.println(fmt.Sprintf(
-			h.view.colorize.Color("[reset][green]  Prepared %s for import"),
-			s.TypeName,
-		))
-	}
+	if h.operation == TerraformOperationImport {
+		// We only print PostImportState during an Import operation, for a real
+		// plan operation the maic doesn't happen until an Apply anyway.
 
+		h.println(fmt.Sprintf(
+			h.view.colorize.Color("[reset][bold][green]%s: Import prepared!"),
+			addr,
+		))
+		for _, s := range imported {
+			h.println(fmt.Sprintf(
+				h.view.colorize.Color("[reset][green]  Prepared %s for import"),
+				s.TypeName,
+			))
+		}
+	}
 	return terraform.HookActionContinue, nil
 }
 
