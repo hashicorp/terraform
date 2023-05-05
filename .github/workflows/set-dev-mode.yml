@@ -1,0 +1,32 @@
+name: Set Release Mode
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dev-mode:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: get version
+        id: get-product-version
+        uses: hashicorp/actions-set-product-version@v1
+
+      - name: Update version - add -dev
+        run:  |
+          cd version
+          sed -i 's/$/-dev/g' 'VERSION'
+
+      - name: Update changelog and add -dev
+        env:
+          VERSION: "${{steps.get-product-version.outputs.product-version}}"
+        run: |
+          touch changelog.md_
+          echo -e "## "${VERSION}" (Unreleased)\n" > "changelog.md_" &&
+          cat CHANGELOG.md >> changelog.md_
+          cp  CHANGELOG.md
+          rm changelog.md_
+          git add -A .
+          git commit --allow-empty -a -m "Updating changelog (unreleased) and adding -dev back to version post release"
+          git push origin "$(git rev-parse --abbrev-ref HEAD)"

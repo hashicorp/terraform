@@ -1,0 +1,53 @@
+name: Promote Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      version:
+        description: 'Product version'
+        required: true
+        type: string
+      sha:
+        description: 'SHA'
+        required: true
+        type: string
+      branch:
+        description: 'BRANCH'
+        required: true
+        type: string
+
+jobs:
+  promote:
+    name: "Promote release"
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Setup bob
+        uses: hashicorp/action-setup-bob@v1
+        with:
+          github-token:
+            ${{ secrets.ELEVATED_GITHUB_TOKEN}}
+      - name: Promote to ${{ inputs.environment }}
+        env:
+          BOB_GITHUB_TOKEN: ${{ secrets.ELEVATED_GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+          SHA: ${{ github.event.inputs.sha }}
+          BRANCH: ${{ github.event.inputs.branch }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          bob trigger-promotion \
+            --product-name=terraform \
+            --environment=terraform-oss \
+            --org=hashicorp \
+            --repo=terraform \
+            --slack-channel=C011WJ112MD \
+            --product-version=$VERSION \
+            --sha=$SHA \
+            --branch=$BRANCH \
+            $ENVIRONMENT

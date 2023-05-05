@@ -1,0 +1,30 @@
+name: Set Release Mode
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-mode:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: get version
+        id: get-product-version
+        uses: hashicorp/actions-set-product-version@v1
+
+      - name: Update version - remove -dev
+        run:  |
+          cd version
+          sed -i 's/-dev//g' 'VERSION'
+
+      - name: Update changelog + remove -dev
+        env:
+          VERSION: "${{steps.get-product-version.outputs.product-version}}"
+        run: |
+          rel_date="$(date +"%B %d, %Y")
+          sed -i "s/## "${VERSION}" \(Unreleased\)/## "${VERSION}" \(${rel_date}\)/" "CHANGELOG.md"
+          ./scripts/changelog-links.sh
+          git add -A .
+          git commit --allow-empty -a -m "Update changelog and remove -dev from version for - Release v${VERSION}"
+          git push origin "$(git rev-parse --abbrev-ref HEAD)"

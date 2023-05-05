@@ -12,8 +12,6 @@ on:
       - main
       - 'v[0-9]+.[0-9]+'
       - releng/**
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 env:
   PKG_NAME: "terraform"
@@ -48,8 +46,10 @@ jobs:
         id: get-ldflags
         env:
           RAW_VERSION: ${{ steps.get-product-version.outputs.product-version }}
+          BASE_VERSION: ${{ steps.get-product-version.outputs.product-version-base }}
+          PRERELEASE_VERSION: ${{ steps.get-product-version.outputs.product-version-pre }}
         shell: bash
-        run: .github/scripts/get_product_version.sh
+        run: .github/scripts/get_ld_flags.sh
       - name: Report chosen version number
         run: |
           [ -n "${{steps.get-product-version.outputs.product-version}}" ]
