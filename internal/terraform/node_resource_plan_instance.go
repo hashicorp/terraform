@@ -152,9 +152,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
+	importing := n.importTarget.ID != ""
+
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
-	if n.importTarget.ID != "" {
+	if importing {
 		instanceRefreshState, diags = n.importState(ctx, addr, provider)
 	} else {
 		var readDiags tfdiags.Diagnostics
@@ -192,7 +194,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Refresh, maybe
-	if !n.skipRefresh {
+	// The import process handles its own refresh
+	if !n.skipRefresh && !importing {
 		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
@@ -383,14 +386,15 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (instanceRefreshState *states.ResourceInstanceObject, diags tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreImportState(absAddr, n.importTarget.ID)
 	}))
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
@@ -399,7 +403,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	imported := resp.ImportedResources
@@ -413,7 +417,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				n.importTarget.ID,
 			),
 		))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 	for _, obj := range imported {
 		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
@@ -428,7 +432,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 				n.importTarget.ID,
 			),
 		))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	// call post-import hook
@@ -438,10 +442,21 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	if imported[0].TypeName == "" {
 		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
-		return instanceRefreshState, diags
+		return nil, diags
 	}
 
 	importedState := imported[0].AsInstanceObject()
+
+	if importedState.Value.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Import returned null resource",
+			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+				"returned an instance with no state.",
+				n.importTarget.ID,
+			),
+		))
+	}
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
@@ -450,14 +465,14 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			ResolvedProvider: n.ResolvedProvider,
 		},
 	}
-	importedState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
 	diags = diags.Append(refreshDiags)
 	if diags.HasErrors() {
 		return instanceRefreshState, diags
 	}
 
 	// verify the existence of the imported resource
-	if importedState.Value.IsNull() {
+	if instanceRefreshState.Value.IsNull() {
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -475,8 +490,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		return instanceRefreshState, diags
 	}
 
-	diags = diags.Append(riNode.writeResourceInstanceState(ctx, importedState, workingState))
-	instanceRefreshState = importedState
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 	return instanceRefreshState, diags
 }
 
