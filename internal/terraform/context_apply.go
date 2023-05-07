@@ -38,6 +38,17 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 		return nil, diags
 	}
 
+	for _, rc := range plan.Changes.Resources {
+		// import is a no-op change, but we'd like to show some helpful output that mirrors
+		// the way we show other changes.
+		if rc.Importing != nil {
+			for _, h := range c.hooks {
+				h.PreApplyImport(rc.Addr, *rc.Importing)
+				h.PostApplyImport(rc.Addr, *rc.Importing)
+			}
+		}
+	}
+
 	graph, operation, diags := c.applyGraph(plan, config, true)
 	if diags.HasErrors() {
 		return nil, diags

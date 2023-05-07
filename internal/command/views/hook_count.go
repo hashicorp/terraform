@@ -17,9 +17,10 @@ import (
 // countHook is a hook that counts the number of resources
 // added, removed, changed during the course of an apply.
 type countHook struct {
-	Added   int
-	Changed int
-	Removed int
+	Added    int
+	Changed  int
+	Removed  int
+	Imported int
 
 	ToAdd          int
 	ToChange       int
@@ -42,6 +43,7 @@ func (h *countHook) Reset() {
 	h.Added = 0
 	h.Changed = 0
 	h.Removed = 0
+	h.Imported = 0
 }
 
 func (h *countHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
@@ -105,5 +107,13 @@ func (h *countHook) PostDiff(addr addrs.AbsResourceInstance, gen states.Generati
 		h.ToChange += 1
 	}
 
+	return terraform.HookActionContinue, nil
+}
+
+func (h *countHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.Lock()
+	defer h.Unlock()
+
+	h.Imported++
 	return terraform.HookActionContinue, nil
 }

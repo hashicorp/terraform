@@ -127,6 +127,34 @@ func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []pr
 	return HookActionContinue, nil
 }
 
+func (h *testHook) PrePlanImport(addr addrs.AbsResourceInstance, importID string) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PrePlanImport", addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostPlanImport(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostPlanImport", addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PreApplyImport", addr.String()})
+	return HookActionContinue, nil
+}
+
+func (h *testHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"PostApplyImport", addr.String()})
+	return HookActionContinue, nil
+}
+
 func (h *testHook) Stopping() {
 	h.mu.Lock()
 	defer h.mu.Unlock()

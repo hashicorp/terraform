@@ -4118,7 +4118,9 @@ import {
 	})
 
 	p := simpleMockProvider()
+	hook := new(MockHook)
 	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
 		},
@@ -4164,6 +4166,20 @@ import {
 		}
 		if instPlan.Importing.ID != "123" {
 			t.Errorf("expected import change from \"123\", got non-import change")
+		}
+
+		if !hook.PrePlanImportCalled {
+			t.Fatalf("PostPlanImport hook not called")
+		}
+		if addr, wantAddr := hook.PrePlanImportAddr, instPlan.Addr; !addr.Equal(wantAddr) {
+			t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
+		}
+
+		if !hook.PostPlanImportCalled {
+			t.Fatalf("PostPlanImport hook not called")
+		}
+		if addr, wantAddr := hook.PostPlanImportAddr, instPlan.Addr; !addr.Equal(wantAddr) {
+			t.Errorf("expected addr to be %s, but was %s", wantAddr, addr)
 		}
 	})
 }
