@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -24,13 +25,15 @@ func (c *Context) GenerateConfig(plan *plans.Plan) tfdiags.Diagnostics {
 		}
 	}
 
+	if len(changes) == 0 {
+		return diags
+	}
+
 	if c.generatedConfigWriter == nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
 			"Failed to generate config for imported state",
-			fmt.Sprintf(
-				"Terraform had no way of writing the generated config into any destination, all imported config must be created manually.\n\nThis is a bug in Terraform; please report it!",
-			),
+			"Terraform had no way of writing the generated config into any destination, all imported config must be created manually.\n\nThis is a bug in Terraform; please report it!",
 		))
 		return diags
 	}
@@ -68,7 +71,7 @@ func (c *Context) GenerateConfig(plan *plans.Plan) tfdiags.Diagnostics {
 				continue
 			}
 		} else {
-			if _, err := writer.Write([]byte(fmt.Sprintf("\n# __generated__ by Terraform\n"))); err != nil {
+			if _, err := writer.Write([]byte("\n# __generated__ by Terraform\n")); err != nil {
 				diags = diags.Append(diag(err))
 				continue
 			}
