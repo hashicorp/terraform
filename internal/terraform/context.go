@@ -6,7 +6,9 @@ package terraform
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"sort"
 	"sync"
 
@@ -87,6 +89,8 @@ type Context struct {
 	runCond             *sync.Cond
 	runContext          context.Context
 	runContextCancel    context.CancelFunc
+
+	generatedConfigWriter func() (io.Writer, func() error, error)
 }
 
 // (additional methods on Context can be found in context_*.go files.)
@@ -132,6 +136,30 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 	log.Printf("[TRACE] terraform.NewContext: complete")
 
+	generatedConfigWriter := func() (io.Writer, func() error, error) {
+		var header string
+		if _, err := os.Stat("generated_config.tf"); err != nil {
+			if !os.IsNotExist(err) {
+				return nil, nil, err
+			}
+			header = "# __generated__ by Terraform\n# Before editing resources in this file, move them into a dedicated managed configuration file.\n"
+		}
+
+		file, err := os.OpenFile("generated_config.tf", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if len(header) > 0 {
+			if _, err := file.WriteString(header); err != nil {
+				file.Close()
+				return nil, nil, err
+			}
+		}
+
+		return file, file.Close, nil
+	}
+
 	return &Context{
 		hooks:   hooks,
 		meta:    opts.Meta,
@@ -139,9 +167,10 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 		plugins: plugins,
 
-		parallelSem:         NewSemaphore(par),
-		providerInputConfig: make(map[string]map[string]cty.Value),
-		sh:                  sh,
+		parallelSem:           NewSemaphore(par),
+		providerInputConfig:   make(map[string]map[string]cty.Value),
+		sh:                    sh,
+		generatedConfigWriter: generatedConfigWriter,
 	}, diags
 }
 

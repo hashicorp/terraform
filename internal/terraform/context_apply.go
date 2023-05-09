@@ -64,6 +64,14 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 	// check result data as part of the new state.
 	walker.State.RecordCheckResults(walker.Checks)
 
+	// Also after walk is finished, we can write out any generated config.
+	// As of 2020/05/09, it's only import actions that are generating config and
+	// config generated actions can only be of type NoOp. This means that even
+	// if the overall apply operation failed the state for these actions will
+	// still have been imported. Therefore, we always write out any generated
+	// config.
+	diags = diags.Append(c.GenerateConfig(plan))
+
 	newState := walker.State.Close()
 	if plan.UIMode == plans.DestroyMode && !diags.HasErrors() {
 		// NOTE: This is a vestigial violation of the rule that we mustn't
