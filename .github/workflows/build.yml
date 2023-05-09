@@ -43,13 +43,12 @@ jobs:
         id: get-product-version
         uses: hashicorp/actions-set-product-version@v1
       - name: Determine experiments
-        id: get-ldflags
+        id: set-ldflags
         env:
           RAW_VERSION: ${{ steps.get-product-version.outputs.product-version }}
-          BASE_VERSION: ${{ steps.get-product-version.outputs.product-version-base }}
           PRERELEASE_VERSION: ${{ steps.get-product-version.outputs.product-version-pre }}
         shell: bash
-        run: .github/scripts/get_ld_flags.sh
+        run: .github/scripts/set_ld_flags.sh
       - name: Report chosen version number
         run: |
           [ -n "${{steps.get-product-version.outputs.product-version}}" ]
