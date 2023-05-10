@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -122,6 +125,12 @@ func (h *testHook) PostImportState(addr addrs.AbsResourceInstance, imported []pr
 	defer h.mu.Unlock()
 	h.Calls = append(h.Calls, &testHookCall{"PostImportState", addr.String()})
 	return HookActionContinue, nil
+}
+
+func (h *testHook) Stopping() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.Calls = append(h.Calls, &testHookCall{"Stopping", ""})
 }
 
 func (h *testHook) PostStateUpdate(new *states.State) (HookAction, error) {

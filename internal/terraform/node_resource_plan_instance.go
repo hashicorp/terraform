@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -5,13 +8,14 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -37,6 +41,10 @@ type NodePlannableResourceInstance struct {
 	// replaceTriggeredBy stores references from replace_triggered_by which
 	// triggered this instance to be replaced.
 	replaceTriggeredBy []*addrs.Reference
+
+	// importTarget, if populated, contains the information necessary to plan
+	// an import of this resource.
+	importTarget ImportTarget
 }
 
 var (
@@ -83,11 +91,11 @@ func (n *NodePlannableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 	}
 
 	checkRuleSeverity := tfdiags.Error
-	if n.skipPlanChanges {
+	if n.skipPlanChanges || n.preDestroyRefresh {
 		checkRuleSeverity = tfdiags.Warning
 	}
 
-	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity)
+	change, state, repeatData, planDiags := n.planDataSource(ctx, checkRuleSeverity, n.skipPlanChanges)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags
@@ -128,7 +136,12 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
 
-	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
+	checkRuleSeverity := tfdiags.Error
+	if n.skipPlanChanges || n.preDestroyRefresh {
+		checkRuleSeverity = tfdiags.Warning
+	}
+
+	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	diags = diags.Append(err)
 	if diags.HasErrors() {
 		return diags
@@ -139,10 +152,19 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	instanceRefreshState, readDiags := n.readResourceInstanceState(ctx, addr)
-	diags = diags.Append(readDiags)
-	if diags.HasErrors() {
-		return diags
+	importing := n.importTarget.ID != ""
+
+	// If the resource is to be imported, we now ask the provider for an Import
+	// and a Refresh, and save the resulting state to instanceRefreshState.
+	if importing {
+		instanceRefreshState, diags = n.importState(ctx, addr, provider)
+	} else {
+		var readDiags tfdiags.Diagnostics
+		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
+		diags = diags.Append(readDiags)
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	// We'll save a snapshot of what we just read from the state into the
@@ -172,7 +194,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	}
 
 	// Refresh, maybe
-	if !n.skipRefresh {
+	// The import process handles its own refresh
+	if !n.skipRefresh && !importing {
 		s, refreshDiags := n.refresh(ctx, states.NotDeposed, instanceRefreshState)
 		diags = diags.Append(refreshDiags)
 		if diags.HasErrors() {
@@ -221,6 +244,10 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
 			return diags
+		}
+
+		if n.importTarget.ID != "" {
+			change.Importing = &plans.Importing{ID: n.importTarget.ID}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -280,7 +307,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
 			ctx, n.ResourceInstanceAddr(), repeatData,
-			tfdiags.Error,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 	} else {
@@ -298,7 +325,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePrecondition,
 			n.Config.Preconditions,
 			ctx, addr, repeatData,
-			tfdiags.Warning,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 
@@ -321,7 +348,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			addrs.ResourcePostcondition,
 			n.Config.Postconditions,
 			ctx, addr, repeatData,
-			tfdiags.Warning,
+			checkRuleSeverity,
 		)
 		diags = diags.Append(checkDiags)
 	}
@@ -357,6 +384,114 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	}
 
 	return diags
+}
+
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	absAddr := addr.Resource.Absolute(ctx.Path())
+
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreImportState(absAddr, n.importTarget.ID)
+	}))
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
+		TypeName: addr.Resource.Resource.Type,
+		ID:       n.importTarget.ID,
+	})
+	diags = diags.Append(resp.Diagnostics)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+
+	imported := resp.ImportedResources
+
+	if len(imported) == 0 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Import returned no resources",
+			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+				"returned no instance states.",
+				n.importTarget.ID,
+			),
+		))
+		return nil, diags
+	}
+	for _, obj := range imported {
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
+	}
+	if len(imported) > 1 {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Multiple import states not supported",
+			fmt.Sprintf("While attempting to import with ID %s, the provider "+
+				"returned multiple resource instance states. This "+
+				"is not currently supported.",
+				n.importTarget.ID,
+			),
+		))
+		return nil, diags
+	}
+
+	// call post-import hook
+	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostImportState(absAddr, imported)
+	}))
+
+	if imported[0].TypeName == "" {
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+		return nil, diags
+	}
+
+	importedState := imported[0].AsInstanceObject()
+
+	if importedState.Value.IsNull() {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Import returned null resource",
+			fmt.Sprintf("While attempting to import with ID %s, the provider"+
+				"returned an instance with no state.",
+				n.importTarget.ID,
+			),
+		))
+	}
+
+	// refresh
+	riNode := &NodeAbstractResourceInstance{
+		Addr: n.importTarget.Addr,
+		NodeAbstractResource: NodeAbstractResource{
+			ResolvedProvider: n.ResolvedProvider,
+		},
+	}
+	instanceRefreshState, refreshDiags := riNode.refresh(ctx, states.NotDeposed, importedState)
+	diags = diags.Append(refreshDiags)
+	if diags.HasErrors() {
+		return instanceRefreshState, diags
+	}
+
+	// verify the existence of the imported resource
+	if instanceRefreshState.Value.IsNull() {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Cannot import non-existent remote object",
+			fmt.Sprintf(
+				"While attempting to import an existing object to %q, "+
+					"the provider detected that no object exists with the given id. "+
+					"Only pre-existing objects can be imported; check that the id "+
+					"is correct and that it is associated with the provider's "+
+					"configured region or endpoint, or use \"terraform apply\" to "+
+					"create a new remote object for this resource.",
+				n.importTarget.Addr,
+			),
+		))
+		return instanceRefreshState, diags
+	}
+
+	diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
+	return instanceRefreshState, diags
 }
 
 // mergeDeps returns the union of 2 sets of dependencies

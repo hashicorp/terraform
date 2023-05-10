@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -248,7 +251,12 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	suiteDirs.ModulesDir = filepath.Join(configDir, ".terraform", "modules")
 	os.MkdirAll(suiteDirs.ModulesDir, 0755) // if this fails then we'll ignore it and let InstallModules below fail instead
 	reg := c.registryClient()
-	moduleInst := initwd.NewModuleInstaller(suiteDirs.ModulesDir, reg)
+	loader, err := c.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return suiteDirs, diags
+	}
+	moduleInst := initwd.NewModuleInstaller(suiteDirs.ModulesDir, loader, reg)
 	_, moreDiags := moduleInst.InstallModules(ctx, configDir, true, nil)
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
@@ -260,7 +268,7 @@ func (c *TestCommand) prepareSuiteDir(ctx context.Context, suiteName string) (te
 	// with a separate config loader because the Meta.configLoader instance
 	// is intended for interacting with the current working directory, not
 	// with the test suite subdirectories.
-	loader, err := configload.NewLoader(&configload.Config{
+	loader, err = configload.NewLoader(&configload.Config{
 		ModulesDir: suiteDirs.ModulesDir,
 		Services:   c.Services,
 	})

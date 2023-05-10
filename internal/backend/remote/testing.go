@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package remote
 
 import (
@@ -144,6 +147,7 @@ func testBackend(t *testing.T, obj cty.Value) (*Remote, func()) {
 	b.client.Plans = mc.Plans
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces

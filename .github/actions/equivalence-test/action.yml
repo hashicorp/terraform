@@ -1,0 +1,61 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
+name: equivalence-test
+description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests"
+inputs:
+  target-terraform-version:
+    description: "The version of Terraform to use in execution."
+    required: true
+  target-terraform-branch:
+    description: "The branch within this repository to update and compare."
+    required: true
+  target-equivalence-test-version:
+    description: "The version of the Terraform equivalence tests to use."
+    default: "0.3.0"
+  target-os:
+    description: "Current operating system"
+    default: "linux"
+  target-arch:
+    description: "Current architecture"
+    default: "amd64"
+runs:
+  using: "composite"
+  steps:
+    - name: "download equivalence test binary"
+      shell: bash
+      run: |
+        ./.github/scripts/equivalence-test.sh download_equivalence_test_binary \
+          ${{ inputs.target-equivalence-test-version }} \
+          ./bin/equivalence-tests \
+          ${{ inputs.target-os }} \
+          ${{ inputs.target-arch }}
+    - name: "download terraform binary"
+      shell: bash
+      run: |
+        ./.github/scripts/equivalence-test.sh download_terraform_binary \
+          ${{ inputs.target-terraform-version }} \
+          ./bin/terraform \
+          ${{ inputs.target-os }} \
+          ${{ inputs.target-arch }}
+    - name: "run and update equivalence tests"
+      shell: bash
+      run: |
+        ./bin/equivalence-tests update \
+          --tests=testing/equivalence-tests/tests \
+          --goldens=testing/equivalence-tests/outputs \
+          --binary=$(pwd)/bin/terraform
+        
+        changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
+        if [[ $changed == "true" ]]; then
+          echo "found changes, and pushing new golden files into branch ${{ inputs.target-terraform-branch }}."
+
+          git config user.email "52939924+teamterraform@users.noreply.github.com"
+          git config user.name "The Terraform Team"
+
+          git add ./testing/equivalence-tests/outputs
+          git commit -m "Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
+          git push
+        else
+          echo "found no changes, so not pushing any updates."
+        fi

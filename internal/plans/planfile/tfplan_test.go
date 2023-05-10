@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package planfile
 
 import (
@@ -191,6 +194,25 @@ func TestTFPlanRoundTrip(t *testing.T) {
 								&states.CheckResultObject{
 									Status:          checks.StatusFail,
 									FailureMessages: []string{"Oh no!"},
+								},
+							),
+						),
+					},
+				),
+				addrs.MakeMapElem[addrs.ConfigCheckable](
+					addrs.Check{
+						Name: "check",
+					}.InModule(addrs.RootModule),
+					&states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem[addrs.Checkable](
+								addrs.Check{
+									Name: "check",
+								}.Absolute(addrs.RootModuleInstance),
+								&states.CheckResultObject{
+									Status:          checks.StatusFail,
+									FailureMessages: []string{"check failed"},
 								},
 							),
 						),

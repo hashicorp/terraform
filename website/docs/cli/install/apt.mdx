@@ -15,7 +15,7 @@ Debian and Ubuntu systems, which allow you to install Terraform using the
 `apt install` command or any other APT frontend.
 
 If you are instead using Red Hat Enterprise Linux, CentOS, or Fedora, you
-might prefer to [install Terraform from our Yum repositories](/cli/install/yum).
+might prefer to [install Terraform from our Yum repositories](/terraform/cli/install/yum).
 
 -> **Note:** The APT repositories discussed on this page are generic HashiCorp
 repositories that contain packages for a variety of different HashiCorp
@@ -27,88 +27,23 @@ package repositories.
 
 ## Repository Configuration
 
-The Terraform packages are signed using a private key controlled by HashiCorp, so you must configure your system to trust that HashiCorp key for package authentication.
-
-To configure your repository:
-
-1. Download the signing key to a new keyring.
-
-   ```bash
-   $ wget -O- https://apt.releases.hashicorp.com/gpg | \
-       gpg --dearmor | \
-       sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-
-1. Verify the key's fingerprint.
-
-   ```bash
-   $ gpg --no-default-keyring \
-       --keyring /usr/share/keyrings/hashicorp-archive-keyring.gpg \
-       --fingerprint
-   ```
-   The fingerprint must match `E8A0 32E0 94D8 EB4E A189 D270 DA41 8C88 A321 9F7B`. You can also verify the key on [Security at HashiCorp](https://www.hashicorp.com/security) under **Linux Package Checksum Verification**.
-
-1. Add the official HashiCorp repository to your system. The `lsb_release -cs` command finds the distribution release codename for your current system, such as `buster`, `groovy`, or `sid`.
-
-   ```bash
-   $ echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] \
-       https://apt.releases.hashicorp.com $(lsb_release -cs) main" | \
-       sudo tee /etc/apt/sources.list.d/hashicorp.list
-   ```
-
-1. Download the package information from HashiCorp.
-
-  ```bash
-  $ sudo apt update
-  ```
-
-1. Install Terraform from the new repository.
-
-   ```bash
-   $ sudo apt install terraform
-   ```
+Please follow the instructions in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
 
 ## Supported Architectures
 
-The HashiCorp APT server currently has packages only for the `amd64`
+The HashiCorp APT server has packages only for the `amd64`
 architecture, which is also sometimes known as `x86_64`.
 
 There are no official packages available for other architectures, such as
 `arm64`. If you wish to use Terraform on a non-`amd64` system,
-[download a normal release `.zip` file](/downloads) instead.
+[download a normal release `.zip` file](/terraform/downloads) instead.
 
 ## Supported Debian and Ubuntu Releases
 
-The HashiCorp APT server currently contains release repositories for the
-following distribution releases:
+The HashiCorp APT server contains release repositories for a variety of
+supported distributions, which are outlined in the [Official Packaging Guide](https://www.hashicorp.com/official-packaging-guide).
 
-* Debian 8 (`jessie`)
-* Debian 9 (`stretch`)
-* Debian 10 (`buster`)
-* Debian 11 (`bullseye`)
-* Ubuntu 16.04 (`xenial`)
-* Ubuntu 18.04 (`bionic`)
-* Ubuntu 19.10 (`eoam`)
-* Ubuntu 20.04 (`focal`)
-* Ubuntu 20.10 (`groovy`)
-* Ubuntu 21.04 (`hirsute`)
-* Ubuntu 21.10 (`impish`)
-
-No repositories are available for other Debian or Ubuntu versions or
-any other APT-based Linux distributions. If you add the repository using
-the above commands on other systems then `apt update` will report the
-repository index as missing.
-
-Terraform executables are statically linked and so they depend only on the
-Linux system call interface, not on any system libraries. Because of that,
-you may be able to use one of the above release codenames when adding a
-repository to your system, even if that codename doesn't match your current
-distribution release.
-
-Over time we will change the set of supported distributions, including both
-adding support for new releases and ceasing to publish new Terraform versions
-under older releases.
-
-## Choosing Terraform Versions
+## Installing a Specific Version of Terraform
 
 The HashiCorp APT repositories contain multiple versions of Terraform, but
 because the packages are all named `terraform` it is impossible to install
@@ -123,22 +58,33 @@ see which versions are currently available in the repository index:
 apt policy terraform
 ```
 
-There may be multiple package releases for a particular Terraform version if
-we need to publish an updated package for any reason. In that case, the
-subsequent releases will have an additional suffix, like `0.13.4-2`. In these
-cases, the Terraform executable inside the package should be unchanged, but its
-metadata and other contents may be different.
-
-You can select a specific version to install by including it in the
-`apt install` command line, as follows:
-
-```bash
-sudo apt install terraform=0.14.0
-```
-
 If your workflow requires using multiple versions of Terraform at the same
 time, for example when working through a gradual upgrade where not all
 of your configurations are upgraded yet, we recommend that you use the
 official release `.zip` files instead of the APT packages, so you can install
 multiple versions at once and then select which to use for each command you
 run.
+
+### Terraform 1.4.3 and Later
+
+As of Terraform 1.4.3, all published packages include a revision number by
+default, starting with `-1`. This change means that in the case that we need
+to publish an updated package for any reason, installers can automatically
+retrieve the latest revision. You can learn more about this packaging change
+in [the announcement](https://discuss.hashicorp.com/t/linux-packaging-debian-revision-change/42403).
+
+You can install the latest revision for a particular version by including the
+version in the `apt install` command, as follows:
+
+```bash
+sudo apt install terraform=1.4.4-*
+```
+
+### Terraform 1.4.2 and Earlier
+
+Terraform 1.4.2 and earlier did not include a revision number for the first
+revision, so you can use the following pattern to install a specific version:
+
+```bash
+sudo apt install terraform=1.4.0
+```

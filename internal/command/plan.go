@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -64,7 +67,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Prepare the backend with the backend-specific arguments
-	be, beDiags := c.PrepareBackend(args.State)
+	be, beDiags := c.PrepareBackend(args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -72,7 +75,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, args.Operation, args.OutPath)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, args.Operation, args.OutPath)
 	diags = diags.Append(opDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -110,7 +113,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	return op.Result.ExitStatus()
 }
 
-func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *PlanCommand) PrepareBackend(args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	// FIXME: we need to apply the state arguments to the meta object here
 	// because they are later used when initializing the backend. Carving a
 	// path to pass these arguments to the functions that need them is
@@ -124,7 +127,8 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 
 	// Load the backend
 	be, beDiags := c.Backend(&BackendOpts{
-		Config: backendConfig,
+		Config:   backendConfig,
+		ViewType: viewType,
 	})
 	diags = diags.Append(beDiags)
 	if beDiags.HasErrors() {
@@ -137,13 +141,14 @@ func (c *PlanCommand) PrepareBackend(args *arguments.State) (backend.Enhanced, t
 func (c *PlanCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Plan,
+	viewType arguments.ViewType,
 	args *arguments.Operation,
 	planOutPath string,
 ) (*backend.Operation, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode
 	opReq.Hooks = view.Hooks()

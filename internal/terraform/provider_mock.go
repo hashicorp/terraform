@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -435,28 +438,16 @@ func (p *MockProvider) ApplyResourceChange(r providers.ApplyResourceChangeReques
 		return *p.ApplyResourceChangeResponse
 	}
 
-	schema, ok := p.getProviderSchema().ResourceTypes[r.TypeName]
-	if !ok {
-		resp.Diagnostics = resp.Diagnostics.Append(fmt.Errorf("no schema found for %q", r.TypeName))
-		return resp
-	}
-
 	// if the value is nil, we return that directly to correspond to a delete
 	if r.PlannedState.IsNull() {
-		resp.NewState = cty.NullVal(schema.Block.ImpliedType())
-		return resp
-	}
-
-	val, err := schema.Block.CoerceValue(r.PlannedState)
-	if err != nil {
-		resp.Diagnostics = resp.Diagnostics.Append(err)
+		resp.NewState = r.PlannedState
 		return resp
 	}
 
 	// the default behavior will be to create the minimal valid apply value by
 	// setting unknowns (which correspond to computed attributes) to a zero
 	// value.
-	val, _ = cty.Transform(val, func(path cty.Path, v cty.Value) (cty.Value, error) {
+	val, _ := cty.Transform(r.PlannedState, func(path cty.Path, v cty.Value) (cty.Value, error) {
 		if !v.IsKnown() {
 			ty := v.Type()
 			switch {

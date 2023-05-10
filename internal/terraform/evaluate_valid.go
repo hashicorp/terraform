@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -28,16 +31,16 @@ import (
 //
 // The result may include warning diagnostics if, for example, deprecated
 // features are referenced.
-func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable) tfdiags.Diagnostics {
+func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, ref := range refs {
-		moreDiags := d.staticValidateReference(ref, self)
+		moreDiags := d.staticValidateReference(ref, self, source)
 		diags = diags.Append(moreDiags)
 	}
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self addrs.Referenceable) tfdiags.Diagnostics {
+func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	modCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
@@ -78,12 +81,12 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 	case addrs.Resource:
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(d.staticValidateSingleResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, source, ref.Remaining, ref.SourceRange))
 		return diags
 	case addrs.ResourceInstance:
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(d.staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), source, ref.Remaining, ref.SourceRange))
 		return diags
 
 	// We also handle all module call references the same way, disregarding index.
@@ -187,7 +190,7 @@ func (d *evaluationStateData) staticValidateMultiResourceReference(modCfg *confi
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Config, addr addrs.Resource, source addrs.Referenceable, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	var modeAdjective string
@@ -221,6 +224,15 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags
+	}
+
+	if cfg.Container != nil && (source == nil || !cfg.Container.Accessible(source)) {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to scoped resource`,
+			Detail:   fmt.Sprintf(`The referenced %s resource %q %q is not available from this context.`, modeAdjective, addr.Type, addr.Name),
+			Subject:  rng.ToHCL().Ptr(),
+		})
 	}
 
 	providerFqn := modCfg.Module.ProviderForLocalConfig(cfg.ProviderConfigAddr())

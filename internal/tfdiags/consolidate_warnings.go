@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfdiags
 
 import "fmt"
@@ -39,6 +42,13 @@ func (diags Diagnostics) ConsolidateWarnings(threshold int) Diagnostics {
 			// our primary goal here is to deal with the situation where
 			// some configuration language feature is producing a warning
 			// each time it's used across a potentially-large config.
+			newDiags = newDiags.Append(diag)
+			continue
+		}
+
+		if _, ok := diag.(CheckBlockDiagnostic); ok {
+			// Check diagnostics are never consolidated, the users have asked
+			// to be informed about each of these.
 			newDiags = newDiags.Append(diag)
 			continue
 		}

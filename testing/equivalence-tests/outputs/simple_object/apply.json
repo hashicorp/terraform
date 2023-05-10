@@ -1,0 +1,78 @@
+[
+  {
+    "@level": "info",
+    "@message": "tfcoremock_object.object: Plan to create",
+    "@module": "terraform.ui",
+    "change": {
+      "action": "create",
+      "resource": {
+        "addr": "tfcoremock_object.object",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_object.object",
+        "resource_key": null,
+        "resource_name": "object",
+        "resource_type": "tfcoremock_object"
+      }
+    },
+    "type": "planned_change"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_object.object: Creating...",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "resource": {
+        "addr": "tfcoremock_object.object",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_object.object",
+        "resource_key": null,
+        "resource_name": "object",
+        "resource_type": "tfcoremock_object"
+      }
+    },
+    "type": "apply_start"
+  },
+  {
+    "@level": "info",
+    "@message": "tfcoremock_object.object: Creation complete after 0s [id=AF9833AE-3434-4D0B-8B69-F4B992565D9F]",
+    "@module": "terraform.ui",
+    "hook": {
+      "action": "create",
+      "elapsed_seconds": 0,
+      "id_key": "id",
+      "id_value": "AF9833AE-3434-4D0B-8B69-F4B992565D9F",
+      "resource": {
+        "addr": "tfcoremock_object.object",
+        "implied_provider": "tfcoremock",
+        "module": "",
+        "resource": "tfcoremock_object.object",
+        "resource_key": null,
+        "resource_name": "object",
+        "resource_type": "tfcoremock_object"
+      }
+    },
+    "type": "apply_complete"
+  },
+  {
+    "@level": "info",
+    "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
+    "@module": "terraform.ui",
+    "changes": {
+      "add": 1,
+      "change": 0,
+      "operation": "apply",
+      "remove": 0
+    },
+    "type": "change_summary"
+  },
+  {
+    "@level": "info",
+    "@message": "Outputs: 0",
+    "@module": "terraform.ui",
+    "outputs": {},
+    "type": "outputs"
+  }
+]

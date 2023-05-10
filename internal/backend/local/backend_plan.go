@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -95,8 +98,15 @@ func (b *Local) opPlan(
 	}
 	log.Printf("[INFO] backend/local: plan operation completed")
 
+	// NOTE: We intentionally don't stop here on errors because we always want
+	// to try to present a partial plan report and, if the user chose to,
+	// generate a partial saved plan file for external analysis.
 	diags = diags.Append(planDiags)
-	if planDiags.HasErrors() {
+
+	// Even if there are errors we need to handle anything that may be
+	// contained within the plan, so only exit if there is no data at all.
+	if plan == nil {
+		runningOp.PlanEmpty = true
 		op.ReportResult(runningOp, diags)
 		return
 	}
@@ -153,7 +163,8 @@ func (b *Local) opPlan(
 		}
 	}
 
-	// Render the plan
+	// Render the plan, if we produced one.
+	// (This might potentially be a partial plan with Errored set to true)
 	schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
@@ -162,10 +173,12 @@ func (b *Local) opPlan(
 	}
 	op.View.Plan(plan, schemas)
 
-	// If we've accumulated any warnings along the way then we'll show them
-	// here just before we show the summary and next steps. If we encountered
-	// errors then we would've returned early at some other point above.
-	op.View.Diagnostics(diags)
+	// If we've accumulated any diagnostics along the way then we'll show them
+	// here just before we show the summary and next steps. This can potentially
+	// include errors, because we intentionally try to show a partial plan
+	// above even if Terraform Core encountered an error partway through
+	// creating it.
+	op.ReportResult(runningOp, diags)
 
 	if !runningOp.PlanEmpty {
 		op.View.PlanNextStep(op.PlanOutPath)

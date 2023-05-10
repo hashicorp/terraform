@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package gcs implements remote storage of state on Google Cloud Storage (GCS).
 package gcs
 
@@ -71,6 +74,7 @@ func New() backend.Backend {
 				Type:     schema.TypeString,
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"GOOGLE_BACKEND_IMPERSONATE_SERVICE_ACCOUNT",
 					"GOOGLE_IMPERSONATE_SERVICE_ACCOUNT",
 				}, nil),
 				Description: "The service account to impersonate for all Google API Calls",
@@ -180,7 +184,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		if v, ok := data.GetOk("impersonate_service_account_delegates"); ok {
 			d := v.([]interface{})
 			if len(delegates) > 0 {
-				delegates = make([]string, len(d))
+				delegates = make([]string, 0, len(d))
 			}
 			for _, delegate := range d {
 				delegates = append(delegates, delegate.(string))

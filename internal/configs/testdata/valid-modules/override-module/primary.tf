@@ -8,4 +8,6 @@ module "example" {
   providers = {
     test = test.foo
   }
+  depends_on = [null_resource.test]
 }
+resource "null_resource" "test" {}

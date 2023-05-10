@@ -14,7 +14,7 @@ for consistency between files and modules written by different teams.
 Automatic source code formatting tools may apply these conventions
 automatically.
 
--> **Note**: You can enforce these conventions automatically by running [`terraform fmt`](/cli/commands/fmt).
+-> **Note**: You can enforce these conventions automatically by running [`terraform fmt`](/terraform/cli/commands/fmt).
 
 * Indent two spaces for each nesting level.
 
@@ -61,7 +61,7 @@ automatically.
   when grouping together related blocks of the same type (like multiple
   `provisioner` blocks in a resource).
 
-* Avoid separating multiple blocks of the same type with other blocks of
+* Avoid grouping multiple blocks of the same type with other blocks of
   a different type, unless the block types are defined by semantics to
   form a family.
   (For example: `root_block_device`, `ebs_block_device` and

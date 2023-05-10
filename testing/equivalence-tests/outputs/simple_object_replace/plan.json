@@ -1,0 +1,133 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_object.object",
+          "expressions": {
+            "id": {
+              "constant_value": "63A9E8E8-71BC-4DAE-A66C-48CE393CCBD3"
+            },
+            "object": {
+              "constant_value": {
+                "boolean": true,
+                "number": 10,
+                "string": "Hello, world!"
+              }
+            }
+          },
+          "mode": "managed",
+          "name": "object",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_object"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_object.object",
+          "mode": "managed",
+          "name": "object",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "object": {}
+          },
+          "type": "tfcoremock_object",
+          "values": {
+            "id": "63A9E8E8-71BC-4DAE-A66C-48CE393CCBD3",
+            "object": {
+              "boolean": true,
+              "number": 10,
+              "string": "Hello, world!"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "prior_state": {
+    "format_version": "1.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "tfcoremock_object.object",
+            "mode": "managed",
+            "name": "object",
+            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "schema_version": 0,
+            "sensitive_values": {
+              "object": {}
+            },
+            "type": "tfcoremock_object",
+            "values": {
+              "id": "a0ed13ec-116b-14c4-7437-418e217d3659",
+              "object": {
+                "boolean": true,
+                "number": 10,
+                "string": "Hello, world!"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "resource_changes": [
+    {
+      "action_reason": "replace_because_cannot_update",
+      "address": "tfcoremock_object.object",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "after": {
+          "id": "63A9E8E8-71BC-4DAE-A66C-48CE393CCBD3",
+          "object": {
+            "boolean": true,
+            "number": 10,
+            "string": "Hello, world!"
+          }
+        },
+        "after_sensitive": {
+          "object": {}
+        },
+        "after_unknown": {},
+        "before": {
+          "id": "a0ed13ec-116b-14c4-7437-418e217d3659",
+          "object": {
+            "boolean": true,
+            "number": 10,
+            "string": "Hello, world!"
+          }
+        },
+        "before_sensitive": {
+          "object": {}
+        },
+        "replace_paths": [
+          [
+            "id"
+          ]
+        ]
+      },
+      "mode": "managed",
+      "name": "object",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_object"
+    }
+  ]
+}

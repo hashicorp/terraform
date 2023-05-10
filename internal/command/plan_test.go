@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -18,6 +21,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	backendinit "github.com/hashicorp/terraform/internal/backend/init"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -275,6 +279,54 @@ func TestPlan_outPathNoChange(t *testing.T) {
 	}
 }
 
+func TestPlan_outPathWithError(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-fail-condition"), td)
+	defer testChdir(t, td)()
+
+	outPath := filepath.Join(td, "test.plan")
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.NullVal(cty.EmptyObject),
+	}
+
+	args := []string{
+		"-out", outPath,
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code == 0 {
+		t.Fatal("expected non-zero exit status", output)
+	}
+
+	plan := testReadPlan(t, outPath) // will call t.Fatal itself if the file cannot be read
+	if !plan.Errored {
+		t.Fatal("plan should be marked with Errored")
+	}
+
+	if plan.Checks == nil {
+		t.Fatal("plan contains no checks")
+	}
+
+	// the checks should only contain one failure
+	results := plan.Checks.ConfigResults.Elements()
+	if len(results) != 1 {
+		t.Fatal("incorrect number of check results", len(results))
+	}
+	if results[0].Value.Status != checks.StatusFail {
+		t.Errorf("incorrect status, got %s", results[0].Value.Status)
+	}
+}
+
 // When using "-out" with a backend, the plan should encode the backend config
 func TestPlan_outBackend(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -437,10 +489,10 @@ func TestPlan_state(t *testing.T) {
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("bar"),
 		"ami": cty.NullVal(cty.String),
-		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+		"network_interface": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 			"device_index": cty.String,
 			"description":  cty.String,
-		}))),
+		})),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)
@@ -479,10 +531,10 @@ func TestPlan_stateDefault(t *testing.T) {
 	expected := cty.ObjectVal(map[string]cty.Value{
 		"id":  cty.StringVal("bar"),
 		"ami": cty.NullVal(cty.String),
-		"network_interface": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+		"network_interface": cty.ListValEmpty(cty.Object(map[string]cty.Type{
 			"device_index": cty.String,
 			"description":  cty.String,
-		}))),
+		})),
 	})
 	if !expected.RawEquals(actual) {
 		t.Fatalf("wrong prior state\ngot:  %#v\nwant: %#v", actual, expected)

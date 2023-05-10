@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package plans
 
 import (
 	"sort"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -28,6 +32,11 @@ type Plan struct {
 	// to the end-user, and so it must not be used to influence apply-time
 	// behavior. The actions during apply must be described entirely by
 	// the Changes field, regardless of how the plan was created.
+	//
+	// FIXME: destroy operations still rely on DestroyMode being set, because
+	// there is no other source of this information in the plan. New behavior
+	// should not be added based on this flag, and changing the flag should be
+	// checked carefully against existing destroy behaviors.
 	UIMode Mode
 
 	VariableValues    map[string]DynamicValue
@@ -36,6 +45,11 @@ type Plan struct {
 	TargetAddrs       []addrs.Targetable
 	ForceReplaceAddrs []addrs.AbsResourceInstance
 	Backend           Backend
+
+	// Errored is true if the Changes information is incomplete because
+	// the planning operation failed. An errored plan cannot be applied,
+	// but can be cautiously inspected for debugging purposes.
+	Errored bool
 
 	// Checks captures a snapshot of the (probably-incomplete) check results
 	// at the end of the planning process.
@@ -73,6 +87,9 @@ type Plan struct {
 	// order to report to the user any out-of-band changes we've detected.
 	PrevRunState *states.State
 	PriorState   *states.State
+
+	// Timestamp is the record of truth for when the plan happened.
+	Timestamp time.Time
 }
 
 // CanApply returns true if and only if the recieving plan includes content
@@ -87,6 +104,13 @@ type Plan struct {
 // locations in the UI code.
 func (p *Plan) CanApply() bool {
 	switch {
+	case p.Errored:
+		// An errored plan can never be applied, because it is incomplete.
+		// Such a plan is only useful for describing the subset of actions
+		// planned so far in case they are useful for understanding the
+		// causes of the errors.
+		return false
+
 	case !p.Changes.Empty():
 		// "Empty" means that everything in the changes is a "NoOp", so if
 		// not empty then there's at least one non-NoOp change.

@@ -18,6 +18,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -2617,6 +2618,96 @@ func TestInit_invalidBuiltInProviders(t *testing.T) {
 	}
 	if subStr := "Cannot use terraform.io/builtin/nonexist: this Terraform release"; !strings.Contains(errStr, subStr) {
 		t.Errorf("error output should mention the 'nonexist' provider\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxNoBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-no-backend"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxWithBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-with-backend"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the syntax problem\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-invalid"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should not include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported block type"; strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should not mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Unsupported backend type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 }
 

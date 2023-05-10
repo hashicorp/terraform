@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -9,11 +12,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -69,31 +70,6 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
 	diags = diags.Append(hclDiags)
-	return module, diags
-}
-
-// loadSingleModuleEarly is a variant of loadSingleModule that uses the special
-// "early config" loader that is more forgiving of unexpected constructs and
-// legacy syntax.
-//
-// Early-loaded config is not registered in the source code cache, so
-// diagnostics produced from it may render without source code snippets. In
-// practice this is not a big concern because the early config loader also
-// cannot generate detailed source locations, so it prefers to produce
-// diagnostics without explicit source location information and instead includes
-// approximate locations in the message text.
-//
-// Most callers should use loadConfig. This method exists to support early
-// initialization use-cases where the root module must be inspected in order
-// to determine what else needs to be installed before the full configuration
-// can be used.
-func (m *Meta) loadSingleModuleEarly(dir string) (*tfconfig.Module, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	dir = m.normalizePath(dir)
-
-	module, moreDiags := earlyconfig.LoadModule(dir)
-	diags = diags.Append(moreDiags)
-
 	return module, diags
 }
 
@@ -179,7 +155,13 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 		return true, diags
 	}
 
-	inst := m.moduleInstaller()
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
+
+	inst := initwd.NewModuleInstaller(m.modulesDir(), loader, m.registryClient())
 
 	// Installation can be aborted by interruption signals
 	ctx, done := m.InterruptibleContext()
@@ -211,8 +193,14 @@ func (m *Meta) initDirFromModule(targetDir string, addr string, hooks initwd.Mod
 	ctx, done := m.InterruptibleContext()
 	defer done()
 
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return true, diags
+	}
+
 	targetDir = m.normalizePath(targetDir)
-	moreDiags := initwd.DirFromModule(ctx, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
+	moreDiags := initwd.DirFromModule(ctx, loader, targetDir, m.modulesDir(), addr, m.registryClient(), hooks)
 	diags = diags.Append(moreDiags)
 	if ctx.Err() == context.Canceled {
 		m.showDiagnostics(diags)
@@ -341,13 +329,6 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 		}
 	}
 	return m.configLoader, nil
-}
-
-// moduleInstaller instantiates and returns a module installer for use by
-// "terraform init" (directly or indirectly).
-func (m *Meta) moduleInstaller() *initwd.ModuleInstaller {
-	reg := m.registryClient()
-	return initwd.NewModuleInstaller(m.modulesDir(), reg)
 }
 
 // registryClient instantiates and returns a new Terraform Registry client.

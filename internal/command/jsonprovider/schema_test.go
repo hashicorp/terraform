@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonprovider
 
 import (
@@ -12,12 +15,12 @@ func TestMarshalSchemas(t *testing.T) {
 	tests := []struct {
 		Input    map[string]*configschema.Block
 		Versions map[string]uint64
-		Want     map[string]*schema
+		Want     map[string]*Schema
 	}{
 		{
 			nil,
 			map[string]uint64{},
-			map[string]*schema{},
+			map[string]*Schema{},
 		},
 	}
 
@@ -32,11 +35,11 @@ func TestMarshalSchemas(t *testing.T) {
 func TestMarshalSchema(t *testing.T) {
 	tests := map[string]struct {
 		Input *configschema.Block
-		Want  *schema
+		Want  *Schema
 	}{
 		"nil_block": {
 			nil,
-			&schema{},
+			&Schema{},
 		},
 	}
 

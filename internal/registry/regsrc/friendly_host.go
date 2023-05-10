@@ -1,10 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package regsrc
 
 import (
 	"regexp"
 	"strings"
 
-	"github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/terraform-svchost"
 )
 
 var (

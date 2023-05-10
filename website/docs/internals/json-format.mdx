@@ -13,7 +13,7 @@ When Terraform plans to make changes, it prints a human-readable summary to the 
 
 Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/cli/commands/show) for more details.
+Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/terraform/cli/commands/show) for more details.
 
 The output includes a `format_version` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -26,7 +26,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/language/v1-compatibility-promises).
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -49,7 +49,7 @@ The JSON output format consists of the following objects and sub-objects:
 
 ## State Representation
 
-Because state does not currently have any significant metadata not covered by the common values representation ([described below](#values-representation)), the `<state-representation>` is straightforward:
+State does not have any significant metadata not included in the common [values representation](#values-representation), so the `<state-representation>` uses the following format:
 
 ```javascript
 {
@@ -60,8 +60,6 @@ Because state does not currently have any significant metadata not covered by th
   "terraform_version": "version.string"
 }
 ```
-
-The extra wrapping object here will allow for any extension we may need to add in future versions of this format.
 
 ## Plan Representation
 
@@ -340,7 +338,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/terraform/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
@@ -614,7 +612,7 @@ A `<change-representation>` describes the change to the indicated object.
 
 ## Checks Representation
 
-~> **Warning:** The JSON representation of "checks" is currently experimental
+~> **Warning:** The JSON representation of checks is experimental
 and some details may change in future Terraform versions based on feedback,
 even in minor releases of Terraform CLI.
 
@@ -629,8 +627,7 @@ A `<checks-representation>` describes the current state of a checkable object in
       // "kind" specifies what kind of checkable object this is. Different
       // kinds of object will have different additional properties inside the
       // address object, but all kinds include both "kind" and "to_display".
-      // Currently the two valid kinds are "resource" and "output_value", but
-      // additional kinds may be added in future Terraform versions.
+      // The two valid kinds are "resource" and "output_value".
       "kind": "resource",
 
       // "to_display" contains an opaque string representation of the address

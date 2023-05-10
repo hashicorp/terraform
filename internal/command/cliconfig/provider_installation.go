@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cliconfig
 
 import (
@@ -246,7 +249,7 @@ func decodeProviderInstallationFromConfig(hclFile *hclast.File) ([]*ProviderInst
 						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Error,
 							"Invalid provider installation dev overrides",
-							fmt.Sprintf("The entry %q in %s is not a valid provider source string.", rawAddr, block.Pos()),
+							fmt.Sprintf("The entry %q in %s is not a valid provider source string.\n\n%s", rawAddr, block.Pos(), moreDiags.Err().Error()),
 						))
 						continue
 					}

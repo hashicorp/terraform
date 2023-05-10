@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -26,6 +29,7 @@ import (
 type backendMigrateOpts struct {
 	SourceType, DestinationType string
 	Source, Destination         backend.Backend
+	ViewType                    arguments.ViewType
 
 	// Fields below are set internally when migrate is called
 
@@ -339,8 +343,13 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 
 	if m.stateLock {
 		lockCtx := context.Background()
-
-		view := views.NewStateLocker(arguments.ViewHuman, m.View)
+		vt := arguments.ViewJSON
+		// Set default viewtype if none was set as the StateLocker needs to know exactly
+		// what viewType we want to have.
+		if opts == nil || opts.ViewType != vt {
+			vt = arguments.ViewHuman
+		}
+		view := views.NewStateLocker(vt, m.View)
 		locker := clistate.NewLocker(m.stateLockTimeout, view)
 
 		lockerSource := locker.WithContext(lockCtx)

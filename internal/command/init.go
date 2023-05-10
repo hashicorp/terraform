@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -9,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
@@ -155,39 +157,65 @@ func (c *InitCommand) Run(args []string) int {
 		return 0
 	}
 
-	// For Terraform v0.12 we introduced a special loading mode where we would
-	// use the 0.11-syntax-compatible "earlyconfig" package as a heuristic to
-	// identify situations where it was likely that the user was trying to use
-	// 0.11-only syntax that the upgrade tool might help with.
-	//
-	// However, as the language has moved on that is no longer a suitable
-	// heuristic in Terraform 0.13 and later: other new additions to the
-	// language can cause the main loader to disagree with earlyconfig, which
-	// would lead us to give poor advice about how to respond.
-	//
-	// For that reason, we no longer use a different error message in that
-	// situation, but for now we still use both codepaths because some of our
-	// initialization functionality remains built around "earlyconfig" and
-	// so we need to still load the module via that mechanism anyway until we
-	// can do some more invasive refactoring here.
-	rootModEarly, earlyConfDiags := c.loadSingleModuleEarly(path)
-	// If _only_ the early loader encountered errors then that's unusual
-	// (it should generally be a superset of the normal loader) but we'll
-	// return those errors anyway since otherwise we'll probably get
-	// some weird behavior downstream. Errors from the early loader are
-	// generally not as high-quality since it has less context to work with.
-	if earlyConfDiags.HasErrors() {
-		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
-		// Errors from the early loader are generally not as high-quality since
-		// it has less context to work with.
+	// Load just the root module to begin backend and module initialization
+	rootModEarly, earlyConfDiags := c.loadSingleModule(path)
 
-		// TODO: It would be nice to check the version constraints in
-		// rootModEarly.RequiredCore and print out a hint if the module is
-		// declaring that it's not compatible with this version of Terraform,
-		// and that may be what caused earlyconfig to fail.
+	// There may be parsing errors in config loading but these will be shown later _after_
+	// checking for core version requirement errors. Not meeting the version requirement should
+	// be the first error displayed if that is an issue, but other operations are required
+	// before being able to check core version requirements.
+	if rootModEarly == nil {
+		c.Ui.Error(c.Colorize().Color(strings.TrimSpace(errInitConfigError)))
 		diags = diags.Append(earlyConfDiags)
 		c.showDiagnostics(diags)
+
 		return 1
+	}
+
+	var back backend.Backend
+
+	// There may be config errors or backend init errors but these will be shown later _after_
+	// checking for core version requirement errors.
+	var backDiags tfdiags.Diagnostics
+	var backendOutput bool
+
+	switch {
+	case flagCloud && rootModEarly.CloudConfig != nil:
+		back, backendOutput, backDiags = c.initCloud(rootModEarly, flagConfigExtra)
+	case flagBackend:
+		back, backendOutput, backDiags = c.initBackend(rootModEarly, flagConfigExtra)
+	default:
+		// load the previously-stored backend config
+		back, backDiags = c.Meta.backendFromState()
+	}
+	if backendOutput {
+		header = true
+	}
+
+	var state *states.State
+
+	// If we have a functional backend (either just initialized or initialized
+	// on a previous run) we'll use the current state as a potential source
+	// of provider dependencies.
+	if back != nil {
+		c.ignoreRemoteVersionConflict(back)
+		workspace, err := c.Workspace()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+			return 1
+		}
+		sMgr, err := back.StateMgr(workspace)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
+
+		if err := sMgr.RefreshState(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+			return 1
+		}
+
+		state = sMgr.State()
 	}
 
 	if flagGet {
@@ -219,86 +247,33 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// If we pass the core version check, we want to show any errors from initializing the backend next,
+	// which will include syntax errors from loading the configuration. However, there's a special case
+	// where we are unable to load the backend from configuration or state _and_ the configuration has
+	// errors. In that case, we want to show a slightly friendlier error message for newcomers.
+	showBackendDiags := back != nil || rootModEarly.Backend != nil || rootModEarly.CloudConfig != nil
+	if showBackendDiags {
+		diags = diags.Append(backDiags)
+		if backDiags.HasErrors() {
+			c.showDiagnostics(diags)
+			return 1
+		}
+	} else {
+		diags = diags.Append(earlyConfDiags)
+		if earlyConfDiags.HasErrors() {
+			c.Ui.Error(strings.TrimSpace(errInitConfigError))
+			c.showDiagnostics(diags)
+			return 1
+		}
+	}
+
+	// If everything is ok with the core version check and backend initialization,
+	// show other errors from loading the full configuration tree.
 	diags = diags.Append(confDiags)
 	if confDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
 		c.showDiagnostics(diags)
 		return 1
-	}
-
-	var back backend.Backend
-
-	switch {
-	case flagCloud && config.Module.CloudConfig != nil:
-		be, backendOutput, backendDiags := c.initCloud(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
-	case flagBackend:
-		be, backendOutput, backendDiags := c.initBackend(config.Module, flagConfigExtra)
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		if backendOutput {
-			header = true
-		}
-		back = be
-	default:
-		// load the previously-stored backend config
-		be, backendDiags := c.Meta.backendFromState()
-		diags = diags.Append(backendDiags)
-		if backendDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-		back = be
-	}
-
-	if back == nil {
-		// If we didn't initialize a backend then we'll try to at least
-		// instantiate one. This might fail if it wasn't already initialized
-		// by a previous run, so we must still expect that "back" may be nil
-		// in code that follows.
-		var backDiags tfdiags.Diagnostics
-		back, backDiags = c.Backend(&BackendOpts{Init: true})
-		if backDiags.HasErrors() {
-			// This is fine. We'll proceed with no backend, then.
-			back = nil
-		}
-	}
-
-	var state *states.State
-
-	// If we have a functional backend (either just initialized or initialized
-	// on a previous run) we'll use the current state as a potential source
-	// of provider dependencies.
-	if back != nil {
-		c.ignoreRemoteVersionConflict(back)
-		workspace, err := c.Workspace()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
-			return 1
-		}
-		sMgr, err := back.StateMgr(workspace)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
-			return 1
-		}
-
-		if err := sMgr.RefreshState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
-			return 1
-		}
-
-		state = sMgr.State()
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
@@ -343,7 +318,7 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path string, earlyRoot *tfconfig.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(path string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	if len(earlyRoot.ModuleCalls) == 0 {
 		// Nothing to do
 		return false, false, nil

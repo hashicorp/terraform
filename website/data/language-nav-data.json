@@ -94,6 +94,10 @@
             "path": "resources/provisioners/remote-exec"
           }
         ]
+      },
+      {
+        "title": "The <code>terraform_data</code> Resource Type",
+        "path": "resources/terraform-data"
       }
     ]
   },
@@ -209,11 +213,6 @@
             "path": "modules/develop/refactoring"
           }
         ]
-      },
-      {
-        "title": "Module Testing Experiment",
-        "path": "modules/testing-experiment",
-        "hidden": true
       }
     ]
   },
@@ -337,6 +336,10 @@
           {
             "title": "<code>startswith</code>",
             "href": "/language/functions/startswith"
+          },
+          {
+            "title": "<code>strcontains</code>",
+            "href": "/language/functions/strcontains"
           },
           {
             "title": "<code>strrev</code>",
@@ -574,6 +577,10 @@
           {
             "title": "<code>formatdate</code>",
             "href": "/language/functions/formatdate"
+          },
+          {
+            "title": "<code>plantimestamp</code>",
+            "href": "/language/functions/plantimestamp"
           },
           {
             "title": "<code>timeadd</code>",
@@ -815,6 +822,7 @@
       { "title": "one", "path": "functions/one", "hidden": true },
       { "title": "parseint", "path": "functions/parseint", "hidden": true },
       { "title": "pathexpand", "path": "functions/pathexpand", "hidden": true },
+      { "title": "plantimestamp", "path": "functions/plantimestamp", "hidden": true },
       { "title": "pow", "path": "functions/pow", "hidden": true },
       { "title": "range", "path": "functions/range", "hidden": true },
       { "title": "regex", "path": "functions/regex", "hidden": true },
@@ -843,6 +851,7 @@
       { "title": "sort", "path": "functions/sort", "hidden": true },
       { "title": "split", "path": "functions/split", "hidden": true },
       { "title": "startswith", "path": "functions/startswith", "hidden": true },
+      { "title": "strcontains", "path": "functions/strcontains", "hidden": true},
       { "title": "strrev", "path": "functions/strrev", "hidden": true },
       { "title": "substr", "path": "functions/substr", "hidden": true },
       { "title": "sum", "path": "functions/sum", "hidden": true },

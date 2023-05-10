@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package s3
 
 import (
@@ -36,6 +39,11 @@ func New() backend.Backend {
 					// technically be accepted by s3, it will break our workspace hierarchy.
 					if strings.HasPrefix(v.(string), "/") {
 						return nil, []error{errors.New("key must not start with '/'")}
+					}
+					// s3 will recognize objects with a trailing slash as a directory
+					// so they should not be valid keys
+					if strings.HasSuffix(v.(string), "/") {
+						return nil, []error{errors.New("key must not end with '/'")}
 					}
 					return nil, nil
 				},

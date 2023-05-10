@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -8,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
-	"github.com/mitchellh/cli"
+	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -47,11 +50,11 @@ func TestStateShow(t *testing.T) {
 		},
 	}
 
-	ui := new(cli.MockUi)
+	streams, done := terminal.StreamsForTesting(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -59,13 +62,15 @@ func TestStateShow(t *testing.T) {
 		"-state", statePath,
 		"test_instance.foo",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := strings.TrimSpace(testStateShowOutput) + "\n"
-	actual := ui.OutputWriter.String()
+	actual := output.Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}
@@ -122,11 +127,11 @@ func TestStateShow_multi(t *testing.T) {
 		},
 	}
 
-	ui := new(cli.MockUi)
+	streams, done := terminal.StreamsForTesting(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -134,13 +139,15 @@ func TestStateShow_multi(t *testing.T) {
 		"-state", statePath,
 		"test_instance.foo",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := strings.TrimSpace(testStateShowOutput) + "\n"
-	actual := ui.OutputWriter.String()
+	actual := output.Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}
@@ -150,11 +157,11 @@ func TestStateShow_noState(t *testing.T) {
 	testCwd(t)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	streams, done := terminal.StreamsForTesting(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -164,8 +171,9 @@ func TestStateShow_noState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "No state file was found!") {
-		t.Fatalf("expected a no state file error, got: %s", ui.ErrorWriter.String())
+	output := done(t)
+	if !strings.Contains(output.Stderr(), "No state file was found!") {
+		t.Fatalf("expected a no state file error, got: %s", output.Stderr())
 	}
 }
 
@@ -174,11 +182,11 @@ func TestStateShow_emptyState(t *testing.T) {
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
-	ui := new(cli.MockUi)
+	streams, done := terminal.StreamsForTesting(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: metaOverridesForProvider(p),
-			Ui:               ui,
+			Streams:          streams,
 		},
 	}
 
@@ -189,8 +197,9 @@ func TestStateShow_emptyState(t *testing.T) {
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: %d", code)
 	}
-	if !strings.Contains(ui.ErrorWriter.String(), "No instance found for the given address!") {
-		t.Fatalf("expected a no instance found error, got: %s", ui.ErrorWriter.String())
+	output := done(t)
+	if !strings.Contains(output.Stderr(), "No instance found for the given address!") {
+		t.Fatalf("expected a no instance found error, got: %s", output.Stderr())
 	}
 }
 
@@ -229,7 +238,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 		},
 	}
 
-	ui := new(cli.MockUi)
+	streams, done := terminal.StreamsForTesting(t)
 	c := &StateShowCommand{
 		Meta: Meta{
 			testingOverrides: &testingOverrides{
@@ -237,7 +246,7 @@ func TestStateShow_configured_provider(t *testing.T) {
 					addrs.NewDefaultProvider("test-beta"): providers.FactoryFixed(p),
 				},
 			},
-			Ui: ui,
+			Streams: streams,
 		},
 	}
 
@@ -245,13 +254,15 @@ func TestStateShow_configured_provider(t *testing.T) {
 		"-state", statePath,
 		"test_instance.foo",
 	}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
 	// Test that outputs were displayed
 	expected := strings.TrimSpace(testStateShowOutput) + "\n"
-	actual := ui.OutputWriter.String()
+	actual := output.Stdout()
 	if actual != expected {
 		t.Fatalf("Expected:\n%q\n\nTo equal:\n%q", actual, expected)
 	}

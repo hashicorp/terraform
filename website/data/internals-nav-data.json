@@ -29,10 +29,6 @@
     "path": "graph"
   },
   {
-    "title": "Resource Lifecycle",
-    "path": "lifecycle"
-  },
-  {
     "title": "Login Protocol",
     "path": "login-protocol"
   },
@@ -47,6 +43,10 @@
   {
     "title": "Provider Metadata",
     "path": "provider-meta"
+  },
+  {
+    "title": "Functions Metadata",
+    "path": "functions-meta"
   },
   {
     "title": "Machine Readable UI",

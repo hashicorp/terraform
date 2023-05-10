@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -190,7 +193,7 @@ func (b backendWithStateStorageThatFailsRefresh) Configure(cty.Value) tfdiags.Di
 	return nil
 }
 
-func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string) error {
+func (b backendWithStateStorageThatFailsRefresh) DeleteWorkspace(name string, force bool) error {
 	return fmt.Errorf("unimplemented")
 }
 

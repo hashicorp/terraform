@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package lang
 
 import (
 	"sync"
+	"time"
 
 	"github.com/zclconf/go-cty/cty/function"
 
@@ -19,6 +23,14 @@ type Scope struct {
 	// SelfAddr is the address that the "self" object should be an alias of,
 	// or nil if the "self" object should not be available at all.
 	SelfAddr addrs.Referenceable
+
+	// SourceAddr is the address of the source item for the scope. This will
+	// affect any scoped resources that can be accessed from within this scope.
+	//
+	// If nil, access is assumed to be at the module level. So, in practice this
+	// only needs to be set for items that should be able to access something
+	// hidden in their own scope.
+	SourceAddr addrs.Referenceable
 
 	// BaseDir is the base directory used by any interpolation functions that
 	// accept filesystem paths as arguments.
@@ -41,6 +53,10 @@ type Scope struct {
 	// ConsoleMode can be set to true to request any console-only functions are
 	// included in this scope.
 	ConsoleMode bool
+
+	// PlanTimestamp is a timestamp representing when the plan was made. It will
+	// either have been generated during this operation or read from the plan.
+	PlanTimestamp time.Time
 }
 
 // SetActiveExperiments allows a caller to declare that a set of experiments

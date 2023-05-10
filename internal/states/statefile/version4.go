@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package statefile
 
 import (
@@ -414,9 +417,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		}
 	}
 
-	if file.State.CheckResults != nil {
-		sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
-	}
+	sV4.CheckResults = encodeCheckResultsV4(file.State.CheckResults)
 
 	sV4.normalize()
 
@@ -576,6 +577,11 @@ func decodeCheckResultsV4(in []checkResultsV4) (*states.CheckResults, tfdiags.Di
 }
 
 func encodeCheckResultsV4(in *states.CheckResults) []checkResultsV4 {
+	// normalize empty and nil sets in the serialized state
+	if in == nil || in.ConfigResults.Len() == 0 {
+		return nil
+	}
+
 	ret := make([]checkResultsV4, 0, in.ConfigResults.Len())
 
 	for _, configElem := range in.ConfigResults.Elems {
@@ -635,6 +641,8 @@ func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
 		return addrs.CheckableResource
 	case "output":
 		return addrs.CheckableOutputValue
+	case "check":
+		return addrs.CheckableCheck
 	default:
 		// We'll treat anything else as invalid just as a concession to
 		// forward-compatible parsing, in case a later version of Terraform
@@ -649,6 +657,8 @@ func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
 		return "resource"
 	case addrs.CheckableOutputValue:
 		return "output"
+	case addrs.CheckableCheck:
+		return "check"
 	default:
 		panic(fmt.Sprintf("unsupported checkable object kind %s", in))
 	}

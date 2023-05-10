@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -1480,6 +1483,563 @@ resource "test_object" "y" {
 
 	opts := SimplePlanOpts(plans.NormalMode, nil)
 	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+// Outputs should not cause evaluation errors during destroy
+// Check eval from both root level outputs and module outputs, which are
+// handled differently during apply.
+func TestContext2Apply_outputsNotToEvaluate(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+  cond = false
+}
+
+output "from_resource" {
+  value = module.mod.from_resource
+}
+
+output "from_data" {
+  value = module.mod.from_data
+}
+`,
+
+		"./mod/main.tf": `
+variable "cond" {
+  type = bool
+}
+
+module "mod" {
+  source = "../mod2/"
+  cond = var.cond
+}
+
+output "from_resource" {
+  value = module.mod.resource
+}
+
+output "from_data" {
+  value = module.mod.data
+}
+`,
+
+		"./mod2/main.tf": `
+variable "cond" {
+  type = bool
+}
+
+resource "test_object" "x" {
+  count = var.cond ? 0:1
+}
+
+data "test_object" "d" {
+  count = var.cond ? 0:1
+}
+
+output "resource" {
+  value = var.cond ? null : test_object.x.*.test_string[0]
+}
+
+output "data" {
+  value = one(data.test_object.d[*].test_string)
+}
+`})
+
+	p := simpleMockProvider()
+	p.ReadDataSourceFn = func(req providers.ReadDataSourceRequest) (resp providers.ReadDataSourceResponse) {
+		resp.State = req.Config
+		return resp
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	// apply the state
+	opts := SimplePlanOpts(plans.NormalMode, nil)
+	plan, diags := ctx.Plan(m, states.NewState(), opts)
+	assertNoErrors(t, diags)
+
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// and destroy
+	opts = SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// and destroy again with no state
+	if !state.Empty() {
+		t.Fatal("expected empty state, got", state)
+	}
+
+	opts = SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags = ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+// don't evaluate conditions on outputs when destroying
+func TestContext2Apply_noOutputChecksOnDestroy(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+
+output "from_resource" {
+  value = module.mod.from_resource
+}
+`,
+
+		"./mod/main.tf": `
+resource "test_object" "x" {
+  test_string = "wrong val"
+}
+
+output "from_resource" {
+  value = test_object.x.test_string
+  precondition {
+    condition     = test_object.x.test_string == "ok"
+    error_message = "resource error"
+  }
+}
+`})
+
+	p := simpleMockProvider()
+
+	state := states.NewState()
+	mod := state.EnsureModule(addrs.RootModuleInstance.Child("mod", addrs.NoKey))
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"wrong_val"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.DestroyMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+// -refresh-only should update checks
+func TestContext2Apply_refreshApplyUpdatesChecks(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+  test_string = "ok"
+  lifecycle {
+    postcondition {
+      condition = self.test_string == "ok"
+      error_message = "wrong val"
+    }
+  }
+}
+
+output "from_resource" {
+  value = test_object.x.test_string
+  precondition {
+	condition     = test_object.x.test_string == "ok"
+	error_message = "wrong val"
+  }
+}
+`})
+
+	p := simpleMockProvider()
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("ok"),
+		}),
+	}
+
+	state := states.NewState()
+	mod := state.EnsureModule(addrs.RootModuleInstance)
+	mod.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.x").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"wrong val"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	mod.SetOutputValue("from_resource", cty.StringVal("wrong val"), false)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.RefreshOnlyMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	state, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	resCheck := state.CheckResults.GetObjectResult(mustResourceInstanceAddr("test_object.x"))
+	if resCheck.Status != checks.StatusPass {
+		t.Fatalf("unexpected check %s: %s\n", resCheck.Status, resCheck.FailureMessages)
+	}
+
+	outAddr := addrs.AbsOutputValue{
+		Module: addrs.RootModuleInstance,
+		OutputValue: addrs.OutputValue{
+			Name: "from_resource",
+		},
+	}
+	outCheck := state.CheckResults.GetObjectResult(outAddr)
+	if outCheck.Status != checks.StatusPass {
+		t.Fatalf("unexpected check %s: %s\n", outCheck.Status, outCheck.FailureMessages)
+	}
+}
+
+// NoOp changes may have conditions to evaluate, but should not re-plan and
+// apply the entire resource.
+func TestContext2Apply_noRePlanNoOp(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "x" {
+}
+
+resource "test_object" "y" {
+  # test_object.w is being re-created, so this precondition must be evaluated
+  # during apply, however this resource should otherwise be a NoOp.
+  lifecycle {
+    precondition {
+      condition     = test_object.x.test_string == null
+      error_message = "test_object.x.test_string should be null"
+    }
+  }
+}
+`})
+
+	p := simpleMockProvider()
+	// make sure we can compute the attr
+	testString := p.GetProviderSchemaResponse.ResourceTypes["test_object"].Block.Attributes["test_string"]
+	testString.Computed = true
+	testString.Optional = false
+
+	yAddr := mustResourceInstanceAddr("test_object.y")
+
+	state := states.NewState()
+	mod := state.RootModule()
+	mod.SetResourceInstanceCurrent(
+		yAddr.Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"y"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	opts := SimplePlanOpts(plans.NormalMode, nil)
+	plan, diags := ctx.Plan(m, state, opts)
+	assertNoErrors(t, diags)
+
+	for _, c := range plan.Changes.Resources {
+		if c.Addr.Equal(yAddr) && c.Action != plans.NoOp {
+			t.Fatalf("unexpected %s change for test_object.y", c.Action)
+		}
+	}
+
+	// test_object.y is a NoOp change from the plan, but is included in the
+	// graph due to the conditions which must be evaluated. This however should
+	// not cause the resource to be re-planned.
+	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
+		testString := req.ProposedNewState.GetAttr("test_string")
+		if !testString.IsNull() && testString.AsString() == "y" {
+			resp.Diagnostics = resp.Diagnostics.Append(errors.New("Unexpected apply-time plan for test_object.y. Original plan was a NoOp"))
+		}
+		resp.PlannedState = req.ProposedNewState
+		return resp
+	}
+
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+// ensure all references from preconditions are tracked through plan and apply
+func TestContext2Apply_preconditionErrorMessageRef(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "nested" {
+  source = "./mod"
+}
+
+output "nested_a" {
+  value = module.nested.a
+}
+`,
+
+		"mod/main.tf": `
+variable "boop" {
+  default = "boop"
+}
+
+variable "msg" {
+  default = "Incorrect boop."
+}
+
+output "a" {
+  value     = "x"
+
+  precondition {
+    condition     = var.boop == "boop"
+    error_message = var.msg
+  }
+}
+`,
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_destroyNullModuleOutput(t *testing.T) {
+	p := testProvider("test")
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "null_module" {
+  source = "./mod"
+}
+
+locals {
+  module_output = module.null_module.null_module_test
+}
+
+output "test_root" {
+  value = module.null_module.test_output
+}
+
+output "root_module" {
+  value = local.module_output #fails
+}
+`,
+
+		"mod/main.tf": `
+output "test_output" {
+  value = "test"
+}
+
+output "null_module_test" {
+  value = null
+}
+`,
+	})
+
+	// verify plan and apply
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	state, diags := ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+
+	// now destroy
+	plan, diags = ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_moduleOutputWithSensitiveAttrs(t *testing.T) {
+	// Ensure that nested sensitive marks are stored when accessing non-root
+	// module outputs, and that they do not cause the entire output value to
+	// become sensitive.
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "mod" {
+  source = "./mod"
+}
+
+resource "test_resource" "b" {
+  // if the module output were wholly sensitive it would not be valid to use in
+  // for_each
+  for_each = module.mod.resources
+  value = each.value.output
+}
+
+output "root_output" {
+  // The root output cannot contain any sensitive marks at all.
+  // Applying nonsensitive would fail here if the nested sensitive mark were
+  // not maintained through the output.
+  value = [ for k, v in module.mod.resources : nonsensitive(v.output) ]
+}
+`,
+		"./mod/main.tf": `
+resource "test_resource" "a" {
+  for_each = {"key": "value"}
+  value = each.key
+}
+
+output "resources" {
+  value = test_resource.a
+}
+`,
+	})
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"output": {
+						Type:      cty.String,
+						Sensitive: true,
+						Computed:  true,
+					},
+				},
+			},
+		},
+	})
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
+	assertNoErrors(t, diags)
+	_, diags = ctx.Apply(plan, m)
+	assertNoErrors(t, diags)
+}
+
+func TestContext2Apply_timestamps(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_resource" "a" {
+  id = "timestamp"
+  value = timestamp()
+}
+
+resource "test_resource" "b" {
+  id = "plantimestamp"
+  value = plantimestamp()
+}
+`,
+	})
+
+	var plantime time.Time
+
+	p := testProvider("test")
+	p.GetProviderSchemaResponse = getProviderSchemaResponseFromProviderSchema(&ProviderSchema{
+		ResourceTypes: map[string]*configschema.Block{
+			"test_resource": {
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Required: true,
+					},
+					"value": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	})
+	p.PlanResourceChangeFn = func(request providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+		values := request.ProposedNewState.AsValueMap()
+		if id := values["id"]; id.AsString() == "plantimestamp" {
+			var err error
+			plantime, err = time.Parse(time.RFC3339, values["value"].AsString())
+			if err != nil {
+				t.Errorf("couldn't parse plan time: %s", err)
+			}
+		}
+
+		return providers.PlanResourceChangeResponse{
+			PlannedState: request.ProposedNewState,
+		}
+	}
+	p.ApplyResourceChangeFn = func(request providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+		values := request.PlannedState.AsValueMap()
+		if id := values["id"]; id.AsString() == "timestamp" {
+			applytime, err := time.Parse(time.RFC3339, values["value"].AsString())
+			if err != nil {
+				t.Errorf("couldn't parse apply time: %s", err)
+			}
+
+			if applytime.Before(plantime) {
+				t.Errorf("applytime (%s) should be after plantime (%s)", applytime.Format(time.RFC3339), plantime.Format(time.RFC3339))
+			}
+		} else if id.AsString() == "plantimestamp" {
+			otherplantime, err := time.Parse(time.RFC3339, values["value"].AsString())
+			if err != nil {
+				t.Errorf("couldn't parse plan time: %s", err)
+			}
+
+			if !plantime.Equal(otherplantime) {
+				t.Errorf("plantime changed from (%s) to (%s) during apply", plantime.Format(time.RFC3339), otherplantime.Format(time.RFC3339))
+			}
+		}
+
+		return providers.ApplyResourceChangeResponse{
+			NewState: request.PlannedState,
+		}
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode: plans.NormalMode,
+	})
 	assertNoErrors(t, diags)
 
 	_, diags = ctx.Apply(plan, m)

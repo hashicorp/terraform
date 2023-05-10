@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package depsfile
 
 // LockFilePath is the path, relative to a configuration's root module

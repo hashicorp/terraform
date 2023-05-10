@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package lang
 
 import (
@@ -5,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -669,6 +673,13 @@ func TestFunctions(t *testing.T) {
 			},
 		},
 
+		"plantimestamp": {
+			{
+				`plantimestamp()`,
+				cty.StringVal("2004-04-25T15:00:00Z"),
+			},
+		},
+
 		"pow": {
 			{
 				`pow(1,0)`,
@@ -895,6 +906,17 @@ func TestFunctions(t *testing.T) {
 			{
 				`startswith(" ", "hello")`,
 				cty.False,
+			},
+		},
+
+		"strcontains": {
+			{
+				`strcontains("hello", "llo")`,
+				cty.BoolVal(true),
+			},
+			{
+				`strcontains("hello", "a")`,
+				cty.BoolVal(false),
 			},
 		},
 
@@ -1131,6 +1153,10 @@ func TestFunctions(t *testing.T) {
 					"key": cty.StringVal("0ba"),
 				}),
 			},
+			{
+				`yamldecode("~")`,
+				cty.NullVal(cty.DynamicPseudoType),
+			},
 		},
 
 		"yamlencode": {
@@ -1238,8 +1264,9 @@ func TestFunctions(t *testing.T) {
 				t.Run(test.src, func(t *testing.T) {
 					data := &dataForTests{} // no variables available; we only need literals here
 					scope := &Scope{
-						Data:    data,
-						BaseDir: "./testdata/functions-test", // for the functions that read from the filesystem
+						Data:          data,
+						BaseDir:       "./testdata/functions-test", // for the functions that read from the filesystem
+						PlanTimestamp: time.Date(2004, 04, 25, 15, 00, 00, 000, time.UTC),
 					}
 					prepareScope(t, scope)
 

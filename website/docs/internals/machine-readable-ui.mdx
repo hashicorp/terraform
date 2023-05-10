@@ -24,7 +24,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/language/v1-compatibility-promises).
+[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
 
 ## Sample JSON Output
 
@@ -60,7 +60,7 @@ The following message types are supported:
 
 - `version`: information about the Terraform version and the version of the schema used for the following messages
 - `log`: unstructured human-readable log lines
-- `diagnostic`: diagnostic warning or error messages; [see the `terraform validate` docs for more details on the format](/cli/commands/validate#json)
+- `diagnostic`: diagnostic warning or error messages; [see the `terraform validate` docs for more details on the format](/terraform/cli/commands/validate#json)
 
 ### Operation Results
 
@@ -103,7 +103,7 @@ If drift is detected during planning, Terraform will emit a `resource_drift` mes
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
 - `action`: the action planned to be taken for the resource. Values: `update`, `delete`.
 
-This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/internals/json-format).
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
 
 ### Example
 
@@ -136,7 +136,7 @@ At the end of a plan or before an apply, Terraform will emit a `planned_change` 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
 - `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
 - `action`: the action planned to be taken for the resource. Values: `noop`, `create`, `read`, `update`, `replace`, `delete`, `move`.
-- `reason`: an optional reason for the change, currently only used when the action is `replace` or `delete`. Values:
+- `reason`: an optional reason for the change, only used when the action is `replace` or `delete`. Values:
   - `tainted`: resource was marked as tainted
   - `requested`: user requested that the resource be replaced, for example via the `-replace` plan flag
   - `cannot_update`: changes to configuration force the resource to be deleted and created rather than updated
@@ -146,7 +146,7 @@ At the end of a plan or before an apply, Terraform will emit a `planned_change` 
   - `delete_because_each_key`: resource instance key is not included in the `for_each` argument
   - `delete_because_no_module`: enclosing module instance is not in configuration
 
-This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/internals/json-format).
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
 
 ### Example
 

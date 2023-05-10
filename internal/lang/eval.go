@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package lang
 
 import (
@@ -259,7 +262,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	// First we'll do static validation of the references. This catches things
 	// early that might otherwise not get caught due to unknown values being
 	// present in the scope during planning.
-	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr)
+	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr, s.SourceAddr)
 	diags = diags.Append(staticDiags)
 	if staticDiags.HasErrors() {
 		return ctx, diags

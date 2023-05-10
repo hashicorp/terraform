@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -61,6 +64,184 @@ func TestContext2Apply_basic(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
+func TestContext2Apply_stop(t *testing.T) {
+	t.Parallel()
+
+	m := testModule(t, "apply-stop")
+	stopCh := make(chan struct{})
+	waitCh := make(chan struct{})
+	stoppedCh := make(chan struct{})
+	stopCalled := uint32(0)
+	applyStopped := uint32(0)
+	p := &MockProvider{
+		GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+			ResourceTypes: map[string]providers.Schema{
+				"indefinite": {
+					Version: 1,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"result": {
+								Type:     cty.String,
+								Computed: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		PlanResourceChangeFn: func(prcr providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {
+			log.Printf("[TRACE] TestContext2Apply_stop: no-op PlanResourceChange")
+			return providers.PlanResourceChangeResponse{
+				PlannedState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.UnknownVal(cty.String),
+				}),
+			}
+		},
+		ApplyResourceChangeFn: func(arcr providers.ApplyResourceChangeRequest) providers.ApplyResourceChangeResponse {
+			// This will unblock the main test code once we reach this
+			// point, so that it'll then be guaranteed to call Stop
+			// while we're waiting in here.
+			close(waitCh)
+
+			log.Printf("[TRACE] TestContext2Apply_stop: ApplyResourceChange waiting for Stop call")
+			// This will block until StopFn closes this channel below.
+			<-stopCh
+			atomic.AddUint32(&applyStopped, 1)
+			// This unblocks StopFn below, thereby acknowledging the request
+			// to stop.
+			close(stoppedCh)
+			return providers.ApplyResourceChangeResponse{
+				NewState: cty.ObjectVal(map[string]cty.Value{
+					"result": cty.StringVal("complete"),
+				}),
+			}
+		},
+		StopFn: func() error {
+			// Closing this channel will unblock the channel read in
+			// ApplyResourceChangeFn above.
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop called")
+			atomic.AddUint32(&stopCalled, 1)
+			close(stopCh)
+			// This will block until ApplyResourceChange has reacted to
+			// being stopped.
+			log.Printf("[TRACE] TestContext2Apply_stop: Waiting for ApplyResourceChange to react to being stopped")
+			<-stoppedCh
+			log.Printf("[TRACE] TestContext2Apply_stop: Stop is completing")
+			return nil
+		},
+	}
+
+	hook := &testHook{}
+	ctx := testContext2(t, &ContextOpts{
+		Hooks: []Hook{hook},
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.MustParseProviderSourceString("terraform.io/test/indefinite"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	assertNoErrors(t, diags)
+
+	// We'll reset the hook events before we apply because we only care about
+	// the apply-time events.
+	hook.Calls = hook.Calls[:0]
+
+	// We'll apply in the background so that we can call Stop in the foreground.
+	stateCh := make(chan *states.State)
+	go func(plan *plans.Plan) {
+		state, _ := ctx.Apply(plan, m)
+		stateCh <- state
+	}(plan)
+
+	// We'll wait until the provider signals that we've reached the
+	// ApplyResourceChange function, so we can guarantee the expected
+	// order of operations so our hook events below will always match.
+	t.Log("waiting for the apply phase to get started")
+	<-waitCh
+
+	// This will block until the apply operation has unwound, so we should
+	// be able to observe all of the apply side-effects afterwards.
+	t.Log("waiting for ctx.Stop to return")
+	ctx.Stop()
+
+	t.Log("waiting for apply goroutine to return state")
+	state := <-stateCh
+
+	t.Log("apply is all complete")
+	if state == nil {
+		t.Fatalf("final state is nil")
+	}
+
+	if got, want := atomic.LoadUint32(&stopCalled), uint32(1); got != want {
+		t.Errorf("provider's Stop method was not called")
+	}
+	if got, want := atomic.LoadUint32(&applyStopped), uint32(1); got != want {
+		// This should not happen if things are working correctly but this is
+		// to catch weird situations such as if a bug in this test causes us
+		// to inadvertently stop Terraform before it reaches te apply phase,
+		// or if the apply operation fails in a way that causes it not to reach
+		// the ApplyResourceChange function.
+		t.Errorf("somehow provider's ApplyResourceChange didn't react to being stopped")
+	}
+
+	// Because we interrupted the apply phase while applying the resource,
+	// we should have halted immediately after we finished visiting that
+	// resource. We don't visit indefinite.bar at all.
+	gotEvents := hook.Calls
+	wantEvents := []*testHookCall{
+		{"PreDiff", "indefinite.foo"},
+		{"PostDiff", "indefinite.foo"},
+		{"PreApply", "indefinite.foo"},
+		{"PostApply", "indefinite.foo"},
+		{"PostStateUpdate", ""}, // State gets updated one more time to include the apply result.
+	}
+	// The "Stopping" event gets sent to the hook asynchronously from the others
+	// because it is triggered in the ctx.Stop call above, rather than from
+	// the goroutine where ctx.Apply was running, and therefore it doesn't
+	// appear in a guaranteed position in gotEvents. We already checked above
+	// that the provider's Stop method was called, so we'll just strip that
+	// event out of our gotEvents.
+	seenStopped := false
+	for i, call := range gotEvents {
+		if call.Action == "Stopping" {
+			seenStopped = true
+			// We'll shift up everything else in the slice to create the
+			// effect of the Stopping event not having been present at all,
+			// which should therefore make this slice match "wantEvents".
+			copy(gotEvents[i:], gotEvents[i+1:])
+			gotEvents = gotEvents[:len(gotEvents)-1]
+			break
+		}
+	}
+	if diff := cmp.Diff(wantEvents, gotEvents); diff != "" {
+		t.Errorf("wrong hook events\n%s", diff)
+	}
+	if !seenStopped {
+		t.Errorf("'Stopping' event did not get sent to the hook")
+	}
+
+	rov := state.OutputValue(addrs.OutputValue{Name: "result"}.Absolute(addrs.RootModuleInstance))
+	if rov != nil && rov.Value != cty.NilVal && !rov.Value.IsNull() {
+		t.Errorf("'result' output value unexpectedly populated: %#v", rov.Value)
+	}
+
+	resourceAddr := addrs.Resource{
+		Mode: addrs.ManagedResourceMode,
+		Type: "indefinite",
+		Name: "foo",
+	}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance)
+	rv := state.ResourceInstance(resourceAddr)
+	if rv == nil || rv.Current == nil {
+		t.Fatalf("no state entry for %s", resourceAddr)
+	}
+
+	resourceAddr.Resource.Resource.Name = "bar"
+	rv = state.ResourceInstance(resourceAddr)
+	if rv != nil && rv.Current != nil {
+		t.Fatalf("unexpected state entry for %s", resourceAddr)
 	}
 }
 

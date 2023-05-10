@@ -9,7 +9,7 @@ description: >-
 
 The CLI configuration file configures per-user settings for CLI behaviors,
 which apply across all Terraform working directories. This is separate from
-[your infrastructure configuration](/language).
+[your infrastructure configuration](/terraform/language).
 
 ## Locations
 
@@ -31,7 +31,7 @@ as just `terraform.rc`. Use `dir` from PowerShell or Command Prompt to
 confirm the filename.
 
 The location of the Terraform CLI configuration file can also be specified
-using the `TF_CLI_CONFIG_FILE` [environment variable](/cli/config/environment-variables).
+using the `TF_CLI_CONFIG_FILE` [environment variable](/terraform/cli/config/environment-variables).
 Any such file should follow the naming pattern `*.tfrc`.
 
 ## Configuration File Syntax
@@ -59,7 +59,7 @@ The following settings can be set in the CLI configuration file:
   See [Credentials Helpers](#credentials-helpers) below for more information.
 
 * `disable_checkpoint` — when set to `true`, disables
-  [upgrade and security bulletin checks](/cli/commands#upgrade-and-security-bulletin-checks)
+  [upgrade and security bulletin checks](/terraform/cli/commands#upgrade-and-security-bulletin-checks)
   that require reaching out to HashiCorp-provided network services.
 
 * `disable_checkpoint_signature` — when set to `true`, allows the upgrade and
@@ -76,12 +76,12 @@ The following settings can be set in the CLI configuration file:
 
 ## Credentials
 
-[Terraform Cloud](/cloud) provides a number of remote network
+[Terraform Cloud](https://cloud.hashicorp.com/products/terraform) provides a number of remote network
 services for use with Terraform, and
-[Terraform Enterprise](/enterprise) allows hosting those
+[Terraform Enterprise](/terraform/enterprise) allows hosting those
 services inside your own infrastructure. For example, these systems offer both
-[remote operations](/cloud-docs/run/cli) and a
-[private module registry](/cloud-docs/registry).
+[remote operations](/terraform/cloud-docs/run/cli) and a
+[private module registry](/terraform/cloud-docs/registry).
 
 When interacting with Terraform-specific network services, Terraform expects
 to find API tokens in CLI configuration files in `credentials` blocks:
@@ -92,7 +92,7 @@ credentials "app.terraform.io" {
 }
 ```
 
-If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](/cli/commands/login)
+If you are running the Terraform CLI interactively on a computer with a web browser, you can use [the `terraform login` command](/terraform/cli/commands/login)
 to get credentials and automatically save them in the CLI configuration. If
 not, you can manually write `credentials` blocks.
 
@@ -104,9 +104,9 @@ giving the API token to use for that host.
 
 ~> **Important:** If you are using Terraform Cloud or Terraform Enterprise,
 the token provided must be either a
-[user token](/cloud-docs/users-teams-organizations/users#api-tokens)
+[user token](/terraform/cloud-docs/users-teams-organizations/users#api-tokens)
 or a
-[team token](/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens);
+[team token](/terraform/cloud-docs/users-teams-organizations/api-tokens#team-api-tokens);
 organization tokens cannot be used for command-line Terraform actions.
 
 -> **Note:** The credentials hostname must match the hostname in your module
@@ -161,7 +161,7 @@ for a specific hostname by writing a `credentials` block alongside the
 Terraform does not include any credentials helpers in the main distribution.
 To learn how to write and install your own credentials helpers to integrate
 with existing in-house credentials management systems, see
-[the guide to Credentials Helper internals](/internals/credentials-helpers).
+[the guide to Credentials Helper internals](/terraform/internals/credentials-helpers).
 
 ### Credentials Source Priority Order
 
@@ -270,7 +270,7 @@ The following are the two supported installation method types:
   use the `https:` scheme and end with a trailing slash.
 
   Terraform expects the given URL to be a base URL for an implementation of
-  [the provider network mirror protocol](/internals/provider-network-mirror-protocol),
+  [the provider network mirror protocol](/terraform/internals/provider-network-mirror-protocol),
   which is designed to be relatively easy to implement using typical static
   website hosting mechanisms.
 
@@ -387,6 +387,57 @@ grow to contain several unused versions which you must delete manually.
 safe. The provider installer's behavior in environments with multiple `terraform
 init` calls is undefined.
 
+### Allowing the Provider Plugin Cache to break the dependency lock file
+
+~> **Note:** The option described in is for unusual and exceptional situations
+only. Do not set this option unless you are sure you need it and you fully
+understand the consequences of enabling it.
+
+By default Terraform will use packages from the global cache directory only
+if they match at least one of the checksums recorded in the
+[dependency lock file](/terraform/language/files/dependency-lock)
+for that provider. This ensures that Terraform can always
+generate a complete and correct dependency lock file entry the first time you
+use a new provider in a particular configuration.
+
+However, we know that in some special situations teams have been unable to use
+the dependency lock file as intended, and so they don't include it in their
+version control as recommended and instead let Terraform re-generate it each
+time it installs providers.
+
+For those teams that don't preserve the dependency lock file in their version
+control systems between runs, Terraform allows an additional CLI Configuration
+setting which tells Terraform to always treat a package in the cache directory
+as valid even if there isn't already an entry in the dependency lock file
+to confirm it:
+
+```hcl
+plugin_cache_may_break_dependency_lock_file = true
+```
+
+Alternatively, you can set the environment variable
+`TF_PLUGIN_CACHE_MAY_BREAK_DEPENDENCY_LOCK_FILE` to any value other than the
+empty string or `0`, which is equivalent to the above setting.
+
+Setting this option gives Terraform CLI permission to create an incomplete
+dependency lock file entry for a provider if that would allow Terraform to
+use the cache to install that provider. In that situation the dependency lock
+file will be valid for use on the current system but may not be valid for use on
+another computer with a different operating system or CPU architecture, because
+it will include only a checksum of the package in the global cache.
+
+We recommend that most users leave this option unset, in which case Terraform
+will always install a provider from upstream the first time you use it with
+a particular configuration, but can then re-use the cache entry on later runs
+once the dependency lock file records valid checksums for the provider package.
+
+~> **Note:** The Terraform team intends to improve the dependency lock file
+mechanism in future versions so that it will be usable in more situations. At
+that time this option will become silently ignored. If your workflow relies on
+the use of this option, please open a GitHub issue to share details about your
+situation so that we can consider how to support it without breaking the
+dependency lock file.
+
 ### Development Overrides for Provider Developers
 
 -> **Note:** Development overrides work only in Terraform v0.14 and later.
@@ -429,7 +480,7 @@ provider_installation {
 With development overrides in effect, the `terraform init` command will still
 attempt to select a suitable published version of your provider to install and
 record in
-[the dependency lock file](/language/files/dependency-lock)
+[the dependency lock file](/terraform/language/files/dependency-lock)
 for future use, but other commands like
 `terraform apply` will disregard the lock file's entry for `hashicorp/null` and
 will use the given directory instead. Once your new changes are included in a

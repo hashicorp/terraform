@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package addrs
 
 import (
@@ -5,6 +8,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -62,8 +66,8 @@ func (m ModuleInstance) OutputValue(name string) AbsOutputValue {
 	}
 }
 
-func (v AbsOutputValue) Check(t CheckType, i int) Check {
-	return Check{
+func (v AbsOutputValue) CheckRule(t CheckRuleType, i int) CheckRule {
+	return CheckRule{
 		Container: v,
 		Type:      t,
 		Index:     i,

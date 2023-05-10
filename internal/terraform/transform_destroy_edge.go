@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -5,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/plans"
 )
 
 // GraphNodeDestroyer must be implemented by nodes that destroy resources.
@@ -37,7 +41,20 @@ type GraphNodeCreator interface {
 // dependent resources will block parent resources from deleting. Concrete
 // example: VPC with subnets, the VPC can't be deleted while there are
 // still subnets.
-type DestroyEdgeTransformer struct{}
+type DestroyEdgeTransformer struct {
+	// FIXME: GraphNodeCreators are not always applying changes, and should not
+	// participate in the destroy graph if there are no operations which could
+	// interract with destroy nodes. We need Changes for now to detect the
+	// action type, but perhaps this should be indicated somehow by the
+	// DiffTransformer which was intended to be the only transformer operating
+	// from the change set.
+	Changes *plans.Changes
+
+	// FIXME: Operation will not be needed here one we can better track
+	// inter-provider dependencies and remove the cycle checks in
+	// tryInterProviderDestroyEdge.
+	Operation walkOperation
+}
 
 // tryInterProviderDestroyEdge checks if we're inserting a destroy edge
 // across a provider boundary, and only adds the edge if it results in no cycles.
@@ -71,6 +88,12 @@ destroyA ------------->  destroyB
 func (t *DestroyEdgeTransformer) tryInterProviderDestroyEdge(g *Graph, from, to dag.Vertex) {
 	e := dag.BasicEdge(from, to)
 	g.Connect(e)
+
+	// If this is a complete destroy operation, then there are no create/update
+	// nodes to worry about and we can accept the edge without deeper inspection.
+	if t.Operation == walkDestroy || t.Operation == walkPlanDestroy {
+		return
+	}
 
 	// getComparableProvider inspects the node to try and get the most precise
 	// description of the provider being used to help determine if 2 nodes are
@@ -144,8 +167,20 @@ func (t *DestroyEdgeTransformer) Transform(g *Graph) error {
 			resAddr := addr.ContainingResource().Config().String()
 			destroyersByResource[resAddr] = append(destroyersByResource[resAddr], n)
 		case GraphNodeCreator:
-			addr := n.CreateAddr().ContainingResource().Config().String()
-			creators[addr] = append(creators[addr], n)
+			addr := n.CreateAddr()
+			cfgAddr := addr.ContainingResource().Config().String()
+
+			if t.Changes == nil {
+				// unit tests may not have changes
+				creators[cfgAddr] = append(creators[cfgAddr], n)
+				break
+			}
+
+			// NoOp changes should not participate in the destroy dependencies.
+			rc := t.Changes.ResourceInstance(*addr)
+			if rc != nil && rc.Action != plans.NoOp {
+				creators[cfgAddr] = append(creators[cfgAddr], n)
+			}
 		}
 	}
 

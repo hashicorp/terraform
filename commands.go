@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package main
 
 import (
@@ -94,6 +97,8 @@ func initCommands(
 		RunningInAutomation: inAutomation,
 		CLIConfigDir:        configDir,
 		PluginCacheDir:      config.PluginCacheDir,
+
+		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
 
 		ShutdownCh: makeShutdownCh(),
 
@@ -203,6 +208,18 @@ func initCommands(
 
 		"logout": func() (cli.Command, error) {
 			return &command.LogoutCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata": func() (cli.Command, error) {
+			return &command.MetadataCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"metadata functions": func() (cli.Command, error) {
+			return &command.MetadataFunctionsCommand{
 				Meta: meta,
 			}, nil
 		},

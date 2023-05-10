@@ -1,0 +1,20 @@
+{
+  "tfcoremock_map": {
+    "attributes": {
+      "map": {
+        "type": "map",
+        "required": true,
+        "map": {
+          "type": "object",
+          "object": {
+            "id": {
+              "type": "string",
+              "replace": true,
+              "required": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

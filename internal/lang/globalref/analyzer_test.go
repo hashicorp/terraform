@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package globalref
 
 import (
@@ -20,7 +23,7 @@ func testAnalyzer(t *testing.T, fixtureName string) *Analyzer {
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
 
-	inst := initwd.NewModuleInstaller(loader.ModulesDir(), registry.NewClient(nil, nil))
+	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 	_, instDiags := inst.InstallModules(context.Background(), configDir, true, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatalf("unexpected module installation errors: %s", instDiags.Err().Error())

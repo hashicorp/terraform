@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonstate
 
 import (
@@ -16,10 +19,15 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// FormatVersion represents the version of the json format and will be
-// incremented for any change to this format that requires changes to a
-// consuming parser.
-const FormatVersion = "1.0"
+const (
+	// FormatVersion represents the version of the json format and will be
+	// incremented for any change to this format that requires changes to a
+	// consuming parser.
+	FormatVersion = "1.0"
+
+	ManagedResourceMode = "managed"
+	DataResourceMode    = "data"
+)
 
 // state is the top-level representation of the json format of a terraform
 // state.
@@ -33,33 +41,33 @@ type state struct {
 // stateValues is the common representation of resolved values for both the prior
 // state (which is always complete) and the planned new state.
 type stateValues struct {
-	Outputs    map[string]output `json:"outputs,omitempty"`
-	RootModule module            `json:"root_module,omitempty"`
+	Outputs    map[string]Output `json:"outputs,omitempty"`
+	RootModule Module            `json:"root_module,omitempty"`
 }
 
-type output struct {
+type Output struct {
 	Sensitive bool            `json:"sensitive"`
 	Value     json.RawMessage `json:"value,omitempty"`
 	Type      json.RawMessage `json:"type,omitempty"`
 }
 
-// module is the representation of a module in state. This can be the root module
+// Module is the representation of a module in state. This can be the root module
 // or a child module
-type module struct {
+type Module struct {
 	// Resources are sorted in a user-friendly order that is undefined at this
 	// time, but consistent.
-	Resources []resource `json:"resources,omitempty"`
+	Resources []Resource `json:"resources,omitempty"`
 
 	// Address is the absolute module address, omitted for the root module
 	Address string `json:"address,omitempty"`
 
 	// Each module object can optionally have its own nested "child_modules",
 	// recursively describing the full module tree.
-	ChildModules []module `json:"child_modules,omitempty"`
+	ChildModules []Module `json:"child_modules,omitempty"`
 }
 
 // Resource is the representation of a resource in the state.
-type resource struct {
+type Resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
 
@@ -70,7 +78,7 @@ type resource struct {
 	Name string `json:"name,omitempty"`
 
 	// Index is omitted for a resource not using `count` or `for_each`.
-	Index addrs.InstanceKey `json:"index,omitempty"`
+	Index json.RawMessage `json:"index,omitempty"`
 
 	// ProviderName allows the property "type" to be interpreted unambiguously
 	// in the unusual situation where a provider offers a resource type whose
@@ -86,7 +94,7 @@ type resource struct {
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
-	AttributeValues attributeValues `json:"values,omitempty"`
+	AttributeValues AttributeValues `json:"values,omitempty"`
 
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.
@@ -103,11 +111,11 @@ type resource struct {
 	DeposedKey string `json:"deposed_key,omitempty"`
 }
 
-// attributeValues is the JSON representation of the attribute values of the
+// AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
-type attributeValues map[string]interface{}
+type AttributeValues map[string]json.RawMessage
 
-func marshalAttributeValues(value cty.Value) attributeValues {
+func marshalAttributeValues(value cty.Value) AttributeValues {
 	// unmark our value to show all values
 	value, _ = value.UnmarkDeep()
 
@@ -115,7 +123,7 @@ func marshalAttributeValues(value cty.Value) attributeValues {
 		return nil
 	}
 
-	ret := make(attributeValues)
+	ret := make(AttributeValues)
 
 	it := value.ElementIterator()
 	for it.Next() {
@@ -131,6 +139,27 @@ func newState() *state {
 	return &state{
 		FormatVersion: FormatVersion,
 	}
+}
+
+// MarshalForRenderer returns the pre-json encoding changes of the state, in a
+// format available to the structured renderer.
+func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module, map[string]Output, error) {
+	if sf.State.Modules == nil {
+		// Empty state case.
+		return Module{}, nil, nil
+	}
+
+	outputs, err := MarshalOutputs(sf.State.RootModule().OutputValues)
+	if err != nil {
+		return Module{}, nil, err
+	}
+
+	root, err := marshalRootModule(sf.State, schemas)
+	if err != nil {
+		return Module{}, nil, err
+	}
+
+	return root, outputs, err
 }
 
 // Marshal returns the json encoding of a terraform state.
@@ -181,14 +210,14 @@ func (jsonstate *state) marshalStateValues(s *states.State, schemas *terraform.S
 	return nil
 }
 
-// MarshalOutputs translates a map of states.OutputValue to a map of jsonstate.output,
+// MarshalOutputs translates a map of states.OutputValue to a map of jsonstate.Output,
 // which are defined for json encoding.
-func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, error) {
+func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]Output, error) {
 	if outputs == nil {
 		return nil, nil
 	}
 
-	ret := make(map[string]output)
+	ret := make(map[string]Output)
 	for k, v := range outputs {
 		ty := v.Value.Type()
 		ov, err := ctyjson.Marshal(v.Value, ty)
@@ -199,7 +228,7 @@ func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, 
 		if err != nil {
 			return ret, err
 		}
-		ret[k] = output{
+		ret[k] = Output{
 			Value:     ov,
 			Type:      ot,
 			Sensitive: v.Sensitive,
@@ -209,8 +238,8 @@ func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]output, 
 	return ret, nil
 }
 
-func marshalRootModule(s *states.State, schemas *terraform.Schemas) (module, error) {
-	var ret module
+func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, error) {
+	var ret Module
 	var err error
 
 	ret.Address = ""
@@ -259,11 +288,11 @@ func marshalModules(
 	schemas *terraform.Schemas,
 	modules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,
-) ([]module, error) {
-	var ret []module
+) ([]Module, error) {
+	var ret []Module
 	for _, child := range modules {
 		// cm for child module, naming things is hard.
-		cm := module{Address: child.String()}
+		cm := Module{Address: child.String()}
 
 		// the module may be resourceless and contain only submodules, it will then be nil here
 		stateMod := s.Module(child)
@@ -294,27 +323,53 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]resource, error) {
-	var ret []resource
+func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
+	var ret []Resource
 
+	var sortedResources []*states.Resource
 	for _, r := range resources {
-		for k, ri := range r.Instances {
+		sortedResources = append(sortedResources, r)
+	}
+	sort.Slice(sortedResources, func(i, j int) bool {
+		return sortedResources[i].Addr.Less(sortedResources[j].Addr)
+	})
+
+	for _, r := range sortedResources {
+
+		var sortedKeys []addrs.InstanceKey
+		for k := range r.Instances {
+			sortedKeys = append(sortedKeys, k)
+		}
+		sort.Slice(sortedKeys, func(i, j int) bool {
+			return addrs.InstanceKeyLess(sortedKeys[i], sortedKeys[j])
+		})
+
+		for _, k := range sortedKeys {
+			ri := r.Instances[k]
+
+			var err error
 
 			resAddr := r.Addr.Resource
 
-			current := resource{
+			current := Resource{
 				Address:      r.Addr.Instance(k).String(),
-				Index:        k,
 				Type:         resAddr.Type,
 				Name:         resAddr.Name,
 				ProviderName: r.ProviderConfig.Provider.String(),
 			}
 
+			if k != nil {
+				index := k.Value()
+				if current.Index, err = ctyjson.Marshal(index, index.Type()); err != nil {
+					return nil, err
+				}
+			}
+
 			switch resAddr.Mode {
 			case addrs.ManagedResourceMode:
-				current.Mode = "managed"
+				current.Mode = ManagedResourceMode
 			case addrs.DataResourceMode:
-				current.Mode = "data"
+				current.Mode = DataResourceMode
 			default:
 				return ret, fmt.Errorf("resource %s has an unsupported mode %s",
 					resAddr.String(),
@@ -346,7 +401,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				current.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				s := SensitiveAsBool(riObj.Value)
+				value, marks := riObj.Value.UnmarkDeepWithPaths()
+				if schema.ContainsSensitive() {
+					marks = append(marks, schema.ValueMarks(value, nil)...)
+				}
+				s := SensitiveAsBool(value.MarkWithPaths(marks))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -367,9 +426,17 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				ret = append(ret, current)
 			}
 
-			for deposedKey, rios := range ri.Deposed {
+			var sortedDeposedKeys []string
+			for k := range ri.Deposed {
+				sortedDeposedKeys = append(sortedDeposedKeys, string(k))
+			}
+			sort.Strings(sortedDeposedKeys)
+
+			for _, deposedKey := range sortedDeposedKeys {
+				rios := ri.Deposed[states.DeposedKey(deposedKey)]
+
 				// copy the base fields from the current instance
-				deposed := resource{
+				deposed := Resource{
 					Address:      current.Address,
 					Type:         current.Type,
 					Name:         current.Name,
@@ -385,7 +452,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 
 				deposed.AttributeValues = marshalAttributeValues(riObj.Value)
 
-				s := SensitiveAsBool(riObj.Value)
+				value, marks := riObj.Value.UnmarkDeepWithPaths()
+				if schema.ContainsSensitive() {
+					marks = append(marks, schema.ValueMarks(value, nil)...)
+				}
+				s := SensitiveAsBool(value.MarkWithPaths(marks))
 				v, err := ctyjson.Marshal(s, s.Type())
 				if err != nil {
 					return nil, err
@@ -403,15 +474,11 @@ func marshalResources(resources map[string]*states.Resource, module addrs.Module
 				if riObj.Status == states.ObjectTainted {
 					deposed.Tainted = true
 				}
-				deposed.DeposedKey = deposedKey.String()
+				deposed.DeposedKey = deposedKey
 				ret = append(ret, deposed)
 			}
 		}
 	}
-
-	sort.Slice(ret, func(i, j int) bool {
-		return ret[i].Address < ret[j].Address
-	})
 
 	return ret, nil
 }

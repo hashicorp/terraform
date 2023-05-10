@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -362,7 +365,7 @@ func (b backendFailsConfigure) StateMgr(workspace string) (statemgr.Full, error)
 	return nil, fmt.Errorf("StateMgr not implemented")
 }
 
-func (b backendFailsConfigure) DeleteWorkspace(name string) error {
+func (b backendFailsConfigure) DeleteWorkspace(name string, _ bool) error {
 	return fmt.Errorf("DeleteWorkspace not implemented")
 }
 

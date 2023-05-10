@@ -13,11 +13,12 @@ resources to your configuration, keep track of metadata, and to improve
 performance for large infrastructures.
 
 This state is stored by default in a local file named "terraform.tfstate",
-but it can also be stored remotely, which works better in a team environment.
+but we recommend [storing it in Terraform Cloud](/terraform/cloud-docs/migrate)
+to version, encrypt, and securely share it with your team.
 
-Terraform uses this local state to create plans and make changes to your
+Terraform uses state to determine which changes to make to your
 infrastructure. Prior to any operation, Terraform does a
-[refresh](/cli/commands/refresh) to update the state with the
+[refresh](/terraform/cli/commands/refresh) to update the state with the
 real infrastructure.
 
 The primary purpose of Terraform state is to store bindings between objects in
@@ -28,13 +29,13 @@ resource instance, and then potentially update or delete that object in
 response to future configuration changes.
 
 For more information on why Terraform requires state and why Terraform cannot
-function without state, please see the page [state purpose](/language/state/purpose).
+function without state, please see the page [state purpose](/terraform/language/state/purpose).
 
 ## Inspection and Modification
 
 While the format of the state files are just JSON, direct file editing
 of the state is discouraged. Terraform provides the
-[terraform state](/cli/commands/state) command to perform
+[terraform state](/terraform/cli/commands/state) command to perform
 basic modifications of the state using the CLI.
 
 The CLI usage and output of the state commands is structured to be
@@ -67,10 +68,10 @@ in new versions.
 Alternatively, there are several integration points which produce JSON output
 that is specifically intended for consumption by external software:
 
-* [The `terraform output` command](/cli/commands/output)
+* [The `terraform output` command](/terraform/cli/commands/output)
   has a `-json` option, for obtaining either the full set of root module output
   values or a specific named output value from the latest state snapshot.
-* [The `terraform show` command](/cli/commands/show) has a `-json`
+* [The `terraform show` command](/terraform/cli/commands/show) has a `-json`
   option for inspecting the latest state snapshot in full, and also for
   inspecting saved plan files which include a copy of the prior state at the
   time the plan was made.

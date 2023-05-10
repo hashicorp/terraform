@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -8,6 +11,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/repl"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -75,7 +79,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 	c.ignoreRemoteVersionConflict(b)
 
 	// Build the operation
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.ConfigDir = configPath
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	opReq.AllowUnsetVariables = true // we'll just evaluate them as unknown

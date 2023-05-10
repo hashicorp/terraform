@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -31,6 +35,11 @@ type graphWalkOpts struct {
 	// from the plan phase into the apply phase without having to re-compute
 	// the module and resource expansion.
 	PlanTimeCheckResults *states.CheckResults
+
+	// PlanTimeTimestamp should be populated during the plan phase by retrieving
+	// the current UTC timestamp, and should be read from the plan file during
+	// the apply phase.
+	PlanTimeTimestamp time.Time
 
 	MoveResults refactoring.MoveResults
 }
@@ -140,5 +149,6 @@ func (c *Context) graphWalker(operation walkOperation, opts *graphWalkOpts) *Con
 		MoveResults:      opts.MoveResults,
 		Operation:        operation,
 		StopContext:      c.runContext,
+		PlanTimestamp:    opts.PlanTimeTimestamp,
 	}
 }

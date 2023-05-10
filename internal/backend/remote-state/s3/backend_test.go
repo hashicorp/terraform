@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package s3
 
 import (
@@ -326,6 +329,19 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 	if !diags.HasErrors() {
 		t.Fatal("expected config validation error")
 	}
+
+	cfg = hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
+		"region":         "us-west-1",
+		"bucket":         "tf-test",
+		"key":            "trailing-slash/",
+		"encrypt":        true,
+		"dynamodb_table": "dynamoTable",
+	})
+
+	_, diags = New().PrepareConfig(cfg)
+	if !diags.HasErrors() {
+		t.Fatal("expected config validation error")
+	}
 }
 
 func TestBackendConfig_invalidSSECustomerKeyLength(t *testing.T) {
@@ -524,7 +540,7 @@ func TestBackendExtraPaths(t *testing.T) {
 	}
 
 	// delete the real workspace
-	if err := b.DeleteWorkspace("s2"); err != nil {
+	if err := b.DeleteWorkspace("s2", true); err != nil {
 		t.Fatal(err)
 	}
 

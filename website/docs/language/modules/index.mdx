@@ -7,7 +7,7 @@ description: >-
 
 # Modules
 
-> **Hands-on:** Try the [Reuse Configuration with Modules](https://learn.hashicorp.com/collections/terraform/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
+> **Hands-on:** Try the [Reuse Configuration with Modules](/terraform/tutorials/modules?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials.
 
 _Modules_ are containers for multiple resources that are used together. A module
 consists of a collection of `.tf` and/or `.tf.json` files kept together in a
@@ -44,27 +44,27 @@ download them automatically if you specify the appropriate source and version in
 a module call block.
 
 Also, members of your organization might produce modules specifically crafted
-for your own infrastructure needs. [Terraform Cloud](/cloud) and
-[Terraform Enterprise](/enterprise) both include a private
+for your own infrastructure needs. [Terraform Cloud](https://cloud.hashicorp.com/products/terraform) and
+[Terraform Enterprise](/terraform/enterprise) both include a private
 module registry for sharing modules internally within your organization.
 
 ## Using Modules
 
-- [Module Blocks](/language/modules/syntax) documents the syntax for
+- [Module Blocks](/terraform/language/modules/syntax) documents the syntax for
   calling a child module from a parent module, including meta-arguments like
   `for_each`.
 
-- [Module Sources](/language/modules/sources) documents what kinds of paths,
+- [Module Sources](/terraform/language/modules/sources) documents what kinds of paths,
   addresses, and URIs can be used in the `source` argument of a module block.
 
 - The Meta-Arguments section documents special arguments that can be used with
   every module, including
-  [`providers`](/language/meta-arguments/module-providers),
-  [`depends_on`](/language/meta-arguments/depends_on),
-  [`count`](/language/meta-arguments/count),
-  and [`for_each`](/language/meta-arguments/for_each).
+  [`providers`](/terraform/language/meta-arguments/module-providers),
+  [`depends_on`](/terraform/language/meta-arguments/depends_on),
+  [`count`](/terraform/language/meta-arguments/count),
+  and [`for_each`](/terraform/language/meta-arguments/for_each).
 
 ## Developing Modules
 
 For information about developing reusable modules, see
-[Module Development](/language/modules/develop).
+[Module Development](/terraform/language/modules/develop).

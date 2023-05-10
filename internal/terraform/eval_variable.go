@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -90,8 +93,8 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 		given = defaultVal // must be set, because we checked above that the variable isn't required
 	}
 
-	// Apply defaults from the variable's type constraint to the given value,
-	// unless the given value is null. We do not apply defaults to top-level
+	// Apply defaults from the variable's type constraint to the converted value,
+	// unless the converted value is null. We do not apply defaults to top-level
 	// null values, as doing so could prevent assigning null to a nullable
 	// variable.
 	if cfg.TypeDefaults != nil && !given.IsNull() {
@@ -223,7 +226,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 				config.Name: val,
 			}),
 		},
-		Functions: ctx.EvaluationScope(nil, EvalDataForNoInstanceKey).Functions(),
+		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
 	}
 
 	for _, validation := range config.Validations {

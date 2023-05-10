@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -68,6 +71,10 @@ type NodeAbstractResource struct {
 
 	// The address of the provider this resource will use
 	ResolvedProvider addrs.AbsProviderConfig
+	// storedProviderConfig is the provider address retrieved from the
+	// state. This is defined here for access within the ProvidedBy method, but
+	// will be set from the embedding instance type when the state is attached.
+	storedProviderConfig addrs.AbsProviderConfig
 
 	// This resource may expand into instances which need to be imported.
 	importTargets []*ImportTarget
@@ -125,10 +132,6 @@ func (n *NodeAbstractResource) ModulePath() addrs.Module {
 // GraphNodeReferenceable
 func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 	return []addrs.Referenceable{n.Addr.Resource}
-}
-
-func (n *NodeAbstractResource) Import(addr *ImportTarget) {
-
 }
 
 // GraphNodeReferencer
@@ -231,6 +234,11 @@ func (n *NodeAbstractResource) SetProvider(p addrs.AbsProviderConfig) {
 
 // GraphNodeProviderConsumer
 func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
+	// Once the provider is fully resolved, we can return the known value.
+	if n.ResolvedProvider.Provider.Type != "" {
+		return n.ResolvedProvider, true
+	}
+
 	// If we have a config we prefer that above all else
 	if n.Config != nil {
 		relAddr := n.Config.ProviderConfigAddr()
@@ -238,6 +246,14 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 			LocalName: relAddr.LocalName,
 			Alias:     relAddr.Alias,
 		}, false
+	}
+
+	// See if we have a valid provider config from the state.
+	if n.storedProviderConfig.Provider.Type != "" {
+		// An address from the state must match exactly, since we must ensure
+		// we refresh/destroy a resource with the same provider configuration
+		// that created it.
+		return n.storedProviderConfig, true
 	}
 
 	// No provider configuration found; return a default address
@@ -251,6 +267,9 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.Config != nil {
 		return n.Config.Provider
+	}
+	if n.storedProviderConfig.Provider.Type != "" {
+		return n.storedProviderConfig.Provider
 	}
 	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
 }

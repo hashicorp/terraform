@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package views
 
 import (
@@ -8,6 +11,9 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statefile"
@@ -86,7 +92,38 @@ func (v *OperationHuman) EmergencyDumpState(stateFile *statefile.File) error {
 }
 
 func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
-	renderPlan(plan, schemas, v.view)
+	outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)
+	if err != nil {
+		v.view.streams.Eprintf("Failed to marshal plan to json: %s", err)
+		return
+	}
+
+	renderer := jsonformat.Renderer{
+		Colorize:            v.view.colorize,
+		Streams:             v.view.streams,
+		RunningInAutomation: v.inAutomation,
+	}
+
+	jplan := jsonformat.Plan{
+		PlanFormatVersion:     jsonplan.FormatVersion,
+		ProviderFormatVersion: jsonprovider.FormatVersion,
+		OutputChanges:         outputs,
+		ResourceChanges:       changed,
+		ResourceDrift:         drift,
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+		RelevantAttributes:    attrs,
+	}
+
+	// Side load some data that we can't extract from the JSON plan.
+	var opts []jsonformat.PlanRendererOpt
+	if !plan.CanApply() {
+		opts = append(opts, jsonformat.CanNotApply)
+	}
+	if plan.Errored {
+		opts = append(opts, jsonformat.Errored)
+	}
+
+	renderer.RenderHumanPlan(jplan, plan.UIMode, opts...)
 }
 
 func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
@@ -178,6 +215,11 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			// Avoid rendering data sources on deletion
 			continue
 		}
+
+		if change.Importing != nil {
+			cs.Import++
+		}
+
 		switch change.Action {
 		case plans.Create:
 			cs.Add++
@@ -190,7 +232,7 @@ func (v *OperationJSON) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 			cs.Remove++
 		}
 
-		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) {
+		if change.Action != plans.NoOp || !change.Addr.Equal(change.PrevRunAddr) || change.Importing != nil {
 			v.view.PlannedChange(json.NewResourceInstanceChange(change))
 		}
 	}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -878,5 +881,29 @@ func planFixtureSchema() *terraform.ProviderSchema {
 				},
 			},
 		},
+	}
+}
+
+func TestLocal_invalidOptions(t *testing.T) {
+	b := TestLocal(t)
+	TestLocalProvider(t, b, "test", planFixtureSchema())
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
+	defer configCleanup()
+	op.PlanRefresh = true
+	op.PlanMode = plans.RefreshOnlyMode
+	op.ForceReplace = []addrs.AbsResourceInstance{mustResourceInstanceAddr("test_instance.foo")}
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("unexpected error: %s", err)
+	}
+	<-run.Done()
+	if run.Result == backend.OperationSuccess {
+		t.Fatalf("plan operation failed")
+	}
+
+	if errOutput := done(t).Stderr(); errOutput == "" {
+		t.Fatal("expected error output")
 	}
 }

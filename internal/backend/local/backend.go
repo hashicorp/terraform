@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -214,10 +217,10 @@ func (b *Local) Workspaces() ([]string, error) {
 // DeleteWorkspace removes a workspace.
 //
 // The "default" workspace cannot be removed.
-func (b *Local) DeleteWorkspace(name string) error {
+func (b *Local) DeleteWorkspace(name string, force bool) error {
 	// If we have a backend handling state, defer to that.
 	if b.Backend != nil {
-		return b.Backend.DeleteWorkspace(name)
+		return b.Backend.DeleteWorkspace(name, force)
 	}
 
 	if name == "" {

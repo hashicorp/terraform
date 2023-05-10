@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -121,37 +124,37 @@ func (n *NodePlannableResourceInstanceOrphan) managedResourceExecute(ctx EvalCon
 		oldState = refreshedState
 	}
 
-	if !n.skipPlanChanges {
-		var change *plans.ResourceInstanceChange
-		change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
-		diags = diags.Append(destroyPlanDiags)
-		if diags.HasErrors() {
-			return diags
-		}
-
-		diags = diags.Append(n.checkPreventDestroy(change))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		// We might be able to offer an approximate reason for why we are
-		// planning to delete this object. (This is best-effort; we might
-		// sometimes not have a reason.)
-		change.ActionReason = n.deleteActionReason(ctx)
-
-		diags = diags.Append(n.writeChange(ctx, change, ""))
-		if diags.HasErrors() {
-			return diags
-		}
-
-		diags = diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
-	} else {
-		// The working state should at least be updated with the result
-		// of upgrading and refreshing from above.
-		diags = diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
+	// If we're skipping planning, all we need to do is write the state. If the
+	// refresh indicates the instance no longer exists, there is also nothing
+	// to plan because there is no longer any state and it doesn't exist in the
+	// config.
+	if n.skipPlanChanges || oldState == nil || oldState.Value.IsNull() {
+		return diags.Append(n.writeResourceInstanceState(ctx, oldState, workingState))
 	}
 
-	return diags
+	var change *plans.ResourceInstanceChange
+	change, destroyPlanDiags := n.planDestroy(ctx, oldState, "")
+	diags = diags.Append(destroyPlanDiags)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	diags = diags.Append(n.checkPreventDestroy(change))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	// We might be able to offer an approximate reason for why we are
+	// planning to delete this object. (This is best-effort; we might
+	// sometimes not have a reason.)
+	change.ActionReason = n.deleteActionReason(ctx)
+
+	diags = diags.Append(n.writeChange(ctx, change, ""))
+	if diags.HasErrors() {
+		return diags
+	}
+
+	return diags.Append(n.writeResourceInstanceState(ctx, nil, workingState))
 }
 
 func (n *NodePlannableResourceInstanceOrphan) deleteActionReason(ctx EvalContext) plans.ResourceInstanceChangeActionReason {

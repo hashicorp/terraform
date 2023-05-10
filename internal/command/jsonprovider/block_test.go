@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonprovider
 
 import (
@@ -13,11 +16,11 @@ import (
 func TestMarshalBlock(t *testing.T) {
 	tests := []struct {
 		Input *configschema.Block
-		Want  *block
+		Want  *Block
 	}{
 		{
 			nil,
-			&block{},
+			&Block{},
 		},
 		{
 			Input: &configschema.Block{
@@ -37,16 +40,16 @@ func TestMarshalBlock(t *testing.T) {
 					},
 				},
 			},
-			Want: &block{
-				Attributes: map[string]*attribute{
+			Want: &Block{
+				Attributes: map[string]*Attribute{
 					"ami": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 					"id":  {AttributeType: json.RawMessage(`"string"`), Optional: true, Computed: true, DescriptionKind: "plain"},
 				},
-				BlockTypes: map[string]*blockType{
+				BlockTypes: map[string]*BlockType{
 					"network_interface": {
 						NestingMode: "list",
-						Block: &block{
-							Attributes: map[string]*attribute{
+						Block: &Block{
+							Attributes: map[string]*Attribute{
 								"description":  {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 								"device_index": {AttributeType: json.RawMessage(`"string"`), Optional: true, DescriptionKind: "plain"},
 							},

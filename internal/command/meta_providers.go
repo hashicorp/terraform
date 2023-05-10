@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -63,6 +66,7 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 	inst := providercache.NewInstaller(targetDir, source)
 	if globalCacheDir != nil {
 		inst.SetGlobalCacheDir(globalCacheDir)
+		inst.SetGlobalCacheDirMayBreakDependencyLockFile(m.PluginCacheMayBreakDependencyLockFile)
 	}
 	var builtinProviderTypes []string
 	for ty := range m.internalProviders() {

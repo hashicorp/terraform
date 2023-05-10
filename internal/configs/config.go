@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package configs
 
 import (
@@ -554,4 +557,17 @@ func (c *Config) ProviderForConfigAddr(addr addrs.LocalProviderConfig) addrs.Pro
 		return provider.Type
 	}
 	return c.ResolveAbsProviderAddr(addr, addrs.RootModule).Provider
+}
+
+func (c *Config) CheckCoreVersionRequirements() hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	diags = diags.Extend(c.Module.CheckCoreVersionRequirements(c.Path, c.SourceAddr))
+
+	for _, c := range c.Children {
+		childDiags := c.CheckCoreVersionRequirements()
+		diags = diags.Extend(childDiags)
+	}
+
+	return diags
 }

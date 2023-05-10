@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package views
 
 import (
@@ -356,6 +359,78 @@ Plan: 1 to add, 0 to change, 0 to destroy.
 	}
 }
 
+func TestOperation_planWithDatasource(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestOperation_planWithDatasourceAndDrift(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
+
+	plan := testPlanWithDatasource(t)
+	schemas := testSchemas()
+	v.Plan(plan, schemas)
+
+	want := `
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.test_data_source.bar will be read during apply
+ <= data "test_data_source" "bar" {
+      + bar = "foo"
+      + id  = "C6743020-40BD-4591-81E6-CD08494341D3"
+    }
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + foo = "bar"
+      + id  = (known after apply)
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`
+
+	if got := done(t).Stdout(); got != want {
+		t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 func TestOperation_planNextStep(t *testing.T) {
 	testCases := map[string]struct {
 		path string
@@ -501,6 +576,7 @@ func TestOperationJSON_planNoChanges(t *testing.T) {
 			"changes": map[string]interface{}{
 				"operation": "plan",
 				"add":       float64(0),
+				"import":    float64(0),
 				"change":    float64(0),
 				"remove":    float64(0),
 			},
@@ -668,8 +744,156 @@ func TestOperationJSON_plan(t *testing.T) {
 			"changes": map[string]interface{}{
 				"operation": "plan",
 				"add":       float64(3),
+				"import":    float64(0),
 				"change":    float64(1),
 				"remove":    float64(3),
+			},
+		},
+	}
+
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestOperationJSON_planWithImport(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	v := &OperationJSON{view: NewJSONView(NewView(streams))}
+
+	root := addrs.RootModuleInstance
+	vpc, diags := addrs.ParseModuleInstanceStr("module.vpc")
+	if len(diags) > 0 {
+		t.Fatal(diags.Err())
+	}
+	boop := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "boop"}
+	beep := addrs.Resource{Mode: addrs.ManagedResourceMode, Type: "test_resource", Name: "beep"}
+
+	plan := &plans.Plan{
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(vpc),
+					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(vpc),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.NoOp, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
+				},
+				{
+					Addr:        boop.Instance(addrs.IntKey(1)).Absolute(vpc),
+					PrevRunAddr: boop.Instance(addrs.IntKey(1)).Absolute(vpc),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Delete, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
+				},
+				{
+					Addr:        boop.Instance(addrs.IntKey(0)).Absolute(root),
+					PrevRunAddr: boop.Instance(addrs.IntKey(0)).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.CreateThenDelete, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
+				},
+				{
+					Addr:        beep.Instance(addrs.NoKey).Absolute(root),
+					PrevRunAddr: beep.Instance(addrs.NoKey).Absolute(root),
+					ChangeSrc:   plans.ChangeSrc{Action: plans.Update, Importing: &plans.ImportingSrc{ID: "DECD6D77"}},
+				},
+			},
+		},
+	}
+	v.Plan(plan, testSchemas())
+
+	want := []map[string]interface{}{
+		// Simple import
+		{
+			"@level":   "info",
+			"@message": "module.vpc.test_resource.boop[0]: Plan to import",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "import",
+				"resource": map[string]interface{}{
+					"addr":             `module.vpc.test_resource.boop[0]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"resource":         `test_resource.boop[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+				"importing": map[string]interface{}{
+					"id": "DECD6D77",
+				},
+			},
+		},
+		// Delete after importing
+		{
+			"@level":   "info",
+			"@message": "module.vpc.test_resource.boop[1]: Plan to delete",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "delete",
+				"resource": map[string]interface{}{
+					"addr":             `module.vpc.test_resource.boop[1]`,
+					"implied_provider": "test",
+					"module":           "module.vpc",
+					"resource":         `test_resource.boop[1]`,
+					"resource_key":     float64(1),
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+				"importing": map[string]interface{}{
+					"id": "DECD6D77",
+				},
+			},
+		},
+		// Create-then-delete after importing.
+		{
+			"@level":   "info",
+			"@message": "test_resource.boop[0]: Plan to replace",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "replace",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.boop[0]`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.boop[0]`,
+					"resource_key":     float64(0),
+					"resource_name":    "boop",
+					"resource_type":    "test_resource",
+				},
+				"importing": map[string]interface{}{
+					"id": "DECD6D77",
+				},
+			},
+		},
+		// Update after importing
+		{
+			"@level":   "info",
+			"@message": "test_resource.beep: Plan to update",
+			"@module":  "terraform.ui",
+			"type":     "planned_change",
+			"change": map[string]interface{}{
+				"action": "update",
+				"resource": map[string]interface{}{
+					"addr":             `test_resource.beep`,
+					"implied_provider": "test",
+					"module":           "",
+					"resource":         `test_resource.beep`,
+					"resource_key":     nil,
+					"resource_name":    "beep",
+					"resource_type":    "test_resource",
+				},
+				"importing": map[string]interface{}{
+					"id": "DECD6D77",
+				},
+			},
+		},
+		{
+			"@level":   "info",
+			"@message": "Plan: 4 to import, 1 to add, 1 to change, 2 to destroy.",
+			"@module":  "terraform.ui",
+			"type":     "change_summary",
+			"changes": map[string]interface{}{
+				"operation": "plan",
+				"add":       float64(1),
+				"import":    float64(4),
+				"change":    float64(1),
+				"remove":    float64(2),
 			},
 		},
 	}
@@ -804,6 +1028,7 @@ func TestOperationJSON_planDriftWithMove(t *testing.T) {
 			"changes": map[string]interface{}{
 				"operation": "plan",
 				"add":       float64(0),
+				"import":    float64(0),
 				"change":    float64(0),
 				"remove":    float64(0),
 			},
@@ -934,6 +1159,7 @@ func TestOperationJSON_planDriftWithMoveRefreshOnly(t *testing.T) {
 			"changes": map[string]interface{}{
 				"operation": "plan",
 				"add":       float64(0),
+				"import":    float64(0),
 				"change":    float64(0),
 				"remove":    float64(0),
 			},
@@ -993,6 +1219,7 @@ func TestOperationJSON_planOutputChanges(t *testing.T) {
 			"changes": map[string]interface{}{
 				"operation": "plan",
 				"add":       float64(0),
+				"import":    float64(0),
 				"change":    float64(0),
 				"remove":    float64(0),
 			},

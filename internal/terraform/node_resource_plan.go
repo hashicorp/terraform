@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -25,6 +28,8 @@ type nodeExpandPlannableResource struct {
 	// skipRefresh indicates that we should skip refreshing individual instances
 	skipRefresh bool
 
+	preDestroyRefresh bool
+
 	// skipPlanChanges indicates we should skip trying to plan change actions
 	// for any instances.
 	skipPlanChanges bool
@@ -41,6 +46,10 @@ type nodeExpandPlannableResource struct {
 	// structure in the future, as we need to compare for equality and take the
 	// union of multiple groups of dependencies.
 	dependencies []addrs.ConfigResource
+
+	// legacyImportMode is set if the graph is being constructed following an
+	// invocation of the legacy "terraform import" CLI command.
+	legacyImportMode bool
 }
 
 var (
@@ -309,13 +318,18 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 
 	// The concrete resource factory we'll use
 	concreteResource := func(a *NodeAbstractResourceInstance) dag.Vertex {
-		// check if this node is being imported first
-		for _, importTarget := range n.importTargets {
-			if importTarget.Addr.Equal(a.Addr) {
-				return &graphNodeImportState{
-					Addr:             importTarget.Addr,
-					ID:               importTarget.ID,
-					ResolvedProvider: n.ResolvedProvider,
+		var m *NodePlannableResourceInstance
+
+		// If we're in legacy import mode (the import CLI command), we only need
+		// to return the import node, not a plannable resource node.
+		if n.legacyImportMode {
+			for _, importTarget := range n.importTargets {
+				if importTarget.Addr.Equal(a.Addr) {
+					return &graphNodeImportState{
+						Addr:             importTarget.Addr,
+						ID:               importTarget.ID,
+						ResolvedProvider: n.ResolvedProvider,
+					}
 				}
 			}
 		}
@@ -328,8 +342,9 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		a.ProviderMetas = n.ProviderMetas
 		a.dependsOn = n.dependsOn
 		a.Dependencies = n.dependencies
+		a.preDestroyRefresh = n.preDestroyRefresh
 
-		return &NodePlannableResourceInstance{
+		m = &NodePlannableResourceInstance{
 			NodeAbstractResourceInstance: a,
 
 			// By the time we're walking, we've figured out whether we need
@@ -340,6 +355,19 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			skipPlanChanges:          n.skipPlanChanges,
 			forceReplace:             n.forceReplace,
 		}
+
+		for _, importTarget := range n.importTargets {
+			if importTarget.Addr.Equal(a.Addr) {
+				// If we get here, we're definitely not in legacy import mode,
+				// so go ahead and plan the resource changes including import.
+				m.importTarget = ImportTarget{
+					ID:   importTarget.ID,
+					Addr: importTarget.Addr,
+				}
+			}
+		}
+
+		return m
 	}
 
 	// The concrete resource factory we'll use for orphans

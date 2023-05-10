@@ -1,0 +1,26 @@
+{
+  "format_version": "1.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_simple_resource.drift",
+          "mode": "managed",
+          "name": "drift",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {},
+          "type": "tfcoremock_simple_resource",
+          "values": {
+            "bool": null,
+            "float": null,
+            "id": "cb79269e-dc39-1e68-0a9c-63cb392afda9",
+            "integer": null,
+            "number": null,
+            "string": "Hello, drift!"
+          }
+        }
+      ]
+    }
+  }
+}

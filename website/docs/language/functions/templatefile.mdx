@@ -15,13 +15,13 @@ templatefile(path, vars)
 ```
 
 The template syntax is the same as for
-[string templates](/language/expressions/strings#string-templates)
+[string templates](/terraform/language/expressions/strings#string-templates)
 in the main Terraform language, including interpolation sequences delimited with
 `${` ... `}`. This function just allows longer template sequences to be factored
 out into a separate file for readability.
 
-The "vars" argument must be a map. Within the template file, each of the keys
-in the map is available as a variable for interpolation. The template may
+The "vars" argument must be an object. Within the template file, each of the
+keys in the map is available as a variable for interpolation. The template may
 also use any other function available in the Terraform language, except that
 recursive calls to `templatefile` are not permitted. Variable names must
 each start with a letter, followed by zero or more letters, digits, or
@@ -49,7 +49,7 @@ better editing experience as a result.
 Given a template file `backends.tftpl` with the following content:
 
 ```
-%{ for addr in ip_addrs ~}
+%{ for addr, port in ip_addrs ~}
 backend ${addr}:${port}
 %{ endfor ~}
 ```
@@ -99,9 +99,9 @@ YAML that will be interpreted correctly when using lots of individual
 interpolation sequences and directives.
 
 Instead, you can write a template that consists only of a single interpolated
-call to either [`jsonencode`](/language/functions/jsonencode) or
-[`yamlencode`](/language/functions/yamlencode), specifying the value to encode using
-[normal Terraform expression syntax](/language/expressions)
+call to either [`jsonencode`](/terraform/language/functions/jsonencode) or
+[`yamlencode`](/terraform/language/functions/yamlencode), specifying the value to encode using
+[normal Terraform expression syntax](/terraform/language/expressions)
 as in the following examples:
 
 ```
@@ -121,9 +121,9 @@ this will produce a valid JSON or YAML representation of the given data
 structure, without the need to manually handle escaping or delimiters.
 In the latest examples above, the repetition based on elements of `ip_addrs` is
 achieved by using a
-[`for` expression](/language/expressions/for)
+[`for` expression](/terraform/language/expressions/for)
 rather than by using
-[template directives](/language/expressions/strings#directives).
+[template directives](/terraform/language/expressions/strings#directives).
 
 ```json
 {"backends":["10.0.0.1:8080","10.0.0.2:8080"]}
@@ -142,9 +142,9 @@ locals {
 ```
 
 For more information, see the main documentation for
-[`jsonencode`](/language/functions/jsonencode) and [`yamlencode`](/language/functions/yamlencode).
+[`jsonencode`](/terraform/language/functions/jsonencode) and [`yamlencode`](/terraform/language/functions/yamlencode).
 
 ## Related Functions
 
-* [`file`](/language/functions/file) reads a file from disk and returns its literal contents
+* [`file`](/terraform/language/functions/file) reads a file from disk and returns its literal contents
   without any template interpretation.

@@ -1,5 +1,7 @@
 ---
 page_title: Standard Module Structure
+description: >-
+  Learn about the recommended file and directory structure for developing reusable modules distributed as separate repositories.
 ---
 
 # Standard Module Structure
@@ -53,8 +55,8 @@ don't need to do any extra work to follow the standard structure.
 * **Variables and outputs should have descriptions.** All variables and
   outputs should have one or two sentence descriptions that explain their
   purpose. This is used for documentation. See the documentation for
-  [variable configuration](/language/values/variables) and
-  [output configuration](/language/values/outputs) for more details.
+  [variable configuration](/terraform/language/values/variables) and
+  [output configuration](/terraform/language/values/outputs) for more details.
 
 * **Nested modules**. Nested modules should exist under the `modules/`
   subdirectory. Any nested module with a `README.md` is considered usable
@@ -74,7 +76,7 @@ don't need to do any extra work to follow the standard structure.
   again separately.
 
   If a repository or package contains multiple nested modules, they should
-  ideally be [composable](/language/modules/develop/composition) by the caller, rather than
+  ideally be [composable](/terraform/language/modules/develop/composition) by the caller, rather than
   calling directly to each other and creating a deeply-nested tree of modules.
 
 * **Examples**. Examples of using the module should exist under the

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package azure
 
 import (
@@ -142,19 +145,29 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_OIDC", false),
 				Description: "Allow OIDC to be used for authentication",
 			},
-
+			"oidc_token": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_OIDC_TOKEN", ""),
+				Description: "A generic JWT token that can be used for OIDC authentication. Should not be used in conjunction with `oidc_request_token`.",
+			},
+			"oidc_token_file_path": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("ARM_OIDC_TOKEN_FILE_PATH", ""),
+				Description: "Path to file containing a generic JWT token that can be used for OIDC authentication. Should not be used in conjunction with `oidc_request_token`.",
+			},
 			"oidc_request_url": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_URL", "ACTIONS_ID_TOKEN_REQUEST_URL"}, ""),
-				Description: "The URL for the OIDC provider from which to request an ID token",
+				Description: "The URL of the OIDC provider from which to request an ID token. Needs to be used in conjunction with `oidc_request_token`. This is meant to be used for Github Actions.",
 			},
-
 			"oidc_request_token": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{"ARM_OIDC_REQUEST_TOKEN", "ACTIONS_ID_TOKEN_REQUEST_TOKEN"}, ""),
-				Description: "The bearer token for the request to the OIDC provider",
+				Description: "The bearer token to use for the request to the OIDC providers `oidc_request_url` URL to fetch an ID token. Needs to be used in conjunction with `oidc_request_url`. This is meant to be used for Github Actions.",
 			},
 
 			// Feature Flags
@@ -197,6 +210,8 @@ type BackendConfig struct {
 	MetadataHost                  string
 	Environment                   string
 	MsiEndpoint                   string
+	OIDCToken                     string
+	OIDCTokenFilePath             string
 	OIDCRequestURL                string
 	OIDCRequestToken              string
 	ResourceGroupName             string
@@ -230,6 +245,8 @@ func (b *Backend) configure(ctx context.Context) error {
 		MetadataHost:                  data.Get("metadata_host").(string),
 		Environment:                   data.Get("environment").(string),
 		MsiEndpoint:                   data.Get("msi_endpoint").(string),
+		OIDCToken:                     data.Get("oidc_token").(string),
+		OIDCTokenFilePath:             data.Get("oidc_token_file_path").(string),
 		OIDCRequestURL:                data.Get("oidc_request_url").(string),
 		OIDCRequestToken:              data.Get("oidc_request_token").(string),
 		ResourceGroupName:             data.Get("resource_group_name").(string),

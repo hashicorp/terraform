@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfdiags
 
 // nativeError is a Diagnostic implementation that wraps a normal Go error

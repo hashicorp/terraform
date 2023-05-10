@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package tfdiags is a utility package for representing errors and
 // warnings in a manner that allows us to produce good messages for the
 // user.

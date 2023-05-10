@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package plans
 
 import (
@@ -19,24 +22,6 @@ import (
 type ChangesSync struct {
 	lock    sync.Mutex
 	changes *Changes
-}
-
-// IsFullDestroy returns true if the set of changes indicates we are doing a
-// destroy of all resources.
-func (cs *ChangesSync) IsFullDestroy() bool {
-	if cs == nil {
-		panic("FullDestroy on nil ChangesSync")
-	}
-	cs.lock.Lock()
-	defer cs.lock.Unlock()
-
-	for _, c := range cs.changes.Resources {
-		if c.Action != Delete {
-			return false
-		}
-	}
-
-	return true
 }
 
 // AppendResourceInstanceChange records the given resource instance change in

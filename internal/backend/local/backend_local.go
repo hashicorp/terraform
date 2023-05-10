@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package local
 
 import (
@@ -284,6 +287,7 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 		))
 		return nil, snap, diags
 	}
+
 	if currentStateMeta != nil {
 		// If the caller sets this, we require that the stored prior state
 		// has the same metadata, which is an extra safety check that nothing
@@ -394,6 +398,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
+			Secret:      vc.Sensitive,
 		})
 		if err != nil {
 			// Since interactive prompts are best-effort, we'll just continue

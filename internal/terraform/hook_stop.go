@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -70,6 +73,8 @@ func (h *stopHook) PreImportState(addr addrs.AbsResourceInstance, importID strin
 func (h *stopHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	return h.hook()
 }
+
+func (h *stopHook) Stopping() {}
 
 func (h *stopHook) PostStateUpdate(new *states.State) (HookAction, error) {
 	return h.hook()

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package repl
 
 import (
@@ -18,7 +21,7 @@ func FormatValue(v cty.Value, indent int) string {
 		return "(known after apply)"
 	}
 	if v.HasMark(marks.Sensitive) {
-		return "(sensitive)"
+		return "(sensitive value)"
 	}
 	if v.IsNull() {
 		ty := v.Type()

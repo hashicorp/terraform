@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -6,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/agext/levenshtein"
 	"github.com/hashicorp/hcl/v2"
@@ -60,6 +64,8 @@ type Evaluator struct {
 	// Changes is the set of proposed changes, embedded in a wrapper that
 	// ensures they can be safely accessed and modified concurrently.
 	Changes *plans.ChangesSync
+
+	PlanTimestamp time.Time
 }
 
 // Scope creates an evaluation scope for the given module path and optional
@@ -68,12 +74,14 @@ type Evaluator struct {
 // If the "self" argument is nil then the "self" object is not available
 // in evaluated expressions. Otherwise, it behaves as an alias for the given
 // address.
-func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable) *lang.Scope {
+func (e *Evaluator) Scope(data lang.Data, self addrs.Referenceable, source addrs.Referenceable) *lang.Scope {
 	return &lang.Scope{
-		Data:     data,
-		SelfAddr: self,
-		PureOnly: e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
-		BaseDir:  ".", // Always current working directory for now.
+		Data:          data,
+		SelfAddr:      self,
+		SourceAddr:    source,
+		PureOnly:      e.Operation != walkApply && e.Operation != walkDestroy && e.Operation != walkEval,
+		BaseDir:       ".", // Always current working directory for now.
+		PlanTimestamp: e.PlanTimestamp,
 	}
 }
 
@@ -176,7 +184,7 @@ func (d *evaluationStateData) GetForEachAttr(addr addrs.ForEachAttr, rng tfdiags
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `each.value cannot be used in this context`,
-				Detail:   `A reference to "each.value" has been used in a context in which it unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`,
+				Detail:   `A reference to "each.value" has been used in a context in which it is unavailable, such as when the configuration no longer contains the value in its "for_each" expression. Remove this reference to each.value in your configuration to work around this error.`,
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return cty.UnknownVal(cty.DynamicPseudoType), diags
@@ -375,6 +383,11 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 	// so we only need to store these by instance key.
 	stateMap := map[addrs.InstanceKey]map[string]cty.Value{}
 	for _, output := range d.Evaluator.State.ModuleOutputs(d.ModulePath, addr) {
+		val := output.Value
+		if output.Sensitive {
+			val = val.Mark(marks.Sensitive)
+		}
+
 		_, callInstance := output.Addr.Module.CallInstance()
 		instance, ok := stateMap[callInstance.Key]
 		if !ok {
@@ -382,7 +395,7 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			stateMap[callInstance.Key] = instance
 		}
 
-		instance[output.Addr.OutputValue.Name] = output.Value
+		instance[output.Addr.OutputValue.Name] = val
 	}
 
 	// Get all changes that reside for this module call within our path.
@@ -426,10 +439,6 @@ func (d *evaluationStateData) GetModule(addr addrs.ModuleCall, rng tfdiags.Sourc
 			}
 
 			instance[cfg.Name] = outputState
-
-			if cfg.Sensitive {
-				instance[cfg.Name] = outputState.Mark(marks.Sensitive)
-			}
 		}
 
 		// any pending changes override the state state values
@@ -728,7 +737,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 
 	// Decode all instances in the current state
 	instances := map[addrs.InstanceKey]cty.Value{}
-	pendingDestroy := d.Evaluator.Changes.IsFullDestroy()
+	pendingDestroy := d.Operation == walkDestroy
 	for key, is := range rs.Instances {
 		if is == nil || is.Current == nil {
 			// Assume we're dealing with an instance that hasn't been created yet.

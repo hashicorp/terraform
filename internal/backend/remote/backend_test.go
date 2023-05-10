@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package remote
 
 import (
@@ -262,11 +265,11 @@ func TestRemote_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != nil {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace("prod"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace("prod", true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
@@ -319,11 +322,11 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v, got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(backend.DefaultStateName); err != backend.ErrDefaultWorkspaceNotSupported {
+	if err := b.DeleteWorkspace(backend.DefaultStateName, true); err != backend.ErrDefaultWorkspaceNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrDefaultWorkspaceNotSupported, err)
 	}
 
-	if err := b.DeleteWorkspace(expectedA); err != nil {
+	if err := b.DeleteWorkspace(expectedA, true); err != nil {
 		t.Fatal(err)
 	}
 
@@ -337,7 +340,7 @@ func TestRemote_addAndRemoveWorkspacesNoDefault(t *testing.T) {
 		t.Fatalf("expected %#+v got %#+v", expectedWorkspaces, states)
 	}
 
-	if err := b.DeleteWorkspace(expectedB); err != nil {
+	if err := b.DeleteWorkspace(expectedB, true); err != nil {
 		t.Fatal(err)
 	}
 

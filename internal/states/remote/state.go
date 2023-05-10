@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package remote
 
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"sync"
 
 	uuid "github.com/hashicorp/go-uuid"
@@ -158,6 +162,9 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	log.Printf("[DEBUG] states/remote: state read serial is: %d; serial is: %d", s.readSerial, s.serial)
+	log.Printf("[DEBUG] states/remote: state read lineage is: %s; lineage is: %s", s.readLineage, s.lineage)
+
 	if s.readState != nil {
 		lineageUnchanged := s.readLineage != "" && s.lineage == s.readLineage
 		serialUnchanged := s.readSerial != 0 && s.serial == s.readSerial
@@ -175,13 +182,15 @@ func (s *State) PersistState(schemas *terraform.Schemas) error {
 		if err != nil {
 			return fmt.Errorf("failed checking for existing remote state: %s", err)
 		}
+		log.Printf("[DEBUG] states/remote: after refresh, state read serial is: %d; serial is: %d", s.readSerial, s.serial)
+		log.Printf("[DEBUG] states/remote: after refresh, state read lineage is: %s; lineage is: %s", s.readLineage, s.lineage)
 		if s.lineage == "" { // indicates that no state snapshot is present yet
 			lineage, err := uuid.GenerateUUID()
 			if err != nil {
 				return fmt.Errorf("failed to generate initial lineage: %v", err)
 			}
 			s.lineage = lineage
-			s.serial = 0
+			s.serial++
 		}
 	}
 

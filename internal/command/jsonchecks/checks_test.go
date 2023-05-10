@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonchecks
 
 import (
@@ -36,6 +39,8 @@ func TestMarshalCheckStates(t *testing.T) {
 	outputAInstAddr := addrs.Checkable(addrs.OutputValue{Name: "a"}.Absolute(addrs.RootModuleInstance))
 	outputBAddr := addrs.ConfigCheckable(addrs.OutputValue{Name: "b"}.InModule(moduleChildAddr.Module()))
 	outputBInstAddr := addrs.Checkable(addrs.OutputValue{Name: "b"}.Absolute(moduleChildAddr))
+	checkBlockAAddr := addrs.ConfigCheckable(addrs.Check{Name: "a"}.InModule(addrs.RootModule))
+	checkBlockAInstAddr := addrs.Checkable(addrs.Check{Name: "a"}.Absolute(addrs.RootModuleInstance))
 
 	tests := map[string]struct {
 		Input *states.CheckResults
@@ -90,9 +95,42 @@ func TestMarshalCheckStates(t *testing.T) {
 							}),
 						),
 					}),
+					addrs.MakeMapElem(checkBlockAAddr, &states.CheckResultAggregate{
+						Status: checks.StatusFail,
+						ObjectResults: addrs.MakeMap(
+							addrs.MakeMapElem(checkBlockAInstAddr, &states.CheckResultObject{
+								Status: checks.StatusFail,
+								FailureMessages: []string{
+									"Couldn't reverse the polarity.",
+								},
+							}),
+						),
+					}),
 				),
 			},
 			[]any{
+				map[string]any{
+					"//": "EXPERIMENTAL: see docs for details",
+					"address": map[string]any{
+						"kind":       "check",
+						"to_display": "check.a",
+						"name":       "a",
+					},
+					"instances": []any{
+						map[string]any{
+							"address": map[string]any{
+								"to_display": `check.a`,
+							},
+							"problems": []any{
+								map[string]any{
+									"message": "Couldn't reverse the polarity.",
+								},
+							},
+							"status": "fail",
+						},
+					},
+					"status": "fail",
+				},
 				map[string]any{
 					"//": "EXPERIMENTAL: see docs for details",
 					"address": map[string]any{

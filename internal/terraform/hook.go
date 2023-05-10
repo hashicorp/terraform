@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -76,6 +79,22 @@ type Hook interface {
 	PreImportState(addr addrs.AbsResourceInstance, importID string) (HookAction, error)
 	PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error)
 
+	// Stopping is called if an external signal requests that Terraform
+	// gracefully abort an operation in progress.
+	//
+	// This notification might suggest that the user wants Terraform to exit
+	// ASAP and in that case it's possible that if Terraform runs for too much
+	// longer then it'll get killed un-gracefully, and so this hook could be
+	// an opportunity to persist any transient data that would be lost under
+	// a subsequent kill signal. However, implementations must take care to do
+	// so in a way that won't cause corruption if the process _is_ killed while
+	// this hook is still running.
+	//
+	// This hook cannot control whether Terraform continues, because the
+	// graceful shutdown process is typically already running by the time this
+	// function is called.
+	Stopping()
+
 	// PostStateUpdate is called each time the state is updated. It receives
 	// a deep copy of the state, which it may therefore access freely without
 	// any need for locks to protect from concurrent writes from the caller.
@@ -138,6 +157,10 @@ func (*NilHook) PreImportState(addr addrs.AbsResourceInstance, importID string) 
 
 func (*NilHook) PostImportState(addr addrs.AbsResourceInstance, imported []providers.ImportedResource) (HookAction, error) {
 	return HookActionContinue, nil
+}
+
+func (*NilHook) Stopping() {
+	// Does nothing at all by default
 }
 
 func (*NilHook) PostStateUpdate(new *states.State) (HookAction, error) {

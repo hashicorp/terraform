@@ -1,7 +1,11 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -22,6 +26,7 @@ import (
 	"github.com/zclconf/go-cty/cty/gocty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -38,6 +43,7 @@ const (
 	tfeServiceID       = "tfe.v2"
 	headerSourceKey    = "X-Terraform-Integration"
 	headerSourceValue  = "cloud"
+	genericHostname    = "localterraform.com"
 )
 
 // Cloud is an implementation of EnhancedBackend in service of the Terraform Cloud/Enterprise
@@ -63,6 +69,9 @@ type Cloud struct {
 	// hostname of Terraform Cloud or Terraform Enterprise
 	hostname string
 
+	// token for Terraform Cloud or Terraform Enterprise
+	token string
+
 	// organization is the organization that contains the target workspaces.
 	organization string
 
@@ -72,6 +81,9 @@ type Cloud struct {
 
 	// services is used for service discovery
 	services *disco.Disco
+
+	// renderer is used for rendering JSON plan output and streamed logs.
+	renderer *jsonformat.Renderer
 
 	// local allows local operations, where Terraform Cloud serves as a state storage backend.
 	local backend.Enhanced
@@ -192,6 +204,23 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
+// configureGenericHostname aliases the cloud backend hostname configuration
+// as a generic "localterraform.com" hostname. This was originally added as a
+// Terraform Enterprise feature and is useful for re-using whatever the
+// Cloud/Enterprise backend host is in nested module sources in order
+// to prevent code churn when re-using config between multiple
+// Terraform Enterprise environments.
+func (b *Cloud) configureGenericHostname() {
+	// This won't be an error for the given constant value
+	genericHost, _ := svchost.ForComparison(genericHostname)
+
+	// This won't be an error because, by this time, the hostname has been parsed and
+	// service discovery requests made against it.
+	targetHost, _ := svchost.ForComparison(b.hostname)
+
+	b.services.Alias(genericHost, targetHost)
+}
+
 // Configure implements backend.Enhanced.
 func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
@@ -227,7 +256,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was not set in the configuration
 	if token == "" {
-		token, err = b.token()
+		token, err = b.cliConfigToken()
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -256,6 +285,9 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		))
 		return diags
 	}
+
+	b.token = token
+	b.configureGenericHostname()
 
 	if b.client == nil {
 		cfg := &tfe.Config{
@@ -413,7 +445,15 @@ func (b *Cloud) discover() (*url.URL, error) {
 
 	host, err := b.services.Discover(hostname)
 	if err != nil {
-		return nil, err
+		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+
+		switch {
+		case errors.As(err, &serviceDiscoErr):
+			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			return nil, err
+		default:
+			return nil, err
+		}
 	}
 
 	service, err := host.ServiceURL(tfeServiceID)
@@ -425,10 +465,10 @@ func (b *Cloud) discover() (*url.URL, error) {
 	return service, err
 }
 
-// token returns the token for this host as configured in the credentials
+// cliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func (b *Cloud) token() (string, error) {
+func (b *Cloud) cliConfigToken() (string, error) {
 	hostname, err := svchost.ForComparison(b.hostname)
 	if err != nil {
 		return "", err
@@ -516,7 +556,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 }
 
 // DeleteWorkspace implements backend.Enhanced.
-func (b *Cloud) DeleteWorkspace(name string) error {
+func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	if name == backend.DefaultStateName {
 		return backend.ErrDefaultWorkspaceNotSupported
 	}
@@ -525,11 +565,18 @@ func (b *Cloud) DeleteWorkspace(name string) error {
 		return backend.ErrWorkspacesNotSupported
 	}
 
+	workspace, err := b.client.Workspaces.Read(context.Background(), b.organization, name)
+	if err == tfe.ErrResourceNotFound {
+		return nil // If the workspace does not exist, succeed
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to retrieve workspace %s: %v", name, err)
+	}
+
 	// Configure the remote workspace name.
-	State := &State{tfeClient: b.client, organization: b.organization, workspace: &tfe.Workspace{
-		Name: name,
-	}}
-	return State.Delete()
+	State := &State{tfeClient: b.client, organization: b.organization, workspace: workspace}
+	return State.Delete(force)
 }
 
 // StateMgr implements backend.Enhanced.

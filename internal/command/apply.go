@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -94,7 +97,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 
 	// Prepare the backend, passing the plan file if present, and the
 	// backend-specific arguments
-	be, beDiags := c.PrepareBackend(planFile, args.State)
+	be, beDiags := c.PrepareBackend(planFile, args.State, args.ViewType)
 	diags = diags.Append(beDiags)
 	if diags.HasErrors() {
 		view.Diagnostics(diags)
@@ -102,7 +105,7 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	}
 
 	// Build the operation request
-	opReq, opDiags := c.OperationRequest(be, view, planFile, args.Operation, args.AutoApprove)
+	opReq, opDiags := c.OperationRequest(be, view, args.ViewType, planFile, args.Operation, args.AutoApprove)
 	diags = diags.Append(opDiags)
 
 	// Collect variable value and add them to the operation request
@@ -191,7 +194,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -211,7 +214,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 		}
 
 		be, beDiags = c.Backend(&BackendOpts{
-			Config: backendConfig,
+			Config:   backendConfig,
+			ViewType: viewType,
 		})
 	} else {
 		plan, err := planFile.ReadPlan()
@@ -245,6 +249,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 func (c *ApplyCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Apply,
+	viewType arguments.ViewType,
 	planFile *planfile.Reader,
 	args *arguments.Operation,
 	autoApprove bool,
@@ -257,7 +262,7 @@ func (c *ApplyCommand) OperationRequest(
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
 	// Build the operation
-	opReq := c.Operation(be)
+	opReq := c.Operation(be, viewType)
 	opReq.AutoApprove = autoApprove
 	opReq.ConfigDir = "."
 	opReq.PlanMode = args.PlanMode

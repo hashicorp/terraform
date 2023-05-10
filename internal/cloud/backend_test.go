@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cloud
 
 import (
@@ -40,11 +43,11 @@ func TestCloud_backendWithName(t *testing.T) {
 		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", err)
 	}
 
-	if err := b.DeleteWorkspace("foo"); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace("foo", true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", err)
 	}
 }
@@ -447,9 +450,9 @@ func TestCloud_config(t *testing.T) {
 		confErr string
 		valErr  string
 	}{
-		"with_an_unknown_host": {
+		"with_a_non_tfe_host": {
 			config: cty.ObjectVal(map[string]cty.Value{
-				"hostname":     cty.StringVal("nonexisting.local"),
+				"hostname":     cty.StringVal("nontfe.local"),
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
@@ -457,7 +460,7 @@ func TestCloud_config(t *testing.T) {
 					"tags": cty.NullVal(cty.Set(cty.String)),
 				}),
 			}),
-			confErr: "Failed to request discovery document",
+			confErr: "Host nontfe.local does not provide a tfe service",
 		},
 		// localhost advertises TFE services, but has no token in the credentials
 		"without_a_token": {
@@ -532,22 +535,24 @@ func TestCloud_config(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		b, cleanup := testUnconfiguredBackend(t)
-		t.Cleanup(cleanup)
+		t.Run(name, func(t *testing.T) {
+			b, cleanup := testUnconfiguredBackend(t)
+			t.Cleanup(cleanup)
 
-		// Validate
-		_, valDiags := b.PrepareConfig(tc.config)
-		if (valDiags.Err() != nil || tc.valErr != "") &&
-			(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
-			t.Fatalf("%s: unexpected validation result: %v", name, valDiags.Err())
-		}
+			// Validate
+			_, valDiags := b.PrepareConfig(tc.config)
+			if (valDiags.Err() != nil || tc.valErr != "") &&
+				(valDiags.Err() == nil || !strings.Contains(valDiags.Err().Error(), tc.valErr)) {
+				t.Fatalf("unexpected validation result: %v", valDiags.Err())
+			}
 
-		// Configure
-		confDiags := b.Configure(tc.config)
-		if (confDiags.Err() != nil || tc.confErr != "") &&
-			(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
-			t.Fatalf("%s: unexpected configure result: %v", name, confDiags.Err())
-		}
+			// Configure
+			confDiags := b.Configure(tc.config)
+			if (confDiags.Err() != nil || tc.confErr != "") &&
+				(confDiags.Err() == nil || !strings.Contains(confDiags.Err().Error(), tc.confErr)) {
+				t.Fatalf("unexpected configure result: %v", confDiags.Err())
+			}
+		})
 	}
 }
 
@@ -645,7 +650,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 		}),
 	})
 
-	b, bCleanup := testBackend(t, config)
+	b, bCleanup := testBackend(t, config, nil)
 	defer bCleanup()
 
 	// Make sure the workspace doesn't exist yet -- otherwise, we can't test what
@@ -814,7 +819,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 
 			for _, actual := range b.WorkspaceMapping.Tags {
 				if _, ok := expectedSet[actual]; !ok {
-					unexpected = append(missing, actual)
+					unexpected = append(unexpected, actual)
 				}
 			}
 
@@ -856,7 +861,7 @@ func TestCloud_addAndRemoveWorkspacesDefault(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName); err != backend.ErrWorkspacesNotSupported {
+	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
 		t.Fatalf("expected error %v, got %v", backend.ErrWorkspacesNotSupported, err)
 	}
 }
@@ -1137,5 +1142,81 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	wantDetail := "The local Terraform version (0.14.0) does not meet the version requirements for remote workspace hashicorp/app-prod (0.13.5)."
 	if got := diags[0].Description().Detail; got != wantDetail {
 		t.Errorf("wrong summary: got %s, want %s", got, wantDetail)
+	}
+}
+
+func TestClodBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+	safeDeleteWorkspaceName := "safe-delete-workspace"
+	forceDeleteWorkspaceName := "force-delete-workspace"
+
+	_, err := b.StateMgr(safeDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	_, err = b.StateMgr(forceDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error: %s", err)
+	}
+
+	// sanity check that the mock now contains two workspaces
+	wl, err := b.Workspaces()
+	if err != nil {
+		t.Fatalf("error fetching workspace names: %v", err)
+	}
+	if len(wl) != 2 {
+		t.Fatalf("expected 2 workspaced but got %d", len(wl))
+	}
+
+	c := context.Background()
+	safeDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, safeDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error fetching workspace: %v", err)
+	}
+
+	// Lock a workspace so that it should fail to be safe deleted
+	_, err = b.client.Workspaces.Lock(context.Background(), safeDeleteWorkspace.ID, tfe.WorkspaceLockOptions{Reason: tfe.String("test")})
+	if err != nil {
+		t.Fatalf("error locking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if err == nil {
+		t.Fatalf("workspace should have failed to safe delete")
+	}
+
+	// unlock the workspace and confirm that safe-delete now works
+	_, err = b.client.Workspaces.Unlock(context.Background(), safeDeleteWorkspace.ID)
+	if err != nil {
+		t.Fatalf("error unlocking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(safeDeleteWorkspaceName, false)
+	if err != nil {
+		t.Fatalf("error safe deleting workspace: %v", err)
+	}
+
+	// lock a workspace and then confirm that force deleting it works
+	forceDeleteWorkspace, err := b.client.Workspaces.Read(c, b.organization, forceDeleteWorkspaceName)
+	if err != nil {
+		t.Fatalf("error fetching workspace: %v", err)
+	}
+	_, err = b.client.Workspaces.Lock(context.Background(), forceDeleteWorkspace.ID, tfe.WorkspaceLockOptions{Reason: tfe.String("test")})
+	if err != nil {
+		t.Fatalf("error locking workspace: %v", err)
+	}
+	err = b.DeleteWorkspace(forceDeleteWorkspaceName, true)
+	if err != nil {
+		t.Fatalf("error force deleting workspace: %v", err)
+	}
+}
+
+func TestClodBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
+	b, bCleanup := testBackendWithTags(t)
+	defer bCleanup()
+
+	err := b.DeleteWorkspace("non-existent-workspace", false)
+	if err != nil {
+		t.Fatalf("expected deleting a workspace which does not exist to succeed")
 	}
 }

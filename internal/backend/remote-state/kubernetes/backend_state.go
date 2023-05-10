@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package kubernetes
 
 import (
@@ -60,7 +63,7 @@ func (b *Backend) Workspaces() ([]string, error) {
 	return states, nil
 }
 
-func (b *Backend) DeleteWorkspace(name string) error {
+func (b *Backend) DeleteWorkspace(name string, _ bool) error {
 	if name == backend.DefaultStateName || name == "" {
 		return fmt.Errorf("can't delete default state")
 	}

@@ -1,3 +1,6 @@
+# Copyright (c) HashiCorp, Inc.
+# SPDX-License-Identifier: MPL-2.0
+
 blank_issues_enabled: false
 contact_links:
   - name: Terraform Cloud/Enterprise Troubleshooting and Feature Requests

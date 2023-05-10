@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package configs
 
 import (
@@ -30,7 +33,6 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 }
 
 func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnostics) {
-
 	body, diags := p.LoadHCLFile(path)
 	if body == nil {
 		return nil, diags
@@ -149,7 +151,7 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "data":
-			cfg, cfgDiags := decodeDataBlock(block, override)
+			cfg, cfgDiags := decodeDataBlock(block, override, false)
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.DataResources = append(file.DataResources, cfg)
@@ -160,6 +162,20 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			diags = append(diags, cfgDiags...)
 			if cfg != nil {
 				file.Moved = append(file.Moved, cfg)
+			}
+
+		case "import":
+			cfg, cfgDiags := decodeImportBlock(block)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Import = append(file.Import, cfg)
+			}
+
+		case "check":
+			cfg, cfgDiags := decodeCheckBlock(block, override)
+			diags = append(diags, cfgDiags...)
+			if cfg != nil {
+				file.Checks = append(file.Checks, cfg)
 			}
 
 		default:
@@ -251,6 +267,13 @@ var configFileSchema = &hcl.BodySchema{
 		},
 		{
 			Type: "moved",
+		},
+		{
+			Type: "import",
+		},
+		{
+			Type:       "check",
+			LabelNames: []string{"name"},
 		},
 	},
 }

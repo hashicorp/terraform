@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonprovider
 
 import (
@@ -18,9 +21,9 @@ type providers struct {
 }
 
 type Provider struct {
-	Provider          *schema            `json:"provider,omitempty"`
-	ResourceSchemas   map[string]*schema `json:"resource_schemas,omitempty"`
-	DataSourceSchemas map[string]*schema `json:"data_source_schemas,omitempty"`
+	Provider          *Schema            `json:"provider,omitempty"`
+	ResourceSchemas   map[string]*Schema `json:"resource_schemas,omitempty"`
+	DataSourceSchemas map[string]*Schema `json:"data_source_schemas,omitempty"`
 }
 
 func newProviders() *providers {
@@ -31,13 +34,21 @@ func newProviders() *providers {
 	}
 }
 
+// MarshalForRenderer converts the provided internation representation of the
+// schema into the public structured JSON versions.
+//
+// This is a format that can be read by the structured plan renderer.
+func MarshalForRenderer(s *terraform.Schemas) map[string]*Provider {
+	schemas := make(map[string]*Provider, len(s.Providers))
+	for k, v := range s.Providers {
+		schemas[k.String()] = marshalProvider(v)
+	}
+	return schemas
+}
+
 func Marshal(s *terraform.Schemas) ([]byte, error) {
 	providers := newProviders()
-
-	for k, v := range s.Providers {
-		providers.Schemas[k.String()] = marshalProvider(v)
-	}
-
+	providers.Schemas = MarshalForRenderer(s)
 	ret, err := json.Marshal(providers)
 	return ret, err
 }
@@ -47,8 +58,8 @@ func marshalProvider(tps *terraform.ProviderSchema) *Provider {
 		return &Provider{}
 	}
 
-	var ps *schema
-	var rs, ds map[string]*schema
+	var ps *Schema
+	var rs, ds map[string]*Schema
 
 	if tps.Provider != nil {
 		ps = marshalSchema(tps.Provider)

@@ -5,7 +5,7 @@ description: The `terraform import` command is used to import existing infrastru
 
 # Import Usage
 
-> **Hands-on:** Try the [Import Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/state-import?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 
 Use the `terraform import` command to import existing infrastructure to Terraform state.
@@ -18,7 +18,7 @@ itself having created all objects. If you import existing objects into Terraform
 be careful to import each remote object to only one Terraform resource address.
 If you import the same object multiple times, Terraform may exhibit unwanted
 behavior. For more information on this assumption, see
-[the State section](/language/state).
+[the State section](/terraform/language/state).
 
 To import a resource, first write a resource block for it in your
 configuration, establishing the name by which it will be known to Terraform:
@@ -52,7 +52,7 @@ Terraform state.
 
 It is also possible to import to resources in child modules, using their paths,
 and to single instances of a resource with `count` or `for_each` set. See
-[_Resource Addressing_](/cli/state/resource-addressing) for more
+[_Resource Addressing_](/terraform/cli/state/resource-addressing) for more
 details on how to specify a target resource.
 
 The syntax of the given ID is dependent on the resource type being imported.
@@ -78,4 +78,4 @@ a `resource` block in configuration for each secondary resource. If this is
 not done, Terraform will plan to destroy the imported objects on the next run.
 
 If you want to rename or otherwise move the imported resources, the
-[state management commands](/cli/commands/state) can be used.
+[state management commands](/terraform/cli/commands/state) can be used.

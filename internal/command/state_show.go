@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -7,8 +10,12 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/mitchellh/cli"
 )
 
@@ -23,19 +30,19 @@ func (c *StateShowCommand) Run(args []string) int {
 	cmdFlags := c.Meta.defaultFlagSet("state show")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	if err := cmdFlags.Parse(args); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error parsing command-line flags: %s\n", err.Error()))
+		c.Streams.Eprintf("Error parsing command-line flags: %s\n", err.Error())
 		return 1
 	}
 	args = cmdFlags.Args()
 	if len(args) != 1 {
-		c.Ui.Error("Exactly one argument expected.\n")
+		c.Streams.Eprint("Exactly one argument expected.\n")
 		return cli.RunResultHelp
 	}
 
 	// Check for user-supplied plugin path
 	var err error
 	if c.pluginPath, err = c.loadPluginPath(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading plugin path: %s", err))
+		c.Streams.Eprintf("Error loading plugin path: %\n", err)
 		return 1
 	}
 
@@ -49,7 +56,7 @@ func (c *StateShowCommand) Run(args []string) int {
 	// We require a local backend
 	local, ok := b.(backend.Local)
 	if !ok {
-		c.Ui.Error(ErrUnsupportedLocalOp)
+		c.Streams.Eprint(ErrUnsupportedLocalOp)
 		return 1
 	}
 
@@ -59,67 +66,67 @@ func (c *StateShowCommand) Run(args []string) int {
 	// Check if the address can be parsed
 	addr, addrDiags := addrs.ParseAbsResourceInstanceStr(args[0])
 	if addrDiags.HasErrors() {
-		c.Ui.Error(fmt.Sprintf(errParsingAddress, args[0]))
+		c.Streams.Eprintln(fmt.Sprintf(errParsingAddress, args[0]))
 		return 1
 	}
 
 	// We expect the config dir to always be the cwd
 	cwd, err := os.Getwd()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error getting cwd: %s", err))
+		c.Streams.Eprintf("Error getting cwd: %s\n", err)
 		return 1
 	}
 
 	// Build the operation (required to get the schemas)
-	opReq := c.Operation(b)
+	opReq := c.Operation(b, arguments.ViewHuman)
 	opReq.AllowUnsetVariables = true
 	opReq.ConfigDir = cwd
 
 	opReq.ConfigLoader, err = c.initConfigLoader()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing config loader: %s", err))
+		c.Streams.Eprintf("Error initializing config loader: %s\n", err)
 		return 1
 	}
 
 	// Get the context (required to get the schemas)
 	lr, _, ctxDiags := local.LocalRun(opReq)
 	if ctxDiags.HasErrors() {
-		c.showDiagnostics(ctxDiags)
+		c.View.Diagnostics(ctxDiags)
 		return 1
 	}
 
 	// Get the schemas from the context
 	schemas, diags := lr.Core.Schemas(lr.Config, lr.InputState)
 	if diags.HasErrors() {
-		c.showDiagnostics(diags)
+		c.View.Diagnostics(diags)
 		return 1
 	}
 
 	// Get the state
 	env, err := c.Workspace()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error selecting workspace: %s", err))
+		c.Streams.Eprintf("Error selecting workspace: %s\n", err)
 		return 1
 	}
 	stateMgr, err := b.StateMgr(env)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf(errStateLoadingState, err))
+		c.Streams.Eprintln(fmt.Sprintf(errStateLoadingState, err))
 		return 1
 	}
 	if err := stateMgr.RefreshState(); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to refresh state: %s", err))
+		c.Streams.Eprintf("Failed to refresh state: %s\n", err)
 		return 1
 	}
 
 	state := stateMgr.State()
 	if state == nil {
-		c.Ui.Error(errStateNotFound)
+		c.Streams.Eprintln(errStateNotFound)
 		return 1
 	}
 
 	is := state.ResourceInstance(addr)
 	if !is.HasCurrent() {
-		c.Ui.Error(errNoInstanceFound)
+		c.Streams.Eprintln(errNoInstanceFound)
 		return 1
 	}
 
@@ -137,13 +144,26 @@ func (c *StateShowCommand) Run(args []string) int {
 		absPc,
 	)
 
-	output := format.State(&format.StateOpts{
-		State:   singleInstance,
-		Color:   c.Colorize(),
-		Schemas: schemas,
-	})
-	c.Ui.Output(output[strings.Index(output, "#"):])
+	root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(singleInstance, "", 0), schemas)
+	if err != nil {
+		c.Streams.Eprintf("Failed to marshal state to json: %s", err)
+	}
 
+	jstate := jsonformat.State{
+		StateFormatVersion:    jsonstate.FormatVersion,
+		ProviderFormatVersion: jsonprovider.FormatVersion,
+		RootModule:            root,
+		RootModuleOutputs:     outputs,
+		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+	}
+
+	renderer := jsonformat.Renderer{
+		Streams:             c.Streams,
+		Colorize:            c.Colorize(),
+		RunningInAutomation: c.RunningInAutomation,
+	}
+
+	renderer.RenderHumanState(jstate)
 	return 0
 }
 

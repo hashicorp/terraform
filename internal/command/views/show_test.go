@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package views
 
 import (
@@ -53,7 +56,7 @@ func TestShowHuman(t *testing.T) {
 			},
 			testSchemas(),
 			true,
-			"\n",
+			"The state file is empty. No resources are represented.\n",
 		},
 		"nothing": {
 			nil,

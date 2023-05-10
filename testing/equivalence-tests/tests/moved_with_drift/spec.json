@@ -1,0 +1,5 @@
+{
+  "description": "tests using the moved block combined with simulated drift",
+  "include_files": [],
+  "ignore_fields": {}
+}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package initwd
 
 import (
@@ -10,18 +13,21 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/earlyconfig"
 	"github.com/hashicorp/terraform/internal/getmodules"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-config-inspect/tfconfig"
 	"github.com/hashicorp/terraform/internal/modsdir"
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 const initFromModuleRootCallName = "root"
+const initFromModuleRootFilename = "<main configuration>"
 const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 
 // DirFromModule populates the given directory (which must exist and be
@@ -42,7 +48,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // references using ../ from that module to be unresolvable. Error diagnostics
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
-func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -87,8 +93,8 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 	}
 
 	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
-	inst := NewModuleInstaller(instDir, reg)
-	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddr)
+	inst := NewModuleInstaller(instDir, loader, reg)
+	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too
 	err := os.MkdirAll(instDir, os.ModePerm)
 	if err != nil {
@@ -103,12 +109,6 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 	instManifest := make(modsdir.Manifest)
 	retManifest := make(modsdir.Manifest)
 
-	fakeFilename := fmt.Sprintf("-from-module=%q", sourceAddr)
-	fakePos := tfconfig.SourcePos{
-		Filename: fakeFilename,
-		Line:     1,
-	}
-
 	// -from-module allows relative paths but it's different than a normal
 	// module address where it'd be resolved relative to the module call
 	// (which is synthetic, here.) To address this, we'll just patch up any
@@ -117,25 +117,38 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 	// that the result will be "downloaded" with go-getter (copied from the
 	// source location), rather than just recorded as a relative path.
 	{
-		maybePath := filepath.ToSlash(sourceAddr)
+		maybePath := filepath.ToSlash(sourceAddrStr)
 		if maybePath == "." || strings.HasPrefix(maybePath, "./") || strings.HasPrefix(maybePath, "../") {
 			if wd, err := os.Getwd(); err == nil {
-				sourceAddr = filepath.Join(wd, sourceAddr)
-				log.Printf("[TRACE] -from-module relative path rewritten to absolute path %s", sourceAddr)
+				sourceAddrStr = filepath.Join(wd, sourceAddrStr)
+				log.Printf("[TRACE] -from-module relative path rewritten to absolute path %s", sourceAddrStr)
 			}
 		}
 	}
 
 	// Now we need to create an artificial root module that will seed our
 	// installation process.
-	fakeRootModule := &tfconfig.Module{
-		ModuleCalls: map[string]*tfconfig.ModuleCall{
+	sourceAddr, err := addrs.ParseModuleSource(sourceAddrStr)
+	if err != nil {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid module source address",
+			fmt.Sprintf("Failed to parse module source address: %s", err),
+		))
+	}
+	fakeRootModule := &configs.Module{
+		ModuleCalls: map[string]*configs.ModuleCall{
 			initFromModuleRootCallName: {
-				Name:   initFromModuleRootCallName,
-				Source: sourceAddr,
-				Pos:    fakePos,
+				Name:       initFromModuleRootCallName,
+				SourceAddr: sourceAddr,
+				DeclRange: hcl.Range{
+					Filename: initFromModuleRootFilename,
+					Start:    hcl.InitialPos,
+					End:      hcl.InitialPos,
+				},
 			},
 		},
+		ProviderRequirements: &configs.RequiredProviders{},
 	}
 
 	// wrapHooks filters hook notifications to only include Download calls
@@ -181,7 +194,7 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Failed to copy root module",
-					fmt.Sprintf("Error copying root module %q from %s to %s: %s.", sourceAddr, record.Dir, rootDir, err),
+					fmt.Sprintf("Error copying root module %q from %s to %s: %s.", sourceAddrStr, record.Dir, rootDir, err),
 				))
 				continue
 			}
@@ -191,12 +204,12 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 			// and must thus be rewritten to be absolute addresses again.
 			// For now we can't do this rewriting automatically, but we'll
 			// generate an error to help the user do it manually.
-			mod, _ := earlyconfig.LoadModule(rootDir) // ignore diagnostics since we're just doing value-add here anyway
+			mod, _ := loader.Parser().LoadConfigDir(rootDir) // ignore diagnostics since we're just doing value-add here anyway
 			if mod != nil {
 				for _, mc := range mod.ModuleCalls {
-					if pathTraversesUp(mc.Source) {
-						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddr)
-						newSubdir := filepath.Join(givenSubdir, mc.Source)
+					if pathTraversesUp(mc.SourceAddrRaw) {
+						packageAddr, givenSubdir := getmodules.SplitPackageSubdir(sourceAddrStr)
+						newSubdir := filepath.Join(givenSubdir, mc.SourceAddrRaw)
 						if pathTraversesUp(newSubdir) {
 							// This should never happen in any reasonable
 							// configuration since this suggests a path that
@@ -214,7 +227,7 @@ func DirFromModule(ctx context.Context, rootDir, modulesDir, sourceAddr string, 
 						diags = diags.Append(tfdiags.Sourceless(
 							tfdiags.Error,
 							"Root module references parent directory",
-							fmt.Sprintf("The requested module %q refers to a module via its parent directory. To use this as a new root module this source string must be rewritten as a remote source address, such as %q.", sourceAddr, newAddr),
+							fmt.Sprintf("The requested module %q refers to a module via its parent directory. To use this as a new root module this source string must be rewritten as a remote source address, such as %q.", sourceAddrStr, newAddr),
 						))
 						continue
 					}

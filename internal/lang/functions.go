@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package lang
 
 import (
@@ -117,6 +120,7 @@ func (s *Scope) Functions() map[string]function.Function {
 			"sort":             stdlib.SortFunc,
 			"split":            stdlib.SplitFunc,
 			"startswith":       funcs.StartsWithFunc,
+			"strcontains":      funcs.StrContainsFunc,
 			"strrev":           stdlib.ReverseFunc,
 			"substr":           stdlib.SubstrFunc,
 			"sum":              funcs.SumFunc,
@@ -159,12 +163,26 @@ func (s *Scope) Functions() map[string]function.Function {
 			s.funcs["type"] = funcs.TypeFunc
 		}
 
+		if !s.ConsoleMode {
+			// The plantimestamp function doesn't make sense in the terraform
+			// console.
+			s.funcs["plantimestamp"] = funcs.MakeStaticTimestampFunc(s.PlanTimestamp)
+		}
+
 		if s.PureOnly {
 			// Force our few impure functions to return unknown so that we
 			// can defer evaluating them until a later pass.
 			for _, name := range impureFunctions {
 				s.funcs[name] = function.Unpredictable(s.funcs[name])
 			}
+		}
+
+		// Add a description to each function and parameter based on the
+		// contents of descriptionList.
+		// One must create a matching description entry whenever a new
+		// function is introduced.
+		for name, f := range s.funcs {
+			s.funcs[name] = funcs.WithDescription(name, f)
 		}
 	}
 	s.funcsLock.Unlock()

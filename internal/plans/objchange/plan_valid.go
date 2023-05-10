@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package objchange
 
 import (
@@ -99,6 +102,14 @@ func assertPlanValid(schema *configschema.Block, priorState, config, plannedStat
 			if plannedV.IsNull() {
 				errs = append(errs, path.NewErrorf("attribute representing a list of nested blocks must be empty to indicate no blocks, not null"))
 				continue
+			}
+
+			if configV.IsNull() {
+				// Configuration cannot decode a block into a null value, but
+				// we could be dealing with a null returned by a legacy
+				// provider and inserted via ignore_changes. Fix the value in
+				// place so the length can still be compared.
+				configV = cty.ListValEmpty(configV.Type().ElementType())
 			}
 
 			plannedL := plannedV.LengthInt()

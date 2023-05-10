@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -25,7 +28,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 
 	t.Run("workspace", func(t *testing.T) {
 		want := cty.StringVal("foo")
@@ -55,7 +58,7 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 
 	t.Run("module", func(t *testing.T) {
 		want := cty.StringVal("bar/baz")
@@ -124,7 +127,7 @@ func TestEvaluatorGetInputVariable(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 
 	want := cty.StringVal("bar").Mark(marks.Sensitive)
 	got, diags := scope.Data.GetInputVariable(addrs.InputVariable{
@@ -273,7 +276,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id": cty.StringVal("foo"),
@@ -438,7 +441,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 
 	want := cty.ObjectVal(map[string]cty.Value{
 		"id":              cty.StringVal("foo"),
@@ -473,7 +476,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data := &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope := evaluator.Scope(data, nil)
+	scope := evaluator.Scope(data, nil, nil)
 	want := cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("bar").Mark(marks.Sensitive)})
 	got, diags := scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -501,7 +504,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data = &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope = evaluator.Scope(data, nil)
+	scope = evaluator.Scope(data, nil, nil)
 	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",
@@ -519,7 +522,7 @@ func TestEvaluatorGetModule(t *testing.T) {
 	data = &evaluationStateData{
 		Evaluator: evaluator,
 	}
-	scope = evaluator.Scope(data, nil)
+	scope = evaluator.Scope(data, nil, nil)
 	want = cty.ObjectVal(map[string]cty.Value{"out": cty.StringVal("baz").Mark(marks.Sensitive)})
 	got, diags = scope.Data.GetModule(addrs.ModuleCall{
 		Name: "mod",

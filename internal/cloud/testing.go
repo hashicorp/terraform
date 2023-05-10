@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cloud
 
 import (
@@ -7,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path"
 	"testing"
 	"time"
@@ -16,9 +20,11 @@ import (
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -40,6 +46,13 @@ var (
 		tfeHost: {"token": testCred},
 	})
 	testBackendSingleWorkspaceName = "app-prod"
+	defaultTFCPing                 = map[string]func(http.ResponseWriter, *http.Request){
+		"/api/v2/ping": func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("TFP-API-Version", "2.5")
+			w.Header().Set("TFP-AppName", "Terraform Cloud")
+		},
+	}
 )
 
 // mockInput is a mock implementation of terraform.UIInput.
@@ -76,7 +89,7 @@ func testBackendWithName(t *testing.T) (*Cloud, func()) {
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, defaultTFCPing)
 }
 
 func testBackendWithTags(t *testing.T) (*Cloud, func()) {
@@ -93,7 +106,7 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 			),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, nil)
 }
 
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
@@ -106,7 +119,20 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj)
+	return testBackend(t, obj, nil)
+}
+
+func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+	obj := cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String),
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal(testBackendSingleWorkspaceName),
+			"tags": cty.NullVal(cty.Set(cty.String)),
+		}),
+	})
+	return testBackend(t, obj, handlers)
 }
 
 func testCloudState(t *testing.T) *State {
@@ -183,8 +209,13 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 	return b, cleanup
 }
 
-func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
-	s := testServer(t)
+func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+	var s *httptest.Server
+	if handlers != nil {
+		s = testServerWithHandlers(handlers)
+	} else {
+		s = testServer(t)
+	}
 	b := New(testDisco(s))
 
 	// Configure the backend so the client is created.
@@ -209,8 +240,11 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.TaskStages = mc.TaskStages
+	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
@@ -220,10 +254,20 @@ func testBackend(t *testing.T, obj cty.Value) (*Cloud, func()) {
 	b.local = testLocalBackend(t, b)
 	b.input = true
 
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
+	}
+
 	ctx := context.Background()
 
 	// Create the organization.
-	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
+	_, err = b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
 		Name: tfe.String(b.organization),
 	})
 	if err != nil {
@@ -269,11 +313,23 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.CostEstimates = mc.CostEstimates
 	b.client.Organizations = mc.Organizations
 	b.client.Plans = mc.Plans
+	b.client.PolicySetOutcomes = mc.PolicySetOutcomes
 	b.client.PolicyChecks = mc.PolicyChecks
 	b.client.Runs = mc.Runs
+	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
+
+	baseURL, err := url.Parse("https://app.terraform.io")
+	if err != nil {
+		t.Fatalf("testBackend: failed to parse base URL for client")
+	}
+	baseURL.Path = "/api/v2/"
+
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
+	}
 
 	// Set local to a local test backend.
 	b.local = testLocalBackend(t, b)
@@ -405,6 +461,30 @@ var testDefaultRequestHandlers = map[string]func(http.ResponseWriter, *http.Requ
 	},
 }
 
+func mockColorize() *colorstring.Colorize {
+	colors := make(map[string]string)
+	for k, v := range colorstring.DefaultColors {
+		colors[k] = v
+	}
+	colors["purple"] = "38;5;57"
+
+	return &colorstring.Colorize{
+		Colors:  colors,
+		Disable: false,
+		Reset:   true,
+	}
+}
+
+func mockSROWorkspace(t *testing.T, b *Cloud, workspaceName string) {
+	_, err := b.client.Workspaces.Update(context.Background(), "hashicorp", workspaceName, tfe.WorkspaceUpdateOptions{
+		StructuredRunOutputEnabled: tfe.Bool(true),
+		TerraformVersion:           tfe.String("1.4.0"),
+	})
+	if err != nil {
+		t.Fatalf("Error enabling SRO on workspace %s: %v", workspaceName, err)
+	}
+}
+
 // testDisco returns a *disco.Disco mapping app.terraform.io and
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
@@ -416,6 +496,7 @@ func testDisco(s *httptest.Server) *disco.Disco {
 
 	d.ForceHostServices(svchost.Hostname(defaultHostname), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
+	d.ForceHostServices(svchost.Hostname("nontfe.local"), nil)
 	return d
 }
 

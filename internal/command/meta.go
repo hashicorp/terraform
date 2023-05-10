@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -102,6 +105,22 @@ type Meta struct {
 	// PluginCacheDir, if non-empty, enables caching of downloaded plugins
 	// into the given directory.
 	PluginCacheDir string
+
+	// PluginCacheMayBreakDependencyLockFile is a temporary CLI configuration-based
+	// opt out for the behavior of only using the plugin cache dir if its
+	// contents match checksums recorded in the dependency lock file.
+	//
+	// This is an accommodation for those who currently essentially ignore the
+	// dependency lock file -- treating it only as transient working directory
+	// state -- and therefore don't care if the plugin cache dir causes the
+	// checksums inside to only be sufficient for the computer where Terraform
+	// is currently running.
+	//
+	// We intend to remove this exception again (making the CLI configuration
+	// setting a silent no-op) in future once we've improved the dependency
+	// lock file mechanism so that it's usable for everyone and there are no
+	// longer any compelling reasons for folks to not lock their dependencies.
+	PluginCacheMayBreakDependencyLockFile bool
 
 	// ProviderSource allows determining the available versions of a provider
 	// and determines where a distribution package for a particular

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 // Package experiments contains the models and logic for opt-in experiments
 // that can be activated for a particular Terraform module.
 //

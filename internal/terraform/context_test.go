@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -38,14 +41,12 @@ var (
 func TestNewContextRequiredVersion(t *testing.T) {
 	cases := []struct {
 		Name    string
-		Module  string
 		Version string
 		Value   string
 		Err     bool
 	}{
 		{
 			"no requirement",
-			"",
 			"0.1.0",
 			"",
 			false,
@@ -53,7 +54,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"doesn't match",
-			"",
 			"0.1.0",
 			"> 0.6.0",
 			true,
@@ -61,7 +61,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"matches",
-			"",
 			"0.7.0",
 			"> 0.6.0",
 			false,
@@ -69,7 +68,6 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"prerelease doesn't match with inequality",
-			"",
 			"0.8.0",
 			"> 0.7.0-beta",
 			true,
@@ -77,25 +75,8 @@ func TestNewContextRequiredVersion(t *testing.T) {
 
 		{
 			"prerelease doesn't match with equality",
-			"",
 			"0.7.0",
 			"0.7.0-beta",
-			true,
-		},
-
-		{
-			"module matches",
-			"context-required-version-module",
-			"0.5.0",
-			"",
-			false,
-		},
-
-		{
-			"module doesn't match",
-			"context-required-version-module",
-			"0.4.0",
-			"",
 			true,
 		},
 	}
@@ -107,17 +88,72 @@ func TestNewContextRequiredVersion(t *testing.T) {
 			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
 			defer func() { tfversion.SemVer = old }()
 
-			name := "context-required-version"
-			if tc.Module != "" {
-				name = tc.Module
-			}
-			mod := testModule(t, name)
+			mod := testModule(t, "context-required-version")
 			if tc.Value != "" {
 				constraint, err := version.NewConstraint(tc.Value)
 				if err != nil {
 					t.Fatalf("can't parse %q as version constraint", tc.Value)
 				}
 				mod.Module.CoreVersionConstraints = append(mod.Module.CoreVersionConstraints, configs.VersionConstraint{
+					Required: constraint,
+				})
+			}
+			c, diags := NewContext(&ContextOpts{})
+			if diags.HasErrors() {
+				t.Fatalf("unexpected NewContext errors: %s", diags.Err())
+			}
+
+			diags = c.Validate(mod)
+			if diags.HasErrors() != tc.Err {
+				t.Fatalf("err: %s", diags.Err())
+			}
+		})
+	}
+}
+
+func TestNewContextRequiredVersion_child(t *testing.T) {
+	mod := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "child" {
+  source = "./child"
+}
+`,
+		"child/main.tf": `
+terraform {}
+`,
+	})
+
+	cases := map[string]struct {
+		Version    string
+		Constraint string
+		Err        bool
+	}{
+		"matches": {
+			"0.5.0",
+			">= 0.5.0",
+			false,
+		},
+		"doesn't match": {
+			"0.4.0",
+			">= 0.5.0",
+			true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			// Reset the version for the tests
+			old := tfversion.SemVer
+			tfversion.SemVer = version.Must(version.NewVersion(tc.Version))
+			defer func() { tfversion.SemVer = old }()
+
+			if tc.Constraint != "" {
+				constraint, err := version.NewConstraint(tc.Constraint)
+				if err != nil {
+					t.Fatalf("can't parse %q as version constraint", tc.Constraint)
+				}
+				child := mod.Children["child"]
+				child.Module.CoreVersionConstraints = append(child.Module.CoreVersionConstraints, configs.VersionConstraint{
 					Required: constraint,
 				})
 			}

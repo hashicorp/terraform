@@ -1,0 +1,16 @@
+{
+  "tfcoremock_nested_map": {
+    "attributes": {
+      "maps": {
+        "type": "map",
+        "required": true,
+        "map": {
+          "type": "map",
+          "map": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

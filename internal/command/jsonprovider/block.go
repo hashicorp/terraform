@@ -1,29 +1,32 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package jsonprovider
 
 import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
-type block struct {
-	Attributes      map[string]*attribute `json:"attributes,omitempty"`
-	BlockTypes      map[string]*blockType `json:"block_types,omitempty"`
+type Block struct {
+	Attributes      map[string]*Attribute `json:"attributes,omitempty"`
+	BlockTypes      map[string]*BlockType `json:"block_types,omitempty"`
 	Description     string                `json:"description,omitempty"`
 	DescriptionKind string                `json:"description_kind,omitempty"`
 	Deprecated      bool                  `json:"deprecated,omitempty"`
 }
 
-type blockType struct {
+type BlockType struct {
 	NestingMode string `json:"nesting_mode,omitempty"`
-	Block       *block `json:"block,omitempty"`
+	Block       *Block `json:"block,omitempty"`
 	MinItems    uint64 `json:"min_items,omitempty"`
 	MaxItems    uint64 `json:"max_items,omitempty"`
 }
 
-func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
+func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *BlockType {
 	if nestedBlock == nil {
-		return &blockType{}
+		return &BlockType{}
 	}
-	ret := &blockType{
+	ret := &BlockType{
 		Block:       marshalBlock(&nestedBlock.Block),
 		MinItems:    uint64(nestedBlock.MinItems),
 		MaxItems:    uint64(nestedBlock.MaxItems),
@@ -32,19 +35,19 @@ func marshalBlockTypes(nestedBlock *configschema.NestedBlock) *blockType {
 	return ret
 }
 
-func marshalBlock(configBlock *configschema.Block) *block {
+func marshalBlock(configBlock *configschema.Block) *Block {
 	if configBlock == nil {
-		return &block{}
+		return &Block{}
 	}
 
-	ret := block{
+	ret := Block{
 		Deprecated:      configBlock.Deprecated,
 		Description:     configBlock.Description,
 		DescriptionKind: marshalStringKind(configBlock.DescriptionKind),
 	}
 
 	if len(configBlock.Attributes) > 0 {
-		attrs := make(map[string]*attribute, len(configBlock.Attributes))
+		attrs := make(map[string]*Attribute, len(configBlock.Attributes))
 		for k, attr := range configBlock.Attributes {
 			attrs[k] = marshalAttribute(attr)
 		}
@@ -52,7 +55,7 @@ func marshalBlock(configBlock *configschema.Block) *block {
 	}
 
 	if len(configBlock.BlockTypes) > 0 {
-		blockTypes := make(map[string]*blockType, len(configBlock.BlockTypes))
+		blockTypes := make(map[string]*BlockType, len(configBlock.BlockTypes))
 		for k, bt := range configBlock.BlockTypes {
 			blockTypes[k] = marshalBlockTypes(bt)
 		}

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -92,5 +95,5 @@ func (c *Context) Eval(config *configs.Config, state *states.State, moduleAddr a
 	// caches its contexts, so we should get hold of the context that was
 	// previously used for evaluation here, unless we skipped walking.
 	evalCtx := walker.EnterPath(moduleAddr)
-	return evalCtx.EvaluationScope(nil, EvalDataForNoInstanceKey), diags
+	return evalCtx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey), diags
 }

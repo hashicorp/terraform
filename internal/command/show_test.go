@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -76,7 +79,7 @@ func TestShow_noArgsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -105,7 +108,7 @@ func TestShow_argsWithState(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -153,7 +156,7 @@ func TestShow_argsWithStateAliasedProvider(t *testing.T) {
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}
@@ -447,13 +450,20 @@ func TestShow_plan_json(t *testing.T) {
 
 func TestShow_state(t *testing.T) {
 	originalState := testState()
+	root := originalState.RootModule()
+	root.SetOutputValue("test", cty.ObjectVal(map[string]cty.Value{
+		"attr": cty.NullVal(cty.DynamicPseudoType),
+		"null": cty.NullVal(cty.String),
+		"list": cty.ListVal([]cty.Value{cty.NullVal(cty.Number)}),
+	}), false)
+
 	statePath := testStateFile(t, originalState)
 	defer os.RemoveAll(filepath.Dir(statePath))
 
 	view, done := testView(t)
 	c := &ShowCommand{
 		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(testProvider()),
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
 			View:             view,
 		},
 	}

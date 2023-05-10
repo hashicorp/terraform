@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -465,7 +468,7 @@ func (n *NodeValidatableResource) evaluateExpr(ctx EvalContext, expr hcl.Express
 	refs, refDiags := lang.ReferencesInExpr(expr)
 	diags = diags.Append(refDiags)
 
-	scope := ctx.EvaluationScope(self, keyData)
+	scope := ctx.EvaluationScope(self, nil, keyData)
 
 	hclCtx, moreDiags := scope.EvalContext(refs)
 	diags = diags.Append(moreDiags)
@@ -581,7 +584,7 @@ func validateDependsOn(ctx EvalContext, dependsOn []hcl.Traversal) (diags tfdiag
 		// we'll just eval it and count on the fact that our evaluator will
 		// detect references to non-existent objects.
 		if !diags.HasErrors() {
-			scope := ctx.EvaluationScope(nil, EvalDataForNoInstanceKey)
+			scope := ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey)
 			if scope != nil { // sometimes nil in tests, due to incomplete mocks
 				_, refDiags = scope.EvalReference(ref, cty.DynamicPseudoType)
 				diags = diags.Append(refDiags)

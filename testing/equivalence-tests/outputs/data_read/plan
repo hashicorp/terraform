@@ -1,0 +1,45 @@
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+ <= read (data resources)
+
+Terraform will perform the following actions:
+
+  # data.tfcoremock_simple_resource.read will be read during apply
+  # (config refers to values not yet known)
+ <= data "tfcoremock_simple_resource" "read" {
+      + id = (known after apply)
+    }
+
+  # tfcoremock_simple_resource.create will be created
+  + resource "tfcoremock_simple_resource" "create" {
+      + id = (known after apply)
+    }
+
+  # module.create.local_file.data_file will be created
+  + resource "local_file" "data_file" {
+      + content              = (known after apply)
+      + directory_permission = "0777"
+      + file_permission      = "0777"
+      + filename             = (known after apply)
+      + id                   = (known after apply)
+    }
+
+  # module.create.random_integer.random will be created
+  + resource "random_integer" "random" {
+      + id     = (known after apply)
+      + max    = 9999999
+      + min    = 1000000
+      + result = (known after apply)
+      + seed   = "F78CB410-BA01-44E1-82E1-37D61F7CB158"
+    }
+
+Plan: 3 to add, 0 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: equivalence_test_plan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "equivalence_test_plan"

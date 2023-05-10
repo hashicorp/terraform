@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -6,23 +9,21 @@ import (
 	"log"
 	"sync"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/provisioners"
 	"github.com/hashicorp/terraform/internal/refactoring"
-	"github.com/hashicorp/terraform/version"
-
 	"github.com/hashicorp/terraform/internal/states"
-
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/zclconf/go-cty/cty"
+	"github.com/hashicorp/terraform/version"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
@@ -270,7 +271,7 @@ func (ctx *BuiltinEvalContext) CloseProvisioners() error {
 
 func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema.Block, self addrs.Referenceable, keyData InstanceKeyEvalData) (cty.Value, hcl.Body, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	scope := ctx.EvaluationScope(self, keyData)
+	scope := ctx.EvaluationScope(self, nil, keyData)
 	body, evalDiags := scope.ExpandBlock(body, schema)
 	diags = diags.Append(evalDiags)
 	val, evalDiags := scope.EvalBlock(body, schema)
@@ -279,7 +280,7 @@ func (ctx *BuiltinEvalContext) EvaluateBlock(body hcl.Body, schema *configschema
 }
 
 func (ctx *BuiltinEvalContext) EvaluateExpr(expr hcl.Expression, wantType cty.Type, self addrs.Referenceable) (cty.Value, tfdiags.Diagnostics) {
-	scope := ctx.EvaluationScope(self, EvalDataForNoInstanceKey)
+	scope := ctx.EvaluationScope(self, nil, EvalDataForNoInstanceKey)
 	return scope.EvalExpr(expr, wantType)
 }
 
@@ -397,7 +398,7 @@ func (ctx *BuiltinEvalContext) EvaluateReplaceTriggeredBy(expr hcl.Expression, r
 	return ref, replace, diags
 }
 
-func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData instances.RepetitionData) *lang.Scope {
+func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, source addrs.Referenceable, keyData InstanceKeyEvalData) *lang.Scope {
 	if !ctx.pathSet {
 		panic("context path not set")
 	}
@@ -407,7 +408,7 @@ func (ctx *BuiltinEvalContext) EvaluationScope(self addrs.Referenceable, keyData
 		InstanceKeyData: keyData,
 		Operation:       ctx.Evaluator.Operation,
 	}
-	scope := ctx.Evaluator.Scope(data, self)
+	scope := ctx.Evaluator.Scope(data, self, source)
 
 	// ctx.PathValue is the path of the module that contains whatever
 	// expression the caller will be trying to evaluate, so this will

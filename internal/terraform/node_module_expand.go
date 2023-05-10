@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -176,11 +179,13 @@ func (n *nodeCloseModule) Name() string {
 }
 
 func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdiags.Diagnostics) {
-	if n.Addr.IsRoot() {
-		// If this is the root module, we are cleaning up the walk, so close
-		// any running provisioners
-		diags = diags.Append(ctx.CloseProvisioners())
+	if !n.Addr.IsRoot() {
+		return
 	}
+
+	// If this is the root module, we are cleaning up the walk, so close
+	// any running provisioners
+	diags = diags.Append(ctx.CloseProvisioners())
 
 	switch op {
 	case walkApply, walkDestroy:
@@ -188,10 +193,6 @@ func (n *nodeCloseModule) Execute(ctx EvalContext, op walkOperation) (diags tfdi
 		defer ctx.State().Unlock()
 
 		for modKey, mod := range state.Modules {
-			if !n.Addr.Equal(mod.Addr.Module()) {
-				continue
-			}
-
 			// clean out any empty resources
 			for resKey, res := range mod.Resources {
 				if len(res.Instances) == 0 {

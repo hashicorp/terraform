@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package configschema
 
 import (
@@ -6,6 +9,15 @@ import (
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
+
+// copyAndExtendPath returns a copy of a cty.Path with some additional
+// `cty.PathStep`s appended to its end, to simplify creating new child paths.
+func copyAndExtendPath(path cty.Path, nextSteps ...cty.PathStep) cty.Path {
+	newPath := make(cty.Path, len(path), len(path)+len(nextSteps))
+	copy(newPath, path)
+	newPath = append(newPath, nextSteps...)
+	return newPath
+}
 
 // ValueMarks returns a set of path value marks for a given value and path,
 // based on the sensitive flag for each attribute within the schema. Nested
@@ -17,9 +29,7 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 	for name, attrS := range b.Attributes {
 		if attrS.Sensitive {
 			// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-			attrPath := make(cty.Path, len(path), len(path)+1)
-			copy(attrPath, path)
-			attrPath = append(path, cty.GetAttrStep{Name: name})
+			attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
 			pvm = append(pvm, cty.PathValueMarks{
 				Path:  attrPath,
 				Marks: cty.NewValueMarks(marks.Sensitive),
@@ -41,9 +51,7 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		attrPath := make(cty.Path, len(path), len(path)+1)
-		copy(attrPath, path)
-		attrPath = append(path, cty.GetAttrStep{Name: name})
+		attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
 
 		pvm = append(pvm, attrS.NestedType.ValueMarks(val.GetAttr(name), attrPath)...)
 	}
@@ -61,9 +69,7 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		}
 
 		// Create a copy of the path, with this step added, to add to our PathValueMarks slice
-		blockPath := make(cty.Path, len(path), len(path)+1)
-		copy(blockPath, path)
-		blockPath = append(path, cty.GetAttrStep{Name: name})
+		blockPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
 
 		switch blockS.Nesting {
 		case NestingSingle, NestingGroup:
@@ -71,7 +77,10 @@ func (b *Block) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		case NestingList, NestingMap, NestingSet:
 			for it := blockV.ElementIterator(); it.Next(); {
 				idx, blockEV := it.Element()
-				morePaths := blockS.Block.ValueMarks(blockEV, append(blockPath, cty.IndexStep{Key: idx}))
+				// Create a copy of the path, with this block instance's index
+				// step added, to add to our PathValueMarks slice
+				blockInstancePath := copyAndExtendPath(blockPath, cty.IndexStep{Key: idx})
+				morePaths := blockS.Block.ValueMarks(blockEV, blockInstancePath)
 				pvm = append(pvm, morePaths...)
 			}
 		default:
@@ -100,9 +109,7 @@ func (o *Object) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 		switch o.Nesting {
 		case NestingSingle, NestingGroup:
 			// Create a path to this attribute
-			attrPath := make(cty.Path, len(path), len(path)+1)
-			copy(attrPath, path)
-			attrPath = append(path, cty.GetAttrStep{Name: name})
+			attrPath := copyAndExtendPath(path, cty.GetAttrStep{Name: name})
 
 			if attrS.Sensitive {
 				// If the entire attribute is sensitive, mark it so
@@ -127,9 +134,7 @@ func (o *Object) ValueMarks(val cty.Value, path cty.Path) []cty.PathValueMarks {
 				// of the loops: index into the collection, then the contained
 				// attribute name. This is because we have one type
 				// representing multiple collection elements.
-				attrPath := make(cty.Path, len(path), len(path)+2)
-				copy(attrPath, path)
-				attrPath = append(path, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
+				attrPath := copyAndExtendPath(path, cty.IndexStep{Key: idx}, cty.GetAttrStep{Name: name})
 
 				if attrS.Sensitive {
 					// If the entire attribute is sensitive, mark it so

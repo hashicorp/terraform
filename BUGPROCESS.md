@@ -3,7 +3,7 @@ The Terraform Core team has adopted a more structured bug triage process than we
 
 When a bug report is filed, our goal is to either:
 1. Get it to a state where it is ready for engineering to fix it in an upcoming Terraform release, or 
-2. Close it explain why, if we can't help
+2. Close it and explain why, if we can't help
 
 ## Process
 

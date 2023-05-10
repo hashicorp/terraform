@@ -11,11 +11,11 @@ You can use provisioners to model specific actions on the local machine or on
 a remote machine in order to prepare servers or other infrastructure objects
 for service.
 
--> **Note:** We removed the Chef, Habitat, Puppet, and Salt Masterless provisioners in Terraform v0.15.0. Information about these legacy provisioners is still available in the documentation for [Terraform v1.1 (and earlier)](/language/v1.1.x/resources/provisioners/syntax).
+-> **Note:** We removed the Chef, Habitat, Puppet, and Salt Masterless provisioners in Terraform v0.15.0. Information about these legacy provisioners is still available in the documentation for [Terraform v1.1 (and earlier)](/terraform/language/v1.1.x/resources/provisioners/syntax).
 
 ## Provisioners are a Last Resort
 
-> **Hands-on:** Try the [Provision Infrastructure Deployed with Terraform](https://learn.hashicorp.com/collections/terraform/provision?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials to learn about more declarative ways to handle provisioning actions.
+> **Hands-on:** Try the [Provision Infrastructure Deployed with Terraform](/terraform/tutorials/provision?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials to learn about more declarative ways to handle provisioning actions.
 
 Terraform includes the concept of provisioners as a measure of pragmatism,
 knowing that there are always certain behaviors that cannot be directly
@@ -78,7 +78,7 @@ process in various ways data passed via the means described above, allowing
 you to run arbitrary scripts and do basic system configuration immediately
 during the boot process and without the need to access the machine over SSH.
 
-> **Hands-on:** Try the [Provision Infrastructure with Cloud-Init](https://learn.hashicorp.com/tutorials/terraform/cloud-init?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Provision Infrastructure with Cloud-Init](/terraform/tutorials/provision/cloud-init?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 If you are building custom machine images, you can make use of the "user data"
 or "metadata" passed by the above means in whatever way makes sense to your
@@ -108,7 +108,7 @@ configuration management provisioners and can run their installation steps
 during a separate build process, before creating a system disk image that you
 can deploy many times.
 
-> **Hands-on:** Try the [Provision Infrastructure with Packer](https://learn.hashicorp.com/tutorials/terraform/packer?in=terraform/provision&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Provision Infrastructure with Packer](/terraform/tutorials/provision/packer?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 If you are using configuration management software that has a centralized server
 component, you will need to delay the _registration_ step until the final
@@ -163,7 +163,7 @@ resource "aws_instance" "web" {
 
 The `local-exec` provisioner requires no other configuration, but most other
 provisioners must connect to the remote system using SSH or WinRM.
-You must include [a `connection` block](/language/resources/provisioners/connection) so that Terraform knows how to communicate with the server.
+You must include [a `connection` block](/terraform/language/resources/provisioners/connection) so that Terraform knows how to communicate with the server.
 
 Terraform includes several built-in provisioners. You can also use third-party provisioners as plugins, by placing them
 in `%APPDATA%\terraform.d\plugins`, `~/.terraform.d/plugins`, or the same
@@ -191,8 +191,8 @@ block would create a dependency cycle.
 ## Suppressing Provisioner Logs in CLI Output
 
 The configuration for a `provisioner` block may use sensitive values, such as
-[`sensitive` variables](/language/values/variables#suppressing-values-in-cli-output) or
-[`sensitive` output values](/language/values/outputs#sensitive-suppressing-values-in-cli-output).
+[`sensitive` variables](/terraform/language/values/variables#suppressing-values-in-cli-output) or
+[`sensitive` output values](/terraform/language/values/outputs#sensitive-suppressing-values-in-cli-output).
 In this case, all log output from the provisioner is automatically suppressed to
 prevent the sensitive values from being displayed.
 
@@ -235,8 +235,8 @@ fail, Terraform will error and rerun the provisioners again on the next
 provisioners to be safe to run multiple times.
 
 ```
-Destroy provisioners of this resource will not run if `create_before_destroy`
-is set to `true`. We may address this in the future, and this [GitHub issue](https://github.com/hashicorp/terraform/issues/13549) contains more details.
+Destroy provisioners of this resource do not run if `create_before_destroy`
+is set to `true`. This [GitHub issue](https://github.com/hashicorp/terraform/issues/13549) contains more details.
 ```
 
 Destroy-time provisioners can only run if they remain in the configuration
@@ -251,8 +251,7 @@ remove a resource with a destroy-time provisioner:
 * Remove the resource block entirely from configuration, along with its `provisioner` blocks.
 * Apply again, at which point no further action should be taken since the resources were already destroyed.
 
-This limitation may be addressed in future versions of Terraform. For now,
-destroy-time provisioners must be used sparingly and with care.
+Because of this limitation, you should use destroy-time provisioners sparingly and with care.
 
 ~> **NOTE:** A destroy-time provisioner within a resource that is tainted _will not_ run. This includes resources that are marked tainted from a failed creation-time provisioner or tainted manually using `terraform taint`.
 

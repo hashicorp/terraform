@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package backend
 
 import (
@@ -219,12 +222,12 @@ func TestBackendStates(t *testing.T, b Backend) {
 	}
 
 	// Delete some workspaces
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Verify the default state can't be deleted
-	if err := b.DeleteWorkspace(DefaultStateName); err == nil {
+	if err := b.DeleteWorkspace(DefaultStateName, true); err == nil {
 		t.Fatal("expected error")
 	}
 
@@ -242,7 +245,7 @@ func TestBackendStates(t *testing.T, b Backend) {
 		t.Fatalf("should be empty: %s", v)
 	}
 	// and delete it again
-	if err := b.DeleteWorkspace("foo"); err != nil {
+	if err := b.DeleteWorkspace("foo", true); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

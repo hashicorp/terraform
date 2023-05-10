@@ -127,11 +127,7 @@ using lexical sorting.
 For sets of strings, Terraform sorts the elements by their value, using
 lexical sorting.
 
-For sets of other types, Terraform uses an arbitrary ordering that may change
-in future versions of Terraform. For that reason, we recommend converting the
-result of such an expression to itself be a set so that it's clear elsewhere
-in the configuration that the result is unordered. You can use
-[the `toset` function](/language/functions/toset)
+For sets of other types, Terraform uses an arbitrary ordering that may change in future versions. We recommend converting the expression result into a set to make it clear elsewhere in the configuration that the result is unordered. You can use [the `toset` function](/terraform/language/functions/toset)
 to concisely convert a `for` expression result to be of a set type.
 
 ```hcl
@@ -208,4 +204,4 @@ Some resource types also define _nested block types_, which typically represent
 separate objects that belong to the containing resource in some way. You can't
 dynamically generate nested blocks using `for` expressions, but you _can_
 generate nested blocks for a resource dynamically using
-[`dynamic` blocks](/language/expressions/dynamic-blocks).
+[`dynamic` blocks](/terraform/language/expressions/dynamic-blocks).

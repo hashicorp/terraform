@@ -91,11 +91,11 @@ the local value `mixed_content`, with a valid JSON string assigned to
 
 ```
 > var.mixed_content_json
-(sensitive)
+(sensitive value)
 > local.mixed_content
-(sensitive)
+(sensitive value)
 > local.mixed_content["password"]
-(sensitive)
+(sensitive value)
 > nonsensitive(local.mixed_content["username"])
 "zqb"
 > nonsensitive("clear")

@@ -10,7 +10,7 @@ description: >-
 
 Terraform expects to be invoked from a working directory that contains
 configuration files written in
-[the Terraform language](/language). Terraform uses
+[the Terraform language](/terraform/language). Terraform uses
 configuration content from this directory, and also uses the directory to store
 settings, cached plugins and modules, and sometimes state data.
 
@@ -25,7 +25,7 @@ A Terraform working directory typically contains:
   configuration is expected to change over time.
 - A hidden `.terraform` directory, which Terraform uses to manage cached
   provider plugins and modules, record which
-  [workspace](/cli/workspaces) is currently active, and
+  [workspace](/terraform/cli/workspaces) is currently active, and
   record the last known backend configuration in case it needs to migrate state
   on the next run. This directory is automatically managed by Terraform, and is
   created during initialization.
@@ -50,7 +50,7 @@ plugins, and downloading modules. Under some conditions (usually when changing
 from one backend to another), it might ask the user for guidance or
 confirmation.
 
-For details, see [the `terraform init` command](/cli/commands/init).
+For details, see [the `terraform init` command](/terraform/cli/commands/init).
 
 ## Reinitialization
 

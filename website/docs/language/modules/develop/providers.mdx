@@ -1,5 +1,7 @@
 ---
 page_title: Providers Within Modules - Configuration Language
+description: >-
+  Use providers within Terraform modules. Learn about version constraints, aliases, implicit inheritance, and passing providers to Terraform modules.
 ---
 
 # Providers Within Modules
@@ -44,10 +46,10 @@ to reintroduce the provider configuration.
 ## Provider Version Constraints in Modules
 
 Although provider _configurations_ are shared between modules, each module must
-declare its own [provider requirements](/language/providers/requirements), so that
+declare its own [provider requirements](/terraform/language/providers/requirements), so that
 Terraform can ensure that there is a single version of the provider that is
 compatible with all modules in the configuration and to specify the
-[source address](/language/providers/requirements#source-addresses) that serves as
+[source address](/terraform/language/providers/requirements#source-addresses) that serves as
 the global (module-agnostic) identifier for a provider.
 
 To declare that a module requires particular versions of a specific provider,
@@ -70,7 +72,7 @@ however, specify any of the configuration settings that determine what remote
 endpoints the provider will access, such as an AWS region; configuration
 settings come from provider _configurations_, and a particular overall Terraform
 configuration can potentially have
-[several different configurations for the same provider](/language/providers/configuration#alias-multiple-provider-configurations).
+[several different configurations for the same provider](/terraform/language/providers/configuration#alias-multiple-provider-configurations).
 
 ## Provider Aliases Within Modules
 
@@ -102,7 +104,7 @@ features are needed by other parts of their overall configuration.
 ## Implicit Provider Inheritance
 
 For convenience in simple configurations, a child module automatically inherits
-[default provider configurations](/language/providers/configuration#default-provider-configurations) from its parent. This means that
+[default provider configurations](/terraform/language/providers/configuration#default-provider-configurations) from its parent. This means that
 explicit `provider` blocks appear only in the root module, and downstream
 modules can simply declare resources for that provider and have them
 automatically associated with the root provider configurations.
@@ -132,10 +134,10 @@ resource "aws_s3_bucket" "example" {
 We recommend using this approach when a single configuration for each provider
 is sufficient for an entire configuration.
 
-~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](/language/providers/requirements). This is especially important for non-HashiCorp providers.
+~> **Note:** Only provider configurations are inherited by child modules, not provider source or version requirements. Each module must [declare its own provider requirements](/terraform/language/providers/requirements). This is especially important for non-HashiCorp providers.
 
 In more complex situations there may be
-[multiple provider configurations](/language/providers/configuration#alias-multiple-provider-configurations),
+[multiple provider configurations](/terraform/language/providers/configuration#alias-multiple-provider-configurations),
 or a child module may need to use different provider settings than
 its parent. For such situations, you must pass providers explicitly.
 
@@ -172,7 +174,7 @@ module "example" {
 ```
 
 The `providers` argument within a `module` block is similar to
-[the `provider` argument](/language/meta-arguments/resource-provider)
+[the `provider` argument](/terraform/language/meta-arguments/resource-provider)
 within a resource, but is a map rather than a single string because a module may
 contain resources from many different providers.
 

@@ -21,23 +21,25 @@ func _() {
 	_ = x[ResourceInstanceDeleteBecauseNoMoveTarget-65]
 	_ = x[ResourceInstanceReadBecauseConfigUnknown-63]
 	_ = x[ResourceInstanceReadBecauseDependencyPending-33]
+	_ = x[ResourceInstanceReadBecauseCheckNested-35]
 }
 
 const (
 	_ResourceInstanceChangeActionReason_name_0 = "ResourceInstanceChangeNoReason"
 	_ResourceInstanceChangeActionReason_name_1 = "ResourceInstanceReadBecauseDependencyPending"
-	_ResourceInstanceChangeActionReason_name_2 = "ResourceInstanceReadBecauseConfigUnknown"
-	_ResourceInstanceChangeActionReason_name_3 = "ResourceInstanceDeleteBecauseNoMoveTarget"
-	_ResourceInstanceChangeActionReason_name_4 = "ResourceInstanceDeleteBecauseCountIndexResourceInstanceReplaceByTriggersResourceInstanceDeleteBecauseEachKeyResourceInstanceReplaceBecauseCannotUpdate"
-	_ResourceInstanceChangeActionReason_name_5 = "ResourceInstanceDeleteBecauseNoModuleResourceInstanceDeleteBecauseNoResourceConfig"
-	_ResourceInstanceChangeActionReason_name_6 = "ResourceInstanceReplaceByRequest"
-	_ResourceInstanceChangeActionReason_name_7 = "ResourceInstanceReplaceBecauseTainted"
-	_ResourceInstanceChangeActionReason_name_8 = "ResourceInstanceDeleteBecauseWrongRepetition"
+	_ResourceInstanceChangeActionReason_name_2 = "ResourceInstanceReadBecauseCheckNested"
+	_ResourceInstanceChangeActionReason_name_3 = "ResourceInstanceReadBecauseConfigUnknown"
+	_ResourceInstanceChangeActionReason_name_4 = "ResourceInstanceDeleteBecauseNoMoveTarget"
+	_ResourceInstanceChangeActionReason_name_5 = "ResourceInstanceDeleteBecauseCountIndexResourceInstanceReplaceByTriggersResourceInstanceDeleteBecauseEachKeyResourceInstanceReplaceBecauseCannotUpdate"
+	_ResourceInstanceChangeActionReason_name_6 = "ResourceInstanceDeleteBecauseNoModuleResourceInstanceDeleteBecauseNoResourceConfig"
+	_ResourceInstanceChangeActionReason_name_7 = "ResourceInstanceReplaceByRequest"
+	_ResourceInstanceChangeActionReason_name_8 = "ResourceInstanceReplaceBecauseTainted"
+	_ResourceInstanceChangeActionReason_name_9 = "ResourceInstanceDeleteBecauseWrongRepetition"
 )
 
 var (
-	_ResourceInstanceChangeActionReason_index_4 = [...]uint8{0, 39, 72, 108, 150}
-	_ResourceInstanceChangeActionReason_index_5 = [...]uint8{0, 37, 82}
+	_ResourceInstanceChangeActionReason_index_5 = [...]uint8{0, 39, 72, 108, 150}
+	_ResourceInstanceChangeActionReason_index_6 = [...]uint8{0, 37, 82}
 )
 
 func (i ResourceInstanceChangeActionReason) String() string {
@@ -46,22 +48,24 @@ func (i ResourceInstanceChangeActionReason) String() string {
 		return _ResourceInstanceChangeActionReason_name_0
 	case i == 33:
 		return _ResourceInstanceChangeActionReason_name_1
-	case i == 63:
+	case i == 35:
 		return _ResourceInstanceChangeActionReason_name_2
-	case i == 65:
+	case i == 63:
 		return _ResourceInstanceChangeActionReason_name_3
+	case i == 65:
+		return _ResourceInstanceChangeActionReason_name_4
 	case 67 <= i && i <= 70:
 		i -= 67
-		return _ResourceInstanceChangeActionReason_name_4[_ResourceInstanceChangeActionReason_index_4[i]:_ResourceInstanceChangeActionReason_index_4[i+1]]
+		return _ResourceInstanceChangeActionReason_name_5[_ResourceInstanceChangeActionReason_index_5[i]:_ResourceInstanceChangeActionReason_index_5[i+1]]
 	case 77 <= i && i <= 78:
 		i -= 77
-		return _ResourceInstanceChangeActionReason_name_5[_ResourceInstanceChangeActionReason_index_5[i]:_ResourceInstanceChangeActionReason_index_5[i+1]]
+		return _ResourceInstanceChangeActionReason_name_6[_ResourceInstanceChangeActionReason_index_6[i]:_ResourceInstanceChangeActionReason_index_6[i+1]]
 	case i == 82:
-		return _ResourceInstanceChangeActionReason_name_6
-	case i == 84:
 		return _ResourceInstanceChangeActionReason_name_7
-	case i == 87:
+	case i == 84:
 		return _ResourceInstanceChangeActionReason_name_8
+	case i == 87:
+		return _ResourceInstanceChangeActionReason_name_9
 	default:
 		return "ResourceInstanceChangeActionReason(" + strconv.FormatInt(int64(i), 10) + ")"
 	}

@@ -66,35 +66,35 @@ The following top-level blocks and their defined "meta-arguments" (that is,
 arguments defined by Terraform Core rather than by external plugins such as
 providers) will retain their current functionality:
 
-* [`resource`](/language/resources) and
-  [`data`](/language/data-sources) blocks to
+* [`resource`](/terraform/language/resources) and
+  [`data`](/terraform/language/data-sources) blocks to
   declare resources, including their nested block types `lifecycle`,
   `connection`, and `provisioner`, and their meta-argument `provider`.
-* [`module`](/language/modules/syntax) blocks to call other modules,
+* [`module`](/terraform/language/modules/syntax) blocks to call other modules,
   and its meta-argument `providers`.
-* The [`count`](/language/meta-arguments/count),
-  [`for_each`](/language/meta-arguments/for_each), and
-  [`depends_on`](/language/meta-arguments/depends_on) meta-arguments
+* The [`count`](/terraform/language/meta-arguments/count),
+  [`for_each`](/terraform/language/meta-arguments/for_each), and
+  [`depends_on`](/terraform/language/meta-arguments/depends_on) meta-arguments
   in `resource`, `data`, and `module` blocks.
-* [`provider`](/language/providers/configuration) blocks to configure
+* [`provider`](/terraform/language/providers/configuration) blocks to configure
   providers, and the `alias` meta-argument.
-* [`variable`](/language/values/variables#declaring-an-input-variable),
-  [`output`](/language/values/outputs#declaring-an-output-value), and
-  [`locals`](/language/values/locals#declaring-a-local-value) blocks
+* [`variable`](/terraform/language/values/variables#declaring-an-input-variable),
+  [`output`](/terraform/language/values/outputs#declaring-an-output-value), and
+  [`locals`](/terraform/language/values/locals#declaring-a-local-value) blocks
   for declaring the various kinds of named values in a module.
-* [`terraform`](/language/settings) blocks, including the nested
-  [`required_version`](/language/settings#specifying-a-required-terraform-version)
+* [`terraform`](/terraform/language/settings) blocks, including the nested
+  [`required_version`](/terraform/language/settings#specifying-a-required-terraform-version)
   and
-  [`required_providers`](/language/providers/requirements#requiring-providers)
+  [`required_providers`](/terraform/language/providers/requirements#requiring-providers)
   arguments, and nested
-  [`backend`](/language/settings/backends/configuration#using-a-backend-block)
+  [`backend`](/terraform/language/settings/backends/configuration#using-a-backend-block)
   blocks for backend configuration.
 
 We also intend to keep compatibility with all
-[expression operators](/language/expressions) and
-[built-in functions](/language/functions), with the exception of
+[expression operators](/terraform/language/expressions) and
+[built-in functions](/terraform/language/functions), with the exception of
 references to
-[`terraform.workspace`](/language/expressions/references#terraform-workspace),
+[`terraform.workspace`](/terraform/language/expressions/references#terraform-workspace),
 whose behavior may change as part of future changes to the workspace model.
 
 We intend to retain broad compatibility with Terraform language features, with
@@ -190,18 +190,18 @@ if you are still using a Terraform v1.x release.
 ### Provider Installation Methods
 
 Terraform normally installs providers from a provider registry implementing
-[the Provider Registry Protocol](/internals/provider-registry-protocol),
+[the Provider Registry Protocol](/terraform/internals/provider-registry-protocol),
 version 1. All Terraform v1.x releases will remain compatible with that
 protocol, and so correctly-implemented provider registries will stay compatible.
 
 Terraform also supports installation of providers from
-[local filesystem directories](/cli/config/config-file#filesystem_mirror)
+[local filesystem directories](/terraform/cli/config/config-file#filesystem_mirror)
 (filesystem mirrors) and from
-[network mirrors](/cli/config/config-file#network_mirror)
-(implementing [the Provider Mirror Protocol](/internals/provider-network-mirror-protocol).
+[network mirrors](/terraform/cli/config/config-file#network_mirror)
+(implementing [the Provider Mirror Protocol](/terraform/internals/provider-network-mirror-protocol).
 All Terraform v1.x releases will remain compatible with those installation
 methods, including
-[the Implied Local Mirror Directories](/cli/config/config-file#implied-local-mirror-directories).
+[the Implied Local Mirror Directories](/terraform/cli/config/config-file#implied-local-mirror-directories).
 
 Specific provider registries or network mirrors are run independently from
 Terraform itself and so their own behaviors are not subject to these
@@ -237,11 +237,11 @@ and of Terraform itself.
 ### Module Installation Methods
 
 Terraform supports installing child modules from a number of different
-[module source types](/language/modules/sources). We will continue
+[module source types](/terraform/language/modules/sources). We will continue
 to support all of the existing source types throughout the v1.x releases.
 
 One of the supported source types is a module registry implementing
-[the Module Registry Protocol](/internals/module-registry-protocol)
+[the Module Registry Protocol](/terraform/internals/module-registry-protocol)
 version 1. All Terraform v1.x releases will remain compatible with correct
 implementations of that protocol.
 
@@ -387,7 +387,7 @@ As noted above, compatibility with external software is limited to
 explicitly-machine-readable output (`-json` and `-raw` modes) and exit codes.
 Any natural-language output from these commands might change in later releases.
 
-* [`init`](/cli/commands/init)
+* [`init`](/terraform/cli/commands/init)
   * `-backend=false`
   * `-backend-config=FILE`
   * `-backend-config="KEY=VALUE"`
@@ -399,10 +399,10 @@ Any natural-language output from these commands might change in later releases.
   * `-plugin-dir=DIR`
   * `-reconfigure`
   * `-upgrade`
-* [`validate`](/cli/commands/validate)
+* [`validate`](/terraform/cli/commands/validate)
   * `-json`
   * `-no-color`
-* [`plan`](/cli/commands/plan)
+* [`plan`](/terraform/cli/commands/plan)
   * `-compact-warnings`
   * `-destroy`
   * `-detailed-exitcode`
@@ -419,7 +419,7 @@ Any natural-language output from these commands might change in later releases.
   * `-target=ADDRESS`
   * `-var 'NAME=VALUE'`
   * `-var-file=FILE`
-* [`apply`](/cli/commands/apply)
+* [`apply`](/terraform/cli/commands/apply)
   * `-auto-approve`
   * `-compact-warnings`
   * `-lock=false`
@@ -434,53 +434,53 @@ Any natural-language output from these commands might change in later releases.
   * `-target=ADDRESS`
   * `-var 'NAME=VALUE'`
   * `-var-file=FILE`
-* [`show`](/cli/commands/show)
+* [`show`](/terraform/cli/commands/show)
   * `-no-color`
   * `-json`
   * (both with and without a plan file)
-* [`providers`](/cli/commands/providers) (with no subcommand)
-* [`providers lock`](/cli/commands/providers/lock)
+* [`providers`](/terraform/cli/commands/providers) (with no subcommand)
+* [`providers lock`](/terraform/cli/commands/providers/lock)
   * `-fs-mirror=PATH`
   * `-net-mirror=URL`
   * `-platform=OS_ARCH`
-* [`providers mirror`](/cli/commands/providers/mirror)
+* [`providers mirror`](/terraform/cli/commands/providers/mirror)
   * `-platform=OS_ARCH`
-* [`providers schema`](/cli/commands/providers/schema)
+* [`providers schema`](/terraform/cli/commands/providers/schema)
   * `-json`
-* [`fmt`](/cli/commands/fmt)
+* [`fmt`](/terraform/cli/commands/fmt)
   * `-list=false`
   * `-write=false`
   * `-diff`
   * `-recursive`
   * `-check`
-* [`version`](/cli/commands/version)
+* [`version`](/terraform/cli/commands/version)
   * `-json`
-* [`output`](/cli/commands/output)
+* [`output`](/terraform/cli/commands/output)
   * `-no-color`
   * `-json`
   * `-raw`
-* [`taint`](/cli/commands/taint)
+* [`taint`](/terraform/cli/commands/taint)
   * `-allow-missing`
   * `-lock=false`
   * `-lock-timeout=DURATION`
   * `-ignore-remote-version`
-* [`untaint`](/cli/commands/untaint)
+* [`untaint`](/terraform/cli/commands/untaint)
   * `-allow-missing`
   * `-lock=false`
   * `-lock-timeout=DURATION`
   * `-ignore-remote-version`
-* [`force-unlock`](/cli/commands/force-unlock)
+* [`force-unlock`](/terraform/cli/commands/force-unlock)
   * `-force`
-* [`state list`](/cli/commands/state/list)
+* [`state list`](/terraform/cli/commands/state/list)
   * `-id=ID`
-* [`state pull`](/cli/commands/state/pull)
-* [`state push`](/cli/commands/state/push)
+* [`state pull`](/terraform/cli/commands/state/pull)
+* [`state push`](/terraform/cli/commands/state/push)
   * `-force`
   * `-lock=false`
   * `-lock-timeout=DURATION`
-* [`state show`](/cli/commands/state/show)
+* [`state show`](/terraform/cli/commands/state/show)
   * `-ignore-remote-version`
-* [`login`](/cli/commands/login)
+* [`login`](/terraform/cli/commands/login)
 
 For commands or options not in the above list, we will still avoid breaking
 changes where possible, but can't promise full compatibility throughout the

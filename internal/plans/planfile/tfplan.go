@@ -1,10 +1,15 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package planfile
 
 import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
+	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -15,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/version"
-	"github.com/zclconf/go-cty/cty"
 )
 
 const tfplanFormatVersion = 3
@@ -61,6 +65,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		DriftedResources: []*plans.ResourceInstanceChangeSrc{},
 		Checks:           &states.CheckResults{},
 	}
+
+	plan.Errored = rawPlan.Errored
 
 	switch rawPlan.UiMode {
 	case planproto.Mode_NORMAL:
@@ -112,6 +118,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			objKind = addrs.CheckableResource
 		case planproto.CheckResults_OUTPUT_VALUE:
 			objKind = addrs.CheckableOutputValue
+		case planproto.CheckResults_CHECK:
+			objKind = addrs.CheckableCheck
 		default:
 			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
 		}
@@ -242,6 +250,10 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		}
 	}
 
+	if plan.Timestamp, err = time.Parse(time.RFC3339, rawPlan.Timestamp); err != nil {
+		return nil, fmt.Errorf("invalid value for timestamp %s: %s", rawPlan.Timestamp, err)
+	}
+
 	return plan, nil
 }
 
@@ -331,6 +343,8 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 		ret.ActionReason = plans.ResourceInstanceReadBecauseConfigUnknown
 	case planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING:
 		ret.ActionReason = plans.ResourceInstanceReadBecauseDependencyPending
+	case planproto.ResourceInstanceActionReason_READ_BECAUSE_CHECK_NESTED:
+		ret.ActionReason = plans.ResourceInstanceReadBecauseCheckNested
 	case planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET:
 		ret.ActionReason = plans.ResourceInstanceDeleteBecauseNoMoveTarget
 	default:
@@ -461,6 +475,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		ResourceDrift:   []*planproto.ResourceInstanceChange{},
 	}
 
+	rawPlan.Errored = plan.Errored
+
 	switch plan.UIMode {
 	case plans.NormalMode:
 		rawPlan.UiMode = planproto.Mode_NORMAL
@@ -520,6 +536,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 				pcrs.Kind = planproto.CheckResults_RESOURCE
 			case addrs.CheckableOutputValue:
 				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
+			case addrs.CheckableCheck:
+				pcrs.Kind = planproto.CheckResults_CHECK
 			default:
 				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
 			}
@@ -597,6 +615,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 		Config:    valueToTfplan(plan.Backend.Config),
 		Workspace: plan.Backend.Workspace,
 	}
+
+	rawPlan.Timestamp = plan.Timestamp.Format(time.RFC3339)
 
 	src, err := proto.Marshal(rawPlan)
 	if err != nil {
@@ -707,6 +727,8 @@ func resourceChangeToTfplan(change *plans.ResourceInstanceChangeSrc) (*planproto
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CONFIG_UNKNOWN
 	case plans.ResourceInstanceReadBecauseDependencyPending:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_DEPENDENCY_PENDING
+	case plans.ResourceInstanceReadBecauseCheckNested:
+		ret.ActionReason = planproto.ResourceInstanceActionReason_READ_BECAUSE_CHECK_NESTED
 	case plans.ResourceInstanceDeleteBecauseNoMoveTarget:
 		ret.ActionReason = planproto.ResourceInstanceActionReason_DELETE_BECAUSE_NO_MOVE_TARGET
 	default:

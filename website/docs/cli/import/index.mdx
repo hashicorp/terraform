@@ -7,74 +7,18 @@ description: >-
 
 # Import
 
-> **Hands-on:** Try the [Import Terraform Configuration](https://learn.hashicorp.com/tutorials/terraform/state-import?in=terraform/state&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 Terraform can import existing infrastructure resources. This functionality lets you bring existing resources under Terraform management.
 
-~> Warning: Terraform expects that each remote object is bound to only one resource address. You should import each remote object to only one Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. Refer to [State](/language/state) for more details.
-=======
-Terraform can import existing infrastructure resources. This functionality allows you take
-resources you created by some other means and bring them under Terraform
-management.
-=======
-Terraform can import existing infrastructure resources. This functionality allows you take resources you created by some other means and bring them under Terraform
-management.
+~> **Warning:** Terraform expects that each remote object is bound to only one resource address. You should import each remote object to only one Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. Refer to [State](/terraform/language/state) for more details.
 
-This method lets you slowly transition infrastructure to Terraform, or
-to be able to be confident that you can use Terraform in the future if it
-potentially doesn't support every feature you need today.
+## State Only
 
-~> Warning: Terraform expects that each remote object it is managing will be
-bound to only one resource address, which is normally guaranteed by Terraform
-itself having created all objects. If you import existing objects into Terraform, be careful to import each remote object to only one Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. Refer to [State](/language/state) for more details.
->>>>>>> parent of 84edd84471 (more content updates for flow)
+Terraform import can only import resources into the [state](/terraform/language/state). Importing does not generate configuration.
 
-This is a great way to slowly transition infrastructure to Terraform, or
-to be able to be confident that you can use Terraform in the future if it
-potentially doesn't support every feature you need today.
-
-<<<<<<< HEAD
-~> Warning: Terraform expects that each remote object it is managing will be
-bound to only one resource address, which is normally guaranteed by Terraform
-itself having created all objects. If you import existing objects into Terraform,
-be careful to import each remote object to only one Terraform resource address.
-If you import the same object multiple times, Terraform may exhibit unwanted
-behavior. For more information on this assumption, see
-[the State section](/language/state).
->>>>>>> parent of 0a7e221a49 (Remove future-facing statements)
-
-## Currently State Only
-
-<<<<<<< HEAD
-Terraform import can only import resources into the [state](/language/state). Importing does not generate configuration.
-=======
-Terraform import can only import resources into the [state](/language/state). It does not generate configuration.
->>>>>>> parent of 84edd84471 (more content updates for flow)
-
-Because of this, prior to running `terraform import` you must manually write a `resource` configuration block for the resource that describes where Terraform should map the imported object.
+Before you run `terraform import` you must manually write a `resource` configuration block for the resource. The resource block describes where Terraform should map the imported object.
 
 ## Terraform Cloud
 
-<<<<<<< HEAD
 When you use Terraform on the command line with Terraform Cloud, many commands like `apply` run inside your Terraform Cloud environment. However, the `import` command runs locally, so it does not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
-=======
-The current implementation of Terraform import can only import resources
-into the [state](/language/state). It does not generate configuration. A future
-version of Terraform will also generate configuration.
-
-Because of this, prior to running `terraform import` it is necessary to write
-manually a `resource` configuration block for the resource, to which the
-imported object will be mapped.
-
-While this may seem tedious, it still gives Terraform users an avenue for
-importing existing resources.
-
-## Terraform Cloud
-
-When you use Terraform on the command line with Terraform Cloud, many commands (e.g., `apply`) run inside your Terraform Cloud environment. However, the `import` command runs locally, so it will not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
->>>>>>> parent of 0a7e221a49 (Remove future-facing statements)
-=======
-When you use Terraform on the command line with Terraform Cloud, many commands (e.g., `apply`) run inside your Terraform Cloud environment. However, the `import` command runs locally, so it does not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
->>>>>>> parent of 84edd84471 (more content updates for flow)

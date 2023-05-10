@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package objchange
 
 import (
@@ -353,6 +356,120 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+		"prior nested single to null": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"foo": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"bar": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"baz": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.ObjectVal(map[string]cty.Value{
+					"bar": cty.StringVal("beep"),
+					"baz": cty.StringVal("boop"),
+				}),
+				"bloop": cty.ObjectVal(map[string]cty.Value{
+					"blop":  cty.StringVal("glub"),
+					"bleep": cty.NullVal(cty.String),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+					"baz": cty.String,
+				})),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"foo": cty.NullVal(cty.Object(map[string]cty.Type{
+					"bar": cty.String,
+					"baz": cty.String,
+				})),
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+		},
+
+		"prior optional computed nested single to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSingle,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Required: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.ObjectVal(map[string]cty.Value{
+					"blop":  cty.StringVal("glub"),
+					"bleep": cty.NullVal(cty.String),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Object(map[string]cty.Type{
+					"blop":  cty.String,
+					"bleep": cty.String,
+				})),
+			}),
+		},
+
 		"prior nested list": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -638,6 +755,120 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+
+		"prior optional computed nested map elem to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Optional: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("glub"),
+						"bleep": cty.StringVal("computed"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("blub"),
+						"bleep": cty.StringVal("computed"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.MapVal(map[string]cty.Value{
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"blop":  cty.String,
+						"bleep": cty.String,
+					})),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("blub"),
+						"bleep": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.MapVal(map[string]cty.Value{
+					"a": cty.NullVal(cty.Object(map[string]cty.Type{
+						"blop":  cty.String,
+						"bleep": cty.String,
+					})),
+					"c": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("blub"),
+						"bleep": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+
+		"prior optional computed nested map to null": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"bloop": {
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"blop": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"bleep": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+						Optional: true,
+						Computed: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.MapVal(map[string]cty.Value{
+					"a": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("glub"),
+						"bleep": cty.StringVal("computed"),
+					}),
+					"b": cty.ObjectVal(map[string]cty.Value{
+						"blop":  cty.StringVal("blub"),
+						"bleep": cty.StringVal("computed"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Map(
+					cty.Object(map[string]cty.Type{
+						"blop":  cty.String,
+						"bleep": cty.String,
+					}),
+				)),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"bloop": cty.NullVal(cty.Map(
+					cty.Object(map[string]cty.Type{
+						"blop":  cty.String,
+						"bleep": cty.String,
+					}),
+				)),
+			}),
+		},
+
 		"prior nested map with dynamic": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -844,6 +1075,128 @@ func TestProposedNew(t *testing.T) {
 				}),
 			}),
 		},
+
+		"set with partial optional computed change": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"multi": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"cmp": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"cmp": cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"cmp": cty.StringVal("OK"),
+					}),
+				}),
+			}),
+
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"cmp": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("replaced"),
+						"cmp": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			// "one" can be correlated because it is a non-computed value in
+			// the configuration.
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"cmp": cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("replaced"),
+						"cmp": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+
+		"set without partial optional computed change": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"multi": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"req": {
+									Type:     cty.String,
+									Required: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"req": cty.StringVal("one"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"req": cty.StringVal("two"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.NullVal(cty.String),
+						"req": cty.StringVal("one"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.NullVal(cty.String),
+						"req": cty.StringVal("two"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"req": cty.StringVal("one"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"req": cty.StringVal("two"),
+					}),
+				}),
+			}),
+		},
+
 		"sets differing only by unknown": {
 			&configschema.Block{
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -1307,12 +1660,14 @@ func TestProposedNew(t *testing.T) {
 						}),
 					}),
 					cty.ObjectVal(map[string]cty.Value{
-						"bar": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
-							"optional":          cty.StringVal("other_prior"),
-							"computed":          cty.StringVal("other_prior"),
-							"optional_computed": cty.StringVal("other_prior"),
-							"required":          cty.StringVal("other_prior"),
-						})}),
+						"bar": cty.SetVal([]cty.Value{
+							cty.ObjectVal(map[string]cty.Value{
+								"optional":          cty.StringVal("other_prior"),
+								"computed":          cty.StringVal("other_prior"),
+								"optional_computed": cty.StringVal("other_prior"),
+								"required":          cty.StringVal("other_prior"),
+							}),
+						}),
 					}),
 				}),
 			}),
@@ -1641,7 +1996,9 @@ func TestProposedNew(t *testing.T) {
 			}),
 		},
 
-		// data sources are planned with an unknown value
+		// Data sources are planned with an unknown value.
+		// Note that this plan fails AssertPlanValid, because for managed
+		// resources an instance would never be completely unknown.
 		"unknown prior nested objects": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -1667,26 +2024,709 @@ func TestProposedNew(t *testing.T) {
 				},
 			},
 			cty.UnknownVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
 			cty.NullVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
 			cty.UnknownVal(cty.Object(map[string]cty.Type{
-				"List": cty.List(cty.Object(map[string]cty.Type{
+				"list": cty.List(cty.Object(map[string]cty.Type{
 					"list": cty.List(cty.Object(map[string]cty.Type{
 						"foo": cty.String,
 					})),
 				})),
 			})),
+		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed container. The nested computed values should be
+		// represented in the proposed new object.
+		"config within optional+computed": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed container. The prior nested object contains values
+		// which could not be computed, therefor the proposed new value must be
+		// the null value from the configuration.
+		"computed within optional+computed": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"list_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.ListVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("prior"),
+							"computed": cty.StringVal("prior computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"obj": cty.Object(map[string]cty.Type{
+							"optional": cty.String,
+							"computed": cty.String,
+						}),
+					}),
+				)),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"list_obj": cty.NullVal(cty.List(
+					cty.Object(map[string]cty.Type{
+						"obj": cty.Object(map[string]cty.Type{
+							"optional": cty.String,
+							"computed": cty.String,
+						}),
+					}),
+				)),
+			}),
+		},
+
+		// A nested object with computed attributes, which is contained in an
+		// optional+computed set. The nested computed values should be
+		// represented in the proposed new object, and correlated with state
+		// via the non-computed attributes.
+		"config add within optional+computed set": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set_obj": {
+						Optional: true,
+						Computed: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+		},
+
+		// A nested object with computed attributes, which is contained in a
+		// set. The nested computed values should be represented in the
+		// proposed new object, and correlated with state via the non-computed
+		// attributes.
+		"config add within set block": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"set_obj": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Optional: true, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second from config"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second from config"),
+						}),
+					}),
+					// new "third" value added
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second from config"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("third"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+		},
+
+		// A nested object with computed attributes, which is contained in a
+		// set. The nested computed values should be represented in the
+		// proposed new object, and correlated with state via the non-computed
+		// attributes.
+		"config change within set block": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"set_obj": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"obj": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSingle,
+										Attributes: map[string]*configschema.Attribute{
+											"optional": {Type: cty.String, Optional: true},
+											"computed": {Type: cty.String, Optional: true, Computed: true},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("second"),
+							"computed": cty.StringVal("second computed"),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("changed"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set_obj": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("first"),
+							"computed": cty.StringVal("first computed"),
+						}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"obj": cty.ObjectVal(map[string]cty.Value{
+							"optional": cty.StringVal("changed"),
+							"computed": cty.NullVal(cty.String),
+						}),
+					}),
+				}),
+			}),
+		},
+
+		"set attr with partial optional computed change": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"multi": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"oc": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("replaced"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("replaced"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+		},
+
+		"set attr without optional computed change": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"multi": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"oc": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+		},
+
+		"set attr with all optional computed": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"multi": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"oc": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+			// Each of these values can be correlated by the existence of the
+			// optional config attribute. Because "one" and "two" are set in
+			// the config, they must exist in the state regardless of
+			// optional&computed.
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+					}),
+				}),
+			}),
+		},
+
+		"set block with all optional computed and nested object types": {
+			&configschema.Block{
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"multi": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"opt": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"oc": {
+									Type:     cty.String,
+									Optional: true,
+									Computed: true,
+								},
+								"attr": {
+									Optional: true,
+									NestedType: &configschema.Object{
+										Nesting: configschema.NestingSet,
+										Attributes: map[string]*configschema.Attribute{
+											"opt": {
+												Type:     cty.String,
+												Optional: true,
+												Computed: true,
+											},
+											"oc": {
+												Type:     cty.String,
+												Optional: true,
+												Computed: true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.NullVal(cty.String),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.NullVal(cty.String),
+						})}),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("three"),
+						"oc":  cty.NullVal(cty.String),
+						"attr": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+							"opt": cty.String,
+							"oc":  cty.String,
+						}))),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"multi": cty.SetVal([]cty.Value{
+					// We can correlate this with prior from the outer object
+					// attributes, and the equal nested set.
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("one"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("one"),
+							"oc":  cty.StringVal("OK"),
+						})}),
+					}),
+					// This value is overridden by config, because we can't
+					// correlate optional+computed config values within nested
+					// sets.
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("two"),
+						"oc":  cty.StringVal("OK"),
+						"attr": cty.SetVal([]cty.Value{cty.ObjectVal(map[string]cty.Value{
+							"opt": cty.StringVal("two"),
+							"oc":  cty.NullVal(cty.String),
+						})}),
+					}),
+					// This value was taken only from config
+					cty.ObjectVal(map[string]cty.Value{
+						"opt": cty.StringVal("three"),
+						"oc":  cty.NullVal(cty.String),
+						"attr": cty.NullVal(cty.Set(cty.Object(map[string]cty.Type{
+							"opt": cty.String,
+							"oc":  cty.String,
+						}))),
+					}),
+				}),
+			}),
 		},
 	}
 

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package ssh
 
 import (
@@ -418,7 +421,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 	switch src := input.(type) {
 	case *os.File:
 		fi, err := src.Stat()
-		if err != nil {
+		if err == nil {
 			size = fi.Size()
 		}
 	case *bytes.Buffer:
@@ -641,7 +644,13 @@ func checkSCPStatus(r *bufio.Reader) error {
 	return nil
 }
 
+var testUploadSizeHook func(size int64)
+
 func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size int64) error {
+	if testUploadSizeHook != nil {
+		testUploadSizeHook(size)
+	}
+
 	if size == 0 {
 		// Create a temporary file where we can copy the contents of the src
 		// so that we can determine the length, since SCP is length-prefixed.

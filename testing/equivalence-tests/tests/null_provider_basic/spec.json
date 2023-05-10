@@ -1,0 +1,13 @@
+{
+  "description": "tests creating a simple resource created by the null provider",
+  "include_files": [],
+  "ignore_fields": {
+    "apply.json": [
+      "2.@message",
+      "2.hook.id_value"
+    ],
+    "state.json": [
+      "values.root_module.resources.*.values.id"
+    ]
+  }
+}

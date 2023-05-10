@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -106,7 +109,7 @@ func (g *Graph) walk(walker GraphWalker) tfdiags.Diagnostics {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Graph node has invalid dynamic subgraph",
-						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), v),
+						fmt.Sprintf("The internal logic for %q generated an invalid dynamic subgraph: the root node is %T, which is not a suitable root node type.\n\nThis is a bug in Terraform. Please report it!", dag.VertexName(v), n),
 					))
 					return
 				}

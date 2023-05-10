@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -107,6 +110,8 @@ type MockHook struct {
 	PostImportStateNewStates []providers.ImportedResource
 	PostImportStateReturn    HookAction
 	PostImportStateError     error
+
+	StoppingCalled bool
 
 	PostStateUpdateCalled bool
 	PostStateUpdateState  *states.State
@@ -262,6 +267,13 @@ func (h *MockHook) PostImportState(addr addrs.AbsResourceInstance, imported []pr
 	h.PostImportStateAddr = addr
 	h.PostImportStateNewStates = imported
 	return h.PostImportStateReturn, h.PostImportStateError
+}
+
+func (h *MockHook) Stopping() {
+	h.Lock()
+	defer h.Unlock()
+
+	h.StoppingCalled = true
 }
 
 func (h *MockHook) PostStateUpdate(new *states.State) (HookAction, error) {

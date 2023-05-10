@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package terraform
 
 import (
@@ -383,8 +386,7 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 				Config:   config,
 			},
 			&OutputTransformer{
-				Config:  config,
-				Changes: changes,
+				Config: config,
 			},
 			&DiffTransformer{
 				Concrete: concreteResourceInstance,
@@ -438,6 +440,123 @@ func TestPruneUnusedNodesTransformer_rootModuleOutputValues(t *testing.T) {
 	// We _must not_ have any node that expands a resource.
 	if len(nodesByResourceExpand) != 0 {
 		t.Errorf("resource expand nodes remain the graph after transform; should've been pruned\n%s", spew.Sdump(nodesByResourceExpand))
+	}
+}
+
+// NoOp changes should not be participating in the destroy sequence
+func TestDestroyEdgeTransformer_noOp(t *testing.T) {
+	g := Graph{Path: addrs.RootModuleInstance}
+	g.Add(testDestroyNode("test_object.A"))
+	g.Add(testUpdateNode("test_object.B"))
+	g.Add(testDestroyNode("test_object.C"))
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.B").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:       states.ObjectReady,
+			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.C").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"C","test_string":"x"}`),
+			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A"),
+				mustConfigResourceAddr("test_object.B")},
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
+	tf := &DestroyEdgeTransformer{
+		// We only need a minimal object to indicate GraphNodeCreator change is
+		// a NoOp here.
+		Changes: &plans.Changes{
+			Resources: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr:      mustResourceInstanceAddr("test_object.B"),
+					ChangeSrc: plans.ChangeSrc{Action: plans.NoOp},
+				},
+			},
+		},
+	}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := strings.TrimSpace(`
+test_object.A (destroy)
+  test_object.C (destroy)
+test_object.B
+test_object.C (destroy)`)
+
+	actual := strings.TrimSpace(g.String())
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
+	}
+}
+
+func TestDestroyEdgeTransformer_dataDependsOn(t *testing.T) {
+	g := Graph{Path: addrs.RootModuleInstance}
+
+	addrA := mustResourceInstanceAddr("test_object.A")
+	instA := NewNodeAbstractResourceInstance(addrA)
+	a := &NodeDestroyResourceInstance{NodeAbstractResourceInstance: instA}
+	g.Add(a)
+
+	// B here represents a data sources, which is effectively an update during
+	// apply, but won't have dependencies stored in the state.
+	addrB := mustResourceInstanceAddr("test_object.B")
+	instB := NewNodeAbstractResourceInstance(addrB)
+	instB.Dependencies = append(instB.Dependencies, addrA.ConfigResource())
+	b := &NodeApplyableResourceInstance{NodeAbstractResourceInstance: instB}
+
+	g.Add(b)
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.A").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"A"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
+		t.Fatal(err)
+	}
+
+	tf := &DestroyEdgeTransformer{}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+test_object.A (destroy)
+test_object.B
+  test_object.A (destroy)
+`)
+	if actual != expected {
+		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
 }
 

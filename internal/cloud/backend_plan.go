@@ -1,8 +1,12 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package cloud
 
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,12 +14,14 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -235,7 +241,7 @@ in order to capture the filesystem context the remote workspace expects:
 		return nil, varDiags.Err()
 	}
 
-	runVariables := make([]*tfe.RunVariable, len(variables))
+	runVariables := make([]*tfe.RunVariable, 0, len(variables))
 	for name, value := range variables {
 		runVariables = append(runVariables, &tfe.RunVariable{
 			Key:   name,
@@ -291,6 +297,11 @@ in order to capture the filesystem context the remote workspace expects:
 			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
+	// Render any warnings that were raised during run creation
+	if err := b.renderRunWarnings(stopCtx, b.client, r.ID); err != nil {
+		return r, err
+	}
+
 	// Retrieve the run to get task stages.
 	// Task Stages are calculated upfront so we only need to call this once for the run.
 	taskStages, err := b.runTaskStages(stopCtx, b.client, r.ID)
@@ -309,31 +320,9 @@ in order to capture the filesystem context the remote workspace expects:
 		return r, err
 	}
 
-	logs, err := b.client.Plans.Logs(stopCtx, r.Plan.ID)
+	err = b.renderPlanLogs(stopCtx, op, r)
 	if err != nil {
-		return r, generalError("Failed to retrieve logs", err)
-	}
-	reader := bufio.NewReaderSize(logs, 64*1024)
-
-	if b.CLI != nil {
-		for next := true; next; {
-			var l, line []byte
-
-			for isPrefix := true; isPrefix; {
-				l, isPrefix, err = reader.ReadLine()
-				if err != nil {
-					if err != io.EOF {
-						return r, generalError("Failed to read logs", err)
-					}
-					next = false
-				}
-				line = append(line, l...)
-			}
-
-			if next || len(line) > 0 {
-				b.CLI.Output(b.Colorize().Color(string(line)))
-			}
-		}
+		return r, err
 	}
 
 	// Retrieve the run to get its current status.
@@ -371,6 +360,140 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	return r, nil
+}
+
+// renderPlanLogs reads the streamed plan JSON logs and calls the JSON Plan renderer (jsonformat.RenderPlan) to
+// render the plan output. The plan output is fetched from the redacted output endpoint.
+func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *tfe.Run) error {
+	logs, err := b.client.Plans.Logs(ctx, run.Plan.ID)
+	if err != nil {
+		return err
+	}
+
+	if b.CLI != nil {
+		reader := bufio.NewReaderSize(logs, 64*1024)
+
+		for next := true; next; {
+			var l, line []byte
+			var err error
+
+			for isPrefix := true; isPrefix; {
+				l, isPrefix, err = reader.ReadLine()
+				if err != nil {
+					if err != io.EOF {
+						return generalError("Failed to read logs", err)
+					}
+					next = false
+				}
+
+				line = append(line, l...)
+			}
+
+			if next || len(line) > 0 {
+				log := &jsonformat.JSONLog{}
+				if err := json.Unmarshal(line, log); err != nil {
+					// If we can not parse the line as JSON, we will simply
+					// print the line. This maintains backwards compatibility for
+					// users who do not wish to enable structured output in their
+					// workspace.
+					b.CLI.Output(string(line))
+					continue
+				}
+
+				// We will ignore plan output, change summary or outputs logs
+				// during the plan phase.
+				if log.Type == jsonformat.LogOutputs ||
+					log.Type == jsonformat.LogChangeSummary ||
+					log.Type == jsonformat.LogPlannedChange {
+					continue
+				}
+
+				if b.renderer != nil {
+					// Otherwise, we will print the log
+					err := b.renderer.RenderLog(log)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	// Get the run's current status and include the workspace. We will check if
+	// the run has errored and if structured output is enabled.
+	run, err = b.client.Runs.ReadWithOptions(ctx, run.ID, &tfe.RunReadOptions{
+		Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
+	})
+	if err != nil {
+		return err
+	}
+
+	// If the run was errored, canceled, or discarded we will not resume the rest
+	// of this logic and attempt to render the plan.
+	if run.Status == tfe.RunErrored || run.Status == tfe.RunCanceled ||
+		run.Status == tfe.RunDiscarded {
+		// We won't return an error here since we need to resume the logic that
+		// follows after rendering the logs (run tasks, cost estimation, etc.)
+		return nil
+	}
+
+	// Determine whether we should call the renderer to generate the plan output
+	// in human readable format. Otherwise we risk duplicate plan output since
+	// plan output may be contained in the streamed log file.
+	if ok, err := b.shouldRenderStructuredRunOutput(run); ok {
+		// Fetch the redacted plan.
+		redacted, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		if err != nil {
+			return err
+		}
+
+		// Render plan output.
+		b.renderer.RenderHumanPlan(*redacted, op.PlanMode)
+	} else if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// shouldRenderStructuredRunOutput ensures the remote workspace has structured
+// run output enabled and, if using Terraform Enterprise, ensures it is a release
+// that supports enabling SRO for CLI-driven runs. The plan output will have
+// already been rendered when the logs were read if this wasn't the case.
+func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
+	if b.renderer == nil || !run.Workspace.StructuredRunOutputEnabled {
+		return false, nil
+	}
+
+	// If the cloud backend is configured against TFC, we only require that
+	// the workspace has structured run output enabled.
+	if b.client.IsCloud() && run.Workspace.StructuredRunOutputEnabled {
+		return true, nil
+	}
+
+	// If the cloud backend is configured against TFE, ensure the release version
+	// supports enabling SRO for CLI runs.
+	if b.client.IsEnterprise() {
+		tfeVersion := b.client.RemoteTFEVersion()
+		if tfeVersion != "" {
+			v := strings.Split(tfeVersion[1:], "-")
+			releaseDate, err := strconv.Atoi(v[0])
+			if err != nil {
+				return false, err
+			}
+
+			// Any release older than 202302-1 will not support enabling SRO for
+			// CLI-driven runs
+			if releaseDate < 202302 {
+				return false, nil
+			} else if run.Workspace.StructuredRunOutputEnabled {
+				return true, nil
+			}
+		}
+	}
+
+	// Version of TFE is unknowable
+	return false, nil
 }
 
 const planDefaultHeader = `

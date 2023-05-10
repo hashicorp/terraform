@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package command
 
 import (
@@ -434,4 +437,32 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(local.DefaultWorkspaceDir, "test")); !os.IsNotExist(err) {
 		t.Fatal("env 'test' still exists!")
 	}
+}
+
+func TestWorkspace_selectWithOrCreate(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	os.MkdirAll(td, 0755)
+	defer testChdir(t, td)()
+
+	selectCmd := &WorkspaceSelectCommand{}
+
+	current, _ := selectCmd.Workspace()
+	if current != backend.DefaultStateName {
+		t.Fatal("current workspace should be 'default'")
+	}
+
+	args := []string{"-or-create", "test"}
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	selectCmd.Meta = Meta{Ui: ui, View: view}
+	if code := selectCmd.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter)
+	}
+
+	current, _ = selectCmd.Workspace()
+	if current != "test" {
+		t.Fatalf("current workspace should be 'test', got %q", current)
+	}
+
 }

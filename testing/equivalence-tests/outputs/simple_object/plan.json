@@ -1,0 +1,89 @@
+{
+  "configuration": {
+    "provider_config": {
+      "tfcoremock": {
+        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "name": "tfcoremock",
+        "version_constraint": "0.1.1"
+      }
+    },
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_object.object",
+          "expressions": {
+            "id": {
+              "constant_value": "AF9833AE-3434-4D0B-8B69-F4B992565D9F"
+            },
+            "object": {
+              "constant_value": {
+                "boolean": true,
+                "number": 10,
+                "string": "Hello, world!"
+              }
+            }
+          },
+          "mode": "managed",
+          "name": "object",
+          "provider_config_key": "tfcoremock",
+          "schema_version": 0,
+          "type": "tfcoremock_object"
+        }
+      ]
+    }
+  },
+  "format_version": "1.1",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "tfcoremock_object.object",
+          "mode": "managed",
+          "name": "object",
+          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "schema_version": 0,
+          "sensitive_values": {
+            "object": {}
+          },
+          "type": "tfcoremock_object",
+          "values": {
+            "id": "AF9833AE-3434-4D0B-8B69-F4B992565D9F",
+            "object": {
+              "boolean": true,
+              "number": 10,
+              "string": "Hello, world!"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "tfcoremock_object.object",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "after": {
+          "id": "AF9833AE-3434-4D0B-8B69-F4B992565D9F",
+          "object": {
+            "boolean": true,
+            "number": 10,
+            "string": "Hello, world!"
+          }
+        },
+        "after_sensitive": {
+          "object": {}
+        },
+        "after_unknown": {},
+        "before": null,
+        "before_sensitive": false
+      },
+      "mode": "managed",
+      "name": "object",
+      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "type": "tfcoremock_object"
+    }
+  ]
+}

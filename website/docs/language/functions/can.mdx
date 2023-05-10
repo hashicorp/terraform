@@ -12,12 +12,12 @@ whether the expression produced a result without any errors.
 
 This is a special function that is able to catch errors produced when evaluating
 its argument. For most situations where you could use `can` it's better to use
-[`try`](/language/functions/try) instead, because it allows for more concise definition of
+[`try`](/terraform/language/functions/try) instead, because it allows for more concise definition of
 fallback values for failing expressions.
 
 The primary purpose of `can` is to turn an error condition into a boolean
 validation result when writing
-[custom variable validation rules](/language/values/variables#custom-validation-rules).
+[custom variable validation rules](/terraform/language/values/variables#custom-validation-rules).
 For example:
 
 ```
@@ -41,7 +41,7 @@ as a malformed resource reference.
 variable validation rules. Although it can technically accept any sort of
 expression and be used elsewhere in the configuration, we recommend against
 using it in other contexts. For error handling elsewhere in the configuration,
-prefer to use [`try`](/language/functions/try).
+prefer to use [`try`](/terraform/language/functions/try).
 
 ## Examples
 
@@ -70,5 +70,5 @@ A local value with the name "nonexist" has not been declared.
 
 ## Related Functions
 
-* [`try`](/language/functions/try), which tries evaluating a sequence of expressions and
+* [`try`](/terraform/language/functions/try), which tries evaluating a sequence of expressions and
   returns the result of the first one that succeeds.
