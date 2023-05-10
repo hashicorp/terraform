@@ -22,7 +22,7 @@ using [the `-replace=...` planning option](/terraform/cli/commands/plan#replace-
 when you run either `terraform plan` or `terraform apply`:
 
 ```shellsession
-$ terraform apply -replace=aws_instance.example
+$ terraform apply -replace="aws_instance.example"
 # ...
 
   # aws_instance.example will be replaced, as requested

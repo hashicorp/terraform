@@ -314,7 +314,7 @@ provider "aws" {
   # No credentials explicitly set here because they come from either the
   # environment or the global credentials file.
 
-  assume_role = {
+  assume_role {
     role_arn = "${var.workspace_iam_roles[terraform.workspace]}"
   }
 }

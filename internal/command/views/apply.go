@@ -94,7 +94,7 @@ func (v *ApplyHuman) Operation() Operation {
 func (v *ApplyHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
 		v.countHook,
-		NewUiHook(v.view),
+		NewUiHook(v.view, TerraformOperationApply),
 	}
 }
 

@@ -84,3 +84,5 @@ terraform {
    }
  }
 ```
+
+~> **Warning**: Because the `cloud` block does not support the `prefix` argument, once you migrate, you must refer to workspaces by their full name when using the Terraform CLI. For example, rather than `terraform workspace select prod`, you must run the command `terraform workspace select my-app-prod`.
