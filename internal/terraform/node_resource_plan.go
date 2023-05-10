@@ -354,8 +354,9 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 				// If we get here, we're definitely not in legacy import mode,
 				// so go ahead and plan the resource changes including import.
 				m.importTarget = ImportTarget{
-					ID:   importTarget.ID,
-					Addr: importTarget.Addr,
+					ID:     importTarget.ID,
+					Addr:   importTarget.Addr,
+					Config: importTarget.Config,
 				}
 			}
 		}

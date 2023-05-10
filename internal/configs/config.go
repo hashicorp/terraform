@@ -394,18 +394,81 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		}
 		reqs[fqn] = nil
 	}
+
+	// Import blocks that are generating config may also have custom provider
+	// metadata provider. We use this opportunity to load any implicit providers
+	// as with the data and resource blocks. We'll also use this to validate
+	// that import blocks and targeted resource blocks agree on which provider
+	// they should be using. If they don't agree, this will be because the user
+	// has written explicit provider arguments that don't agree and we'll get
+	// them to fix it.
 	for _, i := range c.Module.Import {
-		implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
-		if err == nil {
-			provider := c.Module.ImpliedProviderForUnqualifiedType(implied)
-			if _, exists := reqs[provider]; exists {
-				// Explicit dependency already present
-				continue
-			}
-			reqs[provider] = nil
+		if len(i.To.Module) > 0 {
+			// All provider information for imports into modules should come
+			// from the module block, so we don't need to load anything for
+			// import targets within modules.
+			continue
 		}
-		// We don't return a diagnostic here, because the invalid address will
-		// have been caught elsewhere.
+
+		if target, exists := c.Module.ManagedResources[i.To.String()]; exists {
+			// This means the information about the provider for this import
+			// should come from the resource block itself and not the import
+			// block.
+			//
+			// In general, we say that you shouldn't set the provider attribute
+			// on import blocks in this case. But to make config generation
+			// easier, we will say that if it is set in both places and it's the
+			// same then that is okay.
+
+			if i.ProviderConfigRef != nil {
+				if target.ProviderConfigRef == nil {
+					// This means we have a provider specified in the import
+					// block and not in the resource block. This isn't the right
+					// way round so let's consider this a failure.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid import provider argument",
+						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure providers for resources with explicit provider configuration.",
+						Subject:  i.ProviderDeclRange.Ptr(),
+					})
+					continue
+				}
+
+				if i.ProviderConfigRef.Name != target.ProviderConfigRef.Name || i.ProviderConfigRef.Alias != target.ProviderConfigRef.Alias {
+					// This means we have a provider specified in both the
+					// import block and the resource block, and they disagree.
+					// This is bad as Terraform now has different instructions
+					// about which provider to use.
+					//
+					// The general guidance is that only the resource should be
+					// specifying the provider as the import block provider
+					// attribute is just for generating config. So, let's just
+					// tell the user to only set the provider argument in the
+					// resource.
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid import provider argument",
+						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure providers for resources with explicit provider configuration.",
+						Subject:  i.ProviderDeclRange.Ptr(),
+					})
+					continue
+				}
+			}
+
+			// All the provider information should come from the target resource
+			// which has already been processed, so skip the rest of this
+			// processing.
+			continue
+		}
+
+		// Otherwise we are generating config for the resource being imported,
+		// so all the provider information must come from this import block.
+		fqn := i.Provider
+		if _, exists := reqs[fqn]; exists {
+			// Explicit dependency already present
+			continue
+		}
+		reqs[fqn] = nil
 	}
 
 	// "provider" block can also contain version constraints

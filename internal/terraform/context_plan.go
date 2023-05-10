@@ -517,8 +517,9 @@ func (c *Context) findImportBlocks(config *configs.Config) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
 		importTargets = append(importTargets, &ImportTarget{
-			Addr: ic.To,
-			ID:   ic.ID,
+			Addr:   ic.To,
+			ID:     ic.ID,
+			Config: ic,
 		})
 	}
 	return importTargets

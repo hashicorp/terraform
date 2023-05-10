@@ -256,6 +256,21 @@ func (n *NodeAbstractResource) ProvidedBy() (addrs.ProviderConfig, bool) {
 		return n.storedProviderConfig, true
 	}
 
+	// We might have an import target that is providing a specific provider,
+	// this is okay as we know there is nothing else potentially providing a
+	// provider configuration.
+	if len(n.importTargets) > 0 {
+		// The import targets should either all be defined via config or none
+		// of them should be. They should also all have the same provider, so it
+		// shouldn't matter which we check here, as they'll all give the same.
+		if n.importTargets[0].Config != nil && n.importTargets[0].Config.ProviderConfigRef != nil {
+			return addrs.LocalProviderConfig{
+				LocalName: n.importTargets[0].Config.ProviderConfigRef.Name,
+				Alias:     n.importTargets[0].Config.ProviderConfigRef.Alias,
+			}, false
+		}
+	}
+
 	// No provider configuration found; return a default address
 	return addrs.AbsProviderConfig{
 		Provider: n.Provider(),
@@ -271,6 +286,16 @@ func (n *NodeAbstractResource) Provider() addrs.Provider {
 	if n.storedProviderConfig.Provider.Type != "" {
 		return n.storedProviderConfig.Provider
 	}
+
+	if len(n.importTargets) > 0 {
+		// The import targets should either all be defined via config or none
+		// of them should be. They should also all have the same provider, so it
+		// shouldn't matter which we check here, as they'll all give the same.
+		if n.importTargets[0].Config != nil {
+			return n.importTargets[0].Config.Provider
+		}
+	}
+
 	return addrs.ImpliedProviderForUnqualifiedType(n.Addr.Resource.ImpliedProvider())
 }
 

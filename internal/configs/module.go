@@ -402,11 +402,28 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		}
 	}
 
-	// "Moved" and "import" blocks just append, because they are all independent
-	// of one another at this level. (We handle any references between
-	// them at runtime.)
+	for _, i := range file.Import {
+		if i.ProviderConfigRef != nil {
+			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
+				LocalName: i.ProviderConfigRef.Name,
+				Alias:     i.ProviderConfigRef.Alias,
+			})
+		} else {
+			implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
+			if err == nil {
+				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
+			}
+			// We don't return a diagnostic because the invalid resource name
+			// will already have been caught.
+		}
+
+		m.Import = append(m.Import, i)
+	}
+
+	// "Moved" blocks just append, because they are all independent of one
+	// another at this level. (We handle any references between them at
+	// runtime.)
 	m.Moved = append(m.Moved, file.Moved...)
-	m.Import = append(m.Import, file.Import...)
 
 	return diags
 }

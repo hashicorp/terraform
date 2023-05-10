@@ -24,15 +24,16 @@ type ImportOpts struct {
 
 // ImportTarget is a single resource to import.
 type ImportTarget struct {
+	// Config is the original import block for this import. This might be null
+	// if the import did not originate in config.
+	Config *configs.Import
+
 	// Addr is the address for the resource instance that the new object should
 	// be imported into.
 	Addr addrs.AbsResourceInstance
 
 	// ID is the ID of the resource to import. This is resource-specific.
 	ID string
-
-	// ProviderAddr is the address of the provider that should handle the import.
-	ProviderAddr addrs.AbsProviderConfig
 }
 
 // Import takes already-created external resources and brings them

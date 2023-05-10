@@ -19,6 +19,12 @@ import {
   to = local_file.foo
 }
 
+import {
+  provider = template.foo
+  id       = "directory/foo_filename"
+  to       = local_file.bar
+}
+
 terraform {
   required_providers {
     test = {

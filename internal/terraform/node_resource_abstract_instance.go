@@ -696,15 +696,26 @@ func (n *NodeAbstractResourceInstance) plan(
 
 		// parse the "file" as HCL to get the hcl.Body
 		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
-			return plan, state, keyData, diags.Append(hclDiags)
+			return plan, state, keyData, diags
+		}
+
+		// We have to do a kind of mini parsing of the content here to correctly
+		// mark attributes like 'provider' as hidden. We only care about the
+		// resulting content, so it's remain that gets passed into the resource
+		// as the config.
+		_, remain, resourceDiags := synthHCLFile.Body.PartialContent(configs.ResourceBlockSchema)
+		diags = diags.Append(resourceDiags)
+		if resourceDiags.HasErrors() {
+			return plan, state, keyData, diags
 		}
 
 		generatedConfig = &configs.Resource{
 			Mode:     addrs.ManagedResourceMode,
 			Type:     n.Addr.Resource.Resource.Type,
 			Name:     n.Addr.Resource.Resource.Name,
-			Config:   synthHCLFile.Body,
+			Config:   remain,
 			Managed:  &configs.ManagedResource{},
 			Provider: n.ResolvedProvider.Provider,
 		}
