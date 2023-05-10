@@ -53,7 +53,7 @@ func (v *PlanHuman) Operation() Operation {
 
 func (v *PlanHuman) Hooks() []terraform.Hook {
 	return []terraform.Hook{
-		NewUiHook(v.view, TerraformOperationPlan),
+		NewUiHook(v.view),
 	}
 }
 
