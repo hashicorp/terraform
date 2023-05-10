@@ -351,10 +351,18 @@ func (t *pruneUnusedNodesTransformer) Transform(g *Graph) error {
 					}
 
 				case GraphNodeProvider:
-					// Providers that may have been required by expansion nodes
-					// that we no longer need can also be removed.
-					if g.UpEdges(n).Len() > 0 {
-						return
+					// Only keep providers for evaluation if they have
+					// resources to handle.
+					// The provider transformers removed most unused providers
+					// earlier, however there may be more to prune now based on
+					// targeting or a destroy with no related instances in the
+					// state.
+					des, _ := g.Descendents(n)
+					for _, v := range des {
+						switch v.(type) {
+						case GraphNodeProviderConsumer:
+							return
+						}
 					}
 
 				default:
