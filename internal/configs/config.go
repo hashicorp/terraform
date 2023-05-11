@@ -395,9 +395,10 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		reqs[fqn] = nil
 	}
 
-	// Import blocks that are generating config may also have custom provider
-	// metadata provider. We use this opportunity to load any implicit providers
-	// as with the data and resource blocks. We'll also use this to validate
+	// Import blocks that are generating config may also have a custom provider
+	// meta argument. Like the provider meta argument used in resource blocks, 
+	// we use this opportunity to load any implicit providers. 
+	// We'll also use this to validate
 	// that import blocks and targeted resource blocks agree on which provider
 	// they should be using. If they don't agree, this will be because the user
 	// has written explicit provider arguments that don't agree and we'll get
