@@ -51,7 +51,7 @@ func (writer *generatedConfigWriter) MaybeWriteGeneratedConfig(diff diff) bool {
 	if diff.change.Change.Importing != nil && len(diff.change.Change.Importing.ID) > 0 {
 		header = fmt.Sprintf("\n# __generated__ by Terraform from %q\n", diff.change.Change.Importing.ID)
 	} else {
-		header = fmt.Sprintf("\n# __generated__ by Terraform\n")
+		header = "\n# __generated__ by Terraform\n"
 	}
 
 	_, err := w.Write([]byte(fmt.Sprintf("%s%s\n", header, diff.change.Change.GeneratedConfig)))
