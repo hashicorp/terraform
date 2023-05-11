@@ -6,7 +6,7 @@ package cloud
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 type SavedPlanBookmark struct {
@@ -20,7 +20,7 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 
 	bookmark := SavedPlanBookmark{}
 
-	data, err := ioutil.ReadFile(filepath)
+	data, err := os.ReadFile(filepath)
 	if err != nil {
 		return bookmark, err
 	}
