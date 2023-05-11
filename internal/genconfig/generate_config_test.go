@@ -290,6 +290,74 @@ resource "tfcoremock_simple_resource" "empty" {
   }
 }`,
 		},
+		"resource_with_nulls": {
+			schema: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"id": {
+						Type:     cty.String,
+						Computed: true,
+					},
+					"single": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{},
+							Nesting:    configschema.NestingSingle,
+						},
+					},
+					"list": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingList,
+						},
+					},
+					"map": {
+						NestedType: &configschema.Object{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+							Nesting: configschema.NestingMap,
+						},
+					},
+				},
+			},
+			addr: addrs.AbsResourceInstance{
+				Module: nil,
+				Resource: addrs.ResourceInstance{
+					Resource: addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "tfcoremock_simple_resource",
+						Name: "empty",
+					},
+					Key: nil,
+				},
+			},
+			provider: addrs.LocalProviderConfig{
+				LocalName: "tfcoremock",
+			},
+			value: cty.ObjectVal(map[string]cty.Value{
+				"id":     cty.StringVal("D2320658"),
+				"single": cty.NullVal(cty.Object(map[string]cty.Type{})),
+				"list": cty.NullVal(cty.List(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				}))),
+				"map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				}))),
+			}),
+			expected: `
+resource "tfcoremock_simple_resource" "empty" {
+  list   = null
+  map    = null
+  single = null
+}`,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
