@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
@@ -51,6 +52,24 @@ func (b *Local) opPlan(
 		))
 		op.ReportResult(runningOp, diags)
 		return
+	}
+
+	if len(op.GenerateConfigOut) > 0 {
+
+		if op.PlanMode != plans.NormalMode {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid generate-config-out flag",
+				"Config can only be generated during a normal plan operation, and not during a refresh-only or destroy plan."))
+			op.ReportResult(runningOp, diags)
+			return
+		}
+
+		diags = diags.Append(genconfig.ValidateTargetFile(op.GenerateConfigOut))
+		if diags.HasErrors() {
+			op.ReportResult(runningOp, diags)
+			return
+		}
 	}
 
 	if b.ContextOpts == nil {
@@ -171,6 +190,15 @@ func (b *Local) opPlan(
 		op.ReportResult(runningOp, diags)
 		return
 	}
+
+	// Write out any generated config, before we render the plan.
+	moreDiags = genconfig.MaybeWriteGeneratedConfig(plan, op.GenerateConfigOut)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		op.ReportResult(runningOp, diags)
+		return
+	}
+
 	op.View.Plan(plan, schemas)
 
 	// If we've accumulated any diagnostics along the way then we'll show them

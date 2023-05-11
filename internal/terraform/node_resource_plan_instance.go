@@ -8,14 +8,15 @@ import (
 	"log"
 	"sort"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-
-	"github.com/zclconf/go-cty/cty"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -135,7 +136,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
-	var generateConfig bool
 
 	checkRuleSeverity := tfdiags.Error
 	if n.skipPlanChanges || n.preDestroyRefresh {
@@ -157,12 +157,32 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	importing := n.importTarget.ID != ""
 
+	if importing && n.Config == nil && !n.generateConfig {
+		// Then the user wrote an import target to a target that didn't exist.
+		if n.Addr.Module.IsRoot() {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Import block target does not exist",
+				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration.",
+				Subject:  n.importTarget.Config.DeclRange.Ptr(),
+			})
+		} else {
+			// You can't generate config for a resource that is inside a
+			// module, so we will present a different error message for
+			// this case.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Import block target does not exist",
+				Detail:   "The target for the given import block does not exist. The specified target is within a module, and must be defined as a resource within that module before anything can be imported.",
+				Subject:  n.importTarget.Config.DeclRange.Ptr(),
+			})
+		}
+		return diags
+	}
+
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {
-		if n.Config == nil || n.Config.Managed == nil {
-			generateConfig = true
-		}
 		instanceRefreshState, diags = n.importState(ctx, addr, provider)
 	} else {
 		var readDiags tfdiags.Diagnostics
@@ -245,7 +265,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		change, instancePlanState, repeatData, planDiags := n.plan(
-			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, generateConfig,
+			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {

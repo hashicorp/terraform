@@ -78,6 +78,9 @@ type NodeAbstractResource struct {
 
 	// This resource may expand into instances which need to be imported.
 	importTargets []*ImportTarget
+
+	// generateConfig tells this node that it's okay for it to generate config.
+	generateConfig bool
 }
 
 var (

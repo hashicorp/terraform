@@ -98,8 +98,13 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	}
 
 	// Take a copy of the import targets, so we can edit them as we go.
+	// Only include import targets that are targeting the current module.
 	var importTargets []*ImportTarget
-	importTargets = append(importTargets, t.importTargets...)
+	for _, target := range t.importTargets {
+		if targetModule := target.Addr.Module.Module(); targetModule.Equal(config.Path) {
+			importTargets = append(importTargets, target)
+		}
+	}
 
 	for _, r := range allResources {
 		relAddr := r.Addr()
@@ -151,28 +156,32 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 		g.Add(node)
 	}
 
-	if generateConfig {
-		// If any import targets were not claimed by resources, then we will
-		// generate config for them.
-		for _, i := range importTargets {
-			if !i.Addr.Module.IsRoot() {
-				// We only generate config for resources imported into the root
-				// module.
-				continue
-			}
-
-			abstract := &NodeAbstractResource{
-				Addr:          i.Addr.ConfigResource(),
-				importTargets: []*ImportTarget{i},
-			}
-
-			var node dag.Vertex = abstract
-			if f := t.Concrete; f != nil {
-				node = f(abstract)
-			}
-
-			g.Add(node)
+	// If any import targets were not claimed by resources, then let's add them
+	// into the graph now.
+	//
+	// We actually know that if any of the resources aren't claimed and
+	// generateConfig is false, then we have a problem. But, we can't raise a
+	// nice error message from this function.
+	//
+	// We'll add the nodes that we know will fail, and catch them again later
+	// in the processing when we are in a position to raise a much more helpful
+	// error message.
+	//
+	// TODO: We could actually catch and process these kind of problems earlier,
+	//   this is something that could be done during the Validate process.
+	for _, i := range importTargets {
+		abstract := &NodeAbstractResource{
+			Addr:           i.Addr.ConfigResource(),
+			importTargets:  []*ImportTarget{i},
+			generateConfig: generateConfig,
 		}
+
+		var node dag.Vertex = abstract
+		if f := t.Concrete; f != nil {
+			node = f(abstract)
+		}
+
+		g.Add(node)
 	}
 
 	return nil

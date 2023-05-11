@@ -75,6 +75,10 @@ type PlanGraphBuilder struct {
 
 	// ImportTargets are the list of resources to import.
 	ImportTargets []*ImportTarget
+
+	// GenerateConfig tells Terraform to generate config for any import targets
+	// that do not already have configuration.
+	GenerateConfig bool
 }
 
 // See GraphBuilder
@@ -113,8 +117,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			importTargets: b.ImportTargets,
 
 			// We only want to generate config during a plan operation.
-			// TODO: add a dedicated flag for this?
-			generateConfigForImportTargets: b.Operation == walkPlan,
+			generateConfigForImportTargets: b.GenerateConfig,
 		},
 
 		// Add dynamic values
