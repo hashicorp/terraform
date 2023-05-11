@@ -1,12 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
-
 package cloudplan
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
+	"strings"
 )
+
+var ErrInvalidRemotePlanFormat = errors.New("invalid remote plan format, must be 1")
+var ErrInvalidRunID = errors.New("invalid run ID")
+var ErrInvalidHostname = errors.New("invalid hostname")
 
 type SavedPlanBookmark struct {
 	RemotePlanFormat int    `json:"remote_plan_format"`
@@ -16,13 +22,31 @@ type SavedPlanBookmark struct {
 
 func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	bookmark := SavedPlanBookmark{}
-	data, err := os.ReadFile(filepath)
 
+	file, err := os.Open(filepath)
+	if err != nil {
+		return bookmark, err
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
 	if err != nil {
 		return bookmark, err
 	}
 
-	err = json.Unmarshal([]byte(data), &bookmark)
+	err = json.Unmarshal(data, &bookmark)
+	if err != nil {
+		return bookmark, err
+	}
+
+	if bookmark.RemotePlanFormat != 1 {
+		return bookmark, ErrInvalidRemotePlanFormat
+	} else if bookmark.Hostname == "" {
+		return bookmark, ErrInvalidHostname
+	} else if bookmark.RunID == "" || !strings.HasPrefix(bookmark.RunID, "run-") {
+		return bookmark, ErrInvalidRunID
+	}
+
 	return bookmark, err
 }
 
