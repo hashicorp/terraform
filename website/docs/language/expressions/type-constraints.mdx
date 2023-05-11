@@ -208,18 +208,56 @@ will raise a type mismatch error, since a tuple cannot be converted to a string.
 
 ## Dynamic Types: The "any" Constraint
 
+~> **Warning:** `any` is very rarely the correct type constraint to use.
+**Do not use `any` just to avoid specifying a type constraint**. Always write an
+exact type constraint unless you are truly handling dynamic data.
+
 The keyword `any` is a special construct that serves as a placeholder for a
 type yet to be decided. `any` is not _itself_ a type: when interpreting a
 value against a type constraint containing `any`, Terraform will attempt to
 find a single actual type that could replace the `any` keyword to produce
 a valid result.
 
+The only situation where it's appropriate to use `any` is if you will pass
+the given value directly to some other system without directly accessing its
+contents. For example, it's okay to use a variable of type `any` if you use
+it only with `jsonencode` to pass the full value directly to a resource, as
+shown in the following example:
+
+```
+variable "settings" {
+  type = any
+}
+
+resource "aws_s3_object" "example" {
+  # ...
+
+  # This is a reasonable use of "any" because this module
+  # just writes any given data to S3 as JSON, without
+  # inspecting it further or applying any constraints
+  # to its type or value.
+  content = jsonencode(var.settings)
+}
+```
+
+If any part of your module accesses elements or attributes of the value, or
+expects it to be a string or number, or any other non-opaque treatment, it
+is _incorrect_ to use `any`. Write the exact type that your module is expecting
+instead.
+
+### `any` with Collection Types
+
+All of the elements of a collection must have the same type, so if you use
+`any` as the placeholder for the element type of a collection then Terraform
+will attempt to find a single exact element type to use for the resulting
+collection.
+
 For example, given the type constraint `list(any)`, Terraform will examine
 the given value and try to choose a replacement for the `any` that would
 make the result valid.
 
 If the given value were `["a", "b", "c"]` -- whose physical type is
-`tuple([string, string, string])`, Terraform analyzes this as follows:
+`tuple([string, string, string])` -- Terraform analyzes this as follows:
 
 * Tuple types and list types are _similar_ per the previous section, so the
   tuple-to-list conversion rule applies.
@@ -228,10 +266,9 @@ If the given value were `["a", "b", "c"]` -- whose physical type is
 * Therefore in this case the `any` argument is replaced with `string`,
   and the final concrete value type is `list(string)`.
 
-All of the elements of a collection must have the same type, so conversion
-to `list(any)` requires that all of the given elements must be convertible
-to a common type. This implies some other behaviors that result from the
-conversion rules described in earlier sections.
+If the elements of the given tuple are not all of the same type then Terraform
+will attempt to find a single type that they can all convert to. Terraform
+will consider various conversion rules as described in earlier sections.
 
 * If the given value were instead `["a", 1, "b"]` then Terraform would still
   select `list(string)`, because of the primitive type conversion rules, and
@@ -244,18 +281,6 @@ conversion rules described in earlier sections.
 
 Although the above examples use `list(any)`, a similar principle applies to
 `map(any)` and `set(any)`.
-
-If you wish to apply absolutely no constraint to the given value, the `any`
-keyword can be used in isolation:
-
-```hcl
-variable "no_type_constraint" {
-  type = any
-}
-```
-
-In this case, Terraform will replace `any` with the exact type of the given
-value and thus perform no type conversion whatsoever.
 
 ## Optional Object Type Attributes
 
