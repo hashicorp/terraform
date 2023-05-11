@@ -73,8 +73,6 @@ func MarshalCheckStates(results *states.CheckResults) []byte {
 // object in the configuration even if Terraform Core encountered an error
 // before being able to determine the dynamic instances of the checkable object.
 type checkResultStatic struct {
-	ExperimentalNote experimentalNote `json:"//"`
-
 	// Address is the address of the checkable object this result relates to.
 	Address staticObjectAddr `json:"address"`
 
@@ -118,10 +116,4 @@ type checkProblem struct {
 	// We don't currently have any other problem-related data, but this is
 	// intentionally an object to allow us to add other data over time, such
 	// as the source location where the failing condition was defined.
-}
-
-type experimentalNote struct{}
-
-func (n experimentalNote) MarshalJSON() ([]byte, error) {
-	return []byte(`"EXPERIMENTAL: see docs for details"`), nil
 }
