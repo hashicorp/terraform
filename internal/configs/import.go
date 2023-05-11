@@ -13,7 +13,11 @@ type Import struct {
 	ID string
 	To addrs.AbsResourceInstance
 
-	DeclRange hcl.Range
+	ProviderConfigRef *ProviderConfigRef
+	Provider          addrs.Provider
+
+	DeclRange         hcl.Range
+	ProviderDeclRange hcl.Range
 }
 
 func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
@@ -41,11 +45,30 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 		}
 	}
 
+	if attr, exists := content.Attributes["provider"]; exists {
+		if len(imp.To.Module) > 0 {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid import provider argument",
+				Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the providers argument within the module block to configure providers for all resources within a module, including imported resources.",
+				Subject:  attr.Range.Ptr(),
+			})
+		}
+
+		var providerDiags hcl.Diagnostics
+		imp.ProviderConfigRef, providerDiags = decodeProviderConfigRef(attr.Expr, "provider")
+		imp.ProviderDeclRange = attr.Range
+		diags = append(diags, providerDiags...)
+	}
+
 	return imp, diags
 }
 
 var importBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
+		{
+			Name: "provider",
+		},
 		{
 			Name:     "id",
 			Required: true,

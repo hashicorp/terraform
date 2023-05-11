@@ -116,7 +116,7 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 		Managed:   &ManagedResource{},
 	}
 
-	content, remain, moreDiags := block.Body.PartialContent(resourceBlockSchema)
+	content, remain, moreDiags := block.Body.PartialContent(ResourceBlockSchema)
 	diags = append(diags, moreDiags...)
 	r.Config = remain
 
@@ -768,7 +768,12 @@ var commonResourceAttributes = []hcl.AttributeSchema{
 	},
 }
 
-var resourceBlockSchema = &hcl.BodySchema{
+// ResourceBlockSchema is the schema for a resource or data resource type within
+// Terraform.
+//
+// This schema is public as it is required elsewhere in order to validate and
+// use generated config.
+var ResourceBlockSchema = &hcl.BodySchema{
 	Attributes: commonResourceAttributes,
 	Blocks: []hcl.BlockHeaderSchema{
 		{Type: "locals"}, // reserved for future use
