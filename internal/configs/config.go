@@ -429,7 +429,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 					diags = append(diags, &hcl.Diagnostic{
 						Severity: hcl.DiagError,
 						Summary:  "Invalid import provider argument",
-						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure providers for resources with explicit provider configuration.",
+						Detail:   "The provider argument can only be specified in import blocks that will generate configuration.\n\nUse the provider argument in the target resource block to configure the provider for a resource with explicit provider configuration.",
 						Subject:  i.ProviderDeclRange.Ptr(),
 					})
 					continue
