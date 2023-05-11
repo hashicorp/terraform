@@ -309,8 +309,6 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
 		}
-		buf.WriteString(strings.Repeat(" ", indent))
-		buf.WriteString(fmt.Sprintf("%s = {\n", name))
 
 		// This shouldn't happen in real usage; state always has all values (set
 		// to null as needed), but it protects against panics in tests (and any
@@ -319,22 +317,39 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 			return diags
 		}
 		nestedVal := stateVal.GetAttr(name)
+
+		if nestedVal.IsNull() {
+			// There is a difference between a null object, and an object with
+			// no attributes.
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = null\n", name))
+			return diags
+		}
+
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = {\n", name))
 		diags = diags.Append(writeConfigAttributesFromExisting(addr, buf, nestedVal, schema.NestedType.Attributes, indent+2))
 		buf.WriteString("}\n")
 		return diags
 
 	case configschema.NestingList, configschema.NestingSet:
-		buf.WriteString(strings.Repeat(" ", indent))
-		buf.WriteString(fmt.Sprintf("%s = [", name))
 
 		if schema.Sensitive || stateVal.IsMarked() {
-			buf.WriteString("] # sensitive\n")
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = [] # sensitive\n", name))
 			return diags
 		}
 
-		buf.WriteString("\n")
-
 		listVals := ctyCollectionValues(stateVal.GetAttr(name))
+		if listVals == nil {
+			// There is a difference between an empty list and a null list
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = null\n", name))
+			return diags
+		}
+
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = [\n", name))
 		for i := range listVals {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 
@@ -354,22 +369,29 @@ func writeConfigNestedTypeAttributeFromExisting(addr addrs.AbsResourceInstance, 
 		return diags
 
 	case configschema.NestingMap:
-		buf.WriteString(strings.Repeat(" ", indent))
-		buf.WriteString(fmt.Sprintf("%s = {", name))
-
 		if schema.Sensitive || stateVal.IsMarked() {
-			buf.WriteString(" } # sensitive\n")
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = {} # sensitive\n", name))
 			return diags
 		}
 
-		buf.WriteString("\n")
+		attr := stateVal.GetAttr(name)
+		if attr.IsNull() {
+			// There is a difference between an empty map and a null map.
+			buf.WriteString(strings.Repeat(" ", indent))
+			buf.WriteString(fmt.Sprintf("%s = null\n", name))
+			return diags
+		}
 
-		vals := stateVal.GetAttr(name).AsValueMap()
+		vals := attr.AsValueMap()
 		keys := make([]string, 0, len(vals))
 		for key := range vals {
 			keys = append(keys, key)
 		}
 		sort.Strings(keys)
+
+		buf.WriteString(strings.Repeat(" ", indent))
+		buf.WriteString(fmt.Sprintf("%s = {\n", name))
 		for _, key := range keys {
 			buf.WriteString(strings.Repeat(" ", indent+2))
 			buf.WriteString(fmt.Sprintf("%s = {", key))
