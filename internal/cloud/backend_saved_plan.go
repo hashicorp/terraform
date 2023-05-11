@@ -15,20 +15,17 @@ type SavedPlanBookmark struct {
 	Hostname         string `json:"hostname"`
 }
 
-func (s *SavedPlanBookmark) load(filepath string) (map[string]interface{}, error) {
+func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	fmt.Println("Are we only accepting a filepath?")
 
-	path := filepath
 	bookmark := SavedPlanBookmark{}
 
-	data, err := ioutil.ReadFile(path)
+	data, err := ioutil.ReadFile(filepath)
 	if err != nil {
-		return nil, err
+		return bookmark, err
 	}
 
-	if err := json.Unmarshal([]byte(data), &bookmark); err != nil {
-		panic(err)
-	}
+	err = json.Unmarshal([]byte(data), &bookmark)
 	return bookmark, err
 }
 
