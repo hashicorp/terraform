@@ -4,8 +4,11 @@
 package jsonformat
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -103,8 +106,10 @@ func TestRenderHuman_Imports(t *testing.T) {
 	}
 
 	tcs := map[string]struct {
-		plan   Plan
-		output string
+		plan         Plan
+		output       string
+		generated    string
+		generatedErr error
 	}{
 		"simple_import": {
 			plan: Plan{
@@ -178,7 +183,7 @@ Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 Terraform will perform the following actions:
 
   # test_resource.resource will be imported
-  # (config will be written to generated_config.tf)
+  # (config has been written to generated_config.tf)
     resource "test_resource" "resource" {
         id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
         value = "Hello, World!"
@@ -186,6 +191,69 @@ Terraform will perform the following actions:
 
 Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 `,
+			generated: `
+# __generated__ by Terraform from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+resource "test_resource" "resource" {
+  id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+  value = "Hello, World!"
+}
+`,
+		},
+		"simple_import_with_generated_config_error": {
+			plan: Plan{
+				ResourceChanges: []jsonplan.ResourceChange{
+					{
+						Address:      "test_resource.resource",
+						Mode:         "managed",
+						Type:         "test_resource",
+						Name:         "resource",
+						ProviderName: "test",
+						Change: jsonplan.Change{
+							Actions: []string{"no-op"},
+							Before: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							After: marshalJson(t, map[string]interface{}{
+								"id":    "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+								"value": "Hello, World!",
+							}),
+							Importing: &jsonplan.Importing{
+								ID: "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E",
+							},
+							GeneratedConfig: `resource "test_resource" "resource" {
+  id = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+  value = "Hello, World!"
+}`,
+						},
+					},
+				},
+			},
+			output: `
+Terraform will perform the following actions:
+
+  # test_resource.resource will be imported
+  # (config generation failed)
+    resource "test_resource" "resource" {
+        id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
+        value = "Hello, World!"
+    }
+
+Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+Config generation failed for some resources. You will need to
+create the following resources manually:
+
+  - test_resource.resource
+
+Configuration generation failed for an unknown reason. This may be a bug in
+Terraform, please file an issue against the Terraform repository and include
+this output in the description.
+
+The framework also provided the following additional context: expected error
+`,
+			generatedErr: errors.New("expected error"),
+			generated:    "",
 		},
 		"import_and_move": {
 			plan: Plan{
@@ -412,16 +480,33 @@ Plan: 1 to import, 1 to add, 0 to change, 1 to destroy.
 			plan.ProviderFormatVersion = jsonprovider.FormatVersion
 			plan.ProviderSchemas = schemas
 
-			renderer := Renderer{
-				Colorize: color,
-				Streams:  streams,
+			created := false
+			var generatedConfig bytes.Buffer
+
+			renderer := NewRenderer(streams, color)
+			renderer.CreateGeneratedConfigWriter = func() (io.Writer, func() error, error) {
+				created = true
+				return &generatedConfig, func() error { return nil }, tc.generatedErr
 			}
+
 			plan.renderHuman(renderer, plans.NormalMode)
 
 			got := done(t).Stdout()
 			want := tc.output
 			if diff := cmp.Diff(want, got); len(diff) > 0 {
 				t.Errorf("unexpected output\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+			}
+
+			if len(tc.generated) > 0 {
+				got := generatedConfig.String()
+				want := tc.generated
+				if diff := cmp.Diff(want, got); len(diff) > 0 {
+					t.Errorf("unexpected generated config\ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+				}
+			} else if tc.generatedErr == nil {
+				if created {
+					t.Errorf("should not have created the generated configuration file")
+				}
 			}
 		})
 	}
@@ -7011,7 +7096,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				change: jsonchanges[0],
 				diff:   differ.ComputeDiffForBlock(change, jsonschemas[jsonchanges[0].ProviderName].ResourceSchemas[jsonchanges[0].Type].Block),
 			}
-			output, _ := renderHumanDiff(renderer, diff, proposedChange)
+			output, _ := renderHumanDiff(renderer, diff, proposedChange, false)
 			if diff := cmp.Diff(output, tc.ExpectedOutput); diff != "" {
 				t.Errorf("wrong output\nexpected:\n%s\nactual:\n%s\ndiff:\n%s\n", tc.ExpectedOutput, output, diff)
 			}

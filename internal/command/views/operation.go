@@ -98,11 +98,8 @@ func (v *OperationHuman) Plan(plan *plans.Plan, schemas *terraform.Schemas) {
 		return
 	}
 
-	renderer := jsonformat.Renderer{
-		Colorize:            v.view.colorize,
-		Streams:             v.view.streams,
-		RunningInAutomation: v.inAutomation,
-	}
+	renderer := jsonformat.NewRenderer(v.view.streams, v.view.colorize)
+	renderer.RunningInAutomation = v.inAutomation
 
 	jplan := jsonformat.Plan{
 		PlanFormatVersion:     jsonplan.FormatVersion,

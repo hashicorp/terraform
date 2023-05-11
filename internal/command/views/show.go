@@ -44,11 +44,8 @@ type ShowHuman struct {
 var _ Show = (*ShowHuman)(nil)
 
 func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, stateFile *statefile.File, schemas *terraform.Schemas) int {
-	renderer := jsonformat.Renderer{
-		Colorize:            v.view.colorize,
-		Streams:             v.view.streams,
-		RunningInAutomation: v.view.runningInAutomation,
-	}
+	renderer := jsonformat.NewRenderer(v.view.streams, v.view.colorize)
+	renderer.RunningInAutomation = v.view.runningInAutomation
 
 	if plan != nil {
 		outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(plan, schemas)

@@ -6,7 +6,9 @@ package jsonformat
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"sort"
 	"strings"
 
@@ -216,8 +218,15 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 			renderer.Streams.Printf("\nTerraform will perform the following actions:\n")
 		}
 
+		// As we're printing changes out for the plan, we will try and write
+		// out any generated config that we find. This *might* fail, so we'll
+		// take note of that and print out a combined summary at the end.
+		generatedConfigWriter := newGeneratedConfigWriter(renderer)
+		defer generatedConfigWriter.Close()
+
 		for _, change := range changes {
-			diff, render := renderHumanDiff(renderer, change, proposedChange)
+			configGenerationFailed := !generatedConfigWriter.MaybeWriteGeneratedConfig(change)
+			diff, render := renderHumanDiff(renderer, change, proposedChange, configGenerationFailed)
 			if render {
 				fmt.Fprintln(renderer.Streams.Stdout.File)
 				renderer.Streams.Println(diff)
@@ -237,6 +246,42 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 				counts[plans.Create]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete],
 				counts[plans.Update],
 				counts[plans.Delete]+counts[plans.DeleteThenCreate]+counts[plans.CreateThenDelete])
+		}
+
+		failed, err := generatedConfigWriter.Failed()
+		if len(failed) > 0 {
+			// Then we failed to save some generated config. This is very
+			// unlikely to happen, but potentially Terraform might not have had
+			// permission to write into the target directory, or we could have
+			// had some transient error when calling io.Writer.Write(...).
+			//
+			// We'll tell the user which addresses we couldn't write
+			// configuration for, and ask them to report this as a bug.
+
+			renderer.Streams.Println(renderer.Colorize.Color(format.WordWrap(
+				"\nConfig generation [red]failed[reset] for some resources. You will need to create the following resources manually:\n",
+				renderer.Streams.Stdout.Columns())))
+			for address, reason := range failed {
+				if reason != nil {
+					renderer.Streams.Printf("  - %s: %v\n", address, reason)
+				} else {
+					renderer.Streams.Printf("  - %s\n", address)
+				}
+			}
+			if errors.Is(err, fs.ErrPermission) {
+				renderer.Streams.Println(format.WordWrap(
+					"\nTerraform did not have permission to write into your configuration directory, modifying the permissions on your configuration directory and rerunning `terraform plan` should successfully generate configuration.",
+					renderer.Streams.Stdout.Columns()))
+			} else {
+				renderer.Streams.Println(format.WordWrap(
+					"\nConfiguration generation failed for an unknown reason. This may be a bug in Terraform, please file an issue against the Terraform repository and include this output in the description.",
+					renderer.Streams.Stdout.Columns()))
+				if err != nil {
+					renderer.Streams.Println(format.WordWrap(
+						fmt.Sprintf("\nThe framework also provided the following additional context: %v", err),
+						renderer.Streams.Stdout.Columns()))
+				}
+			}
 		}
 	}
 
@@ -316,7 +361,8 @@ func renderHumanDiffDrift(renderer Renderer, diffs diffs, mode plans.Mode) bool 
 		renderer.Streams.Stdout.Columns()))
 
 	for _, drift := range drs {
-		diff, render := renderHumanDiff(renderer, drift, detectedDrift)
+		// No config generation for outputs, so it never fails.
+		diff, render := renderHumanDiff(renderer, drift, detectedDrift, false)
 		if render {
 			renderer.Streams.Println()
 			renderer.Streams.Println(diff)
@@ -339,7 +385,7 @@ func renderHumanDiffDrift(renderer Renderer, diffs diffs, mode plans.Mode) bool 
 	return true
 }
 
-func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) {
+func renderHumanDiff(renderer Renderer, diff diff, cause string, configGenerationFailed bool) (string, bool) {
 
 	// Internally, our computed diffs can't tell the difference between a
 	// replace action (eg. CreateThenDestroy, DestroyThenCreate) and a simple
@@ -355,7 +401,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString(renderer.Colorize.Color(resourceChangeComment(diff.change, action, cause)))
+	buf.WriteString(renderer.Colorize.Color(resourceChangeComment(diff.change, action, cause, configGenerationFailed)))
 
 	opts := computed.NewRenderHumanOpts(renderer.Colorize)
 	opts.ShowUnchangedChildren = diff.Importing()
@@ -364,7 +410,7 @@ func renderHumanDiff(renderer Renderer, diff diff, cause string) (string, bool) 
 	return buf.String(), true
 }
 
-func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string) string {
+func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action, changeCause string, configGenerationFailed bool) string {
 	var buf bytes.Buffer
 
 	dispAddr := resource.Address
@@ -469,7 +515,11 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		if resource.Change.Importing != nil {
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
 			if len(resource.Change.GeneratedConfig) > 0 {
-				buf.WriteString("\n  #[reset] (config will be written to generated_config.tf)")
+				if configGenerationFailed {
+					buf.WriteString("\n  #[reset] (config generation [red]failed[reset])")
+				} else {
+					buf.WriteString("\n  #[reset] (config has been written to generated_config.tf)")
+				}
 			}
 			printedImported = true
 			break

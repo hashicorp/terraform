@@ -107,10 +107,8 @@ func TestCloud_planJSONBasic(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-basic")
 	defer configCleanup()
@@ -215,10 +213,8 @@ func TestCloud_planJSONFull(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-full")
 	defer configCleanup()
@@ -1200,10 +1196,8 @@ func TestCloud_planJSONWithRemoteError(t *testing.T) {
 	stream, close := terminal.StreamsForTesting(t)
 
 	// Initialize the plan renderer
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-json-error")
 	defer configCleanup()

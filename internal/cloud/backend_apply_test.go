@@ -124,10 +124,8 @@ func TestCloud_applyJSONBasic(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json")
 	defer configCleanup()
@@ -183,10 +181,8 @@ func TestCloud_applyJSONWithOutputs(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-outputs")
 	defer configCleanup()
@@ -1271,10 +1267,8 @@ func TestCloud_applyJSONWithProvisioner(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 	input := testInput(t, map[string]string{
 		"approve": "yes",
 	})
@@ -1334,10 +1328,8 @@ func TestCloud_applyJSONWithProvisionerError(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-provisioner-error")
 	defer configCleanup()
@@ -1697,10 +1689,8 @@ func TestCloud_applyJSONWithRemoteError(t *testing.T) {
 
 	stream, close := terminal.StreamsForTesting(t)
 
-	b.renderer = &jsonformat.Renderer{
-		Streams:  stream,
-		Colorize: mockColorize(),
-	}
+	renderer := jsonformat.NewRenderer(stream, mockColorize())
+	b.renderer = &renderer
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json-with-error")
 	defer configCleanup()

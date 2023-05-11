@@ -157,13 +157,10 @@ func (c *StateShowCommand) Run(args []string) int {
 		ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
 	}
 
-	renderer := jsonformat.Renderer{
-		Streams:             c.Streams,
-		Colorize:            c.Colorize(),
-		RunningInAutomation: c.RunningInAutomation,
-	}
-
+	renderer := jsonformat.NewRenderer(c.Streams, c.Colorize())
+	renderer.RunningInAutomation = c.RunningInAutomation
 	renderer.RenderHumanState(jstate)
+
 	return 0
 }
 
