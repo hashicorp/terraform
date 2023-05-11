@@ -111,6 +111,10 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 			skip: b.Operation == walkPlanDestroy,
 
 			importTargets: b.ImportTargets,
+
+			// We only want to generate config during a plan operation.
+			// TODO: add a dedicated flag for this?
+			generateConfigForImportTargets: b.Operation == walkPlan,
 		},
 
 		// Add dynamic values

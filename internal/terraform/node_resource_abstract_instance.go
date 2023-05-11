@@ -9,12 +9,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/objchange"
@@ -648,18 +650,68 @@ func (n *NodeAbstractResourceInstance) plan(
 	plannedChange *plans.ResourceInstanceChange,
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
-	forceReplace []addrs.AbsResourceInstance) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
+	forceReplace []addrs.AbsResourceInstance,
+	generateConfig bool,
+) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var state *states.ResourceInstanceObject
 	var plan *plans.ResourceInstanceChange
 	var keyData instances.RepetitionData
+	var generatedConfig *configs.Resource
 
-	config := *n.Config
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return plan, state, keyData, diags.Append(err)
 	}
+
+	if providerSchema == nil {
+		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
+		return plan, state, keyData, diags
+	}
+	schema, _ := providerSchema.SchemaForResourceAddr(resource)
+	if schema == nil {
+		// Should be caught during validation, so we don't bother with a pretty error here
+		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
+		return plan, state, keyData, diags
+	}
+
+	// If we're importing and generating config, generate it now.
+	var generatedHCL string
+	if generateConfig {
+		var generatedDiags tfdiags.Diagnostics
+
+		if n.Config != nil {
+			return plan, state, keyData, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
+		}
+
+		// Generate the HCL string first, then parse the HCL body from it.
+		// First we generate the contents of the resource block for use within
+		// the planning node. Then we wrap it in an enclosing resource block to
+		// pass into the plan for rendering.
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, currentState, schema)
+		diags = diags.Append(generatedDiags)
+
+		generatedHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+
+		// parse the "file" as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		if hclDiags.HasErrors() {
+			return plan, state, keyData, diags.Append(hclDiags)
+		}
+
+		generatedConfig = &configs.Resource{
+			Mode:     addrs.ManagedResourceMode,
+			Type:     n.Addr.Resource.Resource.Type,
+			Name:     n.Addr.Resource.Resource.Name,
+			Config:   synthHCLFile.Body,
+			Managed:  &configs.ManagedResource{},
+			Provider: n.ResolvedProvider.Provider,
+		}
+		n.Config = generatedConfig
+	}
+
+	config := *n.Config
 
 	checkRuleSeverity := tfdiags.Error
 	if n.preDestroyRefresh {
@@ -671,18 +723,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		createBeforeDestroy = plannedChange.Action == plans.CreateThenDelete
 	}
 
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
-		return plan, state, keyData, diags
-	}
-
 	// Evaluate the configuration
-	schema, _ := providerSchema.SchemaForResourceAddr(resource)
-	if schema == nil {
-		// Should be caught during validation, so we don't bother with a pretty error here
-		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return plan, state, keyData, diags
-	}
 
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 
@@ -1124,7 +1165,8 @@ func (n *NodeAbstractResourceInstance) plan(
 			// Pass the marked planned value through in our change
 			// to propogate through evaluation.
 			// Marks will be removed when encoding.
-			After: plannedNewVal,
+			After:           plannedNewVal,
+			GeneratedConfig: generatedHCL,
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
@@ -1144,6 +1186,21 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	return plan, state, keyData, diags
+}
+
+// generateHCLStringAttributes produces a string in HCL format for the given
+// resource state and schema without the surrounding block.
+func (n *NodeAbstractResource) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
+	filteredSchema := schema.Filter(
+		configschema.FilterOr(configschema.FilterReadOnlyAttributes, configschema.FilterDeprecatedAttribute),
+		configschema.FilterDeprecatedBlock)
+
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
 }
 
 func (n *NodeAbstractResource) processIgnoreChanges(prior, config cty.Value, schema *configschema.Block) (cty.Value, tfdiags.Diagnostics) {

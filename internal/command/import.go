@@ -297,14 +297,6 @@ Usage: terraform [global options] import [options] ADDR ID
   determine the ID syntax to use. It typically matches directly to the ID
   that the provider uses.
 
-  The current implementation of Terraform import can only import resources
-  into the state. It does not generate configuration. A future version of
-  Terraform will also generate configuration.
-
-  Because of this, prior to running terraform import it is necessary to write
-  a resource configuration block for the resource manually, to which the
-  imported object will be attached.
-
   This command will not modify your infrastructure, but it will make
   network requests to inspect parts of your infrastructure relevant to
   the resource being imported.

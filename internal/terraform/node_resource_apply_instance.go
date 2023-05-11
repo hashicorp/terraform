@@ -274,7 +274,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	// Make a new diff, in case we've learned new values in the state
 	// during apply which we can now incorporate.
-	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace)
+	diffApply, _, repeatData, planDiags := n.plan(ctx, diff, state, false, n.forceReplace, false)
 	diags = diags.Append(planDiags)
 	if diags.HasErrors() {
 		return diags

@@ -135,6 +135,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
+	var generateConfig bool
 
 	checkRuleSeverity := tfdiags.Error
 	if n.skipPlanChanges || n.preDestroyRefresh {
@@ -147,9 +148,11 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 
-	diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
-	if diags.HasErrors() {
-		return diags
+	if config != nil {
+		diags = diags.Append(validateSelfRef(addr.Resource, config.Config, providerSchema))
+		if diags.HasErrors() {
+			return diags
+		}
 	}
 
 	importing := n.importTarget.ID != ""
@@ -157,6 +160,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {
+		if n.Config == nil || n.Config.Managed == nil {
+			generateConfig = true
+		}
 		instanceRefreshState, diags = n.importState(ctx, addr, provider)
 	} else {
 		var readDiags tfdiags.Diagnostics
@@ -239,7 +245,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		change, instancePlanState, repeatData, planDiags := n.plan(
-			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace, generateConfig,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
@@ -361,6 +367,9 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 // instance address is added to forceReplace
 func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repData instances.RepetitionData) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	if n.Config == nil {
+		return diags
+	}
 
 	for _, expr := range n.Config.TriggersReplacement {
 		ref, replace, evalDiags := ctx.EvaluateReplaceTriggeredBy(expr, repData)

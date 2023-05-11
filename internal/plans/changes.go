@@ -308,10 +308,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action:    Delete,
-					Before:    rc.Before,
-					After:     cty.NullVal(rc.Before.Type()),
-					Importing: rc.Importing,
+					Action:          Delete,
+					Before:          rc.Before,
+					After:           cty.NullVal(rc.Before.Type()),
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		default:
@@ -321,10 +322,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action:    NoOp,
-					Before:    rc.Before,
-					After:     rc.Before,
-					Importing: rc.Importing,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -337,10 +339,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action:    NoOp,
-					Before:    rc.Before,
-					After:     rc.Before,
-					Importing: rc.Importing,
+					Action:          NoOp,
+					Before:          rc.Before,
+					After:           rc.Before,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		case CreateThenDelete, DeleteThenCreate:
@@ -350,10 +353,11 @@ func (rc *ResourceInstanceChange) Simplify(destroying bool) *ResourceInstanceCha
 				Private:      rc.Private,
 				ProviderAddr: rc.ProviderAddr,
 				Change: Change{
-					Action:    Create,
-					Before:    cty.NullVal(rc.After.Type()),
-					After:     rc.After,
-					Importing: rc.Importing,
+					Action:          Create,
+					Before:          cty.NullVal(rc.After.Type()),
+					After:           rc.After,
+					Importing:       rc.Importing,
+					GeneratedConfig: rc.GeneratedConfig,
 				},
 			}
 		}
@@ -533,6 +537,12 @@ type Change struct {
 	// Use the simple presence of this field to detect if a ChangeSrc is to be
 	// imported, the contents of this structure may be modified going forward.
 	Importing *Importing
+
+	// GeneratedConfig contains any HCL config generated for this resource
+	// during planning, as a string. If GeneratedConfig is populated, Importing
+	// should be true. However, not all Importing changes contain generated
+	// config.
+	GeneratedConfig string
 }
 
 // Encode produces a variant of the reciever that has its change values
@@ -572,11 +582,12 @@ func (c *Change) Encode(ty cty.Type) (*ChangeSrc, error) {
 	}
 
 	return &ChangeSrc{
-		Action:         c.Action,
-		Before:         beforeDV,
-		After:          afterDV,
-		BeforeValMarks: beforeVM,
-		AfterValMarks:  afterVM,
-		Importing:      importing,
+		Action:          c.Action,
+		Before:          beforeDV,
+		After:           afterDV,
+		BeforeValMarks:  beforeVM,
+		AfterValMarks:   afterVM,
+		Importing:       importing,
+		GeneratedConfig: c.GeneratedConfig,
 	}, nil
 }
