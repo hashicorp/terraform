@@ -29,8 +29,10 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	return bookmark, err
 }
 
-func (s *SavedPlanBookmark) save() error {
-	fmt.Println("this verifies we can save what to what?")
+func (s *SavedPlanBookmark) Save(filepath string) error {
+	fmt.Println("this verifies we can save json to a provided file path")
+
+	// json.Marshal, then os.WriteFile
 
 	return nil
 }
