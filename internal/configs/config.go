@@ -409,13 +409,13 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 	}
 
 	// Import blocks that are generating config may also have a custom provider
-	// meta argument. Like the provider meta argument used in resource blocks, 
-	// we use this opportunity to load any implicit providers. 
-	// We'll also use this to validate
-	// that import blocks and targeted resource blocks agree on which provider
-	// they should be using. If they don't agree, this will be because the user
-	// has written explicit provider arguments that don't agree and we'll get
-	// them to fix it.
+	// meta argument. Like the provider meta argument used in resource blocks,
+	// we use this opportunity to load any implicit providers.
+	//
+	// We'll also use this to validate that import blocks and targeted resource
+	// blocks agree on which provider they should be using. If they don't agree,
+	// this will be because the user has written explicit provider arguments
+	// that don't agree and we'll get them to fix it.
 	for _, i := range c.Module.Import {
 		if len(i.To.Module) > 0 {
 			// All provider information for imports into modules should come
