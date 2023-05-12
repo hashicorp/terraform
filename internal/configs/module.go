@@ -403,6 +403,30 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 	}
 
 	for _, i := range file.Import {
+		for _, mi := range m.Import {
+			if i.To.Equal(mi.To) {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.To),
+					Detail:   fmt.Sprintf("An import block for the resource %q was already declared at %s. A resource can have only one import block.", i.To, mi.DeclRange),
+					Subject:  &i.DeclRange,
+				})
+				continue
+			}
+
+			if i.ID == mi.ID {
+				if i.To.Resource.Resource.Type == mi.To.Resource.Resource.Type {
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  fmt.Sprintf("Duplicate import for ID %q", i.ID),
+						Detail:   fmt.Sprintf("An import block for the ID %q and a resource of type %q was already declared at %s. The same resource cannot be imported twice.", i.ID, i.To.Resource.Resource.Type, mi.DeclRange),
+						Subject:  &i.DeclRange,
+					})
+					continue
+				}
+			}
+		}
+
 		if i.ProviderConfigRef != nil {
 			i.Provider = m.ProviderForLocalConfig(addrs.LocalProviderConfig{
 				LocalName: i.ProviderConfigRef.Name,

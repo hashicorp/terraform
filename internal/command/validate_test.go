@@ -150,6 +150,28 @@ func TestSameResourceMultipleTimesShouldFail(t *testing.T) {
 	}
 }
 
+func TestSameImportTargetMultipleTimesShouldFail(t *testing.T) {
+	output, code := setupTest(t, "validate-invalid/duplicate_import_targets")
+	if code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+	}
+	wantError := `Error: Duplicate import configuration for "aws_instance.web"`
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+	}
+}
+
+func TestSameImportIDMultipleTimesShouldFail(t *testing.T) {
+	output, code := setupTest(t, "validate-invalid/duplicate_import_ids")
+	if code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+	}
+	wantError := `Error: Duplicate import for ID "test"`
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+	}
+}
+
 func TestOutputWithoutValueShouldFail(t *testing.T) {
 	output, code := setupTest(t, "validate-invalid/outputs")
 	if code != 1 {
@@ -218,6 +240,8 @@ func TestValidate_json(t *testing.T) {
 		{"validate-invalid/multiple_providers", false},
 		{"validate-invalid/multiple_modules", false},
 		{"validate-invalid/multiple_resources", false},
+		{"validate-invalid/duplicate_import_targets", false},
+		{"validate-invalid/duplicate_import_ids", false},
 		{"validate-invalid/outputs", false},
 		{"validate-invalid/incorrectmodulename", false},
 		{"validate-invalid/interpolation", false},
