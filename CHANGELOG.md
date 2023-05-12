@@ -18,7 +18,7 @@ NEW FEATURES:
     
     This is an early version of the `import` block feature, for which we are actively seeking user feedback to shape future development. The `import` block currently does not support interpolation in the `id` field, which must be a string.
 
-* Generating configuration for imported resources. In conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
+* Generating configuration for imported resources: in conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
 
 * Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
 * Adds a new `strcontains` function that checks whether a given string contains a given substring. [GH-33069]
