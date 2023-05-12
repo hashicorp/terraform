@@ -12,21 +12,13 @@ NEW FEATURES:
     
 * `import` blocks for importing infrastructure: Root module authors can now use the `import` block to declare their intent that Terraform adopt an existing resource. 
   
-    Import is now a plannable action, and is processed as part of a normal plan. Running `terraform plan` will show a summary of the resources that Terraform has planned to import, along with any other plan changes. These may include updates and replacements to the imported resource, if the configuration for that resource differs from the state of the remote system. 
-
-    The existing `terraform import` CLI command has not been modified. Running the CLI command directly imports a resource's state into the state file, while using the `import` block and running `terraform plan` will not modify the state until `terraform apply` is run.
-
+    Import is now a configuration-driven, plannable action, and is processed as part of a normal plan. Running `terraform plan` will show a summary of the resources that Terraform has planned to import, along with any other plan changes. 
+    
+    The existing `terraform import` CLI command has not been modified.
+    
     This is an early version of the `import` block feature, for which we are actively seeking user feedback to shape future development. The `import` block currently does not support interpolation in the `id` field, which must be a string.
-```hcl
-import {
-  id = "i-12345678"           # import ID
-  to = aws_instance.example   # target resource address
-}
-```
 
-* Generating configuration for imported resources. In conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. This configuration will not include sensitive values. Before applying, you should review the generated configuration and edit it as necessary. This file should be committed to version control just like any other configuration file.
- 
-    Config generation is only available for resource addresses in the root module, and does not yet support generation of resources with `count` or `for_each`.
+* Generating configuration for imported resources. In conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
 
 * Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
 * Adds a new `strcontains` function that checks whether a given string contains a given substring. [GH-33069]
