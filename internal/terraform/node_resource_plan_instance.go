@@ -252,7 +252,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			return diags
 		}
 
-		if n.importTarget.ID != "" {
+		if importing {
 			change.Importing = &plans.Importing{ID: n.importTarget.ID}
 		}
 
