@@ -25,6 +25,11 @@ type Plan struct {
 	// OutPath contains an optional path to store the plan file
 	OutPath string
 
+	// GenerateConfigPath tells Terraform that config should be generated for
+	// unmatched import target paths and which path the generated file should
+	// be written to.
+	GenerateConfigPath string
+
 	// ViewType specifies which output format to use
 	ViewType ViewType
 }
@@ -44,6 +49,7 @@ func ParsePlan(args []string) (*Plan, tfdiags.Diagnostics) {
 	cmdFlags.BoolVar(&plan.DetailedExitCode, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.BoolVar(&plan.InputEnabled, "input", true, "input")
 	cmdFlags.StringVar(&plan.OutPath, "out", "", "out")
+	cmdFlags.StringVar(&plan.GenerateConfigPath, "generate-config-out", "", "generate-config-out")
 
 	var json bool
 	cmdFlags.BoolVar(&json, "json", false, "json")

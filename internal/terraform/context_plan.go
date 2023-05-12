@@ -77,6 +77,10 @@ type PlanOpts struct {
 	// ImportTargets is a list of target resources to import. These resources
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
+
+	// GenerateConfig tells Terraform to generate configuration for any
+	// ImportTargets that do not have configuration already.
+	GenerateConfig bool
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -630,6 +634,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 			ImportTargets:      opts.ImportTargets,
+			GenerateConfig:     opts.GenerateConfig,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:

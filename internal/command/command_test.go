@@ -252,6 +252,24 @@ func testPlanFileNoop(t *testing.T) string {
 	return testPlanFile(t, snap, state, plan)
 }
 
+func testFileEquals(t *testing.T, got, want string) {
+	t.Helper()
+
+	actual, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("error reading %s", got)
+	}
+
+	expected, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatalf("error reading %s", want)
+	}
+
+	if diff := cmp.Diff(string(actual), string(expected)); len(diff) > 0 {
+		t.Fatalf("got:\n%s\nwant:\n%s\ndiff:\n%s", actual, expected, diff)
+	}
+}
+
 func testReadPlan(t *testing.T, path string) *plans.Plan {
 	t.Helper()
 

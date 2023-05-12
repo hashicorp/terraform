@@ -4512,7 +4512,10 @@ resource "test_object" "a" {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:           plans.NormalMode,
+		GenerateConfig: true,
+	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -4569,7 +4572,10 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:           plans.NormalMode,
+		GenerateConfig: true,
+	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}
@@ -4648,7 +4654,10 @@ import {
 		},
 	}
 
-	plan, diags := ctx.Plan(m, states.NewState(), DefaultPlanOpts)
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:           plans.NormalMode,
+		GenerateConfig: true,
+	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
 	}

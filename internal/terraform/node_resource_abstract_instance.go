@@ -651,7 +651,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	currentState *states.ResourceInstanceObject,
 	createBeforeDestroy bool,
 	forceReplace []addrs.AbsResourceInstance,
-	generateConfig bool,
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var state *states.ResourceInstanceObject
@@ -678,7 +677,7 @@ func (n *NodeAbstractResourceInstance) plan(
 
 	// If we're importing and generating config, generate it now.
 	var generatedHCL string
-	if generateConfig {
+	if n.generateConfig {
 		var generatedDiags tfdiags.Diagnostics
 
 		if n.Config != nil {
@@ -720,6 +719,19 @@ func (n *NodeAbstractResourceInstance) plan(
 			Provider: n.ResolvedProvider.Provider,
 		}
 		n.Config = generatedConfig
+	}
+
+	if n.Config == nil {
+		// This shouldn't happen. A node that isn't generating config should
+		// have embedded config, and the rest of Terraform should enforce this.
+		// If, however, we didn't do things correctly the next line will panic,
+		// so let's not do that and return an error message with more context.
+
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Resource has no configuration",
+			fmt.Sprintf("Terraform attempted to process a resource at %s that has no configuration. This is a bug in Terraform; please report it!", n.Addr.String())))
+		return plan, state, keyData, diags
 	}
 
 	config := *n.Config
