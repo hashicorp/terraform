@@ -2,6 +2,11 @@ name: Set Release Mode
 
 on:
   workflow_dispatch:
+    inputs:
+      prerelease:
+        description: 'optionally set a prerelease string for the next targeted release version'
+        required: false
+        type: string
 
 jobs:
   dev-mode:
@@ -9,16 +14,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Over-ride version pre-release
+        if: "${{ github.event.inputs.prerelease != '' }}"
+        environment:
+          prerelease: "${{ github.event.inputs.prerelease }}"
+        run:  |
+          cd version
+          sed -i "s/$/-$prerelease/g" 'VERSION'
+
       - name: get version
         id: get-product-version
         uses: hashicorp/actions-set-product-version@v1
 
-      - name: Update version - add -dev
-        run:  |
-          cd version
-          sed -i 's/$/-dev/g' 'VERSION'
-
-      - name: Update changelog and add -dev
+      - name: Update changelog and add optional prerelease to version
         env:
           VERSION: "${{steps.get-product-version.outputs.product-version}}"
         run: |
@@ -28,5 +36,5 @@ jobs:
           cp  CHANGELOG.md
           rm changelog.md_
           git add -A .
-          git commit --allow-empty -a -m "Updating changelog (unreleased) and adding -dev back to version post release"
+          git commit --allow-empty -a -m "Updating changelog (unreleased) and adding option prerelease field to version post release"
           git push origin "$(git rev-parse --abbrev-ref HEAD)"

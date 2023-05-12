@@ -1,4 +1,4 @@
-name: Set Release Mode
+name: Update changelog post-release
 
 on:
   workflow_dispatch:
@@ -13,12 +13,7 @@ jobs:
         id: get-product-version
         uses: hashicorp/actions-set-product-version@v1
 
-      - name: Update version - remove -dev
-        run:  |
-          cd version
-          sed -i 's/-dev//g' 'VERSION'
-
-      - name: Update changelog + remove -dev
+      - name: Update changelog
         env:
           VERSION: "${{steps.get-product-version.outputs.product-version}}"
         run: |
@@ -26,5 +21,5 @@ jobs:
           sed -i "s/## "${VERSION}" \(Unreleased\)/## "${VERSION}" \(${rel_date}\)/" "CHANGELOG.md"
           ./scripts/changelog-links.sh
           git add -A .
-          git commit --allow-empty -a -m "Update changelog and remove -dev from version for - Release v${VERSION}"
+          git commit --allow-empty -a -m "Update changelog for - Release v${VERSION}"
           git push origin "$(git rev-parse --abbrev-ref HEAD)"
