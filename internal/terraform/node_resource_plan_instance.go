@@ -400,7 +400,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PreImportState(absAddr, n.importTarget.ID)
+		return h.PrePlanImport(absAddr, n.importTarget.ID)
 	}))
 	if diags.HasErrors() {
 		return nil, diags
@@ -446,7 +446,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	// call post-import hook
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PostImportState(absAddr, imported)
+		return h.PostPlanImport(absAddr, imported)
 	}))
 
 	if imported[0].TypeName == "" {

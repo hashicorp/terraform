@@ -103,16 +103,24 @@ func TestApplyHuman_help(t *testing.T) {
 // Hooks and ResourceCount are tangled up and easiest to test together.
 func TestApply_resourceCount(t *testing.T) {
 	testCases := map[string]struct {
-		destroy bool
-		want    string
+		destroy   bool
+		want      string
+		importing bool
 	}{
 		"apply": {
 			false,
 			"Apply complete! Resources: 1 added, 2 changed, 3 destroyed.",
+			false,
 		},
 		"destroy": {
 			true,
 			"Destroy complete! Resources: 3 destroyed.",
+			false,
+		},
+		"import": {
+			false,
+			"Apply complete! Resources: 1 imported, 1 added, 2 changed, 3 destroyed.",
+			true,
 		},
 	}
 
@@ -140,6 +148,10 @@ func TestApply_resourceCount(t *testing.T) {
 				count.Added = 1
 				count.Changed = 2
 				count.Removed = 3
+
+				if tc.importing {
+					count.Imported = 1
+				}
 
 				v.ResourceCount("")
 

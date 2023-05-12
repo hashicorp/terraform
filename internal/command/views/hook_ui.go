@@ -304,6 +304,33 @@ func (h *UiHook) PostImportState(addr addrs.AbsResourceInstance, imported []prov
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) PrePlanImport(addr addrs.AbsResourceInstance, importID string) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Preparing import... [id=%s]"),
+		addr, importID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Importing... [id=%s]"),
+		addr, importing.ID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
+func (h *UiHook) PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (terraform.HookAction, error) {
+	h.println(fmt.Sprintf(
+		h.view.colorize.Color("[reset][bold]%s: Import complete [id=%s]"),
+		addr, importing.ID,
+	))
+
+	return terraform.HookActionContinue, nil
+}
+
 // Wrap calls to the view so that concurrent calls do not interleave println.
 func (h *UiHook) println(s string) {
 	h.viewLock.Lock()
