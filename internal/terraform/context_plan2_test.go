@@ -4168,6 +4168,83 @@ import {
 	})
 }
 
+func TestContext2Plan_importResourceAlreadyInState(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+  test_string = "foo"
+}
+
+import {
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("test_object.a").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"test_string":"foo"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+	)
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
+	}
+
+	t.Run(addr.String(), func(t *testing.T) {
+		instPlan := plan.Changes.ResourceInstance(addr)
+		if instPlan == nil {
+			t.Fatalf("no plan for %s at all", addr)
+		}
+
+		if got, want := instPlan.Addr, addr; !got.Equal(want) {
+			t.Errorf("wrong current address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.PrevRunAddr, addr; !got.Equal(want) {
+			t.Errorf("wrong previous run address\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.Action, plans.NoOp; got != want {
+			t.Errorf("wrong planned action\ngot:  %s\nwant: %s", got, want)
+		}
+		if got, want := instPlan.ActionReason, plans.ResourceInstanceChangeNoReason; got != want {
+			t.Errorf("wrong action reason\ngot:  %s\nwant: %s", got, want)
+		}
+		if instPlan.Importing != nil {
+			t.Errorf("expected non-import change, got import change %+v", instPlan.Importing)
+		}
+	})
+}
+
 func TestContext2Plan_importResourceUpdate(t *testing.T) {
 	addr := mustResourceInstanceAddr("test_object.a")
 	m := testModuleInline(t, map[string]string{

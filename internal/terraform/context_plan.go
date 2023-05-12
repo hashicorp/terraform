@@ -292,7 +292,7 @@ func (c *Context) plan(config *configs.Config, prevRunState *states.State, opts 
 		panic(fmt.Sprintf("called Context.plan with %s", opts.Mode))
 	}
 
-	opts.ImportTargets = c.findImportBlocks(config)
+	opts.ImportTargets = c.findImportTargets(config, prevRunState)
 	plan, walkDiags := c.planWalk(config, prevRunState, opts)
 	diags = diags.Append(walkDiags)
 
@@ -513,14 +513,18 @@ func (c *Context) postPlanValidateMoves(config *configs.Config, stmts []refactor
 	return refactoring.ValidateMoves(stmts, config, allInsts)
 }
 
-func (c *Context) findImportBlocks(config *configs.Config) []*ImportTarget {
+// findImportTargets builds a list of import targets by taking the import blocks
+// in the config and filtering out any that target a resource already in state.
+func (c *Context) findImportTargets(config *configs.Config, priorState *states.State) []*ImportTarget {
 	var importTargets []*ImportTarget
 	for _, ic := range config.Module.Import {
-		importTargets = append(importTargets, &ImportTarget{
-			Addr:   ic.To,
-			ID:     ic.ID,
-			Config: ic,
-		})
+		if priorState.ResourceInstance(ic.To) == nil {
+			importTargets = append(importTargets, &ImportTarget{
+				Addr:   ic.To,
+				ID:     ic.ID,
+				Config: ic,
+			})
+		}
 	}
 	return importTargets
 }
