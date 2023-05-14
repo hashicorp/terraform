@@ -178,7 +178,7 @@ Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 Terraform will perform the following actions:
 
   # test_resource.resource will be imported
-  # (config will be written to generated_config.tf)
+  # (config will be generated)
     resource "test_resource" "resource" {
         id    = "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E"
         value = "Hello, World!"

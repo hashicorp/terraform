@@ -469,7 +469,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 		if resource.Change.Importing != nil {
 			buf.WriteString(fmt.Sprintf("[bold]  # %s[reset] will be imported", dispAddr))
 			if len(resource.Change.GeneratedConfig) > 0 {
-				buf.WriteString("\n  #[reset] (config will be written to generated_config.tf)")
+				buf.WriteString("\n  #[reset] (config will be generated)")
 			}
 			printedImported = true
 			break
