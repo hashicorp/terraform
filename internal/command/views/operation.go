@@ -31,7 +31,7 @@ type Operation interface {
 
 	PlannedChange(change *plans.ResourceInstanceChangeSrc)
 	Plan(plan *plans.Plan, schemas *terraform.Schemas)
-	PlanNextStep(planPath string)
+	PlanNextStep(planPath string, genConfigPath string)
 
 	Diagnostics(diags tfdiags.Diagnostics)
 }
@@ -135,11 +135,17 @@ func (v *OperationHuman) PlannedChange(change *plans.ResourceInstanceChangeSrc) 
 
 // PlanNextStep gives the user some next-steps, unless we're running in an
 // automation tool which is presumed to provide its own UI for further actions.
-func (v *OperationHuman) PlanNextStep(planPath string) {
+func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 	if v.inAutomation {
 		return
 	}
 	v.view.outputHorizRule()
+
+	if genConfigPath != "" {
+		v.view.streams.Printf(
+			"\n"+strings.TrimSpace(format.WordWrap(planHeaderGenConfig, v.view.outputColumns()))+"\n", genConfigPath,
+		)
+	}
 
 	if planPath == "" {
 		v.view.streams.Print(
@@ -261,7 +267,7 @@ func (v *OperationJSON) PlannedChange(change *plans.ResourceInstanceChangeSrc) {
 
 // PlanNextStep does nothing for the JSON view as it is a hook for user-facing
 // output only applicable to human-readable UI.
-func (v *OperationJSON) PlanNextStep(planPath string) {
+func (v *OperationJSON) PlanNextStep(planPath string, genConfigPath string) {
 }
 
 func (v *OperationJSON) Diagnostics(diags tfdiags.Diagnostics) {
@@ -287,4 +293,8 @@ Saved the plan to: %s
 
 To perform exactly these actions, run the following command to apply:
     terraform apply %q
+`
+
+const planHeaderGenConfig = `
+Terraform has generated configuration and written it to %s. Please review the configuration and edit it as necessary before adding it to version control.
 `
