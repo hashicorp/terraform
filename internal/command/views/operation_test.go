@@ -450,7 +450,7 @@ func TestOperation_planNextStep(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			v := NewOperation(arguments.ViewHuman, false, NewView(streams))
 
-			v.PlanNextStep(tc.path)
+			v.PlanNextStep(tc.path, "")
 
 			if got := done(t).Stdout(); !strings.Contains(got, tc.want) {
 				t.Errorf("wrong result\ngot:  %q\nwant: %q", got, tc.want)
@@ -465,7 +465,7 @@ func TestOperation_planNextStepInAutomation(t *testing.T) {
 	streams, done := terminal.StreamsForTesting(t)
 	v := NewOperation(arguments.ViewHuman, true, NewView(streams))
 
-	v.PlanNextStep("")
+	v.PlanNextStep("", "")
 
 	if got := done(t).Stdout(); got != "" {
 		t.Errorf("unexpected output\ngot: %q", got)

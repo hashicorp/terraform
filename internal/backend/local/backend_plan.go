@@ -55,7 +55,6 @@ func (b *Local) opPlan(
 	}
 
 	if len(op.GenerateConfigOut) > 0 {
-
 		if op.PlanMode != plans.NormalMode {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -192,7 +191,7 @@ func (b *Local) opPlan(
 	}
 
 	// Write out any generated config, before we render the plan.
-	moreDiags = genconfig.MaybeWriteGeneratedConfig(plan, op.GenerateConfigOut)
+	wroteConfig, moreDiags := genconfig.MaybeWriteGeneratedConfig(plan, op.GenerateConfigOut)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		op.ReportResult(runningOp, diags)
@@ -209,6 +208,10 @@ func (b *Local) opPlan(
 	op.ReportResult(runningOp, diags)
 
 	if !runningOp.PlanEmpty {
-		op.View.PlanNextStep(op.PlanOutPath)
+		if wroteConfig {
+			op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
+		} else {
+			op.View.PlanNextStep(op.PlanOutPath, "")
+		}
 	}
 }

@@ -21,22 +21,21 @@ func ValidateTargetFile(out string) tfdiags.Diagnostics {
 	return diags
 }
 
-func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) tfdiags.Diagnostics {
+func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, diags tfdiags.Diagnostics) {
 	if len(out) == 0 {
 		// No specified out file, so don't write anything.
-		return nil
+		return false, nil
 	}
 
-	diags := ValidateTargetFile(out)
+	diags = ValidateTargetFile(out)
 	if diags.HasErrors() {
-		return diags
+		return false, diags
 	}
 
 	var writer io.Writer
 
 	for _, change := range plan.Changes.Resources {
 		if len(change.GeneratedConfig) > 0 {
-
 			if writer == nil {
 				// Lazily create the generated file, in case we have no
 				// generated config to create.
@@ -47,14 +46,14 @@ func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) tfdiags.Diagnostics
 							tfdiags.Error,
 							"Failed to create target generated file",
 							fmt.Sprintf("Terraform did not have permission to create the generated file (%s) in the target directory. Please modify permissions over the target directory, and try again.", out)))
-						return diags
+						return false, diags
 					}
 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to create target generated file",
 						fmt.Sprintf("Terraform could not create the generated file (%s) in the target directory: %v. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", out, err)))
-					return diags
+					return false, diags
 				}
 
 				header := "# __generated__ by Terraform\n# Please review these resources and move them into your main configuration files.\n"
@@ -74,8 +73,9 @@ func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) tfdiags.Diagnostics
 					"Failed to save generated config",
 					fmt.Sprintf("Terraform encountered an error while writing generated config: %v. The config for %s must be created manually before applying. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", err, change.Addr.String())))
 			}
+			wroteConfig = true
 		}
 	}
 
-	return diags
+	return wroteConfig, diags
 }
