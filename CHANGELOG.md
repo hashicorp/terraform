@@ -1,4 +1,4 @@
-## 1.5.0-beta1 (May 15, 2023)
+## 1.5.0 (Unreleased)
 
 NEW FEATURES:
 
