@@ -1,4 +1,4 @@
-## 1.5.0 (Unreleased)
+## 1.5.0-beta1 (May 15, 2023)
 
 NEW FEATURES:
 
@@ -21,7 +21,7 @@ NEW FEATURES:
 * Generating configuration for imported resources: in conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
 
 * Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
-* Adds a new `strcontains` function that checks whether a given string contains a given substring. [GH-33069]
+* Adds a new `strcontains` function that checks whether a given string contains a given substring. ([#33069](https://github.com/hashicorp/terraform/issues/33069))
 
 
 UPGRADE NOTES:
@@ -34,14 +34,14 @@ UPGRADE NOTES:
 
 ENHANCEMENTS:
 
-* Terraform CLI's local operations mode will now attempt to persist state snapshots to the state storage backend periodically during the apply step, thereby reducing the window for lost data if the Terraform process is aborted unexpectedly. [GH-32680]
-* If Terraform CLI receives SIGINT (or its equivalent on non-Unix platforms) during the apply step then it will immediately try to persist the latest state snapshot to the state storage backend, with the assumption that a graceful shutdown request often typically followed by a hard abort some time later if the graceful shutdown doesn't complete fast enough. [GH-32680]
-* `pg` backend: Now supports the `PG_CONN_STR`, `PG_SCHEMA_NAME`, `PG_SKIP_SCHEMA_CREATION`, `PG_SKIP_TABLE_CREATION` and `PG_SKIP_INDEX_CREATION` environment variables. [GH-33045]
+* Terraform CLI's local operations mode will now attempt to persist state snapshots to the state storage backend periodically during the apply step, thereby reducing the window for lost data if the Terraform process is aborted unexpectedly. ([#32680](https://github.com/hashicorp/terraform/issues/32680))
+* If Terraform CLI receives SIGINT (or its equivalent on non-Unix platforms) during the apply step then it will immediately try to persist the latest state snapshot to the state storage backend, with the assumption that a graceful shutdown request often typically followed by a hard abort some time later if the graceful shutdown doesn't complete fast enough. ([#32680](https://github.com/hashicorp/terraform/issues/32680))
+* `pg` backend: Now supports the `PG_CONN_STR`, `PG_SCHEMA_NAME`, `PG_SKIP_SCHEMA_CREATION`, `PG_SKIP_TABLE_CREATION` and `PG_SKIP_INDEX_CREATION` environment variables. ([#33045](https://github.com/hashicorp/terraform/issues/33045))
 
 BUG FIXES:
 
-* `terraform init`: Fixed crash with invalid blank module name. [GH-32781]
-* `moved` blocks: Fixed a typo in the error message that Terraform raises when you use `-target` to exclude an object that has been moved. [GH-33149]
+* `terraform init`: Fixed crash with invalid blank module name. ([#32781](https://github.com/hashicorp/terraform/issues/32781))
+* `moved` blocks: Fixed a typo in the error message that Terraform raises when you use `-target` to exclude an object that has been moved. ([#33149](https://github.com/hashicorp/terraform/issues/33149))
 
 ## Previous Releases
 
