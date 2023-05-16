@@ -1218,6 +1218,8 @@ func (n *NodeAbstractResource) generateHCLStringAttributes(addr addrs.AbsResourc
 		configschema.FilterOr(configschema.FilterReadOnlyAttributes, configschema.FilterDeprecatedAttribute),
 		configschema.FilterDeprecatedBlock)
 
+	delete(filteredSchema.BlockTypes, "timeouts")
+
 	providerAddr := addrs.LocalProviderConfig{
 		LocalName: n.ResolvedProvider.Provider.Type,
 		Alias:     n.ResolvedProvider.Alias,
