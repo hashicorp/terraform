@@ -302,6 +302,7 @@ resource "tfcoremock_simple_resource" "empty" {
 							Attributes: map[string]*configschema.Attribute{},
 							Nesting:    configschema.NestingSingle,
 						},
+						Required: true,
 					},
 					"list": {
 						NestedType: &configschema.Object{
@@ -313,6 +314,7 @@ resource "tfcoremock_simple_resource" "empty" {
 							},
 							Nesting: configschema.NestingList,
 						},
+						Required: true,
 					},
 					"map": {
 						NestedType: &configschema.Object{
@@ -324,6 +326,7 @@ resource "tfcoremock_simple_resource" "empty" {
 							},
 							Nesting: configschema.NestingMap,
 						},
+						Required: true,
 					},
 				},
 				BlockTypes: map[string]*configschema.NestedBlock{
@@ -380,6 +383,10 @@ resource "tfcoremock_simple_resource" "empty" {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			err := tc.schema.InternalValidate()
+			if err != nil {
+				t.Fatalf("schema failed InternalValidate: %s", err)
+			}
 			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
