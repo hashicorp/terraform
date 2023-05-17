@@ -341,6 +341,40 @@ resource "tfcoremock_simple_resource" "empty" {
 							},
 						},
 					},
+					// No configschema.NestingGroup example for this test, because this block type can never be null in state.
+					"nested_list": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"nested_set": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"nested_map": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
 				},
 			},
 			addr: addrs.AbsResourceInstance{
@@ -369,15 +403,21 @@ resource "tfcoremock_simple_resource" "empty" {
 				"nested_single": cty.NullVal(cty.Object(map[string]cty.Type{
 					"nested_id": cty.String,
 				})),
+				"nested_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
+				"nested_set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
+				"nested_map": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
   list   = null
   map    = null
   single = null
-  nested_single {
-    nested_id = null
-  }
 }`,
 		},
 	}

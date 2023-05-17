@@ -422,6 +422,9 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
+		if stateVal.IsNull() {
+			return diags
+		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
