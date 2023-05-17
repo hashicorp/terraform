@@ -376,6 +376,19 @@ resource "tfcoremock_simple_resource" "empty" {
 						},
 					},
 				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_single": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
 			},
 			addr: addrs.AbsResourceInstance{
 				Module: nil,
@@ -418,6 +431,9 @@ resource "tfcoremock_simple_resource" "empty" {
   list   = null
   map    = null
   single = null
+  nested_single {
+    nested_id = null
+  }
 }`,
 		},
 	}
