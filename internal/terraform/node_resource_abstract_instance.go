@@ -163,22 +163,37 @@ func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema 
 }
 
 func (n *NodeAbstractResourceInstance) checkPreventDestroy(change *plans.ResourceInstanceChange) error {
-	if change == nil || n.Config == nil || n.Config.Managed == nil {
+	if change == nil {
 		return nil
 	}
 
-	preventDestroy := n.Config.Managed.PreventDestroy
+	preventDestroy := false
+
+	// if prevent_destroy is set, then we should prevent destroy
+	if n.Config != nil && n.Config.Managed != nil {
+		preventDestroy = preventDestroy || n.Config.Managed.PreventDestroy
+	}
+
+	// if there's a prevent_removal is true in the state, then we should prevent destroy
+	if n.instanceState != nil && n.instanceState.Current != nil {
+		preventDestroy = preventDestroy || n.instanceState.Current.PreventRemoval
+	}
 
 	if (change.Action == plans.Delete || change.Action.IsReplace()) && preventDestroy {
+		var subject *hcl.Range
+		if n.Config != nil {
+			subject = &n.Config.DeclRange
+		}
+
 		var diags tfdiags.Diagnostics
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Instance cannot be destroyed",
 			Detail: fmt.Sprintf(
-				"Resource %s has lifecycle.prevent_destroy set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy or reduce the scope of the plan using the -target flag.",
+				"Resource %s has lifecycle.prevent_destroy or had lifecycle.prevent_removal set, but the plan calls for this resource to be destroyed. To avoid this error and continue with the plan, either disable lifecycle.prevent_destroy and lifecycle.prevent_removal, or reduce the scope of the plan using the -target flag.",
 				n.Addr.String(),
 			),
-			Subject: &n.Config.DeclRange,
+			Subject: subject,
 		})
 		return diags.Err()
 	}
@@ -2353,6 +2368,7 @@ func (n *NodeAbstractResourceInstance) apply(
 	if change.Action == plans.Update && eq && !marksEqual(beforePaths, afterPaths) {
 		// Copy the previous state, changing only the value
 		newState := &states.ResourceInstanceObject{
+			PreventRemoval:      state.PreventRemoval,
 			CreateBeforeDestroy: state.CreateBeforeDestroy,
 			Dependencies:        state.Dependencies,
 			Private:             state.Private,
@@ -2565,6 +2581,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			PreventRemoval:      state.PreventRemoval,
 		}
 
 		// if the resource was being deleted, the dependencies are not going to
@@ -2582,6 +2599,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			Value:               newVal,
 			Private:             resp.Private,
 			CreateBeforeDestroy: createBeforeDestroy,
+			PreventRemoval:      applyConfig.Managed.PreventRemoval,
 		}
 		return newState, diags
 

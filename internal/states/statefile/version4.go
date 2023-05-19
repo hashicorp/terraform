@@ -139,6 +139,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 			obj := &states.ResourceInstanceObjectSrc{
 				SchemaVersion:       isV4.SchemaVersion,
 				CreateBeforeDestroy: isV4.CreateBeforeDestroy,
+				PreventRemoval:      isV4.PreventRemoval,
 			}
 
 			{
@@ -510,6 +511,7 @@ func appendInstanceObjectStateV4(rs *states.Resource, is *states.ResourceInstanc
 		PrivateRaw:              privateRaw,
 		Dependencies:            deps,
 		CreateBeforeDestroy:     obj.CreateBeforeDestroy,
+		PreventRemoval:          obj.PreventRemoval,
 	}), diags
 }
 
@@ -715,6 +717,8 @@ type instanceObjectStateV4 struct {
 	Dependencies []string `json:"dependencies,omitempty"`
 
 	CreateBeforeDestroy bool `json:"create_before_destroy,omitempty"`
+
+	PreventRemoval bool `json:"prevent_removal,omitempty"`
 }
 
 type checkResultsV4 struct {
