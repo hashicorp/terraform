@@ -456,7 +456,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Cannot import to a move source",
-					Detail:   "An import block for ID %q targets resource address %s, but this address appears in the \"from\" argument of a moved block, which is invalid. Please change the import target to a different address, such as the move target.",
+					Detail:   fmt.Sprintf("An import block for ID %q targets resource address %s, but this address appears in the \"from\" argument of a moved block, which is invalid. Please change the import target to a different address, such as the move target.", i.ID, i.To),
 					Subject:  &i.DeclRange,
 				})
 			}
