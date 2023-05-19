@@ -31,7 +31,7 @@ label to enable the backport bot.
 
 -->
 
-1.4.x
+1.5.x
 
 ## Draft CHANGELOG entry
 
