@@ -302,6 +302,7 @@ resource "tfcoremock_simple_resource" "empty" {
 							Attributes: map[string]*configschema.Attribute{},
 							Nesting:    configschema.NestingSingle,
 						},
+						Required: true,
 					},
 					"list": {
 						NestedType: &configschema.Object{
@@ -313,6 +314,7 @@ resource "tfcoremock_simple_resource" "empty" {
 							},
 							Nesting: configschema.NestingList,
 						},
+						Required: true,
 					},
 					"map": {
 						NestedType: &configschema.Object{
@@ -323,6 +325,54 @@ resource "tfcoremock_simple_resource" "empty" {
 								},
 							},
 							Nesting: configschema.NestingMap,
+						},
+						Required: true,
+					},
+				},
+				BlockTypes: map[string]*configschema.NestedBlock{
+					"nested_single": {
+						Nesting: configschema.NestingSingle,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+					// No configschema.NestingGroup example for this test, because this block type can never be null in state.
+					"nested_list": {
+						Nesting: configschema.NestingList,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"nested_set": {
+						Nesting: configschema.NestingSet,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"nested_map": {
+						Nesting: configschema.NestingMap,
+						Block: configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"nested_id": {
+									Type:     cty.String,
+									Optional: true,
+								},
+							},
 						},
 					},
 				},
@@ -350,6 +400,18 @@ resource "tfcoremock_simple_resource" "empty" {
 				"map": cty.NullVal(cty.Map(cty.Object(map[string]cty.Type{
 					"nested_id": cty.String,
 				}))),
+				"nested_single": cty.NullVal(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
+				"nested_list": cty.ListValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
+				"nested_set": cty.SetValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
+				"nested_map": cty.MapValEmpty(cty.Object(map[string]cty.Type{
+					"nested_id": cty.String,
+				})),
 			}),
 			expected: `
 resource "tfcoremock_simple_resource" "empty" {
@@ -361,6 +423,10 @@ resource "tfcoremock_simple_resource" "empty" {
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			err := tc.schema.InternalValidate()
+			if err != nil {
+				t.Fatalf("schema failed InternalValidate: %s", err)
+			}
 			contents, diags := GenerateResourceContents(tc.addr, tc.schema, tc.provider, tc.value)
 			if len(diags) > 0 {
 				t.Errorf("expected no diagnostics but found %s", diags)
