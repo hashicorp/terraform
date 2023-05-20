@@ -1306,6 +1306,215 @@ aws_instance.bar:
 	`)
 }
 
+func TestContext2Apply_EnablePreventRemoval(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "aws_instance" "foo" {
+				lifecycle {
+					prevent_removal = true
+				}
+			}
+		`,
+	})
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:    states.ObjectReady,
+			AttrsJSON: []byte(`{"id":"foo","type":"aws_instance"}`),
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	} else {
+		t.Logf(legacyDiffComparisonString(plan.Changes))
+	}
+
+	state, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if got, want := len(mod.Resources), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of resources %d; want %d", got, want)
+	}
+
+	resource, ok := mod.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatalf("missing resource aws_instance.foo in module. Got: %#v", mod.Resources)
+	}
+
+	if got, want := len(resource.Instances), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of instances %d; want %d", got, want)
+	}
+
+	instance := resource.Instances[addrs.NoKey]
+
+	if instance == nil || instance.Current == nil {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("missing instance state for aws_instance.foo")
+	}
+
+	// check that the PreventRemoval key is true in the instance
+	if got, want := instance.Current.PreventRemoval, true; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong PreventRemoval value %t; want %t", got, want)
+	}
+}
+
+func TestContext2Apply_DisablePreventRemoval(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+			resource "aws_instance" "foo" {
+				lifecycle {
+					prevent_removal = false
+				}
+			}
+		`,
+	})
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"foo","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	} else {
+		t.Logf(legacyDiffComparisonString(plan.Changes))
+	}
+
+	state, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if got, want := len(mod.Resources), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of resources %d; want %d", got, want)
+	}
+
+	resource, ok := mod.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatalf("missing resource aws_instance.foo in module. Got: %#v", mod.Resources)
+	}
+
+	if got, want := len(resource.Instances), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of instances %d; want %d", got, want)
+	}
+
+	instance := resource.Instances[addrs.NoKey]
+
+	if instance == nil || instance.Current == nil {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("missing instance state for aws_instance.foo")
+	}
+
+	// check that the PreventRemoval key is true in the instance
+	if got, want := instance.Current.PreventRemoval, false; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong PreventRemoval value %t; want %t", got, want)
+	}
+}
+
+func TestContext2Apply_RemovePreventRemoval(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `resource "aws_instance" "foo" {}`,
+	})
+	p := testProvider("aws")
+	p.PlanResourceChangeFn = testDiffFn
+	p.ApplyResourceChangeFn = testApplyFn
+	state := states.NewState()
+	root := state.EnsureModule(addrs.RootModuleInstance)
+	root.SetResourceInstanceCurrent(
+		mustResourceInstanceAddr("aws_instance.foo").Resource,
+		&states.ResourceInstanceObjectSrc{
+			Status:         states.ObjectReady,
+			AttrsJSON:      []byte(`{"id":"foo","type":"aws_instance"}`),
+			PreventRemoval: true,
+		},
+		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+	)
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("aws"): testProviderFuncFixed(p),
+		},
+	})
+
+	plan, diags := ctx.Plan(m, state, DefaultPlanOpts)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	} else {
+		t.Logf(legacyDiffComparisonString(plan.Changes))
+	}
+
+	state, diags = ctx.Apply(plan, m)
+	if diags.HasErrors() {
+		t.Fatalf("diags: %s", diags.Err())
+	}
+
+	mod := state.RootModule()
+	if got, want := len(mod.Resources), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of resources %d; want %d", got, want)
+	}
+
+	resource, ok := mod.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatalf("missing resource aws_instance.foo in module. Got: %#v", mod.Resources)
+	}
+
+	if got, want := len(resource.Instances), 1; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong number of instances %d; want %d", got, want)
+	}
+
+	instance := resource.Instances[addrs.NoKey]
+
+	if instance == nil || instance.Current == nil {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("missing instance state for aws_instance.foo")
+	}
+
+	// check that the PreventRemoval key is true in the instance
+	if got, want := instance.Current.PreventRemoval, false; got != want {
+		t.Logf("state:\n%s", state)
+		t.Fatalf("wrong PreventRemoval value %t; want %t", got, want)
+	}
+}
+
 func TestContext2Apply_destroyComputed(t *testing.T) {
 	m := testModule(t, "apply-destroy-computed")
 	p := testProvider("aws")
