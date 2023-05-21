@@ -16,9 +16,14 @@ var (
 	}
 )
 
-func FilterOr[T any](one, two FilterT[T]) FilterT[T] {
+func FilterOr[T any](filters ...FilterT[T]) FilterT[T] {
 	return func(name string, value T) bool {
-		return one(name, value) || two(name, value)
+		for _, f := range filters {
+			if f(name, value) {
+				return true
+			}
+		}
+		return false
 	}
 }
 
