@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-func TestCloud_loadandSaveBasic(t *testing.T) {
+func TestCloud_loadAndSaveBasic(t *testing.T) {
 	bookmark := &SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
