@@ -4005,6 +4005,48 @@ output "out" {
 	assertNoErrors(t, diags)
 }
 
+func TestContext2Plan_destroyPartialStateLocalRef(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "already_destroyed" {
+  count = 1
+  source = "./mod"
+}
+
+locals {
+  eval_error = module.already_destroyed[0].out
+}
+
+output "already_destroyed" {
+  value = local.eval_error
+}
+
+`,
+
+		"./mod/main.tf": `
+resource "test_object" "a" {
+}
+
+output "out" {
+  value = test_object.a.test_string
+}
+`})
+
+	p := simpleMockProvider()
+
+	state := states.NewState()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+}
+
 // Make sure the data sources in the prior state are serializeable even if
 // there were an error in the plan.
 func TestContext2Plan_dataSourceReadPlanError(t *testing.T) {
