@@ -3,7 +3,7 @@ package configschema
 type FilterT[T any] func(string, T) bool
 
 var (
-	FilterReadOnlyAttributes = func(name string, attribute *Attribute) bool {
+	FilterReadOnlyAttribute = func(name string, attribute *Attribute) bool {
 		return attribute.Computed && !attribute.Optional
 	}
 
