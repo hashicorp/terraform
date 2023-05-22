@@ -5,8 +5,7 @@ package cloud
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
+	"os"
 )
 
 type SavedPlanBookmark struct {
@@ -15,25 +14,22 @@ type SavedPlanBookmark struct {
 	Hostname         string `json:"hostname"`
 }
 
-func (s *SavedPlanBookmark) load(filepath string) (map[string]interface{}, error) {
-	fmt.Println("Are we only accepting a filepath?")
-
-	path := filepath
+func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	bookmark := SavedPlanBookmark{}
+	data, err := os.ReadFile(filepath)
 
-	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return bookmark, err
 	}
 
-	if err := json.Unmarshal([]byte(data), &bookmark); err != nil {
-		panic(err)
-	}
+	err = json.Unmarshal([]byte(data), &bookmark)
 	return bookmark, err
+
 }
 
-func (s *SavedPlanBookmark) save() error {
-	fmt.Println("this verifies we can save what to what?")
+func (s *SavedPlanBookmark) Save(filepath string) error {
+	// this verifies we can save json to a provided file path
+	// json.Marshal, then os.WriteFile
 
 	return nil
 }
