@@ -802,29 +802,37 @@ func (n *NodeAbstractResourceInstance) plan(
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	log.Printf("[TRACE] Re-validating config for %q", n.Addr)
-	// Allow the provider to validate the final set of values.  The config was
-	// statically validated early on, but there may have been unknown values
-	// which the provider could not validate at the time.
-	//
-	// TODO: It would be more correct to validate the config after
-	// ignore_changes has been applied, but the current implementation cannot
-	// exclude computed-only attributes when given the `all` option.
+	// Config generated from a resource's import state may fail validation in
+	// the case of schema behaviours such as ExactlyOneOf and ConflictsWith.
+	// We don't want to fail the plan now, because that would give the user no
+	// way to proceed and fix the config to make it valid. We allow the plan to
+	// complete and output the generated config.
+	// TODO: Run Validate and output the errors as warnings?
+	if !n.generateConfig {
+		log.Printf("[TRACE] Re-validating config for %q", n.Addr)
+		// Allow the provider to validate the final set of values.  The config was
+		// statically validated early on, but there may have been unknown values
+		// which the provider could not validate at the time.
+		//
+		// TODO: It would be more correct to validate the config after
+		// ignore_changes has been applied, but the current implementation cannot
+		// exclude computed-only attributes when given the `all` option.
 
-	// we must unmark and use the original config, since the ignore_changes
-	// handling below needs access to the marks.
-	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
-	validateResp := provider.ValidateResourceConfig(
-		providers.ValidateResourceConfigRequest{
-			TypeName: n.Addr.Resource.Resource.Type,
-			Config:   unmarkedConfigVal,
-		},
-	)
-	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		// we must unmark and use the original config, since the ignore_changes
+		// handling below needs access to the marks.
+		unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
+		validateResp := provider.ValidateResourceConfig(
+			providers.ValidateResourceConfigRequest{
+				TypeName: n.Addr.Resource.Resource.Type,
+				Config:   unmarkedConfigVal,
+			},
+		)
+		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+		if diags.HasErrors() {
+			return plan, state, keyData, diags
+		}
+
 	}
-
 	// ignore_changes is meant to only apply to the configuration, so it must
 	// be applied before we generate a plan. This ensures the config used for
 	// the proposed value, the proposed value itself, and the config presented
