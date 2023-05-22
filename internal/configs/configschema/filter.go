@@ -41,6 +41,10 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 		if filterAttribute == nil || !filterAttribute(name, attrS) {
 			ret.Attributes[name] = attrS
 		}
+
+		if attrS.NestedType != nil {
+			ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
+		}
 	}
 
 	if b.BlockTypes != nil {
@@ -54,6 +58,28 @@ func (b *Block) Filter(filterAttribute FilterT[*Attribute], filterBlock FilterT[
 				Nesting:  blockS.Nesting,
 				MinItems: blockS.MinItems,
 				MaxItems: blockS.MaxItems,
+			}
+		}
+	}
+
+	return ret
+}
+
+func filterNestedType(obj *Object, filterAttribute FilterT[*Attribute]) *Object {
+	if obj == nil {
+		return nil
+	}
+
+	ret := &Object{
+		Attributes: map[string]*Attribute{},
+		Nesting:    obj.Nesting,
+	}
+
+	for name, attrS := range obj.Attributes {
+		if filterAttribute == nil || !filterAttribute(name, attrS) {
+			ret.Attributes[name] = attrS
+			if attrS.NestedType != nil {
+				ret.Attributes[name].NestedType = filterNestedType(attrS.NestedType, filterAttribute)
 			}
 		}
 	}
