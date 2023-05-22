@@ -28,8 +28,13 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 }
 
 func (s *SavedPlanBookmark) Save(filepath string) error {
-	// this verifies we can save json to a provided file path
-	// json.Marshal, then os.WriteFile
+	bookmark := &SavedPlanBookmark{}
+	data, _ := json.Marshal(bookmark)
+
+	err := os.WriteFile(filepath, data, 0644)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
