@@ -7,6 +7,13 @@ var (
 		return attribute.Computed && !attribute.Optional
 	}
 
+	FilterHelperSchemaIdAttribute = func(name string, attribute *Attribute) bool {
+		if name == "id" && attribute.Computed && attribute.Optional {
+			return true
+		}
+		return false
+	}
+
 	FilterDeprecatedAttribute = func(name string, attribute *Attribute) bool {
 		return attribute.Deprecated
 	}
