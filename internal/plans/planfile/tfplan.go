@@ -427,6 +427,13 @@ func changeFromTfplan(rawChange *planproto.Change) (*plans.ChangeSrc, error) {
 		}
 	}
 
+	if rawChange.Importing != nil {
+		ret.Importing = &plans.ImportingSrc{
+			ID: rawChange.Importing.Id,
+		}
+	}
+	ret.GeneratedConfig = rawChange.GeneratedConfig
+
 	sensitive := cty.NewValueMarks(marks.Sensitive)
 	beforeValMarks, err := pathValueMarksFromTfplan(rawChange.BeforeSensitivePaths, sensitive)
 	if err != nil {
@@ -758,6 +765,14 @@ func changeToTfplan(change *plans.ChangeSrc) (*planproto.Change, error) {
 	}
 	ret.BeforeSensitivePaths = beforeSensitivePaths
 	ret.AfterSensitivePaths = afterSensitivePaths
+
+	if change.Importing != nil {
+		ret.Importing = &planproto.Importing{
+			Id: change.Importing.ID,
+		}
+
+	}
+	ret.GeneratedConfig = change.GeneratedConfig
 
 	switch change.Action {
 	case plans.NoOp:
