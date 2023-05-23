@@ -38,14 +38,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -53,7 +53,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -70,14 +70,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -85,7 +85,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -108,14 +108,14 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -123,7 +123,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -140,7 +140,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
         with:
           fetch-depth: 0 # We need to do comparisons against the main branch.
 
@@ -149,7 +149,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -157,7 +157,7 @@ jobs:
       # identical across the unit-tests, e2e-tests, and consistency-checks
       # jobs, or else weird things could happen.
       - name: Cache Go modules
-        uses: actions/cache@v3
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: "~/go/pkg"
           key: go-mod-${{ hashFiles('go.sum') }}
@@ -173,7 +173,7 @@ jobs:
           fi
 
       - name: Cache protobuf tools
-        uses: actions/cache@v3
+        uses: actions/cache@88522ab9f39a2ea568f7027eddc7d8d8bc9d59c8 # v3.3.1
         with:
           path: "tools/protobuf-compile/.workdir"
           key: protobuf-tools-${{ hashFiles('tools/protobuf-compile/protobuf-compile.go') }}
