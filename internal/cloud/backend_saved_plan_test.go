@@ -18,7 +18,7 @@ func TestCloud_loadBasic(t *testing.T) {
 		Hostname:         "app.terraform.io",
 	}
 
-	result, err := LoadSavedPlanBookmark("./testdata/plan-bookmark.json")
+	result, err := LoadSavedPlanBookmark("./testdata/plan-bookmark/bookmark.json")
 	if err != nil {
 		t.Fatal(err)
 	}
