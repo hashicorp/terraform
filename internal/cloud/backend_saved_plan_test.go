@@ -12,7 +12,7 @@ import (
 
 func TestCloud_loadBasic(t *testing.T) {
 
-	bookmark := &SavedPlanBookmark{
+	bookmark := SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
 		Hostname:         "app.terraform.io",
