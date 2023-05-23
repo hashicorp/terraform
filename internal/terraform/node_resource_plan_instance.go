@@ -9,9 +9,12 @@ import (
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -183,7 +186,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {
-		instanceRefreshState, diags = n.importState(ctx, addr, provider)
+		instanceRefreshState, diags = n.importState(ctx, addr, provider, providerSchema)
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -415,7 +418,7 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface, providerSchema *ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
@@ -517,6 +520,55 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			),
 		))
 		return instanceRefreshState, diags
+	}
+
+	// If we're importing and generating config, generate it now.
+	if n.generateConfig {
+		if n.Config != nil {
+			return instanceRefreshState, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
+		}
+
+		schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.Resource.Resource)
+		if schema == nil {
+			// Should be caught during validation, so we don't bother with a pretty error here
+			diags = diags.Append(fmt.Errorf("provider does not support resource type for %q", n.Addr))
+			return instanceRefreshState, diags
+		}
+
+		// Generate the HCL string first, then parse the HCL body from it.
+		// First we generate the contents of the resource block for use within
+		// the planning node. Then we wrap it in an enclosing resource block to
+		// pass into the plan for rendering.
+		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, instanceRefreshState, schema)
+		diags = diags.Append(generatedDiags)
+
+		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
+
+		// parse the "file" as HCL to get the hcl.Body
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		diags = diags.Append(hclDiags)
+		if hclDiags.HasErrors() {
+			return instanceRefreshState, diags
+		}
+
+		// We have to do a kind of mini parsing of the content here to correctly
+		// mark attributes like 'provider' as hidden. We only care about the
+		// resulting content, so it's remain that gets passed into the resource
+		// as the config.
+		_, remain, resourceDiags := synthHCLFile.Body.PartialContent(configs.ResourceBlockSchema)
+		diags = diags.Append(resourceDiags)
+		if resourceDiags.HasErrors() {
+			return instanceRefreshState, diags
+		}
+
+		n.Config = &configs.Resource{
+			Mode:     addrs.ManagedResourceMode,
+			Type:     n.Addr.Resource.Resource.Type,
+			Name:     n.Addr.Resource.Resource.Name,
+			Config:   remain,
+			Managed:  &configs.ManagedResource{},
+			Provider: n.ResolvedProvider.Provider,
+		}
 	}
 
 	diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
