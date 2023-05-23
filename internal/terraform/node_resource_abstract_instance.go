@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -41,6 +40,10 @@ type NodeAbstractResourceInstance struct {
 	Dependencies []addrs.ConfigResource
 
 	preDestroyRefresh bool
+
+	// During import we may generate configuration for a resource, which needs
+	// to be stored in the final change.
+	generatedConfigHCL string
 }
 
 // NewNodeAbstractResourceInstance creates an abstract resource instance graph
@@ -653,74 +656,26 @@ func (n *NodeAbstractResourceInstance) plan(
 	forceReplace []addrs.AbsResourceInstance,
 ) (*plans.ResourceInstanceChange, *states.ResourceInstanceObject, instances.RepetitionData, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	var state *states.ResourceInstanceObject
-	var plan *plans.ResourceInstanceChange
 	var keyData instances.RepetitionData
-	var generatedConfig *configs.Resource
 
 	resource := n.Addr.Resource.Resource
 	provider, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
-		return plan, state, keyData, diags.Append(err)
+		return nil, nil, keyData, diags.Append(err)
 	}
 
 	if providerSchema == nil {
 		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 	schema, _ := providerSchema.SchemaForResourceAddr(resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
 		diags = diags.Append(fmt.Errorf("provider does not support resource type %q", resource.Type))
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	// If we're importing and generating config, generate it now.
-	var generatedHCL string
-	if n.generateConfig {
-		var generatedDiags tfdiags.Diagnostics
-
-		if n.Config != nil {
-			return plan, state, keyData, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
-		}
-
-		// Generate the HCL string first, then parse the HCL body from it.
-		// First we generate the contents of the resource block for use within
-		// the planning node. Then we wrap it in an enclosing resource block to
-		// pass into the plan for rendering.
-		generatedHCLAttributes, generatedDiags := n.generateHCLStringAttributes(n.Addr, currentState, schema)
-		diags = diags.Append(generatedDiags)
-
-		generatedHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
-
-		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
-		diags = diags.Append(hclDiags)
-		if hclDiags.HasErrors() {
-			return plan, state, keyData, diags
-		}
-
-		// We have to do a kind of mini parsing of the content here to correctly
-		// mark attributes like 'provider' as hidden. We only care about the
-		// resulting content, so it's remain that gets passed into the resource
-		// as the config.
-		_, remain, resourceDiags := synthHCLFile.Body.PartialContent(configs.ResourceBlockSchema)
-		diags = diags.Append(resourceDiags)
-		if resourceDiags.HasErrors() {
-			return plan, state, keyData, diags
-		}
-
-		generatedConfig = &configs.Resource{
-			Mode:     addrs.ManagedResourceMode,
-			Type:     n.Addr.Resource.Resource.Type,
-			Name:     n.Addr.Resource.Resource.Name,
-			Config:   remain,
-			Managed:  &configs.ManagedResource{},
-			Provider: n.ResolvedProvider.Provider,
-		}
-		n.Config = generatedConfig
-	}
-
 	if n.Config == nil {
 		// This shouldn't happen. A node that isn't generating config should
 		// have embedded config, and the rest of Terraform should enforce this.
@@ -731,7 +686,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			tfdiags.Error,
 			"Resource has no configuration",
 			fmt.Sprintf("Terraform attempted to process a resource at %s that has no configuration. This is a bug in Terraform; please report it!", n.Addr.String())))
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	config := *n.Config
@@ -747,7 +702,6 @@ func (n *NodeAbstractResourceInstance) plan(
 	}
 
 	// Evaluate the configuration
-
 	forEach, _ := evaluateForEachExpression(n.Config.ForEach, ctx)
 
 	keyData = EvalDataForInstanceKey(n.ResourceInstanceAddr().Resource.Key, forEach)
@@ -760,7 +714,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	)
 	diags = diags.Append(checkDiags)
 	if diags.HasErrors() {
-		return plan, state, keyData, diags // failed preconditions prevent further evaluation
+		return nil, nil, keyData, diags // failed preconditions prevent further evaluation
 	}
 
 	// If we have a previous plan and the action was a noop, then the only
@@ -773,13 +727,13 @@ func (n *NodeAbstractResourceInstance) plan(
 	origConfigVal, _, configDiags := ctx.EvaluateBlock(config.Config, schema, nil, keyData)
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	metaConfigVal, metaDiags := n.providerMetas(ctx)
 	diags = diags.Append(metaDiags)
 	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	var priorVal cty.Value
@@ -802,37 +756,29 @@ func (n *NodeAbstractResourceInstance) plan(
 		priorVal = cty.NullVal(schema.ImpliedType())
 	}
 
-	// Config generated from a resource's import state may fail validation in
-	// the case of schema behaviours such as ExactlyOneOf and ConflictsWith.
-	// We don't want to fail the plan now, because that would give the user no
-	// way to proceed and fix the config to make it valid. We allow the plan to
-	// complete and output the generated config.
-	// TODO: Run Validate and output the errors as warnings?
-	if !n.generateConfig {
-		log.Printf("[TRACE] Re-validating config for %q", n.Addr)
-		// Allow the provider to validate the final set of values.  The config was
-		// statically validated early on, but there may have been unknown values
-		// which the provider could not validate at the time.
-		//
-		// TODO: It would be more correct to validate the config after
-		// ignore_changes has been applied, but the current implementation cannot
-		// exclude computed-only attributes when given the `all` option.
+	log.Printf("[TRACE] Re-validating config for %q", n.Addr)
+	// Allow the provider to validate the final set of values.  The config was
+	// statically validated early on, but there may have been unknown values
+	// which the provider could not validate at the time.
+	//
+	// TODO: It would be more correct to validate the config after
+	// ignore_changes has been applied, but the current implementation cannot
+	// exclude computed-only attributes when given the `all` option.
 
-		// we must unmark and use the original config, since the ignore_changes
-		// handling below needs access to the marks.
-		unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
-		validateResp := provider.ValidateResourceConfig(
-			providers.ValidateResourceConfigRequest{
-				TypeName: n.Addr.Resource.Resource.Type,
-				Config:   unmarkedConfigVal,
-			},
-		)
-		diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-		if diags.HasErrors() {
-			return plan, state, keyData, diags
-		}
-
+	// we must unmark and use the original config, since the ignore_changes
+	// handling below needs access to the marks.
+	unmarkedConfigVal, _ := origConfigVal.UnmarkDeep()
+	validateResp := provider.ValidateResourceConfig(
+		providers.ValidateResourceConfigRequest{
+			TypeName: n.Addr.Resource.Resource.Type,
+			Config:   unmarkedConfigVal,
+		},
+	)
+	diags = diags.Append(validateResp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
+	if diags.HasErrors() {
+		return nil, nil, keyData, diags
 	}
+
 	// ignore_changes is meant to only apply to the configuration, so it must
 	// be applied before we generate a plan. This ensures the config used for
 	// the proposed value, the proposed value itself, and the config presented
@@ -843,7 +789,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	configValIgnored, ignoreChangeDiags := n.processIgnoreChanges(priorVal, origConfigVal, schema)
 	diags = diags.Append(ignoreChangeDiags)
 	if ignoreChangeDiags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	// Create an unmarked version of our config val and our prior val.
@@ -859,7 +805,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PreDiff(n.Addr, states.CurrentGen, priorVal, proposedNewVal)
 	}))
 	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	resp := provider.PlanResourceChange(providers.PlanResourceChangeRequest{
@@ -872,7 +818,7 @@ func (n *NodeAbstractResourceInstance) plan(
 	})
 	diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
 	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	plannedNewVal := resp.PlannedState
@@ -900,7 +846,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		))
 	}
 	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	if errs := objchange.AssertPlanValid(schema, unmarkedPriorVal, unmarkedConfigVal, plannedNewVal); len(errs) > 0 {
@@ -930,7 +876,7 @@ func (n *NodeAbstractResourceInstance) plan(
 					),
 				))
 			}
-			return plan, state, keyData, diags
+			return nil, nil, keyData, diags
 		}
 	}
 
@@ -950,7 +896,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		plannedNewVal, ignoreChangeDiags = n.processIgnoreChanges(unmarkedPriorVal, plannedNewVal, nil)
 		diags = diags.Append(ignoreChangeDiags)
 		if ignoreChangeDiags.HasErrors() {
-			return plan, state, keyData, diags
+			return nil, nil, keyData, diags
 		}
 	}
 
@@ -1017,7 +963,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			}
 		}
 		if diags.HasErrors() {
-			return plan, state, keyData, diags
+			return nil, nil, keyData, diags
 		}
 	}
 
@@ -1111,7 +1057,7 @@ func (n *NodeAbstractResourceInstance) plan(
 		// append these new diagnostics if there's at least one error inside.
 		if resp.Diagnostics.HasErrors() {
 			diags = diags.Append(resp.Diagnostics.InConfigBody(config.Config, n.Addr.String()))
-			return plan, state, keyData, diags
+			return nil, nil, keyData, diags
 		}
 		plannedNewVal = resp.PlannedState
 		plannedPrivate = resp.PlannedPrivate
@@ -1131,7 +1077,7 @@ func (n *NodeAbstractResourceInstance) plan(
 			))
 		}
 		if diags.HasErrors() {
-			return plan, state, keyData, diags
+			return nil, nil, keyData, diags
 		}
 	}
 
@@ -1181,11 +1127,11 @@ func (n *NodeAbstractResourceInstance) plan(
 		return h.PostDiff(n.Addr, states.CurrentGen, action, priorVal, plannedNewVal)
 	}))
 	if diags.HasErrors() {
-		return plan, state, keyData, diags
+		return nil, nil, keyData, diags
 	}
 
 	// Update our return plan
-	plan = &plans.ResourceInstanceChange{
+	plan := &plans.ResourceInstanceChange{
 		Addr:         n.Addr,
 		PrevRunAddr:  n.prevRunAddr(ctx),
 		Private:      plannedPrivate,
@@ -1197,14 +1143,14 @@ func (n *NodeAbstractResourceInstance) plan(
 			// to propogate through evaluation.
 			// Marks will be removed when encoding.
 			After:           plannedNewVal,
-			GeneratedConfig: generatedHCL,
+			GeneratedConfig: n.generatedConfigHCL,
 		},
 		ActionReason:    actionReason,
 		RequiredReplace: reqRep,
 	}
 
 	// Update our return state
-	state = &states.ResourceInstanceObject{
+	state := &states.ResourceInstanceObject{
 		// We use the special "planned" status here to note that this
 		// object's value is not yet complete. Objects with this status
 		// cannot be used during expression evaluation, so the caller
