@@ -4741,3 +4741,67 @@ import {
 		}
 	})
 }
+
+// config generation still succeeds even when planning fails
+func TestContext2Plan_importResourceConfigGenWithError(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.NullVal(cty.DynamicPseudoType),
+		Diagnostics:  tfdiags.Diagnostics(nil).Append(errors.New("plan failed")),
+	}
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:           plans.NormalMode,
+		GenerateConfig: true,
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+
+	want := `resource "test_object" "a" {
+  test_bool   = null
+  test_list   = null
+  test_map    = null
+  test_number = null
+  test_string = "foo"
+}`
+	got := instPlan.GeneratedConfig
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
