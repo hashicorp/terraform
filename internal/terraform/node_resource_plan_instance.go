@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/genconfig"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -573,6 +574,37 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	diags = diags.Append(riNode.writeResourceInstanceState(ctx, instanceRefreshState, refreshState))
 	return instanceRefreshState, diags
+}
+
+// generateHCLStringAttributes produces a string in HCL format for the given
+// resource state and schema without the surrounding block.
+func (n *NodePlannableResourceInstance) generateHCLStringAttributes(addr addrs.AbsResourceInstance, state *states.ResourceInstanceObject, schema *configschema.Block) (string, tfdiags.Diagnostics) {
+	filteredSchema := schema.Filter(
+		configschema.FilterOr(
+			configschema.FilterReadOnlyAttribute,
+			configschema.FilterDeprecatedAttribute,
+
+			// The legacy SDK adds an Optional+Computed "id" attribute to the
+			// resource schema even if not defined in provider code.
+			// During validation, however, the presence of an extraneous "id"
+			// attribute in config will cause an error.
+			// Remove this attribute so we do not generate an "id" attribute
+			// where there is a risk that it is not in the real resource schema.
+			//
+			// TRADEOFF: Resources in which there actually is an
+			// Optional+Computed "id" attribute in the schema will have that
+			// attribute missing from generated config.
+			configschema.FilterHelperSchemaIdAttribute,
+		),
+		configschema.FilterDeprecatedBlock,
+	)
+
+	providerAddr := addrs.LocalProviderConfig{
+		LocalName: n.ResolvedProvider.Provider.Type,
+		Alias:     n.ResolvedProvider.Alias,
+	}
+
+	return genconfig.GenerateResourceContents(addr, filteredSchema, providerAddr, state.Value)
 }
 
 // mergeDeps returns the union of 2 sets of dependencies
