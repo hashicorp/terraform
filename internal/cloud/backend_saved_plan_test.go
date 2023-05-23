@@ -4,28 +4,31 @@
 package cloud
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
 )
 
-func TestCloud_loadAndSaveBasic(t *testing.T) {
+func TestCloud_loadBasic(t *testing.T) {
+
 	bookmark := &SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
 		Hostname:         "app.terraform.io",
 	}
 
-	data, _ := json.Marshal(bookmark)
-	err := os.WriteFile("/tmp/test-load-bookmark", data, 0644)
+	result, err := LoadSavedPlanBookmark("./testdata/plan-bookmark.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	readBookmark, err := os.ReadFile("/tmp/test-load-bookmark")
-	if err != nil {
-		t.Fatal(err)
+	if diff := cmp.Diff(bookmark, result, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+		t.Errorf("wrong result\n%s", diff)
 	}
-	fmt.Println("Read Ok!", readBookmark)
+}
+
+func TestCloud_saveBasic(t *testing.T) {
+	// save to new filepath
+
 }
