@@ -4,6 +4,8 @@
 package cloud
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -29,6 +31,15 @@ func TestCloud_loadBasic(t *testing.T) {
 }
 
 func TestCloud_saveBasic(t *testing.T) {
-	// save to new filepath
+	tmp := t.TempDir()
+	defer os.RemoveAll(tmp)
+	bookmarkPath := filepath.Join(tmp, "saved-bookmark.json")
 
+	b := *&SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            "run-GXfuHMkbyHccAGUg",
+		Hostname:         "app.terraform.io",
+	}
+
+	b.Save(bookmarkPath)
 }
