@@ -216,6 +216,7 @@
       }
     ]
   },
+  { "title": "Checks", "path": "checks" },
   {
     "title": "Expressions",
     "routes": [

@@ -13,6 +13,7 @@ You can create conditions that produce custom error messages for several types o
 This page explains the following:
   - Creating [validation conditions](#input-variable-validation) for input variables (Terraform v0.13.0 and later)
   - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs (Terraform v1.2.0 and later)
+  - Creating [assertions](#check-assertions) within check blocks (Terraform v1.5.0 and later)
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
   - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
 
@@ -71,7 +72,7 @@ If the condition evaluates to `false`, Terraform will produce an [error message]
 
 The following example uses a postcondition to detect if the caller accidentally provided an AMI intended for the wrong system component.
 
-``` hcl
+```hcl
 data "aws_ami" "example" {
   id = var.aws_ami_id
 
@@ -203,6 +204,15 @@ You should also consider the following questions when creating preconditions and
 - Which approach is more convenient? If a particular resource has many dependencies that all make an assumption about that resource, it can be pragmatic to declare that once as a post-condition of the resource, rather than declaring it many times as preconditions on each of the dependencies.
 - Is it helpful to declare the same or similar conditions as both preconditions and postconditions? This can be useful if the postcondition is in a different module than the precondition because it lets the modules verify one another as they evolve independently.
 
+## Check Assertions
+
+-> **Note:** Check blocks and their assertions are only available in Terraform v1.5.0 and later.
+
+Add one or more `assert` blocks within a `check` block to specify custom conditions. Each assertion requires a [`condition` argument](#condition-expressions), an expression that must use the value of the variable to return `true` if the value is valid, or `false` if it is invalid. The expression can refer to any resource, data source, or variable available to the surrounding check block.
+
+If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple assertions, Terraform returns error messages for all failed conditions.
+
+For more information on check blocks in general, refer to the Terraform language page for [Checks](/terraform/language/checks).
 
 ## Condition Expressions
 
