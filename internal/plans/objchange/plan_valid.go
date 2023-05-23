@@ -358,10 +358,17 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		// both support a similar-enough API that we can treat them the
 		// same for our purposes here.
 
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		for it := planned.ElementIterator(); it.Next(); {
@@ -387,6 +394,20 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		plannedVals := map[string]cty.Value{}
 		configVals := map[string]cty.Value{}
 		priorVals := map[string]cty.Value{}
+
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
+			return errs
+		}
 
 		if !planned.IsNull() {
 			plannedVals = planned.AsValueMap()
@@ -421,10 +442,17 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 	case configschema.NestingSet:
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
-			errs = append(errs, path.NewErrorf("count in plan (%d) disagrees with count in config (%d)", plannedL, configL))
+		plannedL := planned.Length()
+		configL := config.Length()
+
+		// config wasn't known, then planned should be unknown too
+		if !plannedL.IsKnown() && !configL.IsKnown() {
+			return errs
+		}
+
+		lenEqual := plannedL.Equals(configL)
+		if !lenEqual.IsKnown() || lenEqual.False() {
+			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
 		// Because set elements have no identifier with which to correlate
