@@ -272,7 +272,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
-			// If we are importing an generating a configuration, we need to
+			// If we are importing and generating a configuration, we need to
 			// ensure the change is written out so the configuration can be
 			// captured.
 			if n.generateConfig {
