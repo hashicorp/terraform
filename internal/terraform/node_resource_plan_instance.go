@@ -138,7 +138,6 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	config := n.Config
 	addr := n.ResourceInstanceAddr()
 
-	var change *plans.ResourceInstanceChange
 	var instanceRefreshState *states.ResourceInstanceObject
 
 	checkRuleSeverity := tfdiags.Error
@@ -269,10 +268,30 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		change, instancePlanState, repeatData, planDiags := n.plan(
-			ctx, change, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
+			ctx, nil, instanceRefreshState, n.ForceCreateBeforeDestroy, n.forceReplace,
 		)
 		diags = diags.Append(planDiags)
 		if diags.HasErrors() {
+			// If we are importing an generating a configuration, we need to
+			// ensure the change is written out so the configuration can be
+			// captured.
+			if n.generateConfig {
+				// Update our return plan
+				change := &plans.ResourceInstanceChange{
+					Addr:         n.Addr,
+					PrevRunAddr:  n.prevRunAddr(ctx),
+					ProviderAddr: n.ResolvedProvider,
+					Change: plans.Change{
+						// we only need a placeholder, so this will be a NoOp
+						Action:          plans.NoOp,
+						Before:          instanceRefreshState.Value,
+						After:           instanceRefreshState.Value,
+						GeneratedConfig: n.generatedConfigHCL,
+					},
+				}
+				diags = diags.Append(n.writeChange(ctx, change, ""))
+			}
+
 			return diags
 		}
 
