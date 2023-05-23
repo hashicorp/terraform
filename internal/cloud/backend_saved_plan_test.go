@@ -35,7 +35,7 @@ func TestCloud_saveBasic(t *testing.T) {
 	defer os.RemoveAll(tmp)
 	bookmarkPath := filepath.Join(tmp, "saved-bookmark.json")
 
-	b := *&SavedPlanBookmark{
+	b := SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
 		Hostname:         "app.terraform.io",
