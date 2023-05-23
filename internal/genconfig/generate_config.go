@@ -17,7 +17,7 @@ import (
 // GenerateResourceContents generates HCL configuration code for the provided
 // resource and state value.
 //
-// If you want tot generate actual valid Terraform code you should follow this
+// If you want to generate actual valid Terraform code you should follow this
 // call up with a call to WrapResourceContents, which will place a Terraform
 // resource header around the attributes and blocks returned by this function.
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
@@ -140,7 +140,7 @@ func writeConfigAttributesFromExisting(addr addrs.AbsResourceInstance, buf *stri
 			buf.WriteString(fmt.Sprintf("%s = ", name))
 
 			var val cty.Value
-			if stateVal.Type().HasAttribute(name) {
+			if !stateVal.IsNull() && stateVal.Type().HasAttribute(name) {
 				val = stateVal.GetAttr(name)
 			} else {
 				val = attrS.EmptyValue()
@@ -422,6 +422,9 @@ func writeConfigNestedBlockFromExisting(addr addrs.AbsResourceInstance, buf *str
 
 	switch schema.Nesting {
 	case configschema.NestingSingle, configschema.NestingGroup:
+		if stateVal.IsNull() {
+			return diags
+		}
 		buf.WriteString(strings.Repeat(" ", indent))
 		buf.WriteString(fmt.Sprintf("%s {", name))
 
