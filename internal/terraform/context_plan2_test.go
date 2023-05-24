@@ -4598,8 +4598,8 @@ resource "test_object" "a" {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4658,8 +4658,8 @@ import {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4740,8 +4740,8 @@ import {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4823,8 +4823,8 @@ import {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if !diags.HasErrors() {
 		t.Fatal("expected error")
