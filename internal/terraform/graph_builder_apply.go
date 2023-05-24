@@ -99,8 +99,8 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		&ModuleVariableTransformer{Config: b.Config},
 		&LocalTransformer{Config: b.Config},
 		&OutputTransformer{
-			Config:       b.Config,
-			ApplyDestroy: b.Operation == walkDestroy,
+			Config:     b.Config,
+			Destroying: b.Operation == walkDestroy,
 		},
 
 		// Creates all the resource instances represented in the diff, along
