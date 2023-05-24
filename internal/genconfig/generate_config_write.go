@@ -77,5 +77,12 @@ func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, 
 		}
 	}
 
+	if wroteConfig {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Warning,
+			"Config generation is experimental",
+			"Generating configuration during import is currently experimental, and the generated configuration format may change in future versions."))
+	}
+
 	return wroteConfig, diags
 }
