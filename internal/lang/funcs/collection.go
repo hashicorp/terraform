@@ -35,6 +35,7 @@ var LengthFunc = function.New(&function.Spec{
 			return cty.Number, errors.New("argument must be a string, a collection type, or a structural type")
 		}
 	},
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		coll := args[0]
 		collTy := args[0].Type()
@@ -71,7 +72,8 @@ var AllTrueFunc = function.New(&function.Spec{
 			Type: cty.List(cty.Bool),
 		},
 	},
-	Type: function.StaticReturnType(cty.Bool),
+	Type:         function.StaticReturnType(cty.Bool),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		result := cty.True
 		for it := args[0].ElementIterator(); it.Next(); {
@@ -100,7 +102,8 @@ var AnyTrueFunc = function.New(&function.Spec{
 			Type: cty.List(cty.Bool),
 		},
 	},
-	Type: function.StaticReturnType(cty.Bool),
+	Type:         function.StaticReturnType(cty.Bool),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		result := cty.False
 		var hasUnknown bool
@@ -149,6 +152,7 @@ var CoalesceFunc = function.New(&function.Spec{
 		}
 		return retType, nil
 	},
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		for _, argVal := range args {
 			// We already know this will succeed because of the checks in our Type func above
@@ -181,7 +185,8 @@ var IndexFunc = function.New(&function.Spec{
 			Type: cty.DynamicPseudoType,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		if !(args[0].Type().IsListType() || args[0].Type().IsTupleType()) {
 			return cty.NilVal, errors.New("argument must be a list or tuple")
@@ -346,6 +351,7 @@ var MatchkeysFunc = function.New(&function.Spec{
 		// the return type is based on args[0] (values)
 		return args[0].Type(), nil
 	},
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		if !args[0].IsKnown() {
 			return cty.UnknownVal(cty.List(retType.ElementType())), nil
@@ -489,7 +495,8 @@ var SumFunc = function.New(&function.Spec{
 			Type: cty.DynamicPseudoType,
 		},
 	},
-	Type: function.StaticReturnType(cty.Number),
+	Type:         function.StaticReturnType(cty.Number),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 
 		if !args[0].CanIterateElements() {
@@ -558,7 +565,8 @@ var TransposeFunc = function.New(&function.Spec{
 			Type: cty.Map(cty.List(cty.String)),
 		},
 	},
-	Type: function.StaticReturnType(cty.Map(cty.List(cty.String))),
+	Type:         function.StaticReturnType(cty.Map(cty.List(cty.String))),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (ret cty.Value, err error) {
 		inputMap := args[0]
 		if !inputMap.IsWhollyKnown() {

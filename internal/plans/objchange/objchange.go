@@ -429,7 +429,7 @@ func optionalValueNotComputable(schema *configschema.Attribute, val cty.Value) b
 // values have been added. This function is only used to correlated
 // configuration with possible valid prior values within sets.
 func validPriorFromConfig(schema nestedSchema, prior, config cty.Value) bool {
-	if config.RawEquals(prior) {
+	if unrefinedValue(config).RawEquals(unrefinedValue(prior)) {
 		return true
 	}
 
@@ -446,7 +446,7 @@ func validPriorFromConfig(schema nestedSchema, prior, config cty.Value) bool {
 		}
 
 		// we don't need to know the schema if both are equal
-		if configV.RawEquals(priorV) {
+		if unrefinedValue(configV).RawEquals(unrefinedValue(priorV)) {
 			// we know they are equal, so no need to descend further
 			return false, nil
 		}

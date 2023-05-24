@@ -34,7 +34,7 @@ func assertObjectCompatible(schema *configschema.Block, planned, actual cty.Valu
 	var errs []error
 	var atRoot string
 	if len(path) == 0 {
-		atRoot = "Root resource "
+		atRoot = "Root object "
 	}
 
 	if planned.IsNull() && !actual.IsNull() {
@@ -216,7 +216,12 @@ func assertValueCompatible(planned, actual cty.Value, path cty.Path) []error {
 
 	if !planned.IsKnown() {
 		// We didn't know what were going to end up with during plan, so
-		// anything goes during apply.
+		// the final value needs only to match the type and refinements of
+		// the unknown value placeholder.
+		plannedRng := planned.Range()
+		if ok := plannedRng.Includes(actual); ok.IsKnown() && ok.False() {
+			errs = append(errs, path.NewErrorf("final value %#v does not conform to planning placeholder %#v", actual, planned))
+		}
 		return errs
 	}
 

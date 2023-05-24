@@ -270,11 +270,11 @@ func assertPlannedAttrValid(name string, attrS *configschema.Attribute, priorSta
 func assertPlannedValueValid(attrS *configschema.Attribute, priorV, configV, plannedV cty.Value, path cty.Path) []error {
 
 	var errs []error
-	if plannedV.RawEquals(configV) {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(configV)) {
 		// This is the easy path: provider didn't change anything at all.
 		return errs
 	}
-	if plannedV.RawEquals(priorV) && !priorV.IsNull() && !configV.IsNull() {
+	if unrefinedValue(plannedV).RawEquals(unrefinedValue(priorV)) && !priorV.IsNull() && !configV.IsNull() {
 		// Also pretty easy: there is a prior value and the provider has
 		// returned it unchanged. This indicates that configV and plannedV
 		// are functionally equivalent and so the provider wishes to disregard
@@ -462,4 +462,13 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 	}
 
 	return errs
+}
+
+// unrefinedValue returns the given value with any unknown value refinements
+// stripped away, making it a basic unknown value with only a type constraint.
+func unrefinedValue(v cty.Value) cty.Value {
+	if !v.IsKnown() {
+		return cty.UnknownVal(v.Type())
+	}
+	return v
 }

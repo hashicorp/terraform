@@ -1796,10 +1796,38 @@ func TestAssertPlanValid(t *testing.T) {
 				)),
 			}),
 			[]string{
-				`.set: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
-				`.list: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
-				`.map: count in plan (cty.UnknownVal(cty.Number)) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.set: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.list: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.map: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
 			},
+		},
+
+		"refined unknown values can become less refined": {
+			// Providers often can't preserve refinements through the provider
+			// wire protocol: although we do have a defined serialization for
+			// it, most providers were written before there was any such
+			// thing as refinements, and in future there might be new
+			// refinements that even refinement-aware providers don't know
+			// how to preserve, so we allow them to get dropped here as
+			// a concession to backward-compatibility.
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("old"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String).RefineNotNull(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			nil,
 		},
 	}
 
