@@ -8,7 +8,7 @@ description: >-
 
 -> **Note:** Check blocks are only available in Terraform v1.5.0 and later.
 
-You can use `check` blocks to validate your infrastructure outside the usual resource lifecycle. Check blocks allow you to define [Custom Conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of the operation.
+You can use `check` blocks to validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure. Check blocks allow you to define [Custom Conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of the operation. They execute as the last step of a plan/apply, after the infrastructure has been planned/provisioned.
 
 ## Checks Syntax
 
