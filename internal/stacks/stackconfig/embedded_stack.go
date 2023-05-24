@@ -4,6 +4,8 @@ import (
 	"github.com/apparentlymart/go-versions/versions/constraints"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // EmbeddedStack describes a call to another stack configuration whose
@@ -21,8 +23,9 @@ import (
 type EmbeddedStack struct {
 	Name string
 
-	SourceAddr      sourceaddrs.Source
-	AllowedVersions constraints.IntersectionSpec
+	SourceAddr                               sourceaddrs.Source
+	VersionConstraints                       constraints.IntersectionSpec
+	SourceAddrRange, VersionConstraintsRange tfdiags.SourceRange
 
 	ForEach hcl.Expression
 
@@ -31,4 +34,65 @@ type EmbeddedStack struct {
 	// declarations, and whose attribute values will then be used to populate
 	// those input variables.
 	Inputs hcl.Expression
+
+	DeclRange tfdiags.SourceRange
+}
+
+func decodeEmbeddedStackBlock(block *hcl.Block) (*EmbeddedStack, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := &EmbeddedStack{
+		Name:      block.Labels[0],
+		DeclRange: tfdiags.SourceRangeFromHCL(block.DefRange),
+	}
+	if !hclsyntax.ValidIdentifier(ret.Name) {
+		diags = diags.Append(invalidNameDiagnostic(
+			"Invalid name for call to embedded stack",
+			block.LabelRanges[0],
+		))
+		return nil, diags
+	}
+
+	content, hclDiags := block.Body.Content(embeddedStackBlockSchema)
+	diags = diags.Append(hclDiags)
+	if hclDiags.HasErrors() {
+		return nil, diags
+	}
+
+	sourceAddr, versionConstraints, moreDiags := decodeSourceAddrArguments(
+		content.Attributes["source"],
+		content.Attributes["version"],
+	)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return nil, diags
+	}
+
+	ret.SourceAddr = sourceAddr
+	ret.VersionConstraints = versionConstraints
+	ret.SourceAddrRange = tfdiags.SourceRangeFromHCL(content.Attributes["source"].Range)
+	if content.Attributes["version"] != nil {
+		ret.VersionConstraintsRange = tfdiags.SourceRangeFromHCL(content.Attributes["version"].Range)
+	}
+	// Now that we've populated the mandatory source location fields we can
+	// safely return a partial ret if we encounter any further errors, as
+	// long as we leave the other fields either unset or in some other
+	// reasonable state for careful partial analysis.
+
+	if attr, ok := content.Attributes["for_each"]; ok {
+		ret.ForEach = attr.Expr
+	}
+	if attr, ok := content.Attributes["inputs"]; ok {
+		ret.Inputs = attr.Expr
+	}
+
+	return ret, diags
+}
+
+var embeddedStackBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "source", Required: true},
+		{Name: "version", Required: false},
+		{Name: "for_each", Required: false},
+		{Name: "inputs", Required: false},
+	},
 }
