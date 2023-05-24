@@ -127,7 +127,7 @@ func (b *PlanGraphBuilder) Steps() []GraphTransformer {
 		&OutputTransformer{
 			Config:      b.Config,
 			RefreshOnly: b.skipPlanChanges || b.preDestroyRefresh,
-			PlanDestroy: b.Operation == walkPlanDestroy,
+			Destroying:  b.Operation == walkPlanDestroy,
 
 			// NOTE: We currently treat anything built with the plan graph
 			// builder as "planning" for our purposes here, because we share

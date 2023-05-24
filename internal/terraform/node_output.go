@@ -23,12 +23,11 @@ import (
 // nodeExpandOutput is the placeholder for a non-root module output that has
 // not yet had its module path expanded.
 type nodeExpandOutput struct {
-	Addr         addrs.OutputValue
-	Module       addrs.Module
-	Config       *configs.Output
-	PlanDestroy  bool
-	ApplyDestroy bool
-	RefreshOnly  bool
+	Addr        addrs.OutputValue
+	Module      addrs.Module
+	Config      *configs.Output
+	Destroying  bool
+	RefreshOnly bool
 
 	// Planning is set to true when this node is in a graph that was produced
 	// by the plan graph builder, as opposed to the apply graph builder.
@@ -103,13 +102,13 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 
 		var node dag.Vertex
 		switch {
-		case module.IsRoot() && (n.PlanDestroy || n.ApplyDestroy):
+		case module.IsRoot() && n.Destroying:
 			node = &NodeDestroyableOutput{
 				Addr:     absAddr,
 				Planning: n.Planning,
 			}
 
-		case n.PlanDestroy:
+		case n.Destroying:
 			// nothing is done here for non-root outputs
 			continue
 
@@ -119,7 +118,7 @@ func (n *nodeExpandOutput) DynamicExpand(ctx EvalContext) (*Graph, error) {
 				Config:       n.Config,
 				Change:       change,
 				RefreshOnly:  n.RefreshOnly,
-				DestroyApply: n.ApplyDestroy,
+				DestroyApply: n.Destroying,
 				Planning:     n.Planning,
 			}
 		}
@@ -186,7 +185,7 @@ func (n *nodeExpandOutput) ReferenceOutside() (selfPath, referencePath addrs.Mod
 // GraphNodeReferencer
 func (n *nodeExpandOutput) References() []*addrs.Reference {
 	// DestroyNodes do not reference anything.
-	if n.Module.IsRoot() && n.ApplyDestroy {
+	if n.Module.IsRoot() && n.Destroying {
 		return nil
 	}
 
