@@ -6,6 +6,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"sort"
 
 	"github.com/hashicorp/hcl/v2"
@@ -160,7 +161,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 
 	importing := n.importTarget.ID != ""
 
-	if importing && n.Config == nil && !n.generateConfig {
+	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
 		// Then the user wrote an import target to a target that didn't exist.
 		if n.Addr.Module.IsRoot() {
 			diags = diags.Append(&hcl.Diagnostic{
@@ -275,7 +276,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			// If we are importing and generating a configuration, we need to
 			// ensure the change is written out so the configuration can be
 			// captured.
-			if n.generateConfig {
+			if len(n.generateConfigPath) > 0 {
 				// Update our return plan
 				change := &plans.ResourceInstanceChange{
 					Addr:         n.Addr,
@@ -543,7 +544,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}
 
 	// If we're importing and generating config, generate it now.
-	if n.generateConfig {
+	if len(n.generateConfigPath) > 0 {
 		if n.Config != nil {
 			return instanceRefreshState, diags.Append(fmt.Errorf("tried to generate config for %s, but it already exists", n.Addr))
 		}
@@ -565,7 +566,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 		n.generatedConfigHCL = genconfig.WrapResourceContents(n.Addr, generatedHCLAttributes)
 
 		// parse the "file" as HCL to get the hcl.Body
-		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), "generated_resources.tf", hcl.Pos{Byte: 0, Line: 1, Column: 1})
+		synthHCLFile, hclDiags := hclsyntax.ParseConfig([]byte(generatedHCLAttributes), filepath.Base(n.generateConfigPath), hcl.Pos{Byte: 0, Line: 1, Column: 1})
 		diags = diags.Append(hclDiags)
 		if hclDiags.HasErrors() {
 			return instanceRefreshState, diags

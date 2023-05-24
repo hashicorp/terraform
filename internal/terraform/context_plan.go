@@ -78,9 +78,11 @@ type PlanOpts struct {
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
 
-	// GenerateConfig tells Terraform to generate configuration for any
-	// ImportTargets that do not have configuration already.
-	GenerateConfig bool
+	// GenerateConfig tells Terraform where to write any generated configuration
+	// for any ImportTargets that do not have configuration already.
+	//
+	// If empty, then no config will be generated.
+	GenerateConfigPath string
 }
 
 // Plan generates an execution plan by comparing the given configuration
@@ -669,7 +671,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
 			ImportTargets:      opts.ImportTargets,
-			GenerateConfig:     opts.GenerateConfig,
+			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.RefreshOnlyMode:
