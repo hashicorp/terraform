@@ -284,12 +284,6 @@ func initCommands(
 			}, nil
 		},
 
-		"test": func() (cli.Command, error) {
-			return &command.TestCommand{
-				Meta: meta,
-			}, nil
-		},
-
 		"validate": func() (cli.Command, error) {
 			return &command.ValidateCommand{
 				Meta: meta,
