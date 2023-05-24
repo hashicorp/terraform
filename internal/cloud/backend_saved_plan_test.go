@@ -12,7 +12,6 @@ import (
 )
 
 func TestCloud_loadBasic(t *testing.T) {
-
 	bookmark := SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
