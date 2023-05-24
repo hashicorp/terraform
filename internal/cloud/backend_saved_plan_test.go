@@ -4,7 +4,6 @@
 package cloud
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -32,7 +31,6 @@ func TestCloud_loadBasic(t *testing.T) {
 
 func TestCloud_saveBasic(t *testing.T) {
 	tmp := t.TempDir()
-	defer os.RemoveAll(tmp)
 	bookmarkPath := filepath.Join(tmp, "saved-bookmark.json")
 
 	b := &SavedPlanBookmark{

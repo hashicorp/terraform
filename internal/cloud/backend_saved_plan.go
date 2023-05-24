@@ -24,7 +24,6 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 
 	err = json.Unmarshal([]byte(data), &bookmark)
 	return bookmark, err
-
 }
 
 func (s *SavedPlanBookmark) Save(filepath string) error {
