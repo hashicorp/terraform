@@ -579,7 +579,7 @@ func (b *Cloud) DeleteWorkspace(name string, force bool) error {
 	}
 
 	// Configure the remote workspace name.
-	State := &State{tfeClient: b.client, organization: b.organization, workspace: workspace}
+	State := &State{tfeClient: b.client, organization: b.organization, workspace: workspace, disableIntermediateSnapshots: true}
 	return State.Delete(force)
 }
 
@@ -665,7 +665,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 	}
 
-	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace}, nil
+	return &State{tfeClient: b.client, organization: b.organization, workspace: workspace, disableIntermediateSnapshots: true}, nil
 }
 
 // Operation implements backend.Enhanced.
