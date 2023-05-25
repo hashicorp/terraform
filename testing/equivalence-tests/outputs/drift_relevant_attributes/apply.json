@@ -124,6 +124,7 @@
     "changes": {
       "add": 0,
       "change": 2,
+      "import": 0,
       "operation": "apply",
       "remove": 0
     },
