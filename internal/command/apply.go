@@ -236,9 +236,9 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			))
 			return nil, diags
 		}
-		be, beDiags = c.BackendForPlan(plan.Backend)
+		be, beDiags = c.BackendForLocalPlan(plan.Backend)
 	} else if planFile.IsCloud() {
-		// HERE's the part where we convert the planfile into a cloud backend config
+		be, beDiags = c.BackendForCloudPlan(planFile.Cloud.Hostname, planFile.Cloud.RunID)
 	}
 
 	diags = diags.Append(beDiags)

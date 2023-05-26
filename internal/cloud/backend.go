@@ -75,6 +75,10 @@ type Cloud struct {
 	// organization is the organization that contains the target workspaces.
 	organization string
 
+	// runId is only set to a non-zero value if we're deriving organization and
+	// workspace names from a saved plan during initial configuration.
+	runId string
+
 	// WorkspaceMapping contains strategies for mapping CLI workspaces in the working directory
 	// to remote Terraform Cloud workspaces.
 	WorkspaceMapping WorkspaceMapping
@@ -317,6 +321,17 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	// If we're configuring from a run ID, fill in the missing organization and
+	// workspace names.
+	if b.runId != "" {
+		log.Printf("[TRACE] Configuring org and workspace for cloud backend from run ID")
+		runDiags := b.setOrgAndWorkspaceFromRun(b.runId)
+		diags = diags.Append(runDiags)
+		if diags.HasErrors() {
+			return diags
+		}
+	}
+
 	// Check if the organization exists by reading its entitlements.
 	entitlements, err := b.client.Organizations.ReadEntitlements(context.Background(), b.organization)
 	if err != nil {
@@ -433,6 +448,71 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	// Determine if we are forced to use the local backend.
 	b.forceLocal = os.Getenv("TF_FORCE_LOCAL_BACKEND") != ""
 
+	return diags
+}
+
+// ConfigureFromSavedPlan is like Configure, but constructs the cloud backend
+// from a hostname and run ID, obtained from a saved cloud plan. It ultimately
+// calls Configure, and relies on a branch in that function to derive the
+// organization and workspace from the run ID once the tfe client is
+// initialized.
+//
+// We need a separate method for entering this path, because we don't want to
+// expose a run_id argument in the cloud block schema.
+func (b *Cloud) ConfigureFromSavedPlan(hostname, runId string) tfdiags.Diagnostics {
+	log.Printf("[TRACE] Configuring cloud backend from saved plan")
+	// Since we expect the caller bypassed PrepareConfig, do some basic setup on
+	// our receiver that we missed out on earlier.
+	b.WorkspaceMapping = WorkspaceMapping{Name: ""}
+
+	// Construct a cty.Value that looks like a mostly empty cloud block.
+	v := cty.ObjectVal(map[string]cty.Value{
+		"hostname": cty.StringVal(hostname),
+	})
+	obj, err := b.ConfigSchema().CoerceValue(v)
+	if err != nil {
+		var diags tfdiags.Diagnostics
+		diags = diags.Append(err)
+		return diags
+	}
+
+	// Set the runId field on self so Configure can see it.
+	b.runId = runId
+
+	// And, let Configure take over from here:
+	return b.Configure(obj)
+}
+
+// setOrgAndWorkspaceFromRun reads a run from TFC in order to configure valid
+// organization and workspace IDs, which aren't otherwise present if we're
+// initializing a cloud backend from a saved plan. This should only be called
+// within Configure, after initializing the tfe client and checking that we're
+// trying to configure with a run ID.
+func (b *Cloud) setOrgAndWorkspaceFromRun(runId string) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	runOpts := &tfe.RunReadOptions{
+		Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
+	}
+	run, err := b.client.Runs.ReadWithOptions(context.Background(), runId, runOpts)
+	if err != nil {
+		if errors.Is(err, tfe.ErrResourceNotFound) {
+			err = fmt.Errorf("run %q at host %s not found.\n\n"+
+				"Please ensure your API token for %s is valid.",
+				runId, b.hostname, b.hostname)
+		}
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			fmt.Sprintf("Failed to read run %q at host %s", runId, b.hostname),
+			err.Error(),
+		))
+		return diags
+	}
+
+	// As it happens, the organization name is the ONLY field in the nested org
+	// struct that gets populated by an include=workspace run read, so we don't
+	// need to do an additional request!
+	b.organization = run.Workspace.Organization.Name
+	b.WorkspaceMapping.Name = run.Workspace.Name
 	return diags
 }
 

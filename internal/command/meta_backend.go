@@ -295,13 +295,13 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	return m.SetWorkspace(workspace)
 }
 
-// BackendForPlan is similar to Backend, but uses backend settings that were
+// BackendForLocalPlan is similar to Backend, but uses backend settings that were
 // stored in a plan.
 //
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	f := backendInit.Backend(settings.Type)
@@ -310,7 +310,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 	b := f()
-	log.Printf("[TRACE] Meta.BackendForPlan: instantiated backend of type %T", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
@@ -351,13 +351,13 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// If the result of loading the backend is an enhanced backend,
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
-		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+		log.Printf("[TRACE] Meta.BackendForLocalPlan: backend %T supports operations", b)
 		return enhanced, nil
 	}
 
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
-	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: backend %T does not support operations, so wrapping it in a local backend", b)
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
 		diags = diags.Append(err)
@@ -371,6 +371,50 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	}
 
 	return local, diags
+}
+
+// BackendForCloudPlan is similar to Backend, but derives settings for an
+// enhanced Cloud backend from the hostname and run ID stored in a saved cloud
+// plan. It can't produce other kinds of backends.
+func (m *Meta) BackendForCloudPlan(hostname, runId string) (backend.Enhanced, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	f := backendInit.Backend("cloud")
+	if f == nil {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedCloudUnknown)))
+		return nil, diags
+	}
+	b := f()
+	log.Printf("[TRACE] Meta.BackendForCloudPlan: instantiated backend of type %T", b)
+
+	// Since we don't have a proper user-authored config block, we skip the
+	// standard approach of decoding and using a config block and configure the
+	// cloud backend via a dedicated method that other backends lack. Thus, we
+	// need a type assert here.
+	c, ok := b.(*cloud.Cloud)
+	if !ok {
+		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedCloudUnknown)))
+		return nil, diags
+	}
+	confDiags := c.ConfigureFromSavedPlan(hostname, runId)
+	diags = diags.Append(confDiags)
+
+	// Cloud backend always supports CLI initialization, do it.
+	cliOpts, err := m.backendCLIOpts()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+	if err := c.CLIInit(cliOpts); err != nil {
+		diags = diags.Append(fmt.Errorf(
+			"Error initializing cloud backend: %s\n\n"+
+				"This is a bug; please report it to the Terraform developers",
+			err,
+		))
+		return nil, diags
+	}
+
+	return c, diags
 }
 
 // backendCLIOpts returns a backend.CLIOpts object that should be passed to
@@ -1535,6 +1579,11 @@ contains support for this backend.
 
 If you'd like to force remove this backend, you must update your configuration
 to not use the backend and run "terraform init" (or any other command) again.
+`
+
+const errBackendSavedCloudUnknown = `
+Failed to create an unconfigured cloud backend. This should never happen, and
+indicates a bug in Terraform.
 `
 
 const errBackendClearSaved = `
