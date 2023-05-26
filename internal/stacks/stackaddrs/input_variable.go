@@ -8,6 +8,10 @@ func (InputVariable) referenceableSigil()   {}
 func (InputVariable) inStackConfigSigil()   {}
 func (InputVariable) inStackInstanceSigil() {}
 
+func (v InputVariable) String() string {
+	return "var." + v.Name
+}
+
 // ConfigInputVariable places an [InputVariable] in the context of a particular [Stack].
 type ConfigInputVariable = InStackConfig[InputVariable]
 

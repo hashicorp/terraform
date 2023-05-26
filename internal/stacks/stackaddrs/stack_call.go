@@ -13,6 +13,10 @@ func (StackCall) referenceableSigil()   {}
 func (StackCall) inStackConfigSigil()   {}
 func (StackCall) inStackInstanceSigil() {}
 
+func (c StackCall) String() string {
+	return "stack." + c.Name
+}
+
 // ConfigStackCall represents a static stack call inside a particular [Stack].
 type ConfigStackCall = InStackConfig[StackCall]
 

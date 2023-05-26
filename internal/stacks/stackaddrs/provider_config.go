@@ -18,6 +18,10 @@ type ProviderConfigRef struct {
 
 func (ProviderConfigRef) referenceableSigil() {}
 
+func (r ProviderConfigRef) String() string {
+	return "provider." + r.ProviderLocalName + "." + r.Name
+}
+
 // ProviderConfig is the address of a "provider" block in a stack configuration.
 type ProviderConfig struct {
 	Provider addrs.Provider

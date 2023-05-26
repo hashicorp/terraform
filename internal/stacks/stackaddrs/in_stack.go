@@ -40,3 +40,13 @@ func Absolute[T StackItemDynamic](stackAddr StackInstance, relAddr T) InStackIns
 		Item:  relAddr,
 	}
 }
+
+// ConfigForAbs returns the "in stack config" equivalent of the given
+// "in stack instance" (absolute) address by just discarding any
+// instance keys from the stack instance steps.
+func ConfigForAbs[T interface {
+	StackItemDynamic
+	StackItemConfig
+}](absAddr InStackInstance[T]) InStackConfig[T] {
+	return Config(absAddr.Stack.ConfigAddr(), absAddr.Item)
+}

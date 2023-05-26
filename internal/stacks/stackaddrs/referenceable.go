@@ -4,6 +4,7 @@ package stackaddrs
 // the target of an expression-based reference within a particular stack.
 type Referenceable interface {
 	referenceableSigil()
+	String() string
 }
 
 var _ Referenceable = Component{}

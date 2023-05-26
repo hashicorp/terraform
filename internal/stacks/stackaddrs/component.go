@@ -11,6 +11,10 @@ func (Component) referenceableSigil()   {}
 func (Component) inStackConfigSigil()   {}
 func (Component) inStackInstanceSigil() {}
 
+func (c Component) String() string {
+	return "component." + c.Name
+}
+
 // ConfigComponent places a [Component] in the context of a particular [Stack].
 type ConfigComponent = InStackConfig[Component]
 

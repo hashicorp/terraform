@@ -95,3 +95,15 @@ func (s StackInstance) Call() AbsStackCall {
 		},
 	}
 }
+
+// ConfigAddr returns the [Stack] corresponding to the receiving [StackInstance].
+func (s StackInstance) ConfigAddr() Stack {
+	if s.IsRoot() {
+		return RootStack
+	}
+	ret := make(Stack, len(s))
+	for i, step := range s {
+		ret[i] = StackStep{Name: step.Name}
+	}
+	return ret
+}
