@@ -4,6 +4,9 @@
 package cloudplan
 
 import (
+	"errors"
+	"log"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -31,6 +34,12 @@ func TestCloud_loadBasic(t *testing.T) {
 func TestCloud_saveBasic(t *testing.T) {
 	tmp := t.TempDir()
 	bookmarkPath := filepath.Join(tmp, "saved-bookmark.json")
+
+	// verify the created file exists
+	_, err := os.Stat(bookmarkPath)
+	if errors.Is(err, os.ErrNotExist) {
+		log.Fatal("File does not exist")
+	}
 
 	b := &SavedPlanBookmark{
 		RemotePlanFormat: 1,
