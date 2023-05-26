@@ -4,8 +4,6 @@
 package cloudplan
 
 import (
-	"errors"
-	"log"
 	"os"
 	"path/filepath"
 	"testing"
@@ -35,17 +33,17 @@ func TestCloud_saveBasic(t *testing.T) {
 	tmp := t.TempDir()
 	bookmarkPath := filepath.Join(tmp, "saved-bookmark.json")
 
-	// verify the created file exists
-	_, err := os.Stat(bookmarkPath)
-	if errors.Is(err, os.ErrNotExist) {
-		log.Fatal("File does not exist")
+	// verify the created path exists
+	// os.Stat wants a path, not a file
+	_, err := os.Stat(tmp)
+	if err != nil {
+		t.Fatal("Path does not exist.", err)
+	} else {
+		b := &SavedPlanBookmark{
+			RemotePlanFormat: 1,
+			RunID:            "run-GXfuHMkbyHccAGUg",
+			Hostname:         "app.terraform.io",
+		}
+		b.Save(bookmarkPath)
 	}
-
-	b := &SavedPlanBookmark{
-		RemotePlanFormat: 1,
-		RunID:            "run-GXfuHMkbyHccAGUg",
-		Hostname:         "app.terraform.io",
-	}
-
-	b.Save(bookmarkPath)
 }
