@@ -31,6 +31,8 @@ check "health_check" {
 
 ### Scoped Data Sources
 
+You can use any data source from any provider as a scoped data source within a `check` block.
+
 A `check` block can optionally contain a nested (a.k.a scoped) data source. This `data` block behaves like an external [data source](/terraform/language/data-sources), except you can not reference it outside its enclosing `check` block. Additionally, if a scoped data source's provider raises any errors, they are masked as warnings and do not prevent Terraform from continuing operation execution.
 
 You can use a scoped data source to validate the status of a piece of infrastructure outside of the usual Terraform resource lifecycle. [In the above example](#checks-syntax), if the `terraform_io` data source fails to load, you receive a warning instead of a blocking error, which would occur if you declared this data source outside of a `check` block.
