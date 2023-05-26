@@ -1,20 +1,20 @@
 ---
 page_title: Checks - Configuration Language
 description: >-
-  Check custom requirements for infrastructure to provide ongoing and continuous validation.
+  Check customized infrastructure requirements to provide ongoing and continuous verification.
 ---
 
 # Checks
 
 -> **Note:** Check blocks are only available in Terraform v1.5.0 and later.
 
-You can use `check` blocks to validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure. Check blocks allow you to define [Custom Conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of the operation. They execute as the last step of a plan/apply, after the infrastructure has been planned/provisioned.
+The `check` block can validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure. Check blocks allow you to define [custom conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of an operation. Check blocks execute as the last step of a plan or apply, after Terraform has planned or provisioned your infrastructure.
 
 ## Checks Syntax
 
-A `check` block declares a check with a given local name, zero to one scoped [data sources](#scoped-data-sources), and one to many [assertions](#assertions).
+You can declare a `check` block with a local name, zero-to-one scoped [data sources](#scoped-data-sources), and one-to-many [assertions](#assertions).
 
-The following example loads the Terraform website and validates it is returning the expected status code of 200.
+The following example loads the Terraform website and validates that it returns the expected status code of `200`.
 
 ```hcl
 check "health_check" {
@@ -31,25 +31,25 @@ check "health_check" {
 
 ### Scoped Data Sources
 
-A `check` block can optionally have a nested data source. This block behaves in the same way as normal/external [data sources](/terraform/language/data-sources), except it cannot be referenced from outside the enclosing check block. In addition, any errors or failures raised by the provider of the data source will be masked as warnings within the output and will not prevent the continued execution of the overall Terraform operation.
+A `check` block can optionally contain a nested (a.k.a scoped) data source. This `data` block behaves like an external [data source](/terraform/language/data-sources), except you can not reference it outside its enclosing `check` block. Additionally, if a scoped data source's provider raises any errors, they are masked as warnings and do not prevent Terraform from continuing operation execution.
 
-A scoped data source allows you to validate the status of a piece of infrastructure outside the usual Terraform resource lifecycle. In the example in the previous section, if the `terraform_io` data source fails to load we would simply receive a warning that the `http` block couldn't be loaded rather than the blocking error that would be raised if the data source was defined outside a check block.
+You can use a scoped data source to validate the status of a piece of infrastructure outside of the usual Terraform resource lifecycle. [In the above example](#checks-syntax), if the `terraform_io` data source fails to load, you receive a warning instead of a blocking error, which would occur if you declared this data source outside of a `check` block.
 
 Any data source from any provider can be used within a check block.
 
 #### Meta-Arguments
 
-Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments), but do not support the `count`, `foreach`, or `lifecycle` arguments.
+Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count`, `foreach`, or `lifecycle` meta-arguments.
 
 ### Assertions
 
-Each `check` block must have at least one, but potentially many, `assert` blocks. An `assert` block has a `condition` attribute and an `error_message` attribute, that match the definitions within [Custom Conditions](/terraform/language/expressions/custom-conditions).
+Check blocks validate your custom assertions using `assert` blocks. Each `check` block must have at least one, but potentially many, `assert` blocks. Each `assert` block has a [`condition` attribute](/terraform/language/expressions/custom-conditions#condition-expressions) and an [`error_message` attribute](/terraform/language/expressions/custom-conditions#error-messages).
 
-Unlike other custom conditions, assertions do not affect the execution of the overall Terraform operation. A failed assertion will report a warning diagnostic without halting the ongoing operation. This is in contrast to other custom conditions, such as a resource postcondition, which will block future resources from being applied or planned.
+Unlike other [custom conditions](/terraform/language/expressions/custom-conditions), assertions do not affect Terraform's execution of an operation. A failed assertion reports a warning without halting the ongoing operation. This contrasts with other custom conditions, such as a postcondition, where Terraform produces an error immediately, halting the operation and blocking the application or planning of future resources.
 
-Conditions within assertions can refer to any scoped data source within the enclosing check block, and can refer to any variables, resources, data sources, or module outputs within the current module.
+Condition arguments within `assert` blocks can refer to scoped data sources within the enclosing `check` block and any variables, resources, data sources, or module outputs within the current module.
 
-Assertions are discussed more in detail within the [Custom Conditions](/terraform/language/expressions/custom-conditions#check-assertions) documentation.
+[Learn more about assertions](/terraform/language/expressions/custom-conditions#check-assertions).
 
 ### Meta-Arguments
 
@@ -57,9 +57,9 @@ In the initial release of checks, none of the traditional resource [meta-argumen
 
 ## Continuous Validation in Terraform Cloud
 
-Terraform Cloud can automatically check whether checks in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
+Terraform Cloud can automatically validate whether checks in a workspace’s configuration continue to pass after Terraform provisions new infrastructure. See [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) for details.
 
-## Choosing between Checks and other Custom Conditions
+## Choosing Checks or other Custom Conditions
 
 In many cases, resource or data source postconditions and check blocks can be used interchangeably to model similar validations. For example, compare the following HCL, which details the creation of a health check directly as a data source postcondition, to the check block implementation provided in the [Checks Syntax](#checks-syntax) section.
 
