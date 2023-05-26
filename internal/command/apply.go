@@ -150,14 +150,14 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diagnostics) {
-	var planFile *planfile.Reader
+func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
+	var planFile *planfile.WrappedPlanFile
 	var diags tfdiags.Diagnostics
 
 	// Try to load plan if path is specified
 	if path != "" {
 		var err error
-		pf, err := c.PlanFile(path)
+		planFile, err = c.PlanFile(path)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -170,7 +170,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 		// If the path doesn't look like a plan, both planFile and err will be
 		// nil. In that case, the user is probably trying to use the positional
 		// argument to specify a configuration path. Point them at -chdir.
-		if pf == nil {
+		if planFile == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Failed to load %q as a plan file", path),
@@ -189,17 +189,12 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 			))
 			return nil, diags
 		}
-
-		// Finally, grab local plan if applicable.
-		if pf.IsLocal() {
-			planFile = pf.Local
-		}
 	}
 
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -222,8 +217,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 			Config:   backendConfig,
 			ViewType: viewType,
 		})
-	} else {
-		plan, err := planFile.ReadPlan()
+	} else if planFile.IsLocal() {
+		plan, err := planFile.Local.ReadPlan()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -242,6 +237,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 			return nil, diags
 		}
 		be, beDiags = c.BackendForPlan(plan.Backend)
+	} else if planFile.IsCloud() {
+		// HERE's the part where we convert the planfile into a cloud backend config
 	}
 
 	diags = diags.Append(beDiags)
@@ -255,7 +252,7 @@ func (c *ApplyCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Apply,
 	viewType arguments.ViewType,
-	planFile *planfile.Reader,
+	planFile *planfile.WrappedPlanFile,
 	args *arguments.Operation,
 	autoApprove bool,
 ) (*backend.Operation, tfdiags.Diagnostics) {

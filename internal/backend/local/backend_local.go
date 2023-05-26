@@ -77,7 +77,12 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
-	if op.PlanFile != nil {
+	if op.PlanFile.IsCloud() {
+		diags.Append(fmt.Errorf("error: using a saved cloud plan with the local backend is not supported"))
+		return nil, nil, nil, diags
+	}
+
+	if op.PlanFile.IsLocal() {
 		var stateMeta *statemgr.SnapshotMeta
 		// If the statemgr implements our optional PersistentMeta interface then we'll
 		// additionally verify that the state snapshot in the plan file has
@@ -87,7 +92,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 			stateMeta = &m
 		}
 		log.Printf("[TRACE] backend/local: populating backend.LocalRun from plan file")
-		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, op.PlanFile, ret, &coreOpts, stateMeta)
+		ret, configSnap, ctxDiags = b.localRunForPlanFile(op, op.PlanFile.Local, ret, &coreOpts, stateMeta)
 		if ctxDiags.HasErrors() {
 			diags = diags.Append(ctxDiags)
 			return nil, nil, nil, diags

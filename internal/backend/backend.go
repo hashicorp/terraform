@@ -258,7 +258,7 @@ type Operation struct {
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
-	PlanFile *planfile.Reader
+	PlanFile *planfile.WrappedPlanFile
 
 	// The options below are more self-explanatory and affect the runtime
 	// behavior of the operation.

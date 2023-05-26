@@ -146,7 +146,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	if err := planfile.Create(planPath, planfileArgs); err != nil {
 		t.Fatalf("unexpected error writing planfile: %s", err)
 	}
-	planFile, err := planfile.Open(planPath)
+	planFile, err := planfile.OpenWrapped(planPath)
 	if err != nil {
 		t.Fatalf("unexpected error reading planfile: %s", err)
 	}
