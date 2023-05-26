@@ -218,6 +218,10 @@
   },
   { "title": "Checks", "path": "checks" },
   {
+      "title": "Import",
+      "path": "import"
+  },
+  {
     "title": "Expressions",
     "routes": [
       { "title": "Overview", "path": "expressions" },
