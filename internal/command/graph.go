@@ -57,10 +57,13 @@ func (c *GraphCommand) Run(args []string) int {
 	// Try to load plan if path is specified
 	var planFile *planfile.Reader
 	if planPath != "" {
-		planFile, err = c.PlanFile(planPath)
+		pf, err := c.PlanFile(planPath)
 		if err != nil {
 			c.Ui.Error(err.Error())
 			return 1
+		}
+		if pf.IsLocal() {
+			planFile = pf.Local
 		}
 	}
 

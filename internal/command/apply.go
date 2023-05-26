@@ -157,7 +157,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 	// Try to load plan if path is specified
 	if path != "" {
 		var err error
-		planFile, err = c.PlanFile(path)
+		pf, err := c.PlanFile(path)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -170,7 +170,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 		// If the path doesn't look like a plan, both planFile and err will be
 		// nil. In that case, the user is probably trying to use the positional
 		// argument to specify a configuration path. Point them at -chdir.
-		if planFile == nil {
+		if pf == nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				fmt.Sprintf("Failed to load %q as a plan file", path),
@@ -188,6 +188,11 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 				fmt.Sprintf("If this plan was created using plan -destroy, apply it using:\n  terraform apply %q", path),
 			))
 			return nil, diags
+		}
+
+		// Finally, grab local plan if applicable.
+		if pf.IsLocal() {
+			planFile = pf.Local
 		}
 	}
 
