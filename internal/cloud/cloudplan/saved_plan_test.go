@@ -19,8 +19,8 @@ func TestCloud_loadBasic(t *testing.T) {
 		Hostname:         "app.terraform.io",
 	}
 
-	testFile := "./testdata/plan-bookmark/bookmark.json"
-	result, err := LoadSavedPlanBookmark(testFile)
+	file := "./testdata/plan-bookmark/bookmark.json"
+	result, err := LoadSavedPlanBookmark(file)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,18 @@ func TestCloud_loadErrorWhenJSONValsEmptyBasic(t *testing.T) {
 }
 
 func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
-	// version number must be 1
+	// remote_plan_format must be set to 1
+	// remote_plan_format and format version number are used interchangeably
+	validVersions := 1
+	file := "./testdata/plan-bookmark/wrong_version.json"
+	result, err := LoadSavedPlanBookmark(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.RemotePlanFormat != validVersions {
+		t.Fatal("invalid format version: ", result.RemotePlanFormat)
+	}
 }
 
 func TestCloud_saveWhenFileExistsBasic(t *testing.T) {
