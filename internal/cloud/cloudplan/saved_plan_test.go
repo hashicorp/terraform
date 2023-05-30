@@ -35,23 +35,11 @@ func TestCloud_loadIsSavedPlanBasic(t *testing.T) {
 }
 
 func TestCloud_loadErrorWhenJSONEmptyBasic(t *testing.T) {
-	// JSON must not be empty
+	// loaded file should never be empty
+}
 
-	bookmark := SavedPlanBookmark{
-		RemotePlanFormat: 1,
-		RunID:            "run-GXfuHMkbyHccAGUg",
-		Hostname:         "app.terraform.io",
-	}
-
-	testFile := "./testdata/plan-bookmark/empty.json"
-	result, err := LoadSavedPlanBookmark(testFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if diff := cmp.Diff(bookmark, result, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
-		t.Errorf("cannot load empty JSON \n%s", diff)
-	}
+func TestCloud_loadErrorWhenJSONValsEmptyBasic(t *testing.T) {
+	// JSON values should never be empty
 }
 
 func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {

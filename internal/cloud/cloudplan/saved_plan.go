@@ -1,6 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
-
 package cloudplan
 
 import (
@@ -17,12 +16,12 @@ type SavedPlanBookmark struct {
 func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	bookmark := SavedPlanBookmark{}
 	data, err := os.ReadFile(filepath)
-
 	if err != nil {
 		return bookmark, err
 	}
 
 	err = json.Unmarshal([]byte(data), &bookmark)
+
 	return bookmark, err
 }
 
