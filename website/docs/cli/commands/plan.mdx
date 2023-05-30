@@ -290,6 +290,8 @@ The available options are:
   * 1 = Error
   * 2 = Succeeded with non-empty diff (changes present)
 
+- `-generate-config-out=PATH` - (Experimental) If `import` blocks are present in config, instructs Terraform to generate HCL for any imported resource that does not already have configuration. The config will be written to a file at PATH, which must not already exist. If the plan exits with an error, Terraform may still attempt to write config. After the plan has completed, review the generated config.
+
 * `-input=false` - Disables Terraform's default behavior of prompting for
   input for root module input variables that have not otherwise been assigned
   a value. This option is particularly useful when running Terraform in
