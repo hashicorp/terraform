@@ -29,7 +29,7 @@ The above `import` block defines an import of the AWS instance with ID "i-abcd12
 The `import` block has the following arguments:
  - `to` - The resource instance address targeted by this import.
  - `id` - The import ID of the resource. String.
- - `provider` (optional) - A custom resource provider. See [The Resource provider Meta-Argument](link).
+ - `provider` (optional) - A custom resource provider. See [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider).
 
 ## Planning and applying an import
 
@@ -141,8 +141,7 @@ terraform plan -generate-config-out=generated_resources.tf
 
 Terraform will generate configuration for any resources targeted by an `import` block that do not already exist in configuration, and write the HCL to `generated_resources.tf`.
 
-Please see the page Working With Generated Configuration for more details on config generation.
-
+Please see the [Generating Configuration](/terraform/language/import/generating-configuration) page for more details on config generation.
 
 ## Examples
 
