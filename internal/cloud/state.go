@@ -69,6 +69,9 @@ type State struct {
 	// not effect final snapshots after an operation, which will always
 	// be written to the remote API.
 	stateSnapshotInterval time.Duration
+	// If the header X-Terraform-Snapshot-Interval is present then
+	// we will enable snapshots
+	enableIntermediateSnapshots bool
 }
 
 var ErrStateVersionUnauthorizedUpgradeState = errors.New(strings.TrimSpace(`
@@ -244,6 +247,10 @@ func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePers
 		return true
 	}
 
+	if !s.enableIntermediateSnapshots && info.RequestedPersistInterval == time.Duration(0) {
+		return false
+	}
+
 	// Our persist interval is the largest of either the caller's requested
 	// interval or the server's requested interval.
 	wantInterval := info.RequestedPersistInterval
@@ -278,25 +285,7 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 	// The server is allowed to dynamically request a different time interval
 	// than we'd normally use, for example if it's currently under heavy load
 	// and needs clients to backoff for a while.
-	ctx = tfe.ContextWithResponseHeaderHook(ctx, func(status int, header http.Header) {
-		intervalStr := header.Get("x-terraform-snapshot-interval")
-
-		if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
-			if intervalSecs > 3600 {
-				// More than an hour is an unreasonable delay, so we'll just
-				// saturate at one hour.
-				intervalSecs = 3600
-			} else if intervalSecs < 0 {
-				intervalSecs = 0
-			}
-			s.stateSnapshotInterval = time.Duration(intervalSecs) * time.Second
-		} else {
-			// If the header field is either absent or invalid then we'll
-			// just choose zero, which effectively means that we'll just use
-			// the caller's requested interval instead.
-			s.stateSnapshotInterval = time.Duration(0)
-		}
-	})
+	ctx = tfe.ContextWithResponseHeaderHook(ctx, s.readSnapshotIntervalHeader)
 
 	// Create the new state.
 	_, err := s.tfeClient.StateVersions.Create(ctx, s.workspace.ID, options)
@@ -376,6 +365,10 @@ func (s *State) refreshState() error {
 
 func (s *State) getStatePayload() (*remote.Payload, error) {
 	ctx := context.Background()
+
+	// Check the x-terraform-snapshot-interval header to see if it has a non-empty
+	// value which would indicate snapshots are enabled
+	ctx = tfe.ContextWithResponseHeaderHook(ctx, s.readSnapshotIntervalHeader)
 
 	sv, err := s.tfeClient.StateVersions.ReadCurrent(ctx, s.workspace.ID)
 	if err != nil {
@@ -540,6 +533,35 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	}
 
 	return result, nil
+}
+
+func clamp(val, min, max int64) int64 {
+	if val < min {
+		return min
+	} else if val > max {
+		return max
+	}
+	return val
+}
+
+func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
+	intervalStr := header.Get("x-terraform-snapshot-interval")
+
+	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
+		// More than an hour is an unreasonable delay, so we'll just
+		// limit to one hour max.
+		intervalSecs = clamp(intervalSecs, 0, 3600)
+		s.stateSnapshotInterval = time.Duration(intervalSecs) * time.Second
+	} else {
+		// If the header field is either absent or invalid then we'll
+		// just choose zero, which effectively means that we'll just use
+		// the caller's requested interval instead. If the caller has no
+		// requested interval or it is zero, then we will disable snapshots.
+		s.stateSnapshotInterval = time.Duration(0)
+	}
+
+	// We will only enable snapshots for intervals greater than zero
+	s.enableIntermediateSnapshots = s.stateSnapshotInterval > 0
 }
 
 // tfeOutputToCtyValue decodes a combination of TFE output value and detailed-type to create a

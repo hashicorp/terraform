@@ -6,11 +6,7 @@ package cloud
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io/ioutil"
-	"net/http"
-	"net/http/httptest"
-	"strconv"
 	"testing"
 	"time"
 
@@ -294,98 +290,71 @@ func TestState_PersistState(t *testing.T) {
 			t.Error("state manager already has a nonzero snapshot interval")
 		}
 
+		if cloudState.enableIntermediateSnapshots {
+			t.Error("expected state manager to have disabled snapshots")
+		}
+
 		// For this test we'll use a real client talking to a fake server,
 		// since HTTP-level concerns like headers are out of scope for the
 		// mock client we typically use in other tests in this package, which
 		// aim to abstract away HTTP altogether.
 		var serverURL string
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			t.Log(r.Method, r.URL.String())
 
-			if r.URL.Path == "/state-json" {
-				t.Log("pretending to be Archivist")
-				fakeState := states.NewState()
-				fakeStateFile := statefile.New(fakeState, "boop", 1)
-				var buf bytes.Buffer
-				statefile.Write(fakeStateFile, &buf)
-				respBody := buf.Bytes()
-				w.Header().Set("content-type", "application/json")
-				w.Header().Set("content-length", strconv.FormatInt(int64(len(respBody)), 10))
-				w.WriteHeader(http.StatusOK)
-				w.Write(respBody)
-				return
-			}
-			if r.URL.Path == "/api/ping" {
-				t.Log("pretending to be Ping")
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
+		// Didn't want to repeat myself here
+		for _, testCase := range []struct {
+			expectedInterval time.Duration
+			snapshotsEnabled bool
+		}{
+			{
+				expectedInterval: 300 * time.Second,
+				snapshotsEnabled: true,
+			},
+			{
+				expectedInterval: 0 * time.Second,
+				snapshotsEnabled: false,
+			},
+		} {
+			server := testServerWithSnapshotsEnabled(t, serverURL, testCase.snapshotsEnabled)
 
-			fakeBody := map[string]any{
-				"data": map[string]any{
-					"type": "state-versions",
-					"attributes": map[string]any{
-						"hosted-state-download-url": serverURL + "/state-json",
-					},
-				},
+			defer server.Close()
+			serverURL = server.URL
+			cfg := &tfe.Config{
+				Address:  server.URL,
+				BasePath: "api",
+				Token:    "placeholder",
 			}
-			fakeBodyRaw, err := json.Marshal(fakeBody)
+			client, err := tfe.NewClient(cfg)
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.tfeClient = client
+
+			err = cloudState.RefreshState()
+			if err != nil {
+				t.Fatal(err)
+			}
+			cloudState.WriteState(states.BuildState(func(s *states.SyncState) {
+				s.SetOutputValue(
+					addrs.OutputValue{Name: "boop"}.Absolute(addrs.RootModuleInstance),
+					cty.StringVal("beep"), false,
+				)
+			}))
+
+			err = cloudState.PersistState(nil)
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			w.Header().Set("content-type", "application/json")
-			w.Header().Set("content-length", strconv.FormatInt(int64(len(fakeBodyRaw)), 10))
-
-			switch r.Method {
-			case "POST":
-				t.Log("pretending to be Create a State Version")
-				w.Header().Set("x-terraform-snapshot-interval", "300")
-				w.WriteHeader(http.StatusAccepted)
-			case "GET":
-				t.Log("pretending to be Fetch the Current State Version for a Workspace")
-				w.WriteHeader(http.StatusOK)
-			default:
-				t.Fatal("don't know what API operation this was supposed to be")
+			// The PersistState call above should have sent a request to the test
+			// server and got back the x-terraform-snapshot-interval header, whose
+			// value should therefore now be recorded in the relevant field.
+			if got := cloudState.stateSnapshotInterval; got != testCase.expectedInterval {
+				t.Errorf("wrong state snapshot interval after PersistState\ngot:  %s\nwant: %s", got, testCase.expectedInterval)
 			}
 
-			w.WriteHeader(http.StatusOK)
-			w.Write(fakeBodyRaw)
-		}))
-		defer server.Close()
-		serverURL = server.URL
-		cfg := &tfe.Config{
-			Address:  server.URL,
-			BasePath: "api",
-			Token:    "placeholder",
-		}
-		client, err := tfe.NewClient(cfg)
-		if err != nil {
-			t.Fatal(err)
-		}
-		cloudState.tfeClient = client
-
-		err = cloudState.RefreshState()
-		if err != nil {
-			t.Fatal(err)
-		}
-		cloudState.WriteState(states.BuildState(func(s *states.SyncState) {
-			s.SetOutputValue(
-				addrs.OutputValue{Name: "boop"}.Absolute(addrs.RootModuleInstance),
-				cty.StringVal("beep"), false,
-			)
-		}))
-
-		err = cloudState.PersistState(nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// The PersistState call above should have sent a request to the test
-		// server and got back the x-terraform-snapshot-interval header, whose
-		// value should therefore now be recorded in the relevant field.
-		if got, want := cloudState.stateSnapshotInterval, 300*time.Second; got != want {
-			t.Errorf("wrong state snapshot interval after PersistState\ngot:  %s\nwant: %s", got, want)
+			if got, want := cloudState.enableIntermediateSnapshots, testCase.snapshotsEnabled; got != want {
+				t.Errorf("expected disable intermediate snapshots to be\ngot: %t\nwant: %t", got, want)
+			}
 		}
 	})
 }

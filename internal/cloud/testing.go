@@ -4,6 +4,7 @@
 package cloud
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"path"
+	"strconv"
 	"testing"
 	"time"
 
@@ -29,6 +31,8 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
 	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
@@ -377,6 +381,67 @@ func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.
 	}
 
 	return httptest.NewServer(mux)
+}
+
+func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Log(r.Method, r.URL.String())
+
+		if r.URL.Path == "/state-json" {
+			t.Log("pretending to be Archivist")
+			fakeState := states.NewState()
+			fakeStateFile := statefile.New(fakeState, "boop", 1)
+			var buf bytes.Buffer
+			statefile.Write(fakeStateFile, &buf)
+			respBody := buf.Bytes()
+			w.Header().Set("content-type", "application/json")
+			w.Header().Set("content-length", strconv.FormatInt(int64(len(respBody)), 10))
+			w.WriteHeader(http.StatusOK)
+			w.Write(respBody)
+			return
+		}
+		if r.URL.Path == "/api/ping" {
+			t.Log("pretending to be Ping")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		fakeBody := map[string]any{
+			"data": map[string]any{
+				"type": "state-versions",
+				"attributes": map[string]any{
+					"hosted-state-download-url": serverURL + "/state-json",
+				},
+			},
+		}
+		fakeBodyRaw, err := json.Marshal(fakeBody)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		w.Header().Set("content-type", "application/json")
+		w.Header().Set("content-length", strconv.FormatInt(int64(len(fakeBodyRaw)), 10))
+
+		switch r.Method {
+		case "POST":
+			t.Log("pretending to be Create a State Version")
+			if enabled {
+				w.Header().Set("x-terraform-snapshot-interval", "300")
+			}
+			w.WriteHeader(http.StatusAccepted)
+		case "GET":
+			t.Log("pretending to be Fetch the Current State Version for a Workspace")
+			if enabled {
+				w.Header().Set("x-terraform-snapshot-interval", "300")
+			}
+			w.WriteHeader(http.StatusOK)
+		default:
+			t.Fatal("don't know what API operation this was supposed to be")
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(fakeBodyRaw)
+	}))
 }
 
 // testDefaultRequestHandlers is a map of request handlers intended to be used in a request
