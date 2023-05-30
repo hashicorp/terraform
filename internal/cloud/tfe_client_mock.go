@@ -1105,17 +1105,21 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
 	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
-		if r.IsDestroy ||
-			bytes.Contains(logs, []byte("1 to add, 0 to change, 0 to destroy")) ||
-			bytes.Contains(logs, []byte("1 to add, 1 to change, 0 to destroy")) {
+		hasChanges := r.IsDestroy ||
+			bytes.Contains(logs, []byte("1 to add")) ||
+			bytes.Contains(logs, []byte("1 to change")) ||
+			bytes.Contains(logs, []byte("1 to import"))
+		if hasChanges {
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
 			r.HasChanges = true
 			r.Permissions.CanApply = true
 		}
 
-		if bytes.Contains(logs, []byte("null_resource.foo: 1 error")) ||
-			bytes.Contains(logs, []byte("Error: Unsupported block type")) {
+		hasError := bytes.Contains(logs, []byte("null_resource.foo: 1 error")) ||
+			bytes.Contains(logs, []byte("Error: Unsupported block type")) ||
+			bytes.Contains(logs, []byte("Error: Conflicting configuration arguments"))
+		if hasError {
 			r.Actions.IsCancelable = false
 			r.HasChanges = false
 			r.Status = tfe.RunErrored
