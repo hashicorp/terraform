@@ -1,6 +1,8 @@
 package stackaddrs
 
 import (
+	"strings"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -38,6 +40,25 @@ func (s Stack) Child(name string) Stack {
 	ret := make([]StackStep, len(s), len(s)+1)
 	copy(ret, s)
 	return append(ret, StackStep{name})
+}
+
+func (s Stack) String() string {
+	if s.IsRoot() {
+		// Callers should typically not ask for the string representation of
+		// the main root stack, but we'll return a reasonable placeholder
+		// for situations like e.g. internal logs where we just fmt %s in an
+		// arbitrary stack address that is sometimes the main stack.
+		return "<main>"
+	}
+	var buf strings.Builder
+	for i, step := range s {
+		if i != 0 {
+			buf.WriteByte('.')
+		}
+		buf.WriteString("stack.")
+		buf.WriteString(step.Name)
+	}
+	return buf.String()
 }
 
 // StackInstance represents the address of an instance of a stack within
@@ -106,4 +127,26 @@ func (s StackInstance) ConfigAddr() Stack {
 		ret[i] = StackStep{Name: step.Name}
 	}
 	return ret
+}
+
+func (s StackInstance) String() string {
+	if s.IsRoot() {
+		// Callers should typically not ask for the string representation of
+		// the main root stack, but we'll return a reasonable placeholder
+		// for situations like e.g. internal logs where we just fmt %s in an
+		// arbitrary stack address that is sometimes the main stack.
+		return "<main>"
+	}
+	var buf strings.Builder
+	for i, step := range s {
+		if i != 0 {
+			buf.WriteByte('.')
+		}
+		buf.WriteString("stack.")
+		buf.WriteString(step.Name)
+		if step.Key != nil {
+			buf.WriteString(step.Key.String())
+		}
+	}
+	return buf.String()
 }

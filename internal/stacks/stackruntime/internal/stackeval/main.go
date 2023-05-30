@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 )
@@ -28,6 +29,8 @@ type Main struct {
 	mu              sync.Mutex
 	mainStackConfig *StackConfig
 }
+
+var _ namedPromiseReporter = (*Main)(nil)
 
 type mainPlanning struct {
 	opts PlanOpts
@@ -83,4 +86,13 @@ func (m *Main) StackCallConfig(ctx context.Context, addr stackaddrs.ConfigStackC
 		return nil
 	}
 	return caller.StackCall(ctx, addr.Item)
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (m *Main) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.mainStackConfig != nil {
+		m.mainStackConfig.reportNamedPromises(cb)
+	}
 }

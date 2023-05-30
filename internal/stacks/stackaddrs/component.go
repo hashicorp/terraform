@@ -30,6 +30,13 @@ type ComponentInstance struct {
 func (ComponentInstance) inStackConfigSigil()   {}
 func (ComponentInstance) inStackInstanceSigil() {}
 
+func (c ComponentInstance) String() string {
+	if c.Key == nil {
+		return c.Component.String()
+	}
+	return c.Component.String() + c.Key.String()
+}
+
 // ConfigComponentInstance places a [ComponentInstance] in the context of a
 // particular [Stack].
 type ConfigComponentInstance = InStackConfig[ComponentInstance]

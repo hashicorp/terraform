@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -34,6 +35,7 @@ type StackConfig struct {
 }
 
 var _ ExpressionScope = (*StackConfig)(nil)
+var _ namedPromiseReporter = (*StackConfig)(nil)
 
 func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.ConfigNode) *StackConfig {
 	return &StackConfig{
@@ -177,5 +179,21 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			Subject:  ref.SourceRange.ToHCL().Ptr(),
 		})
 		return nil, diags
+	}
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for _, child := range s.children {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.inputVariables {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.stackCalls {
+		child.reportNamedPromises(cb)
 	}
 }

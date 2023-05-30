@@ -25,8 +25,9 @@ type StackCallConfig struct {
 	inputVariableValues promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]
 }
 
-var _ Validatable = (*InputVariableConfig)(nil)
+var _ Validatable = (*StackCallConfig)(nil)
 var _ ExpressionScope = (*StackCallConfig)(nil)
+var _ namedPromiseReporter = (*StackCallConfig)(nil)
 
 func newStackCallConfig(main *Main, addr stackaddrs.ConfigStackCall, config *stackconfig.EmbeddedStack) *StackCallConfig {
 	return &StackCallConfig{
@@ -198,4 +199,9 @@ func (s *StackCallConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 		s.ValidateInputVariableValues(ctx),
 	)
 	return diags
+}
+
+// reportNamedPromises implements namedPromiseReporter.
+func (s *StackCallConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(s.inputVariableValues.PromiseID(), s.Addr().String()+" inputs")
 }

@@ -1,6 +1,8 @@
 package stackaddrs
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -31,6 +33,10 @@ type ProviderConfig struct {
 func (ProviderConfig) inStackConfigSigil()   {}
 func (ProviderConfig) inStackInstanceSigil() {}
 
+func (c ProviderConfig) String() string {
+	return fmt.Sprintf("provider[%q].%s", c.Provider, c.Name)
+}
+
 // ConfigProviderConfig places a [ProviderConfig] in the context of a particular [Stack].
 type ConfigProviderConfig = InStackConfig[ProviderConfig]
 
@@ -47,6 +53,13 @@ type ProviderConfigInstance struct {
 
 func (ProviderConfigInstance) inStackConfigSigil()   {}
 func (ProviderConfigInstance) inStackInstanceSigil() {}
+
+func (c ProviderConfigInstance) String() string {
+	if c.Key == nil {
+		return c.ProviderConfig.String()
+	}
+	return c.ProviderConfig.String() + c.Key.String()
+}
 
 // ConfigProviderConfigInstance places a [ProviderConfigInstance] in the context of a particular [Stack].
 type ConfigProviderConfigInstance = InStackConfig[ProviderConfigInstance]
