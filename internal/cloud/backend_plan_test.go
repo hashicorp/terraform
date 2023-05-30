@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -1255,6 +1256,132 @@ func TestCloud_planOtherError(t *testing.T) {
 	}
 }
 
+func TestCloud_planImportConfigGeneration(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-import-config-gen")
+	defer configCleanup()
+	defer done(t)
+
+	genPath := filepath.Join(op.ConfigDir, "generated.tf")
+	op.GenerateConfigOut = genPath
+	defer os.Remove(genPath)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
+	}
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
+	}
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "1 to import, 0 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after the operation finished
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after successful plan: %s", err.Error())
+	}
+
+	testFileEquals(t, genPath, filepath.Join(op.ConfigDir, "generated.tf.expected"))
+}
+
+func TestCloud_planImportGenerateInvalidConfig(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-import-config-gen-validation-error")
+	defer configCleanup()
+	defer done(t)
+
+	genPath := filepath.Join(op.ConfigDir, "generated.tf")
+	op.GenerateConfigOut = genPath
+	defer os.Remove(genPath)
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	if run.Result != backend.OperationFailure {
+		t.Fatalf("expected operation to fail")
+	}
+	if run.Result.ExitStatus() != 1 {
+		t.Fatalf("expected exit code 1, got %d", run.Result.ExitStatus())
+	}
+
+	outp := close(t)
+	gotOut := outp.Stdout()
+
+	if !strings.Contains(gotOut, "Conflicting configuration arguments") {
+		t.Fatalf("Expected error in output: %s", gotOut)
+	}
+
+	testFileEquals(t, genPath, filepath.Join(op.ConfigDir, "generated.tf.expected"))
+}
+
+func TestCloud_planInvalidGenConfigOutPath(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationPlan(t, "./testdata/plan-import-config-gen-exists")
+	defer configCleanup()
+
+	genPath := filepath.Join(op.ConfigDir, "generated.tf")
+	op.GenerateConfigOut = genPath
+
+	op.Workspace = testBackendSingleWorkspaceName
+
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := done(t)
+	if run.Result == backend.OperationSuccess {
+		t.Fatal("expected plan operation to fail")
+	}
+
+	errOutput := output.Stderr()
+	if !strings.Contains(errOutput, "generated file already exists") {
+		t.Fatalf("expected configuration files error, got: %v", errOutput)
+	}
+}
+
 func TestCloud_planShouldRenderSRO(t *testing.T) {
 	t.Run("when instance is TFC", func(t *testing.T) {
 		handlers := map[string]func(http.ResponseWriter, *http.Request){
@@ -1369,5 +1496,23 @@ func assertSRORendered(t *testing.T, b *Cloud, r *tfe.Run, shouldRender bool) {
 	}
 	if shouldRender != got {
 		t.Fatalf("expected SRO to be rendered: %t, got %t", shouldRender, got)
+	}
+}
+
+func testFileEquals(t *testing.T, got, want string) {
+	t.Helper()
+
+	actual, err := os.ReadFile(got)
+	if err != nil {
+		t.Fatalf("error reading %s", got)
+	}
+
+	expected, err := os.ReadFile(want)
+	if err != nil {
+		t.Fatalf("error reading %s", want)
+	}
+
+	if diff := cmp.Diff(string(actual), string(expected)); len(diff) > 0 {
+		t.Fatalf("got:\n%s\nwant:\n%s\ndiff:\n%s", actual, expected, diff)
 	}
 }
