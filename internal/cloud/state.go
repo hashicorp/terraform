@@ -69,9 +69,9 @@ type State struct {
 	// not effect final snapshots after an operation, which will always
 	// be written to the remote API.
 	stateSnapshotInterval time.Duration
-	// If the header, X-Terraform-Snapshot-Interval is not present then
-	// we will disable snapshots
-	disableIntermediateSnapshots bool
+	// If the header X-Terraform-Snapshot-Interval is present then
+	// we will enable snapshots
+	enableIntermediateSnapshots bool
 }
 
 var ErrStateVersionUnauthorizedUpgradeState = errors.New(strings.TrimSpace(`
@@ -247,7 +247,7 @@ func (s *State) ShouldPersistIntermediateState(info *local.IntermediateStatePers
 		return true
 	}
 
-	if s.disableIntermediateSnapshots && info.RequestedPersistInterval == time.Duration(0) {
+	if !s.enableIntermediateSnapshots && info.RequestedPersistInterval == time.Duration(0) {
 		return false
 	}
 
@@ -535,31 +535,33 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	return result, nil
 }
 
+func clamp(val, min, max int64) int64 {
+	if val < min {
+		return min
+	} else if val > max {
+		return max
+	}
+	return val
+}
+
 func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
 	intervalStr := header.Get("x-terraform-snapshot-interval")
 
 	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
-		if intervalSecs > 3600 {
-			// More than an hour is an unreasonable delay, so we'll just
-			// saturate at one hour.
-			intervalSecs = 3600
-		} else if intervalSecs < 0 {
-			intervalSecs = 0
-		}
+		// More than an hour is an unreasonable delay, so we'll just
+		// limit to one hour max.
+		intervalSecs = clamp(intervalSecs, 0, 3600)
 		s.stateSnapshotInterval = time.Duration(intervalSecs) * time.Second
-
-		// We will only enable snapshots for intervals greater than zero
-		if intervalSecs > 0 {
-			s.disableIntermediateSnapshots = false
-		}
 	} else {
 		// If the header field is either absent or invalid then we'll
 		// just choose zero, which effectively means that we'll just use
 		// the caller's requested interval instead. If the caller has no
 		// requested interval or it is zero, then we will disable snapshots.
 		s.stateSnapshotInterval = time.Duration(0)
-		s.disableIntermediateSnapshots = true
 	}
+
+	// We will only enable snapshots for intervals greater than zero
+	s.enableIntermediateSnapshots = s.stateSnapshotInterval > 0
 }
 
 // tfeOutputToCtyValue decodes a combination of TFE output value and detailed-type to create a

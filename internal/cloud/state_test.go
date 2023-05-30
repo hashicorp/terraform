@@ -290,7 +290,7 @@ func TestState_PersistState(t *testing.T) {
 			t.Error("state manager already has a nonzero snapshot interval")
 		}
 
-		if !cloudState.disableIntermediateSnapshots {
+		if cloudState.enableIntermediateSnapshots {
 			t.Error("expected state manager to have disabled snapshots")
 		}
 
@@ -352,7 +352,7 @@ func TestState_PersistState(t *testing.T) {
 				t.Errorf("wrong state snapshot interval after PersistState\ngot:  %s\nwant: %s", got, testCase.expectedInterval)
 			}
 
-			if got, want := cloudState.disableIntermediateSnapshots, !testCase.snapshotsEnabled; got != want {
+			if got, want := cloudState.enableIntermediateSnapshots, testCase.snapshotsEnabled; got != want {
 				t.Errorf("expected disable intermediate snapshots to be\ngot: %t\nwant: %t", got, want)
 			}
 		}
