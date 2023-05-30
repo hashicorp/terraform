@@ -1011,16 +1011,17 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	}
 
 	r := &tfe.Run{
-		ID:           GenerateID("run-"),
-		Actions:      &tfe.RunActions{IsCancelable: true},
-		Apply:        a,
-		CostEstimate: ce,
-		HasChanges:   false,
-		Permissions:  &tfe.RunPermissions{},
-		Plan:         p,
-		ReplaceAddrs: options.ReplaceAddrs,
-		Status:       tfe.RunPending,
-		TargetAddrs:  options.TargetAddrs,
+		ID:                    GenerateID("run-"),
+		Actions:               &tfe.RunActions{IsCancelable: true},
+		Apply:                 a,
+		CostEstimate:          ce,
+		HasChanges:            false,
+		Permissions:           &tfe.RunPermissions{},
+		Plan:                  p,
+		ReplaceAddrs:          options.ReplaceAddrs,
+		Status:                tfe.RunPending,
+		TargetAddrs:           options.TargetAddrs,
+		AllowConfigGeneration: options.AllowConfigGeneration,
 	}
 
 	if options.Message != nil {
@@ -1041,6 +1042,10 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 
 	if options.RefreshOnly != nil {
 		r.RefreshOnly = *options.RefreshOnly
+	}
+
+	if options.AllowConfigGeneration != nil && *options.AllowConfigGeneration == true {
+		r.Plan.GeneratedConfiguration = true
 	}
 
 	w, ok := m.client.Workspaces.workspaceIDs[options.Workspace.ID]

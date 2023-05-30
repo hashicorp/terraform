@@ -5,12 +5,18 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func ValidateTargetFile(out string) tfdiags.Diagnostics {
-	var diags tfdiags.Diagnostics
+func ShouldWriteConfig(out string) bool {
+	if len(out) == 0 {
+		// No specified out file, so don't write anything.
+		return false
+	}
+	return true
+}
+
+func ValidateTargetFile(out string) (diags tfdiags.Diagnostics) {
 	if _, err := os.Stat(out); !os.IsNotExist(err) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -21,68 +27,56 @@ func ValidateTargetFile(out string) tfdiags.Diagnostics {
 	return diags
 }
 
-func MaybeWriteGeneratedConfig(plan *plans.Plan, out string) (wroteConfig bool, diags tfdiags.Diagnostics) {
-	if len(out) == 0 {
-		// No specified out file, so don't write anything.
-		return false, nil
-	}
+type Change struct {
+	Addr            string
+	ImportID        string
+	GeneratedConfig string
+}
 
-	diags = ValidateTargetFile(out)
-	if diags.HasErrors() {
-		return false, diags
-	}
-
-	var writer io.Writer
-
-	for _, change := range plan.Changes.Resources {
-		if len(change.GeneratedConfig) > 0 {
-			if writer == nil {
-				// Lazily create the generated file, in case we have no
-				// generated config to create.
-				var err error
-				if writer, err = os.Create(out); err != nil {
-					if os.IsPermission(err) {
-						diags = diags.Append(tfdiags.Sourceless(
-							tfdiags.Error,
-							"Failed to create target generated file",
-							fmt.Sprintf("Terraform did not have permission to create the generated file (%s) in the target directory. Please modify permissions over the target directory, and try again.", out)))
-						return false, diags
-					}
-
+func (c *Change) MaybeWriteConfig(writer io.Writer, out string) (io.Writer, bool, tfdiags.Diagnostics) {
+	var wroteConfig bool
+	var diags tfdiags.Diagnostics
+	if len(c.GeneratedConfig) > 0 {
+		if writer == nil {
+			// Lazily create the generated file, in case we have no
+			// generated config to create.
+			if w, err := os.Create(out); err != nil {
+				if os.IsPermission(err) {
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Failed to create target generated file",
-						fmt.Sprintf("Terraform could not create the generated file (%s) in the target directory: %v. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", out, err)))
-					return false, diags
+						fmt.Sprintf("Terraform did not have permission to create the generated file (%s) in the target directory. Please modify permissions over the target directory, and try again.", out)))
+					return nil, false, diags
 				}
 
-				header := "# __generated__ by Terraform\n# Please review these resources and move them into your main configuration files.\n"
-				// Missing the header from the file, isn't the end of the world
-				// so if this did return an error, then we will just ignore it.
-				_, _ = writer.Write([]byte(header))
-			}
-
-			header := "\n# __generated__ by Terraform"
-			if change.Importing != nil && len(change.Importing.ID) > 0 {
-				header += fmt.Sprintf(" from %q", change.Importing.ID)
-			}
-			header += "\n"
-			if _, err := writer.Write([]byte(fmt.Sprintf("%s%s\n", header, change.GeneratedConfig))); err != nil {
 				diags = diags.Append(tfdiags.Sourceless(
-					tfdiags.Warning,
-					"Failed to save generated config",
-					fmt.Sprintf("Terraform encountered an error while writing generated config: %v. The config for %s must be created manually before applying. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", err, change.Addr.String())))
+					tfdiags.Error,
+					"Failed to create target generated file",
+					fmt.Sprintf("Terraform could not create the generated file (%s) in the target directory: %v. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", out, err)))
+				return nil, false, diags
+			} else {
+				writer = w
 			}
-			wroteConfig = true
+
+			header := "# __generated__ by Terraform\n# Please review these resources and move them into your main configuration files.\n"
+			// Missing the header from the file, isn't the end of the world
+			// so if this did return an error, then we will just ignore it.
+			_, _ = writer.Write([]byte(header))
 		}
+
+		header := "\n# __generated__ by Terraform"
+		if len(c.ImportID) > 0 {
+			header += fmt.Sprintf(" from %q", c.ImportID)
+		}
+		header += "\n"
+		if _, err := writer.Write([]byte(fmt.Sprintf("%s%s\n", header, c.GeneratedConfig))); err != nil {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Warning,
+				"Failed to save generated config",
+				fmt.Sprintf("Terraform encountered an error while writing generated config: %v. The config for %s must be created manually before applying. Depending on the error message, this may be a bug in Terraform itself. If so, please report it!", err, c.Addr)))
+		}
+		wroteConfig = true
 	}
 
-	if wroteConfig {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Warning,
-			"Config generation is experimental",
-			"Generating configuration during import is currently experimental, and the generated configuration format may change in future versions."))
-	}
-
-	return wroteConfig, diags
+	return writer, wroteConfig, diags
 }
