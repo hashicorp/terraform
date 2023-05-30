@@ -45,14 +45,14 @@ func TestCloud_loadErrorWhenJSONValsEmptyBasic(t *testing.T) {
 func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
 	// remote_plan_format must be set to 1
 	// remote_plan_format and format version number are used interchangeably
-	validVersions := 1
+	validVersion := 1
 	file := "./testdata/plan-bookmark/wrong_version.json"
 	result, err := LoadSavedPlanBookmark(file)
-	if err != nil {
+	if err == nil {
 		t.Fatal(err)
 	}
 
-	if result.RemotePlanFormat != validVersions {
+	if result.RemotePlanFormat != validVersion {
 		t.Fatal("invalid format version: ", result.RemotePlanFormat)
 	}
 }
