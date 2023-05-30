@@ -20,8 +20,11 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
+	version "github.com/hashicorp/go-version"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -235,6 +238,10 @@ in order to capture the filesystem context the remote workspace expects:
 	if configDiags.HasErrors() {
 		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
 	}
+	if err := b.AssertImportCompatible(config); err != nil {
+		return nil, err
+	}
+
 	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
 
 	if varDiags.HasErrors() {
@@ -360,6 +367,39 @@ in order to capture the filesystem context the remote workspace expects:
 	}
 
 	return r, nil
+}
+
+// AssertImportCompatible errors if the user is attempting to use configuration-
+// driven import and the version of the agent or API is too low to support it.
+func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
+	// Check TFC_RUN_ID is populated, indicating we are running in a remote TFC
+	// execution environment.
+	if len(config.Module.Import) > 0 && os.Getenv("TFC_RUN_ID") != "" {
+		// First, check the remote API version is high enough.
+		currentAPIVersion, err := version.NewVersion(b.client.RemoteAPIVersion())
+		if err != nil {
+			return fmt.Errorf("Error parsing remote API version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+		}
+		desiredAPIVersion, _ := version.NewVersion("2.6")
+		if currentAPIVersion.LessThan(desiredAPIVersion) {
+			return fmt.Errorf("Import blocks not available in this version of Terraform. You are using API version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade TFC.", currentAPIVersion, desiredAPIVersion)
+		}
+
+		// Second, check the agent version is high enough.
+		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
+		if !isSet {
+			return fmt.Errorf("Error reading TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+		}
+		currentAgentVersion, err := version.NewVersion(agentEnv)
+		if err != nil {
+			return fmt.Errorf("Error parsing TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+		}
+		desiredAgentVersion, _ := version.NewVersion("1.10")
+		if currentAgentVersion.LessThan(desiredAgentVersion) {
+			return fmt.Errorf("Import blocks not available in this version of Terraform. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade TFC.", currentAgentVersion, desiredAgentVersion)
+		}
+	}
+	return nil
 }
 
 // renderPlanLogs reads the streamed plan JSON logs and calls the JSON Plan renderer (jsonformat.RenderPlan) to
