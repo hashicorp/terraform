@@ -23,4 +23,4 @@ runs:
       # complex for automation.
       run: |
         echo "Building with Go $(cat .go-version)"
-        echo "::set-output name=version::$(cat .go-version)"
+        echo "version=$(cat .go-version)" >> "$GITHUB_OUTPUT"
