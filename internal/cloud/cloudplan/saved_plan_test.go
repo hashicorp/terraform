@@ -4,7 +4,6 @@
 package cloudplan
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -22,7 +21,6 @@ func TestCloud_loadBasic(t *testing.T) {
 
 	testFile := "./testdata/plan-bookmark/bookmark.json"
 	result, err := LoadSavedPlanBookmark(testFile)
-	fmt.Println()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,6 +28,34 @@ func TestCloud_loadBasic(t *testing.T) {
 	if diff := cmp.Diff(bookmark, result, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
 	}
+}
+
+func TestCloud_loadIsSavedPlanBasic(t *testing.T) {
+	// JSON must include hostname, run ID, version
+}
+
+func TestCloud_loadErrorWhenJSONEmptyBasic(t *testing.T) {
+	// JSON must not be empty
+
+	bookmark := SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            "run-GXfuHMkbyHccAGUg",
+		Hostname:         "app.terraform.io",
+	}
+
+	testFile := "./testdata/plan-bookmark/empty.json"
+	result, err := LoadSavedPlanBookmark(testFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(bookmark, result, cmp.Comparer(cty.Value.RawEquals)); diff != "" {
+		t.Errorf("cannot load empty JSON \n%s", diff)
+	}
+}
+
+func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
+	// version number must be 1
 }
 
 func TestCloud_saveWhenFileExistsBasic(t *testing.T) {
@@ -68,6 +94,5 @@ func TestCloud_saveWhenFileDoesNotExistBasic(t *testing.T) {
 	err := b.Save(filepath.Join(tmpDir, "create-new-file.txt"))
 	if err != nil {
 		t.Fatal(err)
-
 	}
 }
