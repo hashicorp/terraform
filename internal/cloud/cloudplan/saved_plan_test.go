@@ -52,7 +52,7 @@ func TestCloud_loadCheckHostname(t *testing.T) {
 func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
 	// remote_plan_format must be set to 1
 	// remote_plan_format and format version number are used interchangeably
-	file := "./testdata/plan-bookmark/wrong_version.json"
+	file := "./testdata/plan-bookmark/invalid_version.json"
 	_, err := LoadSavedPlanBookmark(file)
 	if !errors.Is(err, ErrInvalidRemotePlanFormat) {
 		t.Fatalf("expected %s but got %s", ErrInvalidRemotePlanFormat, err)
