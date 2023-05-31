@@ -13,6 +13,8 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -21,7 +23,6 @@ import (
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestContext2Plan_removedDuringRefresh(t *testing.T) {
@@ -4886,5 +4887,56 @@ import {
 	got := instPlan.GeneratedConfig
 	if diff := cmp.Diff(want, got); len(diff) > 0 {
 		t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
+func TestContext2Plan_plannedState(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+resource "test_object" "a" {
+	test_string = "foo"
+}
+
+locals {
+  local_value = test_object.a.test_string
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	state := states.NewState()
+	plan, diags := ctx.Plan(m, state, nil)
+	if diags.HasErrors() {
+		t.Errorf("expected no errors, but got %s", diags)
+	}
+
+	module := state.RootModule()
+
+	// So, the original state shouldn't have been updated at all.
+	if len(module.LocalValues) > 0 {
+		t.Errorf("expected no local values in the state but found %d", len(module.LocalValues))
+	}
+
+	if len(module.Resources) > 0 {
+		t.Errorf("expected no resources in the state but found %d", len(module.LocalValues))
+	}
+
+	// But, this makes it hard for the testing framework to valid things about
+	// the returned plan. So, the plan contains the planned state:
+	module = plan.PlannedState.RootModule()
+
+	if module.LocalValues["local_value"].AsString() != "foo" {
+		t.Errorf("expected local value to be \"foo\" but was \"%s\"", module.LocalValues["local_value"].AsString())
+	}
+
+	if module.ResourceInstance(addr.Resource).Current.Status != states.ObjectPlanned {
+		t.Errorf("expected resource to be in planned state")
 	}
 }

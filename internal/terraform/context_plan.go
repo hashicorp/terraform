@@ -74,6 +74,11 @@ type PlanOpts struct {
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 
+	// ExternalReferences allows the external caller to pass in references to
+	// nodes that should not be pruned even if they are not referenced within
+	// the actual graph.
+	ExternalReferences []*addrs.Reference
+
 	// ImportTargets is a list of target resources to import. These resources
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
@@ -644,13 +649,15 @@ func (c *Context) planWalk(config *configs.Config, prevRunState *states.State, o
 	diags = diags.Append(driftDiags)
 
 	plan := &plans.Plan{
-		UIMode:           opts.Mode,
-		Changes:          changes,
-		DriftedResources: driftedResources,
-		PrevRunState:     prevRunState,
-		PriorState:       priorState,
-		Checks:           states.NewCheckResults(walker.Checks),
-		Timestamp:        timestamp,
+		UIMode:             opts.Mode,
+		Changes:            changes,
+		DriftedResources:   driftedResources,
+		PrevRunState:       prevRunState,
+		PriorState:         priorState,
+		PlannedState:       walker.State.Close(),
+		ExternalReferences: opts.ExternalReferences,
+		Checks:             states.NewCheckResults(walker.Checks),
+		Timestamp:          timestamp,
 
 		// Other fields get populated by Context.Plan after we return
 	}
@@ -670,6 +677,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:        opts.SkipRefresh,
 			preDestroyRefresh:  opts.PreDestroyRefresh,
 			Operation:          walkPlan,
+			ExternalReferences: opts.ExternalReferences,
 			ImportTargets:      opts.ImportTargets,
 			GenerateConfigPath: opts.GenerateConfigPath,
 		}).Build(addrs.RootModuleInstance)
@@ -684,6 +692,7 @@ func (c *Context) planGraph(config *configs.Config, prevRunState *states.State, 
 			skipRefresh:        opts.SkipRefresh,
 			skipPlanChanges:    true, // this activates "refresh only" mode.
 			Operation:          walkPlan,
+			ExternalReferences: opts.ExternalReferences,
 		}).Build(addrs.RootModuleInstance)
 		return graph, walkPlan, diags
 	case plans.DestroyMode:
