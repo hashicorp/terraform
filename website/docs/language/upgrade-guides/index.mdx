@@ -1,32 +1,56 @@
 ---
-page_title: Upgrading to Terraform v1.4
-description: Upgrading to Terraform v1.4
+page_title: Upgrading to Terraform v1.5
+description: Upgrading to Terraform v1.5
 ---
 
-# Upgrading to Terraform v1.4
+# Upgrading to Terraform v1.5
 
 -> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
 
-Terraform v1.4 is a minor release in the stable Terraform v1.0 series.
+Terraform v1.5 is a minor release in the stable Terraform v1.0 series.
 
-Terraform v1.4 honors the [Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises), but there are some behavior changes outside of those promises that may affect a small number of users. Specifically, the following updates may require additional upgrade steps:
-* **Important** [Provider caching workflow change during `terraform init`](#provider-caching-during-terraform-init)
-* [Hostname interpretation during `terraform init`](#hostname-interpretation-during-terraform-init)
+Terraform v1.5 honors the
+[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
+but there are some behavior changes outside of those promises that may affect a
+small number of users. Specifically, the following updates may require
+additional upgrade steps:
+* [End of support for older macOS releases](#end-of-support-for-older-macos-releases)
+* [Linux DNS resolver changes](#linux-dns-resolver-changes)
 
-See the full [changelog for more details](https://github.com/hashicorp/terraform/blob/v1.4/CHANGELOG.md). If you encounter any problems during upgrading which are not by this guide, or if the migration instructions don't work for you, please start a topic in [the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core/27) to discuss it.
+See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+for more details. If you encounter any problems during upgrading which are not
+covered this guide, please start a new topic in
+[the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
+to discuss it.
 
-## Provider caching during terraform init
+## End of support for older macOS releases
 
-**_This change affects those who rely upon global provider caching and not the dependency lock file._**
+Terraform v1.5 will be the last release supported on macOS 10.13 High Sierra
+and macOS 10.14 Mojave, both of which are no longer maintained by Apple.
 
-`terraform init` now ignores entries in the optional global provider cache directory unless they match a checksum already tracked in the current configuration's dependency lock file. 
+Terraform v1.5 itself supports these older macOS versions, but we strongly
+recommend upgrading during the v1.5 release period so that you'll be ready to
+use Terraform v1.6 once it is released.
 
-Before this change Terraform could not determine the full set of checksums to include in the lockfile when installing a new provider for the first time. Now it can. Once the lock file has been updated to include a checksum covering the item in the global cache, Terraform will then use the cache entry for subsequent installation of the same provider package. 
+## Linux DNS resolver changes
 
-For more details and how to keep using the prior undesirable behavior, please see the [documentation](/terraform/cli/config/config-file#allowing-the-provider-plugin-cache-to-break-the-dependency-lock-file).
+Terraform on Linux uses a built-in DNS resolver rather than using the DNS
+resolver from the platform's C library, because this allows Terraform to run
+on systems with many different C libraries.
 
-## Hostname interpretation during terraform init
+In Terraform v1.5, the DNS resolver will now notice when you have set the
+`trust-ad` option in your `/etc/resolve.conf` file, and will respond by setting
+the "authentic data" option in outgoing DNS requests to better match the
+behavior of the GNU libc DNS resolver.
 
-When interpreting the hostname portion of a provider source address or the address of a module in a module registry, Terraform now uses non-transitional IDNA2008 mapping rules instead of the transitional mapping rules. Terraform no longer accepts the characters `ß` (U+00DF, "LATIN SMALL LETTER SHARP S") and `ς` (U+03C2, "GREEK SMALL LETTER FINAL SIGMA") Use the available alternative forms for both characters instead.
+Terraform does not pay any attention to the corresponding option in responses,
+but some DNSSEC-aware recursive resolvers return different responses when the
+request option isn't set. This should therefore avoid some potential situations
+where a DNS request from Terraform might get a different response than a
+similar request from other software on your system.
 
-This change better adheres to the [the WHATWG URL spec's rules for interpreting non-ASCII domain names](https://url.spec.whatwg.org/#concept-domain-to-ascii). Terraform tries to interpret host names the same way that web browsers do. For some hostnames containing non-ASCII characters this may cause Terraform to now request a different "punycode" hostname when resolving. 
+We don't expect this behavior change to be significant for most Terraform users.
+
+Note that this change affects only DNS requests made by Terraform CLI itself,
+and not requests made by providers. Provider plugins are separate programs
+which handle DNS resolution themselves and so may have different behavior.
