@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -170,6 +171,12 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	// TODO: We could actually catch and process these kind of problems earlier,
 	//   this is something that could be done during the Validate process.
 	for _, i := range importTargets {
+		// The case in which an unmatched import block targets an expanded
+		// resource instance can error here. Others can error later.
+		if i.Addr.Resource.Key != addrs.NoKey {
+			return fmt.Errorf("Config generation for count and for_each resources not supported.\n\nYour configuration contains an import block with a \"to\" address of %s. This resource instance does not exist in configuration.\n\nIf you intended to target a resource that exists in configuration, please double-check the address. Otherwise, please remove this import block or re-run the plan without the -generate-config-out flag to ignore the import block.", i.Addr)
+		}
+
 		abstract := &NodeAbstractResource{
 			Addr:               i.Addr.ConfigResource(),
 			importTargets:      []*ImportTarget{i},

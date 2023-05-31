@@ -4784,6 +4784,47 @@ import {
 	})
 }
 
+func TestContext2Plan_importResourceConfigGenExpandedResource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to       = test_object.a[0]
+  id       = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf",
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("expected plan to error, but it did not")
+	}
+}
+
 // config generation still succeeds even when planning fails
 func TestContext2Plan_importResourceConfigGenWithError(t *testing.T) {
 	addr := mustResourceInstanceAddr("test_object.a")
