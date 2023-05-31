@@ -560,7 +560,7 @@ func shouldRenderPlan(run *tfe.Run) bool {
 
 func shouldGenerateConfig(out string, run *tfe.Run) bool {
 	return (run.Plan.Status == tfe.PlanErrored || run.Plan.Status == tfe.PlanFinished) &&
-		run.Plan.GeneratedConfiguration == true && len(out) > 0
+		run.Plan.GeneratedConfiguration && len(out) > 0
 }
 
 const planDefaultHeader = `

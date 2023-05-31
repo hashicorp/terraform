@@ -9,11 +9,8 @@ import (
 )
 
 func ShouldWriteConfig(out string) bool {
-	if len(out) == 0 {
-		// No specified out file, so don't write anything.
-		return false
-	}
-	return true
+	// No specified out file, so don't write anything.
+	return len(out) != 0
 }
 
 func ValidateTargetFile(out string) (diags tfdiags.Diagnostics) {

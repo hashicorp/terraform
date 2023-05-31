@@ -1044,7 +1044,7 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 		r.RefreshOnly = *options.RefreshOnly
 	}
 
-	if options.AllowConfigGeneration != nil && *options.AllowConfigGeneration == true {
+	if options.AllowConfigGeneration != nil && *options.AllowConfigGeneration {
 		r.Plan.GeneratedConfiguration = true
 	}
 
