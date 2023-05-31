@@ -4,6 +4,7 @@
 package cloudplan
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,29 +31,31 @@ func TestCloud_loadBasic(t *testing.T) {
 	}
 }
 
-func TestCloud_loadIsSavedPlanBasic(t *testing.T) {
-	// JSON must include hostname, run ID, version
+func TestCloud_loadCheckRunID(t *testing.T) {
+	// Run ID must never be empty
+	file := "./testdata/plan-bookmark/empty_run_id.json"
+	_, err := LoadSavedPlanBookmark(file)
+	if !errors.Is(err, ErrInvalidRunID) {
+		t.Fatalf("expected %s but got %s", ErrInvalidRunID, err)
+	}
 }
 
-func TestCloud_loadErrorWhenJSONEmptyBasic(t *testing.T) {
-	// loaded file should never be empty
-}
-
-func TestCloud_loadErrorWhenJSONValsEmptyBasic(t *testing.T) {
-	// JSON values should never be empty
+func TestCloud_loadCheckHostname(t *testing.T) {
+	// Hostname must never be empty
+	file := "./testdata/plan-bookmark/empty_hostname.json"
+	_, err := LoadSavedPlanBookmark(file)
+	if !errors.Is(err, ErrInvalidHostname) {
+		t.Fatalf("expected %s but got %s", ErrInvalidHostname, err)
+	}
 }
 
 func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
 	// remote_plan_format must be set to 1
 	// remote_plan_format and format version number are used interchangeably
-	validVersion := 1
 	file := "./testdata/plan-bookmark/wrong_version.json"
-	result, err := LoadSavedPlanBookmark(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.RemotePlanFormat != validVersion {
-		t.Fatal("invalid format version: ", result.RemotePlanFormat)
+	_, err := LoadSavedPlanBookmark(file)
+	if !errors.Is(err, ErrInvalidRemotePlanFormat) {
+		t.Fatalf("expected %s but got %s", ErrInvalidRemotePlanFormat, err)
 	}
 }
 

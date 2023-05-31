@@ -4,10 +4,15 @@ package cloudplan
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 )
+
+var ErrInvalidRemotePlanFormat = errors.New("invalid remote plan format, must be 1")
+var ErrInvalidRunID = errors.New("invalid run ID")
+var ErrInvalidHostname = errors.New("invalid hostname")
 
 type SavedPlanBookmark struct {
 	RemotePlanFormat int    `json:"remote_plan_format"`
@@ -38,11 +43,11 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	}
 
 	if bookmark.RemotePlanFormat != 1 {
-		return bookmark, err
+		return bookmark, ErrInvalidRemotePlanFormat
 	} else if bookmark.Hostname == "" {
-		return bookmark, err
+		return bookmark, ErrInvalidHostname
 	} else if bookmark.RunID == "" {
-		return bookmark, err
+		return bookmark, ErrInvalidRunID
 	}
 
 	return bookmark, err
