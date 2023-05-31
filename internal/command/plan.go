@@ -247,33 +247,42 @@ Plan Customization Options:
 
 Other Options:
 
-  -compact-warnings   If Terraform produces any warnings that are not
-                      accompanied by errors, shows them in a more compact form
-                      that includes only the summary messages.
+  -compact-warnings          If Terraform produces any warnings that are not
+                             accompanied by errors, shows them in a more compact
+                             form that includes only the summary messages.
 
-  -detailed-exitcode  Return detailed exit codes when the command exits. This
-                      will change the meaning of exit codes to:
-                      0 - Succeeded, diff is empty (no changes)
-                      1 - Errored
-                      2 - Succeeded, there is a diff
+  -detailed-exitcode         Return detailed exit codes when the command exits.
+                             This will change the meaning of exit codes to:
+                             0 - Succeeded, diff is empty (no changes)
+                             1 - Errored
+                             2 - Succeeded, there is a diff
 
-  -input=true         Ask for input for variables if not directly set.
+  -generate-config-out=path  (Experimental) If import blocks are present in
+                             configuration, instructs Terraform to generate HCL
+                             for any imported resources not already present. The
+                             configuration is written to a new file at PATH,
+                             which must not already exist. Terraform may still
+                             attempt to write configuration if the plan errors.
 
-  -lock=false         Don't hold a state lock during the operation. This is
-                      dangerous if others might concurrently run commands
-                      against the same workspace.
+  -input=true                Ask for input for variables if not directly set.
 
-  -lock-timeout=0s    Duration to retry a state lock.
+  -lock=false                Don't hold a state lock during the operation. This
+                             is dangerous if others might concurrently run
+                             commands against the same workspace.
 
-  -no-color           If specified, output won't contain any color.
+  -lock-timeout=0s           Duration to retry a state lock.
 
-  -out=path           Write a plan file to the given path. This can be used as
-                      input to the "apply" command.
+  -no-color                  If specified, output won't contain any color.
 
-  -parallelism=n      Limit the number of concurrent operations. Defaults to 10.
+  -out=path                  Write a plan file to the given path. This can be
+                             used as input to the "apply" command.
 
-  -state=statefile    A legacy option used for the local backend only. See the
-                      local backend's documentation for more information.
+  -parallelism=n             Limit the number of concurrent operations. Defaults
+                             to 10.
+
+  -state=statefile           A legacy option used for the local backend only.
+                             See the local backend's documentation for more
+                             information.
 `
 	return strings.TrimSpace(helpText)
 }
