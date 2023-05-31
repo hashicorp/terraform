@@ -48,10 +48,9 @@ func TestCloud_loadCheckVersionNumberBasic(t *testing.T) {
 	validVersion := 1
 	file := "./testdata/plan-bookmark/wrong_version.json"
 	result, err := LoadSavedPlanBookmark(file)
-	if err == nil {
+	if err != nil {
 		t.Fatal(err)
 	}
-
 	if result.RemotePlanFormat != validVersion {
 		t.Fatal("invalid format version: ", result.RemotePlanFormat)
 	}

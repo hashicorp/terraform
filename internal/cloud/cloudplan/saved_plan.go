@@ -4,6 +4,8 @@ package cloudplan
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 )
 
@@ -15,12 +17,33 @@ type SavedPlanBookmark struct {
 
 func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	bookmark := SavedPlanBookmark{}
-	data, err := os.ReadFile(filepath)
+
+	file, err := os.Open(filepath)
 	if err != nil {
+		fmt.Println("error opening file")
+		return bookmark, err
+	}
+	defer file.Close()
+
+	data, err := io.ReadAll(file)
+	if err != nil {
+		fmt.Println("error reading file")
 		return bookmark, err
 	}
 
-	err = json.Unmarshal([]byte(data), &bookmark)
+	e := json.Unmarshal([]byte(data), &bookmark)
+	if e != nil {
+		fmt.Println("could not unmarshal")
+		return bookmark, e
+	}
+
+	if bookmark.RemotePlanFormat != 1 {
+		return bookmark, err
+	} else if bookmark.Hostname == "" {
+		return bookmark, err
+	} else if bookmark.RunID == "" {
+		return bookmark, err
+	}
 
 	return bookmark, err
 }
