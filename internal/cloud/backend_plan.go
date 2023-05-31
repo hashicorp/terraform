@@ -238,9 +238,6 @@ in order to capture the filesystem context the remote workspace expects:
 	if configDiags.HasErrors() {
 		return nil, fmt.Errorf("error loading config with snapshot: %w", configDiags.Errs()[0])
 	}
-	if err := b.AssertImportCompatible(config); err != nil {
-		return nil, err
-	}
 
 	variables, varDiags := ParseCloudRunVariables(op.Variables, config.Module.Variables)
 
@@ -382,7 +379,7 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		}
 		desiredAPIVersion, _ := version.NewVersion("2.6")
 		if currentAPIVersion.LessThan(desiredAPIVersion) {
-			return fmt.Errorf("Import blocks not available in this version of Terraform. You are using API version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade TFC.", currentAPIVersion, desiredAPIVersion)
+			return fmt.Errorf("Import blocks are not supported in this version of Terraform Enterprise. Please remove any import blocks from your config or upgrade Terraform Enterprise.")
 		}
 
 		// Second, check the agent version is high enough.
@@ -396,7 +393,7 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {
-			return fmt.Errorf("Import blocks not available in this version of Terraform. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade TFC.", currentAgentVersion, desiredAgentVersion)
+			return fmt.Errorf("Import blocks are not supported in this version of the Terraform Cloud Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
 		}
 	}
 	return nil

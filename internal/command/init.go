@@ -276,6 +276,16 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	if cb, ok := back.(*cloud.Cloud); ok {
+		if c.RunningInAutomation {
+			if err := cb.AssertImportCompatible(config); err != nil {
+				diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Compatibility error", err.Error()))
+				c.showDiagnostics(diags)
+				return 1
+			}
+		}
+	}
+
 	// Now that we have loaded all modules, check the module tree for missing providers.
 	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath, flagLockfile)
 	diags = diags.Append(providerDiags)
