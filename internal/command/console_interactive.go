@@ -16,13 +16,13 @@ import (
 
 	"github.com/hashicorp/terraform/internal/repl"
 
-	"github.com/chzyer/readline"
+	"github.com/ergochat/readline"
 	"github.com/mitchellh/cli"
 )
 
 func (c *ConsoleCommand) modeInteractive(session *repl.Session, ui cli.Ui) int {
 	// Configure input
-	l, err := readline.NewEx(&readline.Config{
+	l, err := readline.NewFromConfig(&readline.Config{
 		Prompt:            "> ",
 		InterruptPrompt:   "^C",
 		EOFPrompt:         "exit",
