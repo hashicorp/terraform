@@ -1,10 +1,10 @@
 ---
-page_title: Custom Condition Checks - Configuration Language
+page_title: Custom Conditions - Configuration Language
 description: >-
   Check custom requirements for variables, outputs, data sources, and resources and provide better error messages in context.
 ---
 
-# Custom Condition Checks
+# Custom Conditions
 
 You can create conditions that produce custom error messages for several types of objects in a configuration. For example, you can add a condition to an input variable that checks whether incoming image IDs are formatted properly. Custom conditions can capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
@@ -16,6 +16,10 @@ This page explains the following:
   - Creating [assertions](#check-assertions) within check blocks (Terraform v1.5.0 and later)
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
   - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
+
+The various custom conditions are suited to different situations. Input variable validation and output postconditions should be used to validate the inputs and outputs of your configuration meet any requirements or conditions. Resource preconditions and postconditions should be used to validate your configuration is produced expected and predictable results. Check blocks and assertions should be used to evaluate your infrastructure as a whole.
+
+For more discussion on when to use different custom conditions, please read [Choosing Between Preconditions and Postconditions](#choosing-between-preconditions-and-postconditions) and [Choosing Checks or other Custom Conditions](/terraform/language/checks#choosing-checks-or-other-custom-conditions).
 
 
 ## Input Variable Validation
@@ -208,15 +212,30 @@ You should also consider the following questions when creating preconditions and
 
 -> **Note:** Check blocks and their assertions are only available in Terraform v1.5.0 and later.
 
+[Check blocks](/terraform/language/checks) can validate your infrastructure outside the usual resource lifecycle. You can add custom conditions via `assert` blocks, which execute at the end of the plan and apply stages and produce warnings to notify you of problems within your infrastructure.
+
 You can add one or more `assert` blocks within a `check` block to verify custom conditions. Each assertion requires a [`condition` argument](#condition-expressions), a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not. Your `condition` expression can refer to any resource, data source, or variable available to the surrounding `check` block.
+
+The following example uses a check block with an assertion to verify the Terraform website is healthy.
+
+```hcl
+check "health_check" {
+  data "http" "terraform_io" {
+    url = "https://www.terraform.io"
+  }
+
+  assert {
+    condition = data.http.terraform_io.status_code == 200
+    error_message = "${data.http.terraform_io.url} returned an unhealthy status code"
+  }
+}
+```
 
 If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple assertions, Terraform returns error messages for all failed conditions.
 
-For more information on check blocks, see [Checks](/terraform/language/checks).
-
 ## Condition Expressions
 
-Input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
+Check assertions, input variable validation, preconditions, and postconditions all require a `condition` argument. This is a boolean expression that should return `true` if the intended assumption or guarantee is fulfilled or `false` if it does not.
 
 You can use any of Terraform's built-in functions or language operators
 in a condition as long as the expression is valid and returns a boolean result. The following language features are particularly useful when writing condition expressions.
@@ -377,7 +396,7 @@ external values included in the condition expression.
 
 Terraform evaluates custom conditions as early as possible.
 
-Input variable validations can only refer to the variable value, so Terraform always evaluates them immediately. When Terraform evaluates preconditions and postconditions depends on whether the value(s) associated with the condition are known before or after applying the configuration.
+Input variable validations can only refer to the variable value, so Terraform always evaluates them immediately. When Terraform evaluates assertions, preconditions and postconditions depends on whether the value(s) associated with the condition are known before or after applying the configuration.
 
 - **Known before apply:** Terraform checks the condition during the planning phase. For example, Terraform can know the value of an image ID during planning as long as it is not generated from another resource.
 - **Known after apply:** Terraform delays checking that condition until the apply phase. For example, AWS only assigns the root volume ID when it starts an EC2 instance, so Terraform cannot know this value until apply.

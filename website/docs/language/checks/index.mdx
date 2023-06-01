@@ -41,7 +41,7 @@ Any data source from any provider can be used within a check block.
 
 #### Meta-Arguments
 
-Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count`, `for_each`, or `lifecycle` meta-arguments.
+Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count` or`for_each` meta-arguments.
 
 ### Assertions
 
@@ -84,6 +84,6 @@ Both of our `check` and `postcondition` block examples validate that the Terrafo
 
 If a `postcondition` block fails, it _blocks_ Terraform from continuing execution of the current operation. If a `check` block fails, it _does not_ block Terraform's execution of an operation.
 
-This means that recovering from a failure is impossible with a postcondition as Terraform will block any plan or apply operations as long as the postcondition is unsatisfied during the plan. This problem stems from the postcondition not being directly dependent on the Terraform configuration but instead on the complex interactions between multiple resources.
+Recovering from the example's postcondition failure is impossible, because Terraform will block any plan or apply operations as long as the postcondition is unsatisfied during the plan stage. This problem stems from the postcondition not being directly dependent on the Terraform configuration, but instead on the complex interactions between multiple resources.
 
 We recommend using check blocks to validate the status of infrastructure as a whole. We only recommend using postconditions when you want a guarantee on a single resource based on that resource's configuration.
