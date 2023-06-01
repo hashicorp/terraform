@@ -41,7 +41,7 @@ Any data source from any provider can be used within a check block.
 
 #### Meta-Arguments
 
-Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count`, `foreach`, or `lifecycle` meta-arguments.
+Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count`, `for_each`, or `lifecycle` meta-arguments.
 
 ### Assertions
 
@@ -55,7 +55,7 @@ Condition arguments within `assert` blocks can refer to scoped data sources with
 
 ### Meta-Arguments
 
-In the initial release of checks, none of the traditional resource [meta-arguments](/terraform/language/resources/syntax#meta-arguments) are supported. We are interested to see how the community uses this new feature, so please file feedback with use-cases that would benefit from the introduction of any meta-arguments.
+Check blocks do not currently support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). We are still collecting feedback on this feature, so if your use case would benefit from check blocks supporting meta-arguments, please let us know. 
 
 ## Continuous Validation in Terraform Cloud
 
@@ -63,7 +63,9 @@ Terraform Cloud can automatically validate whether checks in a workspace’s con
 
 ## Choosing Checks or other Custom Conditions
 
-In many cases, resource or data source postconditions and check blocks can be used interchangeably to model similar validations. For example, compare the following HCL, which details the creation of a health check directly as a data source postcondition, to the check block implementation provided in the [Checks Syntax](#checks-syntax) section.
+In some cases, you can use checks and [postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) interchangeably to validate resources and data sources. 
+
+For example, you can [rewrite the above `check` block example](#checks-syntax) to use a postcondition instead. The below code uses a `postcondition` block to validate that the Terraform website returns the expected status code of `200`.
 
 ```hcl
 data "http" "terraform_io" {
@@ -78,8 +80,10 @@ data "http" "terraform_io" {
 }
 ```
 
-Both these implementations will validate that the status code is returned as expected during a plan or an apply operation. However, they differ in how they respond when the validation fails. The data source postcondition will fail and block the continued execution of any Terraform operation while the check block is permissive and will not interfere with the overall Terraform operation.
+Both of our `check` and `postcondition` block examples validate that the Terraform website returns a `200` status code during a plan or an apply operation. The difference between the two blocks is how each handles failure.
+
+If a `postcondition` block fails, it _blocks_ Terraform from continuing execution of the current operation. If a `check` block fails, it _does not_ block Terraform's execution of an operation.
 
 This means that recovering from a failure is impossible with a postcondition as Terraform will block any plan or apply operations as long as the postcondition is unsatisfied during the plan. This problem stems from the postcondition not being directly dependent on the Terraform configuration but instead on the complex interactions between multiple resources.
 
-With this contrast in mind, check blocks should therefore be used to validate the status of the infrastructure as a whole compared to a postcondition which should provide a guarantee on a single resource based on that resource's configuration.
+We recommend using check blocks to validate the status of infrastructure as a whole. We only recommend using postconditions when you want a guarantee on a single resource based on that resource's configuration.
