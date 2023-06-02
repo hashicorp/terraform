@@ -112,7 +112,7 @@ Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
 
 ## Resource configuration
 
-When Terraform imports a resource, it needs the resource to be defined in configuration before saving it to the state. This means that when using `import` blocks, you have two options.
+When Terraform imports a resource, it needs you to define that resource in configuration before saving it to state. You can do this by either writing a `resource` block or by generating configuration. 
 
 ### Option: Write a `resource` block
 
