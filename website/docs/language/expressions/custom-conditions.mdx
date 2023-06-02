@@ -13,11 +13,16 @@ You can create conditions that produce custom error messages for several types o
 This page explains the following:
   - Creating [validation conditions](#input-variable-validation) for input variables (Terraform v0.13.0 and later)
   - Creating [preconditions and postconditions](#preconditions-and-postconditions) for resources, data sources, and outputs (Terraform v1.2.0 and later)
-  - Creating [assertions](#check-assertions) within check blocks (Terraform v1.5.0 and later)
+  - Creating checks with [assertions](#check-assertions) to verify your infrastructure as a whole (Terraform v1.5.0 and later)
   - Writing effective [condition expressions](#condition-expressions) and [error messages](#error-messages)
   - When Terraform [evaluates custom conditions](#conditions-checked-only-during-apply) during the plan and apply cycle
 
-The various custom conditions are suited to different situations. Input variable validation and output postconditions should be used to validate the inputs and outputs of your configuration meet any requirements or conditions. Resource preconditions and postconditions should be used to validate your configuration is produced expected and predictable results. Check blocks and assertions should be used to evaluate your infrastructure as a whole.
+## Selecting a Custom Condition for Your Use Case
+
+Terraform's different custom conditions are best suited to various situations. Use the following broad guidelines to select the best custom condition for your use case:
+1. [Check blocks with assertions](#check-assertions) validate your infrastructure as a whole.
+1. [Validation conditions](#input-variable-validation) or [output postconditions](#preconditions-and-postconditions) can ensure your configuration's inputs and outputs meet specific requirements.
+1. Resource [preconditions and postconditions](#preconditions-and-postconditions) can validate that Terraform produces your configuration with predictable results.
 
 For more discussion on when to use different custom conditions, please read [Choosing Between Preconditions and Postconditions](#choosing-between-preconditions-and-postconditions) and [Choosing Checks or other Custom Conditions](/terraform/language/checks#choosing-checks-or-other-custom-conditions).
 
@@ -396,7 +401,7 @@ external values included in the condition expression.
 
 Terraform evaluates custom conditions as early as possible.
 
-Input variable validations can only refer to the variable value, so Terraform always evaluates them immediately. When Terraform evaluates assertions, preconditions and postconditions depends on whether the value(s) associated with the condition are known before or after applying the configuration.
+Input variable validations can only refer to the variable value, so Terraform always evaluates them immediately. Check assertions, preconditions, and postconditions depend on Terraform evaluating whether the value(s) associated with the condition are known before or after applying the configuration.
 
 - **Known before apply:** Terraform checks the condition during the planning phase. For example, Terraform can know the value of an image ID during planning as long as it is not generated from another resource.
 - **Known after apply:** Terraform delays checking that condition until the apply phase. For example, AWS only assigns the root volume ID when it starts an EC2 instance, so Terraform cannot know this value until apply.

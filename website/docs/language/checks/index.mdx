@@ -37,7 +37,6 @@ A `check` block can optionally contain a nested (a.k.a scoped) data source. This
 
 You can use a scoped data source to validate the status of a piece of infrastructure outside of the usual Terraform resource lifecycle. [In the above example](#checks-syntax), if the `terraform_io` data source fails to load, you receive a warning instead of a blocking error, which would occur if you declared this data source outside of a `check` block.
 
-Any data source from any provider can be used within a check block.
 
 #### Meta-Arguments
 
@@ -84,6 +83,6 @@ Both of our `check` and `postcondition` block examples validate that the Terrafo
 
 If a `postcondition` block fails, it _blocks_ Terraform from continuing execution of the current operation. If a `check` block fails, it _does not_ block Terraform's execution of an operation.
 
-Recovering from the example's postcondition failure is impossible, because Terraform will block any plan or apply operations as long as the postcondition is unsatisfied during the plan stage. This problem stems from the postcondition not being directly dependent on the Terraform configuration, but instead on the complex interactions between multiple resources.
+If the above example's postcondition fails, it is impossible to recover from. Terraform blocks any future plan or apply operations if your postcondition is unsatisfied during the planning stage. This problem occurs because the postcondition does not directly depend on Terraform configuration, but instead on the complex interactions between multiple resources.
 
 We recommend using check blocks to validate the status of infrastructure as a whole. We only recommend using postconditions when you want a guarantee on a single resource based on that resource's configuration.
