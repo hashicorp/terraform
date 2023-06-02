@@ -34,27 +34,27 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 	// We're going to step through all the vertices and pull out the relevant
 	// resources and data sources.
 	for _, vertex := range graph.Vertices() {
-		if node, isResource := vertex.(*NodeApplyableResourceInstance); isResource {
-			addr := node.ResourceAddr()
+		if node, isResource := vertex.(GraphNodeCreator); isResource {
+			addr := node.CreateAddr()
 
-			if addr.Resource.Mode == addrs.ManagedResourceMode {
+			if addr.Resource.Resource.Mode == addrs.ManagedResourceMode {
 				// This is a resource, so we want to make sure it executes
 				// before any nested data sources.
 
 				// We can reduce the number of additional edges we write into
 				// the graph by only including "leaf" resources, that is
-				// resources that don't reference other resources. If a resource
-				// references another resource then we know that it will execute
-				// before that resource so we only need to worry about the
-				// referenced resource.
+				// resources that aren't referenced by other resources. If a
+				// resource is referenced by another resource then we know that
+				// it will execute before that resource so we only need to worry
+				// about the referencing resource.
 
 				leafResource := true
 				for _, other := range graph.UpEdges(vertex) {
-					if otherResource, isResource := other.(*NodeApplyableResourceInstance); isResource {
-						otherAddr := otherResource.ResourceAddr()
-						if otherAddr.Resource.Mode == addrs.ManagedResourceMode {
-							// Then this resource is referencing another one
-							// so skip it.
+					if otherResource, isResource := other.(GraphNodeCreator); isResource {
+						otherAddr := otherResource.CreateAddr()
+						if otherAddr.Resource.Resource.Mode == addrs.ManagedResourceMode {
+							// Then this resource is being referenced so skip
+							// it.
 							leafResource = false
 							break
 						}
@@ -73,7 +73,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 
 			config := s.Config
 			if !addr.Module.IsRoot() {
-				config = s.Config.Descendent(addr.Module)
+				config = s.Config.Descendent(addr.Module.Module())
 			}
 			if config == nil {
 				// might have been deleted, so it won't be subject to any checks
@@ -81,7 +81,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 				continue
 			}
 
-			resource := config.Module.ResourceByAddr(addr.Resource)
+			resource := config.Module.ResourceByAddr(addr.Resource.Resource)
 			if resource == nil {
 				// might have been deleted, so it won't be subject to any checks
 				// anyway.
