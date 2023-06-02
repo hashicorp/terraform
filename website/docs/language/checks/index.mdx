@@ -44,6 +44,14 @@ Scoped data sources support the `depends_on` and `provider` [meta-arguments](/te
 
 ##### `depends_on`
 
+The `depends_on` meta argument can be particularly powerful when used within scoped data sources.
+
+The [previous example](#checks-syntax) would fail during any initial planning, as the configuration hasn't been applied so the website simply would not exist. As written, this would be expected behaviour but is not particularly useful and is potentially noisy as other genuine errors in the configuration could be obscured by the warning message.
+
+An addition of the `depends_on` attribute, linking the scoped data source to the highest-levelled piece of infrastructure such as a load balancer, would mean that during any initial planning the check would instead report as `known after apply`. In addition, it would not produce any unnecessary or noisy warnings. Going forward, the check would execute again for both plans and applies providing the required validation.
+
+One caveat to the `depends_on` attribute is that any changes to the dependencies would again cause the check block to report as `known after apply`, essentially meaning the check block would not execute during that planning stage. Depending on your use case this behavior could be acceptable or problematic.
+
 ### Assertions
 
 Check blocks validate your custom assertions using `assert` blocks. Each `check` block must have at least one, but potentially many, `assert` blocks. Each `assert` block has a [`condition` attribute](/terraform/language/expressions/custom-conditions#condition-expressions) and an [`error_message` attribute](/terraform/language/expressions/custom-conditions#error-messages).
