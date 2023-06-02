@@ -34,10 +34,10 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 	// We're going to step through all the vertices and pull out the relevant
 	// resources and data sources.
 	for _, vertex := range graph.Vertices() {
-		if node, isResource := vertex.(GraphNodeConfigResource); isResource {
+		if node, isResource := vertex.(*NodeApplyableResourceInstance); isResource {
 			addr := node.ResourceAddr()
 
-			if addr.Resource.Mode != addrs.ManagedResourceMode {
+			if addr.Resource.Mode == addrs.ManagedResourceMode {
 				// This is a resource, so we want to make sure it executes
 				// before any nested data sources.
 
@@ -50,7 +50,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 
 				leafResource := true
 				for _, other := range graph.UpEdges(vertex) {
-					if otherResource, isResource := other.(GraphNodeConfigResource); isResource {
+					if otherResource, isResource := other.(*NodeApplyableResourceInstance); isResource {
 						otherAddr := otherResource.ResourceAddr()
 						if otherAddr.Resource.Mode == addrs.ManagedResourceMode {
 							// Then this resource is referencing another one

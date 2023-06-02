@@ -13,6 +13,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 )
 
@@ -701,6 +702,91 @@ func TestApplyGraphBuilder_orphanedWithProvider(t *testing.T) {
 	// default provider which we don't want.
 	testGraphNotContains(t, g, "provider.test")
 }
+
+func TestApplyGraphBuilder_withChecks(t *testing.T) {
+	awsProvider := mockProviderWithResourceTypeSchema("aws_instance", simpleTestSchema())
+
+	changes := &plans.Changes{
+		Resources: []*plans.ResourceInstanceChangeSrc{
+			{
+				Addr: mustResourceInstanceAddr("aws_instance.foo"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("aws_instance.baz"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Create,
+				},
+			},
+			{
+				Addr: mustResourceInstanceAddr("data.aws_data_source.bar"),
+				ChangeSrc: plans.ChangeSrc{
+					Action: plans.Read,
+				},
+				ActionReason: plans.ResourceInstanceReadBecauseCheckNested,
+			},
+		},
+	}
+
+	plugins := newContextPlugins(map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("aws"): providers.FactoryFixed(awsProvider),
+	}, nil)
+
+	b := &ApplyGraphBuilder{
+		Config:    testModule(t, "apply-with-checks"),
+		Changes:   changes,
+		Plugins:   plugins,
+		State:     states.NewState(),
+		Operation: walkApply,
+	}
+
+	g, err := b.Build(addrs.RootModuleInstance)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if g.Path.String() != addrs.RootModuleInstance.String() {
+		t.Fatalf("wrong path %q", g.Path.String())
+	}
+
+	got := strings.TrimSpace(g.String())
+	// We're especially looking for the edge here, where aws_instance.bat
+	// has a dependency on aws_instance.boo
+	want := strings.TrimSpace(testPlanWithCheckGraphBuilderStr)
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Fatalf("\ngot:\n%s\n\nwant:\n%s\n\ndiff:\n%s", got, want, diff)
+	}
+
+}
+
+const testPlanWithCheckGraphBuilderStr = `
+(execute checks)
+  aws_instance.baz
+aws_instance.baz
+  aws_instance.baz (expand)
+  aws_instance.foo
+aws_instance.baz (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+aws_instance.foo
+  aws_instance.foo (expand)
+aws_instance.foo (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+check.my_check (expand)
+  data.aws_data_source.bar
+data.aws_data_source.bar
+  (execute checks)
+  data.aws_data_source.bar (expand)
+data.aws_data_source.bar (expand)
+  provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"]
+provider["registry.terraform.io/hashicorp/aws"] (close)
+  data.aws_data_source.bar
+root
+  check.my_check (expand)
+  provider["registry.terraform.io/hashicorp/aws"] (close)
+`
 
 const testApplyGraphBuilderStr = `
 module.child (close)
