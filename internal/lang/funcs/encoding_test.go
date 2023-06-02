@@ -235,25 +235,25 @@ func TestBase64TextEncode(t *testing.T) {
 		{
 			cty.StringVal("abc123!?$*&()'-=@~"),
 			cty.StringVal("NOT-EXISTS"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
 		},
 		{
 			cty.StringVal("🤔"),
 			cty.StringVal("cp437"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`the given string contains characters that cannot be represented in IBM437`,
 		},
 		{
 			cty.UnknownVal(cty.String),
 			cty.StringVal("windows-1250"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			``,
 		},
 		{
 			cty.StringVal("hello world"),
 			cty.UnknownVal(cty.String),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			``,
 		},
 	}
@@ -309,13 +309,13 @@ func TestBase64TextDecode(t *testing.T) {
 		{
 			cty.StringVal("doesn't matter"),
 			cty.StringVal("NOT-EXISTS"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
 		},
 		{
 			cty.StringVal("<invalid base64>"),
 			cty.StringVal("cp437"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`the given value is has an invalid base64 symbol at offset 0`,
 		},
 		{
@@ -327,13 +327,13 @@ func TestBase64TextDecode(t *testing.T) {
 		{
 			cty.UnknownVal(cty.String),
 			cty.StringVal("windows-1250"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			``,
 		},
 		{
 			cty.StringVal("YQBiAGMAMQAyADMAIQA/ACQAKgAmACgAKQAnAC0APQBAAH4A"),
 			cty.UnknownVal(cty.String),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			``,
 		},
 	}

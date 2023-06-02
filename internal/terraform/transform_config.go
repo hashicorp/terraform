@@ -4,6 +4,7 @@
 package terraform
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -39,14 +40,14 @@ type ConfigTransformer struct {
 	// imported for them.
 	importTargets []*ImportTarget
 
-	// generateConfigForImportTargets tells the graph to generate config for any
-	// import targets that are not contained within config.
+	// generateConfigPathForImportTargets tells the graph where to write any
+	// generated config for import targets that are not contained within config.
 	//
-	// If this is false and an import target has no config, the graph will
+	// If this is empty and an import target has no config, the graph will
 	// simply import the state for the target and any follow-up operations will
 	// try to delete the imported resource unless the config is updated
 	// manually.
-	generateConfigForImportTargets bool
+	generateConfigPathForImportTargets string
 }
 
 func (t *ConfigTransformer) Transform(g *Graph) error {
@@ -60,23 +61,23 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	}
 
 	// Start the transformation process
-	return t.transform(g, t.Config, t.generateConfigForImportTargets)
+	return t.transform(g, t.Config, t.generateConfigPathForImportTargets)
 }
 
-func (t *ConfigTransformer) transform(g *Graph, config *configs.Config, generateConfig bool) error {
+func (t *ConfigTransformer) transform(g *Graph, config *configs.Config, generateConfigPath string) error {
 	// If no config, do nothing
 	if config == nil {
 		return nil
 	}
 
 	// Add our resources
-	if err := t.transformSingle(g, config, generateConfig); err != nil {
+	if err := t.transformSingle(g, config, generateConfigPath); err != nil {
 		return err
 	}
 
 	// Transform all the children without generating config.
 	for _, c := range config.Children {
-		if err := t.transform(g, c, false); err != nil {
+		if err := t.transform(g, c, ""); err != nil {
 			return err
 		}
 	}
@@ -84,7 +85,7 @@ func (t *ConfigTransformer) transform(g *Graph, config *configs.Config, generate
 	return nil
 }
 
-func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, generateConfig bool) error {
+func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, generateConfigPath string) error {
 	path := config.Path
 	module := config.Module
 	log.Printf("[TRACE] ConfigTransformer: Starting for path: %v", path)
@@ -170,10 +171,16 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	// TODO: We could actually catch and process these kind of problems earlier,
 	//   this is something that could be done during the Validate process.
 	for _, i := range importTargets {
+		// The case in which an unmatched import block targets an expanded
+		// resource instance can error here. Others can error later.
+		if i.Addr.Resource.Key != addrs.NoKey {
+			return fmt.Errorf("Config generation for count and for_each resources not supported.\n\nYour configuration contains an import block with a \"to\" address of %s. This resource instance does not exist in configuration.\n\nIf you intended to target a resource that exists in configuration, please double-check the address. Otherwise, please remove this import block or re-run the plan without the -generate-config-out flag to ignore the import block.", i.Addr)
+		}
+
 		abstract := &NodeAbstractResource{
-			Addr:           i.Addr.ConfigResource(),
-			importTargets:  []*ImportTarget{i},
-			generateConfig: generateConfig,
+			Addr:               i.Addr.ConfigResource(),
+			importTargets:      []*ImportTarget{i},
+			generateConfigPath: generateConfigPath,
 		}
 
 		var node dag.Vertex = abstract

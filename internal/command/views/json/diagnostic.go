@@ -318,7 +318,27 @@ func NewDiagnostic(diag tfdiags.Diagnostic, sources map[string][]byte) *Diagnost
 							// unknown value even when it isn't.
 							if ty := val.Type(); ty != cty.DynamicPseudoType {
 								if includeUnknown {
-									value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									switch {
+									case ty.IsCollectionType():
+										valRng := val.Range()
+										minLen := valRng.LengthLowerBound()
+										maxLen := valRng.LengthUpperBound()
+										const maxLimit = 1024 // (upper limit is just an arbitrary value to avoid showing distracting large numbers in the UI)
+										switch {
+										case minLen == maxLen:
+											value.Statement = fmt.Sprintf("is a %s of length %d, known only after apply", ty.FriendlyName(), minLen)
+										case minLen != 0 && maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with between %d and %d elements, known only after apply", ty.FriendlyName(), minLen, maxLen)
+										case minLen != 0:
+											value.Statement = fmt.Sprintf("is a %s with at least %d elements, known only after apply", ty.FriendlyName(), minLen)
+										case maxLen <= maxLimit:
+											value.Statement = fmt.Sprintf("is a %s with up to %d elements, known only after apply", ty.FriendlyName(), maxLen)
+										default:
+											value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+										}
+									default:
+										value.Statement = fmt.Sprintf("is a %s, known only after apply", ty.FriendlyName())
+									}
 								} else {
 									value.Statement = fmt.Sprintf("is a %s", ty.FriendlyName())
 								}

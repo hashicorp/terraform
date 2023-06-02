@@ -75,7 +75,7 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 	case req.PriorState.IsNull():
 		// Create
 		// Set the id value to unknown.
-		planned["id"] = cty.UnknownVal(cty.String)
+		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
 
 		// Output type must always match the input, even when it's null.
 		if input.IsNull() {
@@ -90,7 +90,7 @@ func planDataStoreResourceChange(req providers.PlanResourceChangeRequest) (resp 
 	case !req.PriorState.GetAttr("triggers_replace").RawEquals(trigger):
 		// trigger changed, so we need to replace the entire instance
 		resp.RequiresReplace = append(resp.RequiresReplace, cty.GetAttrPath("triggers_replace"))
-		planned["id"] = cty.UnknownVal(cty.String)
+		planned["id"] = cty.UnknownVal(cty.String).RefineNotNull()
 
 		// We need to check the input for the replacement instance to compute a
 		// new output.

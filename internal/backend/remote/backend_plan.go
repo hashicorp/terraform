@@ -69,6 +69,15 @@ func (b *Remote) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		))
 	}
 
+	if op.GenerateConfigOut != "" {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Generating configuration is not currently supported",
+			`The "remote" backend does not currently support generating resource configuration `+
+				`as part of a plan.`,
+		))
+	}
+
 	if b.hasExplicitVariableValues(op) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,

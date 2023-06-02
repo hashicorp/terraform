@@ -28,12 +28,8 @@ type OutputTransformer struct {
 	Planning bool
 
 	// If this is a planned destroy, root outputs are still in the configuration
-	// so we need to record that we wish to remove them
-	PlanDestroy bool
-
-	// ApplyDestroy indicates that this is being added to an apply graph, which
-	// is the result of a destroy plan.
-	ApplyDestroy bool
+	// so we need to record that we wish to remove them.
+	Destroying bool
 }
 
 func (t *OutputTransformer) Transform(g *Graph) error {
@@ -59,13 +55,12 @@ func (t *OutputTransformer) transform(g *Graph, c *configs.Config) error {
 		addr := addrs.OutputValue{Name: o.Name}
 
 		node := &nodeExpandOutput{
-			Addr:         addr,
-			Module:       c.Path,
-			Config:       o,
-			PlanDestroy:  t.PlanDestroy,
-			ApplyDestroy: t.ApplyDestroy,
-			RefreshOnly:  t.RefreshOnly,
-			Planning:     t.Planning,
+			Addr:        addr,
+			Module:      c.Path,
+			Config:      o,
+			Destroying:  t.Destroying,
+			RefreshOnly: t.RefreshOnly,
+			Planning:    t.Planning,
 		}
 
 		log.Printf("[TRACE] OutputTransformer: adding %s as %T", o.Name, node)

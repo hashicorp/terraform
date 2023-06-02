@@ -31,7 +31,8 @@ func MakeFileFunc(baseDir string, encBase64 bool) function.Function {
 				AllowMarked: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.String),
+		Type:         function.StaticReturnType(cty.String),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
 			path := pathArg.AsString()
@@ -201,7 +202,8 @@ func MakeFileExistsFunc(baseDir string) function.Function {
 				AllowMarked: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.Bool),
+		Type:         function.StaticReturnType(cty.Bool),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
 			path := pathArg.AsString()
@@ -273,7 +275,8 @@ func MakeFileSetFunc(baseDir string) function.Function {
 				AllowMarked: true,
 			},
 		},
-		Type: function.StaticReturnType(cty.Set(cty.String)),
+		Type:         function.StaticReturnType(cty.Set(cty.String)),
+		RefineResult: refineNotNull,
 		Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 			pathArg, pathMarks := args[0].Unmark()
 			path := pathArg.AsString()
@@ -340,7 +343,8 @@ var BasenameFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(filepath.Base(args[0].AsString())), nil
 	},
@@ -355,7 +359,8 @@ var DirnameFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		return cty.StringVal(filepath.Dir(args[0].AsString())), nil
 	},
@@ -369,7 +374,8 @@ var AbsPathFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		absPath, err := filepath.Abs(args[0].AsString())
 		return cty.StringVal(filepath.ToSlash(absPath)), err
@@ -384,7 +390,8 @@ var PathExpandFunc = function.New(&function.Spec{
 			Type: cty.String,
 		},
 	},
-	Type: function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 
 		homePath, err := homedir.Expand(args[0].AsString())

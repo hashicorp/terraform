@@ -4005,6 +4005,48 @@ output "out" {
 	assertNoErrors(t, diags)
 }
 
+func TestContext2Plan_destroyPartialStateLocalRef(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+module "already_destroyed" {
+  count = 1
+  source = "./mod"
+}
+
+locals {
+  eval_error = module.already_destroyed[0].out
+}
+
+output "already_destroyed" {
+  value = local.eval_error
+}
+
+`,
+
+		"./mod/main.tf": `
+resource "test_object" "a" {
+}
+
+output "out" {
+  value = test_object.a.test_string
+}
+`})
+
+	p := simpleMockProvider()
+
+	state := states.NewState()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+
+	_, diags := ctx.Plan(m, state, &PlanOpts{
+		Mode: plans.DestroyMode,
+	})
+	assertNoErrors(t, diags)
+}
+
 // Make sure the data sources in the prior state are serializeable even if
 // there were an error in the plan.
 func TestContext2Plan_dataSourceReadPlanError(t *testing.T) {
@@ -4556,8 +4598,8 @@ resource "test_object" "a" {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4616,8 +4658,8 @@ import {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4698,8 +4740,8 @@ import {
 	}
 
 	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
-		Mode:           plans.NormalMode,
-		GenerateConfig: true,
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
 	})
 	if diags.HasErrors() {
 		t.Fatalf("unexpected errors\n%s", diags.Err().Error())
@@ -4740,4 +4782,109 @@ import {
 			t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
 		}
 	})
+}
+
+func TestContext2Plan_importResourceConfigGenExpandedResource(t *testing.T) {
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to       = test_object.a[0]
+  id       = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf",
+	})
+	if !diags.HasErrors() {
+		t.Fatalf("expected plan to error, but it did not")
+	}
+}
+
+// config generation still succeeds even when planning fails
+func TestContext2Plan_importResourceConfigGenWithError(t *testing.T) {
+	addr := mustResourceInstanceAddr("test_object.a")
+	m := testModuleInline(t, map[string]string{
+		"main.tf": `
+import {
+  to   = test_object.a
+  id   = "123"
+}
+`,
+	})
+
+	p := simpleMockProvider()
+	ctx := testContext2(t, &ContextOpts{
+		Providers: map[addrs.Provider]providers.Factory{
+			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+		},
+	})
+	p.PlanResourceChangeResponse = &providers.PlanResourceChangeResponse{
+		PlannedState: cty.NullVal(cty.DynamicPseudoType),
+		Diagnostics:  tfdiags.Diagnostics(nil).Append(errors.New("plan failed")),
+	}
+	p.ReadResourceResponse = &providers.ReadResourceResponse{
+		NewState: cty.ObjectVal(map[string]cty.Value{
+			"test_string": cty.StringVal("foo"),
+		}),
+	}
+	p.ImportResourceStateResponse = &providers.ImportResourceStateResponse{
+		ImportedResources: []providers.ImportedResource{
+			{
+				TypeName: "test_object",
+				State: cty.ObjectVal(map[string]cty.Value{
+					"test_string": cty.StringVal("foo"),
+				}),
+			},
+		},
+	}
+
+	plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
+		Mode:               plans.NormalMode,
+		GenerateConfigPath: "generated.tf", // Actual value here doesn't matter, as long as it is not empty.
+	})
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	}
+
+	instPlan := plan.Changes.ResourceInstance(addr)
+	if instPlan == nil {
+		t.Fatalf("no plan for %s at all", addr)
+	}
+
+	want := `resource "test_object" "a" {
+  test_bool   = null
+  test_list   = null
+  test_map    = null
+  test_number = null
+  test_string = "foo"
+}`
+	got := instPlan.GeneratedConfig
+	if diff := cmp.Diff(want, got); len(diff) > 0 {
+		t.Errorf("got:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
 }

@@ -121,6 +121,65 @@ func TestAssertObjectCompatible(t *testing.T) {
 		{
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.Zero,
+			}),
+			[]string{
+				`.name: wrong final value type: string required`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String).RefineNotNull(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.NullVal(cty.String),
+			}),
+			[]string{
+				`.name: final value cty.NullVal(cty.String) does not conform to planning placeholder cty.UnknownVal(cty.String).RefineNotNull()`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.UnknownVal(cty.String).Refine().
+					StringPrefix("boop:").
+					NewValue(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"name": cty.StringVal("thingy"),
+			}),
+			[]string{
+				`.name: final value cty.StringVal("thingy") does not conform to planning placeholder cty.UnknownVal(cty.String).Refine().StringPrefixFull("boop:").NewValue()`,
+			},
+		},
+		{
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
 					"id": {
 						Type:     cty.String,
 						Computed: true,

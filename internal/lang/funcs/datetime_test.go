@@ -56,13 +56,13 @@ func TestTimeadd(t *testing.T) {
 		{ // Invalid format timestamp
 			cty.StringVal("2017-11-22"),
 			cty.StringVal("-1h"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			true,
 		},
 		{ // Invalid format duration (day is not supported by ParseDuration)
 			cty.StringVal("2017-11-22T00:00:00Z"),
 			cty.StringVal("1d"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			true,
 		},
 	}
@@ -132,31 +132,31 @@ func TestTimeCmp(t *testing.T) {
 		{
 			cty.StringVal("2017-11-22T00:00:00Z"),
 			cty.StringVal("bloop"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`not a valid RFC3339 timestamp: cannot use "bloop" as year`,
 		},
 		{
 			cty.StringVal("2017-11-22 00:00:00Z"),
 			cty.StringVal("2017-11-22T00:00:00Z"),
-			cty.UnknownVal(cty.String),
+			cty.UnknownVal(cty.String).RefineNotNull(),
 			`not a valid RFC3339 timestamp: missing required time introducer 'T'`,
 		},
 		{
 			cty.StringVal("2017-11-22T00:00:00Z"),
 			cty.UnknownVal(cty.String),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			``,
 		},
 		{
 			cty.UnknownVal(cty.String),
 			cty.StringVal("2017-11-22T00:00:00Z"),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			``,
 		},
 		{
 			cty.UnknownVal(cty.String),
 			cty.UnknownVal(cty.String),
-			cty.UnknownVal(cty.Number),
+			cty.UnknownVal(cty.Number).RefineNotNull(),
 			``,
 		},
 	}

@@ -1692,6 +1692,143 @@ func TestAssertPlanValid(t *testing.T) {
 			}),
 			nil,
 		},
+
+		// When validating collections we start by comparing length, which
+		// requires guarding for any unknown values incorrectly returned by the
+		// provider.
+		"nested collection attrs planned unknown": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"list": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingList,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+					"map": {
+						Computed: true,
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingMap,
+							Attributes: map[string]*configschema.Attribute{
+								"name": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"list": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+				"map": cty.MapVal(map[string]cty.Value{
+					"key": cty.ObjectVal(map[string]cty.Value{
+						"name": cty.StringVal("from_config"),
+					}),
+				}),
+			}),
+			// provider cannot override the config
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"list": cty.UnknownVal(cty.Set(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+				"map": cty.UnknownVal(cty.Map(
+					cty.Object(map[string]cty.Type{
+						"name": cty.String,
+					}),
+				)),
+			}),
+			[]string{
+				`.set: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.list: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.map: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+			},
+		},
+
+		"refined unknown values can become less refined": {
+			// Providers often can't preserve refinements through the provider
+			// wire protocol: although we do have a defined serialization for
+			// it, most providers were written before there was any such
+			// thing as refinements, and in future there might be new
+			// refinements that even refinement-aware providers don't know
+			// how to preserve, so we allow them to get dropped here as
+			// a concession to backward-compatibility.
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"a": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.StringVal("old"),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String).RefineNotNull(),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"a": cty.UnknownVal(cty.String),
+			}),
+			nil,
+		},
 	}
 
 	for name, test := range tests {
