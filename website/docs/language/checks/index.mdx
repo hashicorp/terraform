@@ -42,6 +42,8 @@ You can use a scoped data source to validate the status of a piece of infrastruc
 
 Scoped data sources support the `depends_on` and `provider` [meta-arguments](/terraform/language/resources/syntax#meta-arguments). Scoped data sources do not support the `count` or`for_each` meta-arguments.
 
+##### `depends_on`
+
 ### Assertions
 
 Check blocks validate your custom assertions using `assert` blocks. Each `check` block must have at least one, but potentially many, `assert` blocks. Each `assert` block has a [`condition` attribute](/terraform/language/expressions/custom-conditions#condition-expressions) and an [`error_message` attribute](/terraform/language/expressions/custom-conditions#error-messages).
@@ -54,7 +56,7 @@ Condition arguments within `assert` blocks can refer to scoped data sources with
 
 ### Meta-Arguments
 
-Check blocks do not currently support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). We are still collecting feedback on this feature, so if your use case would benefit from check blocks supporting meta-arguments, please let us know. 
+Check blocks do not currently support [meta-arguments](/terraform/language/resources/syntax#meta-arguments). We are still collecting feedback on this feature, so if your use case would benefit from check blocks supporting meta-arguments, please [let us know](https://github.com/hashicorp/terraform/issues/new).
 
 ## Continuous Validation in Terraform Cloud
 
@@ -62,7 +64,23 @@ Terraform Cloud can automatically validate whether checks in a workspace’s con
 
 ## Choosing Checks or other Custom Conditions
 
-In some cases, you can use checks and [postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) interchangeably to validate resources and data sources. 
+Check blocks offer the most flexible validation solution within Terraform. As you can reference outputs, variables, resources and data sources within check assertions, they can be used to model all the alternate [Custom Conditions](/terraform/language/expressions/custom-conditions). However, that does not mean you should replace all your custom conditions with check blocks.
+
+As discussed, the major behavioral difference between [check block assertions](#assertions) and other custom conditions is that they do not affect Terraform's execution of an operation. It is this behaviour you should think about when deciding which validation to apply.
+
+### Outputs and Variables
+
+[Output postconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
+
+In these cases it is often desirable that Terraform should block further execution. For example, it is not useful to warn that an input variable was invalid after an entire Terraform configuration has been applied based on that invalid value. This is the behaviour a check block would apply if an assertion was made against a variable. A validation block against the variable itself would alert before any configuration was applied that the provided input was invalid, and then not create infrastructure based on a flawed premise.
+
+### Resource preconditions and postconditions
+
+The boundary between resource and data source [preconditions and postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) and check blocks is more nuanced.
+
+Preconditions are unique amongst the custom conditions in that they execute before a resource change is applied or planned, rather than after. This is discussed in detail in [Choosing Between Preconditions and Postconditions](/terraform/language/expressions/custom-conditions#choosing-between-preconditions-and-postconditions) and the same advice applies when choosing between a precondition and a check block.
+
+Postconditions, however, can often be used interchangeably with check blocks to validate resources and data sources.
 
 For example, you can [rewrite the above `check` block example](#checks-syntax) to use a postcondition instead. The below code uses a `postcondition` block to validate that the Terraform website returns the expected status code of `200`.
 
