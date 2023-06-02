@@ -1,21 +1,21 @@
 ---
 page_title: Import - Configuration Language
 description: >-
-  Import resources into Terraform to bring them under Terraform's management by writing `import` blocks in code.
+Import and manage existing resources with Terraform using configuration-driven import.
 ---
 
 # Import
 
 -> **Note:** Import blocks are only available in Terraform v1.5.0 and later.
 
-~> **Experimental:** Import blocks are an experimental Terraform feature. While we do not expect to make backwards-incompatible changes to their syntax, processing of imports during the plan, generating configuration, and the `-generate-config-out` flag may change in future releases.
+~> **Experimental:** Import blocks are an experimental Terraform feature. While we do not expect to make backwards-incompatible changes to syntax, the processing of imports during the plan stage, generating configuration, and the `-generate-config-out` flag may change in future releases.
 
 Terraform can import existing infrastructure resources, which brings them under Terraform's management. Once you have imported a resource, it will be present in the Terraform configuration and state, just like a resource you had created via Terraform. You can then manage it like any other resource, updating its attributes and destroying it as part of a normal resource lifecycle.
-An `import` block records that Terraform imported the resource, that it was not originally created due to this Terraform configuration. Considered another way, it records the user's intent that an import be added to Terraform's plan graph.
+The `import` block records that Terraform imported the resource and that Terraform did not previously create that resource with its configuration. Put another way, the `import` block records the user's intent to add an import to Terraform's plan graph.
 
-## `import` block syntax
+## Syntax
 
-The `import` block can appear in any Terraform configuration file. A common pattern is to create an `imports.tf` file, or to place each `import` block next to the `resource` block it will import into.
+The `import` block can appear in any Terraform configuration file. A common pattern is to create an `imports.tf` file, or to place each `import` block beside the `resource` block it imports into.
 
 ```hcl
 import {
@@ -27,13 +27,13 @@ import {
 The above `import` block defines an import of the AWS instance with ID "i-abcd1234" into the resource address `aws_instance.example` in the root module.
 
 The `import` block has the following arguments:
- - `to` - The resource instance address targeted by this import.
- - `id` - The import ID of the resource. String.
+ - `to` - The resource instance address this import is targeting.
+ - `id` - A string with the import ID of the resource.
  - `provider` (optional) - A custom resource provider. See [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider).
 
-## Planning and applying an import
+## Plan and Apply an Import
 
-The `import` block, like all Terraform configuration blocks, is processed during the `terraform plan` operation, which outputs a list of changes Terraform will make if you proceed to apply. Along with create, update, remove, and move, import is an action Terraform can perform on a resource. The resource is only added to the state during `terraform apply`.
+Terraform processes the `import` block during the plan stage. Along with create, update, remove, and move, import is an action Terraform performs on a resource. Once a plan is approved, Terraform imports the resource into its state during the subsequent apply stage.
 
 ### 1. Add the `import` block to configuration
 
