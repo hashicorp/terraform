@@ -20,7 +20,7 @@ NEW FEATURES:
 
 * Generating configuration for imported resources: in conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
 
-* Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time.
+* Adds a new `plantimestamp` function that returns the timestamp at plan time. This is similar to the `timestamp` function which returns the timestamp at apply time ([#32980](https://github.com/hashicorp/terraform/pull/32980)).
 * Adds a new `strcontains` function that checks whether a given string contains a given substring. ([#33069](https://github.com/hashicorp/terraform/issues/33069))
 
 
