@@ -8,13 +8,15 @@ description: >-
 
 -> **Note:** Check blocks are only available in Terraform v1.5.0 and later.
 
-The `check` block can validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure. Check blocks allow you to define [custom conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of an operation. Check blocks execute as the last step of a plan or apply, after Terraform has planned or provisioned your infrastructure.
+The `check` block can validate your infrastructure outside the usual resource lifecycle. Check blocks address a gap between post-apply and functional validation of infrastructure.
+
+Check blocks allow you to define [custom conditions](/terraform/language/expressions/custom-conditions) that execute on every Terraform plan or apply operation without affecting the overall status of an operation. Check blocks execute as the last step of a plan or apply after Terraform has planned or provisioned your infrastructure.
 
 ## Checks Syntax
 
 You can declare a `check` block with a local name, zero-to-one scoped [data sources](#scoped-data-sources), and one-to-many [assertions](#assertions).
 
-The following example loads the Terraform website and validates that it returns the expected status code of `200`.
+The following example loads the Terraform website and validates that it returns the expected status code `200`.
 
 ```hcl
 check "health_check" {
@@ -33,10 +35,9 @@ check "health_check" {
 
 You can use any data source from any provider as a scoped data source within a `check` block.
 
-A `check` block can optionally contain a nested (a.k.a scoped) data source. This `data` block behaves like an external [data source](/terraform/language/data-sources), except you can not reference it outside its enclosing `check` block. Additionally, if a scoped data source's provider raises any errors, they are masked as warnings and do not prevent Terraform from continuing operation execution.
+A `check` block can optionally contain a nested (a.k.a. scoped) data source. This `data` block behaves like an external [data source](/terraform/language/data-sources), except you can not reference it outside its enclosing `check` block. Additionally, if a scoped data source's provider raises any errors, they are masked as warnings and do not prevent Terraform from continuing operation execution.
 
 You can use a scoped data source to validate the status of a piece of infrastructure outside of the usual Terraform resource lifecycle. [In the above example](#checks-syntax), if the `terraform_io` data source fails to load, you receive a warning instead of a blocking error, which would occur if you declared this data source outside of a `check` block.
-
 
 #### Meta-Arguments
 
@@ -46,11 +47,11 @@ Scoped data sources support the `depends_on` and `provider` [meta-arguments](/te
 
 The `depends_on` meta argument can be particularly powerful when used within scoped data sources.
 
-The [previous example](#checks-syntax) would fail during any initial planning, as the configuration hasn't been applied so the website simply would not exist. As written, this would be expected behaviour but is not particularly useful and is potentially noisy as other genuine errors in the configuration could be obscured by the warning message.
+The first time Terraform creates the initial plan for our [previous example](#checks-syntax), the plan fails because Terraform has not applied its configuration yet. Meaning this test fails because Terraform must still create the resources to make this website exist. Therefore, the first time Terraform runs this check, it always throws a potentially distracting error message.
 
-An addition of the `depends_on` attribute, linking the scoped data source to the highest-levelled piece of infrastructure such as a load balancer, would mean that during any initial planning the check would instead report as `known after apply`. In addition, it would not produce any unnecessary or noisy warnings. Going forward, the check would execute again for both plans and applies providing the required validation.
+You can fix this by adding [`depends_on`](/terraform/language/meta-arguments/depends_on) to your scoped data source, ensuring it depends on an essential piece of your site's infrastructure, such as the load balancer. The check returns  `known after apply` until that crucial piece of your website is ready. This strategy avoids producing unnecessary warnings during setup, and the check executes during subsequent plans and applies.
 
-One caveat to the `depends_on` attribute is that any changes to the dependencies would again cause the check block to report as `known after apply`, essentially meaning the check block would not execute during that planning stage. Depending on your use case this behavior could be acceptable or problematic.
+One problem with this strategy is that if the resource your scoped data source `depends_on` changes, the check block returns `known after apply` until Terraform has recreated that resource. Depending on your use case, this behavior could be acceptable or problematic.
 
 ### Assertions
 
@@ -72,23 +73,25 @@ Terraform Cloud can automatically validate whether checks in a workspace’s con
 
 ## Choosing Checks or other Custom Conditions
 
-Check blocks offer the most flexible validation solution within Terraform. As you can reference outputs, variables, resources and data sources within check assertions, they can be used to model all the alternate [Custom Conditions](/terraform/language/expressions/custom-conditions). However, that does not mean you should replace all your custom conditions with check blocks.
+Check blocks offer the most _flexible_ validation solution within Terraform. You can reference outputs, variables, resources, and data sources within check assertions. You can also use checks to model every alternate [Custom Conditions](/terraform/language/expressions/custom-conditions). However, that does not mean you should replace all your custom conditions with check blocks.
 
-As discussed, the major behavioral difference between [check block assertions](#assertions) and other custom conditions is that they do not affect Terraform's execution of an operation. It is this behaviour you should think about when deciding which validation to apply.
+There are major behavioral differences between check block assertions and other custom conditions, the main one being that check blocks do _not_ affect Terraform's execution of an operation. You can use this non-blocking behavior to decide the best type of validation for your use case.
 
 ### Outputs and Variables
 
 [Output postconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
 
-In these cases it is often desirable that Terraform should block further execution. For example, it is not useful to warn that an input variable was invalid after an entire Terraform configuration has been applied based on that invalid value. This is the behaviour a check block would apply if an assertion was made against a variable. A validation block against the variable itself would alert before any configuration was applied that the provided input was invalid, and then not create infrastructure based on a flawed premise.
+In some cases, you might want Terraform to block further execution. 
 
-### Resource preconditions and postconditions
+For example, it is not helpful for Terraform to warn that an input variable is invalid after it applies an entire configuration with that input variable. In this case, a check block would warn of the invalid input variable _without_ interrupting the operation. A validation block for the same input variable would alert you of the invalid variable _before_ applying the configuration.
 
-The boundary between resource and data source [preconditions and postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) and check blocks is more nuanced.
+### Resource Preconditions and Postconditions
 
-Preconditions are unique amongst the custom conditions in that they execute before a resource change is applied or planned, rather than after. This is discussed in detail in [Choosing Between Preconditions and Postconditions](/terraform/language/expressions/custom-conditions#choosing-between-preconditions-and-postconditions) and the same advice applies when choosing between a precondition and a check block.
+The difference between [preconditions and postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) and check blocks is more nuanced.
 
-Postconditions, however, can often be used interchangeably with check blocks to validate resources and data sources.
+Preconditions are unique amongst the custom conditions in that they execute _before_ a resource change is applied or planned. [Choosing Between Preconditions and Postconditions](/terraform/language/expressions/custom-conditions#choosing-between-preconditions-and-postconditions) offers guidance on choosing between a precondition and a postcondition, and the same topics also apply to choosing between preconditions and a check block.
+
+You can often use postconditions interchangeably with check blocks to validate resources and data sources.
 
 For example, you can [rewrite the above `check` block example](#checks-syntax) to use a postcondition instead. The below code uses a `postcondition` block to validate that the Terraform website returns the expected status code of `200`.
 
@@ -105,9 +108,9 @@ data "http" "terraform_io" {
 }
 ```
 
-Both of our `check` and `postcondition` block examples validate that the Terraform website returns a `200` status code during a plan or an apply operation. The difference between the two blocks is how each handles failure.
+Both the `check` and `postcondition` block examples validate that the Terraform website returns a `200` status code during a plan or an apply operation. The difference between the two blocks is how each handles failure.
 
-If a `postcondition` block fails, it _blocks_ Terraform from continuing execution of the current operation. If a `check` block fails, it _does not_ block Terraform's execution of an operation.
+If a `postcondition` block fails, it _blocks_ Terraform from executing the current operation. If a `check` block fails, it _does not_ block Terraform from executing an operation.
 
 If the above example's postcondition fails, it is impossible to recover from. Terraform blocks any future plan or apply operations if your postcondition is unsatisfied during the planning stage. This problem occurs because the postcondition does not directly depend on Terraform configuration, but instead on the complex interactions between multiple resources.
 

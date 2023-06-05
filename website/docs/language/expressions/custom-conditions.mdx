@@ -20,7 +20,7 @@ This page explains the following:
 ## Selecting a Custom Condition for Your Use Case
 
 Terraform's different custom conditions are best suited to various situations. Use the following broad guidelines to select the best custom condition for your use case:
-1. [Check blocks with assertions](#check-assertions) validate your infrastructure as a whole. In addition, check blocks are non-invasive and so do not prevent or block the overall execution of Terraform operations.
+1. [Check blocks with assertions](#check-assertions) validate your infrastructure as a whole. Additionally, check blocks do not prevent or block the overall execution of Terraform operations.
 1. [Validation conditions](#input-variable-validation) or [output postconditions](#preconditions-and-postconditions) can ensure your configuration's inputs and outputs meet specific requirements.
 1. Resource [preconditions and postconditions](#preconditions-and-postconditions) can validate that Terraform produces your configuration with predictable results.
 
