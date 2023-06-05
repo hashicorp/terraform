@@ -34,13 +34,19 @@ The above `import` block defines an import of the AWS instance with ID "i-abcd12
 The `import` block has the following arguments:
  - `to` - The resource instance address this import is targeting.
  - `id` - A string with the import ID of the resource.
- - `provider` (optional) - A custom resource provider. See [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider).
+ - `provider` (optional) - An optional custom resource provider, see [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider) for details.
 
 ## Plan and Apply an Import
 
 Terraform processes the `import` block during the plan stage. Along with create, update, remove, and move, import is an action Terraform performs on a resource. Once a plan is approved, Terraform imports the resource into its state during the subsequent apply stage.
 
-### 1. Add the `import` block to configuration
+You can use `import` blocks by doing the following:
+1. Define an `import` block for the resource(s).
+1. Add a `resource` block in your configuration.
+1. Run `terraform plan` to see how Terraform plans to import the resource(s).
+1. Apply the configuration and have Terraform import resources and update your Terraform state.
+
+> **Hands-on:** Try the [State Import](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 ```hcl
 provider "aws" {
@@ -119,7 +125,7 @@ Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
 
 When Terraform imports a resource, it needs you to define that resource in configuration before saving it to state. You can do this by either writing a `resource` block or by generating configuration. 
 
-### Option: Write a `resource` block
+### Write a `resource` block
 
 Write a `resource` block for the resource you are importing, whose address matches the import block target. For example:
 
