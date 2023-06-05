@@ -220,7 +220,7 @@
   {
       "title": "Import",
       "routes": [
-       { "title": "Overview", "path": "import/index" },
+       { "title": "Overview", "path": "import" },
        {
          "title": "Generating Configuration",
          "path": "import/generating-configuration"
