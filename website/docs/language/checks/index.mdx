@@ -45,13 +45,15 @@ Scoped data sources support the `depends_on` and `provider` [meta-arguments](/te
 
 ##### `depends_on`
 
-The `depends_on` meta argument can be particularly powerful when used within scoped data sources.
+The `depends_on` meta-argument can be particularly powerful when used within scoped data sources.
 
-The first time Terraform creates the initial plan for our [previous example](#checks-syntax), the plan fails because Terraform has not applied its configuration yet. Meaning this test fails because Terraform must still create the resources to make this website exist. Therefore, the first time Terraform runs this check, it always throws a potentially distracting error message.
+The first time Terraform creates the _initial_ plan for our [previous example](#checks-syntax), the plan fails because Terraform has not applied its configuration yet. Meaning this test fails because Terraform must still create the resources to make this website exist. Therefore, the first time Terraform runs this check, it always throws a potentially distracting error message.
 
 You can fix this by adding [`depends_on`](/terraform/language/meta-arguments/depends_on) to your scoped data source, ensuring it depends on an essential piece of your site's infrastructure, such as the load balancer. The check returns  `known after apply` until that crucial piece of your website is ready. This strategy avoids producing unnecessary warnings during setup, and the check executes during subsequent plans and applies.
 
-One problem with this strategy is that if the resource your scoped data source `depends_on` changes, the check block returns `known after apply` until Terraform has recreated that resource. Depending on your use case, this behavior could be acceptable or problematic.
+One problem with this strategy is that if the resource your scoped data source `depends_on` changes, the check block returns `known after apply` until Terraform has updated that resource. Depending on your use case, this behavior could be acceptable or problematic.
+
+We recommend implementing the `depends_on` meta-argument if your scoped data source depends on the existence of another resource without referencing it directly.
 
 ### Assertions
 
@@ -83,7 +85,7 @@ There are major behavioral differences between check block assertions and other 
 
 In some cases, you might want Terraform to block further execution. 
 
-For example, it is not helpful for Terraform to warn that an input variable is invalid after it applies an entire configuration with that input variable. In this case, a check block would warn of the invalid input variable _without_ interrupting the operation. A validation block for the same input variable would alert you of the invalid variable _before_ applying the configuration.
+For example, it is not helpful for Terraform to warn that an input variable is invalid after it applies an entire configuration with that input variable. In this case, a check block would warn of the invalid input variable _without_ interrupting the operation. A validation block for the same input variable would alert you of the invalid variable and halt the plan or apply operation.
 
 ### Resource Preconditions and Postconditions
 
