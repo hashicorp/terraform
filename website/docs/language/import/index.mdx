@@ -48,6 +48,8 @@ You can use `import` blocks by doing the following:
 
 > **Hands-on:** Try the [State Import](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
+The `import` block is _idempotent_, meaning that applying an import action then running another plan will not generate another import action. A resource need only be imported into a single address once. Attempting to import it to the same address again is a (harmless) no-op. For this reason, `import` blocks in code can either be removed after apply or safely left as a record of the resource's origin for future module maintainers (see [Refactoring](/terraform/language/modules/develop/refactoring.mdx)).
+
 ## Resource Configuration
 
 When Terraform imports a resource, it needs you to define that resource in configuration before saving it to state. You can do this by either writing a `resource` block or by generating configuration. 
