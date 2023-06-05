@@ -52,6 +52,10 @@ You can use `import` blocks by doing the following:
 
 When Terraform imports a resource, it needs you to define that resource in configuration before saving it to state. You can do this by either writing a `resource` block or by generating configuration. 
 
+We recommend that you write a `resource` block when an importing a resource if you know the values for most of the resource arguments, e.g. if the imported resource is similar to an existing resource whose configuration you can copy from elsewhere.
+
+We recommend that generating configuration be used when you need to import multiple resources, or a single complex resource, for which you do not already have configuration.
+
 ### Write a `resource` block
 
 Write a `resource` block for the resource you are importing, whose address matches the import block target. For example:
