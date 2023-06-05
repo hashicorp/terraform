@@ -218,7 +218,13 @@
   },
   {
       "title": "Import",
-      "path": "import"
+      "routes": [
+       { "title": "Overview", "path": "import/index" },
+       {
+         "title": "Generating Configuration",
+         "path": "import/generating-configuration"
+       }
+    ]
   },
   {
     "title": "Expressions",
