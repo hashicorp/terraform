@@ -49,6 +49,7 @@ aws_iot_thing.bar: Refreshing state... [id=foo]
 Terraform will perform the following actions:
 
   # aws_iot_thing.bar will be imported
+  # (config will be generated)
     resource "aws_iot_thing" "bar" {
         arn               = "arn:aws:iot:eu-west-1:1234567890:thing/foo"
         attributes        = {}
@@ -59,6 +60,16 @@ Terraform will perform the following actions:
     }
 
 Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
+
+╷
+│ Warning: Config generation is experimental
+│ 
+│ Generating configuration during import is currently experimental, and the generated configuration format may change in future versions.
+╵
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Terraform has generated configuration and written it to generated.tf. Please review the configuration and edit it as necessary before adding it to version control.
 ```
 
 ### 3. Review Generated Configuration
