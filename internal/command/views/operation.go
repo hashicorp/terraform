@@ -143,18 +143,25 @@ func (v *OperationHuman) PlanNextStep(planPath string, genConfigPath string) {
 
 	if genConfigPath != "" {
 		v.view.streams.Printf(
-			"\n"+strings.TrimSpace(format.WordWrap(planHeaderGenConfig, v.view.outputColumns()))+"\n", genConfigPath,
-		)
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderGenConfig, genConfigPath)),
+				v.view.outputColumns(),
+			) + "\n")
 	}
 
 	if planPath == "" {
 		v.view.streams.Print(
-			"\n" + strings.TrimSpace(format.WordWrap(planHeaderNoOutput, v.view.outputColumns())) + "\n",
+			format.WordWrap(
+				"\n"+strings.TrimSpace(planHeaderNoOutput),
+				v.view.outputColumns(),
+			) + "\n",
 		)
 	} else {
 		v.view.streams.Printf(
-			"\n"+strings.TrimSpace(format.WordWrap(planHeaderYesOutput, v.view.outputColumns()))+"\n",
-			planPath, planPath,
+			format.WordWrap(
+				"\n"+strings.TrimSpace(fmt.Sprintf(planHeaderYesOutput, planPath, planPath)),
+				v.view.outputColumns(),
+			) + "\n",
 		)
 	}
 }
