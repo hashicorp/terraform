@@ -22,6 +22,11 @@ import {
   to = aws_instance.example
   id = "i-abcd1234"
 }
+
+resource "aws_instance" "example" {
+  name = "hashi"
+  # (other resource arguments...)
+}
 ```
 
 The above `import` block defines an import of the AWS instance with ID "i-abcd1234" into the resource address `aws_instance.example` in the root module.
