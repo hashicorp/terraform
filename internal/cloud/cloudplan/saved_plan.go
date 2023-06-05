@@ -33,9 +33,9 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 		return bookmark, err
 	}
 
-	e := json.Unmarshal([]byte(data), &bookmark)
-	if e != nil {
-		return bookmark, e
+	err = json.Unmarshal(data, &bookmark)
+	if err != nil {
+		return bookmark, err
 	}
 
 	if bookmark.RemotePlanFormat != 1 {
