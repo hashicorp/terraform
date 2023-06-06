@@ -75,7 +75,7 @@ Terraform Cloud can automatically validate whether checks in a workspace’s con
 
 ## Choosing Checks or other Custom Conditions
 
-Check blocks offer the most _flexible_ validation solution within Terraform. You can reference outputs, variables, resources, and data sources within check assertions. You can also use checks to model every alternate [Custom Conditions](/terraform/language/expressions/custom-conditions). However, that does not mean you should replace all your custom conditions with check blocks.
+Check blocks offer the most _flexible_ validation solution within Terraform. You can reference outputs, variables, resources, and data sources within check assertions. You can also use checks to model every alternate [Custom Condition](/terraform/language/expressions/custom-conditions). However, that does not mean you should replace all your custom conditions with check blocks.
 
 There are major behavioral differences between check block assertions and other custom conditions, the main one being that check blocks do _not_ affect Terraform's execution of an operation. You can use this non-blocking behavior to decide the best type of validation for your use case.
 
@@ -83,7 +83,7 @@ There are major behavioral differences between check block assertions and other 
 
 [Output postconditions](/terraform/language/expressions/custom-conditions#outputs) and [variable validations](/terraform/language/expressions/custom-conditions#input-variable-validation) both make assertions around inputs and outputs.
 
-In some cases, you might want Terraform to block further execution. 
+This is one of the cases where you might want Terraform to block further execution. 
 
 For example, it is not helpful for Terraform to warn that an input variable is invalid after it applies an entire configuration with that input variable. In this case, a check block would warn of the invalid input variable _without_ interrupting the operation. A validation block for the same input variable would alert you of the invalid variable and halt the plan or apply operation.
 
@@ -91,7 +91,7 @@ For example, it is not helpful for Terraform to warn that an input variable is i
 
 The difference between [preconditions and postconditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) and check blocks is more nuanced.
 
-Preconditions are unique amongst the custom conditions in that they execute _before_ a resource change is applied or planned. [Choosing Between Preconditions and Postconditions](/terraform/language/expressions/custom-conditions#choosing-between-preconditions-and-postconditions) offers guidance on choosing between a precondition and a postcondition, and the same topics also apply to choosing between preconditions and a check block.
+Preconditions are unique amongst the custom conditions in that they execute _before_ a resource change is applied or planned. [Choosing Between Preconditions and Postconditions](/terraform/language/expressions/custom-conditions#choosing-between-preconditions-and-postconditions) offers guidance on choosing between a precondition and a postcondition, and the same topics also apply to choosing between a precondition and a check block.
 
 You can often use postconditions interchangeably with check blocks to validate resources and data sources.
 
