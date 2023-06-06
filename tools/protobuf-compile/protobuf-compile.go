@@ -54,6 +54,11 @@ var protocSteps = []protocStep{
 		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "./tfplugin6.proto"},
 	},
 	{
+		"terraform1 (Terraform Core RPC API)",
+		"internal/rpcapi/terraform1",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "--go_opt=Mterraform1.proto=github.com/hashicorp/terraform/internal/rpcapi/terraform1", "./terraform1.proto"},
+	},
+	{
 		"tfplan (plan file serialization)",
 		"internal/plans/internal/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
