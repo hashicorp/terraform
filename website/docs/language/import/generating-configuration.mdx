@@ -12,17 +12,17 @@ Terraform can generate HCL for resources that do not already exist in your confi
 
 Starting with Terraform's generated HCL, we recommend iterating to find your ideal configuration by removing some attributes, adjusting the value of others, and rearranging `resource` blocks into files and modules as appropriate.
 
-To generate configuration, use `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file, this command creates a new one. 
+To generate configuration, use `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file or Terraform will throw an error.
 
-```
-terraform plan -generate-config-out=generated_resources.tf
+```shell
+$ terraform plan -generate-config-out=generated_resources.tf
 ```
 
 If any resources targeted by an [`import` block](/terraform/language/import/index) do not exist in your configuration, Terraform generates and writes configuration for those resources in `generated_resources.tf`.
 
 ## Workflow
 
-The workflow for generating configuration is similar to the [`import` block workflow](/terraform/language/import/index#planning-and-applying-an-import), with the extra step of generating configuration during the planning stage.  You can then review and tweak the file Terraform generates before applying your configuration. 
+The workflow for generating configuration is similar to the [`import` block workflow](/terraform/language/import/index#planning-and-applying-an-import), with the extra step of generating configuration during the planning stage. You can then review and modify the generated configuration before applying. 
 
 ### 1. Add the `import` Block
 
@@ -38,9 +38,10 @@ import {
 ```
 
 ### 2. Plan and Generate Configuration
-Next, you will run the `terraform plan` command with the `-generate-config-out=` flag and a file path.
 
-```
+You can instruct Terraform to generate configuration by running `terraform plan` with the `-generate-config-out=` flag and a new file path. Terraform displays its plan for importing your resource and the file where Terraform generated configuration based on this plan. 
+
+```shell
 $ terraform plan -generate-config-out=generated.tf
 
 aws_iot_thing.bar: Preparing import... [id=foo]
@@ -85,9 +86,9 @@ resource aws_iot_thing "bar" {
 You can review the code Terraform generated and add or remove resource arguments, variables, and references to other resources as needed for your configuration. 
 
 ### 4. Apply
-Running `terraform apply` create and provisions your infrastructure. Ensure you add your generated code alongside your Terraform code to your version control system.
+Running `terraform apply` imports your infrastructure.
 
-```
+```shell
 $ terraform apply
 
 aws_iot_thing.bar: Preparing import... [id=foo]
@@ -113,15 +114,15 @@ Apply complete! Resources: 1 imported, 0 added, 0 changed, 0 destroyed.
 
 ```
 
-Make sure that your generated code, along with your other Terraform code, is added to your version control system.
+Ensure you add your generated code alongside your Terraform code to your version control system.
 
 ## Limitations
 
 Terraform generates configuration for importable resources during a plan by requesting values for resource attributes from the provider. For certain resources with complex schemas, it may not be possible for Terraform to construct a valid configuration from these values.
 
-Terraform will throw an error like the one below if it does not receive values for resource attributes while generating configuration.
+Terraform will display an error like the one below if it does not receive values for resource attributes while generating configuration.
 
-```
+```shell
 $ terraform plan -generate-config-out=generated.tf
 ╷
 │ Error: Conflicting configuration arguments
