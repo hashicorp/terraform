@@ -216,6 +216,7 @@
       }
     ]
   },
+  { "title": "Checks", "path": "checks" },
   {
     "title": "Expressions",
     "routes": [
@@ -249,7 +250,7 @@
         "path": "expressions/dynamic-blocks"
       },
       {
-        "title": "Custom Condition Checks",
+        "title": "Custom Conditions",
         "path": "expressions/custom-conditions"
       },
       {
