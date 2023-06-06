@@ -26,6 +26,14 @@ The workflow for generating configuration is similar to the [`import` block work
 
 ### 1. Add the `import` Block
 
+Add an `import` block to your configuration. The `import` block can be in a separate file (e.g. `import.tf`), or in an existing configuration file.
+
+The `to` argument is the address of the new generated resource. If there is already a resource in configuration at this address, Terraform will attempt to import the resource there instead, and not generate configuration.
+
+The `id` argument is the resource's import ID. Please see the provider resource documentation for how to find the import ID.
+
+If you do not already have any other resources for this provider in your configuration, you must add a `provider` block so Terraform knows which provider to use when generating configuration. Terraform will display an error if it cannot determine the correct provider to use when generating configuration.
+
 ```hcl
 provider "aws" {
   region = "eu-west-1"
