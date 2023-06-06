@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/webbrowser"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
+	"github.com/hashicorp/terraform/internal/rpcapi"
 	"github.com/hashicorp/terraform/internal/terminal"
 )
 
@@ -275,6 +276,17 @@ func initCommands(
 			}, nil
 		},
 
+		// "rpcapi" is handled a bit differently because the whole point of
+		// this interface is to bypass the CLI layer so wrapping automation can
+		// get as-direct-as-possible access to Terraform Core functionality,
+		// without interference from behaviors that are intended for CLI
+		// end-user convenience. We bypass the "command" package entirely
+		// for this command in particular.
+		"rpcapi": rpcapi.CLICommandFactory(rpcapi.CommandFactoryOpts{
+			ExperimentsAllowed: meta.AllowExperimentalFeatures,
+			ShutdownCh:         meta.ShutdownCh,
+		}),
+
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
 				Meta: meta,
@@ -431,9 +443,10 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             {},
-		"internal-plugin": {},
-		"push":            {},
+		"env":             struct{}{},
+		"internal-plugin": struct{}{},
+		"push":            struct{}{},
+		"rpcapi":          struct{}{},
 	}
 }
 

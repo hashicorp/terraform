@@ -11,6 +11,8 @@ import (
 
 type corePlugin struct {
 	plugin.Plugin
+
+	experimentsAllowed bool
 }
 
 func (p *corePlugin) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *grpc.ClientConn) (interface{}, error) {
@@ -34,8 +36,8 @@ func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraf
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
 		// will register all of the other services so the client can being
-		// doing real work. (In future the details of what we register here
-		// might vary based on the negotiated capabilities.)
+		// doing real work. In future the details of what we register here
+		// might vary based on the negotiated capabilities.
 		terraform1.RegisterDependenciesServer(s, &dependenciesServer{})
 		return &terraform1.ServerCapabilities{}, nil
 	}

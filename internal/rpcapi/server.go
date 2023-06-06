@@ -2,24 +2,58 @@ package rpcapi
 
 import (
 	"context"
+	"errors"
+	"os"
 
 	"github.com/hashicorp/go-plugin"
+	"google.golang.org/grpc"
 )
 
 // ServePlugin attempts to complete the go-plugin protocol handshake, and then
-// if successful starts the plugin server and blocks until externally
-// terminated.
-func ServePlugin(ctx context.Context) error {
+// if successful starts the plugin server and blocks until the given context
+// is cancelled.
+//
+// Returns [ErrNotPluginClient] if this program doesn't seem to be running as
+// the child of a plugin client, which is detected based on a magic environment
+// variable that the client ought to have set.
+func ServePlugin(ctx context.Context, opts ServerOpts) error {
+	// go-plugin has its own check for the environment variable magic cookie
+	// but it returns a generic error message. We'll pre-check it out here
+	// instead so we can return a more specific error message.
+	if os.Getenv(handshake.MagicCookieKey) != handshake.MagicCookieValue {
+		return ErrNotPluginClient
+	}
+
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: handshake,
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: plugin.PluginSet{
-				"tfcore": &corePlugin{},
+				"tfcore": &corePlugin{
+					experimentsAllowed: opts.ExperimentsAllowed,
+				},
 			},
 		},
-		GRPCServer: plugin.DefaultGRPCServer,
+		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
+			server := grpc.NewServer(opts...)
+			// We'll also monitor the given context for cancellation
+			// and terminate the server gracefully if we get cancelled.
+			go func() {
+				<-ctx.Done()
+				server.GracefulStop()
+				// The above will block until all of the pending RPCs have
+				// finished.
+				os.Exit(0)
+			}()
+			return server
+		},
 	})
 	return nil
+}
+
+var ErrNotPluginClient = errors.New("caller is not a plugin client")
+
+type ServerOpts struct {
+	ExperimentsAllowed bool
 }
 
 // handshake is the HandshakeConfig used to begin negotiation between client
