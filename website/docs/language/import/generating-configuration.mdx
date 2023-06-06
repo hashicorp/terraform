@@ -126,6 +126,8 @@ Ensure you add your generated code alongside your Terraform code to your version
 
 ## Limitations
 
+### Conflicting Resource Arguments
+
 Terraform generates configuration for importable resources during a plan by requesting values for resource attributes from the provider. For certain resources with complex schemas, it may not be possible for Terraform to construct a valid configuration from these values.
 
 Terraform will display an error like the one below if it does not receive values for resource attributes while generating configuration.
@@ -143,4 +145,4 @@ $ terraform plan -generate-config-out=generated.tf
 ╵
 ```
 
-In the example above, Terraform still generates configuration and writes it to `generated.tf`. This error stems from a conflict between the `ipv6_address_count` and `ipv6_addresses` arguments. You could fix the error by removing one of these two arguments.
+In the example above, Terraform still generates configuration and writes it to `generated.tf`. This error stems from a conflict between the `ipv6_address_count` and `ipv6_addresses` arguments. You could fix the error by removing one of these two arguments, then running `terraform plan` again to check that there are no further issues.
