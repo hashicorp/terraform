@@ -459,16 +459,20 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 //
 // We need a separate method for entering this path, because we don't want to
 // expose a run_id argument in the cloud block schema.
-func (b *Cloud) ConfigureFromSavedPlan(hostname, runId string) tfdiags.Diagnostics {
+func (b *Cloud) ConfigureFromSavedPlan(hostname, runId, configToken string) tfdiags.Diagnostics {
 	log.Printf("[TRACE] Configuring cloud backend from saved plan")
 	// Since we expect the caller bypassed PrepareConfig, do some basic setup on
 	// our receiver that we missed out on earlier.
 	b.WorkspaceMapping = WorkspaceMapping{Name: ""}
 
 	// Construct a cty.Value that looks like a mostly empty cloud block.
-	v := cty.ObjectVal(map[string]cty.Value{
+	inner := map[string]cty.Value{
 		"hostname": cty.StringVal(hostname),
-	})
+	}
+	if configToken != "" {
+		inner["token"] = cty.StringVal(configToken)
+	}
+	v := cty.ObjectVal(inner)
 	obj, err := b.ConfigSchema().CoerceValue(v)
 	if err != nil {
 		var diags tfdiags.Diagnostics

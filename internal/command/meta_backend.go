@@ -387,16 +387,30 @@ func (m *Meta) BackendForCloudPlan(hostname, runId string) (backend.Enhanced, tf
 	b := f()
 	log.Printf("[TRACE] Meta.BackendForCloudPlan: instantiated backend of type %T", b)
 
-	// Since we don't have a proper user-authored config block, we skip the
-	// standard approach of decoding and using a config block and configure the
-	// cloud backend via a dedicated method that other backends lack. Thus, we
-	// need a type assert here.
+	// If the local directory has a backend config that contains a TFC token,
+	// pass it along. We ignore errors for this, because we'll just fall back to
+	// a credentials source or environment variable later.
+	var token string
+	backendConfig, configDiags := m.loadBackendConfig(".")
+	if backendConfig != nil && !configDiags.HasErrors() {
+		schema := b.ConfigSchema()
+		obj, decodeDiags := hcldec.Decode(backendConfig.Config, schema.DecoderSpec(), nil)
+		if !decodeDiags.HasErrors() {
+			if val := obj.GetAttr("token"); !val.IsNull() {
+				token = val.AsString()
+			}
+		}
+	}
+
+	// Since we're overriding the normal config data for the backend, we need to
+	// call a dedicated method on the Cloud backend that other backends lack.
+	// Thus, we need a type assert here.
 	c, ok := b.(*cloud.Cloud)
 	if !ok {
 		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedCloudUnknown)))
 		return nil, diags
 	}
-	confDiags := c.ConfigureFromSavedPlan(hostname, runId)
+	confDiags := c.ConfigureFromSavedPlan(hostname, runId, token)
 	diags = diags.Append(confDiags)
 
 	// Cloud backend always supports CLI initialization, do it.
