@@ -41,6 +41,12 @@ The `import` block has the following arguments:
 
 If you do not give the `import` block a `provider` argument, Terraform attempts to import from the default provider by default. 
 
+### Import ID
+
+To locate the resource you want to import, Terraform requires an import ID in the `id` argument. This argument must currently be supplied as a literal string.
+
+The import block's `id` argument is the resource's import ID. The identifier you use for the `id` argument is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
+
 ## Plan and Apply an Import
 
 Terraform processes the `import` block during the plan stage. Along with create, update, remove, and move, import is an action Terraform performs on a resource. Once a plan is approved, Terraform imports the resource into its state during the subsequent apply stage.
