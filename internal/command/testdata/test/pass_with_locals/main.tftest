@@ -1,0 +1,6 @@
+run "validate_test_instance" {
+  assert {
+    condition = local.value == "bar"
+    error_message = "invalid ami value"
+  }
+}
