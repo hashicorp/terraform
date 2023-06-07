@@ -10,10 +10,11 @@ description: >-
 
 ~> **Experimental:** While we do not expect to make backwards-incompatible changes to syntax, the processing of imports during the plan stage, generating configuration, and the `-generate-config-out` flag may change in future releases.
 
-Use the `import` block to import existing infrastructure resources into Terraform, bringing them under Terraform's management. 
+Use the `import` block to import existing infrastructure resources into Terraform, bringing them under Terraform's management. Configuration-driven import using `import` blocks is predictable, works with CICD pipelines, and allows you to preview an import operation before modifying state.
 
 Once imported, an existing resource is present in Terraform's configuration and state, much like any other resource Terraform created. You can then manage that resource like any other, updating its attributes and destroying it as part of a standard resource lifecycle.
-The `import` block records that Terraform imported the resource and that Terraform did not previously create that resource with its configuration. Put another way, the `import` block records the user's intent to add an import to Terraform's plan graph.
+
+The `import` block records that Terraform imported a resource and that Terraform did not previously create that resource with its configuration. Put another way, the `import` block records the user's intent to add an import to Terraform's plan graph.
 
 ## Syntax
 
@@ -37,7 +38,9 @@ The `import` block has the following arguments:
  - `to` - The resource instance address this import is targeting.
  - `id` - A string with the import ID of the resource.
  - `provider` (optional) - An optional custom resource provider, see [The Resource provider Meta-Argument](/terraform/language/meta-arguments/resource-provider) for details.
+
 If you do not give the `import` block a `provider` argument, Terraform attempts to import from the default provider by default. 
+
 ## Plan and Apply an Import
 
 Terraform processes the `import` block during the plan stage. Along with create, update, remove, and move, import is an action Terraform performs on a resource. Once a plan is approved, Terraform imports the resource into its state during the subsequent apply stage.
@@ -52,7 +55,7 @@ You can use `import` blocks by doing the following:
 
 The `import` block is [_idempotent_](https://en.wikipedia.org/wiki/Idempotence), meaning that applying an import action and running another plan will not generate another import action. 
 
-Terraform only needs to import a resource into a single address once. Attempting to import it to the same address again is a (harmless) no-op. For this reason, you can remove `import` blocks after apply or safely leave them in your configuration as a record of the resource's origin for future module maintainers. For more information on maintaining configurations over time, see [Refactoring](/terraform/language/modules/develop/refactoring).
+Terraform only needs to import a resource into a single address once. Attempting to import a resource into the same address again is a (harmless) no-op. For this reason, you can remove `import` blocks after applying or safely leave them in your configuration as a record of the resource's origin for future module maintainers. For more information on maintaining configurations over time, see [Refactoring](/terraform/language/modules/develop/refactoring).
 
 ## Resource Configuration
 
@@ -60,7 +63,7 @@ When Terraform imports a resource, it needs you to define that resource in confi
 
 We recommend writing a `resource` block if you know the majority of a provider's [resource arguments](/terraform/language/resources/syntax#resource-arguments). For example, if the imported resource is similar to an existing resource whose configuration you can copy and paste from.
 
-We recommend [generating configuration](/terraform/language/import/generating-configuration) when importing multiple resources or a single complex resource you do not already have the configuration for.
+We recommend [generating configuration](/terraform/language/import/generating-configuration) when importing multiple resources or a single complex resource that you do not already have the configuration for.
 
 ### Add a `resource` block
 
@@ -79,7 +82,7 @@ resource "aws_instance" "example" {
 
 ### Generate Configuration
 
-Terraform can generate HCL for resources which do not already exist in configuration. 
+Terraform can generate HCL for resources that do not already exist in configuration. 
 For more details, see [Generating Configuration](/terraform/language/import/generating-configuration).
 
 ## Examples

@@ -12,7 +12,7 @@ Terraform can generate HCL for resources that do not already exist in your confi
 
 Starting with Terraform's generated HCL, we recommend iterating to find your ideal configuration by removing some attributes, adjusting the value of others, and rearranging `resource` blocks into files and modules as appropriate.
 
-To generate configuration, use `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file or Terraform will throw an error.
+To generate configuration, run `terraform plan` with the `-generate-config-out` flag and supply a new file path. Do not supply a path to an existing file, or Terraform throws an error.
 
 ```shell
 $ terraform plan -generate-config-out=generated_resources.tf
@@ -22,17 +22,17 @@ If any resources targeted by an [`import` block](/terraform/language/import/inde
 
 ## Workflow
 
-The workflow for generating configuration is similar to the [`import` block workflow](/terraform/language/import/index#planning-and-applying-an-import), with the extra step of generating configuration during the planning stage. You can then review and modify the generated configuration before applying. 
+The workflow for generating configuration is similar to the [`import` block workflow](/terraform/language/import/index#plan-and-apply-an-import), with the extra step of generating configuration during the planning stage. You can then review and modify the generated configuration before applying. 
 
 ### 1. Add the `import` Block
 
-Add an `import` block to your configuration. The `import` block can be in a separate file (e.g. `import.tf`), or in an existing configuration file.
+Add an `import` block to your configuration. This `import` block can be in a separate file (e.g., `import.tf`) or an existing configuration file.
 
-The `to` argument is the address of the new generated resource. If there is already a resource in configuration at this address, Terraform will attempt to import the resource there instead, and not generate configuration.
+The import block's `to` argument points to the address of the `resource` instance this import is targeting.  If a resource in your configuration already exists at this address, Terraform attempts to import into that resource and does not generate configuration.
 
-The `id` argument is the resource's import ID. Please see the provider resource documentation for how to find the import ID.
+The import block's `id` argument is the resource's import ID. The identifier you use for the `id` argument is resource-specific. You can find the required ID in the [provider documentation](https://registry.terraform.io/browse/providers) for the resource you wish to import.
 
-If you do not already have any other resources for this provider in your configuration, you must add a `provider` block so Terraform knows which provider to use when generating configuration. Terraform will display an error if it cannot determine the correct provider to use when generating configuration.
+If your configuration does not contain other resources for your selected provider, you must add a `provider` block to inform Terraform which provider it should use to generate configuration. Otherwise, Terraform displays an error if it can not determine which provider to use.
 
 ```hcl
 provider "aws" {
@@ -83,7 +83,7 @@ Terraform has generated configuration and written it to generated.tf. Please rev
 
 ### 3. Review Generated Configuration
 
-In our example, we specified that Terraform should generate configuration in a file named `generated.tf`. The below code demonstrates what the `generated.tf` file might look like. 
+In our example, we specified that Terraform should generate configuration in a file named `generated.tf`. The below code is an example of a `generated.tf` file.
 
 ```hcl
 resource aws_iot_thing "bar" {
@@ -94,6 +94,7 @@ resource aws_iot_thing "bar" {
 You can review the code Terraform generated and add or remove resource arguments, variables, and references to other resources as needed for your configuration. 
 
 ### 4. Apply
+
 Running `terraform apply` imports your infrastructure.
 
 ```shell
