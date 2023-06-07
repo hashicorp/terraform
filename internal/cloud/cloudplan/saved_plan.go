@@ -7,6 +7,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"strings"
 )
 
 var ErrInvalidRemotePlanFormat = errors.New("invalid remote plan format, must be 1")
@@ -42,7 +43,7 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 		return bookmark, ErrInvalidRemotePlanFormat
 	} else if bookmark.Hostname == "" {
 		return bookmark, ErrInvalidHostname
-	} else if bookmark.RunID == "" {
+	} else if bookmark.RunID == "" || !strings.HasPrefix(bookmark.RunID, "run-") {
 		return bookmark, ErrInvalidRunID
 	}
 
