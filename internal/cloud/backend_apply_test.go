@@ -431,7 +431,7 @@ func TestCloud_applyWithPlan(t *testing.T) {
 	}
 
 	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "saved plan is currently not supported") {
+	if !strings.Contains(errOutput, "saved local plan is not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", errOutput)
 	}
 }
