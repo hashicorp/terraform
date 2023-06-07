@@ -32,13 +32,16 @@ func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error
 
 func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
 	return func(ctx context.Context, clientCaps *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+		// All of our servers will share a common handles table so that objects
+		// can be passed from one service to another.
+		handles := newHandleTable()
 
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
 		// will register all of the other services so the client can being
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
-		terraform1.RegisterDependenciesServer(s, &dependenciesServer{})
+		terraform1.RegisterDependenciesServer(s, newDependenciesServer(handles))
 		return &terraform1.ServerCapabilities{}, nil
 	}
 }
