@@ -8,11 +8,11 @@ description: >-
 
 -> **Note:** Import blocks are only available in Terraform v1.5.0 and later.
 
-~> **Experimental:** While we do not expect to make backwards-incompatible changes to syntax, the processing of imports during the plan stage, generating configuration, and the `-generate-config-out` flag may change in future releases.
+~> **Experimental:** While we do not expect to make backwards-incompatible changes to syntax, the `-generate-config-out` flag and how Terraform processes imports during the plan stage and generates configuration may change in future releases.
 
-Use the `import` block to import existing infrastructure resources into Terraform, bringing them under Terraform's management. Configuration-driven import using `import` blocks is predictable, works with CICD pipelines, and allows you to preview an import operation before modifying state.
+Use the `import` block to import existing infrastructure resources into Terraform, bringing them under Terraform's management. Unlike the `terraform import` command, configuration-driven import using `import` blocks is predictable, works with CICD pipelines, and lets you preview an import operation before modifying state.
 
-Once imported, an existing resource is present in Terraform's configuration and state, much like any other resource Terraform created. You can then manage that resource like any other, updating its attributes and destroying it as part of a standard resource lifecycle.
+Once imported, Terraform tracks the resource in your state file. You can then manage the imported resource like any other, updating its attributes and destroying it as part of a standard resource lifecycle.
 
 The `import` block records that Terraform imported a resource and that Terraform did not previously create that resource with its configuration. Put another way, the `import` block records the user's intent to add an import to Terraform's plan graph.
 
