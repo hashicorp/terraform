@@ -383,8 +383,9 @@ func testServerWithHandlers(handlers map[string]func(http.ResponseWriter, *http.
 	return httptest.NewServer(mux)
 }
 
-func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func testServerWithSnapshotsEnabled(t *testing.T, enabled bool) *httptest.Server {
+	var serverURL string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Log(r.Method, r.URL.String())
 
 		if r.URL.Path == "/state-json" {
@@ -400,6 +401,7 @@ func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool
 			w.Write(respBody)
 			return
 		}
+
 		if r.URL.Path == "/api/ping" {
 			t.Log("pretending to be Ping")
 			w.WriteHeader(http.StatusNoContent)
@@ -409,8 +411,10 @@ func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool
 		fakeBody := map[string]any{
 			"data": map[string]any{
 				"type": "state-versions",
+				"id":   GenerateID("sv-"),
 				"attributes": map[string]any{
 					"hosted-state-download-url": serverURL + "/state-json",
+					"hosted-state-upload-url":   serverURL + "/state-json",
 				},
 			},
 		}
@@ -435,6 +439,8 @@ func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool
 				w.Header().Set("x-terraform-snapshot-interval", "300")
 			}
 			w.WriteHeader(http.StatusOK)
+		case "PUT":
+			t.Log("pretending to be Archivist")
 		default:
 			t.Fatal("don't know what API operation this was supposed to be")
 		}
@@ -442,6 +448,8 @@ func testServerWithSnapshotsEnabled(t *testing.T, serverURL string, enabled bool
 		w.WriteHeader(http.StatusOK)
 		w.Write(fakeBodyRaw)
 	}))
+	serverURL = server.URL
+	return server
 }
 
 // testDefaultRequestHandlers is a map of request handlers intended to be used in a request

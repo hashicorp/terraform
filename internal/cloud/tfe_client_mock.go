@@ -1254,6 +1254,7 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	sv := &tfe.StateVersion{
 		ID:          id,
 		DownloadURL: url,
+		UploadURL:   fmt.Sprintf("/_archivist/upload/%s", id),
 		Serial:      *options.Serial,
 	}
 
@@ -1261,13 +1262,19 @@ func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, opti
 	if err != nil {
 		return nil, err
 	}
-
 	m.states[sv.DownloadURL] = state
 	m.outputStates[sv.ID] = []byte(*options.JSONStateOutputs)
 	m.stateVersions[sv.ID] = sv
 	m.workspaces[workspaceID] = append(m.workspaces[workspaceID], sv.ID)
 
 	return sv, nil
+}
+
+func (m *MockStateVersions) Upload(ctx context.Context, workspaceID string, options tfe.StateVersionUploadOptions) (*tfe.StateVersion, error) {
+	createOptions := options.StateVersionCreateOptions
+	createOptions.State = tfe.String(base64.StdEncoding.EncodeToString(options.RawState))
+
+	return m.Create(ctx, workspaceID, createOptions)
 }
 
 func (m *MockStateVersions) Read(ctx context.Context, svID string) (*tfe.StateVersion, error) {

@@ -298,7 +298,6 @@ func TestState_PersistState(t *testing.T) {
 		// since HTTP-level concerns like headers are out of scope for the
 		// mock client we typically use in other tests in this package, which
 		// aim to abstract away HTTP altogether.
-		var serverURL string
 
 		// Didn't want to repeat myself here
 		for _, testCase := range []struct {
@@ -314,10 +313,9 @@ func TestState_PersistState(t *testing.T) {
 				snapshotsEnabled: false,
 			},
 		} {
-			server := testServerWithSnapshotsEnabled(t, serverURL, testCase.snapshotsEnabled)
+			server := testServerWithSnapshotsEnabled(t, testCase.snapshotsEnabled)
 
 			defer server.Close()
-			serverURL = server.URL
 			cfg := &tfe.Config{
 				Address:  server.URL,
 				BasePath: "api",
