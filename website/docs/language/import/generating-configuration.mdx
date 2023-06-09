@@ -126,7 +126,7 @@ Commit your new resource configuration to your version control system.
 
 ### Conflicting resource arguments
 
-Terraform generates configuration for importable resources during a plan by requesting values for resource attributes from the provider. For certain resources with complex schemas, it may not be possible for Terraform to construct a valid configuration from these values.
+Terraform generates configuration for importable resources during a plan by requesting values for resource attributes from the provider. For certain resources with complex schemas, Terraform may not be able to construct a valid configuration from these values.
 
 Terraform will display an error like the one below if it does not receive values for resource attributes while generating configuration.
 
