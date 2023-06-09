@@ -28,22 +28,19 @@ The workflow for generating configuration is similar to the [`import` block work
 
 Add an `import` block to your configuration. This `import` block can be in a separate file (e.g., `import.tf`) or an existing configuration file.
 
-The import block's `to` argument points to the address of the `resource` instance this import is targeting.  If a resource in your configuration already exists at this address, Terraform attempts to import into that resource and does not generate configuration.
-
-The import block's `id` argument uses that resource's [import ID](/terraform/language/import#import-id).
-
-If your configuration does not contain other resources for your selected provider, you must add a `provider` block to inform Terraform which provider it should use to generate configuration. Otherwise, Terraform displays an error if it can not determine which provider to use.
-
 ```hcl
-provider "aws" {
-  region = "eu-west-1"
-}
-
 import {
   to = aws_iot_thing.bar
   id = "foo"
 }
 ```
+
+The import block's `to` argument points to the address of the `resource` instance this import is targeting.  If a resource in your configuration already exists at this address, Terraform attempts to import into that resource and does not generate configuration.
+
+The import block's `id` argument uses that resource's [import ID](/terraform/language/import#import-id).
+
+If your configuration does not contain other resources for your selected provider, you must add a `provider` block to inform Terraform which provider it should use to generate configuration. Otherwise, Terraform displays an error if it can not determine which provider to use.
+If you add a new `provider` block to your configuration, you must run `terraform init` again.
 
 ### 2. Plan and generate configuration
 
