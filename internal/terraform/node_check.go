@@ -99,8 +99,8 @@ func (n *nodeExpandCheck) References() []*addrs.Reference {
 	for _, assert := range n.config.Asserts {
 		// Check blocks reference anything referenced by conditions or messages
 		// in their check rules.
-		condition, _ := lang.ReferencesInExpr(assert.Condition)
-		message, _ := lang.ReferencesInExpr(assert.ErrorMessage)
+		condition, _ := lang.ReferencesInExpr(addrs.ParseRef, assert.Condition)
+		message, _ := lang.ReferencesInExpr(addrs.ParseRef, assert.ErrorMessage)
 		refs = append(refs, condition...)
 		refs = append(refs, message...)
 	}

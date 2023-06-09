@@ -16,16 +16,27 @@ import (
 // that is defining it.
 //
 // This is related to but separate from ModuleCallOutput, which represents
-// a module output from the perspective of its parent module. Since output
-// values cannot be represented from the module where they are defined,
-// OutputValue is not Referenceable, while ModuleCallOutput is.
+// a module output from the perspective of its parent module. Outputs are
+// referencable from the testing scope, in general terraform operation users
+// will be referencing ModuleCallOutput.
 type OutputValue struct {
+	referenceable
 	Name string
 }
 
 func (v OutputValue) String() string {
 	return "output." + v.Name
 }
+
+func (v OutputValue) Equal(o OutputValue) bool {
+	return v.Name == o.Name
+}
+
+func (v OutputValue) UniqueKey() UniqueKey {
+	return v // An OutputValue is its own UniqueKey
+}
+
+func (v OutputValue) uniqueKeySigil() {}
 
 // Absolute converts the receiver into an absolute address within the given
 // module instance.
@@ -82,7 +93,7 @@ func (v AbsOutputValue) String() string {
 }
 
 func (v AbsOutputValue) Equal(o AbsOutputValue) bool {
-	return v.OutputValue == o.OutputValue && v.Module.Equal(o.Module)
+	return v.OutputValue.Equal(o.OutputValue) && v.Module.Equal(o.Module)
 }
 
 func (v AbsOutputValue) ConfigOutputValue() ConfigOutputValue {

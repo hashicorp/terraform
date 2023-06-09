@@ -115,7 +115,7 @@ For example, to correlate with indices of a referring resource, use:
 				t.Fatal(hclDiags.Error())
 			}
 
-			refs, diags := lang.References([]hcl.Traversal{traversal})
+			refs, diags := lang.References(addrs.ParseRef, []hcl.Traversal{traversal})
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}

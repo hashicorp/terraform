@@ -22,7 +22,7 @@ func (a *Analyzer) ReferencesFromOutputValue(addr addrs.AbsOutputValue) []Refere
 	if oc == nil {
 		return nil
 	}
-	refs, _ := lang.ReferencesInExpr(oc.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, oc.Expr)
 	return absoluteRefs(addr.Module, refs)
 }
 
@@ -79,10 +79,10 @@ func (a *Analyzer) ReferencesFromResourceRepetition(addr addrs.AbsResource) []Re
 
 	switch {
 	case rc.ForEach != nil:
-		refs, _ := lang.ReferencesInExpr(rc.ForEach)
+		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, rc.ForEach)
 		return absoluteRefs(addr.Module, refs)
 	case rc.Count != nil:
-		refs, _ := lang.ReferencesInExpr(rc.Count)
+		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, rc.Count)
 		return absoluteRefs(addr.Module, refs)
 	default:
 		return nil

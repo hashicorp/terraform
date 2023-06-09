@@ -152,25 +152,25 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			log.Printf("[WARN] no schema is attached to %s, so config references cannot be detected", n.Name())
 		}
 
-		refs, _ := lang.ReferencesInExpr(c.Count)
+		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Count)
 		result = append(result, refs...)
-		refs, _ = lang.ReferencesInExpr(c.ForEach)
+		refs, _ = lang.ReferencesInExpr(addrs.ParseRef, c.ForEach)
 		result = append(result, refs...)
 
 		for _, expr := range c.TriggersReplacement {
-			refs, _ = lang.ReferencesInExpr(expr)
+			refs, _ = lang.ReferencesInExpr(addrs.ParseRef, expr)
 			result = append(result, refs...)
 		}
 
 		// ReferencesInBlock() requires a schema
 		if n.Schema != nil {
-			refs, _ = lang.ReferencesInBlock(c.Config, n.Schema)
+			refs, _ = lang.ReferencesInBlock(addrs.ParseRef, c.Config, n.Schema)
 			result = append(result, refs...)
 		}
 
 		if c.Managed != nil {
 			if c.Managed.Connection != nil {
-				refs, _ = lang.ReferencesInBlock(c.Managed.Connection.Config, connectionBlockSupersetSchema)
+				refs, _ = lang.ReferencesInBlock(addrs.ParseRef, c.Managed.Connection.Config, connectionBlockSupersetSchema)
 				result = append(result, refs...)
 			}
 
@@ -179,7 +179,7 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 					continue
 				}
 				if p.Connection != nil {
-					refs, _ = lang.ReferencesInBlock(p.Connection.Config, connectionBlockSupersetSchema)
+					refs, _ = lang.ReferencesInBlock(addrs.ParseRef, p.Connection.Config, connectionBlockSupersetSchema)
 					result = append(result, refs...)
 				}
 
@@ -187,21 +187,21 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 				if schema == nil {
 					log.Printf("[WARN] no schema for provisioner %q is attached to %s, so provisioner block references cannot be detected", p.Type, n.Name())
 				}
-				refs, _ = lang.ReferencesInBlock(p.Config, schema)
+				refs, _ = lang.ReferencesInBlock(addrs.ParseRef, p.Config, schema)
 				result = append(result, refs...)
 			}
 		}
 
 		for _, check := range c.Preconditions {
-			refs, _ := lang.ReferencesInExpr(check.Condition)
+			refs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
 			result = append(result, refs...)
-			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			refs, _ = lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 			result = append(result, refs...)
 		}
 		for _, check := range c.Postconditions {
-			refs, _ := lang.ReferencesInExpr(check.Condition)
+			refs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
 			result = append(result, refs...)
-			refs, _ = lang.ReferencesInExpr(check.ErrorMessage)
+			refs, _ = lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 			result = append(result, refs...)
 		}
 

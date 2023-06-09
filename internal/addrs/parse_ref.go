@@ -9,8 +9,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Reference describes a reference to an address with source location
@@ -82,6 +83,47 @@ func ParseRef(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
 	return ref, diags
 }
 
+// ParseRefFromTestingScope adds check blocks and outputs into the available
+// references returned by ParseRef.
+//
+// The testing files and functionality have a slightly expanded referencing
+// scope and so should use this function to retrieve references.
+func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diagnostics) {
+	root := traversal.RootName()
+
+	var diags tfdiags.Diagnostics
+	var reference *Reference
+
+	switch root {
+	case "output":
+		name, rng, remain, outputDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     OutputValue{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = outputDiags
+	case "check":
+		name, rng, remain, checkDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     Check{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = checkDiags
+	}
+
+	if reference != nil {
+		if len(reference.Remaining) == 0 {
+			reference.Remaining = nil
+		}
+		return reference, diags
+	}
+
+	// If it's not an output or a check block, then just parse it as normal.
+	return ParseRef(traversal)
+}
+
 // ParseRefStr is a helper wrapper around ParseRef that takes a string
 // and parses it with the HCL native syntax traversal parser before
 // interpreting it.
@@ -107,6 +149,22 @@ func ParseRefStr(str string) (*Reference, tfdiags.Diagnostics) {
 	}
 
 	ref, targetDiags := ParseRef(traversal)
+	diags = diags.Append(targetDiags)
+	return ref, diags
+}
+
+// ParseRefStrFromTestingScope matches ParseRefStr except it supports the
+// references supported by ParseRefFromTestingScope.
+func ParseRefStrFromTestingScope(str string) (*Reference, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	traversal, parseDiags := hclsyntax.ParseTraversalAbs([]byte(str), "", hcl.Pos{Line: 1, Column: 1})
+	diags = diags.Append(parseDiags)
+	if parseDiags.HasErrors() {
+		return nil, diags
+	}
+
+	ref, targetDiags := ParseRefFromTestingScope(traversal)
 	diags = diags.Append(targetDiags)
 	return ref, diags
 }
