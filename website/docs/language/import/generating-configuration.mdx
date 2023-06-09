@@ -8,7 +8,7 @@ description: >-
 
 ~> **Experimental:** Configuration generation is available in Terraform v1.5 as an experimental feature. Later minor versions may contain changes to the formatting of generated configuration and behavior of the `terraform plan` command using the `-generate-config-out` flag.
 
-Terraform can generate code for the resources it plans to import that do not already exist in your configuration. Terraform produces HCL to act as a template that contains Terraform's best guess at the appropriate value for each resource argument. 
+Terraform can generate code for the resources you define in [`import` blocks](/terraform/language/import) that do not already exist in your configuration. Terraform produces HCL to act as a template that contains Terraform's best guess at the appropriate value for each resource argument.
 
 Starting with Terraform's generated HCL, we recommend iterating to find your ideal configuration by removing some attributes, adjusting the value of others, and rearranging `resource` blocks into files and modules as appropriate.
 
@@ -18,7 +18,7 @@ To generate configuration, run `terraform plan` with the `-generate-config-out` 
 $ terraform plan -generate-config-out=generated_resources.tf
 ```
 
-If any resources targeted by an [`import` block](/terraform/language/import) do not exist in your configuration, Terraform generates and writes configuration for those resources in `generated_resources.tf`.
+If any resources targeted by an `import` block do not exist in your configuration, Terraform then generates and writes configuration for those resources in `generated_resources.tf`.
 
 ## Workflow
 
@@ -35,7 +35,7 @@ import {
 }
 ```
 
-The import block's `to` argument points to the address of the `resource` instance this import is targeting.  If a resource in your configuration already exists at this address, Terraform attempts to import into that resource and does not generate configuration.
+The import block's `to` argument points to the address a `resource` will have in your state file. If a resource address in your state matches an `import` block's `to` argument, Terraform attempts to import into that resource. In future planning, Terraform knows it doesn't need to generate configuration for resources that already exist in your state.
 
 The import block's `id` argument uses that resource's [import ID](/terraform/language/import#import-id).
 
