@@ -143,4 +143,4 @@ $ terraform plan -generate-config-out=generated.tf
 ╵
 ```
 
-In the example above, Terraform still generates configuration and writes it to `generated.tf`. This error stems from a conflict between the `ipv6_address_count` and `ipv6_addresses` arguments. You could fix the error by removing one of these two arguments, then running `terraform plan` again to check that there are no further issues.
+In the example above, Terraform still generates configuration and writes it to `generated.tf`. This error stems from a conflict between the `ipv6_address_count` and `ipv6_addresses` arguments. The resource supports both of these arguments, but you must choose only one when configuring the resource. You could fix the error by removing one of these two arguments, then running `terraform plan` again to check that there are no further issues.
