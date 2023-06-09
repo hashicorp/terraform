@@ -14,7 +14,7 @@ Use the `import` block to import existing infrastructure resources into Terrafor
 
 Once imported, Terraform tracks the resource in your state file. You can then manage the imported resource like any other, updating its attributes and destroying it as part of a standard resource lifecycle.
 
-The `import` block records that Terraform imported a resource and that Terraform did not previously create that resource with its configuration. Put another way, the `import` block records the user's intent to add an import to Terraform's plan graph.
+The `import` block records that Terraform imported the resource and did not create it. After importing, you can optionally remove import blocks from your configuration or leave them as a record of the resource's origin.
 
 ## Syntax
 
@@ -59,13 +59,13 @@ To import a resource using `import` blocks, you must:
 
 > **Hands-on:** Try the [State Import](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-The `import` block is [_idempotent_](https://en.wikipedia.org/wiki/Idempotence), meaning that applying an import action and running another plan will not generate another import action. 
+The `import` block is [_idempotent_](https://en.wikipedia.org/wiki/Idempotence), meaning that applying an import action and running another plan will not generate another import action as long as that resource remains in your state.
 
 Terraform only needs to import a given resource once. Attempting to import a resource into the same address again is a harmless no-op. You can remove `import` blocks after completing the import or safely leave them in your configuration as a record of the resource's origin for future module maintainers. For more information on maintaining configurations over time, see [Refactoring](/terraform/language/modules/develop/refactoring).
 
 ## Resource configuration
 
-When Terraform imports a resource, it needs you to define that resource in configuration before saving it to state. You can do this by either writing a `resource` block or by [generating configuration](/terraform/language/import/generating-configuration). 
+Before importing, you must add configuration for every resource you want Terraform to import. Otherwise, Terraform throws an error during planning, insisting you add resource configuration before it can successfully import. You can create resource configuration manually or [generate it using Terraform](/terraform/language/import/generating-configuration). 
 
 We recommend writing a `resource` block if you know what most of the [resource's arguments](/terraform/language/resources/syntax#resource-arguments) will be. For example, your configuration may already contain a similar resource whose configuration you can copy and modify.
 
