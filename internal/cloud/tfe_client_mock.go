@@ -1518,6 +1518,9 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 			CanQueueRun:    true,
 			CanForceDelete: tfe.Bool(true),
 		},
+		Organization: &tfe.Organization{
+			Name: organization,
+		},
 	}
 	if options.AutoApply != nil {
 		w.AutoApply = *options.AutoApply
