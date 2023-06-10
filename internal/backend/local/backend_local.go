@@ -78,7 +78,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
 	if op.PlanFile.IsCloud() {
-		diags.Append(fmt.Errorf("error: using a saved cloud plan with the local backend is not supported"))
+		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan with the local backend is not supported"))
 		return nil, nil, nil, diags
 	}
 
