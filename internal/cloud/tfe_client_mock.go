@@ -1130,12 +1130,14 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 	r = rc.(*tfe.Run)
 
 	// After copying, handle includes... or at least, any includes we're known to rely on.
-	for _, n := range options.Include {
-		switch n {
-		case tfe.RunWorkspace:
-			ws, ok := m.client.Workspaces.workspaceIDs[r.Workspace.ID]
-			if ok {
-				r.Workspace = ws
+	if options != nil {
+		for _, n := range options.Include {
+			switch n {
+			case tfe.RunWorkspace:
+				ws, ok := m.client.Workspaces.workspaceIDs[r.Workspace.ID]
+				if ok {
+					r.Workspace = ws
+				}
 			}
 		}
 	}
