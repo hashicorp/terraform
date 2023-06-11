@@ -39,7 +39,7 @@ jobs:
     name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ inputs.go-version }}
       - name: Determine artifact basename

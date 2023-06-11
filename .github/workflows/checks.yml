@@ -45,7 +45,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -77,7 +77,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -115,7 +115,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ steps.go.outputs.version }}
 
@@ -149,7 +149,7 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ steps.go.outputs.version }}
 

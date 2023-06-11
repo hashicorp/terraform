@@ -188,7 +188,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
@@ -298,7 +298,7 @@ jobs:
 
     steps:
       - name: Install Go toolchain
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Download Terraform CLI package
