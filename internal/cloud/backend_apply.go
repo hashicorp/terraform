@@ -86,14 +86,25 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	if op.PlanFile.IsCloud() {
 		log.Printf("[TRACE] Loading saved cloud plan for apply")
 		// Fetch the run referenced in the saved plan bookmark.
-		r, err = b.client.Runs.Read(stopCtx, op.PlanFile.Cloud.RunID)
+		r, err = b.client.Runs.ReadWithOptions(stopCtx, op.PlanFile.Cloud.RunID, &tfe.RunReadOptions{
+			Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
+		})
 
 		if err != nil {
 			return r, err
 		}
 
+		if r.Workspace.ID != w.ID {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is for a different workspace",
+				fmt.Sprintf("The given saved plan does not refer to a run in the current workspace (%s/%s), so it cannot currently be applied. For more details, view this run in a browser at:\n%s", w.Organization.Name, w.Name, runURL(b.hostname, r.Workspace.Organization.Name, r.Workspace.Name, r.ID)),
+			))
+			return r, diags.Err()
+		}
+
 		if !r.Actions.IsConfirmable {
-			url := fmt.Sprintf("https://%s/app/%s/%s/runs/%s", b.hostname, b.organization, op.Workspace, r.ID)
+			url := runURL(b.hostname, b.organization, op.Workspace, r.ID)
 			return r, unusableSavedPlanError(r.Status, url)
 		}
 	} else {
@@ -242,6 +253,10 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 	}
 
 	return nil
+}
+
+func runURL(hostname, orgName, wsName, runID string) string {
+	return fmt.Sprintf("https://%s/app/%s/%s/runs/%s", hostname, orgName, wsName, runID)
 }
 
 func unusableSavedPlanError(status tfe.RunStatus, url string) error {
