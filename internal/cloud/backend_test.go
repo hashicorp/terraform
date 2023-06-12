@@ -52,33 +52,6 @@ func TestCloud_backendWithName(t *testing.T) {
 	}
 }
 
-func TestCloud_backendWithRun(t *testing.T) {
-	b, bCleanup := testBackendWithRun(t)
-	defer bCleanup()
-
-	workspaces, err := b.Workspaces()
-	if err != nil {
-		t.Fatalf("error: %v", err)
-	}
-
-	// This should act exactly like it had the Name workspace mapping strategy configured.
-	if len(workspaces) != 1 || workspaces[0] != testBackendSingleWorkspaceName {
-		t.Fatalf("should only have a single workspace belonging to the configured run, but got: %#v", workspaces)
-	}
-
-	if _, err := b.StateMgr("foo"); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected fetching a state which is NOT the single configured workspace to have an ErrWorkspacesNotSupported error, but got: %v", err)
-	}
-
-	if err := b.DeleteWorkspace(testBackendSingleWorkspaceName, true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected deleting the single configured workspace name to result in an error, but got: %v", err)
-	}
-
-	if err := b.DeleteWorkspace("foo", true); err != backend.ErrWorkspacesNotSupported {
-		t.Fatalf("expected deleting a workspace which is NOT the configured workspace name to result in an error, but got: %v", err)
-	}
-}
-
 func TestCloud_backendWithTags(t *testing.T) {
 	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()

@@ -373,64 +373,6 @@ func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tf
 	return local, diags
 }
 
-// BackendForCloudPlan is similar to Backend, but derives settings for an
-// enhanced Cloud backend from the hostname and run ID stored in a saved cloud
-// plan. It can't produce other kinds of backends.
-func (m *Meta) BackendForCloudPlan(hostname, runId string) (backend.Enhanced, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-
-	f := backendInit.Backend("cloud")
-	if f == nil {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedCloudUnknown)))
-		return nil, diags
-	}
-	b := f()
-	log.Printf("[TRACE] Meta.BackendForCloudPlan: instantiated backend of type %T", b)
-
-	// If the local directory has a backend config that contains a TFC token,
-	// pass it along. We ignore errors for this, because we'll just fall back to
-	// a credentials source or environment variable later.
-	var token string
-	backendConfig, configDiags := m.loadBackendConfig(".")
-	if backendConfig != nil && !configDiags.HasErrors() {
-		schema := b.ConfigSchema()
-		obj, decodeDiags := hcldec.Decode(backendConfig.Config, schema.DecoderSpec(), nil)
-		if !decodeDiags.HasErrors() {
-			if val := obj.GetAttr("token"); !val.IsNull() {
-				token = val.AsString()
-			}
-		}
-	}
-
-	// Since we're overriding the normal config data for the backend, we need to
-	// call a dedicated method on the Cloud backend that other backends lack.
-	// Thus, we need a type assert here.
-	c, ok := b.(*cloud.Cloud)
-	if !ok {
-		diags = diags.Append(fmt.Errorf(strings.TrimSpace(errBackendSavedCloudUnknown)))
-		return nil, diags
-	}
-	confDiags := c.ConfigureFromSavedPlan(hostname, runId, token)
-	diags = diags.Append(confDiags)
-
-	// Cloud backend always supports CLI initialization, do it.
-	cliOpts, err := m.backendCLIOpts()
-	if err != nil {
-		diags = diags.Append(err)
-		return nil, diags
-	}
-	if err := c.CLIInit(cliOpts); err != nil {
-		diags = diags.Append(fmt.Errorf(
-			"Error initializing cloud backend: %s\n\n"+
-				"This is a bug; please report it to the Terraform developers",
-			err,
-		))
-		return nil, diags
-	}
-
-	return c, diags
-}
-
 // backendCLIOpts returns a backend.CLIOpts object that should be passed to
 // a backend that supports local CLI operations.
 func (m *Meta) backendCLIOpts() (*backend.CLIOpts, error) {
@@ -1593,11 +1535,6 @@ contains support for this backend.
 
 If you'd like to force remove this backend, you must update your configuration
 to not use the backend and run "terraform init" (or any other command) again.
-`
-
-const errBackendSavedCloudUnknown = `
-Failed to create an unconfigured cloud backend. This should never happen, and
-indicates a bug in Terraform.
 `
 
 const errBackendClearSaved = `

@@ -206,18 +206,7 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 	// Load the backend
 	var be backend.Enhanced
 	var beDiags tfdiags.Diagnostics
-	if planFile == nil {
-		backendConfig, configDiags := c.loadBackendConfig(".")
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags
-		}
-
-		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
-		})
-	} else if planFile.IsLocal() {
+	if planFile.IsLocal() {
 		plan, err := planFile.Local.ReadPlan()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -237,8 +226,18 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 			return nil, diags
 		}
 		be, beDiags = c.BackendForLocalPlan(plan.Backend)
-	} else if planFile.IsCloud() {
-		be, beDiags = c.BackendForCloudPlan(planFile.Cloud.Hostname, planFile.Cloud.RunID)
+	} else {
+		// Both new plans and saved cloud plans load their backend from config.
+		backendConfig, configDiags := c.loadBackendConfig(".")
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
+
+		be, beDiags = c.Backend(&BackendOpts{
+			Config:   backendConfig,
+			ViewType: viewType,
+		})
 	}
 
 	diags = diags.Append(beDiags)

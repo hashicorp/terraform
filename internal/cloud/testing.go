@@ -109,49 +109,6 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 	return testBackend(t, obj, nil)
 }
 
-func testBackendWithRun(t *testing.T) (*Cloud, func()) {
-	// We need to override the PrepareConfig / Configure calls, so we'll use
-	// testUnconfiguredBackend instead of testBackend.
-	b, done := testUnconfiguredBackend(t)
-	b.input = true
-
-	// The unconfigured backend already has a client with mocks inserted, so
-	// create the stuff that Configure will eventually use. Note that Configure
-	// won't replace this existing client, because it does a nil check before
-	// making one.
-	ctx := context.Background()
-	_, err := b.client.Organizations.Create(ctx, tfe.OrganizationCreateOptions{
-		Name: tfe.String("hashicorp"),
-	})
-	if err != nil {
-		t.Fatalf("failed to create mock org")
-	}
-	ws, err := b.client.Workspaces.Create(ctx, "hashicorp", tfe.WorkspaceCreateOptions{
-		Name: tfe.String(testBackendSingleWorkspaceName),
-	})
-	if err != nil {
-		t.Fatalf("failed to create mock workspace")
-	}
-	cv, err := b.client.ConfigurationVersions.Create(ctx, ws.ID, tfe.ConfigurationVersionCreateOptions{})
-	if err != nil {
-		t.Fatalf("failed to create mock config version")
-	}
-	r, err := b.client.Runs.Create(ctx, tfe.RunCreateOptions{
-		Workspace:            ws,
-		ConfigurationVersion: cv,
-	})
-	if err != nil {
-		t.Fatalf("failed to create mock run")
-	}
-
-	// Finally, use the dedicated method to configure the backend from a run
-	diags := b.ConfigureFromSavedPlan("app.terraform.io", r.ID, "")
-	if len(diags) != 0 {
-		t.Fatalf("testBackendWithRun: backend.ConfigureFromSavedPlan() failed: %s", diags.ErrWithWarnings())
-	}
-	return b, done
-}
-
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
