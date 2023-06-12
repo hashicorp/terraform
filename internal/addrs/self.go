@@ -12,6 +12,9 @@ type selfT int
 func (s selfT) referenceableSigil() {
 }
 
+func (s selfT) referenceableFromTestsSigil() {
+}
+
 func (s selfT) String() string {
 	return "self"
 }

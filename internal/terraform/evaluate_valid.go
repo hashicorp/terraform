@@ -34,13 +34,44 @@ import (
 func (d *evaluationStateData) StaticValidateReferences(refs []*addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	for _, ref := range refs {
-		moreDiags := d.staticValidateReference(ref, self, source)
+		if ref.Subject == addrs.Self {
+			// The "self" address is a special alias for the address given as
+			// our self parameter here, if present.
+			if self == nil {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  `Invalid "self" reference`,
+					// This detail message mentions some current practice that
+					// this codepath doesn't really "know about". If the "self"
+					// object starts being supported in more contexts later then
+					// we'll need to adjust this message.
+					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
+					Subject: ref.SourceRange.ToHCL().Ptr(),
+				})
+				continue
+			}
+
+			synthRef := *ref // shallow copy
+			synthRef.Subject = self
+			ref = &synthRef
+		}
+
+		moreDiags := staticValidateReference(d, ref.Subject, ref.SourceRange, ref.Remaining, source)
 		diags = diags.Append(moreDiags)
 	}
 	return diags
 }
 
-func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self addrs.Referenceable, source addrs.Referenceable) tfdiags.Diagnostics {
+func (d *evaluationStateData) StaticValidateReferencesFromTestingScope(refs []*addrs.TestReference) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	for _, ref := range refs {
+		moreDiags := staticValidateReference(d, ref.Subject, ref.SourceRange, ref.Remaining, nil)
+		diags = diags.Append(moreDiags)
+	}
+	return diags
+}
+
+func staticValidateReference(d *evaluationStateData, subject interface{}, rng tfdiags.SourceRange, remaining hcl.Traversal, source addrs.Referenceable) tfdiags.Diagnostics {
 	modCfg := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
 	if modCfg == nil {
 		// This is a bug in the caller rather than a problem with the
@@ -49,30 +80,7 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 		return nil
 	}
 
-	if ref.Subject == addrs.Self {
-		// The "self" address is a special alias for the address given as
-		// our self parameter here, if present.
-		if self == nil {
-			var diags tfdiags.Diagnostics
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  `Invalid "self" reference`,
-				// This detail message mentions some current practice that
-				// this codepath doesn't really "know about". If the "self"
-				// object starts being supported in more contexts later then
-				// we'll need to adjust this message.
-				Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
-				Subject: ref.SourceRange.ToHCL().Ptr(),
-			})
-			return diags
-		}
-
-		synthRef := *ref // shallow copy
-		synthRef.Subject = self
-		ref = &synthRef
-	}
-
-	switch addr := ref.Subject.(type) {
+	switch addr := subject.(type) {
 
 	// For static validation we validate both resource and resource instance references the same way.
 	// We mostly disregard the index, though we do some simple validation of
@@ -80,36 +88,36 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 	// staticValidateMultiResourceReference respectively.
 	case addrs.Resource:
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(d.staticValidateSingleResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, source, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateSingleResourceReference(modCfg, addr, remaining, rng))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr, source, remaining, rng))
 		return diags
 	case addrs.ResourceInstance:
 		var diags tfdiags.Diagnostics
-		diags = diags.Append(d.staticValidateMultiResourceReference(modCfg, addr, ref.Remaining, ref.SourceRange))
-		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), source, ref.Remaining, ref.SourceRange))
+		diags = diags.Append(d.staticValidateMultiResourceReference(modCfg, addr, remaining, rng))
+		diags = diags.Append(d.staticValidateResourceReference(modCfg, addr.ContainingResource(), source, remaining, rng))
 		return diags
 
 	// We also handle all module call references the same way, disregarding index.
 	case addrs.ModuleCall:
-		return d.staticValidateModuleCallReference(modCfg, addr, ref.Remaining, ref.SourceRange)
+		return d.staticValidateModuleCallReference(modCfg, addr, remaining, rng)
 	case addrs.ModuleCallInstance:
-		return d.staticValidateModuleCallReference(modCfg, addr.Call, ref.Remaining, ref.SourceRange)
+		return d.staticValidateModuleCallReference(modCfg, addr.Call, remaining, rng)
 	case addrs.ModuleCallInstanceOutput:
 		// This one is a funny one because we will take the output name referenced
 		// and use it to fake up a "remaining" that would make sense for the
 		// module call itself, rather than for the specific output, and then
 		// we can just re-use our static module call validation logic.
-		remain := make(hcl.Traversal, len(ref.Remaining)+1)
-		copy(remain[1:], ref.Remaining)
+		remain := make(hcl.Traversal, len(remaining)+1)
+		copy(remain[1:], remaining)
 		remain[0] = hcl.TraverseAttr{
 			Name: addr.Name,
 
 			// Using the whole reference as the source range here doesn't exactly
 			// match how HCL would normally generate an attribute traversal,
 			// but is close enough for our purposes.
-			SrcRange: ref.SourceRange.ToHCL(),
+			SrcRange: rng.ToHCL(),
 		}
-		return d.staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, ref.SourceRange)
+		return d.staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, rng)
 
 	default:
 		// Anything else we'll just permit through without any static validation

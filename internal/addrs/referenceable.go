@@ -6,6 +6,9 @@ package addrs
 // Referenceable is an interface implemented by all address types that can
 // appear as references in configuration language expressions.
 type Referenceable interface {
+	// Everything referenceable is also referenceable from tests.
+	ReferenceableFromTests
+
 	// All implementations of this interface must be covered by the type switch
 	// in lang.Scope.buildEvalContext.
 	referenceableSigil()
@@ -20,7 +23,23 @@ type Referenceable interface {
 }
 
 type referenceable struct {
+	// Everything referenceable is also referencable from any tests.
+	referenceableFromTests
 }
 
 func (r referenceable) referenceableSigil() {
+}
+
+type ReferenceableFromTests interface {
+	referenceableFromTestsSigil()
+
+	UniqueKeyer
+
+	String() string
+}
+
+type referenceableFromTests struct {
+}
+
+func (r referenceableFromTests) referenceableFromTestsSigil() {
 }

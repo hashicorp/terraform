@@ -9,14 +9,23 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Reference describes a reference to an address with source location
 // information.
 type Reference struct {
 	Subject     Referenceable
+	SourceRange tfdiags.SourceRange
+	Remaining   hcl.Traversal
+}
+
+// TestReference is the same as Reference, but wraps a ReferenceableFromTests
+// subject.
+type TestReference struct {
+	Subject     ReferenceableFromTests
 	SourceRange tfdiags.SourceRange
 	Remaining   hcl.Traversal
 }
@@ -56,6 +65,51 @@ func (r *Reference) DisplayString() string {
 		}
 	}
 	return ret.String()
+}
+
+func ParseRefFromTestingScope(traversal hcl.Traversal) (*TestReference, tfdiags.Diagnostics) {
+	root := traversal.RootName()
+
+	var diags tfdiags.Diagnostics
+	var tr *TestReference
+	var ref *Reference
+
+	switch root {
+	case "output":
+		name, rng, remain, outputDiags := parseSingleAttrRef(traversal)
+		tr = &TestReference{
+			Subject:     OutputValue{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = outputDiags
+	case "check":
+		name, rng, remain, checkDiags := parseSingleAttrRef(traversal)
+		tr = &TestReference{
+			Subject:     Check{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = checkDiags
+	}
+
+	if tr != nil {
+		if len(tr.Remaining) == 0 {
+			tr.Remaining = nil
+		}
+		return tr, diags
+	}
+
+	// If it's not an output or a check block, then just parse it as normal.
+	ref, diags = ParseRef(traversal)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return &TestReference{
+		Subject:     ref.Subject,
+		SourceRange: ref.SourceRange,
+		Remaining:   ref.Remaining,
+	}, diags
 }
 
 // ParseRef attempts to extract a referencable address from the prefix of the

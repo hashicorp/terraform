@@ -940,6 +940,70 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 	}
 }
 
+func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// First we'll make sure the requested value is declared in configuration,
+	// so we can produce a nice message if not.
+	moduleConfig := d.Evaluator.Config.DescendentForInstance(d.ModulePath)
+	if moduleConfig == nil {
+		// should never happen, since we can't be evaluating in a module
+		// that wasn't mentioned in configuration.
+		panic(fmt.Sprintf("output value read from %s, which has no configuration", d.ModulePath))
+	}
+
+	config := moduleConfig.Module.Outputs[addr.Name]
+	if config == nil {
+		var suggestions []string
+		for k := range moduleConfig.Module.Outputs {
+			suggestions = append(suggestions, k)
+		}
+		suggestion := nameSuggestion(addr.Name, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to undeclared output value`,
+			Detail:   fmt.Sprintf(`An output value with the name %q has not been declared.%s`, addr.Name, suggestion),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return cty.DynamicVal, diags
+	}
+
+	output := d.Evaluator.State.OutputValue(addr.Absolute(d.ModulePath))
+
+	val := output.Value
+	if val == cty.NilVal {
+		// Not evaluated yet?
+		val = cty.DynamicVal
+	}
+
+	if output.Sensitive {
+		val = val.Mark(marks.Sensitive)
+	}
+
+	return val, diags
+}
+
+func (d *evaluationStateData) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	// For now, check blocks don't contain any meaningful data and can only
+	// be referenced from the testing scope within an expect_failures attribute.
+	//
+	// We've added them into the scope explicitly since they are referencable,
+	// but we'll actually just return an error message saying they can't be
+	// referenced in this context.
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  "Reference to \"check\" in invalid context",
+		Detail:   "The \"check\" object can only be referenced from an \"expect_failures\" attribute within a Terraform testing \"run\" block.",
+		Subject:  rng.ToHCL().Ptr(),
+	})
+	return cty.NilVal, diags
+}
+
 // nameSuggestion tries to find a name from the given slice of suggested names
 // that is close to the given name and returns it if found. If no suggestion
 // is close enough, returns the empty string.

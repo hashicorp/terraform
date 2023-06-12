@@ -5,6 +5,7 @@ package lang
 
 import (
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
@@ -34,6 +35,28 @@ func References(traversals []hcl.Traversal) ([]*addrs.Reference, tfdiags.Diagnos
 
 	for _, traversal := range traversals {
 		ref, refDiags := addrs.ParseRef(traversal)
+		diags = diags.Append(refDiags)
+		if ref == nil {
+			continue
+		}
+		refs = append(refs, ref)
+	}
+
+	return refs, diags
+}
+
+// ReferencesForTest matches References but returns references retrieved from
+// the wider testing scope.
+func ReferencesForTest(traversals []hcl.Traversal) ([]*addrs.TestReference, tfdiags.Diagnostics) {
+	if len(traversals) == 0 {
+		return nil, nil
+	}
+
+	var diags tfdiags.Diagnostics
+	refs := make([]*addrs.TestReference, 0, len(traversals))
+
+	for _, traversal := range traversals {
+		ref, refDiags := addrs.ParseRefFromTestingScope(traversal)
 		diags = diags.Append(refDiags)
 		if ref == nil {
 			continue

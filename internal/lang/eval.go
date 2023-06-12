@@ -9,13 +9,14 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/ext/dynblock"
 	"github.com/hashicorp/hcl/v2/hcldec"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // ExpandBlock expands any "dynamic" blocks present in the given body. The
@@ -209,7 +210,7 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 	// We cheat a bit here and just build an EvalContext for our requested
 	// reference with the "self" address overridden, and then pull the "self"
 	// result out of it to return.
-	ctx, ctxDiags := s.evalContext([]*addrs.Reference{ref}, ref.Subject)
+	ctx, ctxDiags := evalContext(s, []*addrs.Reference{ref}, ref.Subject)
 	diags = diags.Append(ctxDiags)
 	val := ctx.Variables["self"]
 	if val == cty.NilVal {
@@ -238,56 +239,78 @@ func (s *Scope) EvalReference(ref *addrs.Reference, wantType cty.Type) (cty.Valu
 // this type offers, but this is here for less common situations where the
 // caller will handle the evaluation calls itself.
 func (s *Scope) EvalContext(refs []*addrs.Reference) (*hcl.EvalContext, tfdiags.Diagnostics) {
-	return s.evalContext(refs, s.SelfAddr)
+	return evalContext(s, refs, s.SelfAddr)
 }
 
-func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+// EvalTestingContext constructs an HCL expression evaluation context that
+// matches the one returned by EvalContext, except with the slightly extended
+// testing scope (so it includes access to check blocks and outputs).
+func (s *Scope) EvalTestingContext(refs []*addrs.TestReference) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	if s == nil {
 		panic("attempt to construct EvalContext for nil Scope")
 	}
 
-	var diags tfdiags.Diagnostics
-	vals := make(map[string]cty.Value)
-	funcs := s.Functions()
-	ctx := &hcl.EvalContext{
-		Variables: vals,
-		Functions: funcs,
-	}
-
 	if len(refs) == 0 {
 		// Easy path for common case where there are no references at all.
-		return ctx, diags
+		return &hcl.EvalContext{
+			Variables: make(map[string]cty.Value),
+			Functions: s.Functions(),
+		}, nil
 	}
+
+	var diags tfdiags.Diagnostics
 
 	// First we'll do static validation of the references. This catches things
 	// early that might otherwise not get caught due to unknown values being
 	// present in the scope during planning.
-	staticDiags := s.Data.StaticValidateReferences(refs, selfAddr, s.SourceAddr)
-	diags = diags.Append(staticDiags)
-	if staticDiags.HasErrors() {
-		return ctx, diags
+	validateDiags := s.Data.StaticValidateReferencesFromTestingScope(refs)
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
+		return &hcl.EvalContext{
+			Variables: make(map[string]cty.Value),
+			Functions: s.Functions(),
+		}, diags
 	}
 
-	// The reference set we are given has not been de-duped, and so there can
-	// be redundant requests in it for two reasons:
-	//  - The same item is referenced multiple times
-	//  - Both an item and that item's container are separately referenced.
-	// We will still visit every reference here and ask our data source for
-	// it, since that allows us to gather a full set of any errors and
-	// warnings, but once we've gathered all the data we'll then skip anything
-	// that's redundant in the process of populating our values map.
-	dataResources := map[string]map[string]cty.Value{}
-	managedResources := map[string]map[string]cty.Value{}
-	wholeModules := map[string]cty.Value{}
-	inputVariables := map[string]cty.Value{}
-	localValues := map[string]cty.Value{}
-	pathAttrs := map[string]cty.Value{}
-	terraformAttrs := map[string]cty.Value{}
-	countAttrs := map[string]cty.Value{}
-	forEachAttrs := map[string]cty.Value{}
-	var self cty.Value
+	vals, valDiags := buildValues[addrs.TestReference](s, refs, func(ref *addrs.TestReference) (interface{}, tfdiags.SourceRange, tfdiags.Diagnostics) {
+		return ref.Subject, ref.SourceRange, nil
+	})
+	return &hcl.EvalContext{
+		Variables: vals,
+		Functions: s.Functions(),
+	}, diags.Append(valDiags)
+}
 
-	for _, ref := range refs {
+func evalContext(s *Scope, refs []*addrs.Reference, selfAddr addrs.Referenceable) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	if s == nil {
+		panic("attempt to construct EvalContext for nil Scope")
+	}
+
+	if len(refs) == 0 {
+		// Easy path for common case where there are no references at all.
+		return &hcl.EvalContext{
+			Variables: make(map[string]cty.Value),
+			Functions: s.Functions(),
+		}, nil
+	}
+
+	var diags tfdiags.Diagnostics
+
+	// First we'll do static validation of the references. This catches things
+	// early that might otherwise not get caught due to unknown values being
+	// present in the scope during planning.
+	validateDiags := s.Data.StaticValidateReferences(refs, selfAddr, s.SourceAddr)
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
+		return &hcl.EvalContext{
+			Variables: make(map[string]cty.Value),
+			Functions: s.Functions(),
+		}, diags
+	}
+
+	self := cty.NilVal
+	vals, valDiags := buildValues[addrs.Reference](s, refs, func(ref *addrs.Reference) (interface{}, tfdiags.SourceRange, tfdiags.Diagnostics) {
+		var diags tfdiags.Diagnostics
 		rng := ref.SourceRange
 
 		rawSubj := ref.Subject
@@ -303,7 +326,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 					Detail:  `The "self" object is not available in this context. This object can be used only in resource provisioner, connection, and postcondition blocks.`,
 					Subject: ref.SourceRange.ToHCL().Ptr(),
 				})
-				continue
+				return nil, rng, diags
 			}
 
 			if selfAddr == addrs.Self {
@@ -315,7 +338,6 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			subj := selfAddr.(addrs.ResourceInstance)
 
 			val, valDiags := normalizeRefValue(s.Data.GetResource(subj.ContainingResource(), rng))
-
 			diags = diags.Append(valDiags)
 
 			// Self is an exception in that it must always resolve to a
@@ -334,6 +356,51 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			default:
 				self = val
 			}
+			return nil, rng, diags
+		}
+		return rawSubj, rng, diags
+	})
+
+	if self != cty.NilVal {
+		vals["self"] = self
+	}
+	return &hcl.EvalContext{
+		Variables: vals,
+		Functions: s.Functions(),
+	}, diags.Append(valDiags)
+}
+
+func buildValues[Reference any](s *Scope, refs []*Reference, parseRef func(reference *Reference) (interface{}, tfdiags.SourceRange, tfdiags.Diagnostics)) (map[string]cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	vals := make(map[string]cty.Value)
+
+	// The reference set we are given has not been de-duped, and so there can
+	// be redundant requests in it for two reasons:
+	//  - The same item is referenced multiple times
+	//  - Both an item and that item's container are separately referenced.
+	// We will still visit every reference here and ask our data source for
+	// it, since that allows us to gather a full set of any errors and
+	// warnings, but once we've gathered all the data we'll then skip anything
+	// that's redundant in the process of populating our values map.
+	dataResources := map[string]map[string]cty.Value{}
+	managedResources := map[string]map[string]cty.Value{}
+	wholeModules := map[string]cty.Value{}
+	inputVariables := map[string]cty.Value{}
+	localValues := map[string]cty.Value{}
+	pathAttrs := map[string]cty.Value{}
+	terraformAttrs := map[string]cty.Value{}
+	countAttrs := map[string]cty.Value{}
+	forEachAttrs := map[string]cty.Value{}
+
+	for _, ref := range refs {
+		rawSubj, rng, refDiags := parseRef(ref)
+		diags = diags.Append(refDiags)
+		if rawSubj == nil {
+			// This means the parseRef function either couldn't handle this
+			// reference (which means there will be errors in the diags), or it
+			// handled it completely (such as the self reference). Either way,
+			// we don't want to try and do anything more with it.
 			continue
 		}
 
@@ -429,11 +496,8 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["terraform"] = cty.ObjectVal(terraformAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
-	if self != cty.NilVal {
-		vals["self"] = self
-	}
 
-	return ctx, diags
+	return vals, diags
 }
 
 func buildResourceObjects(resources map[string]map[string]cty.Value) map[string]cty.Value {
