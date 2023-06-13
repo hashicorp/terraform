@@ -1,7 +1,15 @@
 package moduletest
 
-import "github.com/mitchellh/colorstring"
-
+// Status represents the status of a test case, and is defined as an iota within
+// this file.
+//
+// The order of the definitions matter as different statuses do naturally take
+// precedence over others. A test suite that has a mix of pass and fail statuses
+// has failed overall and therefore the fail status is of higher precedence than
+// the pass status.
+//
+// See the Status.Merge function for this requirement being used in action.
+//
 //go:generate go run golang.org/x/tools/cmd/stringer -type=Status status.go
 type Status int
 
@@ -30,21 +38,4 @@ func (status Status) Merge(next Status) Status {
 		return next
 	}
 	return status
-}
-
-// ColorizedText returns textual representations of the status, but colored for
-// visual appeal.
-func (status Status) ColorizedText(color *colorstring.Colorize) string {
-	switch status {
-	case Error, Fail:
-		return color.Color("[red]fail[reset]")
-	case Pass:
-		return color.Color("[green]pass[reset]")
-	case Skip:
-		return color.Color("[light_gray]skip[reset]")
-	case Pending:
-		return color.Color("[light_gray]pending[reset]")
-	default:
-		panic("unrecognized status: " + status.String())
-	}
 }
