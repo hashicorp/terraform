@@ -46,7 +46,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.16.2
 	github.com/hashicorp/jsonapi v0.0.0-20210826224640-ee7dae0fb22d
 	github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
-	github.com/hashicorp/terraform-svchost v0.1.0
+	github.com/hashicorp/terraform-svchost v0.1.1
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/lib/pq v1.10.3
@@ -76,15 +76,15 @@ require (
 	github.com/tombuildsstuff/giovanni v0.15.1
 	github.com/xanzy/ssh-agent v0.3.1
 	github.com/xlab/treeprint v0.0.0-20161029104018-1d6e34225557
-	github.com/zclconf/go-cty v1.12.2
+	github.com/zclconf/go-cty v1.13.1
 	github.com/zclconf/go-cty-debug v0.0.0-20191215020915-b22d67c1ba0b
 	github.com/zclconf/go-cty-yaml v1.0.3
 	golang.org/x/crypto v0.1.0
 	golang.org/x/mod v0.8.0
-	golang.org/x/net v0.7.0
-	golang.org/x/oauth2 v0.4.0
-	golang.org/x/sys v0.5.0
-	golang.org/x/term v0.5.0
+	golang.org/x/net v0.8.0
+	golang.org/x/oauth2 v0.6.0
+	golang.org/x/sys v0.6.0
+	golang.org/x/term v0.6.0
 	golang.org/x/text v0.8.0
 	golang.org/x/tools v0.6.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
@@ -172,8 +172,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
-	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
-	github.com/vmihailenco/tagparser v0.1.1 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
 	golang.org/x/time v0.3.0 // indirect
