@@ -47,7 +47,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.17.0
 	github.com/hashicorp/jsonapi v0.0.0-20210826224640-ee7dae0fb22d
 	github.com/hashicorp/terraform-registry-address v0.0.0-20220623143253-7d51757b572c
-	github.com/hashicorp/terraform-svchost v0.1.0
+	github.com/hashicorp/terraform-svchost v0.1.1
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0
 	github.com/lib/pq v1.10.3
@@ -82,10 +82,10 @@ require (
 	github.com/zclconf/go-cty-yaml v1.0.3
 	golang.org/x/crypto v0.1.0
 	golang.org/x/mod v0.8.0
-	golang.org/x/net v0.7.0
-	golang.org/x/oauth2 v0.4.0
-	golang.org/x/sys v0.5.0
-	golang.org/x/term v0.5.0
+	golang.org/x/net v0.8.0
+	golang.org/x/oauth2 v0.6.0
+	golang.org/x/sys v0.6.0
+	golang.org/x/term v0.6.0
 	golang.org/x/text v0.8.0
 	golang.org/x/tools v0.6.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
