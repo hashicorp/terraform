@@ -3,6 +3,8 @@ package views
 import (
 	"fmt"
 
+	"github.com/mitchellh/colorstring"
+
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/moduletest"
 )
@@ -88,12 +90,27 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 }
 
 func (t *TestHuman) File(file *moduletest.File) {
-	t.view.streams.Printf("%s... %s\n", file.Name, file.Status.ColorizedText(t.view.colorize))
+	t.view.streams.Printf("%s... %s\n", file.Name, colorizeTestStatus(file.Status, t.view.colorize))
 }
 
 func (t *TestHuman) Run(run *moduletest.Run) {
-	t.view.streams.Printf("  run %q... %s\n", run.Name, run.Status.ColorizedText(t.view.colorize))
+	t.view.streams.Printf("  run %q... %s\n", run.Name, colorizeTestStatus(run.Status, t.view.colorize))
 
 	// Finally we'll print out a summary of the diagnostics from the run.
 	t.view.Diagnostics(run.Diagnostics)
+}
+
+func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {
+	switch status {
+	case moduletest.Error, moduletest.Fail:
+		return color.Color("[red]fail[reset]")
+	case moduletest.Pass:
+		return color.Color("[green]pass[reset]")
+	case moduletest.Skip:
+		return color.Color("[light_gray]skip[reset]")
+	case moduletest.Pending:
+		return color.Color("[light_gray]pending[reset]")
+	default:
+		panic("unrecognized status: " + status.String())
+	}
 }
