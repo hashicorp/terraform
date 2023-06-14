@@ -197,10 +197,6 @@ func TestTest_ProviderAlias(t *testing.T) {
 }
 
 func TestTest_ModuleDependencies(t *testing.T) {
-	// TODO(liamcervante): Enable this test once we have added support for
-	//  module customisation into the testing framework.
-	t.Skip()
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_setup_module")), td)
 	defer testChdir(t, td)()

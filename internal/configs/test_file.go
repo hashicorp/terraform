@@ -5,6 +5,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/getmodules"
 )
 
 // TestCommand represents the Terraform a given run block will execute, plan
@@ -78,9 +81,39 @@ type TestRun struct {
 	// checked by this run block.
 	CheckRules []*CheckRule
 
+	// Module defines an address of another module that should be loaded and
+	// executed as part of this run block instead of the module under test.
+	//
+	// In the initial version of the testing framework we will only support
+	// loading alternate modules from local directories or the registry.
+	Module *TestRunModuleCall
+
+	// ConfigUnderTest describes the configuration this run block should execute
+	// against.
+	//
+	// In typical cases, this will be null and the config under test is the
+	// configuration within the directory the terraform test command is
+	// executing within. However, when Module is set the config under test is
+	// whichever config is defined by Module. This field is then set during the
+	// configuration load process and should be used when the test is executed.
+	ConfigUnderTest *Config
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
+}
+
+// TestRunModuleCall specifies which module should be executed by a given run
+// block.
+type TestRunModuleCall struct {
+	// Source is the source of the module to test.
+	Source addrs.ModuleSource
+
+	// Version is the version of the module to load from the registry.
+	Version VersionConstraint
+
+	DeclRange       hcl.Range
+	SourceDeclRange hcl.Range
 }
 
 // TestRunOptions contains the plan options for a given run block.
@@ -195,7 +228,21 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 			for _, v := range vars {
 				r.Variables[v.Name] = v.Expr
 			}
+		case "module":
+			if r.Module != nil {
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Multiple \"module\" blocks",
+					Detail:   fmt.Sprintf("This run block already has a module block defined at %s.", r.Module.DeclRange),
+					Subject:  block.DefRange.Ptr(),
+				})
+			}
 
+			module, moduleDiags := decodeTestRunModuleBlock(block)
+			diags = append(diags, moduleDiags...)
+			if !moduleDiags.HasErrors() {
+				r.Module = module
+			}
 		}
 	}
 
@@ -234,6 +281,110 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 	}
 
 	return &r, diags
+}
+
+func decodeTestRunModuleBlock(block *hcl.Block) (*TestRunModuleCall, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	content, contentDiags := block.Body.Content(testRunModuleBlockSchema)
+	diags = append(diags, contentDiags...)
+
+	module := TestRunModuleCall{
+		DeclRange: block.DefRange,
+	}
+
+	haveVersionArg := false
+	if attr, exists := content.Attributes["version"]; exists {
+		var versionDiags hcl.Diagnostics
+		module.Version, versionDiags = decodeVersionConstraint(attr)
+		diags = append(diags, versionDiags...)
+		haveVersionArg = true
+	}
+
+	if attr, exists := content.Attributes["source"]; exists {
+		module.SourceDeclRange = attr.Range
+
+		var raw string
+		rawDiags := gohcl.DecodeExpression(attr.Expr, nil, &raw)
+		diags = append(diags, rawDiags...)
+		if !rawDiags.HasErrors() {
+			var err error
+			if haveVersionArg {
+				module.Source, err = addrs.ParseModuleSourceRegistry(raw)
+			} else {
+				module.Source, err = addrs.ParseModuleSource(raw)
+			}
+			if err != nil {
+				// NOTE: We leave mc.SourceAddr as nil for any situation where the
+				// source attribute is invalid, so any code which tries to carefully
+				// use the partial result of a failed config decode must be
+				// resilient to that.
+				module.Source = nil
+
+				// NOTE: In practice it's actually very unlikely to end up here,
+				// because our source address parser can turn just about any string
+				// into some sort of remote package address, and so for most errors
+				// we'll detect them only during module installation. There are
+				// still a _few_ purely-syntax errors we can catch at parsing time,
+				// though, mostly related to remote package sub-paths and local
+				// paths.
+				switch err := err.(type) {
+				case *getmodules.MaybeRelativePathErr:
+					diags = append(diags, &hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Invalid module source address",
+						Detail: fmt.Sprintf(
+							"Terraform failed to determine your intended installation method for remote module package %q.\n\nIf you intended this as a path relative to the current module, use \"./%s\" instead. The \"./\" prefix indicates that the address is a relative filesystem path.",
+							err.Addr, err.Addr,
+						),
+						Subject: module.SourceDeclRange.Ptr(),
+					})
+				default:
+					if haveVersionArg {
+						// In this case we'll include some extra context that
+						// we assumed a registry source address due to the
+						// version argument.
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid registry module source address",
+							Detail:   fmt.Sprintf("Failed to parse module registry address: %s.\n\nTerraform assumed that you intended a module registry source address because you also set the argument \"version\", which applies only to registry modules.", err),
+							Subject:  module.SourceDeclRange.Ptr(),
+						})
+					} else {
+						diags = append(diags, &hcl.Diagnostic{
+							Severity: hcl.DiagError,
+							Summary:  "Invalid module source address",
+							Detail:   fmt.Sprintf("Failed to parse module source address: %s.", err),
+							Subject:  module.SourceDeclRange.Ptr(),
+						})
+					}
+				}
+			}
+
+			switch module.Source.(type) {
+			case addrs.ModuleSourceRemote:
+				// We only support local or registry modules when loading
+				// modules directly from alternate sources during a test
+				// execution.
+				diags = append(diags, &hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid module source address",
+					Detail:   "Only local or registry module sources are currently supported from within test run blocks.",
+					Subject:  module.SourceDeclRange.Ptr(),
+				})
+			}
+		}
+	} else {
+		// Must have a source attribute.
+		diags = append(diags, &hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Missing \"source\" attribute for module block",
+			Detail:   "You must specify a source attribute when executing alternate modules during test executions.",
+			Subject:  module.DeclRange.Ptr(),
+		})
+	}
+
+	return &module, diags
 }
 
 func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnostics) {
@@ -322,6 +473,9 @@ var testRunBlockSchema = &hcl.BodySchema{
 		{
 			Type: "variables",
 		},
+		{
+			Type: "module",
+		},
 	},
 }
 
@@ -331,5 +485,12 @@ var testRunOptionsBlockSchema = &hcl.BodySchema{
 		{Name: "refresh"},
 		{Name: "replace"},
 		{Name: "target"},
+	},
+}
+
+var testRunModuleBlockSchema = &hcl.BodySchema{
+	Attributes: []hcl.AttributeSchema{
+		{Name: "source"},
+		{Name: "version"},
 	},
 }

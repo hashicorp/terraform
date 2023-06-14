@@ -34,7 +34,7 @@ type Test interface {
 
 	// DestroySummary prints out the summary of the destroy step of each test
 	// file. If everything goes well, this should be empty.
-	DestroySummary(diags tfdiags.Diagnostics, file *moduletest.File, state *states.State)
+	DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State)
 
 	// Diagnostics prints out the provided diagnostics.
 	Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics)
@@ -112,14 +112,19 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 	t.Diagnostics(run, file, run.Diagnostics)
 }
 
-func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, file *moduletest.File, state *states.State) {
-	if diags.HasErrors() {
-		t.view.streams.Eprintf("Terraform encountered an error destroying resources created while executing %s.\n", file.Name)
+func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
+	identifier := file.Name
+	if run != nil {
+		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
 	}
-	t.Diagnostics(nil, file, diags)
+
+	if diags.HasErrors() {
+		t.view.streams.Eprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier)
+	}
+	t.Diagnostics(run, file, diags)
 
 	if state.HasManagedResourceInstanceObjects() {
-		t.view.streams.Eprintf("\nTerraform left the following resources in state after executing %s, they need to be cleaned up manually:\n", file.Name)
+		t.view.streams.Eprintf("\nTerraform left the following resources in state after executing %s, they need to be cleaned up manually:\n", identifier)
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
@@ -239,7 +244,7 @@ func (t TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 	t.Diagnostics(run, file, run.Diagnostics)
 }
 
-func (t TestJSON) DestroySummary(diags tfdiags.Diagnostics, file *moduletest.File, state *states.State) {
+func (t TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
 	if state.HasManagedResourceInstanceObjects() {
 		cleanup := json.TestFileCleanup{}
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
@@ -249,14 +254,24 @@ func (t TestJSON) DestroySummary(diags tfdiags.Diagnostics, file *moduletest.Fil
 			})
 		}
 
-		t.view.log.Error(
-			fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
-			"type", json.MessageTestCleanup,
-			json.MessageTestCleanup, cleanup,
-			"@testfile", file.Name)
+		if run != nil {
+			t.view.log.Error(
+				fmt.Sprintf("Terraform left some resources in state after executing %s/%s, they need to be cleaned up manually.", file.Name, run.Name),
+				"type", json.MessageTestCleanup,
+				json.MessageTestCleanup, cleanup,
+				"@testfile", file.Name,
+				"@testrun", run.Name)
+		} else {
+			t.view.log.Error(
+				fmt.Sprintf("Terraform left some resources in state after executing %s, they need to be cleaned up manually.", file.Name),
+				"type", json.MessageTestCleanup,
+				json.MessageTestCleanup, cleanup,
+				"@testfile", file.Name)
+		}
+
 	}
 
-	t.Diagnostics(nil, file, diags)
+	t.Diagnostics(run, file, diags)
 }
 
 func (t TestJSON) Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics) {

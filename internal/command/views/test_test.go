@@ -555,6 +555,7 @@ something bad happened during this test
 func TestTestHuman_DestroySummary(t *testing.T) {
 	tcs := map[string]struct {
 		diags  tfdiags.Diagnostics
+		run    *moduletest.Run
 		file   *moduletest.File
 		state  *states.State
 		stdout string
@@ -600,6 +601,20 @@ Warning: second warning
 some thing not very bad happened again
 `,
 			stderr: `Terraform encountered an error destroying resources created while executing main.tftest.
+
+Error: first error
+
+this time it is very bad
+`,
+		},
+		"error_from_run": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
+			},
+			run:   &moduletest.Run{Name: "run_block"},
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+			stderr: `Terraform encountered an error destroying resources created while executing main.tftest/run_block.
 
 Error: first error
 
@@ -746,7 +761,7 @@ Terraform left the following resources in state after executing main.tftest, the
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			view.DestroySummary(tc.diags, tc.file, tc.state)
+			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state)
 
 			output := done(t)
 			actual, expected := output.Stdout(), tc.stdout
@@ -1355,6 +1370,7 @@ func TestTestJSON_Conclusion(t *testing.T) {
 func TestTestJSON_DestroySummary(t *testing.T) {
 	tcs := map[string]struct {
 		file  *moduletest.File
+		run   *moduletest.Run
 		state *states.State
 		diags tfdiags.Diagnostics
 		want  []map[string]interface{}
@@ -1437,6 +1453,42 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 						"summary":  "first error",
 					},
 					"type": "diagnostic",
+				},
+			},
+		},
+		"state_from_run": {
+			file: &moduletest.File{Name: "main.tftest"},
+			run:  &moduletest.Run{Name: "run_block"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform left some resources in state after executing main.tftest/run_block, they need to be cleaned up manually.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_cleanup": map[string]interface{}{
+						"failed_resources": []interface{}{
+							map[string]interface{}{
+								"instance": "test.foo",
+							},
+						},
+					},
+					"type": "test_cleanup",
 				},
 			},
 		},
@@ -1651,7 +1703,7 @@ func TestTestJSON_DestroySummary(t *testing.T) {
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewJSON, NewView(streams))
 
-			view.DestroySummary(tc.diags, tc.file, tc.state)
+			view.DestroySummary(tc.diags, tc.run, tc.file, tc.state)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want)
 		})
 	}

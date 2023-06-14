@@ -2711,6 +2711,72 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	}
 }
 
+func TestInit_tests(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
+func TestInit_testsWithModule(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests-with-module"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	// Check output
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "test.main.setup in setup") {
+		t.Fatalf("doesn't look like we installed the test module': %s", output)
+	}
+}
+
 // newMockProviderSource is a helper to succinctly construct a mock provider
 // source that contains a set of packages matching the given provider versions
 // that are available for installation (from temporary local files).

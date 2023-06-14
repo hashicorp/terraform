@@ -142,60 +142,43 @@ func (c *TestCommand) ExecuteTestSuite(suite *moduletest.Suite, config *configs.
 }
 
 func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.File, config *configs.Config, view views.Test) {
-	var diags tfdiags.Diagnostics
 
-	globalVariableValues, diags := c.CollectDefaultVariables(file.Config.Variables, config)
-	if diags.HasErrors() {
-		file.Status = file.Status.Merge(moduletest.Error)
-		view.File(file)
-		view.Diagnostics(nil, file, diags)
-		return
-	}
-
-	state := states.NewState()
-	defer func() {
-
-		// Whatever happens, at the end of this test we don't want to leave
-		// active resources behind. So we'll do a destroy action against the
-		// state in a deferred function.
-
-		plan, planDiags := ctx.Plan(config, state, &terraform.PlanOpts{
-			Mode:         plans.DestroyMode,
-			SetVariables: globalVariableValues,
-		})
-		if planDiags.HasErrors() {
-			// This is bad, we need to tell the user that we couldn't clean up
-			// and they need to go and manually delete some resources.
-			view.DestroySummary(planDiags, file, state)
-			return
-		}
-		view.Diagnostics(nil, file, planDiags) // Print out any warnings from the destroy plan.
-
-		finalState, applyDiags := ctx.Apply(plan, config)
-		view.DestroySummary(applyDiags, file, finalState)
-	}()
+	mgr := new(TestStateManager)
+	mgr.c = c
+	mgr.State = states.NewState()
+	defer mgr.cleanupStates(ctx, view, file, config)
 
 	file.Status = file.Status.Merge(moduletest.Pass)
 	for _, run := range file.Runs {
 		if file.Status == moduletest.Error {
+			// If the overall test file has errored, we don't keep trying to
+			// execute tests. Instead, we mark all remaining run blocks as
+			// skipped.
 			run.Status = moduletest.Skip
 			continue
 		}
 
-		state = c.ExecuteTestRun(ctx, run, state, config, globalVariableValues)
+		if run.Config.ConfigUnderTest != nil {
+			// Then we want to execute a different module under a kind of
+			// sandbox.
+			state := c.ExecuteTestRun(ctx, run, states.NewState(), run.Config.ConfigUnderTest, file.Config.Variables)
+			mgr.States = append(mgr.States, &TestModuleState{
+				State: state,
+				Run:   run,
+			})
+		} else {
+			mgr.State = c.ExecuteTestRun(ctx, run, mgr.State, config, file.Config.Variables)
+		}
 		file.Status = file.Status.Merge(run.Status)
 	}
 
 	view.File(file)
-	view.Diagnostics(nil, file, diags)
-
 	for _, run := range file.Runs {
 		view.Run(run, file)
 	}
 }
 
-func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run, state *states.State, config *configs.Config, defaults terraform.InputValues) *states.State {
-
+func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run, state *states.State, config *configs.Config, globals map[string]hcl.Expression) *states.State {
 	var targets []addrs.Targetable
 	for _, target := range run.Config.Options.Target {
 		addr, diags := addrs.ParseTarget(target)
@@ -230,7 +213,7 @@ func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run
 		replaces = append(replaces, addr)
 	}
 
-	variables, diags := c.OverrideDefaultVariables(run.Config.Variables, config, defaults)
+	variables, diags := c.GetInputValues(run.Config.Variables, globals, config)
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -287,9 +270,27 @@ func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run
 	return state
 }
 
-func (c *TestCommand) CollectDefaultVariables(exprs map[string]hcl.Expression, config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
+func (c *TestCommand) GetInputValues(locals map[string]hcl.Expression, globals map[string]hcl.Expression, config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
+	variables := make(map[string]hcl.Expression)
+	for name := range config.Module.Variables {
+		if expr, exists := locals[name]; exists {
+			// Local variables take precedence.
+			variables[name] = expr
+			continue
+		}
+
+		if expr, exists := globals[name]; exists {
+			// If it's not set locally, it maybe set globally.
+			variables[name] = expr
+			continue
+		}
+
+		// If it's not set at all that might be okay if the variable is optional
+		// so we'll just not add anything to the map.
+	}
+
 	unparsed := make(map[string]backend.UnparsedVariableValue)
-	for key, value := range exprs {
+	for key, value := range variables {
 		unparsed[key] = unparsedVariableValueExpression{
 			expr:       value,
 			sourceType: terraform.ValueFromConfig,
@@ -298,33 +299,83 @@ func (c *TestCommand) CollectDefaultVariables(exprs map[string]hcl.Expression, c
 	return backend.ParseVariableValues(unparsed, config.Module.Variables)
 }
 
-func (c *TestCommand) OverrideDefaultVariables(exprs map[string]hcl.Expression, config *configs.Config, existing terraform.InputValues) (terraform.InputValues, tfdiags.Diagnostics) {
-	if len(exprs) == 0 {
-		return existing, nil
+func (c *TestCommand) cleanupState(ctx *terraform.Context, view views.Test, run *moduletest.Run, file *moduletest.File, config *configs.Config, state *states.State) {
+	if state.Empty() {
+		// Nothing to do.
+		return
 	}
 
-	decls := make(map[string]*configs.Variable)
-	unparsed := make(map[string]backend.UnparsedVariableValue)
-	for name, variable := range exprs {
-
-		if config, ok := config.Module.Variables[name]; ok {
-			decls[name] = config
-		}
-
-		unparsed[name] = unparsedVariableValueExpression{
-			expr:       variable,
-			sourceType: terraform.ValueFromConfig,
-		}
+	var locals map[string]hcl.Expression
+	if run != nil {
+		locals = run.Config.Variables
 	}
 
-	overrides, diags := backend.ParseVariableValues(unparsed, decls)
-	values := make(terraform.InputValues)
-	for name, value := range existing {
-		if override, ok := overrides[name]; ok {
-			values[name] = override
-			continue
-		}
-		values[name] = value
+	variables, variableDiags := c.GetInputValues(locals, file.Config.Variables, config)
+	if variableDiags.HasErrors() {
+		// This shouldn't really trigger, as we will have created something
+		// using these variables at an earlier stage so for them to have a
+		// problem now would be strange. But just to be safe we'll handle this.
+		view.DestroySummary(variableDiags, run, file, state)
+		return
 	}
-	return values, diags
+	view.Diagnostics(nil, file, variableDiags)
+
+	plan, planDiags := ctx.Plan(config, state, &terraform.PlanOpts{
+		Mode:         plans.DestroyMode,
+		SetVariables: variables,
+	})
+	if planDiags.HasErrors() {
+		// This is bad, we need to tell the user that we couldn't clean up
+		// and they need to go and manually delete some resources.
+		view.DestroySummary(planDiags, run, file, state)
+		return
+	}
+	view.Diagnostics(nil, file, planDiags) // Print out any warnings from the destroy plan.
+
+	finalState, applyDiags := ctx.Apply(plan, config)
+	view.DestroySummary(applyDiags, run, file, finalState)
+}
+
+// TestStateManager is a helper struct to maintain the various state objects
+// that a test file has to keep track of.
+type TestStateManager struct {
+	c *TestCommand
+
+	// State is the main state of the module under test during a single test
+	// file execution. This state will be updated by every run block without
+	// a modifier module block within the test file. At the end of the test
+	// file's execution everything in this state should be executed.
+	State *states.State
+
+	// States contains the states of every run block within a test file that
+	// executed using an alternative module. Any resources created by these
+	// run blocks also need to be tidied up, but only after the main state file
+	// has been handled.
+	States []*TestModuleState
+}
+
+// TestModuleState holds the config and the state for a given run block that
+// executed with a custom module.
+type TestModuleState struct {
+	// State is the state after the module executed.
+	State *states.State
+
+	// File is the config for the file containing the Run.
+	File *moduletest.File
+
+	// Run is the config for the given run block, that contains the config
+	// under test and the variable values.
+	Run *moduletest.Run
+}
+
+func (manager *TestStateManager) cleanupStates(ctx *terraform.Context, view views.Test, file *moduletest.File, config *configs.Config) {
+	// First, we'll clean up the main state.
+	manager.c.cleanupState(ctx, view, nil, file, config, manager.State)
+
+	// Then we'll clean up the additional states for custom modules in reverse
+	// order.
+	for ix := len(manager.States); ix > 0; ix-- {
+		state := manager.States[ix-1]
+		manager.c.cleanupState(ctx, view, state.Run, file, state.Run.Config.ConfigUnderTest, state.State)
+	}
 }
