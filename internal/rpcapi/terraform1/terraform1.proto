@@ -13,6 +13,15 @@ service Setup {
     rpc Handshake(Handshake.Request) returns (Handshake.Response);
 }
 
+message Handshake {
+    message Request {
+        ClientCapabilities capabilities = 1;
+    }
+    message Response {
+        ServerCapabilities capabilities = 2;
+    }
+}
+
 service Dependencies {
     // Opens a source bundle that was already extracted into the filesystem
     // somewhere, returning an opaque source bundle handle that can be used for
@@ -23,15 +32,6 @@ service Dependencies {
     // and therefore making it safe to delete or modify the bundle directory
     // on disk.
     rpc CloseSourceBundle(CloseSourceBundle.Request) returns (CloseSourceBundle.Response);
-}
-
-message Handshake {
-    message Request {
-        ClientCapabilities capabilities = 1;
-    }
-    message Response {
-        ServerCapabilities capabilities = 2;
-    }
 }
 
 message OpenSourceBundle {
@@ -64,4 +64,94 @@ message ClientCapabilities {
 // level of support.
 message ServerCapabilities {
     // There are not yet any negotiatable capabilities.
+}
+
+service Stacks {
+    // Load and perform initial static validation of a stack configuration
+    // in a previously-opened source bundle. If successful, returns a
+    // stack configuration handle that can be used with other operations.
+    rpc OpenStackConfiguration(OpenStackConfiguration.Request)
+        returns (OpenStackConfiguration.Response);
+    // Close a previously-opened stack configuration using its handle.
+    rpc CloseStackConfiguration(CloseStackConfiguration.Request)
+        returns (CloseStackConfiguration.Response);
+    // Analyze a stack configuration to find all of the providers that it
+    // depends on.
+    rpc FindStackConfigurationProviders(FindStackConfigurationProviders.Request) 
+        returns (FindStackConfigurationProviders.Response);
+    // Analyze a stack configuration to find all of the components it declares.
+    // This is static analysis only, so it cannot produce dynamic information
+    // such as the number of instances of each component.
+    rpc FindStackConfigurationComponents(FindStackConfigurationComponents.Request)
+        returns (FindStackConfigurationComponents.Response);
+}
+
+message OpenStackConfiguration {
+    message Request {
+        int64 source_bundle_handle = 1;
+        SourceAddress source_address = 2;
+    }
+    message Response {
+        int64 stack_config_handle = 1;
+        repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message CloseStackConfiguration {
+    message Request {
+        int64 stack_config_handle = 1;
+    }
+    message Response {
+    }
+}
+
+message FindStackConfigurationComponents {
+    message Request {
+        int64 stack_config_handle = 1;
+    }
+    message Response {
+        // TODO
+    }
+}
+
+message FindStackConfigurationProviders {
+    message Request {
+        int64 stack_config_handle = 1;
+    }
+    message Response {
+        // TODO
+    }
+}
+
+// A source address in the same form as it would appear in a Terraform
+// configuration: a source string combined with an optional version constraint
+// string, where the latter is valid only for registry module addresses.
+message SourceAddress {
+    string source = 1;
+    string versions = 2;
+}
+
+message Diagnostic {
+    enum Severity {
+        INVALID = 0;
+        ERROR = 1;
+        WARNING = 2;
+    }
+    Severity severity = 1;
+    string summary = 2;
+    string detail = 3;
+    SourceRange subject = 4;
+    SourceRange context = 5;
+}
+
+message SourceRange {
+    string source_addr = 1;
+    SourcePos start = 2;
+    SourcePos end = 3;
+}
+
+message SourcePos {
+    int64 byte = 1;
+    int64 line = 2;
+    int64 column = 3;
 }
