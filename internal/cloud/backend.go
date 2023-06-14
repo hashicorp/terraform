@@ -80,7 +80,8 @@ type Cloud struct {
 	WorkspaceMapping WorkspaceMapping
 
 	// services is used for service discovery
-	services *disco.Disco
+	services     *disco.Disco
+	servicesLock sync.Mutex
 
 	// renderer is used for rendering JSON plan output and streamed logs.
 	renderer *jsonformat.Renderer
@@ -218,7 +219,9 @@ func (b *Cloud) configureGenericHostname() {
 	// service discovery requests made against it.
 	targetHost, _ := svchost.ForComparison(b.hostname)
 
+	b.servicesLock.Lock()
 	b.services.Alias(genericHost, targetHost)
+	b.servicesLock.Unlock()
 }
 
 // Configure implements backend.Enhanced.
@@ -443,7 +446,9 @@ func (b *Cloud) discover() (*url.URL, error) {
 		return nil, err
 	}
 
+	b.servicesLock.Lock()
 	host, err := b.services.Discover(hostname)
+	b.servicesLock.Unlock()
 	if err != nil {
 		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
 
@@ -473,7 +478,9 @@ func (b *Cloud) cliConfigToken() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	b.servicesLock.Lock()
 	creds, err := b.services.CredentialsForHost(hostname)
+	b.servicesLock.Unlock()
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.hostname, err)
 		return "", nil

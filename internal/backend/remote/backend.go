@@ -75,7 +75,8 @@ type Remote struct {
 	prefix string
 
 	// services is used for service discovery
-	services *disco.Disco
+	services     *disco.Disco
+	servicesLock sync.Mutex
 
 	// local, if non-nil, will be used for all enhanced behavior. This
 	// allows local behavior with the remote backend functioning as remote
@@ -212,7 +213,9 @@ func (b *Remote) configureGenericHostname() {
 	// service discovery requests made against it.
 	targetHost, _ := svchost.ForComparison(b.hostname)
 
+	b.servicesLock.Lock()
 	b.services.Alias(genericHost, targetHost)
+	b.servicesLock.Unlock()
 }
 
 // Configure implements backend.Enhanced.
@@ -380,7 +383,9 @@ func (b *Remote) discover(serviceID string) (*url.URL, *disco.Constraints, error
 		return nil, nil, err
 	}
 
+	b.servicesLock.Lock()
 	host, err := b.services.Discover(hostname)
+	b.servicesLock.Unlock()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -505,7 +510,9 @@ func (b *Remote) token() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	b.servicesLock.Lock()
 	creds, err := b.services.CredentialsForHost(hostname)
+	b.servicesLock.Unlock()
 	if err != nil {
 		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.hostname, err)
 		return "", nil
