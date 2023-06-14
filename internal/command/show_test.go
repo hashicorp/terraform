@@ -592,8 +592,15 @@ func TestShow_json_output(t *testing.T) {
 			code := pc.Run(args)
 			planOutput := planDone(t)
 
-			if (code != 0) != want.Errored {
-				t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
+			var wantedCode int
+			if want.Errored {
+				wantedCode = 1
+			} else {
+				wantedCode = 0
+			}
+
+			if code != wantedCode {
+				t.Fatalf("unexpected exit status %d; want %d\ngot: %s", code, wantedCode, planOutput.Stderr())
 			}
 
 			// show
