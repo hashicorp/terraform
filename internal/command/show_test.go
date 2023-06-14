@@ -421,7 +421,43 @@ func TestShow_planWithForceReplaceChange(t *testing.T) {
 	if !strings.Contains(got, want) {
 		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
 	}
+}
 
+func TestShow_planErrored(t *testing.T) {
+	_, snap := testModuleWithSnapshot(t, "show")
+	plan := testPlan(t)
+	plan.Errored = true
+	planFilePath := testPlanFile(
+		t,
+		snap,
+		states.NewState(),
+		plan,
+	)
+
+	view, done := testView(t)
+	c := &ShowCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(showFixtureProvider()),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		planFilePath,
+		"-no-color",
+	}
+	code := c.Run(args)
+	output := done(t)
+
+	if code != 0 {
+		t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, output.Stderr())
+	}
+
+	got := output.Stdout()
+	want := `Planning failed. Terraform encountered an error while generating this plan.`
+	if !strings.Contains(got, want) {
+		t.Fatalf("unexpected output\ngot: %s\nwant: %s", got, want)
+	}
 }
 
 func TestShow_plan_json(t *testing.T) {
@@ -525,6 +561,20 @@ func TestShow_json_output(t *testing.T) {
 				t.Fatalf("init failed\n%s", ui.ErrorWriter)
 			}
 
+			// read expected output
+			wantFile, err := os.Open("output.json")
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+			defer wantFile.Close()
+			byteValue, err := ioutil.ReadAll(wantFile)
+			if err != nil {
+				t.Fatalf("unexpected err: %s", err)
+			}
+
+			var want plan
+			json.Unmarshal([]byte(byteValue), &want)
+
 			// plan
 			planView, planDone := testView(t)
 			pc := &PlanCommand{
@@ -542,7 +592,7 @@ func TestShow_json_output(t *testing.T) {
 			code := pc.Run(args)
 			planOutput := planDone(t)
 
-			if code != 0 {
+			if (code != 0) != want.Errored {
 				t.Fatalf("unexpected exit status %d; want 0\ngot: %s", code, planOutput.Stderr())
 			}
 
@@ -569,21 +619,10 @@ func TestShow_json_output(t *testing.T) {
 			}
 
 			// compare view output to wanted output
-			var got, want plan
+			var got plan
 
 			gotString := showOutput.Stdout()
 			json.Unmarshal([]byte(gotString), &got)
-
-			wantFile, err := os.Open("output.json")
-			if err != nil {
-				t.Fatalf("unexpected err: %s", err)
-			}
-			defer wantFile.Close()
-			byteValue, err := ioutil.ReadAll(wantFile)
-			if err != nil {
-				t.Fatalf("unexpected err: %s", err)
-			}
-			json.Unmarshal([]byte(byteValue), &want)
 
 			// Disregard format version to reduce needless test fixture churn
 			want.FormatVersion = got.FormatVersion
@@ -1150,6 +1189,7 @@ type plan struct {
 	OutputChanges   map[string]interface{} `json:"output_changes,omitempty"`
 	PriorState      priorState             `json:"prior_state,omitempty"`
 	Config          map[string]interface{} `json:"configuration,omitempty"`
+	Errored         bool                   `json:"errored"`
 }
 
 type priorState struct {
