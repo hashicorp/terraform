@@ -1700,7 +1700,7 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"set": {
-						Computed: true,
+						//Computed: true,
 						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSet,
@@ -1796,9 +1796,9 @@ func TestAssertPlanValid(t *testing.T) {
 				)),
 			}),
 			[]string{
-				`.set: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
-				`.list: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
-				`.map: count in plan (cty.UnknownVal(cty.Number).Refine().NotNull().NumberLowerBound(cty.NumberIntVal(0), true).NumberUpperBound(cty.NumberIntVal(9.223372036854775807e+18), true).NewValue()) disagrees with count in config (cty.NumberIntVal(1))`,
+				`.set: planned unknown for configured value`,
+				`.list: planned unknown for configured value`,
+				`.map: planned unknown for configured value`,
 			},
 		},
 
@@ -1828,6 +1828,68 @@ func TestAssertPlanValid(t *testing.T) {
 				"a": cty.UnknownVal(cty.String),
 			}),
 			nil,
+		},
+
+		"nested set values can contain computed unknown": {
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"set": {
+						Optional: true,
+						NestedType: &configschema.Object{
+							Nesting: configschema.NestingSet,
+							Attributes: map[string]*configschema.Attribute{
+								"input": {
+									Type:     cty.String,
+									Optional: true,
+								},
+								"computed": {
+									Type:     cty.String,
+									Computed: true,
+									Optional: true,
+								},
+							},
+						},
+					},
+				},
+			},
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.NullVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.NullVal(cty.String),
+					}),
+				}),
+			}),
+			// Plan can mark the null computed values as unknown
+			cty.ObjectVal(map[string]cty.Value{
+				"set": cty.SetVal([]cty.Value{
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("a"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+					cty.ObjectVal(map[string]cty.Value{
+						"input":    cty.StringVal("b"),
+						"computed": cty.UnknownVal(cty.String),
+					}),
+				}),
+			}),
+			[]string{},
 		},
 	}
 
