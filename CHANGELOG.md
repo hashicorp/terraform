@@ -1,5 +1,9 @@
 ## 1.5.1 (Unreleased)
 
+BUG FIXES:
+
+* core: plan validation would fail for providers using nested set attributes with computed object attribute [GH-33377]
+
 ## 1.5.0 (June 12, 2023)
 
 NEW FEATURES:
