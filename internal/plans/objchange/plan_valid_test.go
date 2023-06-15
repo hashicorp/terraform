@@ -1700,7 +1700,7 @@ func TestAssertPlanValid(t *testing.T) {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
 					"set": {
-						//Computed: true,
+						Computed: true,
 						Optional: true,
 						NestedType: &configschema.Object{
 							Nesting: configschema.NestingSet,

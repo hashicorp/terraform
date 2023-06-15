@@ -447,14 +447,10 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		}
 
 	case configschema.NestingSet:
-		if !planned.IsKnown() || !config.IsKnown() {
-			// if either is unknown we cannot check the lengths
-			return errs
-		}
+		plannedL := planned.Length()
+		configL := config.Length()
 
-		plannedL := planned.LengthInt()
-		configL := config.LengthInt()
-		if plannedL != configL {
+		if ok := plannedL.Range().Includes(configL); ok.IsKnown() && ok.False() {
 			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
