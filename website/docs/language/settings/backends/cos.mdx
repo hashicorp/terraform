@@ -9,10 +9,10 @@ description: >-
 
 Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
 
-This backend supports [state locking](/terraform/language/state/locking). You need following permissions for your credentials:
+This backend supports [state locking](/terraform/language/state/locking). Storing your state in a COS bucket requires the following permissions:
 
-* `CreateTag`, `DeleteTag` and `DescribeTags` on the tag key `tencentcloud-terraform-lock`.
-* `Put`, `Get` and `Delete` files under the given prefix of the bucket.
+- `CreateTag`, `DeleteTag`, and `DescribeTags` on the tag key `tencentcloud-terraform-lock`
+- `Put`, `Get`, and `Delete` files for the specified bucket's prefix
 
 ~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
 on the COS bucket to allow for state recovery in the case of accidental deletions and human error.
