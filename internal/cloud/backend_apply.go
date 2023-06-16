@@ -85,6 +85,15 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 
 	if cp, ok := op.PlanFile.Cloud(); ok {
 		log.Printf("[TRACE] Loading saved cloud plan for apply")
+		// Check hostname first, for a more actionable error than a generic 404 later
+		if cp.Hostname != b.hostname {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Saved plan is for a different hostname",
+				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.hostname),
+			))
+			return r, diags.Err()
+		}
 		// Fetch the run referenced in the saved plan bookmark.
 		r, err = b.client.Runs.ReadWithOptions(stopCtx, cp.RunID, &tfe.RunReadOptions{
 			Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
