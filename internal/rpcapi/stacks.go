@@ -78,3 +78,52 @@ func (s *stacksServer) CloseStackConfiguration(ctx context.Context, req *terrafo
 	}
 	return &terraform1.CloseStackConfiguration_Response{}, nil
 }
+
+func (s *stacksServer) FindStackConfigurationComponents(ctx context.Context, req *terraform1.FindStackConfigurationComponents_Request) (*terraform1.FindStackConfigurationComponents_Response, error) {
+	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
+	cfg := s.handles.StackConfig(cfgHnd)
+	if cfg == nil {
+		return nil, status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
+	}
+
+	return &terraform1.FindStackConfigurationComponents_Response{
+		Config: stackConfigMetaforProto(cfg.Root),
+	}, nil
+}
+
+func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindStackConfigurationComponents_StackConfig {
+	ret := &terraform1.FindStackConfigurationComponents_StackConfig{
+		Components:     make(map[string]*terraform1.FindStackConfigurationComponents_Component),
+		EmbeddedStacks: make(map[string]*terraform1.FindStackConfigurationComponents_EmbeddedStack),
+	}
+
+	for name, cc := range cfgNode.Stack.Components {
+		cProto := &terraform1.FindStackConfigurationComponents_Component{
+			SourceAddr: cc.FinalSourceAddr.String(),
+		}
+		switch {
+		case cc.ForEach != nil:
+			cProto.Instances = terraform1.FindStackConfigurationComponents_FOR_EACH
+		default:
+			cProto.Instances = terraform1.FindStackConfigurationComponents_SINGLE
+		}
+		ret.Components[name] = cProto
+	}
+
+	for name, sn := range cfgNode.Children {
+		sc := cfgNode.Stack.EmbeddedStacks[name]
+		sProto := &terraform1.FindStackConfigurationComponents_EmbeddedStack{
+			SourceAddr: sn.Stack.SourceAddr.String(),
+			Config:     stackConfigMetaforProto(sn),
+		}
+		switch {
+		case sc.ForEach != nil:
+			sProto.Instances = terraform1.FindStackConfigurationComponents_FOR_EACH
+		default:
+			sProto.Instances = terraform1.FindStackConfigurationComponents_SINGLE
+		}
+		ret.EmbeddedStacks[name] = sProto
+	}
+
+	return ret
+}

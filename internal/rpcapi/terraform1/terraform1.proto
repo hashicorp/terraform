@@ -110,7 +110,26 @@ message FindStackConfigurationComponents {
         int64 stack_config_handle = 1;
     }
     message Response {
-        // TODO
+        StackConfig config = 1;
+    }
+
+    enum Instances {
+        SINGLE = 0;
+        COUNT = 1;
+        FOR_EACH = 2;
+    }
+    message StackConfig {
+        map<string, Component> components = 1;
+        map<string, EmbeddedStack> embedded_stacks = 2;
+    }
+    message EmbeddedStack {
+        string source_addr = 1;
+        Instances instances = 2;
+        StackConfig config = 3;
+    }
+    message Component {
+        string source_addr = 1;
+        Instances instances = 2;
     }
 }
 
@@ -126,6 +145,10 @@ message FindStackConfigurationProviders {
 // A source address in the same form as it would appear in a Terraform
 // configuration: a source string combined with an optional version constraint
 // string, where the latter is valid only for registry module addresses.
+//
+// This is not used for "final" source addresses that have already been reduced
+// to an exact version selection. For those we just directly encode the string
+// representation of the final address, including a version number if necessary.
 message SourceAddress {
     string source = 1;
     string versions = 2;
