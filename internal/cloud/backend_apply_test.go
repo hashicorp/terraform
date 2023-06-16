@@ -415,7 +415,7 @@ func TestCloud_applyWithLocalPlan(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.WrappedPlanFile{Local: &planfile.Reader{}}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -465,13 +465,12 @@ func TestCloud_applyWithCloudPlan(t *testing.T) {
 	}
 
 	// Synthesize a cloud plan file with the plan's run ID
-	op.PlanFile = &planfile.WrappedPlanFile{
-		Cloud: &cloudplan.SavedPlanBookmark{
-			RemotePlanFormat: 1,
-			RunID:            planRun.ID,
-			Hostname:         b.hostname,
-		},
+	pf := &cloudplan.SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            planRun.ID,
+		Hostname:         b.hostname,
 	}
+	op.PlanFile = planfile.NewWrappedCloud(pf)
 
 	// Start spying on the apply output (now that the plan's done)
 	stream, close := terminal.StreamsForTesting(t)

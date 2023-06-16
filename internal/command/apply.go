@@ -206,8 +206,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *
 	// Load the backend
 	var be backend.Enhanced
 	var beDiags tfdiags.Diagnostics
-	if planFile.IsLocal() {
-		plan, err := planFile.Local.ReadPlan()
+	if lp, ok := planFile.Local(); ok {
+		plan, err := lp.ReadPlan()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,

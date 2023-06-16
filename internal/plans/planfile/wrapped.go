@@ -10,16 +10,56 @@ import "github.com/hashicorp/terraform/internal/cloud/cloudplan"
 // to be used as a pointer, so that a nil value can represent the absence of any
 // plan file.
 type WrappedPlanFile struct {
-	Local *Reader
-	Cloud *cloudplan.SavedPlanBookmark
+	local *Reader
+	cloud *cloudplan.SavedPlanBookmark
 }
 
 func (w *WrappedPlanFile) IsLocal() bool {
-	return w != nil && w.Local != nil
+	return w != nil && w.local != nil
 }
 
 func (w *WrappedPlanFile) IsCloud() bool {
-	return w != nil && w.Cloud != nil
+	return w != nil && w.cloud != nil
+}
+
+// Local checks whether the wrapped value is a local plan file, and returns it if available.
+func (w *WrappedPlanFile) Local() (*Reader, bool) {
+	if w != nil && w.local != nil {
+		return w.local, true
+	} else {
+		return nil, false
+	}
+}
+
+// Cloud checks whether the wrapped value is a cloud plan file, and returns it if available.
+func (w *WrappedPlanFile) Cloud() (*cloudplan.SavedPlanBookmark, bool) {
+	if w != nil && w.cloud != nil {
+		return w.cloud, true
+	} else {
+		return nil, false
+	}
+}
+
+// NewWrappedLocal constructs a WrappedPlanFile from an already loaded local
+// plan file reader. Most cases should use OpenWrapped to load from disk
+// instead. If the provided reader is nil, the returned pointer is nil.
+func NewWrappedLocal(l *Reader) *WrappedPlanFile {
+	if l != nil {
+		return &WrappedPlanFile{local: l}
+	} else {
+		return nil
+	}
+}
+
+// NewWrappedCloud constructs a WrappedPlanFile from an already loaded cloud
+// plan file. Most cases should use OpenWrapped to load from disk
+// instead. If the provided plan file is nil, the returned pointer is nil.
+func NewWrappedCloud(c *cloudplan.SavedPlanBookmark) *WrappedPlanFile {
+	if c != nil {
+		return &WrappedPlanFile{cloud: c}
+	} else {
+		return nil
+	}
 }
 
 // OpenWrapped loads a local or cloud plan file from a specified file path, or
@@ -30,12 +70,12 @@ func OpenWrapped(filename string) (*WrappedPlanFile, error) {
 	// First, try to load it as a local planfile.
 	local, localErr := Open(filename)
 	if localErr == nil {
-		return &WrappedPlanFile{Local: local}, nil
+		return &WrappedPlanFile{local: local}, nil
 	}
 	// Then, try to load it as a cloud plan.
 	cloud, cloudErr := cloudplan.LoadSavedPlanBookmark(filename)
 	if cloudErr == nil {
-		return &WrappedPlanFile{Cloud: &cloud}, nil
+		return &WrappedPlanFile{cloud: &cloud}, nil
 	}
 	// If neither worked, return the error from trying to handle it as a local
 	// planfile, since that might have more context. Cloud plans are an opaque

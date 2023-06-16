@@ -83,10 +83,10 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	var r *tfe.Run
 	var err error
 
-	if op.PlanFile.IsCloud() {
+	if cp, ok := op.PlanFile.Cloud(); ok {
 		log.Printf("[TRACE] Loading saved cloud plan for apply")
 		// Fetch the run referenced in the saved plan bookmark.
-		r, err = b.client.Runs.ReadWithOptions(stopCtx, op.PlanFile.Cloud.RunID, &tfe.RunReadOptions{
+		r, err = b.client.Runs.ReadWithOptions(stopCtx, cp.RunID, &tfe.RunReadOptions{
 			Include: []tfe.RunIncludeOpt{tfe.RunWorkspace},
 		})
 

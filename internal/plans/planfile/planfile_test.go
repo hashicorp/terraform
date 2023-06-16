@@ -105,13 +105,13 @@ func TestRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to open plan file for reading: %s", err)
 	}
-	if !wpf.IsLocal() {
+	pr, ok := wpf.Local()
+	if !ok {
 		t.Fatalf("failed to open plan file as a local plan file")
 	}
 	if wpf.IsCloud() {
 		t.Fatalf("wrapped plan claims to be both kinds of plan at once")
 	}
-	pr := wpf.Local
 
 	t.Run("ReadPlan", func(t *testing.T) {
 		planOut, err := pr.ReadPlan()
