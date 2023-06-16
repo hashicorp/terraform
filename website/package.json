@@ -6,9 +6,9 @@
     "content-check": "hc-content --config base-docs"
   },
   "devDependencies": {
-    "@hashicorp/platform-cli": "^2.6.0",
-    "@hashicorp/platform-content-conformance": "^0.0.10",
-    "next": "^12.1.0"
+    "@hashicorp/platform-cli": "^2.7.2",
+    "@hashicorp/platform-content-conformance": "^0.0.12",
+    "next": "^13.4.6"
   },
   "engines": {
     "npm": ">=7.0.0"

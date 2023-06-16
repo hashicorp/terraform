@@ -39,8 +39,9 @@ jobs:
     name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ inputs.go-version }}
       - name: Determine artifact basename
         run: echo "ARTIFACT_BASENAME=${{ inputs.package-name }}_${{ inputs.product-version }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip" >> $GITHUB_ENV
@@ -51,7 +52,7 @@ jobs:
           GO_LDFLAGS: ${{ inputs.ld-flags }}
           ACTIONSOS: ${{ inputs.runson }}
           CGO_ENABLED: ${{ inputs.cgo-enabled }}
-        uses: hashicorp/actions-go-build@v0.1.7
+        uses: hashicorp/actions-go-build@v0.1.9
         with:
           product_name: ${{ inputs.package-name }}
           product_version: ${{ inputs.product-version }}

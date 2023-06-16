@@ -38,15 +38,16 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ steps.go.outputs.version }}
 
       # NOTE: This cache is shared so the following step must always be
@@ -70,15 +71,16 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ steps.go.outputs.version }}
 
       # NOTE: This cache is shared so the following step must always be
@@ -108,15 +110,16 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Determine Go version
         id: go
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ steps.go.outputs.version }}
 
       # NOTE: This cache is shared so the following step must always be
@@ -140,7 +143,7 @@ jobs:
 
     steps:
       - name: "Fetch source code"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0 # We need to do comparisons against the main branch.
 
@@ -149,8 +152,9 @@ jobs:
         uses: ./.github/actions/go-version
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ steps.go.outputs.version }}
 
       # NOTE: This cache is shared so the following step must always be

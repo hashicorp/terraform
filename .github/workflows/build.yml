@@ -83,7 +83,7 @@ jobs:
           version: ${{ needs.get-product-version.outputs.product-version }}
           product: ${{ env.PKG_NAME }}
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: metadata.json
           path: ${{ steps.generate-metadata-file.outputs.filepath }}
@@ -188,8 +188,9 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Go toolchain
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ needs.get-go-version.outputs.go-version }}
 
       - name: Build test harness package
@@ -253,7 +254,7 @@ jobs:
           fail-on-cache-miss: true
           enableCrossOsArchive: true
       - name: "Download Terraform CLI package"
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
@@ -264,7 +265,7 @@ jobs:
           unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
           unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         if: ${{ contains(matrix.goarch, 'arm') }}
         with:
           platforms: all
@@ -298,11 +299,12 @@ jobs:
 
     steps:
       - name: Install Go toolchain
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
+          cache: false
           go-version: ${{ needs.get-go-version.outputs.go-version }}
       - name: Download Terraform CLI package
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         id: clipkg
         with:
           name: terraform_${{ env.version }}_linux_amd64.zip
