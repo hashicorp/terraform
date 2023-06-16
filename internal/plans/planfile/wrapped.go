@@ -1,6 +1,10 @@
 package planfile
 
-import "github.com/hashicorp/terraform/internal/cloud/cloudplan"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
+)
 
 // WrappedPlanFile is a sum type that represents a saved plan, loaded from a
 // file path passed on the command line. If the specified file was a thick local
@@ -77,9 +81,10 @@ func OpenWrapped(filename string) (*WrappedPlanFile, error) {
 	if cloudErr == nil {
 		return &WrappedPlanFile{cloud: &cloud}, nil
 	}
-	// If neither worked, return the error from trying to handle it as a local
-	// planfile, since that might have more context. Cloud plans are an opaque
-	// format, so we don't care to give any advice about how to fix an internal
-	// problem in one.
-	return nil, localErr
+	// If neither worked, return both errors. In general we don't care to give
+	// any advice about how to fix an internal problem in a plan file, since
+	// both formats are opaque, but we do want to give the user the best chance
+	// at resolving whatever their problem was.
+	combinedErr := fmt.Errorf("couldn't load the provided path as either a local plan file (%s) or a saved cloud plan (%s)", localErr, cloudErr)
+	return nil, combinedErr
 }
