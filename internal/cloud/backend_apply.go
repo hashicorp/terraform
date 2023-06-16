@@ -286,8 +286,14 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 		summary = "Saved plan is discarded"
 		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the Terraform Cloud UI or API."
 	case tfe.RunPlannedAndFinished:
+		// Note: planned and finished can also indicate a plan-only run, but
+		// terraform plan can't create a saved plan for a plan-only run, so we
+		// know it's no-changes in this case.
 		summary = "Saved plan has no changes"
 		reason = "The given plan file contains no changes, so it cannot be applied."
+	case tfe.RunPolicyOverride:
+		summary = "Saved plan requires policy override"
+		reason = "The given plan file has soft policy failures, and cannot be applied until a user with appropriate permissions overrides the policy check."
 	default:
 		summary = "Saved plan cannot be applied"
 		reason = "Terraform Cloud cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem."
