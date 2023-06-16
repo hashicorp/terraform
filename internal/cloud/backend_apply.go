@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -115,6 +116,13 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		if !r.Actions.IsConfirmable {
 			url := runURL(b.hostname, b.organization, op.Workspace, r.ID)
 			return r, unusableSavedPlanError(r.Status, url)
+		}
+
+		// Since we're not calling plan(), we need to print a run header ourselves:
+		if b.CLI != nil {
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
+			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
+				runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID)) + "\n"))
 		}
 	} else {
 		log.Printf("[TRACE] Running new cloud plan for apply")
@@ -310,6 +318,13 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 const applyDefaultHeader = `
 [reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
 will cancel the remote apply if it's still pending. If the apply started it
+will stop streaming the logs, but will not stop the apply running remotely.[reset]
+
+Preparing the remote apply...
+`
+
+const applySavedHeader = `
+[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
 Preparing the remote apply...
