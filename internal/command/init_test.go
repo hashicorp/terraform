@@ -2741,6 +2741,49 @@ func TestInit_tests(t *testing.T) {
 	}
 }
 
+func TestInit_testsWithProvider(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-with-tests-with-provider"), td)
+	defer testChdir(t, td)()
+
+	provider := applyFixtureProvider() // We just want the types from this provider.
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"hashicorp/test": {"1.0.0"},
+	})
+	defer close()
+
+	ui := new(cli.MockUi)
+	view, _ := testView(t)
+	c := &InitCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider),
+			Ui:               ui,
+			View:             view,
+			ProviderSource:   providerSource,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("expected failure but got: \n%s", ui.OutputWriter.String())
+	}
+
+	got := ui.ErrorWriter.String()
+	want := `
+Error: Failed to query available provider packages
+
+Could not retrieve the list of available versions for provider
+hashicorp/test: no available releases match the given constraints 1.0.1,
+1.0.2
+
+`
+	if diff := cmp.Diff(got, want); len(diff) > 0 {
+		t.Fatalf("wrong error message: \ngot:\n%s\nwant:\n%s\ndiff:\n%s", got, want, diff)
+	}
+}
+
 func TestInit_testsWithModule(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()

@@ -232,7 +232,7 @@ func (c *InitCommand) Run(args []string) int {
 
 	// With all of the modules (hopefully) installed, we can now try to load the
 	// whole configuration tree.
-	config, confDiags := c.loadConfig(path)
+	config, confDiags := c.loadConfigWithTests(path, "tests")
 	// configDiags will be handled after the version constraint check, since an
 	// incorrect version of terraform may be producing errors for configuration
 	// constructs added in later versions.

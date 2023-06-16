@@ -138,10 +138,6 @@ func TestTest(t *testing.T) {
 }
 
 func TestTest_ProviderAlias(t *testing.T) {
-	// TODO(liamcervante): Enable this test once we have added support for
-	//  provider aliasing and customisation into the testing framework.
-	t.Skip()
-
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_provider_alias")), td)
 	defer testChdir(t, td)()

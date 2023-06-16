@@ -166,3 +166,39 @@ func TestProviders_state(t *testing.T) {
 		}
 	}
 }
+
+func TestProviders_tests(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("providers/tests")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	ui := new(cli.MockUi)
+	c := &ProvidersCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	wantOutput := []string{
+		"provider[registry.terraform.io/hashicorp/foo]",
+		"test.main",
+		"provider[registry.terraform.io/hashicorp/bar]",
+	}
+
+	output := ui.OutputWriter.String()
+	for _, want := range wantOutput {
+		if !strings.Contains(output, want) {
+			t.Errorf("output missing %s:\n%s", want, output)
+		}
+	}
+}

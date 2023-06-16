@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
@@ -21,8 +20,6 @@ import (
 
 type TestCommand struct {
 	Meta
-
-	loader *configload.Loader
 }
 
 func (c *TestCommand) Help() string {
@@ -60,15 +57,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 	view := views.NewTest(arguments.ViewHuman, c.View)
 
-	loader, err := c.initConfigLoader()
-	diags = diags.Append(err)
-	if err != nil {
-		view.Diagnostics(nil, nil, diags)
-		return 1
-	}
-	c.loader = loader
-
-	config, configDiags := loader.LoadConfigWithTests(".", "tests")
+	config, configDiags := c.loadConfigWithTests(".", "tests")
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		view.Diagnostics(nil, nil, diags)
@@ -161,13 +150,13 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 		if run.Config.ConfigUnderTest != nil {
 			// Then we want to execute a different module under a kind of
 			// sandbox.
-			state := c.ExecuteTestRun(ctx, run, states.NewState(), run.Config.ConfigUnderTest, file.Config.Variables)
+			state := c.ExecuteTestRun(ctx, run, file, states.NewState(), run.Config.ConfigUnderTest)
 			mgr.States = append(mgr.States, &TestModuleState{
 				State: state,
 				Run:   run,
 			})
 		} else {
-			mgr.State = c.ExecuteTestRun(ctx, run, mgr.State, config, file.Config.Variables)
+			mgr.State = c.ExecuteTestRun(ctx, run, file, mgr.State, config)
 		}
 		file.Status = file.Status.Merge(run.Status)
 	}
@@ -178,7 +167,23 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 	}
 }
 
-func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run, state *states.State, config *configs.Config, globals map[string]hcl.Expression) *states.State {
+func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) *states.State {
+
+	// Since we don't want to modify the actual plan and apply operations for
+	// tests where possible, we insert provider blocks directly into the config
+	// under test for each test run.
+	//
+	// This function transforms the config under test by inserting relevant
+	// provider blocks. It returns a reset function which restores the config
+	// back to the original state.
+	cfgReset, cfgDiags := config.TransformForTest(run.Config, file.Config)
+	defer cfgReset()
+	run.Diagnostics = run.Diagnostics.Append(cfgDiags)
+	if cfgDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return state
+	}
+
 	var targets []addrs.Targetable
 	for _, target := range run.Config.Options.Target {
 		addr, diags := addrs.ParseTarget(target)
@@ -213,7 +218,7 @@ func (c *TestCommand) ExecuteTestRun(ctx *terraform.Context, run *moduletest.Run
 		replaces = append(replaces, addr)
 	}
 
-	variables, diags := c.GetInputValues(run.Config.Variables, globals, config)
+	variables, diags := c.GetInputValues(run.Config.Variables, file.Config.Variables, config)
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -305,12 +310,34 @@ func (c *TestCommand) cleanupState(ctx *terraform.Context, view views.Test, run 
 		return
 	}
 
-	var locals map[string]hcl.Expression
+	var locals, globals map[string]hcl.Expression
 	if run != nil {
 		locals = run.Config.Variables
 	}
+	if file != nil {
+		globals = file.Config.Variables
+	}
 
-	variables, variableDiags := c.GetInputValues(locals, file.Config.Variables, config)
+	var cfgDiags tfdiags.Diagnostics
+	if run == nil {
+		cfgReset, diags := config.TransformForTest(nil, file.Config)
+		defer cfgReset()
+		cfgDiags = cfgDiags.Append(diags)
+	} else {
+		cfgReset, diags := config.TransformForTest(run.Config, file.Config)
+		defer cfgReset()
+		cfgDiags = cfgDiags.Append(diags)
+	}
+	if cfgDiags.HasErrors() {
+		// This shouldn't really trigger, as we will have applied this transform
+		// earlier and it will have worked so a problem now would be strange.
+		// To be safe, we'll handle it anyway.
+		view.DestroySummary(cfgDiags, run, file, state)
+		return
+	}
+	c.View.Diagnostics(cfgDiags)
+
+	variables, variableDiags := c.GetInputValues(locals, globals, config)
 	if variableDiags.HasErrors() {
 		// This shouldn't really trigger, as we will have created something
 		// using these variables at an earlier stage so for them to have a
