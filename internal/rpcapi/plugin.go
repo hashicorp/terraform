@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"google.golang.org/grpc"
 )
@@ -31,6 +32,11 @@ func (p *corePlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Server) error
 }
 
 func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
+	dependencies := dynrpcserver.NewDependenciesStub()
+	terraform1.RegisterDependenciesServer(s, dependencies)
+	stacks := dynrpcserver.NewStacksStub()
+	terraform1.RegisterStacksServer(s, stacks)
+
 	return func(ctx context.Context, clientCaps *terraform1.ClientCapabilities) (*terraform1.ServerCapabilities, error) {
 		// All of our servers will share a common handles table so that objects
 		// can be passed from one service to another.
@@ -38,10 +44,14 @@ func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraf
 
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
-		// will register all of the other services so the client can being
+		// will initialize all of the other services so the client can being
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
-		terraform1.RegisterDependenciesServer(s, newDependenciesServer(handles))
+		dependencies.ActivateRPCServer(newDependenciesServer(handles))
+		stacks.ActivateRPCServer(newStacksServer(handles))
+
+		// If the client requested any extra capabililties that we're going
+		// to honor then we should announce them in this result.
 		return &terraform1.ServerCapabilities{}, nil
 	}
 }
