@@ -163,7 +163,7 @@ func (p *Provider) Stopped() bool {
 	}
 }
 
-// StopCh returns a channel that is closed once the provider is stopped.
+// StopContext returns a channel that is closed once the provider is stopped.
 func (p *Provider) StopContext() context.Context {
 	p.stopOnce.Do(p.stopInit)
 

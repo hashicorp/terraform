@@ -84,7 +84,7 @@ func (e *MoveEndpoint) MightUnifyWith(other *MoveEndpoint) bool {
 	return from != nil && to != nil
 }
 
-// ConfigMovable transforms the reciever into a ConfigMovable by resolving it
+// ConfigMoveable transforms the reciever into a ConfigMovable by resolving it
 // relative to the given base module, which should be the module where
 // the MoveEndpoint expression was found.
 //

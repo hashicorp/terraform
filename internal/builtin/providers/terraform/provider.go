@@ -18,7 +18,7 @@ func NewProvider() providers.Interface {
 	return &Provider{}
 }
 
-// GetSchema returns the complete schema for the provider.
+// GetProviderSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		DataSources: map[string]providers.Schema{

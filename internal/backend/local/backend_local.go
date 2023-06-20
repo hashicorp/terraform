@@ -413,7 +413,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	return ret
 }
 
-// stubUnsetVariables ensures that all required variables defined in the
+// stubUnsetRequiredVariables ensures that all required variables defined in the
 // configuration exist in the resulting map, by adding new elements as necessary.
 //
 // The stubbed value of any additions will be an unknown variable conforming
