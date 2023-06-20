@@ -118,15 +118,6 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			return r, unusableSavedPlanError(r.Status, url)
 		}
 
-		if r.Workspace.Locked {
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Workspace is currently locked",
-				fmt.Sprintf("The workspace is locked by another user or another run, so the given saved plan cannot currently be applied. You can try again after unlocking the workspace or discarding the currently active run. For more details, view the workspace in a browser at:\n%s", workspaceURL(b.hostname, r.Workspace.Organization.Name, r.Workspace.Name)),
-			))
-			return r, diags.Err()
-		}
-
 		// Since we're not calling plan(), we need to print a run header ourselves:
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
@@ -283,10 +274,6 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 
 func runURL(hostname, orgName, wsName, runID string) string {
 	return fmt.Sprintf("https://%s/app/%s/%s/runs/%s", hostname, orgName, wsName, runID)
-}
-
-func workspaceURL(hostname, orgName, wsName string) string {
-	return fmt.Sprintf("https://%s/app/%s/%s", hostname, orgName, wsName)
 }
 
 func unusableSavedPlanError(status tfe.RunStatus, url string) error {
