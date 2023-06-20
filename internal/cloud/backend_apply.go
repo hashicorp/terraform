@@ -293,6 +293,9 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 	case tfe.RunDiscarded:
 		summary = "Saved plan is discarded"
 		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the Terraform Cloud UI or API."
+	case tfe.RunErrored:
+		summary = "Saved plan is errored"
+		reason = "The given plan file refers to a plan that had errors and did not complete successfully. It cannot be applied."
 	case tfe.RunPlannedAndFinished:
 		// Note: planned and finished can also indicate a plan-only run, but
 		// terraform plan can't create a saved plan for a plan-only run, so we
