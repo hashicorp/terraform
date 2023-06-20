@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/dag"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 )
@@ -61,6 +62,13 @@ func cbdTestSteps(steps []GraphTransformer) []GraphTransformer {
 func filterInstances(g *Graph) *Graph {
 	for _, v := range g.Vertices() {
 		if _, ok := v.(GraphNodeResourceInstance); !ok {
+			// connect around the node to remove it without breaking deps
+			for _, down := range g.DownEdges(v) {
+				for _, up := range g.UpEdges(v) {
+					g.Connect(dag.BasicEdge(up, down))
+				}
+			}
+
 			g.Remove(v)
 		}
 
