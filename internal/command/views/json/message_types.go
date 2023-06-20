@@ -28,4 +28,11 @@ const (
 	MessageProvisionErrored  MessageType = "provision_errored"
 	MessageRefreshStart      MessageType = "refresh_start"
 	MessageRefreshComplete   MessageType = "refresh_complete"
+
+	// Test messages
+	MessageTestAbstract MessageType = "test_abstract"
+	MessageTestFile     MessageType = "test_file"
+	MessageTestRun      MessageType = "test_run"
+	MessageTestSummary  MessageType = "test_summary"
+	MessageTestCleanup  MessageType = "test_cleanup"
 )

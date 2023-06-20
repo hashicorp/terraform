@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -99,6 +100,53 @@ func TestJSONView_Diagnostics(t *testing.T) {
 				"summary":  "Unusually stripey cat detected",
 				"detail":   "Are you sure this random_pet isn't a cheetah?",
 			},
+		},
+	}
+	testJSONViewOutputEquals(t, done(t).Stdout(), want)
+}
+
+func TestJSONView_DiagnosticsWithMetadata(t *testing.T) {
+	streams, done := terminal.StreamsForTesting(t)
+	jv := NewJSONView(NewView(streams))
+
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Warning,
+		`Improper use of "less"`,
+		`You probably mean "10 buckets or fewer"`,
+	))
+	diags = diags.Append(tfdiags.Sourceless(
+		tfdiags.Error,
+		"Unusually stripey cat detected",
+		"Are you sure this random_pet isn't a cheetah?",
+	))
+
+	jv.Diagnostics(diags, "@meta", "extra_info")
+
+	want := []map[string]interface{}{
+		{
+			"@level":   "warn",
+			"@message": `Warning: Improper use of "less"`,
+			"@module":  "terraform.ui",
+			"type":     "diagnostic",
+			"diagnostic": map[string]interface{}{
+				"severity": "warning",
+				"summary":  `Improper use of "less"`,
+				"detail":   `You probably mean "10 buckets or fewer"`,
+			},
+			"@meta": "extra_info",
+		},
+		{
+			"@level":   "error",
+			"@message": "Error: Unusually stripey cat detected",
+			"@module":  "terraform.ui",
+			"type":     "diagnostic",
+			"diagnostic": map[string]interface{}{
+				"severity": "error",
+				"summary":  "Unusually stripey cat detected",
+				"detail":   "Are you sure this random_pet isn't a cheetah?",
+			},
+			"@meta": "extra_info",
 		},
 	}
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)

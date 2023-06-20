@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-hclog"
+
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	tfversion "github.com/hashicorp/terraform/version"
@@ -69,23 +70,19 @@ func (v *JSONView) StateDump(state string) {
 	)
 }
 
-func (v *JSONView) Diagnostics(diags tfdiags.Diagnostics) {
+func (v *JSONView) Diagnostics(diags tfdiags.Diagnostics, metadata ...interface{}) {
 	sources := v.view.configSources()
 	for _, diag := range diags {
 		diagnostic := json.NewDiagnostic(diag, sources)
+
+		args := []interface{}{"type", json.MessageDiagnostic, "diagnostic", diagnostic}
+		args = append(args, metadata...)
+
 		switch diag.Severity() {
 		case tfdiags.Warning:
-			v.log.Warn(
-				fmt.Sprintf("Warning: %s", diag.Description().Summary),
-				"type", json.MessageDiagnostic,
-				"diagnostic", diagnostic,
-			)
+			v.log.Warn(fmt.Sprintf("Warning: %s", diag.Description().Summary), args...)
 		default:
-			v.log.Error(
-				fmt.Sprintf("Error: %s", diag.Description().Summary),
-				"type", json.MessageDiagnostic,
-				"diagnostic", diagnostic,
-			)
+			v.log.Error(fmt.Sprintf("Error: %s", diag.Description().Summary), args...)
 		}
 	}
 }
