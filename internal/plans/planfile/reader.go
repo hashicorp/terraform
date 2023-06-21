@@ -31,8 +31,10 @@ type Reader struct {
 	zip *zip.ReadCloser
 }
 
-// Open creates a Reader for the file at the given filename, or returns an
-// error if the file doesn't seem to be a planfile.
+// Open creates a Reader for the file at the given filename, or returns an error
+// if the file doesn't seem to be a planfile. NOTE: Most commands that accept a
+// plan file should use OpenWrapped instead, so they can support both local and
+// cloud plan files.
 func Open(filename string) (*Reader, error) {
 	r, err := zip.OpenReader(filename)
 	if err != nil {

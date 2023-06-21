@@ -1549,7 +1549,7 @@ func TestMetaBackend_planLocal(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1650,7 +1650,7 @@ func TestMetaBackend_planLocalStatePath(t *testing.T) {
 	m.stateOutPath = statePath
 
 	// Get the backend
-	b, diags := m.BackendForPlan(plannedBackend)
+	b, diags := m.BackendForLocalPlan(plannedBackend)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}
@@ -1739,7 +1739,7 @@ func TestMetaBackend_planLocalMatch(t *testing.T) {
 	m := testMetaBackend(t, nil)
 
 	// Get the backend
-	b, diags := m.BackendForPlan(backendConfig)
+	b, diags := m.BackendForLocalPlan(backendConfig)
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

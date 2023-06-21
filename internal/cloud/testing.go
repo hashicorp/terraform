@@ -322,6 +322,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.Runs = mc.Runs
 	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
