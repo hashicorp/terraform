@@ -337,7 +337,7 @@ func TestCloud_planWithPlan(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)

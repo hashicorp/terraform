@@ -1085,7 +1085,7 @@ func (m *MockRuns) Read(ctx context.Context, runID string) (*tfe.Run, error) {
 	return m.ReadWithOptions(ctx, runID, nil)
 }
 
-func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.RunReadOptions) (*tfe.Run, error) {
+func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *tfe.RunReadOptions) (*tfe.Run, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -1136,8 +1136,22 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, _ *tfe.Run
 	if err != nil {
 		panic(err)
 	}
+	r = rc.(*tfe.Run)
 
-	return rc.(*tfe.Run), nil
+	// After copying, handle includes... or at least, any includes we're known to rely on.
+	if options != nil {
+		for _, n := range options.Include {
+			switch n {
+			case tfe.RunWorkspace:
+				ws, ok := m.client.Workspaces.workspaceIDs[r.Workspace.ID]
+				if ok {
+					r.Workspace = ws
+				}
+			}
+		}
+	}
+
+	return r, nil
 }
 
 func (m *MockRuns) Apply(ctx context.Context, runID string, options tfe.RunApplyOptions) error {
@@ -1533,6 +1547,9 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 			CanQueueApply:  true,
 			CanQueueRun:    true,
 			CanForceDelete: tfe.Bool(true),
+		},
+		Organization: &tfe.Organization{
+			Name: organization,
 		},
 	}
 	if options.AutoApply != nil {

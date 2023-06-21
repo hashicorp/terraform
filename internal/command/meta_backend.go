@@ -295,13 +295,13 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	return m.SetWorkspace(workspace)
 }
 
-// BackendForPlan is similar to Backend, but uses backend settings that were
+// BackendForLocalPlan is similar to Backend, but uses backend settings that were
 // stored in a plan.
 //
 // The current workspace name is also stored as part of the plan, and so this
 // method will check that it matches the currently-selected workspace name
 // and produce error diagnostics if not.
-func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
+func (m *Meta) BackendForLocalPlan(settings plans.Backend) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	f := backendInit.Backend(settings.Type)
@@ -310,7 +310,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 		return nil, diags
 	}
 	b := f()
-	log.Printf("[TRACE] Meta.BackendForPlan: instantiated backend of type %T", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: instantiated backend of type %T", b)
 
 	schema := b.ConfigSchema()
 	configVal, err := settings.Config.Decode(schema.ImpliedType())
@@ -361,7 +361,7 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 
 	// Otherwise, we'll wrap our state-only remote backend in the local backend
 	// to cause any operations to be run locally.
-	log.Printf("[TRACE] Meta.Backend: backend %T does not support operations, so wrapping it in a local backend", b)
+	log.Printf("[TRACE] Meta.BackendForLocalPlan: backend %T does not support operations, so wrapping it in a local backend", b)
 	cliOpts, err := m.backendCLIOpts()
 	if err != nil {
 		diags = diags.Append(err)

@@ -150,8 +150,8 @@ func (c *ApplyCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diagnostics) {
-	var planFile *planfile.Reader
+func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.WrappedPlanFile, tfdiags.Diagnostics) {
+	var planFile *planfile.WrappedPlanFile
 	var diags tfdiags.Diagnostics
 
 	// Try to load plan if path is specified
@@ -194,7 +194,7 @@ func (c *ApplyCommand) LoadPlanFile(path string) (*planfile.Reader, tfdiags.Diag
 	return planFile, diags
 }
 
-func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
+func (c *ApplyCommand) PrepareBackend(planFile *planfile.WrappedPlanFile, args *arguments.State, viewType arguments.ViewType) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// FIXME: we need to apply the state arguments to the meta object here
@@ -206,19 +206,8 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 	// Load the backend
 	var be backend.Enhanced
 	var beDiags tfdiags.Diagnostics
-	if planFile == nil {
-		backendConfig, configDiags := c.loadBackendConfig(".")
-		diags = diags.Append(configDiags)
-		if configDiags.HasErrors() {
-			return nil, diags
-		}
-
-		be, beDiags = c.Backend(&BackendOpts{
-			Config:   backendConfig,
-			ViewType: viewType,
-		})
-	} else {
-		plan, err := planFile.ReadPlan()
+	if lp, ok := planFile.Local(); ok {
+		plan, err := lp.ReadPlan()
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
@@ -236,7 +225,19 @@ func (c *ApplyCommand) PrepareBackend(planFile *planfile.Reader, args *arguments
 			))
 			return nil, diags
 		}
-		be, beDiags = c.BackendForPlan(plan.Backend)
+		be, beDiags = c.BackendForLocalPlan(plan.Backend)
+	} else {
+		// Both new plans and saved cloud plans load their backend from config.
+		backendConfig, configDiags := c.loadBackendConfig(".")
+		diags = diags.Append(configDiags)
+		if configDiags.HasErrors() {
+			return nil, diags
+		}
+
+		be, beDiags = c.Backend(&BackendOpts{
+			Config:   backendConfig,
+			ViewType: viewType,
+		})
 	}
 
 	diags = diags.Append(beDiags)
@@ -250,7 +251,7 @@ func (c *ApplyCommand) OperationRequest(
 	be backend.Enhanced,
 	view views.Apply,
 	viewType arguments.ViewType,
-	planFile *planfile.Reader,
+	planFile *planfile.WrappedPlanFile,
 	args *arguments.Operation,
 	autoApprove bool,
 ) (*backend.Operation, tfdiags.Diagnostics) {
