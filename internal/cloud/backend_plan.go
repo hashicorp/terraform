@@ -23,6 +23,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
@@ -65,15 +66,6 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		))
 	}
 
-	if op.PlanOutPath != "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Saving a generated plan is currently not supported",
-			`Terraform Cloud does not support saving the generated execution `+
-				`plan locally at this time.`,
-		))
-	}
-
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -95,7 +87,20 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
-	return b.plan(stopCtx, cancelCtx, op, w)
+	run, err := b.plan(stopCtx, cancelCtx, op, w)
+
+	// Save plan even if the run errored, as long as it actually exists
+	if run != nil && run.ID != "" && op.PlanOutPath != "" {
+		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
+		saveErr := bookmark.Save(op.PlanOutPath)
+		if err == nil {
+			err = saveErr
+		} else {
+			err = fmt.Errorf("%w\nAdditionally, an error occurred when saving the plan: %s", err, saveErr.Error())
+		}
+	}
+
+	return run, err
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -107,9 +112,12 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
 
+	// Plan-only means they ran terraform plan without -out.
+	planOnly := op.Type == backend.OperationTypePlan && op.PlanOutPath == ""
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
+		Speculative:   tfe.Bool(planOnly),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
@@ -206,6 +214,7 @@ in order to capture the filesystem context the remote workspace expects:
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
 		AutoApply:            tfe.Bool(op.AutoApprove),
+		SavePlan:             tfe.Bool(op.PlanOutPath != ""),
 	}
 
 	switch op.PlanMode {
