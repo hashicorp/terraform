@@ -100,6 +100,10 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		}
 	}
 
+	// Cloud integration currently doesn't support genconfig, but we might have
+	// saved a cloud plan file.
+	op.View.PlanNextStep(op.PlanOutPath, "")
+
 	return run, err
 }
 
