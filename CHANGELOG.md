@@ -1,8 +1,8 @@
-## 1.5.1 (Unreleased)
+## 1.5.1 (June 21, 2023)
 
 BUG FIXES:
 
-* core: plan validation would fail for providers using nested set attributes with computed object attribute [GH-33377]
+* core: plan validation would fail for providers using nested set attributes with computed object attribute ([#33377](https://github.com/hashicorp/terraform/issues/33377))
 
 ## 1.5.0 (June 12, 2023)
 
