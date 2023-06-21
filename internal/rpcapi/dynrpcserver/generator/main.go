@@ -45,6 +45,7 @@ func main() {
 	// containing the protobuf specification.
 	outDir := filepath.Join(filepath.Dir(pkg.GoFiles[0]), "../dynrpcserver")
 
+Types:
 	for _, obj := range pkg.TypesInfo.Defs {
 		typ, ok := obj.(*types.TypeName)
 		if !ok {
@@ -58,6 +59,22 @@ func main() {
 		if !strings.HasSuffix(typ.Name(), "Server") || typ.Name() == "SetupServer" {
 			// Doesn't look like a generated gRPC server interface
 			continue
+		}
+
+		// The interfaces used for streaming requests/responses unfortunately
+		// also have a "Server" suffix in the generated Go code, and so
+		// we need to detect those more surgically by noticing that they
+		// have grpc.ServerStream embedded inside.
+		for i := 0; i < iface.NumEmbeddeds(); i++ {
+			emb, ok := iface.EmbeddedType(i).(*types.Named)
+			if !ok {
+				continue
+			}
+			pkg := emb.Obj().Pkg().Path()
+			name := emb.Obj().Name()
+			if pkg == "google.golang.org/grpc" && name == "ServerStream" {
+				continue Types
+			}
 		}
 
 		// If we get here then what we're holding _seems_ to be a gRPC
@@ -127,12 +144,24 @@ func main() {
 			if sig.Results().Len() > 1 {
 				buf.WriteString(")")
 			}
-			fmt.Fprintf(&buf, ` {
+			switch n := sig.Results().Len(); n {
+			case 1:
+				fmt.Fprintf(&buf, ` {
+				impl, err := s.realRPCServer()
+				if err != nil {
+					return err
+				}
+			`)
+			case 2:
+				fmt.Fprintf(&buf, ` {
 				impl, err := s.realRPCServer()
 				if err != nil {
 					return nil, err
 				}
 			`)
+			default:
+				log.Fatalf("don't know how to make a stub for method with %d results", n)
+			}
 			fmt.Fprintf(&buf, "return impl.%s(", method.Name())
 			for i := 0; i < sig.Params().Len(); i++ {
 				if i > 0 {
@@ -186,8 +215,12 @@ func typeRef(fullType string) string {
 	switch {
 	case fullType == "context.Context" || fullType == "error":
 		return fullType
+	case fullType == "interface{}" || fullType == "any":
+		return "any"
 	case strings.HasPrefix(fullType, "*"+protobufPkg+"."):
 		return "*tf1." + fullType[len(protobufPkg)+2:]
+	case strings.HasPrefix(fullType, protobufPkg+"."):
+		return "tf1." + fullType[len(protobufPkg)+1:]
 	default:
 		log.Fatalf("don't know what to do with parameter type %s", fullType)
 		return ""

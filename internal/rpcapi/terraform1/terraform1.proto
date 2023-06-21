@@ -84,6 +84,11 @@ service Stacks {
     // such as the number of instances of each component.
     rpc FindStackConfigurationComponents(FindStackConfigurationComponents.Request)
         returns (FindStackConfigurationComponents.Response);
+    // Calculate a desired state from the given configuration and compare it
+    // with the current state to propose a set of changes to converge the
+    // current state with the desired state, at least in part.
+    rpc PlanStackChanges(PlanStackChanges.Request)
+        returns (stream PlanStackChanges.Event);
 }
 
 message OpenStackConfiguration {
@@ -139,6 +144,18 @@ message FindStackConfigurationProviders {
     }
     message Response {
         // TODO
+    }
+}
+
+message PlanStackChanges {
+    message Request {
+        // TODO
+    }
+    message Event {
+        oneof event {
+            Diagnostic diagnostic = 1;
+            // TODO
+        }
     }
 }
 

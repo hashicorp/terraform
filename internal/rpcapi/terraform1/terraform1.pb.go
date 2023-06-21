@@ -122,7 +122,7 @@ func (x Diagnostic_Severity) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Diagnostic_Severity.Descriptor instead.
 func (Diagnostic_Severity) EnumDescriptor() ([]byte, []int) {
-	return file_terraform1_proto_rawDescGZIP(), []int{10, 0}
+	return file_terraform1_proto_rawDescGZIP(), []int{11, 0}
 }
 
 type Handshake struct {
@@ -474,6 +474,44 @@ func (*FindStackConfigurationProviders) Descriptor() ([]byte, []int) {
 	return file_terraform1_proto_rawDescGZIP(), []int{8}
 }
 
+type PlanStackChanges struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *PlanStackChanges) Reset() {
+	*x = PlanStackChanges{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PlanStackChanges) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanStackChanges) ProtoMessage() {}
+
+func (x *PlanStackChanges) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanStackChanges.ProtoReflect.Descriptor instead.
+func (*PlanStackChanges) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{9}
+}
+
 // A source address in the same form as it would appear in a Terraform
 // configuration: a source string combined with an optional version constraint
 // string, where the latter is valid only for registry module addresses.
@@ -493,7 +531,7 @@ type SourceAddress struct {
 func (x *SourceAddress) Reset() {
 	*x = SourceAddress{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[9]
+		mi := &file_terraform1_proto_msgTypes[10]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -506,7 +544,7 @@ func (x *SourceAddress) String() string {
 func (*SourceAddress) ProtoMessage() {}
 
 func (x *SourceAddress) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[9]
+	mi := &file_terraform1_proto_msgTypes[10]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -519,7 +557,7 @@ func (x *SourceAddress) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceAddress.ProtoReflect.Descriptor instead.
 func (*SourceAddress) Descriptor() ([]byte, []int) {
-	return file_terraform1_proto_rawDescGZIP(), []int{9}
+	return file_terraform1_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SourceAddress) GetSource() string {
@@ -551,7 +589,7 @@ type Diagnostic struct {
 func (x *Diagnostic) Reset() {
 	*x = Diagnostic{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[10]
+		mi := &file_terraform1_proto_msgTypes[11]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -564,7 +602,7 @@ func (x *Diagnostic) String() string {
 func (*Diagnostic) ProtoMessage() {}
 
 func (x *Diagnostic) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[10]
+	mi := &file_terraform1_proto_msgTypes[11]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -577,7 +615,7 @@ func (x *Diagnostic) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Diagnostic.ProtoReflect.Descriptor instead.
 func (*Diagnostic) Descriptor() ([]byte, []int) {
-	return file_terraform1_proto_rawDescGZIP(), []int{10}
+	return file_terraform1_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Diagnostic) GetSeverity() Diagnostic_Severity {
@@ -628,7 +666,7 @@ type SourceRange struct {
 func (x *SourceRange) Reset() {
 	*x = SourceRange{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[11]
+		mi := &file_terraform1_proto_msgTypes[12]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -641,7 +679,7 @@ func (x *SourceRange) String() string {
 func (*SourceRange) ProtoMessage() {}
 
 func (x *SourceRange) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[11]
+	mi := &file_terraform1_proto_msgTypes[12]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -654,7 +692,7 @@ func (x *SourceRange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourceRange.ProtoReflect.Descriptor instead.
 func (*SourceRange) Descriptor() ([]byte, []int) {
-	return file_terraform1_proto_rawDescGZIP(), []int{11}
+	return file_terraform1_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *SourceRange) GetSourceAddr() string {
@@ -691,7 +729,7 @@ type SourcePos struct {
 func (x *SourcePos) Reset() {
 	*x = SourcePos{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[12]
+		mi := &file_terraform1_proto_msgTypes[13]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -704,7 +742,7 @@ func (x *SourcePos) String() string {
 func (*SourcePos) ProtoMessage() {}
 
 func (x *SourcePos) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[12]
+	mi := &file_terraform1_proto_msgTypes[13]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -717,7 +755,7 @@ func (x *SourcePos) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SourcePos.ProtoReflect.Descriptor instead.
 func (*SourcePos) Descriptor() ([]byte, []int) {
-	return file_terraform1_proto_rawDescGZIP(), []int{12}
+	return file_terraform1_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *SourcePos) GetByte() int64 {
@@ -752,7 +790,7 @@ type Handshake_Request struct {
 func (x *Handshake_Request) Reset() {
 	*x = Handshake_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[13]
+		mi := &file_terraform1_proto_msgTypes[14]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -765,7 +803,7 @@ func (x *Handshake_Request) String() string {
 func (*Handshake_Request) ProtoMessage() {}
 
 func (x *Handshake_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[13]
+	mi := &file_terraform1_proto_msgTypes[14]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -799,7 +837,7 @@ type Handshake_Response struct {
 func (x *Handshake_Response) Reset() {
 	*x = Handshake_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[14]
+		mi := &file_terraform1_proto_msgTypes[15]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -812,7 +850,7 @@ func (x *Handshake_Response) String() string {
 func (*Handshake_Response) ProtoMessage() {}
 
 func (x *Handshake_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[14]
+	mi := &file_terraform1_proto_msgTypes[15]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -846,7 +884,7 @@ type OpenSourceBundle_Request struct {
 func (x *OpenSourceBundle_Request) Reset() {
 	*x = OpenSourceBundle_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[15]
+		mi := &file_terraform1_proto_msgTypes[16]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -859,7 +897,7 @@ func (x *OpenSourceBundle_Request) String() string {
 func (*OpenSourceBundle_Request) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[15]
+	mi := &file_terraform1_proto_msgTypes[16]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -893,7 +931,7 @@ type OpenSourceBundle_Response struct {
 func (x *OpenSourceBundle_Response) Reset() {
 	*x = OpenSourceBundle_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[16]
+		mi := &file_terraform1_proto_msgTypes[17]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -906,7 +944,7 @@ func (x *OpenSourceBundle_Response) String() string {
 func (*OpenSourceBundle_Response) ProtoMessage() {}
 
 func (x *OpenSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[16]
+	mi := &file_terraform1_proto_msgTypes[17]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -940,7 +978,7 @@ type CloseSourceBundle_Request struct {
 func (x *CloseSourceBundle_Request) Reset() {
 	*x = CloseSourceBundle_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[17]
+		mi := &file_terraform1_proto_msgTypes[18]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -953,7 +991,7 @@ func (x *CloseSourceBundle_Request) String() string {
 func (*CloseSourceBundle_Request) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[17]
+	mi := &file_terraform1_proto_msgTypes[18]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -985,7 +1023,7 @@ type CloseSourceBundle_Response struct {
 func (x *CloseSourceBundle_Response) Reset() {
 	*x = CloseSourceBundle_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[18]
+		mi := &file_terraform1_proto_msgTypes[19]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -998,7 +1036,7 @@ func (x *CloseSourceBundle_Response) String() string {
 func (*CloseSourceBundle_Response) ProtoMessage() {}
 
 func (x *CloseSourceBundle_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[18]
+	mi := &file_terraform1_proto_msgTypes[19]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1026,7 +1064,7 @@ type OpenStackConfiguration_Request struct {
 func (x *OpenStackConfiguration_Request) Reset() {
 	*x = OpenStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[19]
+		mi := &file_terraform1_proto_msgTypes[20]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1039,7 +1077,7 @@ func (x *OpenStackConfiguration_Request) String() string {
 func (*OpenStackConfiguration_Request) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[19]
+	mi := &file_terraform1_proto_msgTypes[20]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1081,7 +1119,7 @@ type OpenStackConfiguration_Response struct {
 func (x *OpenStackConfiguration_Response) Reset() {
 	*x = OpenStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[20]
+		mi := &file_terraform1_proto_msgTypes[21]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1094,7 +1132,7 @@ func (x *OpenStackConfiguration_Response) String() string {
 func (*OpenStackConfiguration_Response) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[20]
+	mi := &file_terraform1_proto_msgTypes[21]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1135,7 +1173,7 @@ type CloseStackConfiguration_Request struct {
 func (x *CloseStackConfiguration_Request) Reset() {
 	*x = CloseStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[21]
+		mi := &file_terraform1_proto_msgTypes[22]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1148,7 +1186,7 @@ func (x *CloseStackConfiguration_Request) String() string {
 func (*CloseStackConfiguration_Request) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[21]
+	mi := &file_terraform1_proto_msgTypes[22]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1180,7 +1218,7 @@ type CloseStackConfiguration_Response struct {
 func (x *CloseStackConfiguration_Response) Reset() {
 	*x = CloseStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[22]
+		mi := &file_terraform1_proto_msgTypes[23]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1193,7 +1231,7 @@ func (x *CloseStackConfiguration_Response) String() string {
 func (*CloseStackConfiguration_Response) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[22]
+	mi := &file_terraform1_proto_msgTypes[23]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1220,7 +1258,7 @@ type FindStackConfigurationComponents_Request struct {
 func (x *FindStackConfigurationComponents_Request) Reset() {
 	*x = FindStackConfigurationComponents_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[23]
+		mi := &file_terraform1_proto_msgTypes[24]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1233,7 +1271,7 @@ func (x *FindStackConfigurationComponents_Request) String() string {
 func (*FindStackConfigurationComponents_Request) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[23]
+	mi := &file_terraform1_proto_msgTypes[24]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1267,7 +1305,7 @@ type FindStackConfigurationComponents_Response struct {
 func (x *FindStackConfigurationComponents_Response) Reset() {
 	*x = FindStackConfigurationComponents_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[24]
+		mi := &file_terraform1_proto_msgTypes[25]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1280,7 +1318,7 @@ func (x *FindStackConfigurationComponents_Response) String() string {
 func (*FindStackConfigurationComponents_Response) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[24]
+	mi := &file_terraform1_proto_msgTypes[25]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1315,7 +1353,7 @@ type FindStackConfigurationComponents_StackConfig struct {
 func (x *FindStackConfigurationComponents_StackConfig) Reset() {
 	*x = FindStackConfigurationComponents_StackConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[25]
+		mi := &file_terraform1_proto_msgTypes[26]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1328,7 +1366,7 @@ func (x *FindStackConfigurationComponents_StackConfig) String() string {
 func (*FindStackConfigurationComponents_StackConfig) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_StackConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[25]
+	mi := &file_terraform1_proto_msgTypes[26]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1371,7 +1409,7 @@ type FindStackConfigurationComponents_EmbeddedStack struct {
 func (x *FindStackConfigurationComponents_EmbeddedStack) Reset() {
 	*x = FindStackConfigurationComponents_EmbeddedStack{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[26]
+		mi := &file_terraform1_proto_msgTypes[27]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1384,7 +1422,7 @@ func (x *FindStackConfigurationComponents_EmbeddedStack) String() string {
 func (*FindStackConfigurationComponents_EmbeddedStack) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_EmbeddedStack) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[26]
+	mi := &file_terraform1_proto_msgTypes[27]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1433,7 +1471,7 @@ type FindStackConfigurationComponents_Component struct {
 func (x *FindStackConfigurationComponents_Component) Reset() {
 	*x = FindStackConfigurationComponents_Component{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[27]
+		mi := &file_terraform1_proto_msgTypes[28]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1446,7 +1484,7 @@ func (x *FindStackConfigurationComponents_Component) String() string {
 func (*FindStackConfigurationComponents_Component) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Component) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[27]
+	mi := &file_terraform1_proto_msgTypes[28]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1487,7 +1525,7 @@ type FindStackConfigurationProviders_Request struct {
 func (x *FindStackConfigurationProviders_Request) Reset() {
 	*x = FindStackConfigurationProviders_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[30]
+		mi := &file_terraform1_proto_msgTypes[31]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1500,7 +1538,7 @@ func (x *FindStackConfigurationProviders_Request) String() string {
 func (*FindStackConfigurationProviders_Request) ProtoMessage() {}
 
 func (x *FindStackConfigurationProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[30]
+	mi := &file_terraform1_proto_msgTypes[31]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1532,7 +1570,7 @@ type FindStackConfigurationProviders_Response struct {
 func (x *FindStackConfigurationProviders_Response) Reset() {
 	*x = FindStackConfigurationProviders_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[31]
+		mi := &file_terraform1_proto_msgTypes[32]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -1545,7 +1583,7 @@ func (x *FindStackConfigurationProviders_Response) String() string {
 func (*FindStackConfigurationProviders_Response) ProtoMessage() {}
 
 func (x *FindStackConfigurationProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[31]
+	mi := &file_terraform1_proto_msgTypes[32]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1560,6 +1598,111 @@ func (x *FindStackConfigurationProviders_Response) ProtoReflect() protoreflect.M
 func (*FindStackConfigurationProviders_Response) Descriptor() ([]byte, []int) {
 	return file_terraform1_proto_rawDescGZIP(), []int{8, 1}
 }
+
+type PlanStackChanges_Request struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *PlanStackChanges_Request) Reset() {
+	*x = PlanStackChanges_Request{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[33]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PlanStackChanges_Request) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanStackChanges_Request) ProtoMessage() {}
+
+func (x *PlanStackChanges_Request) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[33]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanStackChanges_Request.ProtoReflect.Descriptor instead.
+func (*PlanStackChanges_Request) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{9, 0}
+}
+
+type PlanStackChanges_Event struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Event:
+	//
+	//	*PlanStackChanges_Event_Diagnostic
+	Event isPlanStackChanges_Event_Event `protobuf_oneof:"event"`
+}
+
+func (x *PlanStackChanges_Event) Reset() {
+	*x = PlanStackChanges_Event{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[34]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *PlanStackChanges_Event) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PlanStackChanges_Event) ProtoMessage() {}
+
+func (x *PlanStackChanges_Event) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[34]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PlanStackChanges_Event.ProtoReflect.Descriptor instead.
+func (*PlanStackChanges_Event) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{9, 1}
+}
+
+func (m *PlanStackChanges_Event) GetEvent() isPlanStackChanges_Event_Event {
+	if m != nil {
+		return m.Event
+	}
+	return nil
+}
+
+func (x *PlanStackChanges_Event) GetDiagnostic() *Diagnostic {
+	if x, ok := x.GetEvent().(*PlanStackChanges_Event_Diagnostic); ok {
+		return x.Diagnostic
+	}
+	return nil
+}
+
+type isPlanStackChanges_Event_Event interface {
+	isPlanStackChanges_Event_Event()
+}
+
+type PlanStackChanges_Event_Diagnostic struct {
+	Diagnostic *Diagnostic `protobuf:"bytes,1,opt,name=diagnostic,proto3,oneof"` // TODO
+}
+
+func (*PlanStackChanges_Event_Diagnostic) isPlanStackChanges_Event_Event() {}
 
 var File_terraform1_proto protoreflect.FileDescriptor
 
@@ -1690,94 +1833,107 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x6b, 0x5f, 0x63, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x5f, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18,
 	0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x11, 0x73, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x1a, 0x0a, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70,
-	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x43, 0x0a, 0x0d, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64,
-	0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18,
-	0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x1a, 0x0a,
-	0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x73, 0x22, 0x92, 0x02, 0x0a, 0x0a, 0x44, 0x69,
-	0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x12, 0x3b, 0x0a, 0x08, 0x73, 0x65, 0x76, 0x65,
-	0x72, 0x69, 0x74, 0x79, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1f, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74,
-	0x69, 0x63, 0x2e, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x52, 0x08, 0x73, 0x65, 0x76,
-	0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x12,
-	0x16, 0x0a, 0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x06, 0x64, 0x65, 0x74, 0x61, 0x69, 0x6c, 0x12, 0x31, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65,
-	0x63, 0x74, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67,
-	0x65, 0x52, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x31, 0x0a, 0x07, 0x63, 0x6f,
-	0x6e, 0x74, 0x65, 0x78, 0x74, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x65,
-	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52,
-	0x61, 0x6e, 0x67, 0x65, 0x52, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x22, 0x2f, 0x0a,
-	0x08, 0x53, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56,
-	0x41, 0x4c, 0x49, 0x44, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10,
-	0x01, 0x12, 0x0b, 0x0a, 0x07, 0x57, 0x41, 0x52, 0x4e, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x22, 0x84,
-	0x01, 0x0a, 0x0b, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x1f,
-	0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12,
-	0x2b, 0x0a, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15,
-	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72,
-	0x63, 0x65, 0x50, 0x6f, 0x73, 0x52, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x27, 0x0a, 0x03,
-	0x65, 0x6e, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x6f, 0x6e, 0x73, 0x65, 0x22, 0x69, 0x0a, 0x10, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63,
+	0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x1a, 0x09, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x4a, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12, 0x38, 0x0a, 0x0a,
+	0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69,
+	0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x48, 0x00, 0x52, 0x0a, 0x64, 0x69, 0x61, 0x67,
+	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x42, 0x07, 0x0a, 0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22,
+	0x43, 0x0a, 0x0d, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73,
+	0x12, 0x16, 0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x73, 0x22, 0x92, 0x02, 0x0a, 0x0a, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73,
+	0x74, 0x69, 0x63, 0x12, 0x3b, 0x0a, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x1f, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x6d, 0x31, 0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x2e, 0x53, 0x65,
+	0x76, 0x65, 0x72, 0x69, 0x74, 0x79, 0x52, 0x08, 0x73, 0x65, 0x76, 0x65, 0x72, 0x69, 0x74, 0x79,
+	0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28,
+	0x09, 0x52, 0x07, 0x73, 0x75, 0x6d, 0x6d, 0x61, 0x72, 0x79, 0x12, 0x16, 0x0a, 0x06, 0x64, 0x65,
+	0x74, 0x61, 0x69, 0x6c, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x64, 0x65, 0x74, 0x61,
+	0x69, 0x6c, 0x12, 0x31, 0x0a, 0x07, 0x73, 0x75, 0x62, 0x6a, 0x65, 0x63, 0x74, 0x18, 0x04, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52, 0x07, 0x73, 0x75,
+	0x62, 0x6a, 0x65, 0x63, 0x74, 0x12, 0x31, 0x0a, 0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x17, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x52,
+	0x07, 0x63, 0x6f, 0x6e, 0x74, 0x65, 0x78, 0x74, 0x22, 0x2f, 0x0a, 0x08, 0x53, 0x65, 0x76, 0x65,
+	0x72, 0x69, 0x74, 0x79, 0x12, 0x0b, 0x0a, 0x07, 0x49, 0x4e, 0x56, 0x41, 0x4c, 0x49, 0x44, 0x10,
+	0x00, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x01, 0x12, 0x0b, 0x0a, 0x07,
+	0x57, 0x41, 0x52, 0x4e, 0x49, 0x4e, 0x47, 0x10, 0x02, 0x22, 0x84, 0x01, 0x0a, 0x0b, 0x53, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x52, 0x61, 0x6e, 0x67, 0x65, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a,
+	0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x2b, 0x0a, 0x05, 0x73, 0x74,
+	0x61, 0x72, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x65, 0x72, 0x72,
 	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x50, 0x6f, 0x73,
-	0x52, 0x03, 0x65, 0x6e, 0x64, 0x22, 0x4b, 0x0a, 0x09, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x50,
-	0x6f, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x62, 0x79, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03,
-	0x52, 0x04, 0x62, 0x79, 0x74, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x18, 0x02,
-	0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f,
-	0x6c, 0x75, 0x6d, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x63, 0x6f, 0x6c, 0x75,
-	0x6d, 0x6e, 0x32, 0x53, 0x0a, 0x05, 0x53, 0x65, 0x74, 0x75, 0x70, 0x12, 0x4a, 0x0a, 0x09, 0x48,
-	0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x12, 0x1d, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e,
-	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
-	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52,
-	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0xd3, 0x01, 0x0a, 0x0c, 0x44, 0x65, 0x70, 0x65,
-	0x6e, 0x64, 0x65, 0x6e, 0x63, 0x69, 0x65, 0x73, 0x12, 0x5f, 0x0a, 0x10, 0x4f, 0x70, 0x65, 0x6e,
-	0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x24, 0x2e, 0x74,
-	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f,
-	0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
-	0x73, 0x74, 0x1a, 0x25, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65,
-	0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a, 0x11, 0x43, 0x6c, 0x6f,
-	0x73, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x25,
-	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73,
-	0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65,
-	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
-	0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75,
-	0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x92, 0x04,
-	0x0a, 0x06, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x73, 0x12, 0x71, 0x0a, 0x16, 0x4f, 0x70, 0x65, 0x6e,
-	0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x12, 0x2a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
-	0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2b,
-	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e,
-	0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x74, 0x0a, 0x17, 0x43,
+	0x52, 0x05, 0x73, 0x74, 0x61, 0x72, 0x74, 0x12, 0x27, 0x0a, 0x03, 0x65, 0x6e, 0x64, 0x18, 0x03,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x15, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x50, 0x6f, 0x73, 0x52, 0x03, 0x65, 0x6e, 0x64,
+	0x22, 0x4b, 0x0a, 0x09, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x50, 0x6f, 0x73, 0x12, 0x12, 0x0a,
+	0x04, 0x62, 0x79, 0x74, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x04, 0x62, 0x79, 0x74,
+	0x65, 0x12, 0x12, 0x0a, 0x04, 0x6c, 0x69, 0x6e, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x04, 0x6c, 0x69, 0x6e, 0x65, 0x12, 0x16, 0x0a, 0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x18,
+	0x03, 0x20, 0x01, 0x28, 0x03, 0x52, 0x06, 0x63, 0x6f, 0x6c, 0x75, 0x6d, 0x6e, 0x32, 0x53, 0x0a,
+	0x05, 0x53, 0x65, 0x74, 0x75, 0x70, 0x12, 0x4a, 0x0a, 0x09, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68,
+	0x61, 0x6b, 0x65, 0x12, 0x1d, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x2e, 0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x1e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e,
+	0x48, 0x61, 0x6e, 0x64, 0x73, 0x68, 0x61, 0x6b, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x32, 0xd3, 0x01, 0x0a, 0x0c, 0x44, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63,
+	0x69, 0x65, 0x73, 0x12, 0x5f, 0x0a, 0x10, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x24, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
+	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42,
+	0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x25, 0x2e,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53,
+	0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x62, 0x0a, 0x11, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x25, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75, 0x72,
+	0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x26, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c,
+	0x6f, 0x73, 0x65, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x42, 0x75, 0x6e, 0x64, 0x6c, 0x65, 0x2e,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0xf2, 0x04, 0x0a, 0x06, 0x53, 0x74, 0x61,
+	0x63, 0x6b, 0x73, 0x12, 0x71, 0x0a, 0x16, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2a, 0x2e,
+	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53,
+	0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72,
+	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x4f, 0x70, 0x65, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b,
+	0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65,
+	0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x74, 0x0a, 0x17, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53,
+	0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f,
+	0x6e, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43,
 	0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
-	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x2b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
-	0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x2c, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
-	0x2e, 0x43, 0x6c, 0x6f, 0x73, 0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69,
-	0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
-	0x65, 0x12, 0x8c, 0x01, 0x0a, 0x1f, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43,
-	0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x76,
-	0x69, 0x64, 0x65, 0x72, 0x73, 0x12, 0x33, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
+	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x2c,
+	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x43, 0x6c, 0x6f, 0x73,
+	0x65, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74,
+	0x69, 0x6f, 0x6e, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x8c, 0x01, 0x0a,
+	0x1f, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67,
+	0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73,
+	0x12, 0x33, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69,
+	0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x34, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
 	0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66,
 	0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
-	0x72, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x34, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63,
-	0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x12, 0x8f, 0x01, 0x0a, 0x20, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f,
-	0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f,
-	0x6e, 0x65, 0x6e, 0x74, 0x73, 0x12, 0x34, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72,
-	0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66,
-	0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65,
-	0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x35, 0x2e, 0x74, 0x65,
-	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61,
-	0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43,
-	0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
-	0x73, 0x65, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x72, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x8f, 0x01, 0x0a, 0x20,
+	0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75,
+	0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73,
+	0x12, 0x34, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69,
+	0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x75, 0x72, 0x61,
+	0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e, 0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x35, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x46, 0x69, 0x6e, 0x64, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x6f, 0x6e,
+	0x66, 0x69, 0x67, 0x75, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x43, 0x6f, 0x6d, 0x70, 0x6f, 0x6e,
+	0x65, 0x6e, 0x74, 0x73, 0x2e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x5e, 0x0a,
+	0x10, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65,
+	0x73, 0x12, 0x24, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50,
+	0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x22, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
+	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x6c, 0x61, 0x6e, 0x53, 0x74, 0x61, 0x63, 0x6b, 0x43, 0x68,
+	0x61, 0x6e, 0x67, 0x65, 0x73, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x30, 0x01, 0x62, 0x06, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -1793,7 +1949,7 @@ func file_terraform1_proto_rawDescGZIP() []byte {
 }
 
 var file_terraform1_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
 var file_terraform1_proto_goTypes = []interface{}{
 	(FindStackConfigurationComponents_Instances)(0),        // 0: terraform1.FindStackConfigurationComponents.Instances
 	(Diagnostic_Severity)(0),                               // 1: terraform1.Diagnostic.Severity
@@ -1806,67 +1962,73 @@ var file_terraform1_proto_goTypes = []interface{}{
 	(*CloseStackConfiguration)(nil),                        // 8: terraform1.CloseStackConfiguration
 	(*FindStackConfigurationComponents)(nil),               // 9: terraform1.FindStackConfigurationComponents
 	(*FindStackConfigurationProviders)(nil),                // 10: terraform1.FindStackConfigurationProviders
-	(*SourceAddress)(nil),                                  // 11: terraform1.SourceAddress
-	(*Diagnostic)(nil),                                     // 12: terraform1.Diagnostic
-	(*SourceRange)(nil),                                    // 13: terraform1.SourceRange
-	(*SourcePos)(nil),                                      // 14: terraform1.SourcePos
-	(*Handshake_Request)(nil),                              // 15: terraform1.Handshake.Request
-	(*Handshake_Response)(nil),                             // 16: terraform1.Handshake.Response
-	(*OpenSourceBundle_Request)(nil),                       // 17: terraform1.OpenSourceBundle.Request
-	(*OpenSourceBundle_Response)(nil),                      // 18: terraform1.OpenSourceBundle.Response
-	(*CloseSourceBundle_Request)(nil),                      // 19: terraform1.CloseSourceBundle.Request
-	(*CloseSourceBundle_Response)(nil),                     // 20: terraform1.CloseSourceBundle.Response
-	(*OpenStackConfiguration_Request)(nil),                 // 21: terraform1.OpenStackConfiguration.Request
-	(*OpenStackConfiguration_Response)(nil),                // 22: terraform1.OpenStackConfiguration.Response
-	(*CloseStackConfiguration_Request)(nil),                // 23: terraform1.CloseStackConfiguration.Request
-	(*CloseStackConfiguration_Response)(nil),               // 24: terraform1.CloseStackConfiguration.Response
-	(*FindStackConfigurationComponents_Request)(nil),       // 25: terraform1.FindStackConfigurationComponents.Request
-	(*FindStackConfigurationComponents_Response)(nil),      // 26: terraform1.FindStackConfigurationComponents.Response
-	(*FindStackConfigurationComponents_StackConfig)(nil),   // 27: terraform1.FindStackConfigurationComponents.StackConfig
-	(*FindStackConfigurationComponents_EmbeddedStack)(nil), // 28: terraform1.FindStackConfigurationComponents.EmbeddedStack
-	(*FindStackConfigurationComponents_Component)(nil),     // 29: terraform1.FindStackConfigurationComponents.Component
-	nil, // 30: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	nil, // 31: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
-	(*FindStackConfigurationProviders_Request)(nil),  // 32: terraform1.FindStackConfigurationProviders.Request
-	(*FindStackConfigurationProviders_Response)(nil), // 33: terraform1.FindStackConfigurationProviders.Response
+	(*PlanStackChanges)(nil),                               // 11: terraform1.PlanStackChanges
+	(*SourceAddress)(nil),                                  // 12: terraform1.SourceAddress
+	(*Diagnostic)(nil),                                     // 13: terraform1.Diagnostic
+	(*SourceRange)(nil),                                    // 14: terraform1.SourceRange
+	(*SourcePos)(nil),                                      // 15: terraform1.SourcePos
+	(*Handshake_Request)(nil),                              // 16: terraform1.Handshake.Request
+	(*Handshake_Response)(nil),                             // 17: terraform1.Handshake.Response
+	(*OpenSourceBundle_Request)(nil),                       // 18: terraform1.OpenSourceBundle.Request
+	(*OpenSourceBundle_Response)(nil),                      // 19: terraform1.OpenSourceBundle.Response
+	(*CloseSourceBundle_Request)(nil),                      // 20: terraform1.CloseSourceBundle.Request
+	(*CloseSourceBundle_Response)(nil),                     // 21: terraform1.CloseSourceBundle.Response
+	(*OpenStackConfiguration_Request)(nil),                 // 22: terraform1.OpenStackConfiguration.Request
+	(*OpenStackConfiguration_Response)(nil),                // 23: terraform1.OpenStackConfiguration.Response
+	(*CloseStackConfiguration_Request)(nil),                // 24: terraform1.CloseStackConfiguration.Request
+	(*CloseStackConfiguration_Response)(nil),               // 25: terraform1.CloseStackConfiguration.Response
+	(*FindStackConfigurationComponents_Request)(nil),       // 26: terraform1.FindStackConfigurationComponents.Request
+	(*FindStackConfigurationComponents_Response)(nil),      // 27: terraform1.FindStackConfigurationComponents.Response
+	(*FindStackConfigurationComponents_StackConfig)(nil),   // 28: terraform1.FindStackConfigurationComponents.StackConfig
+	(*FindStackConfigurationComponents_EmbeddedStack)(nil), // 29: terraform1.FindStackConfigurationComponents.EmbeddedStack
+	(*FindStackConfigurationComponents_Component)(nil),     // 30: terraform1.FindStackConfigurationComponents.Component
+	nil, // 31: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	nil, // 32: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	(*FindStackConfigurationProviders_Request)(nil),  // 33: terraform1.FindStackConfigurationProviders.Request
+	(*FindStackConfigurationProviders_Response)(nil), // 34: terraform1.FindStackConfigurationProviders.Response
+	(*PlanStackChanges_Request)(nil),                 // 35: terraform1.PlanStackChanges.Request
+	(*PlanStackChanges_Event)(nil),                   // 36: terraform1.PlanStackChanges.Event
 }
 var file_terraform1_proto_depIdxs = []int32{
 	1,  // 0: terraform1.Diagnostic.severity:type_name -> terraform1.Diagnostic.Severity
-	13, // 1: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
-	13, // 2: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
-	14, // 3: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
-	14, // 4: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
+	14, // 1: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
+	14, // 2: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
+	15, // 3: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
+	15, // 4: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
 	5,  // 5: terraform1.Handshake.Request.capabilities:type_name -> terraform1.ClientCapabilities
 	6,  // 6: terraform1.Handshake.Response.capabilities:type_name -> terraform1.ServerCapabilities
-	11, // 7: terraform1.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
-	12, // 8: terraform1.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
-	27, // 9: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
-	30, // 10: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	31, // 11: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	12, // 7: terraform1.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
+	13, // 8: terraform1.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
+	28, // 9: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	31, // 10: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	32, // 11: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
 	0,  // 12: terraform1.FindStackConfigurationComponents.EmbeddedStack.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	27, // 13: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	28, // 13: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
 	0,  // 14: terraform1.FindStackConfigurationComponents.Component.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	29, // 15: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
-	28, // 16: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
-	15, // 17: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
-	17, // 18: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
-	19, // 19: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
-	21, // 20: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
-	23, // 21: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
-	32, // 22: terraform1.Stacks.FindStackConfigurationProviders:input_type -> terraform1.FindStackConfigurationProviders.Request
-	25, // 23: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
-	16, // 24: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
-	18, // 25: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
-	20, // 26: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
-	22, // 27: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
-	24, // 28: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
-	33, // 29: terraform1.Stacks.FindStackConfigurationProviders:output_type -> terraform1.FindStackConfigurationProviders.Response
-	26, // 30: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
-	24, // [24:31] is the sub-list for method output_type
-	17, // [17:24] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	30, // 15: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
+	29, // 16: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
+	13, // 17: terraform1.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
+	16, // 18: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
+	18, // 19: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
+	20, // 20: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
+	22, // 21: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
+	24, // 22: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
+	33, // 23: terraform1.Stacks.FindStackConfigurationProviders:input_type -> terraform1.FindStackConfigurationProviders.Request
+	26, // 24: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
+	35, // 25: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
+	17, // 26: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
+	19, // 27: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
+	21, // 28: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
+	23, // 29: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
+	25, // 30: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
+	34, // 31: terraform1.Stacks.FindStackConfigurationProviders:output_type -> terraform1.FindStackConfigurationProviders.Response
+	27, // 32: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
+	36, // 33: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
+	26, // [26:34] is the sub-list for method output_type
+	18, // [18:26] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_terraform1_proto_init() }
@@ -1984,7 +2146,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[9].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SourceAddress); i {
+			switch v := v.(*PlanStackChanges); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -1996,7 +2158,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Diagnostic); i {
+			switch v := v.(*SourceAddress); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2008,7 +2170,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SourceRange); i {
+			switch v := v.(*Diagnostic); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2020,7 +2182,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[12].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*SourcePos); i {
+			switch v := v.(*SourceRange); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2032,7 +2194,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[13].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Handshake_Request); i {
+			switch v := v.(*SourcePos); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2044,7 +2206,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[14].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Handshake_Response); i {
+			switch v := v.(*Handshake_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2056,7 +2218,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[15].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSourceBundle_Request); i {
+			switch v := v.(*Handshake_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2068,7 +2230,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[16].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenSourceBundle_Response); i {
+			switch v := v.(*OpenSourceBundle_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2080,7 +2242,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[17].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSourceBundle_Request); i {
+			switch v := v.(*OpenSourceBundle_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2092,7 +2254,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[18].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseSourceBundle_Response); i {
+			switch v := v.(*CloseSourceBundle_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2104,7 +2266,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[19].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackConfiguration_Request); i {
+			switch v := v.(*CloseSourceBundle_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2116,7 +2278,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[20].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenStackConfiguration_Response); i {
+			switch v := v.(*OpenStackConfiguration_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2128,7 +2290,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[21].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseStackConfiguration_Request); i {
+			switch v := v.(*OpenStackConfiguration_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2140,7 +2302,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[22].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseStackConfiguration_Response); i {
+			switch v := v.(*CloseStackConfiguration_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2152,7 +2314,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[23].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_Request); i {
+			switch v := v.(*CloseStackConfiguration_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2164,7 +2326,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_Response); i {
+			switch v := v.(*FindStackConfigurationComponents_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2176,7 +2338,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_StackConfig); i {
+			switch v := v.(*FindStackConfigurationComponents_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2188,7 +2350,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*FindStackConfigurationComponents_EmbeddedStack); i {
+			switch v := v.(*FindStackConfigurationComponents_StackConfig); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -2200,6 +2362,18 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[27].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*FindStackConfigurationComponents_EmbeddedStack); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[28].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_Component); i {
 			case 0:
 				return &v.state
@@ -2211,7 +2385,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[30].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationProviders_Request); i {
 			case 0:
 				return &v.state
@@ -2223,7 +2397,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[31].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[32].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationProviders_Response); i {
 			case 0:
 				return &v.state
@@ -2235,6 +2409,33 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
+		file_terraform1_proto_msgTypes[33].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PlanStackChanges_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[34].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*PlanStackChanges_Event); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+	}
+	file_terraform1_proto_msgTypes[34].OneofWrappers = []interface{}{
+		(*PlanStackChanges_Event_Diagnostic)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2242,7 +2443,7 @@ func file_terraform1_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_terraform1_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   32,
+			NumMessages:   35,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
@@ -2484,6 +2685,10 @@ type StacksClient interface {
 	// This is static analysis only, so it cannot produce dynamic information
 	// such as the number of instances of each component.
 	FindStackConfigurationComponents(ctx context.Context, in *FindStackConfigurationComponents_Request, opts ...grpc.CallOption) (*FindStackConfigurationComponents_Response, error)
+	// Calculate a desired state from the given configuration and compare it
+	// with the current state to propose a set of changes to converge the
+	// current state with the desired state, at least in part.
+	PlanStackChanges(ctx context.Context, in *PlanStackChanges_Request, opts ...grpc.CallOption) (Stacks_PlanStackChangesClient, error)
 }
 
 type stacksClient struct {
@@ -2530,6 +2735,38 @@ func (c *stacksClient) FindStackConfigurationComponents(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *stacksClient) PlanStackChanges(ctx context.Context, in *PlanStackChanges_Request, opts ...grpc.CallOption) (Stacks_PlanStackChangesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Stacks_serviceDesc.Streams[0], "/terraform1.Stacks/PlanStackChanges", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &stacksPlanStackChangesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Stacks_PlanStackChangesClient interface {
+	Recv() (*PlanStackChanges_Event, error)
+	grpc.ClientStream
+}
+
+type stacksPlanStackChangesClient struct {
+	grpc.ClientStream
+}
+
+func (x *stacksPlanStackChangesClient) Recv() (*PlanStackChanges_Event, error) {
+	m := new(PlanStackChanges_Event)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // StacksServer is the server API for Stacks service.
 type StacksServer interface {
 	// Load and perform initial static validation of a stack configuration
@@ -2545,6 +2782,10 @@ type StacksServer interface {
 	// This is static analysis only, so it cannot produce dynamic information
 	// such as the number of instances of each component.
 	FindStackConfigurationComponents(context.Context, *FindStackConfigurationComponents_Request) (*FindStackConfigurationComponents_Response, error)
+	// Calculate a desired state from the given configuration and compare it
+	// with the current state to propose a set of changes to converge the
+	// current state with the desired state, at least in part.
+	PlanStackChanges(*PlanStackChanges_Request, Stacks_PlanStackChangesServer) error
 }
 
 // UnimplementedStacksServer can be embedded to have forward compatible implementations.
@@ -2562,6 +2803,9 @@ func (*UnimplementedStacksServer) FindStackConfigurationProviders(context.Contex
 }
 func (*UnimplementedStacksServer) FindStackConfigurationComponents(context.Context, *FindStackConfigurationComponents_Request) (*FindStackConfigurationComponents_Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindStackConfigurationComponents not implemented")
+}
+func (*UnimplementedStacksServer) PlanStackChanges(*PlanStackChanges_Request, Stacks_PlanStackChangesServer) error {
+	return status.Errorf(codes.Unimplemented, "method PlanStackChanges not implemented")
 }
 
 func RegisterStacksServer(s *grpc.Server, srv StacksServer) {
@@ -2640,6 +2884,27 @@ func _Stacks_FindStackConfigurationComponents_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Stacks_PlanStackChanges_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(PlanStackChanges_Request)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(StacksServer).PlanStackChanges(m, &stacksPlanStackChangesServer{stream})
+}
+
+type Stacks_PlanStackChangesServer interface {
+	Send(*PlanStackChanges_Event) error
+	grpc.ServerStream
+}
+
+type stacksPlanStackChangesServer struct {
+	grpc.ServerStream
+}
+
+func (x *stacksPlanStackChangesServer) Send(m *PlanStackChanges_Event) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Stacks_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "terraform1.Stacks",
 	HandlerType: (*StacksServer)(nil),
@@ -2661,6 +2926,12 @@ var _Stacks_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Stacks_FindStackConfigurationComponents_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PlanStackChanges",
+			Handler:       _Stacks_PlanStackChanges_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "terraform1.proto",
 }

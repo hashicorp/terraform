@@ -50,6 +50,14 @@ func (s *Stacks) OpenStackConfiguration(a0 context.Context, a1 *tf1.OpenStackCon
 	return impl.OpenStackConfiguration(a0, a1)
 }
 
+func (s *Stacks) PlanStackChanges(a0 *tf1.PlanStackChanges_Request, a1 tf1.Stacks_PlanStackChangesServer) error {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return err
+	}
+	return impl.PlanStackChanges(a0, a1)
+}
+
 func (s *Stacks) ActivateRPCServer(impl tf1.StacksServer) {
 	s.mu.Lock()
 	s.impl = impl
