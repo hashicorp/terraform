@@ -20,6 +20,14 @@ type SavedPlanBookmark struct {
 	Hostname         string `json:"hostname"`
 }
 
+func NewSavedPlanBookmark(runID, hostname string) SavedPlanBookmark {
+	return SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            runID,
+		Hostname:         hostname,
+	}
+}
+
 func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 	bookmark := SavedPlanBookmark{}
 
