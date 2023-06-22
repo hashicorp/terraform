@@ -8,16 +8,28 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
-	// TODO: replace crypto/openpgp since it is deprecated
-	// https://github.com/golang/go/issues/44226
-	//lint:file-ignore SA1019 openpgp is deprecated but there are no good alternatives yet
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
+
+func TestMain(m *testing.M) {
+	openpgpConfig = &packet.Config{
+		Time: func() time.Time {
+			// Scientifically chosen time that satisfies the validity periods of all
+			// of the keys and signatures used.
+			t, _ := time.Parse(time.RFC3339, "2021-04-25T16:00:00-07:00")
+			return t
+		},
+	}
+	os.Exit(m.Run())
+}
 
 func TestPackageAuthenticationResult(t *testing.T) {
 	tests := []struct {
@@ -493,7 +505,7 @@ func TestSignatureAuthentication_failure(t *testing.T) {
 					TrustSignature: testOtherKeyTrustSignatureArmor,
 				},
 			},
-			"error verifying trust signature: openpgp: invalid signature: hash tag doesn't match",
+			"error verifying trust signature: openpgp: invalid signature: RSA verification failure",
 		},
 	}
 
@@ -580,6 +592,22 @@ ssjwAFbPMp1nr0f5SWCJfhTh7QF7lO2ldJaKMlcBM8aebmqFQ52P7ZWOFcgeerng
 G7Zdrci1KEd943HhzDCsUFz4gJwbvUyiAYb2ddndpUBkYwCB/XrHWPOSnGxHgZoo
 1gIqed9OV/+s5wKxZPjL0pCStQ==
 =mYqJ
+-----END PGP PUBLIC KEY BLOCK-----`
+
+// testAuthorEccKeyArmor uses Curve 25519 and has test key ID D01ED5C4BB1ED36A014B0D376540DDA046E5E135
+const testAuthorEccKeyArmor = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mDMEY1B7+hYJKwYBBAHaRw8BAQdAFRDpASP+iDY+QotOBP9DF5CfuhSBD8Dl0hSG
+D7plEsO0M1RlcnJhZm9ybSBUZXN0aW5nIDx0ZXJyYWZvcm0rdGVzdGluZ0BoYXNo
+aWNvcnAuY29tPoiTBBMWCgA7FiEE0B7VxLse02oBSw03ZUDdoEbl4TUFAmNQe/oC
+GwMFCwkIBwICIgIGFQoJCAsCBBYCAwECHgcCF4AACgkQZUDdoEbl4TWhwwD+N/BR
+pR9NhRFDm+JRhA3saKmpTSRo9yJnr6tRlumE4KQA/A2cOCDeezf6t3SXltoYUKIt
+EYmbLxgMDlffVkFyC8IMuDgEY1B7+hIKKwYBBAGXVQEFAQEHQJ7frE76Le1qI1Go
+dfrVIzEgAcYjDW6T01/V95wgqPIuAwEIB4h4BBgWCgAgFiEE0B7VxLse02oBSw03
+ZUDdoEbl4TUFAmNQe/oCGwwACgkQZUDdoEbl4TWvsAD/YSQAigAH5hq4OmK4gs0J
+O74RFokGZzbPtoIvutb8eYoA/1QxxyqE/8A4Z21azYEO0j563LRa8SkZcB5UPDy3
+7ngJ
+=Xb0o
 -----END PGP PUBLIC KEY BLOCK-----`
 
 // testAuthorKeyTrustSignatureArmor is a trust signature of the data in
@@ -700,6 +728,11 @@ func TestEntityString(t *testing.T) {
 			"nil",
 			nil,
 			"",
+		},
+		{
+			"testAuthorEccKeyArmor",
+			testReadArmoredEntity(t, testAuthorEccKeyArmor),
+			"6540DDA046E5E135 Terraform Testing <terraform+testing@hashicorp.com>",
 		},
 		{
 			"testAuthorKeyArmor",

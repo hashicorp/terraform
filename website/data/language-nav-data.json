@@ -213,6 +213,11 @@
             "path": "modules/develop/refactoring"
           }
         ]
+      },
+      {
+        "title": "Module Testing Experiment",
+        "path": "modules/testing-experiment",
+        "hidden": true
       }
     ]
   },
@@ -1055,7 +1060,7 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.4",
+    "title": "Upgrading to Terraform v1.5",
     "path": "upgrade-guides"
   },
   {
