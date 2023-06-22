@@ -73,6 +73,12 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 			if mod.SourceDir != path {
 				t.Errorf("wrong SourceDir value %q; want %s", mod.SourceDir, path)
 			}
+
+			if len(mod.Tests) > 0 {
+				// We only load tests when requested, and we didn't request this
+				// time.
+				t.Errorf("should not have loaded tests, but found %d", len(mod.Tests))
+			}
 		})
 	}
 
@@ -105,6 +111,31 @@ func TestParserLoadConfigDirSuccess(t *testing.T) {
 		})
 	}
 
+}
+
+func TestParserLoadConfigDirWithTests(t *testing.T) {
+	directories := []string{
+		"testdata/valid-modules/with-tests",
+		"testdata/valid-modules/with-tests-nested",
+		"testdata/valid-modules/with-tests-json",
+	}
+
+	for _, directory := range directories {
+		t.Run(directory, func(t *testing.T) {
+			parser := NewParser(nil)
+			mod, diags := parser.LoadConfigDirWithTests(directory, "tests")
+			if diags.HasErrors() {
+				t.Errorf("unexpected error diagnostics")
+				for _, diag := range diags {
+					t.Logf("- %s", diag)
+				}
+			}
+
+			if len(mod.Tests) != 2 {
+				t.Errorf("incorrect number of test files found: %d", len(mod.Tests))
+			}
+		})
+	}
 }
 
 // TestParseLoadConfigDirFailure is a simple test that just verifies that
