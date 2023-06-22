@@ -1,0 +1,35 @@
+{
+    "format_version": "1.2",
+    "planned_values": {
+        "root_module": {}
+    },
+    "prior_state": {},
+    "configuration": {
+        "provider_config": {
+            "test": {
+                "full_name": "registry.terraform.io/hashicorp/test",
+                "name": "test"
+            }
+        },
+        "root_module": {
+            "resources": [
+                {
+                    "address": "test_instance.test",
+                    "expressions": {
+                        "ami": {
+                            "references": [
+                                "local.ami"
+                            ]
+                        }
+                    },
+                    "mode": "managed",
+                    "name": "test",
+                    "provider_config_key": "test",
+                    "schema_version": 0,
+                    "type": "test_instance"
+                }
+            ]
+        }
+    },
+    "errored": true
+}

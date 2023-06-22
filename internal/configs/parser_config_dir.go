@@ -119,6 +119,13 @@ func (p *Parser) loadFiles(paths []string, override bool) ([]*File, hcl.Diagnost
 	return files, diags
 }
 
+// dirFiles finds Terraform configuration files within dir, splitting them into
+// primary and override files based on the filename.
+//
+// If testsDir is not empty, dirFiles will also retrieve Terraform testing files
+// both directly within dir and within testsDir as a subdirectory of dir. In
+// this way, testsDir acts both as a direction to retrieve test files within the
+// main direction and as the location for additional test files.
 func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests []string, diags hcl.Diagnostics) {
 	includeTests := len(testsDir) > 0
 
@@ -224,6 +231,8 @@ func fileExt(path string) string {
 		return ".tf.json"
 	} else if strings.HasSuffix(path, ".tftest") {
 		return ".tftest"
+	} else if strings.HasSuffix(path, ".tftest.json") {
+		return ".tftest.json"
 	} else {
 		return ""
 	}

@@ -229,7 +229,11 @@ For ease of consumption by callers, the plan representation includes a partial r
   // resources with postconditions, with as much information as Terraform can
   // recognize at plan time. Some objects will have status "unknown" to
   // indicate that their status will only be determined after applying the plan.
-  "checks" <checks-representation>
+  "checks" <checks-representation>,
+
+  // "errored" indicates whether planning failed. An errored plan cannot be applied,
+  // but the actions planned before failure may help to understand the error.
+  "errored": false
 }
 ```
 
