@@ -228,6 +228,11 @@
     ]
   },
   {
+    "title": "Module Testing Experiment",
+    "path": "modules/testing-experiment",
+    "hidden": true
+  },
+  {
     "title": "Expressions",
     "routes": [
       { "title": "Overview", "path": "expressions" },
