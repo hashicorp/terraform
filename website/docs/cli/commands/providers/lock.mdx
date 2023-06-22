@@ -23,7 +23,7 @@ automatic approach may not be sufficient:
   be able to populate all of the possible package checksums for the selected
   provider versions.
 
-  If you use `terraform lock` to write the official release checksums for a
+  If you use `terraform providers lock` to write the official release checksums for a
   provider into the dependency lock file then future `terraform init` runs
   will verify the packages available in your selected mirror against the
   official checksums previously recorded, giving additional certainty that
