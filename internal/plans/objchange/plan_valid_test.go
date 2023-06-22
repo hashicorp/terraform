@@ -1830,6 +1830,51 @@ func TestAssertPlanValid(t *testing.T) {
 			nil,
 		},
 
+		"refined unknown values in collection elements can become less refined": {
+			// Providers often can't preserve refinements through the provider
+			// wire protocol: although we do have a defined serialization for
+			// it, most providers were written before there was any such
+			// thing as refinements, and in future there might be new
+			// refinements that even refinement-aware providers don't know
+			// how to preserve, so we allow them to get dropped here as
+			// a concession to backward-compatibility.
+			//
+			// This is intending to approximate something like this:
+			//
+			//     resource "null_resource" "hello" {
+			//       triggers = {
+			//         key = uuid()
+			//       }
+			//     }
+			//
+			// ...under the assumption that the null_resource implementation
+			// cannot preserve the not-null refinement that the uuid function
+			// generates.
+			//
+			// https://github.com/hashicorp/terraform/issues/33385
+			&configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"m": {
+						Type: cty.Map(cty.String),
+					},
+				},
+			},
+			cty.NullVal(cty.Object(map[string]cty.Type{
+				"m": cty.Map(cty.String),
+			})),
+			cty.ObjectVal(map[string]cty.Value{
+				"m": cty.MapVal(map[string]cty.Value{
+					"key": cty.UnknownVal(cty.String).RefineNotNull(),
+				}),
+			}),
+			cty.ObjectVal(map[string]cty.Value{
+				"m": cty.MapVal(map[string]cty.Value{
+					"key": cty.UnknownVal(cty.String),
+				}),
+			}),
+			nil,
+		},
+
 		"nested set values can contain computed unknown": {
 			&configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
