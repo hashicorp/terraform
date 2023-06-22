@@ -213,6 +213,11 @@
             "path": "modules/develop/refactoring"
           }
         ]
+      },
+      {
+        "title": "Module Testing Experiment",
+        "path": "modules/testing-experiment",
+        "hidden": true
       }
     ]
   },
@@ -225,13 +230,6 @@
          "title": "Generating Configuration",
          "path": "import/generating-configuration"
        }
-    ]
-  },
-  {
-    "title": "Module Testing Experiment",
-    "hidden": true,
-    "routes": [
-      { "title": "Overview", "path": "modules/testing-experiment" }
     ]
   },
   {
