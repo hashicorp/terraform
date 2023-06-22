@@ -216,10 +216,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 	}
 
 	if attr, exists := content.Attributes["command"]; exists {
-		expr, exprDiags := shimTraversalInString(attr.Expr, true)
-		diags = append(diags, exprDiags...)
-
-		switch hcl.ExprAsKeyword(expr) {
+		switch hcl.ExprAsKeyword(attr.Expr) {
 		case "apply":
 			r.Command = ApplyTestCommand
 		case "plan":
@@ -228,7 +225,7 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid \"command\" keyword",
-				Detail:   "The \"command\" argument requires one of the following keywords: apply or plan.",
+				Detail:   "The \"command\" argument requires one of the following keywords without quotes: apply or plan.",
 				Subject:  attr.Expr.Range().Ptr(),
 			})
 		}
@@ -250,10 +247,7 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 	}
 
 	if attr, exists := content.Attributes["mode"]; exists {
-		expr, exprDiags := shimTraversalInString(attr.Expr, true)
-		diags = append(diags, exprDiags...)
-
-		switch hcl.ExprAsKeyword(expr) {
+		switch hcl.ExprAsKeyword(attr.Expr) {
 		case "refresh-only":
 			opts.Mode = RefreshOnlyTestMode
 		case "normal":
@@ -262,7 +256,7 @@ func decodeTestRunOptionsBlock(block *hcl.Block) (*TestRunOptions, hcl.Diagnosti
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid \"mode\" keyword",
-				Detail:   "The \"mode\" argument requires one of the following keywords: normal or refresh-only",
+				Detail:   "The \"mode\" argument requires one of the following keywords without quotes: normal or refresh-only",
 				Subject:  attr.Expr.Range().Ptr(),
 			})
 		}
