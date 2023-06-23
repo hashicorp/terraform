@@ -93,10 +93,11 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 	if run != nil && run.ID != "" && op.PlanOutPath != "" {
 		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
 		saveErr := bookmark.Save(op.PlanOutPath)
-		if err == nil {
-			err = saveErr
-		} else {
+		// Maybe combine errors
+		if err != nil && saveErr != nil {
 			err = fmt.Errorf("%w\nAdditionally, an error occurred when saving the plan: %s", err, saveErr.Error())
+		} else if err == nil {
+			err = saveErr
 		}
 	}
 
