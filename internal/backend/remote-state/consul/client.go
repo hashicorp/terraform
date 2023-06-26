@@ -233,7 +233,7 @@ func (c *RemoteClient) Put(data []byte) error {
 		if !ok {
 			var resultErr error
 			for _, respError := range resp.Errors {
-				resultErr = append(resultErr, errors.New(respError.What))
+				resultErr = multierror.Append(resultErr, errors.New(respError.What))
 			}
 			return fmt.Errorf("consul CAS failed with transaction errors: %w", resultErr)
 		}
