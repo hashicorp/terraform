@@ -279,6 +279,8 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				cty.Path{},
 			))
 		}
+
+		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
 	}
 
 	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
