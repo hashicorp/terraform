@@ -342,6 +342,11 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		errs = append(errs, path.NewErrorf("planned for existence but config wants absence"))
 		return errs
 	}
+	if !config.IsNull() && !planned.IsKnown() {
+		errs = append(errs, path.NewErrorf("planned unknown for configured value"))
+		return errs
+	}
+
 	if planned.IsNull() {
 		// No further checks possible if the planned value is null
 		return errs
@@ -445,13 +450,7 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 		plannedL := planned.Length()
 		configL := config.Length()
 
-		// config wasn't known, then planned should be unknown too
-		if !plannedL.IsKnown() && !configL.IsKnown() {
-			return errs
-		}
-
-		lenEqual := plannedL.Equals(configL)
-		if !lenEqual.IsKnown() || lenEqual.False() {
+		if ok := plannedL.Range().Includes(configL); ok.IsKnown() && ok.False() {
 			errs = append(errs, path.NewErrorf("count in plan (%#v) disagrees with count in config (%#v)", plannedL, configL))
 			return errs
 		}
@@ -466,9 +465,19 @@ func assertPlannedObjectValid(schema *configschema.Object, prior, config, planne
 
 // unrefinedValue returns the given value with any unknown value refinements
 // stripped away, making it a basic unknown value with only a type constraint.
+//
+// This function also considers unknown values nested inside a known container
+// such as a collection, which unfortunately makes it relatively expensive
+// for large data structures. Over time we should transition away from using
+// this trick and prefer to use cty's Equals and value range APIs instead of
+// of using Value.RawEquals, which is primarily intended for unit test code
+// rather than real application use.
 func unrefinedValue(v cty.Value) cty.Value {
-	if !v.IsKnown() {
-		return cty.UnknownVal(v.Type())
-	}
-	return v
+	ret, _ := cty.Transform(v, func(p cty.Path, v cty.Value) (cty.Value, error) {
+		if !v.IsKnown() {
+			return cty.UnknownVal(v.Type()), nil
+		}
+		return v, nil
+	})
+	return ret
 }

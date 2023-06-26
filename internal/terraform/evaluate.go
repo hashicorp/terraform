@@ -11,13 +11,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/agext/levenshtein"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/didyoumean"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
@@ -230,7 +230,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 		for k := range moduleConfig.Module.Variables {
 			suggestions = append(suggestions, k)
 		}
-		suggestion := nameSuggestion(addr.Name, suggestions)
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
 		if suggestion != "" {
 			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
 		} else {
@@ -326,7 +326,7 @@ func (d *evaluationStateData) GetLocalValue(addr addrs.LocalValue, rng tfdiags.S
 		for k := range moduleConfig.Module.Locals {
 			suggestions = append(suggestions, k)
 		}
-		suggestion := nameSuggestion(addr.Name, suggestions)
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
 		if suggestion != "" {
 			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
 		}
@@ -625,7 +625,7 @@ func (d *evaluationStateData) GetPathAttr(addr addrs.PathAttr, rng tfdiags.Sourc
 		return cty.StringVal(filepath.ToSlash(sourceDir)), diags
 
 	default:
-		suggestion := nameSuggestion(addr.Name, []string{"cwd", "module", "root"})
+		suggestion := didyoumean.NameSuggestion(addr.Name, []string{"cwd", "module", "root"})
 		if suggestion != "" {
 			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
 		}
@@ -959,7 +959,7 @@ func (d *evaluationStateData) GetOutput(addr addrs.OutputValue, rng tfdiags.Sour
 		for k := range moduleConfig.Module.Outputs {
 			suggestions = append(suggestions, k)
 		}
-		suggestion := nameSuggestion(addr.Name, suggestions)
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
 		if suggestion != "" {
 			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
 		}
@@ -1003,25 +1003,6 @@ func (d *evaluationStateData) GetCheckBlock(addr addrs.Check, rng tfdiags.Source
 		Subject:  rng.ToHCL().Ptr(),
 	})
 	return cty.NilVal, diags
-}
-
-// nameSuggestion tries to find a name from the given slice of suggested names
-// that is close to the given name and returns it if found. If no suggestion
-// is close enough, returns the empty string.
-//
-// The suggestions are tried in order, so earlier suggestions take precedence
-// if the given string is similar to two or more suggestions.
-//
-// This function is intended to be used with a relatively-small number of
-// suggestions. It's not optimized for hundreds or thousands of them.
-func nameSuggestion(given string, suggestions []string) string {
-	for _, suggestion := range suggestions {
-		dist := levenshtein.Distance(given, suggestion, nil)
-		if dist < 3 { // threshold determined experimentally
-			return suggestion
-		}
-	}
-	return ""
 }
 
 // moduleDisplayAddr returns a string describing the given module instance

@@ -52,6 +52,11 @@ type ApplyGraphBuilder struct {
 
 	// Plan Operation this graph will be used for.
 	Operation walkOperation
+
+	// ExternalReferences allows the external caller to pass in references to
+	// nodes that should not be pruned even if they are not referenced within
+	// the actual graph.
+	ExternalReferences []*addrs.Reference
 }
 
 // See GraphBuilder
@@ -143,6 +148,11 @@ func (b *ApplyGraphBuilder) Steps() []GraphTransformer {
 		// come after all other transformers that create nodes representing
 		// objects that can belong to modules.
 		&ModuleExpansionTransformer{Config: b.Config},
+
+		// Plug in any external references.
+		&ExternalReferenceTransformer{
+			ExternalReferences: b.ExternalReferences,
+		},
 
 		// Connect references so ordering is correct
 		&ReferenceTransformer{},

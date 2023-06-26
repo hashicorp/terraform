@@ -193,7 +193,7 @@ Every module has implicit assumptions and guarantees that define what data it ex
 - **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
 - **Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
 
-We recommend using [custom conditions](/terraform/language/expressions/custom-conditions) help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+We recommend using [custom conditions](/terraform/language/expressions/custom-conditions) to help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
 The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
 

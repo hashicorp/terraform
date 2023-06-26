@@ -135,7 +135,7 @@ func testModuleInline(t *testing.T, sources map[string]string) *configs.Config {
 		t.Fatalf("failed to refresh modules after installation: %s", err)
 	}
 
-	config, diags := loader.LoadConfig(cfgPath)
+	config, diags := loader.LoadConfigWithTests(cfgPath, "tests")
 	if diags.HasErrors() {
 		t.Fatal(diags.Error())
 	}
@@ -226,6 +226,14 @@ func mustAbsResourceAddr(s string) addrs.AbsResource {
 
 func mustProviderConfig(s string) addrs.AbsProviderConfig {
 	p, diags := addrs.ParseAbsProviderConfigStr(s)
+	if diags.HasErrors() {
+		panic(diags.Err())
+	}
+	return p
+}
+
+func mustReference(s string) *addrs.Reference {
+	p, diags := addrs.ParseRefStr(s)
 	if diags.HasErrors() {
 		panic(diags.Err())
 	}
