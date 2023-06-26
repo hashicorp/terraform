@@ -40,6 +40,8 @@ type Backend struct {
 	workspaceKeyPrefix    string
 }
 
+// ConfigSchema returns a description of the expected configuration
+// structure for the receiving backend.
 func (b *Backend) ConfigSchema() *configschema.Block {
 	return &configschema.Block{
 		Attributes: map[string]*configschema.Attribute{
@@ -211,6 +213,10 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 	}
 }
 
+// PrepareConfig checks the validity of the values in the given
+// configuration, and inserts any missing defaults, assuming that its
+// structure has already been validated per the schema returned by
+// ConfigSchema.
 func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
@@ -221,8 +227,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid bucket value",
-			// `The "bucket" attribute value must not be empty.`,
-			`"bucket": required field is not set`,
+			`The "bucket" attribute value must not be empty.`,
 			cty.Path{cty.GetAttrStep{Name: "bucket"}},
 		))
 	}
@@ -231,7 +236,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid key value",
-			`"key": required field is not set`,
+			`The "key" attribute value must not be empty.`,
 			cty.Path{cty.GetAttrStep{Name: "key"}},
 		))
 	} else if strings.HasPrefix(val.AsString(), "/") || strings.HasSuffix(val.AsString(), "/") {
@@ -242,7 +247,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid key value",
-			"key must not start or end with '/'",
+			`The "key" attribute value must not start or end with with "/".`,
 			cty.Path{cty.GetAttrStep{Name: "key"}},
 		))
 	}
@@ -252,7 +257,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Missing region value",
-				`"region": required field is not set`,
+				`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
 				cty.Path{cty.GetAttrStep{Name: "region"}},
 			))
 		}
@@ -267,10 +272,11 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				cty.Path{},
 			))
 		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
-			diags = diags.Append(tfdiags.Sourceless(
+			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid encryption configuration",
 				encryptionKeyConflictEnvVarError,
+				cty.Path{},
 			))
 		}
 	}
@@ -280,7 +286,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid workspace_key_prefix value",
-				"workspace_key_prefix must not start or end with '/'",
+				`The "workspace_key_prefix" attribute value must not start with "/".`,
 				cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
 			))
 		}
@@ -289,6 +295,12 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	return obj, diags
 }
 
+// Configure uses the provided configuration to set configuration fields
+// within the backend.
+//
+// The given configuration is assumed to have already been validated
+// against the schema returned by ConfigSchema and passed validation
+// via PrepareConfig.
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {

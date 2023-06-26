@@ -503,7 +503,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `"bucket": required field is not set`,
+			expectedErr: `The "bucket" attribute value must not be empty.`,
 		},
 		"empty bucket": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -511,7 +511,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `"bucket": required field is not set`,
+			expectedErr: `The "bucket" attribute value must not be empty.`,
 		},
 		"null key": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -519,7 +519,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.NullVal(cty.String),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `"key": required field is not set`,
+			expectedErr: `The "key" attribute value must not be empty.`,
 		},
 		"empty key": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -527,7 +527,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal(""),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `"key": required field is not set`,
+			expectedErr: `The "key" attribute value must not be empty.`,
 		},
 		"key with leading slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -535,7 +535,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("/leading-slash"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `key must not start or end with '/'`,
+			expectedErr: `The "key" attribute value must not start or end with with "/".`,
 		},
 		"key with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -543,7 +543,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("trailing-slash/"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `key must not start or end with '/'`,
+			expectedErr: `The "key" attribute value must not start or end with with "/".`,
 		},
 		"null region": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -551,7 +551,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.NullVal(cty.String),
 			}),
-			expectedErr: `"region": required field is not set`,
+			expectedErr: `The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
 		},
 		"empty region": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -559,7 +559,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal(""),
 			}),
-			expectedErr: `"region": required field is not set`,
+			expectedErr: `The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
 		},
 		"workspace_key_prefix with leading slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -568,7 +568,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region":               cty.StringVal("us-west-2"),
 				"workspace_key_prefix": cty.StringVal("/env"),
 			}),
-			expectedErr: `workspace_key_prefix must not start or end with '/'`,
+			expectedErr: `The "workspace_key_prefix" attribute value must not start with "/".`,
 		},
 		"workspace_key_prefix with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -577,7 +577,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region":               cty.StringVal("us-west-2"),
 				"workspace_key_prefix": cty.StringVal("env/"),
 			}),
-			expectedErr: `workspace_key_prefix must not start or end with '/'`,
+			expectedErr: `The "workspace_key_prefix" attribute value must not start with "/".`,
 		},
 		"encyrption key conflict": {
 			config: cty.ObjectVal(map[string]cty.Value{
