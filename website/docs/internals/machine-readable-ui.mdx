@@ -11,7 +11,7 @@ description: >-
 
 By default, many Terraform commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
 
-For long-running commands such as `plan`, `apply`, and `refresh`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
+For long-running commands such as `plan`, `apply`, `refresh`, and `test`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
 
 The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
 value `"1.0"`. The semantics of this version are:
@@ -74,6 +74,17 @@ The following message types are supported:
 - `apply_start`, `apply_progress`, `apply_complete`, `apply_errored`: sequence of messages indicating progress of a single resource through apply
 - `provision_start`, `provision_progress`, `provision_complete`, `provision_errored`: sequence of messages indicating progress of a single provisioner step
 - `refresh_start`, `refresh_complete`: sequence of messages indicating progress of a single resource through refresh
+
+### Test Results
+
+- `test_abstract`: describes the test operation that will be executed
+- `test_file`: describes the status of a completed test file
+- `test_run`: describes the status of a completed `run` block within a test file
+- `test_cleanup`: describes the result of the test cleanup after a completed test file
+- `test_summary`: describes the overall status of the completed test operation
+- `test_plan`: describes the output of a given `run` block when `command = plan`
+- `test_state`: describes the output of a given `run` block when `command = apply`
+- `test_interrupt`: describes the result of an interrupted test operation
 
 ## Version Message
 
@@ -597,5 +608,303 @@ The `resource` object is a decomposed structure representing a resource address 
   "resource_type": "random_pet",
   "resource_name": "pet",
   "resource_key": "friend"
+}
+```
+
+## Test Abstract
+
+The `terraform test` command will emit a `test_abstract` message describing the test files and `run` blocks that will be executed during the upcoming operation.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Found 1 file and 2 run blocks",
+  "@module": "terraform.ui",
+  "@timestamp": "2023-08-09T16:12:30.325582+02:00",
+  "test_abstract": {
+    "validation.tftest.hcl": [
+      "passed_validation",
+      "failed_validatation"
+    ]
+  },
+  "type": "test_abstract"
+}
+```
+
+## Test File
+
+After each test file has completed execution, `terraform test` will emit a `test_file` message with the status of the test file.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "main.tftest.hcl... pass",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@timestamp": "2023-08-09T16:12:30.724368+02:00",
+  "test_file": {
+    "path": "validation.tftest.hcl",
+    "status": "pass"
+  },
+  "type": "test_file"
+}
+```
+
+## Test Run
+
+After each test file has completed execution, `terraform test` will emit a series of `test_run` messages with the status of each run block within that test file.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "  \"successful_validation\"... pass",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T16:12:30.724407+02:00",
+  "test_run": {
+    "path": "main.tftest.hcl",
+    "run": "successful_validation",
+    "status": "pass"
+  },
+  "type": "test_run"
+}
+```
+
+## Test Cleanup
+
+After each test file has completed execution, `terraform test` may emit a series of `test_cleanup` messages detailing any state that could not be destroyed. The resources listed in these messages will need to be located and destroyed manually.
+
+As the test framework can manage multiple state files for a given test file you may see multiple versions of this message, one for each state file that holds resources that could not be destroyed. Using the `@testrun` field you can pinpoint the run block that last updated the state file detailed by this message to help with locating the resources that could not be destroyed.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Terraform left some resources in state after executing main.tftest.hcl, they need to be cleaned up manually.",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T16:12:30.724407+02:00",
+  "test_cleanup": {
+    "failed_resources": [
+      {
+        "instance": "aws_instance.primary"
+      },
+      {
+         "instance": "aws_instance.secondary"
+      }
+    ]
+  },
+  "type": "test_cleanup"
+}
+```
+
+## Test Summary
+
+After the test operation has completed all test files, `terraform test` will emit a `test_summary` message with the status of the overall test operation.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "Success! 2 passed, 0 failed.",
+  "@module": "terraform.ui",
+  "@timestamp": "2023-08-09T16:26:45.482070+02:00",
+  "test_summary": {
+    "status": "pass",
+    "passed": 2,
+    "failed": 0,
+    "errored": 0,
+    "skipped": 0
+  },
+  "type": "test_summary"
+}
+```
+
+## Test Plan
+
+In `-verbose` mode, `terraform test` will emit a `test_plan` message for all `run` blocks that executed a plan operation.  The `test_plan` message content matches the format of the `terraform show -json <planfile>` command [output](/terraform/internals/json-format#plan-representation).
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "-verbose flag enabled, printing plan",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T17:10:06.211942+02:00",
+  "test_plan": {
+    "format_version": "1.2",
+    "terraform_version": "1.6.0",
+    "variables": {
+      "input": {
+        "value": "D208E38B-9F69-4A18-8839-D34869021AC4"
+      }
+    },
+    "planned_values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "aws_instance.primary",
+            "mode": "managed",
+            "type": "aws_instance",
+            "name": "primary",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {
+              "ami": "D208E38B-9F69-4A18-8839-D34869021AC4"
+            },
+            "sensitive_values": {}
+          }
+        ]
+      }
+    },
+    "resource_changes": [
+      {
+        "address": "aws_instance.primary",
+        "mode": "managed",
+        "type": "aws_instance",
+        "name": "primary",
+        "provider_name": "registry.terraform.io/hashicorp/aws",
+        "change": {
+          "actions": [
+            "create"
+          ],
+          "before": null,
+          "after": {
+              "ami": "D208E38B-9F69-4A18-8839-D34869021AC4"
+          },
+          "after_unknown": {},
+          "before_sensitive": false,
+          "after_sensitive": {}
+        }
+      }
+    ],
+    "configuration": {
+      "provider_config": {
+        "aws": {
+          "name": "aws",
+          "full_name": "registry.terraform.io/hashicorp/aws"
+        }
+      },
+      "root_module": {
+        "resources": [
+          {
+            "address": "aws_instance.primary",
+            "mode": "managed",
+            "type": "aws_instance",
+            "name": "primary",
+            "provider_config_key": "aws",
+            "expressions": {
+              "ami": {
+                "references": [
+                  "var.input"
+                ]
+              }
+            },
+            "schema_version": 0
+          }
+        ],
+        "variables": {
+          "input": {
+            "default": null
+          }
+        }
+      }
+    },
+    "timestamp": "2023-08-09T15:10:05Z",
+    "errored": false
+  },
+  "type": "test_plan"
+}
+```
+
+## Test State
+
+In `-verbose` mode, `terraform test` will emit a `test_state` message for all `run` blocks that executed an apply operation. The `test_state` message content matches the format of the `terraform show -json` command [output](/terraform/internals/json-format#state-representation).
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "-verbose flag enabled, printing state",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T17:18:21.173008+02:00",
+  "test_state": {
+    "format_version": "1.0",
+    "terraform_version": "1.6.0",
+    "values": {
+      "root_module": {
+        "resources": [
+          {
+            "address": "aws_instance.primary",
+            "mode": "managed",
+            "type": "aws_instance",
+            "name": "primary",
+            "provider_name": "registry.terraform.io/hashicorp/aws",
+            "schema_version": 0,
+            "values": {
+              "ami": "af84f887-e3eb-9e52-5f8b-8a2803734fd0"
+            },
+            "sensitive_values": {}
+          }
+        ]
+      }
+    }
+  },
+  "type": "test_state"
+}
+```
+
+## Test Interrupt
+
+When `terraform test` is interrupted or cancelled it will emit a `test_interrupt` message that describes the operation that was being completed when it was interrupted. This will include any state that could not be destroyed before exiting and any resources that were in the process of being created that may also have been left over.
+
+As with the [Test Cleanup](#test-cleanup) message, there is the potential for Terraform to have been maintaining multiple state files. The resources from the main state for the configuration under test is contained in the `state` field, while the `states` field contains a map from `run` block names to resources created by that `run` block that could not be destroyed.
+
+Finally, the `planned` field contains any resources that were in the process of being created by the `run` block that was interrupted, which is identified by the `@testrun` field.
+
+### Example
+
+```json
+{
+  "@level": "info",
+  "@message": "-verbose flag enabled, printing state",
+  "@module": "terraform.ui",
+  "@testfile": "validation.tftest.hcl",
+  "@testrun": "successful_validation",
+  "@timestamp": "2023-08-09T17:18:21.173008+02:00",
+  "test_interrupt": {
+    "state": [
+      {
+        "instance": "aws_instance.primary"
+      }
+    ],
+    "states": {
+      "unsuccessful_validation": [
+        {
+          "instance": "aws_instance.secondary"
+        }
+      ]
+    },
+    "planned": [
+      "aws_instance.secondary"
+    ]
+  },
+  "type": "test_interrupt"
 }
 ```

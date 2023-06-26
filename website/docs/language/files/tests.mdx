@@ -1,0 +1,21 @@
+---
+page_title: Test Files - Configuration Language
+description: >-
+  Learn how to write test files for validating your configuration and modules.
+---
+
+# Test Files
+
+Some commands, such as `test`, `init`, and `validate`, will also load Terraform test files for your configuration.
+
+These files contain specifications for Terraform test executions. For more information about the Terraform `test` command read [Command: `test`](/terraform/cli/commands/test). For more information about the syntax and Terraform test file language read [Tests - Configuration Language](/terraform/language/tests).
+
+## File Extension
+
+Terraform test files are discovered based on the file extensions `.tftest.hcl` and `.tftest.json`.
+
+## Test File Locations
+
+Terraform will always load all test files within your root configuration directory.
+
+Terraform will also load all test files within the testing directory. The testing directory can be overridden with the `-test-directory` flag on all commands that load test files. The default testing directory is `tests` relative to your configuration directory.

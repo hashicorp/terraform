@@ -1,0 +1,685 @@
+---
+page_title: Tests - Configuration Language
+description: >-
+  Write structured test code for validating your configuration.
+---
+
+# Tests
+
+-> **Note:** The current testing framework is available in Terraform v1.6.0 and later.
+
+Terraform tests allow authors to validate the functionality of their configuration in a safe environment and with repeatability.
+
+## Integration vs Unit testing
+
+By default, tests within Terraform create real infrastructure and can run assertions and validations against the created infrastructure. This can be imagined as integration testing, as the full Terraform stack is being executed and infrastructure being created.
+
+It is possible to override this behaviour by updating the `command` attribute within a [`run`](#run-blocks) block (discussed below). By default, the each `run` block executes with `command = apply` causing Terraform to execute a complete `apply` operation against your configuration. Replacing this with `command = plan` will ensure Terraform will not create any new infrastructure for this `run` block, and test authors can validate any logical operations and custom conditions within their infrastructure in a manner analogous to unit testing.
+
+## Syntax
+
+Each Terraform test is contained within a test file. Test files are discovered by Terraform due to their file extension: `.tftest.hcl` or `.tftest.json`.
+
+Each test file contains the following root level attributes and blocks:
+
+- Zero to one [`variables`](#variables) block.
+- Zero to many [`provider`](#providers) blocks.
+- One to many [`run`](#run-blocks) blocks.
+
+The `run` blocks are executed in order, simulating a series of Terraform commands being executed directly within the configuration directory. The order of the `variables` and `provider` blocks doesn't matter, all values within these blocks are processed once at the beginning of the test operation. A well laid out test file has the `variables` and `provider` blocks defined first, at the beginning of the file.
+
+### Example
+
+The following example demonstrates a simple Terraform configuration that creates an AWS S3 bucket, using an input variable to modify the name, combined with a test that verifies the name of the S3 bucket is as expected.
+
+```hcl
+# main.tf
+
+provider "aws" {
+    region = "eu-central-1"
+}
+
+variable "bucket_prefix" {
+  type = string
+}
+
+resource "aws_s3_bucket" "bucket" {
+  bucket = "${var.bucket_prefix}-bucket"
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.bucket.bucket
+}
+```
+
+```hcl
+# valid_string_concat.tftest.hcl
+
+variables {
+  bucket_prefix = "test"
+}
+
+run "valid_string_concat" {
+
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+
+}
+```
+
+The above test file runs a single Terraform plan command which creates the S3 bucket, and then validates the logic for calculating the name is correct by checking the actual name matches the expected name.
+
+## Run blocks
+
+Each `run` block has the following fields and blocks:
+
+- Zero to one `command` attribute, which is either `apply` or `plan` and defaults to `apply`.
+- Zero to one `plan_options` block, which contains:
+  - Zero to one `mode` attribute, which is either `normal` or `refresh-only` and defaults to `normal`.
+  - Zero to one boolean `refresh` attribute, which defaults to `true`.
+  - Zero to one `replace` attribute, which contains a list of resource addresses referencing resources within the configuration under test.
+  - Zero to one `target` attribute, which contains a list of resource addresses referencing resources within the configuration under test.
+- Zero to one [`variables`](#variables) block.
+- Zero to one [`module`](#modules) block.
+- Zero to one [`providers`](#providers) attribute.
+- Zero to many [`assert`](#assertions) blocks.
+- Zero to one [`expect_failures`](#expecting-failures) attribute.
+
+The `command` attribute and `plan_options` block tell Terraform which command and options to execute for each run block. The default operation, if neither the `command` attribute nor the `plan_options` block is specified is a normal Terraform apply operation.
+
+The `command` attribute is simple, stating whether the operation should be a [`plan`](/terraform/cli/commands/plan) or an [`apply`](/terraform/cli/commands/apply) operation.
+
+The `plan_options` block allows test authors to customize the [planning mode](/terraform/cli/commands/plan#planning-modes) and [planning options](/terraform/cli/commands/plan#planning-options) that would normally be edited via command-line flags and options. Note that the `-var` and `-var-file` options are discussed in the [Variables](#variables) section.
+
+### Assertions
+
+Terraform run block assertions are [Custom Conditions](/terraform/language/expressions/custom-conditions), made up of a [condition](/terraform/language/expressions/custom-conditions#condition-expressions) and an [error message](/terraform/language/expressions/custom-conditions#error-messages).
+
+At the conclusion of a Terraform test command execution, Terraform will present any failed assertions as part of a tests passed or failed status.
+
+#### Assertion References
+
+Assertions within tests can reference any existing [named values](/terraform/language/expressions/references) that would be available to other custom conditions within the main Terraform configuration.
+
+In addition, test assertions can directly reference outputs from the current `run` block and outputs from previous `run` blocks. From the [previous example](#example), this would be a valid condition: `condition = output.bucket_name == "test_bucket"`.
+
+## Variables
+
+You can provide values for [Input Variables](/terraform/language/values/variables) within your configuration directly from your test files.
+
+The test file syntax supports `variables` blocks at both the root level and within `run` blocks. Variable values provided within the file will be passed into all `run` blocks within the file, and can be overridden for a particular `run` block by the variable values provided with that `run` block.
+
+Continuing our [example](#example) from above:
+
+```hcl
+# variable_precedence.tftest.hcl
+
+variables {
+  bucket_prefix = "test"
+}
+
+run "uses_root_level_value" {
+
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+
+}
+
+run "overrides_root_level_value" {
+
+  command = plan
+
+  variables {
+    bucket_prefix = "other"
+  }
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "other-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+
+}
+```
+
+### Variables on the Command Line and Definition Files
+
+In addition to values provided via test files, the Terraform `test` command also supports the alternate input mechanisms supported by other commands.
+
+You can specify values for variables across all tests via the [Command Line](/terraform/language/values/variables#variables-on-the-command-line) and via [Variable Definition Files](/terraform/language/values/variables#variable-definitions-tfvars-files).
+
+This is particularly useful when supplying sensitive values, that would otherwise be exposed directly within the testing files, and for configuring providers.
+
+### Variable Definition Precedence
+
+The [Variable Definition Precedence](/terraform/language/values/variables#variable-definition-precedence) remains the same within tests, except for values provided by the `variables` within the test files. These new input methods take the highest precedence, so will override environment variables, variables files, or command-line input.
+
+### Variable References
+
+Variables defined within `run` blocks can refer to outputs from modules executed in earlier `run` blocks and to variables defined at higher precedence levels.
+
+For example, the following demonstrates referencing higher precedence variables and previous run blocks:
+
+```hcl
+variables {
+  global_value = "some value"
+}
+
+run "run_block_one" {
+  variables {
+    local_value = var.global_value
+  }
+
+  # ...
+  # Some test assertions should go here.
+  # ...
+}
+
+run "run_block_two" {
+  variables {
+    local_value = run.run_block_one.output_one
+  }
+
+  # ...
+  # Some test assertions should go here.
+  # ...
+}
+```
+
+You can see that the `local_value` in `run_block_one` would take its value from the `global_value` variable. This is useful if you ever need multiple variables to be assigned the same value, you can detail that value once at the file level and share it with the different variables.
+
+In comparison, `local_value` in `run_block_two` would take its value from whatever the module under test computed as the output value `output_one`. This is useful for passing values between `run` blocks, particularly when `run` are executing different modules as detailed in the [Modules](#modules) section.
+
+## Providers
+
+You can set or override the required providers within the main configuration from your testing files by using `provider` and `providers` blocks and attributes.
+
+At the root level of a Terraform testing file, [`provider` blocks](/terraform/language/providers/configuration) can be defined as if they were being created [within the main configuration](/terraform/language/providers). These provider blocks will then be passed into the configuration as each `run` block executes.
+
+By default, within each `run` block all defined providers will be made directly available. It is also possible to customize which providers are made available within a given `run` block using a `providers` attribute. The behaviour and syntax for this block matches the behaviour of [providers meta-argument](/terraform/language/meta-arguments/module-providers).
+
+If no provider configuration is provided within a testing file, Terraform will attempt to initialize any providers within the configuration using their default settings. For example, any environment variables aimed at configuring providers will still be available and will be used by Terraform to create default providers.
+
+Extending the previous [example](#example) to allow our tests, instead of the configuration, to specify the region:
+
+```hcl
+# main.tf
+
+terraform {
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+    }
+  }
+}
+
+variable "bucket_prefix" {
+  type = string
+}
+
+resource "aws_s3_bucket" "bucket" {
+  bucket = "${var.bucket_prefix}-bucket"
+}
+
+output "bucket_name" {
+  value = aws_s3_bucket.bucket.bucket
+}
+```
+
+```hcl
+# customised_provider.tftest.hcl
+
+provider "aws" {
+    region = "eu-central-1"
+}
+
+variables {
+  bucket_prefix = "test"
+}
+
+run "valid_string_concat" {
+
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.bucket.bucket == "test-bucket"
+    error_message = "S3 bucket name did not match expected"
+  }
+
+}
+```
+
+We can also create a more complex example, that makes use of multiple providers and aliases:
+
+```hcl
+# main.tf
+
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      configuration_aliases = [aws.secondary]
+    }
+  }
+}
+
+variable "bucket_prefix" {
+  default = "test"
+  type    = string
+}
+
+resource "aws_s3_bucket" "primary_bucket" {
+  bucket = "${var.bucket_prefix}-primary"
+}
+
+resource "aws_s3_bucket" "secondary_bucket" {
+  provider = aws.secondary
+  bucket   = "${var.bucket_prefix}-secondary"
+}
+```
+
+```hcl
+# customised_providers.tftest.hcl
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "secondary"
+  region = "eu-central-1"
+}
+
+run "providers" {
+
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.primary_bucket.bucket == "test-primary"
+    error_message = "invalid value for primary S3 bucket"
+  }
+
+  assert {
+    condition     = aws_s3_bucket.secondary_bucket.bucket == "test-secondary"
+    error_message = "invalid value for secondary S3 bucket"
+  }
+}
+```
+
+It is also possible to define specific providers you want to use in specific `run` blocks:
+
+```hcl
+# main.tf
+
+terraform {
+  required_providers {
+    aws = {
+      source                = "hashicorp/aws"
+      configuration_aliases = [aws.secondary]
+    }
+  }
+}
+
+data "aws_region" "primary" {}
+
+data "aws_region" "secondary" {
+  provider = aws.secondary
+}
+
+variable "bucket_prefix" {
+  default = "test"
+  type    = string
+}
+
+resource "aws_s3_bucket" "primary_bucket" {
+  bucket = "${var.bucket_prefix}-${data.aws_region.primary.name}-primary"
+}
+
+resource "aws_s3_bucket" "secondary_bucket" {
+  provider = aws.secondary
+  bucket   = "${var.bucket_prefix}-${data.aws_region.secondary.name}-secondary"
+}
+```
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "secondary"
+  region = "eu-central-1"
+}
+
+provider "aws" {
+  alias  = "tertiary"
+  region = "eu-west-2"
+}
+
+run "providers" {
+
+  command = plan
+
+  assert {
+    condition     = aws_s3_bucket.primary_bucket.bucket == "test-us-east-1-primary"
+    error_message = "invalid value for primary S3 bucket"
+  }
+
+  assert {
+    condition     = aws_s3_bucket.secondary_bucket.bucket == "test-eu-central-1-secondary"
+    error_message = "invalid value for secondary S3 bucket"
+  }
+}
+
+run "providers" {
+
+  command = plan
+
+  providers = {
+    aws           = aws
+    aws.secondary = aws.tertiary
+  }
+
+  assert {
+    condition     = aws_s3_bucket.primary_bucket.bucket == "test-us-east-1-primary"
+    error_message = "invalid value for primary S3 bucket"
+  }
+
+  assert {
+    condition     = aws_s3_bucket.secondary_bucket.bucket == "test-eu-west-2-secondary"
+    error_message = "invalid value for secondary S3 bucket"
+  }
+}
+```
+
+> **Note:** When running tests with `command = apply` switching providers between `run` blocks can result in failed operations and tests as resources created by one provider definition will be unusable when modified by a second.
+
+## Modules
+
+You can also modify the module that a given `run` block will execute.
+
+By default, Terraform will execute the given command against the configuration under test for each `run` block. The configuration under test is the configuration within the directory the `terraform test` command was executed from (or the directory pointed to by `-chdir` argument). Each `run` block also allows the user to change the targeted configuration using the `module` block.
+
+Compared with the traditional [`module` block](/terraform/language/modules/syntax), the `module` block within test files only supports the [`source`](/terraform/language/modules/syntax#source) attribute and the [`version`](/terraform/language/modules/syntax#version) attribute. The remaining attributes that would normally be supplied via the traditional `module` block are provided elsewhere within the `run` block.
+
+> **Note:** Terraform test files only support [local](/terraform/language/modules/sources#local-paths) and [registry](/terraform/language/modules/sources#terraform-registry) modules within the `source` attribute.
+
+All other blocks and attributes within the `run` block are supported when executing an alternate module, with `assert` blocks executing against values from the alternate module. This is discussed more in [Modules State](#modules-state).
+
+Here are two example use cases for the `modules` block within a Testing file:
+
+1. A setup module to create necessary infrastructure required by the main configuration under test.
+2. A loading module to load and validate secondary infrastructure (such as data sources) not created directly by the main configuration under test.
+
+The following example demonstrates both of these use cases:
+
+- We have a module that will create and load several files into an already created S3 bucket.
+    - This is the configuration we want to test.
+- We have a setup module that will create the S3 bucket, so it is available to the configuration under test.
+- We have a loading module, that will load the files in the s3 bucket
+    - This is a fairly contrived example, as it is definitely possible just to validate the files directly when they are created in the module under test. It is, however, good for demonstrating the use case.
+- Finally, we have the test file itself which configures everything and calls out to the various helper modules we have created.
+
+```hcl
+# main.tf
+
+variable "bucket" {
+  type = string
+}
+
+variable "files" {
+  type = map(string)
+}
+
+data "aws_s3_bucket" "bucket" {
+  bucket = var.bucket
+}
+
+resource "aws_s3_object" "object" {
+  for_each = var.files
+
+  bucket = data.aws_s3_bucket.bucket.id
+  key = each.key
+  source = each.value
+
+  etag = filemd5(each.value)
+}
+```
+
+```hcl
+# testing/setup/main.tf
+
+variable "bucket" {
+  type = string
+}
+
+resource "aws_s3_bucket" "bucket" {
+  bucket = var.bucket
+}
+```
+
+```hcl
+# testing/loader/main.tf
+
+variable "bucket" {
+  type = string
+}
+
+data "aws_s3_objects" "objects" {
+  bucket = var.bucket
+}
+```
+
+```hcl
+# file_count.tftest.hcl
+
+variables {
+  bucket = "my_test_bucket"
+  files = {
+    "file-one.txt": "data/files/file_one.txt"
+    "file-two.txt": "data/files/file_two.txt"
+  }
+}
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+run "setup" {
+  # Create the S3 bucket we will use later.
+
+  module {
+    source = "./testing/setup"
+  }
+}
+
+run "execute" {
+  # This is empty, we just run the configuration under test using all the default settings.
+}
+
+run "verify" {
+  # Load and count the objects created in the "execute" run block.
+
+  module {
+    source = "./testing/loader"
+  }
+
+  assert {
+    condition = length(data.aws_s3_objects.objects.keys) == 2
+    error_message = "created the wrong number of s3 objects"
+  }
+}
+```
+
+### Modules State
+
+During a `terraform test` execution Terraform will maintain at least one but possibly many state files within memory for each test file it executes.
+
+There is always at least one state file that maintains the state of the main configuration under test. This is shared by all `run` blocks that execute without a `module` block specifying an alternate module to load.
+
+In addition, there is one state file per alternate module loaded. An alternate module state file is shared by all `run` blocks that execute the given module.
+
+The Terraform team is interested in any use cases that would require manual state management, or the ability to execute different configurations against the same state, within the `test` command. If you have a use case for this please file an [issue](https://github.com/hashicorp/terraform/issues/new/choose) and share it with us.
+
+The following example uses comments to highlight where the state files for each `run` block are coming from. During the example a total of three state files will be created and managed, one for the main configuration under test, one for the setup module, and one for the loader module.
+
+```hcl
+run "setup" {
+
+  # This run block references an alternate module and is the first run block
+  # to reference this particular alternate module. Therefore, a new empty state
+  # file will be created and populated for this run block.
+
+  module {
+    source = "./testing/setup"
+  }
+}
+
+run "init" {
+
+  # This run block does not reference an alternate module so uses the main state
+  # file for the configuration under test. As this is the first run block to
+  # reference the main configuration, the state file would be empty to begin
+  # with and contain the resources created by this run block after.
+
+  assert {
+    # In practice we'd do some interesting checks and tests here but the
+    # assertions aren't important for this example.
+  }
+
+  # ... more assertions ...
+}
+
+run "update_setup" {
+
+  # We've now re-referenced the setup module, so the state file that was created
+  # for the first "setup" run block will be reused. It will contain any
+  # resources that were created as part of the other run block before this run
+  # block executes and will be updated with any changes made by this run block
+  # after.
+
+  module {
+    source = "./testing/setup"
+  }
+
+  variables {
+    # In practice, we'd likely make some changes to the module compared to the
+    # first run block here. Otherwise there would be no point recalling the
+    # module. However, the concrete changes aren't important to this example.
+  }
+}
+
+run "update" {
+
+  # As with the "init" run block we are executing against the main configuration
+  # again. This means we'd load the main state file that was initially populated
+  # by the "init" run block, and any changes made by this "run" block will be
+  # carried forward to any future run blocks that execute against the main
+  # configuration.
+
+  # ... updated variables ...
+
+  # ... assertions ...
+}
+
+run "loader" {
+
+  # This run block is now referencing our second alternate module so will create
+  # our third and final state file. The other two state files are managing
+  # resources from the main configuration and resources from the setup module.
+  # We are getting a new state file for this run block as the loader module has
+  # not previously been referenced by any run blocks.
+
+  module {
+    source = "./testing/loader"
+  }
+}
+
+```
+
+#### Modules Cleanup
+
+At the conclusion of a test file, Terraform will attempt to destroy every resource created during the execution of that test file. When alternate modules are loaded, the order in which objects are destroyed is important. For example, in our first [Modules](#modules) example earlier we cannot destroy the resources created in the "setup" `run` block before the objects created in the "execute" `run` block, as S3 bucket created in the "setup" step cannot be destroyed while it contains objects.
+
+Terraform will destroy resources in the following order, and this order is important as it may affect the structure of your testing files:
+
+1. Destroy the resources held in the main state file first, so you should not create resources in alternate modules that depend on resources from your main configuration.
+    - Note that data sources can refer to objects in your main configuration, as Terraform doesn't have to destroy data sources.
+2. Destroy the resources created by alternate modules in `run` block reverse order.
+    - From our example, any resources created in the "verify" `run` block would be destroyed before resources created in the "setup" `run` block. Note, that in our example this doesn't particularly matter as our "verify" `run` block only loads a data source and creates no resources.
+
+If you only use a single setup module as an alternate module, and it executes first, or you use no alternate modules, then the order of destruction will not affect you. Anything more complex may require careful consideration to make sure the destruction of created resources can complete automatically.
+
+## Expecting Failures
+
+By default, if any [Custom Conditions](/terraform/language/expressions/custom-conditions), including `check` block assertions, fail during the execution of a Terraform test file then the overall command will report the test as a failure. It is a common testing paradigm, however, to want to test failure cases. Terraform supports the `expect_failures` attribute for this use case.
+
+In each `run` block the `expect_failures` attribute can provide a list of checkable objects (resources, data sources, check blocks, input variables, and outputs) that should fail their custom conditions. The test will then pass overall if these checkable objects report an issue, while the test will fail overall if they do not report an issue.
+
+You can still write assertions alongside an `expect_failures` block, but you should be mindful that all custom conditions, except check block assertions, halt the execution of Terraform. This still applies during test execution, so your assertions should only consider values that you are sure will be computed before the checkable object is due to fail. This can be managed via references or the `depends_on` meta-argument within your main configuration.
+
+This also means that, with the exception of `check` blocks, only a single checkable object can be reliably included. We support a list of checkable objects within the `expect_failures` attribute purely for `check` blocks.
+
+A quick example here demonstrates testing the `validation` block on an input variable.
+
+```hcl
+# main.tf
+
+variable "input" {
+  type = number
+
+  validation {
+    condition = var.input % 2 == 0
+    error_message = "must by even number"
+  }
+}
+```
+
+```hcl
+# input_validation.tftest.hcl
+
+variables {
+  input = 0
+}
+
+run "zero" {
+  # The variable defined above is even, so we expect the validation to pass.
+
+  command = plan
+}
+
+run "one" {
+  # This time we set the variable is odd, so we expect the validation to fail.
+
+  command = plan
+
+  variables {
+    input = 1
+  }
+
+  expect_failures = [
+    var.input,
+  ]
+}
+```
+
+>> **Note**: Failures are only expected in the operation specified by the `command` attribute of the `run` block.
+
+This means you should be careful when using `expect_failures` in `run` blocks with `command = apply`. A `run` block with `command = apply` that expects a custom condition failure will fail overall if that custom condition fails during the plan.
+
+This is logically consistent, as the `run` block is expecting to be able to run an apply operation but cannot as the plan failed. It is also potentially confusing, as you will see the failure reported in the diagnostics as the reason the test failed even though that failure was marked as being expected.
+
+There are instances when a custom condition will not be executed during the planning stage as it is relying on computed attributes only available after a referenced resource has been created. In these cases an `expect_failures` block alongside a `command = apply` attribute and value would be expected and acceptable. However, in most cases you should ensure that `expect_failures` are used only alongside `command = plan` operations.
+
+>> **Note**: Expected failures only apply to user-defined custom conditions.
+
+This means that any other kind of failure in a specified checkable object will still result in the overall test failing. For example, a variable that expects a boolean value as input will fail the surrounding test if the wrong kind of value is provided even if that variable is included in an `expect_failures` attribute.
+
+The `expect_failures` attribute is included to allow authors to test their configuration and any logic defined within. A type mismatch, as in the previous example, is not something Terraform authors should have to worry about testing as Terraform itself will handle enforce type constraints. As such, you can only `expect_failures` in custom conditions.

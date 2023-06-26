@@ -244,6 +244,13 @@
     ]
   },
   {
+    "title": "Testing Terraform",
+    "routes": [
+      { "title": "Overview", "path": "test" },
+      { "title":  "<code>test<code>", "href": "/cli/commands/test"}
+    ]
+  },
+  {
     "title": "Automating Terraform",
     "routes": [
       {
@@ -320,10 +327,7 @@
         "href": "/cli/commands/state/show"
       },
       { "title": "<code>taint</code>", "href": "/cli/commands/taint" },
-      {
-        "title": "<code>test (deprecated)</code>",
-        "href": "/cli/commands/test"
-      },
+      { "title": "<code>test</code>", "href": "/cli/commands/test" },
       { "title": "<code>untaint</code>", "href": "/cli/commands/untaint" },
       { "title": "<code>validate</code>", "href": "/cli/commands/validate" },
       { "title": "<code>version</code>", "href": "/cli/commands/version" },
@@ -406,7 +410,7 @@
         ]
       },
       { "title": "taint", "path": "commands/taint" },
-      { "title": "test (deprecated)", "path": "commands/test", "hidden": true },
+      { "title": "test", "path": "commands/test" },
       { "title": "untaint", "path": "commands/untaint" },
       { "title": "validate", "path": "commands/validate" },
       { "title": "version", "path": "commands/version" },
