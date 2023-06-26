@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 // Apply performs the actions described by the given Plan object and returns
@@ -176,6 +177,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 		Targets:            plan.TargetAddrs,
 		ForceReplace:       plan.ForceReplaceAddrs,
 		Operation:          operation,
+		ExternalReferences: plan.ExternalReferences,
 	}).Build(addrs.RootModuleInstance)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
