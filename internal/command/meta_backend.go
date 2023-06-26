@@ -292,7 +292,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	}
 
 	workspace = workspaces[idx-1]
-	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workpace according to user selection (%s)", workspace)
+	log.Printf("[TRACE] Meta.selectWorkspace: setting the current workspace according to user selection (%s)", workspace)
 	return m.SetWorkspace(workspace)
 }
 
@@ -353,6 +353,10 @@ func (m *Meta) BackendForPlan(settings plans.Backend) (backend.Enhanced, tfdiags
 	// then return that as-is. This works even if b == nil (it will be !ok).
 	if enhanced, ok := b.(backend.Enhanced); ok {
 		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
 		return enhanced, nil
 	}
 
@@ -832,6 +836,17 @@ func (m *Meta) backendFromState() (backend.Backend, tfdiags.Diagnostics) {
 		return nil, diags
 	}
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+	}
+
 	return b, diags
 }
 
@@ -1278,6 +1293,17 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 		return nil, diags
 	}
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, diags
+		}
+	}
+
 	return b, diags
 }
 
@@ -1406,7 +1432,34 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 	configureDiags := b.Configure(newVal)
 	diags = diags.Append(configureDiags.InConfigBody(c.Config, ""))
 
+	// If the result of loading the backend is an enhanced backend,
+	// then set up enhanced backend service aliases.
+	if enhanced, ok := b.(backend.Enhanced); ok {
+		log.Printf("[TRACE] Meta.BackendForPlan: backend %T supports operations", b)
+		if err := m.setupEnhancedBackendAliases(enhanced); err != nil {
+			diags = diags.Append(err)
+			return nil, cty.NilVal, diags
+		}
+	}
+
 	return b, configVal, diags
+}
+
+// Helper method to get aliases from the enhanced backend and alias them
+// in the Meta service discovery. It's unfortunate that the Meta backend
+// is modifying the service discovery at this level, but the owner
+// of the service discovery pointer does not have easy access to the backend.
+func (m *Meta) setupEnhancedBackendAliases(b backend.Enhanced) error {
+	// Set up the service discovery aliases specified by the enhanced backend.
+	serviceAliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		return err
+	}
+
+	for _, alias := range serviceAliases {
+		m.Services.Alias(alias.From, alias.To)
+	}
+	return nil
 }
 
 // Helper method to ignore remote/cloud backend version conflicts. Only call this

@@ -204,21 +204,26 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	return obj, diags
 }
 
-// configureGenericHostname aliases the cloud backend hostname configuration
-// as a generic "localterraform.com" hostname. This was originally added as a
-// Terraform Enterprise feature and is useful for re-using whatever the
-// Cloud/Enterprise backend host is in nested module sources in order
-// to prevent code churn when re-using config between multiple
-// Terraform Enterprise environments.
-func (b *Cloud) configureGenericHostname() {
-	// This won't be an error for the given constant value
-	genericHost, _ := svchost.ForComparison(genericHostname)
+func (b *Cloud) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
+	aliasHostname, err := svchost.ForComparison(genericHostname)
+	if err != nil {
+		// This should never happen because the hostname is statically defined.
+		return nil, fmt.Errorf("failed to create backend alias from alias %q. The hostname is not in the correct format. This is a bug in the backend", genericHostname)
+	}
 
-	// This won't be an error because, by this time, the hostname has been parsed and
-	// service discovery requests made against it.
-	targetHost, _ := svchost.ForComparison(b.hostname)
+	targetHostname, err := svchost.ForComparison(b.hostname)
+	if err != nil {
+		// This should never happen because the 'to' alias is the backend host, which has
+		// already been ev
+		return nil, fmt.Errorf("failed to create backend alias to target %q. The hostname is not in the correct format.", b.hostname)
+	}
 
-	b.services.Alias(genericHost, targetHost)
+	return []backend.HostAlias{
+		{
+			From: aliasHostname,
+			To:   targetHostname,
+		},
+	}, nil
 }
 
 // Configure implements backend.Enhanced.
@@ -287,7 +292,6 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	b.token = token
-	b.configureGenericHostname()
 
 	if b.client == nil {
 		cfg := &tfe.Config{
