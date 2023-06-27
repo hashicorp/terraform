@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +21,6 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/mitchellh/copystructure"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	tfversion "github.com/hashicorp/terraform/version"
 )
 
@@ -468,13 +466,13 @@ func (m *MockOrganizations) ReadRunQueue(ctx context.Context, name string, optio
 
 type MockRedactedPlans struct {
 	client        *MockClient
-	redactedPlans map[string]*jsonformat.Plan
+	redactedPlans map[string][]byte
 }
 
 func newMockRedactedPlans(client *MockClient) *MockRedactedPlans {
 	return &MockRedactedPlans{
 		client:        client,
-		redactedPlans: make(map[string]*jsonformat.Plan),
+		redactedPlans: make(map[string][]byte),
 	}
 }
 
@@ -495,23 +493,17 @@ func (m *MockRedactedPlans) create(cvID, workspaceID, planID string) error {
 		return err
 	}
 
-	raw, err := ioutil.ReadAll(redactedPlanFile)
+	raw, err := io.ReadAll(redactedPlanFile)
 	if err != nil {
 		return err
 	}
 
-	redactedPlan := &jsonformat.Plan{}
-	err = json.Unmarshal(raw, redactedPlan)
-	if err != nil {
-		return err
-	}
-
-	m.redactedPlans[planID] = redactedPlan
+	m.redactedPlans[planID] = raw
 
 	return nil
 }
 
-func (m *MockRedactedPlans) Read(ctx context.Context, hostname, token, planID string) (*jsonformat.Plan, error) {
+func (m *MockRedactedPlans) Read(ctx context.Context, hostname, token, planID string) ([]byte, error) {
 	if p, ok := m.redactedPlans[planID]; ok {
 		return p, nil
 	}

@@ -26,7 +26,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -264,7 +263,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 	}
 	baseURL.Path = "/api/v2/"
 
-	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) ([]byte, error) {
 		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
@@ -332,7 +331,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	}
 	baseURL.Path = "/api/v2/"
 
-	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) ([]byte, error) {
 		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
