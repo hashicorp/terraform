@@ -201,9 +201,13 @@ func TestShow_argsPlanFileDoesNotExist(t *testing.T) {
 	}
 
 	got := output.Stderr()
-	want := `Plan read error: open doesNotExist.tfplan:`
-	if !strings.Contains(got, want) {
-		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	want1 := `Plan read error: couldn't load the provided path`
+	want2 := `open doesNotExist.tfplan: no such file or directory`
+	if !strings.Contains(got, want1) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want1)
+	}
+	if !strings.Contains(got, want2) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want2)
 	}
 }
 
@@ -256,9 +260,13 @@ func TestShow_json_argsPlanFileDoesNotExist(t *testing.T) {
 	}
 
 	got := output.Stderr()
-	want := `Plan read error: open doesNotExist.tfplan:`
-	if !strings.Contains(got, want) {
-		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want)
+	want1 := `Plan read error: couldn't load the provided path`
+	want2 := `open doesNotExist.tfplan: no such file or directory`
+	if !strings.Contains(got, want1) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want1)
+	}
+	if !strings.Contains(got, want2) {
+		t.Errorf("unexpected output\ngot: %s\nwant:\n%s", got, want2)
 	}
 }
 
