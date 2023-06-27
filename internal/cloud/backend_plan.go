@@ -509,9 +509,13 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return err
 	}
 	if renderSRO || shouldGenerateConfig {
-		redactedPlan, err = readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
 		if err != nil {
 			return generalError("Failed to read JSON plan", err)
+		}
+		redactedPlan, err = decodeRedactedPlan(jsonBytes)
+		if err != nil {
+			return generalError("Failed to decode JSON plan", err)
 		}
 	}
 
