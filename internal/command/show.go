@@ -4,11 +4,14 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
@@ -24,6 +27,7 @@ import (
 // contents of a Terraform plan or state file.
 type ShowCommand struct {
 	Meta
+	viewType arguments.ViewType
 }
 
 func (c *ShowCommand) Run(rawArgs []string) int {
@@ -38,6 +42,7 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 		c.View.HelpPrompt("show")
 		return 1
 	}
+	c.viewType = args.ViewType
 
 	// Set up view
 	view := views.NewShow(args.ViewType, c.View)
@@ -51,7 +56,7 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 	}
 
 	// Get the data we need to display
-	plan, stateFile, config, schemas, showDiags := c.show(args.Path)
+	plan, jsonPlan, stateFile, config, schemas, showDiags := c.show(args.Path)
 	diags = diags.Append(showDiags)
 	if showDiags.HasErrors() {
 		view.Diagnostics(diags)
@@ -59,7 +64,7 @@ func (c *ShowCommand) Run(rawArgs []string) int {
 	}
 
 	// Display the data
-	return view.Display(config, plan, stateFile, schemas)
+	return view.Display(config, plan, jsonPlan, stateFile, schemas)
 }
 
 func (c *ShowCommand) Help() string {
@@ -83,9 +88,10 @@ func (c *ShowCommand) Synopsis() string {
 	return "Show the current state or a saved plan"
 }
 
-func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.Config, *terraform.Schemas, tfdiags.Diagnostics) {
+func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, *terraform.Schemas, tfdiags.Diagnostics) {
 	var diags, showDiags tfdiags.Diagnostics
 	var plan *plans.Plan
+	var jsonPlan *cloudplan.RemotePlanJSON
 	var stateFile *statefile.File
 	var config *configs.Config
 	var schemas *terraform.Schemas
@@ -96,7 +102,7 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.
 		stateFile, showDiags = c.showFromLatestStateSnapshot()
 		diags = diags.Append(showDiags)
 		if showDiags.HasErrors() {
-			return plan, stateFile, config, schemas, diags
+			return plan, jsonPlan, stateFile, config, schemas, diags
 		}
 	}
 
@@ -104,10 +110,10 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.
 	// so try to load the argument as a plan file first.
 	// If that fails, try to load it as a statefile.
 	if path != "" {
-		plan, stateFile, config, showDiags = c.showFromPath(path)
+		plan, jsonPlan, stateFile, config, showDiags = c.showFromPath(path)
 		diags = diags.Append(showDiags)
 		if showDiags.HasErrors() {
-			return plan, stateFile, config, schemas, diags
+			return plan, jsonPlan, stateFile, config, schemas, diags
 		}
 	}
 
@@ -115,11 +121,11 @@ func (c *ShowCommand) show(path string) (*plans.Plan, *statefile.File, *configs.
 	if config != nil || stateFile != nil {
 		schemas, diags = c.MaybeGetSchemas(stateFile.State, config)
 		if diags.HasErrors() {
-			return plan, stateFile, config, schemas, diags
+			return plan, jsonPlan, stateFile, config, schemas, diags
 		}
 	}
 
-	return plan, stateFile, config, schemas, diags
+	return plan, jsonPlan, stateFile, config, schemas, diags
 }
 func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -149,17 +155,19 @@ func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Di
 	return stateFile, diags
 }
 
-func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *statefile.File, *configs.Config, tfdiags.Diagnostics) {
+func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var planErr, stateErr error
 	var plan *plans.Plan
+	var jsonPlan *cloudplan.RemotePlanJSON
 	var stateFile *statefile.File
 	var config *configs.Config
 
-	// Try to get the plan file and associated data from
-	// the path argument. If that fails, try to get the
-	// statefile from the path argument.
-	plan, stateFile, config, planErr = getPlanFromPath(path)
+	// Path might be a local plan file, a bookmark to a saved cloud plan, or a
+	// state file. First, try to get a plan and associated data from a local
+	// plan file. If that fails, try to get a json plan from the path argument.
+	// If that fails, try to get the statefile from the path argument.
+	plan, jsonPlan, stateFile, config, planErr = c.getPlanFromPath(path)
 	if planErr != nil {
 		stateFile, stateErr = getStateFromPath(path)
 		if stateErr != nil {
@@ -170,21 +178,57 @@ func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *statefile.File, *
 					fmt.Sprintf("State read error: %s\n\nPlan read error: %s", stateErr, planErr),
 				),
 			)
-			return nil, nil, nil, diags
+			return nil, nil, nil, nil, diags
 		}
 	}
-	return plan, stateFile, config, diags
+	return plan, jsonPlan, stateFile, config, diags
 }
 
-// getPlanFromPath returns a plan, statefile, and config if the user-supplied
-// path points to a plan file. If both plan and error are nil, the path is likely
-// a directory. An error could suggest that the given path points to a statefile.
-func getPlanFromPath(path string) (*plans.Plan, *statefile.File, *configs.Config, error) {
-	planReader, err := planfile.Open(path)
+// getPlanFromPath returns a plan, json plan, statefile, and config if the
+// user-supplied path points to either a local or cloud plan file. Note that
+// some of the return values will be nil no matter what; local plan files do not
+// yield a json plan, and cloud plans do not yield real plan/state/config
+// structs. An error generally suggests that the given path is either a
+// directory or a statefile.
+func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, error) {
+	var err error
+	var plan *plans.Plan
+	var jsonPlan *cloudplan.RemotePlanJSON
+	var stateFile *statefile.File
+	var config *configs.Config
+
+	pf, err := planfile.OpenWrapped(path)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	if lp, ok := pf.Local(); ok {
+		plan, stateFile, config, err = getDataFromPlanfileReader(lp)
+	} else if cp, ok := pf.Cloud(); ok {
+		redacted := c.viewType != arguments.ViewJSON
+		jsonPlan, err = c.getDataFromCloudPlan(cp, redacted)
+	}
+
+	return plan, jsonPlan, stateFile, config, err
+}
+
+func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
+	// Set up the backend
+	b, backendDiags := c.Backend(nil)
+	if backendDiags.HasErrors() {
+		return nil, backendDiags.Err()
+	}
+	// Cloud plans only work if we're cloud.
+	cl, ok := b.(*cloud.Cloud)
+	if !ok {
+		return nil, fmt.Errorf("can't show a saved cloud plan unless the current root module is connected to Terraform Cloud")
+	}
+
+	return cl.ShowPlanForRun(context.Background(), plan.RunID, plan.Hostname, redacted)
+}
+
+// getDataFromPlanfileReader returns a plan, statefile, and config, extracted from a local plan file.
+func getDataFromPlanfileReader(planReader *planfile.Reader) (*plans.Plan, *statefile.File, *configs.Config, error) {
 	// Get plan
 	plan, err := planReader.ReadPlan()
 	if err != nil {
