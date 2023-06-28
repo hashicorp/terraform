@@ -225,7 +225,7 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 	c.View.Diagnostics(diags)
 
 	for _, run := range file.Runs {
-		view.Run(run)
+		view.Run(run, file)
 	}
 }
 
