@@ -87,23 +87,23 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
+	// If the run errored, exit before checking whether to save a plan file
 	run, err := b.plan(stopCtx, cancelCtx, op, w)
-
-	// Save plan even if the run errored, as long as it actually exists
-	if run != nil && run.ID != "" && op.PlanOutPath != "" {
-		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
-		saveErr := bookmark.Save(op.PlanOutPath)
-		// Maybe combine errors
-		if err != nil && saveErr != nil {
-			err = fmt.Errorf("%w\nAdditionally, an error occurred when saving the plan: %s", err, saveErr.Error())
-		} else if err == nil {
-			err = saveErr
-		}
+	if err != nil {
+		return run, err
 	}
 
-	// Cloud integration currently doesn't support genconfig, but we might have
-	// saved a cloud plan file.
-	op.View.PlanNextStep(op.PlanOutPath, "")
+	// Maybe save plan file
+	if op.PlanOutPath != "" {
+		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
+		err = bookmark.Save(op.PlanOutPath)
+	}
+
+	// Only display next steps if everything succeeded
+	if err == nil {
+		// Cloud currently supports plan -out but not genconfig
+		op.View.PlanNextStep(op.PlanOutPath, "")
+	}
 
 	return run, err
 }
