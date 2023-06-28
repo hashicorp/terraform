@@ -5,8 +5,10 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -527,11 +529,14 @@ something bad happened during this test
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
+			file := &moduletest.File{
+				Name: "main.tftest",
+			}
 
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			view.Run(tc.Run)
+			view.Run(tc.Run, file)
 
 			output := done(t)
 			actual, expected := output.Stdout(), tc.StdOut
@@ -543,6 +548,1449 @@ something bad happened during this test
 			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
 				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
 			}
+		})
+	}
+}
+
+func TestTestHuman_DestroySummary(t *testing.T) {
+	tcs := map[string]struct {
+		diags  tfdiags.Diagnostics
+		file   *moduletest.File
+		state  *states.State
+		stdout string
+		stderr string
+	}{
+		"empty": {
+			diags: nil,
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+		},
+		"empty_state_only_warnings": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "some thing not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "some thing not very bad happened again"),
+			},
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+			stdout: `
+Warning: first warning
+
+some thing not very bad happened
+
+Warning: second warning
+
+some thing not very bad happened again
+`,
+		},
+		"empty_state_with_errors": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "some thing not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "some thing not very bad happened again"),
+				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
+			},
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+			stdout: `
+Warning: first warning
+
+some thing not very bad happened
+
+Warning: second warning
+
+some thing not very bad happened again
+`,
+			stderr: `Terraform encountered an error destroying resources created while executing main.tftest.
+
+Error: first error
+
+this time it is very bad
+`,
+		},
+		"state_only_warnings": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "some thing not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "some thing not very bad happened again"),
+			},
+			file: &moduletest.File{Name: "main.tftest"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceDeposed(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					"0fcb640a",
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			stdout: `
+Warning: first warning
+
+some thing not very bad happened
+
+Warning: second warning
+
+some thing not very bad happened again
+`,
+			stderr: `
+Terraform left the following resources in state after executing main.tftest, they need to be cleaned up manually:
+  - test.bar
+  - test.bar (0fcb640a)
+  - test.foo
+`,
+		},
+		"state_with_errors": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "some thing not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "some thing not very bad happened again"),
+				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
+			},
+			file: &moduletest.File{Name: "main.tftest"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceDeposed(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					"0fcb640a",
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			stdout: `
+Warning: first warning
+
+some thing not very bad happened
+
+Warning: second warning
+
+some thing not very bad happened again
+`,
+			stderr: `Terraform encountered an error destroying resources created while executing main.tftest.
+
+Error: first error
+
+this time it is very bad
+
+Terraform left the following resources in state after executing main.tftest, they need to be cleaned up manually:
+  - test.bar
+  - test.bar (0fcb640a)
+  - test.foo
+`,
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewHuman, NewView(streams))
+
+			view.DestroySummary(tc.diags, tc.file, tc.state)
+
+			output := done(t)
+			actual, expected := output.Stdout(), tc.stdout
+			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+			}
+
+			actual, expected = output.Stderr(), tc.stderr
+			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+			}
+		})
+	}
+}
+
+func TestTestJSON_Abstract(t *testing.T) {
+	tcs := map[string]struct {
+		suite *moduletest.Suite
+		want  []map[string]interface{}
+	}{
+		"single": {
+			suite: &moduletest.Suite{
+				Files: map[string]*moduletest.File{
+					"main.tftest": {
+						Runs: []*moduletest.Run{
+							{
+								Name: "setup",
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Found 1 file and 1 run block",
+					"@module":  "terraform.ui",
+					"test_abstract": map[string]interface{}{
+						"main.tftest": []interface{}{
+							"setup",
+						},
+					},
+					"type": "test_abstract",
+				},
+			},
+		},
+		"plural": {
+			suite: &moduletest.Suite{
+				Files: map[string]*moduletest.File{
+					"main.tftest": {
+						Runs: []*moduletest.Run{
+							{
+								Name: "setup",
+							},
+							{
+								Name: "test",
+							},
+						},
+					},
+					"other.tftest": {
+						Runs: []*moduletest.Run{
+							{
+								Name: "test",
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Found 2 files and 3 run blocks",
+					"@module":  "terraform.ui",
+					"test_abstract": map[string]interface{}{
+						"main.tftest": []interface{}{
+							"setup",
+							"test",
+						},
+						"other.tftest": []interface{}{
+							"test",
+						},
+					},
+					"type": "test_abstract",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			view.Abstract(tc.suite)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJSON_Conclusion(t *testing.T) {
+	tcs := map[string]struct {
+		suite *moduletest.Suite
+		want  []map[string]interface{}
+	}{
+		"no tests": {
+			suite: &moduletest.Suite{},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Executed 0 tests.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "pending",
+						"errored": 0.0,
+						"failed":  0.0,
+						"passed":  0.0,
+						"skipped": 0.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"only skipped tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Skip,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Skip,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Executed 0 tests, 6 skipped.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "skip",
+						"errored": 0.0,
+						"failed":  0.0,
+						"passed":  0.0,
+						"skipped": 6.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"only passed tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Pass,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Pass,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Pass,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Success! 6 passed, 0 failed.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "pass",
+						"errored": 0.0,
+						"failed":  0.0,
+						"passed":  6.0,
+						"skipped": 0.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"passed and skipped tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Pass,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Pass,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Pass,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Success! 4 passed, 0 failed, 2 skipped.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "pass",
+						"errored": 0.0,
+						"failed":  0.0,
+						"passed":  4.0,
+						"skipped": 2.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"only failed tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Fail,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Failure! 0 passed, 6 failed.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "fail",
+						"errored": 0.0,
+						"failed":  6.0,
+						"passed":  0.0,
+						"skipped": 0.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"failed and skipped tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Fail,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Failure! 0 passed, 4 failed, 2 skipped.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "fail",
+						"errored": 0.0,
+						"failed":  4.0,
+						"passed":  0.0,
+						"skipped": 2.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"failed, passed and skipped tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Fail,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Pass,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Failure! 2 passed, 2 failed, 2 skipped.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "fail",
+						"errored": 0.0,
+						"failed":  2.0,
+						"passed":  2.0,
+						"skipped": 2.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"failed and errored tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Error,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Error,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Error,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Error,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Fail,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Error,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Error,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Failure! 0 passed, 6 failed.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "error",
+						"errored": 3.0,
+						"failed":  3.0,
+						"passed":  0.0,
+						"skipped": 0.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+
+		"failed, errored, passed, and skipped tests": {
+			suite: &moduletest.Suite{
+				Status: moduletest.Error,
+				Files: map[string]*moduletest.File{
+					"descriptive_test_name.tftest": {
+						Name:   "descriptive_test_name.tftest",
+						Status: moduletest.Fail,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Pass,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Fail,
+							},
+						},
+					},
+					"other_descriptive_test_name.tftest": {
+						Name:   "other_descriptive_test_name.tftest",
+						Status: moduletest.Error,
+						Runs: []*moduletest.Run{
+							{
+								Name:   "test_one",
+								Status: moduletest.Error,
+							},
+							{
+								Name:   "test_two",
+								Status: moduletest.Skip,
+							},
+							{
+								Name:   "test_three",
+								Status: moduletest.Skip,
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":   "info",
+					"@message": "Failure! 2 passed, 2 failed, 2 skipped.",
+					"@module":  "terraform.ui",
+					"test_summary": map[string]interface{}{
+						"status":  "error",
+						"errored": 1.0,
+						"failed":  1.0,
+						"passed":  2.0,
+						"skipped": 2.0,
+					},
+					"type": "test_summary",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			view.Conclusion(tc.suite)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJSON_DestroySummary(t *testing.T) {
+	tcs := map[string]struct {
+		file  *moduletest.File
+		state *states.State
+		diags tfdiags.Diagnostics
+		want  []map[string]interface{}
+	}{
+		"empty_state_only_warnings": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "something not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "something not very bad happened again"),
+			},
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+			want: []map[string]interface{}{
+				{
+					"@level":    "warn",
+					"@message":  "Warning: first warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened",
+						"severity": "warning",
+						"summary":  "first warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: second warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened again",
+						"severity": "warning",
+						"summary":  "second warning",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+		"empty_state_with_errors": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "something not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "something not very bad happened again"),
+				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
+			},
+			file:  &moduletest.File{Name: "main.tftest"},
+			state: states.NewState(),
+			want: []map[string]interface{}{
+				{
+					"@level":    "warn",
+					"@message":  "Warning: first warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened",
+						"severity": "warning",
+						"summary":  "first warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: second warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened again",
+						"severity": "warning",
+						"summary":  "second warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "error",
+					"@message":  "Error: first error",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "this time it is very bad",
+						"severity": "error",
+						"summary":  "first error",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+		"state_only_warnings": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "something not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "something not very bad happened again"),
+			},
+			file: &moduletest.File{Name: "main.tftest"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceDeposed(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					"0fcb640a",
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform left some resources in state after executing main.tftest, they need to be cleaned up manually.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_cleanup": map[string]interface{}{
+						"failed_resources": []interface{}{
+							map[string]interface{}{
+								"instance": "test.bar",
+							},
+							map[string]interface{}{
+								"instance":    "test.bar",
+								"deposed_key": "0fcb640a",
+							},
+							map[string]interface{}{
+								"instance": "test.foo",
+							},
+						},
+					},
+					"type": "test_cleanup",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: first warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened",
+						"severity": "warning",
+						"summary":  "first warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: second warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened again",
+						"severity": "warning",
+						"summary":  "second warning",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+		"state_with_errors": {
+			diags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(tfdiags.Warning, "first warning", "something not very bad happened"),
+				tfdiags.Sourceless(tfdiags.Warning, "second warning", "something not very bad happened again"),
+				tfdiags.Sourceless(tfdiags.Error, "first error", "this time it is very bad"),
+			},
+			file: &moduletest.File{Name: "main.tftest"},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "foo",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+				state.SetResourceInstanceDeposed(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test",
+						Name: "bar",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					"0fcb640a",
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform left some resources in state after executing main.tftest, they need to be cleaned up manually.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_cleanup": map[string]interface{}{
+						"failed_resources": []interface{}{
+							map[string]interface{}{
+								"instance": "test.bar",
+							},
+							map[string]interface{}{
+								"instance":    "test.bar",
+								"deposed_key": "0fcb640a",
+							},
+							map[string]interface{}{
+								"instance": "test.foo",
+							},
+						},
+					},
+					"type": "test_cleanup",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: first warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened",
+						"severity": "warning",
+						"summary":  "first warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: second warning",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something not very bad happened again",
+						"severity": "warning",
+						"summary":  "second warning",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "error",
+					"@message":  "Error: first error",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"diagnostic": map[string]interface{}{
+						"detail":   "this time it is very bad",
+						"severity": "error",
+						"summary":  "first error",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			view.DestroySummary(tc.diags, tc.file, tc.state)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJSON_File(t *testing.T) {
+	tcs := map[string]struct {
+		file *moduletest.File
+		want []map[string]interface{}
+	}{
+		"pass": {
+			file: &moduletest.File{Name: "main.tf", Status: moduletest.Pass},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tf... pass",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tf",
+					"test_file": map[string]interface{}{
+						"path":   "main.tf",
+						"status": "pass",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"pending": {
+			file: &moduletest.File{Name: "main.tf", Status: moduletest.Pending},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tf... pending",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tf",
+					"test_file": map[string]interface{}{
+						"path":   "main.tf",
+						"status": "pending",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"skip": {
+			file: &moduletest.File{Name: "main.tf", Status: moduletest.Skip},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tf... skip",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tf",
+					"test_file": map[string]interface{}{
+						"path":   "main.tf",
+						"status": "skip",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"fail": {
+			file: &moduletest.File{Name: "main.tf", Status: moduletest.Fail},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tf... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tf",
+					"test_file": map[string]interface{}{
+						"path":   "main.tf",
+						"status": "fail",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+
+		"error": {
+			file: &moduletest.File{Name: "main.tf", Status: moduletest.Error},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "main.tf... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tf",
+					"test_file": map[string]interface{}{
+						"path":   "main.tf",
+						"status": "error",
+					},
+					"type": "test_file",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			view.File(tc.file)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJSON_Run(t *testing.T) {
+	tcs := map[string]struct {
+		run  *moduletest.Run
+		want []map[string]interface{}
+	}{
+		"pass": {
+			run: &moduletest.Run{Name: "run_block", Status: moduletest.Pass},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... pass",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "pass",
+					},
+					"type": "test_run",
+				},
+			},
+		},
+
+		"pass_with_diags": {
+			run: &moduletest.Run{
+				Name:        "run_block",
+				Status:      moduletest.Pass,
+				Diagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Warning, "a warning occurred", "some warning happened during this test")},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... pass",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "pass",
+					},
+					"type": "test_run",
+				},
+				{
+					"@level":    "warn",
+					"@message":  "Warning: a warning occurred",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"diagnostic": map[string]interface{}{
+						"detail":   "some warning happened during this test",
+						"severity": "warning",
+						"summary":  "a warning occurred",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+
+		"pending": {
+			run: &moduletest.Run{Name: "run_block", Status: moduletest.Pending},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... pending",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "pending",
+					},
+					"type": "test_run",
+				},
+			},
+		},
+
+		"skip": {
+			run: &moduletest.Run{Name: "run_block", Status: moduletest.Skip},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... skip",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "skip",
+					},
+					"type": "test_run",
+				},
+			},
+		},
+
+		"fail": {
+			run: &moduletest.Run{Name: "run_block", Status: moduletest.Fail},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "fail",
+					},
+					"type": "test_run",
+				},
+			},
+		},
+
+		"fail_with_diags": {
+			run: &moduletest.Run{
+				Name:   "run_block",
+				Status: moduletest.Fail,
+				Diagnostics: tfdiags.Diagnostics{
+					tfdiags.Sourceless(tfdiags.Error, "a comparison failed", "details details details"),
+					tfdiags.Sourceless(tfdiags.Error, "a second comparison failed", "other details"),
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "fail",
+					},
+					"type": "test_run",
+				},
+				{
+					"@level":    "error",
+					"@message":  "Error: a comparison failed",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"diagnostic": map[string]interface{}{
+						"detail":   "details details details",
+						"severity": "error",
+						"summary":  "a comparison failed",
+					},
+					"type": "diagnostic",
+				},
+				{
+					"@level":    "error",
+					"@message":  "Error: a second comparison failed",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"diagnostic": map[string]interface{}{
+						"detail":   "other details",
+						"severity": "error",
+						"summary":  "a second comparison failed",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+
+		"error": {
+			run: &moduletest.Run{Name: "run_block", Status: moduletest.Error},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "error",
+					},
+					"type": "test_run",
+				},
+			},
+		},
+
+		"error_with_diags": {
+			run: &moduletest.Run{
+				Name:        "run_block",
+				Status:      moduletest.Error,
+				Diagnostics: tfdiags.Diagnostics{tfdiags.Sourceless(tfdiags.Error, "an error occurred", "something bad happened during this test")},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... fail",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "error",
+					},
+					"type": "test_run",
+				},
+				{
+					"@level":    "error",
+					"@message":  "Error: an error occurred",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"diagnostic": map[string]interface{}{
+						"detail":   "something bad happened during this test",
+						"severity": "error",
+						"summary":  "an error occurred",
+					},
+					"type": "diagnostic",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			file := &moduletest.File{Name: "main.tftest"}
+
+			view.Run(tc.run, file)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
 		})
 	}
 }
