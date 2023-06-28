@@ -1,5 +1,9 @@
 ## 1.5.2 (Unreleased)
 
+BUG FIXES:
+
+* configs: Multiple `import` blocks with the same `id` string no longer result in a validation error [GH-33434]
+
 ## 1.5.1 (June 21, 2023)
 
 BUG FIXES:
