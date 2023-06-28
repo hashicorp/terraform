@@ -64,11 +64,11 @@ func (n *nodeExpandModule) References() []*addrs.Reference {
 	// child module instances we might expand to during our evaluation.
 
 	if n.ModuleCall.Count != nil {
-		countRefs, _ := lang.ReferencesInExpr(n.ModuleCall.Count)
+		countRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.Count)
 		refs = append(refs, countRefs...)
 	}
 	if n.ModuleCall.ForEach != nil {
-		forEachRefs, _ := lang.ReferencesInExpr(n.ModuleCall.ForEach)
+		forEachRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.ModuleCall.ForEach)
 		refs = append(refs, forEachRefs...)
 	}
 	return refs

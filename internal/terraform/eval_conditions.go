@@ -73,9 +73,9 @@ type checkResult struct {
 func validateCheckRule(typ addrs.CheckRuleType, rule *configs.CheckRule, ctx EvalContext, self addrs.Checkable, keyData instances.RepetitionData) (string, *hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
+	refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.Condition)
 	diags = diags.Append(moreDiags)
-	moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
+	moreRefs, moreDiags := lang.ReferencesInExpr(addrs.ParseRef, rule.ErrorMessage)
 	diags = diags.Append(moreDiags)
 	refs = append(refs, moreRefs...)
 

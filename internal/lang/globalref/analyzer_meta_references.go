@@ -5,12 +5,13 @@ package globalref
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/gocty"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/lang"
 )
 
 // MetaReferences inspects the configuration to find the references contained
@@ -117,7 +118,7 @@ func (a *Analyzer) metaReferencesInputVariable(calleeAddr addrs.ModuleInstance, 
 	if attr == nil {
 		return nil
 	}
-	refs, _ := lang.ReferencesInExpr(attr.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, attr.Expr)
 	return absoluteRefs(callerAddr, refs)
 }
 
@@ -137,7 +138,7 @@ func (a *Analyzer) metaReferencesOutputValue(callerAddr addrs.ModuleInstance, ad
 
 	// We don't check for errors here because we'll make a best effort to
 	// analyze whatever partial result HCL is able to extract.
-	refs, _ := lang.ReferencesInExpr(oc.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, oc.Expr)
 	return absoluteRefs(calleeAddr, refs)
 }
 
@@ -154,7 +155,7 @@ func (a *Analyzer) metaReferencesLocalValue(moduleAddr addrs.ModuleInstance, add
 
 	// We don't check for errors here because we'll make a best effort to
 	// analyze whatever partial result HCL is able to extract.
-	refs, _ := lang.ReferencesInExpr(local.Expr)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, local.Expr)
 	return absoluteRefs(moduleAddr, refs)
 }
 
@@ -388,12 +389,12 @@ Steps:
 
 	var refs []*addrs.Reference
 	for _, expr := range exprs {
-		moreRefs, _ := lang.ReferencesInExpr(expr)
+		moreRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, expr)
 		refs = append(refs, moreRefs...)
 	}
 	if schema != nil {
 		for _, body := range bodies {
-			moreRefs, _ := lang.ReferencesInBlock(body, schema)
+			moreRefs, _ := lang.ReferencesInBlock(addrs.ParseRef, body, schema)
 			refs = append(refs, moreRefs...)
 		}
 	}

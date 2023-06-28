@@ -100,9 +100,9 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 
 	// Now validate all the assertions within this run block.
 	for _, rule := range run.Config.CheckRules {
-		refs, moreDiags := lang.ReferencesInExpr(rule.Condition)
+		refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.Condition)
 		run.Diagnostics = run.Diagnostics.Append(moreDiags)
-		moreRefs, moreDiags := lang.ReferencesInExpr(rule.ErrorMessage)
+		moreRefs, moreDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.ErrorMessage)
 		run.Diagnostics = run.Diagnostics.Append(moreDiags)
 		refs = append(refs, moreRefs...)
 

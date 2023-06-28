@@ -282,16 +282,16 @@ func (n *NodeApplyableOutput) ReferenceableAddrs() []addrs.Referenceable {
 func referencesForOutput(c *configs.Output) []*addrs.Reference {
 	var refs []*addrs.Reference
 
-	impRefs, _ := lang.ReferencesInExpr(c.Expr)
-	expRefs, _ := lang.References(c.DependsOn)
+	impRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, c.Expr)
+	expRefs, _ := lang.References(addrs.ParseRef, c.DependsOn)
 
 	refs = append(refs, impRefs...)
 	refs = append(refs, expRefs...)
 
 	for _, check := range c.Preconditions {
-		condRefs, _ := lang.ReferencesInExpr(check.Condition)
+		condRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.Condition)
 		refs = append(refs, condRefs...)
-		errRefs, _ := lang.ReferencesInExpr(check.ErrorMessage)
+		errRefs, _ := lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 		refs = append(refs, errRefs...)
 	}
 

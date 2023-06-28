@@ -45,7 +45,7 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 		return diags
 	}
 
-	refs, _ := lang.ReferencesInBlock(config, schema)
+	refs, _ := lang.ReferencesInBlock(addrs.ParseRef, config, schema)
 	for _, ref := range refs {
 		for _, addrStr := range addrStrs {
 			if ref.Subject.String() == addrStr {

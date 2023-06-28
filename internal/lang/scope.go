@@ -7,11 +7,15 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty/function"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+type ParseRef func(traversal hcl.Traversal) (*addrs.Reference, tfdiags.Diagnostics)
 
 // Scope is the main type in this package, allowing dynamic evaluation of
 // blocks and expressions based on some contextual information that informs
@@ -19,6 +23,14 @@ import (
 type Scope struct {
 	// Data is used to resolve references in expressions.
 	Data Data
+
+	// ParseRef is a function that the scope uses to extract references from
+	// a hcl.Traversal. This controls the type of references the scope currently
+	// supports. As an example, the testing scope can reference outputs directly
+	// while the main Terraform context scope can not. This means that this
+	// function for the testing scope will happily return outputs, while the
+	// main context scope would fail if a user attempts to reference an output.
+	ParseRef ParseRef
 
 	// SelfAddr is the address that the "self" object should be an alias of,
 	// or nil if the "self" object should not be available at all.

@@ -87,6 +87,70 @@ func TestEvaluatorGetPathAttr(t *testing.T) {
 	})
 }
 
+func TestEvaluatorGetOutputValue(t *testing.T) {
+	evaluator := &Evaluator{
+		Meta: &ContextMeta{
+			Env: "foo",
+		},
+		Config: &configs.Config{
+			Module: &configs.Module{
+				Outputs: map[string]*configs.Output{
+					"some_output": {
+						Name:      "some_output",
+						Sensitive: true,
+					},
+					"some_other_output": {
+						Name: "some_other_output",
+					},
+				},
+			},
+		},
+		State: states.BuildState(func(state *states.SyncState) {
+			state.SetOutputValue(addrs.AbsOutputValue{
+				Module: addrs.RootModuleInstance,
+				OutputValue: addrs.OutputValue{
+					Name: "some_output",
+				},
+			}, cty.StringVal("first"), true)
+			state.SetOutputValue(addrs.AbsOutputValue{
+				Module: addrs.RootModuleInstance,
+				OutputValue: addrs.OutputValue{
+					Name: "some_other_output",
+				},
+			}, cty.StringVal("second"), false)
+		}).SyncWrapper(),
+	}
+
+	data := &evaluationStateData{
+		Evaluator: evaluator,
+	}
+	scope := evaluator.Scope(data, nil, nil)
+
+	want := cty.StringVal("first").Mark(marks.Sensitive)
+	got, diags := scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+
+	want = cty.StringVal("second")
+	got, diags = scope.Data.GetOutput(addrs.OutputValue{
+		Name: "some_other_output",
+	}, tfdiags.SourceRange{})
+
+	if len(diags) != 0 {
+		t.Errorf("unexpected diagnostics %s", spew.Sdump(diags))
+	}
+	if !got.RawEquals(want) {
+		t.Errorf("wrong result %#v; want %#v", got, want)
+	}
+}
+
 // This particularly tests that a sensitive attribute in config
 // results in a value that has a "sensitive" cty Mark
 func TestEvaluatorGetInputVariable(t *testing.T) {

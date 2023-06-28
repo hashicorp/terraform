@@ -53,7 +53,7 @@ func (cr *CheckRule) validateSelfReferences(checkType string, addr addrs.Resourc
 		if expr == nil {
 			continue
 		}
-		refs, _ := lang.References(expr.Variables())
+		refs, _ := lang.References(addrs.ParseRef, expr.Variables())
 		for _, ref := range refs {
 			var refAddr addrs.Resource
 

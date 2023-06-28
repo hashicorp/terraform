@@ -95,9 +95,9 @@ func (n *NodeApplyableResource) References() []*addrs.Reference {
 	// Since this node type only updates resource-level metadata, we only
 	// need to worry about the parts of the configuration that affect
 	// our "each mode": the count and for_each meta-arguments.
-	refs, _ := lang.ReferencesInExpr(n.Config.Count)
+	refs, _ := lang.ReferencesInExpr(addrs.ParseRef, n.Config.Count)
 	result = append(result, refs...)
-	refs, _ = lang.ReferencesInExpr(n.Config.ForEach)
+	refs, _ = lang.ReferencesInExpr(addrs.ParseRef, n.Config.ForEach)
 	result = append(result, refs...)
 
 	return result
