@@ -1,8 +1,8 @@
-## 1.5.2 (Unreleased)
+## 1.5.2 (June 28, 2023)
 
 BUG FIXES:
 
-* configs: Multiple `import` blocks with the same `id` string no longer result in a validation error [GH-33434]
+* configs: Multiple `import` blocks with the same `id` string no longer result in a validation error ([#33434](https://github.com/hashicorp/terraform/issues/33434))
 
 ## 1.5.1 (June 21, 2023)
 
