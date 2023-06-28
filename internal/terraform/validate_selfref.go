@@ -61,3 +61,30 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 
 	return diags
 }
+
+// Legacy provisioner configurations may refer to single instances using the
+// resource address. We need to filter these out from the reported references
+// to prevent cycles.
+func filterSelfRefs(self addrs.Resource, refs []*addrs.Reference) []*addrs.Reference {
+	for i := 0; i < len(refs); i++ {
+		ref := refs[i]
+
+		var subject addrs.Resource
+		switch subj := ref.Subject.(type) {
+		case addrs.Resource:
+			subject = subj
+		case addrs.ResourceInstance:
+			subject = subj.ContainingResource()
+		default:
+			continue
+		}
+
+		if self.Equal(subject) {
+			tail := len(refs) - 1
+
+			refs[i], refs[tail] = refs[tail], refs[i]
+			refs = refs[:tail]
+		}
+	}
+	return refs
+}

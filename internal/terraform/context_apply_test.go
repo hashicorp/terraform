@@ -6463,7 +6463,7 @@ func TestContext2Apply_errorCreateInvalidNew(t *testing.T) {
 	if got, want := diags.Err().Error(), "forced error"; !strings.Contains(got, want) {
 		t.Errorf("returned error does not contain %q, but it should\n%s", want, diags.Err())
 	}
-	if got, want := len(state.RootModule().Resources), 2; got != want {
+	if got, want := len(state.RootModule().Resources), 1; got != want {
 		t.Errorf("%d resources in state before prune; should have %d\n%s", got, want, spew.Sdump(state))
 	}
 	state.PruneResourceHusks() // aws_instance.bar with no instances gets left behind when we bail out, but that's okay
