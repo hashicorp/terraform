@@ -513,7 +513,7 @@ func (m *MockRedactedPlans) Read(ctx context.Context, hostname, token, planID st
 type MockPlans struct {
 	client      *MockClient
 	logs        map[string]string
-	planOutputs map[string]string
+	planOutputs map[string][]byte
 	plans       map[string]*tfe.Plan
 }
 
@@ -521,7 +521,7 @@ func newMockPlans(client *MockClient) *MockPlans {
 	return &MockPlans{
 		client:      client,
 		logs:        make(map[string]string),
-		planOutputs: make(map[string]string),
+		planOutputs: make(map[string][]byte),
 		plans:       make(map[string]*tfe.Plan),
 	}
 }
@@ -548,6 +548,17 @@ func (m *MockPlans) create(cvID, workspaceID string) (*tfe.Plan, error) {
 		w.WorkingDirectory,
 		"plan.log",
 	)
+
+	// Try to load unredacted json output, if it exists
+	outputPath := filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[cvID],
+		w.WorkingDirectory,
+		"plan-unredacted.json",
+	)
+	if outBytes, err := os.ReadFile(outputPath); err == nil {
+		m.planOutputs[p.ID] = outBytes
+	}
+
 	m.plans[p.ID] = p
 
 	return p, nil
@@ -608,7 +619,7 @@ func (m *MockPlans) ReadJSONOutput(ctx context.Context, planID string) ([]byte, 
 		return nil, tfe.ErrResourceNotFound
 	}
 
-	return []byte(planOutput), nil
+	return planOutput, nil
 }
 
 type MockTaskStages struct {
@@ -1101,7 +1112,7 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 	}
 
 	logs, _ := ioutil.ReadFile(m.client.Plans.logs[r.Plan.LogReadURL])
-	if r.Status == tfe.RunPlanning && r.Plan.Status == tfe.PlanFinished {
+	if (r.Status == tfe.RunPlanning || r.Status == tfe.RunPlannedAndSaved) && r.Plan.Status == tfe.PlanFinished {
 		hasChanges := r.IsDestroy ||
 			bytes.Contains(logs, []byte("1 to add")) ||
 			bytes.Contains(logs, []byte("1 to change")) ||
@@ -1110,6 +1121,7 @@ func (m *MockRuns) ReadWithOptions(ctx context.Context, runID string, options *t
 			r.Actions.IsCancelable = false
 			r.Actions.IsConfirmable = true
 			r.HasChanges = true
+			r.Plan.HasChanges = true
 			r.Permissions.CanApply = true
 		}
 
