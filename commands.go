@@ -13,6 +13,7 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
 	"github.com/hashicorp/terraform/internal/command/cliconfig"
@@ -280,6 +281,12 @@ func initCommands(
 
 		"taint": func() (cli.Command, error) {
 			return &command.TaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
+		"test": func() (cli.Command, error) {
+			return &command.TestCommand{
 				Meta: meta,
 			}, nil
 		},

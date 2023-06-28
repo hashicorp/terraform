@@ -1,0 +1,6 @@
+run "validate_test_instance" {
+  assert {
+    condition = test_instance.foo.ami == "bar"
+    error_message = "invalid ami value"
+  }
+}
