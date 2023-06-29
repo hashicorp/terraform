@@ -78,6 +78,11 @@ type TestRun struct {
 	// checked by this run block.
 	CheckRules []*CheckRule
 
+	// ExpectFailures should be a list of checkable objects that are expected
+	// to report a failure from their custom conditions as part of this test
+	// run.
+	ExpectFailures []hcl.Traversal
+
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
@@ -233,6 +238,12 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		r.Command = ApplyTestCommand // Default to apply
 	}
 
+	if attr, exists := content.Attributes["expect_failures"]; exists {
+		failures, failDiags := decodeDependsOn(attr)
+		diags = append(diags, failDiags...)
+		r.ExpectFailures = failures
+	}
+
 	return &r, diags
 }
 
@@ -311,6 +322,7 @@ var testFileSchema = &hcl.BodySchema{
 var testRunBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "command"},
+		{Name: "expect_failures"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
 		{
