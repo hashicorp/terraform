@@ -112,10 +112,6 @@ Preconditions can serve a symmetrical purpose to input variable `validation` blo
 
 Terraform evaluates output value preconditions before evaluating the `value` expression to finalize the result. Preconditions can take precedence over potential errors in the `value` expression.
 
-### Continuous Validation in Terraform Cloud
-
-Terraform Cloud can automatically check whether the preconditions and postconditions in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `postcondition` to check whether an API gateway certificate is valid. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
-
 ### Examples
 
 The following example shows use cases for preconditions and postconditions. The preconditions and postconditions declare the following assumptions and guarantees.
@@ -237,6 +233,10 @@ check "health_check" {
 ```
 
 If the condition evaluates to `false`, Terraform produces an [error message](#error-messages) that includes the result of the `error_message` expression. If you declare multiple assertions, Terraform returns error messages for all failed conditions.
+
+### Continuous Validation in Terraform Cloud
+
+Terraform Cloud can automatically check whether the checks in a workspace’s configuration continue to pass after Terraform provisions the infrastructure. For example, you can write a `check` to continuously monitor the validity of an API gateway certificate. Continuous validation alerts you when the condition fails, so you can update the certificate and avoid errors the next time you want to update your infrastructure. Refer to [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation) in the Terraform Cloud documentation for details.
 
 ## Condition Expressions
 
