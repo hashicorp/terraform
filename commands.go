@@ -414,6 +414,14 @@ func initCommands(
 		},
 	}
 
+	if meta.AllowExperimentalFeatures {
+		Commands["cloud"] = func() (cli.Command, error) {
+			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+	}
+
 	PrimaryCommands = []string{
 		"init",
 		"validate",
