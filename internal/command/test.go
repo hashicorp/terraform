@@ -63,7 +63,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	loader, err := c.initConfigLoader()
 	diags = diags.Append(err)
 	if err != nil {
-		c.View.Diagnostics(diags)
+		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
 	c.loader = loader
@@ -71,7 +71,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	config, configDiags := loader.LoadConfigWithTests(".", "tests")
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
-		c.View.Diagnostics(diags)
+		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
 
@@ -113,7 +113,7 @@ func (c *TestCommand) ExecuteTestSuite(suite *moduletest.Suite, config *configs.
 	diags = diags.Append(err)
 	if err != nil {
 		suite.Status = suite.Status.Merge(moduletest.Error)
-		c.View.Diagnostics(diags)
+		view.Diagnostics(nil, nil, diags)
 		return
 	}
 
@@ -121,10 +121,10 @@ func (c *TestCommand) ExecuteTestSuite(suite *moduletest.Suite, config *configs.
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		suite.Status = suite.Status.Merge(moduletest.Error)
-		c.View.Diagnostics(diags)
+		view.Diagnostics(nil, nil, diags)
 		return
 	}
-	c.View.Diagnostics(diags) // Print out any warnings from the setup.
+	view.Diagnostics(nil, nil, diags) // Print out any warnings from the setup.
 
 	var files []string
 	for name := range suite.Files {
@@ -148,7 +148,7 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 	if diags.HasErrors() {
 		file.Status = file.Status.Merge(moduletest.Error)
 		view.File(file)
-		c.View.Diagnostics(diags)
+		view.Diagnostics(nil, file, diags)
 		return
 	}
 
@@ -166,48 +166,13 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 		if planDiags.HasErrors() {
 			// This is bad, we need to tell the user that we couldn't clean up
 			// and they need to go and manually delete some resources.
-
-			c.Streams.Eprintf("Terraform encountered an error destroying resources created during the test.\n\n")
-			c.View.Diagnostics(planDiags)
-
-			if state.HasManagedResourceInstanceObjects() {
-				c.Streams.Eprintf("Terraform left the following resources in state, they need to be cleaned up manually:\n\n")
-				for _, resource := range state.AllResourceInstanceObjectAddrs() {
-					if resource.DeposedKey != states.NotDeposed {
-						c.Streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-						continue
-					}
-					c.Streams.Eprintf("  - %s\n", resource.Instance)
-				}
-			}
-
+			view.DestroySummary(planDiags, file, state)
 			return
 		}
-		c.View.Diagnostics(planDiags) // Print out any warnings from the destroy plan.
+		view.Diagnostics(nil, file, planDiags) // Print out any warnings from the destroy plan.
 
 		finalState, applyDiags := ctx.Apply(plan, config)
-		if applyDiags.HasErrors() {
-			// This is bad, we need to tell the user that we couldn't clean up
-			// and they need to go and manually delete some resources.
-
-			c.Streams.Eprintf("Terraform encountered an error destroying resources created during the test.\n\n")
-		}
-		c.View.Diagnostics(applyDiags) // Print out any warnings from the destroy apply.
-
-		if finalState.HasManagedResourceInstanceObjects() {
-			// Then we need to print dialog telling the user they need to clean
-			// things up, and we should mark the overall test as errored.
-
-			c.Streams.Eprintf("Terraform left the following resources in state, they need to be cleaned up manually:\n\n")
-			for _, resource := range state.AllResourceInstanceObjectAddrs() {
-				if resource.DeposedKey != states.NotDeposed {
-					c.Streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-					continue
-				}
-				c.Streams.Eprintf("  - %s\n", resource.Instance)
-			}
-
-		}
+		view.DestroySummary(applyDiags, file, finalState)
 	}()
 
 	file.Status = file.Status.Merge(moduletest.Pass)
@@ -222,7 +187,7 @@ func (c *TestCommand) ExecuteTestFile(ctx *terraform.Context, file *moduletest.F
 	}
 
 	view.File(file)
-	c.View.Diagnostics(diags)
+	view.Diagnostics(nil, file, diags)
 
 	for _, run := range file.Runs {
 		view.Run(run, file)
