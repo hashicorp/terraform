@@ -19,14 +19,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-type PlanRendererOpt int
-
 const (
 	detectedDrift  string = "drift"
 	proposedChange string = "change"
-
-	Errored PlanRendererOpt = iota
-	CanNotApply
 )
 
 type Plan struct {
@@ -51,8 +46,8 @@ func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema 
 	}
 }
 
-func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRendererOpt) {
-	checkOpts := func(target PlanRendererOpt) bool {
+func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Quality) {
+	checkOpts := func(target plans.Quality) bool {
 		for _, opt := range opts {
 			if opt == target {
 				return true
@@ -102,7 +97,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 		// the plan is "applyable" and, if so, whether it had refresh changes
 		// that we already would've presented above.
 
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			if haveRefreshChanges {
 				renderer.Streams.Print(format.HorizontalRule(renderer.Colorize, renderer.Streams.Stdout.Columns()))
 				renderer.Streams.Println()
@@ -143,7 +138,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 				)
 
 				if haveRefreshChanges {
-					if !checkOpts(CanNotApply) {
+					if !checkOpts(plans.NoChanges) {
 						// In this case, applying this plan will not change any
 						// remote objects but _will_ update the state to match what
 						// we detected during refresh, so we'll reassure the user
@@ -210,7 +205,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...PlanRen
 	}
 
 	if len(changes) > 0 {
-		if checkOpts(Errored) {
+		if checkOpts(plans.Errored) {
 			renderer.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
 		} else {
 			renderer.Streams.Printf("\nTerraform will perform the following actions:\n")
