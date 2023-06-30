@@ -22,9 +22,14 @@ terraform {
     storage_account_name = "abcd1234"
     container_name       = "tfstate"
     key                  = "prod.terraform.tfstate"
+    subscription_id = "00000000-0000-0000-0000-000000000000"
   }
 }
 ```
+-> **Note:** By explicitly specifying the `subscription_id` parameter, you can ensure that Terraform uses the desired subscription for authentication, even if it differs from the default subscription set in the Azure CLI context.
+
+Remember to replace the placeholder values with your actual resource group name, storage account name, container name, and key.
+
 
 ***
 
