@@ -2,11 +2,13 @@ package rpcapi
 
 import (
 	"context"
+	"log"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 )
@@ -126,4 +128,49 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 	}
 
 	return ret
+}
+
+func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
+	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
+	cfg := s.handles.StackConfig(cfgHnd)
+	if cfg == nil {
+		return status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
+	}
+
+	var planMode plans.Mode
+	switch req.PlanMode {
+	case terraform1.PlanMode_NORMAL:
+		planMode = plans.NormalMode
+	case terraform1.PlanMode_REFRESH_ONLY:
+		planMode = plans.RefreshOnlyMode
+	case terraform1.PlanMode_DESTROY:
+		planMode = plans.DestroyMode
+	default:
+		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
+	}
+	log.Printf("[TRACE] plan mode is %s", planMode) // TEMP: Just so planMode is used for now
+
+	if len(req.PreviousState) != 0 {
+		// TEMP: We don't yet support planning from a prior state.
+		return status.Errorf(codes.InvalidArgument, "don't yet support planning with a previous state")
+	}
+
+	// TEMP: For now we're just pretending that we've planned and reporting that
+	// nothing needs to change, so this is just enough to be able to implement
+	// the client to this RPC independently from writing its real implementation.
+	//
+	// However, we will emit a diagnostic warning that we didn't make a real
+	// plan so that once there is a real implementation it'll be easy to
+	// recognize whether we're actually using it or not.
+	evts.Send(&terraform1.PlanStackChanges_Event{
+		Event: &terraform1.PlanStackChanges_Event_Diagnostic{
+			Diagnostic: &terraform1.Diagnostic{
+				Severity: terraform1.Diagnostic_WARNING,
+				Summary:  "Fake planning implementation",
+				Detail:   "This plan contains no changes because this result was built from an early stub of the Terraform Core API for stack planning, which does not have any real logic for planning.",
+			},
+		},
+	})
+
+	return nil
 }

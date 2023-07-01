@@ -4,6 +4,8 @@
 syntax = "proto3";
 package terraform1;
 
+import "google/protobuf/any.proto";
+
 service Setup {
     // Clients must call Handshake before any other function of any other
     // service, to complete the capability negotiation step that may
@@ -149,14 +151,62 @@ message FindStackConfigurationProviders {
 
 message PlanStackChanges {
     message Request {
-        // TODO
+        PlanMode plan_mode = 1;
+        int64 stack_config_handle = 2;
+        map<string, google.protobuf.Any> previous_state = 3;
+        // TODO: Various other planning options and dependencies such as a
+        // provider cache handle.
     }
     message Event {
         oneof event {
-            Diagnostic diagnostic = 1;
+            PlannedChange planned_change = 1;
+            Diagnostic diagnostic = 2;
             // TODO
         }
     }
+}
+
+// Represents dynamically-typed data from within the Terraform language.
+// Typically only one of the available serialization formats will be populated,
+// depending on what serializations are appropriate for a particular context
+// and what capabilities the client and the server negotiated during Handshake.
+message DynamicValue {
+    bytes msgpack = 1; // The default serialization format
+    repeated AttributePath sensitive = 2; // Paths to any sensitive-marked values.
+}
+
+// Represents a change of some object from one  dynamic value to another.
+message DynamicValueChange {
+    DynamicValue old = 1;
+    DynamicValue new = 2;
+}
+
+message AttributePath {
+    message Step {
+        oneof selector {
+            // Set "attribute_name" to represent looking up an attribute
+            // in the current object value.
+            string attribute_name = 1;
+            // Set "element_key_*" to represent looking up an element in
+            // an indexable collection type.
+            string element_key_string = 2;
+            int64 element_key_int = 3;
+        }
+    }
+    repeated Step steps = 1;
+}
+
+// Represents the address of a specific resource instance inside a specific
+// component instance within the containing stack.
+message ResourceInstanceInStackAddr {
+    // Unique address of the component instance that this resource instance
+    // belongs to. This is comparable with
+    string component_instance_addr = 1;
+    // Unique address of the resource instance within the given component
+    // instance. Each component instance has a separate namespace of
+    // resource instance addresses, so callers must take both fields together
+    // to produce a key that's unique throughout the entire plan.
+    string resource_instance_addr = 2;
 }
 
 // A source address in the same form as it would appear in a Terraform
@@ -169,6 +219,106 @@ message PlanStackChanges {
 message SourceAddress {
     string source = 1;
     string versions = 2;
+}
+
+enum PlanMode {
+    NORMAL = 0;
+    REFRESH_ONLY = 1;
+    DESTROY = 2;
+}
+
+enum ChangeType {
+    NOOP = 0;
+    READ = 1;
+    CREATE = 2;
+    UPDATE = 3;
+    DELETE = 4;
+}
+
+// Describes one item in a stack plan. The overall plan is the concatentation
+// of all messages of this type emitted as events during the plan; splitting
+// this information over multiple messages just allows the individual events
+// to double as progress notifications for an interactive UI.
+message PlannedChange {
+    // Terraform Core's internal representation(s) of this change. Callers
+    // must provide the messages in this field, if any, verbatim to the
+    // ApplyStackChanges RPC in order to apply this change, and must not
+    // attempt to decode or analyze the contents because they are subject
+    // to change in future versions of Terraform Core.
+    //
+    // This might be unpopulated if this message represents only information
+    // for the caller and Terraform Core doesn't actually need to recall this
+    // information during the apply step. Callers must append each raw item
+    // to the raw plan in the order specified, and provide them all together
+    // in the same order to ApplyStackChanges.
+    repeated google.protobuf.Any raw = 1;
+
+    // Caller-facing description of this change, to use for presenting
+    // information to end-users in the UI and for other subsystems such as
+    // imposing policy rules on the resulting plan.
+    //
+    // If none of these fields are populated in a given event then the
+    // raw messages in "raw" represent private information that has no
+    // external-facing equivalent. Callers must still retain the raw messages
+    // to provide to a subsequent ApplyStackChanges RPC.
+    //
+    // DO NOT attempt to use this to surgically filter particular changes
+    // from a larger plan. Although external descriptions often match with
+    // the raw representations in field "raw", that is not guaranteed and
+    // Terraform Core assumes that it will always be provided with the full
+    // set of raw messages -- in the same order they were emitted -- during
+    // the apply step. For example, some raw messages might omit information
+    // that is implied by earlier raw messages and would therefore be
+    // incomplete if isolated.
+    oneof description {
+        ComponentInstance component_instance_planned = 2;
+        ResourceInstance resource_instance_drifted = 3;
+        ResourceInstance resource_instance_planned = 4;
+        OutputValue output_value_planned = 5;
+    }
+
+    // A set of provider selections that will be needed to apply this
+    // change, which the caller should remember and use to populate the
+    // provider cache during the apply step.
+    // TODO: Fill out all of the provider-related functionality in here.
+    //repeated ProviderSelection providers = 6;
+
+    // Reports the existence of a particular instance of a component,
+    // once Terraform has resolved arguments such as "for_each" that
+    // might make the set of instances dynamic.
+    message ComponentInstance {
+        // The address of the static component that this is an instance of.
+        string component_addr = 1;
+        // The address of the instance that's being announced. For
+        // multi-instance components this could have any combination of
+        // instance keys on the component itself or instance keys on any
+        // of the containing embedded stacks.
+        string component_instance_addr = 2;
+    }
+    message ResourceInstance {
+        ResourceInstanceInStackAddr addr = 1;
+        repeated ChangeType actions = 2;
+        DynamicValueChange values = 3;
+        Moved moved = 4;
+        Imported imported = 5;
+        // TODO: Everything else we need for feature-parity with the
+        // existing JSON plan export format.
+
+        message Moved {
+            ResourceInstanceInStackAddr prev_addr = 1;
+        }
+        message Imported {
+            string import_id = 1;
+        }
+    }
+    // Note: this is only for output values from the topmost
+    // stack configuration, because all other output values are 
+    // internal to the configuration and not part of its public API.
+    message OutputValue {
+        string name = 1;
+        repeated ChangeType actions = 2;
+        DynamicValueChange values = 3;
+    }
 }
 
 message Diagnostic {
