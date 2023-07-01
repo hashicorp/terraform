@@ -90,21 +90,22 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 	// If the run errored, exit before checking whether to save a plan file
 	run, err := b.plan(stopCtx, cancelCtx, op, w)
 	if err != nil {
-		return run, err
+		return nil, err
 	}
 
-	// Maybe save plan file
+	// Save plan file if -out <FILE> was specified
 	if op.PlanOutPath != "" {
 		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
 		err = bookmark.Save(op.PlanOutPath)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	// Only display next steps if everything succeeded
-	if err == nil {
-		op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
-	}
+	// Everything succeded, so display next steps
+	op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
 
-	return run, err
+	return run, nil
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
