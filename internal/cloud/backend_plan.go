@@ -101,8 +101,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 
 	// Only display next steps if everything succeeded
 	if err == nil {
-		// Cloud currently supports plan -out but not genconfig
-		op.View.PlanNextStep(op.PlanOutPath, "")
+		op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
 	}
 
 	return run, err
