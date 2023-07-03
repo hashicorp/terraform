@@ -9,11 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/s3"
-	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -280,8 +281,8 @@ type Backend struct {
 	*schema.Backend
 
 	// The fields below are set from configure
-	s3Client  *s3.S3
-	dynClient *dynamodb.DynamoDB
+	s3Client  *s3.Client
+	dynClient *dynamodb.Client
 
 	bucketName            string
 	keyName               string
@@ -328,34 +329,42 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
+	var assumeRole *awsbase.AssumeRole
+
+	roleARN := data.Get("role_arn").(string)
+	if roleARN != "" {
+		assumeRole = &awsbase.AssumeRole{
+			RoleARN:     roleARN,
+			Duration:    time.Duration(data.Get("assume_role_duration_seconds").(int)) * time.Second,
+			ExternalID:  data.Get("external_id").(string),
+			Policy:      data.Get("assume_role_policy").(string),
+			SessionName: data.Get("session_name").(string),
+		}
+	}
+
 	cfg := &awsbase.Config{
-		AccessKey:                 data.Get("access_key").(string),
-		AssumeRoleARN:             data.Get("role_arn").(string),
-		AssumeRoleDurationSeconds: data.Get("assume_role_duration_seconds").(int),
-		AssumeRoleExternalID:      data.Get("external_id").(string),
-		AssumeRolePolicy:          data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName:     data.Get("session_name").(string),
-		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
-		CallerName:                "S3 Backend",
-		CredsFilename:             data.Get("shared_credentials_file").(string),
-		DebugLogging:              logging.IsDebugOrHigher(),
-		IamEndpoint:               data.Get("iam_endpoint").(string),
-		MaxRetries:                data.Get("max_retries").(int),
-		Profile:                   data.Get("profile").(string),
-		Region:                    data.Get("region").(string),
-		SecretKey:                 data.Get("secret_key").(string),
-		SkipCredsValidation:       data.Get("skip_credentials_validation").(bool),
-		SkipMetadataApiCheck:      data.Get("skip_metadata_api_check").(bool),
-		StsEndpoint:               data.Get("sts_endpoint").(string),
-		Token:                     data.Get("token").(string),
-		UserAgentProducts: []*awsbase.UserAgentProduct{
+		AccessKey:              data.Get("access_key").(string),
+		AssumeRole:             assumeRole,
+		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerName:             "S3 Backend",
+		IamEndpoint:            data.Get("iam_endpoint").(string),
+		MaxRetries:             data.Get("max_retries").(int),
+		Profile:                data.Get("profile").(string),
+		Region:                 data.Get("region").(string),
+		SecretKey:              data.Get("secret_key").(string),
+		SharedCredentialsFiles: []string{data.Get("shared_credentials_file").(string)},
+		SkipCredsValidation:    data.Get("skip_credentials_validation").(bool),
+		StsEndpoint:            data.Get("sts_endpoint").(string),
+		SuppressDebugLog:       !logging.IsDebugOrHigher(),
+		Token:                  data.Get("token").(string),
+		UserAgent: awsbase.UserAgentProducts{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
 			{Name: "Terraform", Version: version.String()},
 		},
 	}
 
-	if policyARNSet := data.Get("assume_role_policy_arns").(*schema.Set); policyARNSet.Len() > 0 {
+	if policyARNSet := data.Get("assume_role_policy_arns").(*schema.Set); policyARNSet.Len() > 0 && cfg.AssumeRole != nil {
 		for _, policyARNRaw := range policyARNSet.List() {
 			policyARN, ok := policyARNRaw.(string)
 
@@ -363,12 +372,12 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, policyARN)
+			cfg.AssumeRole.PolicyARNs = append(cfg.AssumeRole.PolicyARNs, policyARN)
 		}
 	}
 
-	if tagMap := data.Get("assume_role_tags").(map[string]interface{}); len(tagMap) > 0 {
-		cfg.AssumeRoleTags = make(map[string]string)
+	if tagMap := data.Get("assume_role_tags").(map[string]interface{}); len(tagMap) > 0 && cfg.AssumeRole != nil {
+		cfg.AssumeRole.Tags = make(map[string]string)
 
 		for k, vRaw := range tagMap {
 			v, ok := vRaw.(string)
@@ -377,11 +386,11 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRoleTags[k] = v
+			cfg.AssumeRole.Tags[k] = v
 		}
 	}
 
-	if transitiveTagKeySet := data.Get("assume_role_transitive_tag_keys").(*schema.Set); transitiveTagKeySet.Len() > 0 {
+	if transitiveTagKeySet := data.Get("assume_role_transitive_tag_keys").(*schema.Set); transitiveTagKeySet.Len() > 0 && cfg.AssumeRole != nil {
 		for _, transitiveTagKeyRaw := range transitiveTagKeySet.List() {
 			transitiveTagKey, ok := transitiveTagKeyRaw.(string)
 
@@ -389,22 +398,31 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, transitiveTagKey)
+			cfg.AssumeRole.TransitiveTagKeys = append(cfg.AssumeRole.TransitiveTagKeys, transitiveTagKey)
 		}
 	}
 
-	sess, err := awsbase.GetSession(cfg)
+	if data.Get("skip_metadata_api_check").(bool) {
+		cfg.EC2MetadataServiceEnableState = imds.ClientEnabled
+	}
+
+	ctx, awsConfig, err := awsbase.GetAwsConfig(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("error configuring S3 Backend: %w", err)
 	}
 
-	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
-		Endpoint: aws.String(data.Get("dynamodb_endpoint").(string)),
-	}))
-	b.s3Client = s3.New(sess.Copy(&aws.Config{
-		Endpoint:         aws.String(data.Get("endpoint").(string)),
-		S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
-	}))
+	b.dynClient = dynamodb.NewFromConfig(
+		awsConfig,
+		dynamodb.WithEndpointResolver(dynamodb.EndpointResolverFromURL(data.Get("dynamodb_endpoint").(string))),
+	)
+
+	b.s3Client = s3.NewFromConfig(
+		awsConfig,
+		s3.WithEndpointResolver(s3.EndpointResolverFromURL(data.Get("endpoint").(string))),
+		func(opts *s3.Options) {
+			opts.UsePathStyle = data.Get("force_path_style").(bool)
+		},
+	)
 
 	return nil
 }
