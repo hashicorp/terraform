@@ -73,6 +73,13 @@ type Interface interface {
 	Close() error
 }
 
+// All access to a provider's schema internally should bt through the Schemas
+// type.
+// TODO: Acccess to schemas was split over two types with slightly different
+// structures in different parts of the code. These types need to be unified
+// for easier and more consistent access, but there is however a large amount
+// of code which directly uses this structure, so it is not easily refactored
+// out.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema

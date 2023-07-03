@@ -6,6 +6,7 @@ package providers
 import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // Schemas is an overall container for all of the schemas for all configurable
@@ -13,23 +14,30 @@ import (
 //
 // The schema for each individual configurable object is represented by nested
 // instances of type Schema (singular) within this data structure.
-//
-// This type used to be known as terraform.ProviderSchema, but moved out here
-// as part of our ongoing efforts to shrink down the "terraform" package.
-// There's still a type alias at the old name, but we should prefer using
-// providers.Schema in new code. However, a consequence of this transitional
-// situation is that the "terraform" package still has the responsibility for
-// constructing a providers.Schemas object based on responses from the provider
-// API; hopefully we'll continue this refactor later so that functions in this
-// package totally encapsulate the unmarshalling and include this as part of
-// providers.GetProviderSchemaResponse.
 type Schemas struct {
-	Provider      *configschema.Block
-	ProviderMeta  *configschema.Block
-	ResourceTypes map[string]*configschema.Block
-	DataSources   map[string]*configschema.Block
+	// Provider is the schema for the provider itself.
+	Provider *configschema.Block
 
+	// ProviderMeta is the schema for the provider's meta info in a module
+	ProviderMeta *configschema.Block
+
+	// ResourceTypes map the resource type name to that type's schema.
+	ResourceTypes              map[string]*configschema.Block
 	ResourceTypeSchemaVersions map[string]uint64
+
+	// DataSources maps the data source name to that data source's schema.
+	DataSources map[string]*configschema.Block
+
+	// ServerCapabilities lists optional features supported by the provider.
+	ServerCapabilities ServerCapabilities
+
+	// Diagnostics contains any warnings or errors from the method call.
+	// While diagnostics are only relevant to the initial call, we add these to
+	// the cached structure so that concurrent calls can handle failures
+	// gracefully when the original call did not succeed.
+	// TODO: can we be sure the original failure get handled correctly, and
+	// ignore this entirely?
+	Diagnostics tfdiags.Diagnostics
 }
 
 // SchemaForResourceType attempts to find a schema for the given mode and type.
@@ -51,6 +59,30 @@ func (ss *Schemas) SchemaForResourceType(mode addrs.ResourceMode, typeName strin
 // the given resource address. Returns nil if no such schema is available.
 func (ss *Schemas) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ss.SchemaForResourceType(addr.Mode, addr.Type)
+}
+
+func SchemaResponseToSchemas(resp GetProviderSchemaResponse) *Schemas {
+	var schemas = &Schemas{
+		ResourceTypes:              make(map[string]*configschema.Block),
+		ResourceTypeSchemaVersions: make(map[string]uint64),
+		DataSources:                make(map[string]*configschema.Block),
+		ServerCapabilities:         resp.ServerCapabilities,
+		Diagnostics:                resp.Diagnostics,
+	}
+
+	schemas.Provider = resp.Provider.Block
+	schemas.ProviderMeta = resp.ProviderMeta.Block
+
+	for name, res := range resp.ResourceTypes {
+		schemas.ResourceTypes[name] = res.Block
+		schemas.ResourceTypeSchemaVersions[name] = uint64(res.Version)
+	}
+
+	for name, dat := range resp.DataSources {
+		schemas.DataSources[name] = dat.Block
+	}
+
+	return schemas
 }
 
 // Schema pairs a provider or resource schema with that schema's version.

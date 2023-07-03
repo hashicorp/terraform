@@ -99,13 +99,7 @@ func (b *Local) opApply(
 			// plan.Errored will be true in this case, which our plan
 			// renderer can rely on to tailor its messaging.
 			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
-				schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-				// If schema loading returns errors then we'll just give up and
-				// ignore them to avoid distracting from the plan-time errors we're
-				// mainly trying to report here.
-				if !moreDiags.HasErrors() {
-					op.View.Plan(plan, schemas)
-				}
+				op.View.Plan(plan, schemas)
 			}
 			op.ReportResult(runningOp, diags)
 			return
