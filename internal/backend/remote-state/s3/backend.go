@@ -406,23 +406,27 @@ func (b *Backend) configure(ctx context.Context) error {
 		cfg.EC2MetadataServiceEnableState = imds.ClientEnabled
 	}
 
-	ctx, awsConfig, err := awsbase.GetAwsConfig(ctx, cfg)
+	_, awsConfig, err := awsbase.GetAwsConfig(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("error configuring S3 Backend: %w", err)
 	}
 
-	b.dynClient = dynamodb.NewFromConfig(
-		awsConfig,
-		dynamodb.WithEndpointResolver(dynamodb.EndpointResolverFromURL(data.Get("dynamodb_endpoint").(string))),
-	)
+	var dynOptions []func(*dynamodb.Options)
+	if endpoint := data.Get("dynamodb_endpoint").(string); endpoint != "" {
+		dynOptions = append(dynOptions, dynamodb.WithEndpointResolver(dynamodb.EndpointResolverFromURL(endpoint)))
+	}
 
-	b.s3Client = s3.NewFromConfig(
-		awsConfig,
-		s3.WithEndpointResolver(s3.EndpointResolverFromURL(data.Get("endpoint").(string))),
+	s3Options := []func(*s3.Options){
 		func(opts *s3.Options) {
 			opts.UsePathStyle = data.Get("force_path_style").(bool)
 		},
-	)
+	}
+	if endpoint := data.Get("endpoint").(string); endpoint != "" {
+		s3Options = append(s3Options, s3.WithEndpointResolver(s3.EndpointResolverFromURL(endpoint)))
+	}
+
+	b.dynClient = dynamodb.NewFromConfig(awsConfig, dynOptions...)
+	b.s3Client = s3.NewFromConfig(awsConfig, s3Options...)
 
 	return nil
 }
