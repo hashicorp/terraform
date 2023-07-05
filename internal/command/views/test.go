@@ -38,6 +38,14 @@ type Test interface {
 
 	// Diagnostics prints out the provided diagnostics.
 	Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics)
+
+	// Interrupted prints out a message stating that an interrupt has been
+	// received and testing will stop.
+	Interrupted()
+
+	// FatalInterrupt prints out a message stating that a hard interrupt has
+	// been received and testing will stop and cleanup will be skipped.
+	FatalInterrupt()
 }
 
 func NewTest(vt arguments.ViewType, view *View) Test {
@@ -139,13 +147,21 @@ func (t *TestHuman) Diagnostics(_ *moduletest.Run, _ *moduletest.File, diags tfd
 	t.view.Diagnostics(diags)
 }
 
+func (t *TestHuman) Interrupted() {
+	t.view.streams.Print(interrupted)
+}
+
+func (t *TestHuman) FatalInterrupt() {
+	t.view.streams.Print(fatalInterrupt)
+}
+
 type TestJSON struct {
 	view *JSONView
 }
 
 var _ Test = (*TestJSON)(nil)
 
-func (t TestJSON) Abstract(suite *moduletest.Suite) {
+func (t *TestJSON) Abstract(suite *moduletest.Suite) {
 	var fileCount, runCount int
 
 	abstract := json.TestSuiteAbstract{}
@@ -176,7 +192,7 @@ func (t TestJSON) Abstract(suite *moduletest.Suite) {
 		json.MessageTestAbstract, abstract)
 }
 
-func (t TestJSON) Conclusion(suite *moduletest.Suite) {
+func (t *TestJSON) Conclusion(suite *moduletest.Suite) {
 	summary := json.TestSuiteSummary{
 		Status: json.ToTestStatus(suite.Status),
 	}
@@ -225,7 +241,7 @@ func (t TestJSON) Conclusion(suite *moduletest.Suite) {
 		json.MessageTestSummary, summary)
 }
 
-func (t TestJSON) File(file *moduletest.File) {
+func (t *TestJSON) File(file *moduletest.File) {
 	t.view.log.Info(
 		fmt.Sprintf("%s... %s", file.Name, testStatus(file.Status)),
 		"type", json.MessageTestFile,
@@ -233,7 +249,7 @@ func (t TestJSON) File(file *moduletest.File) {
 		"@testfile", file.Name)
 }
 
-func (t TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
+func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 	t.view.log.Info(
 		fmt.Sprintf("  %q... %s", run.Name, testStatus(run.Status)),
 		"type", json.MessageTestRun,
@@ -244,7 +260,7 @@ func (t TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 	t.Diagnostics(run, file, run.Diagnostics)
 }
 
-func (t TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
+func (t *TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run, file *moduletest.File, state *states.State) {
 	if state.HasManagedResourceInstanceObjects() {
 		cleanup := json.TestFileCleanup{}
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
@@ -274,7 +290,7 @@ func (t TestJSON) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Run,
 	t.Diagnostics(run, file, diags)
 }
 
-func (t TestJSON) Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics) {
+func (t *TestJSON) Diagnostics(run *moduletest.Run, file *moduletest.File, diags tfdiags.Diagnostics) {
 	var metadata []interface{}
 	if file != nil {
 		metadata = append(metadata, "@testfile", file.Name)
@@ -283,6 +299,14 @@ func (t TestJSON) Diagnostics(run *moduletest.Run, file *moduletest.File, diags 
 		metadata = append(metadata, "@testrun", run.Name)
 	}
 	t.view.Diagnostics(diags, metadata...)
+}
+
+func (t *TestJSON) Interrupted() {
+	t.view.Log(interrupted)
+}
+
+func (t *TestJSON) FatalInterrupt() {
+	t.view.Log(fatalInterrupt)
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {

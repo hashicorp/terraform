@@ -28,8 +28,9 @@ var (
 			"test_resource": {
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":    {Type: cty.String, Optional: true, Computed: true},
-						"value": {Type: cty.String, Optional: true},
+						"id":              {Type: cty.String, Optional: true, Computed: true},
+						"value":           {Type: cty.String, Optional: true},
+						"interrupt_count": {Type: cty.Number, Optional: true},
 					},
 				},
 			},
@@ -38,8 +39,9 @@ var (
 			"test_data_source": {
 				Block: &configschema.Block{
 					Attributes: map[string]*configschema.Attribute{
-						"id":    {Type: cty.String, Required: true},
-						"value": {Type: cty.String, Computed: true},
+						"id":              {Type: cty.String, Required: true},
+						"value":           {Type: cty.String, Computed: true},
+						"interrupt_count": {Type: cty.Number, Computed: true},
 					},
 				},
 			},
@@ -53,6 +55,8 @@ type TestProvider struct {
 	Provider *terraform.MockProvider
 
 	data, resource cty.Value
+
+	Interrupt chan<- struct{}
 
 	Store *ResourceStore
 }
@@ -205,6 +209,14 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		vals := resource.AsValueMap()
 		vals["id"] = id
 		resource = cty.ObjectVal(vals)
+	}
+
+	interrupts := resource.GetAttr("interrupt_count")
+	if !interrupts.IsNull() && interrupts.IsKnown() && provider.Interrupt != nil {
+		count, _ := interrupts.AsBigFloat().Int64()
+		for ix := 0; ix < int(count); ix++ {
+			provider.Interrupt <- struct{}{}
+		}
 	}
 
 	provider.Store.Put(provider.GetResourceKey(id.AsString()), resource)

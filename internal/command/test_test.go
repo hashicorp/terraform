@@ -137,6 +137,72 @@ func TestTest(t *testing.T) {
 	}
 }
 
+func TestTest_Interrupt(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "with_interrupt")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	if !strings.Contains(output, "Interrupt received") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	if provider.ResourceCount() > 0 {
+		// we asked for a nice stop in this one, so it should still have tidied everything up.
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_DoubleInterrupt(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "with_double_interrupt")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	interrupt := make(chan struct{})
+	provider.Interrupt = interrupt
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+			ShutdownCh:       interrupt,
+		},
+	}
+
+	c.Run(nil)
+	output := done(t).All()
+
+	if !strings.Contains(output, "Terraform Test Interrupted") {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
+	// This time the test command shouldn't have cleaned up the resource because
+	// of the hard interrupt.
+	if provider.ResourceCount() != 3 {
+		// we asked for a nice stop in this one, so it should still have tidied everything up.
+		t.Errorf("should not have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
 func TestTest_ProviderAlias(t *testing.T) {
 	td := t.TempDir()
 	testCopyDir(t, testFixturePath(path.Join("test", "with_provider_alias")), td)
