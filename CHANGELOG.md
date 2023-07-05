@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * backend/consul: When failing to save state, `consul CAS failed with transaction errors` no longer shows an error instance memory address, but an actual error message. ([#33108](https://github.com/hashicorp/terraform/pull/33108))
+* plan renderer: Fixes crash when rendering the plan if a relevant attribute contains an integer index specified as a string. ([#33475](https://github.com/hashicorp/terraform/issues/33475))
 
 ## 1.5.2 (June 28, 2023)
 
