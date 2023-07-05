@@ -6,6 +6,7 @@ package jsonprovider
 import (
 	"encoding/json"
 
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
@@ -14,8 +15,8 @@ import (
 // consuming parser.
 const FormatVersion = "1.0"
 
-// providers is the top-level object returned when exporting provider schemas
-type providers struct {
+// Providers is the top-level object returned when exporting provider schemas
+type Providers struct {
 	FormatVersion string               `json:"format_version"`
 	Schemas       map[string]*Provider `json:"provider_schemas,omitempty"`
 }
@@ -26,9 +27,9 @@ type Provider struct {
 	DataSourceSchemas map[string]*Schema `json:"data_source_schemas,omitempty"`
 }
 
-func newProviders() *providers {
+func newProviders() *Providers {
 	schemas := make(map[string]*Provider)
-	return &providers{
+	return &Providers{
 		FormatVersion: FormatVersion,
 		Schemas:       schemas,
 	}
@@ -53,29 +54,10 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 	return ret, err
 }
 
-func marshalProvider(tps *terraform.ProviderSchema) *Provider {
-	if tps == nil {
-		return &Provider{}
-	}
-
-	var ps *Schema
-	var rs, ds map[string]*Schema
-
-	if tps.Provider != nil {
-		ps = marshalSchema(tps.Provider)
-	}
-
-	if tps.ResourceTypes != nil {
-		rs = marshalSchemas(tps.ResourceTypes, tps.ResourceTypeSchemaVersions)
-	}
-
-	if tps.DataSources != nil {
-		ds = marshalSchemas(tps.DataSources, tps.ResourceTypeSchemaVersions)
-	}
-
+func marshalProvider(tps providers.Schemas) *Provider {
 	return &Provider{
-		Provider:          ps,
-		ResourceSchemas:   rs,
-		DataSourceSchemas: ds,
+		Provider:          marshalSchema(tps.Provider),
+		ResourceSchemas:   marshalSchemas(tps.ResourceTypes),
+		DataSourceSchemas: marshalSchemas(tps.DataSources),
 	}
 }
