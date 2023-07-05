@@ -2742,6 +2742,115 @@ func TestSpecificCases(t *testing.T) {
 				}, plans.Create, false),
 			}, nil, nil, nil, nil, plans.Create, false),
 		},
+
+		// The following tests are from issue 33472. Basically Terraform allows
+		// callers to treat numbers as strings in references and expects us
+		// to coerce the strings into numbers. For example the following are
+		// equivalent.
+		//    - test_resource.resource.list[0].attribute
+		//    - test_resource.resource.list["0"].attribute
+		//
+		// We need our attribute_path package (used within the ReplacePaths and
+		// RelevantAttributes fields) to handle coercing strings into numbers
+		// when it's expected.
+
+		"issues/33472/expected": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"list": []interface{}{
+						map[string]interface{}{
+							"number": -1,
+						},
+					},
+				},
+				After: map[string]interface{}{
+					"list": []interface{}{
+						map[string]interface{}{
+							"number": 2,
+						},
+					},
+				},
+				Unknown:         false,
+				BeforeSensitive: false,
+				AfterSensitive:  false,
+				ReplacePaths:    attribute_path.Empty(false),
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Propagate: true,
+					Paths: [][]interface{}{
+						{
+							"list",
+							0.0, // This is normal and expected so easy case.
+							"number",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"list": {
+						AttributeType: unmarshalType(t, cty.List(cty.Object(map[string]cty.Type{
+							"number": cty.Number,
+						}))),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"list": renderers.ValidateList([]renderers.ValidateDiffFunction{
+					renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+						"number": renderers.ValidatePrimitive(-1, 2, plans.Update, false),
+					}, plans.Update, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
+
+		"issues/33472/coerce": {
+			input: structured.Change{
+				Before: map[string]interface{}{
+					"list": []interface{}{
+						map[string]interface{}{
+							"number": -1,
+						},
+					},
+				},
+				After: map[string]interface{}{
+					"list": []interface{}{
+						map[string]interface{}{
+							"number": 2,
+						},
+					},
+				},
+				Unknown:         false,
+				BeforeSensitive: false,
+				AfterSensitive:  false,
+				ReplacePaths:    attribute_path.Empty(false),
+				RelevantAttributes: &attribute_path.PathMatcher{
+					Propagate: true,
+					Paths: [][]interface{}{
+						{
+							"list",
+							"0", // Difficult but allowed, we need to handle this.
+							"number",
+						},
+					},
+				},
+			},
+			block: &jsonprovider.Block{
+				Attributes: map[string]*jsonprovider.Attribute{
+					"list": {
+						AttributeType: unmarshalType(t, cty.List(cty.Object(map[string]cty.Type{
+							"number": cty.Number,
+						}))),
+					},
+				},
+			},
+			validate: renderers.ValidateBlock(map[string]renderers.ValidateDiffFunction{
+				"list": renderers.ValidateList([]renderers.ValidateDiffFunction{
+					renderers.ValidateObject(map[string]renderers.ValidateDiffFunction{
+						"number": renderers.ValidatePrimitive(-1, 2, plans.Update, false),
+					}, plans.Update, false),
+				}, plans.Update, false),
+			}, nil, nil, nil, nil, plans.Update, false),
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
