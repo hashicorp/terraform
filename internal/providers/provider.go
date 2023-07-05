@@ -6,6 +6,7 @@ package providers
 import (
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -73,13 +74,6 @@ type Interface interface {
 	Close() error
 }
 
-// All access to a provider's schema internally should bt through the Schemas
-// type.
-// TODO: Acccess to schemas was split over two types with slightly different
-// structures in different parts of the code. These types need to be unified
-// for easier and more consistent access, but there is however a large amount
-// of code which directly uses this structure, so it is not easily refactored
-// out.
 type GetProviderSchemaResponse struct {
 	// Provider is the schema for the provider itself.
 	Provider Schema
@@ -98,6 +92,17 @@ type GetProviderSchemaResponse struct {
 
 	// ServerCapabilities lists optional features supported by the provider.
 	ServerCapabilities ServerCapabilities
+}
+
+// Schema pairs a provider or resource schema with that schema's version.
+// This is used to be able to upgrade the schema in UpgradeResourceState.
+//
+// This describes the schema for a single object within a provider. Type
+// "Schemas" (plural) instead represents the overall collection of schemas
+// for everything within a particular provider.
+type Schema struct {
+	Version int64
+	Block   *configschema.Block
 }
 
 // ServerCapabilities allows providers to communicate extra information

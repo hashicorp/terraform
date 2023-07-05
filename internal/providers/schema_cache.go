@@ -9,11 +9,11 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// SchemaCache is a global cache of GetProviderSchemaResponses.
+// SchemaCache is a global cache of Schemas.
 // This will be accessed by both core and the provider clients to ensure that
 // large schemas are stored in a single location.
 var SchemaCache = &schemaCache{
-	m: make(map[addrs.Provider]GetProviderSchemaResponse),
+	m: make(map[addrs.Provider]Schemas),
 }
 
 // Global cache for provider schemas
@@ -22,17 +22,17 @@ var SchemaCache = &schemaCache{
 // concurrent calls resulting in an error can be handled in the same manner.
 type schemaCache struct {
 	mu sync.Mutex
-	m  map[addrs.Provider]GetProviderSchemaResponse
+	m  map[addrs.Provider]Schemas
 }
 
-func (c *schemaCache) Set(p addrs.Provider, s GetProviderSchemaResponse) {
+func (c *schemaCache) Set(p addrs.Provider, s Schemas) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.m[p] = s
 }
 
-func (c *schemaCache) Get(p addrs.Provider) (GetProviderSchemaResponse, bool) {
+func (c *schemaCache) Get(p addrs.Provider) (Schemas, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
