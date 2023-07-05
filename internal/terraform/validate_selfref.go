@@ -11,12 +11,13 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // validateSelfRef checks to ensure that expressions within a particular
 // referencable block do not reference that same block.
-func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *ProviderSchema) tfdiags.Diagnostics {
+func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema providers.Schemas) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	addrStrs := make([]string, 0, 1)
@@ -25,11 +26,6 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema *
 	case addrs.ResourceInstance:
 		// A resource instance may not refer to its containing resource either.
 		addrStrs = append(addrStrs, tAddr.ContainingResource().String())
-	}
-
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema unavailable while validating %s for self-references; this is a bug in Terraform and should be reported", addr))
-		return diags
 	}
 
 	var schema *configschema.Block

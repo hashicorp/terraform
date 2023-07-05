@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 func TestStaticValidateReferences(t *testing.T) {
@@ -83,23 +84,29 @@ For example, to correlate with indices of a referring resource, use:
 	cfg := testModule(t, "static-validate-refs")
 	evaluator := &Evaluator{
 		Config: cfg,
-		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.Schemas{
 			addrs.NewDefaultProvider("aws"): {
-				ResourceTypes: map[string]*configschema.Block{
-					"aws_instance": {},
+				ResourceTypes: map[string]providers.Schema{
+					"aws_instance": {
+						Block: &configschema.Block{},
+					},
 				},
 			},
 			addrs.MustParseProviderSourceString("foobar/beep"): {
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					// intentional mismatch between resource type prefix and provider type
-					"boop_instance": {},
+					"boop_instance": {
+						Block: &configschema.Block{},
+					},
 				},
-				DataSources: map[string]*configschema.Block{
+				DataSources: map[string]providers.Schema{
 					"boop_data": {
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Optional: true,
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Optional: true,
+								},
 							},
 						},
 					},

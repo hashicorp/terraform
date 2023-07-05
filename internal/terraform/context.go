@@ -146,7 +146,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 }
 
 func (c *Context) Schemas(config *configs.Config, state *states.State) (*Schemas, tfdiags.Diagnostics) {
-	// TODO: This method gets called multiple times on the same context with
+	// FIXME: This method gets called multiple times on the same context with
 	// the same inputs by different parts of Terraform that all need the
 	// schemas, and it's typically quite expensive because it has to spin up
 	// plugins to gather their schemas, so it'd be good to have some caching

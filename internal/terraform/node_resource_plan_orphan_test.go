@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
@@ -43,9 +42,11 @@ func TestNodeResourcePlanOrphanExecute(t *testing.T) {
 		PrevRunStateState:        state.DeepCopy().SyncWrapper(),
 		InstanceExpanderExpander: instances.NewExpander(),
 		ProviderProvider:         p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+		ProviderSchemaSchema: providers.Schemas{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: simpleTestSchema(),
+				},
 			},
 		},
 		ChangesChanges: plans.NewChanges().SyncWrapper(),
@@ -107,9 +108,11 @@ func TestNodeResourcePlanOrphanExecute_alreadyDeleted(t *testing.T) {
 		PrevRunStateState:        prevRunState.SyncWrapper(),
 		InstanceExpanderExpander: instances.NewExpander(),
 		ProviderProvider:         p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+		ProviderSchemaSchema: providers.Schemas{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: simpleTestSchema(),
+				},
 			},
 		},
 		ChangesChanges: changes.SyncWrapper(),
@@ -187,9 +190,11 @@ func TestNodeResourcePlanOrphanExecute_deposed(t *testing.T) {
 		PrevRunStateState:        prevRunState.SyncWrapper(),
 		InstanceExpanderExpander: instances.NewExpander(),
 		ProviderProvider:         p,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
-				"test_object": simpleTestSchema(),
+		ProviderSchemaSchema: providers.Schemas{
+			ResourceTypes: map[string]providers.Schema{
+				"test_object": {
+					Block: simpleTestSchema(),
+				},
 			},
 		},
 		ChangesChanges: changes.SyncWrapper(),

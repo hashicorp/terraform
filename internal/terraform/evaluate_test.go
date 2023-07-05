@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -264,71 +265,72 @@ func TestEvaluatorGetResource(t *testing.T) {
 			},
 		},
 		State: stateSync,
-		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]*ProviderSchema{
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.Schemas{
 			addrs.NewDefaultProvider("test"): {
-				Provider: &configschema.Block{},
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"value": {
-								Type:      cty.String,
-								Computed:  true,
-								Sensitive: true,
-							},
-						},
-						BlockTypes: map[string]*configschema.NestedBlock{
-							"nesting_list": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"value":           {Type: cty.String, Optional: true},
-										"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
-									},
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Computed: true,
 								},
-								Nesting: configschema.NestingList,
-							},
-							"nesting_map": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"foo": {Type: cty.String, Optional: true, Sensitive: true},
-									},
+								"value": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
 								},
-								Nesting: configschema.NestingMap,
 							},
-							"nesting_set": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"baz": {Type: cty.String, Optional: true, Sensitive: true},
-									},
-								},
-								Nesting: configschema.NestingSet,
-							},
-							"nesting_single": {
-								Block: configschema.Block{
-									Attributes: map[string]*configschema.Attribute{
-										"boop": {Type: cty.String, Optional: true, Sensitive: true},
-									},
-								},
-								Nesting: configschema.NestingSingle,
-							},
-							"nesting_nesting": {
-								Block: configschema.Block{
-									BlockTypes: map[string]*configschema.NestedBlock{
-										"nesting_list": {
-											Block: configschema.Block{
-												Attributes: map[string]*configschema.Attribute{
-													"value":           {Type: cty.String, Optional: true},
-													"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
-												},
-											},
-											Nesting: configschema.NestingList,
+							BlockTypes: map[string]*configschema.NestedBlock{
+								"nesting_list": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value":           {Type: cty.String, Optional: true},
+											"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
 										},
 									},
+									Nesting: configschema.NestingList,
 								},
-								Nesting: configschema.NestingSingle,
+								"nesting_map": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"foo": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingMap,
+								},
+								"nesting_set": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"baz": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSet,
+								},
+								"nesting_single": {
+									Block: configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"boop": {Type: cty.String, Optional: true, Sensitive: true},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
+								"nesting_nesting": {
+									Block: configschema.Block{
+										BlockTypes: map[string]*configschema.NestedBlock{
+											"nesting_list": {
+												Block: configschema.Block{
+													Attributes: map[string]*configschema.Attribute{
+														"value":           {Type: cty.String, Optional: true},
+														"sensitive_value": {Type: cty.String, Optional: true, Sensitive: true},
+													},
+												},
+												Nesting: configschema.NestingList,
+											},
+										},
+									},
+									Nesting: configschema.NestingSingle,
+								},
 							},
 						},
 					},
@@ -435,29 +437,30 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 
 	// Set up our schemas
 	schemas := &Schemas{
-		Providers: map[addrs.Provider]*ProviderSchema{
+		Providers: map[addrs.Provider]providers.Schemas{
 			addrs.NewDefaultProvider("test"): {
-				Provider: &configschema.Block{},
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
-						Attributes: map[string]*configschema.Attribute{
-							"id": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"to_mark_val": {
-								Type:     cty.String,
-								Computed: true,
-							},
-							"sensitive_value": {
-								Type:      cty.String,
-								Computed:  true,
-								Sensitive: true,
-							},
-							"sensitive_collection": {
-								Type:      cty.Map(cty.String),
-								Computed:  true,
-								Sensitive: true,
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id": {
+									Type:     cty.String,
+									Computed: true,
+								},
+								"to_mark_val": {
+									Type:     cty.String,
+									Computed: true,
+								},
+								"sensitive_value": {
+									Type:      cty.String,
+									Computed:  true,
+									Sensitive: true,
+								},
+								"sensitive_collection": {
+									Type:      cty.Map(cty.String),
+									Computed:  true,
+									Sensitive: true,
+								},
 							},
 						},
 					},

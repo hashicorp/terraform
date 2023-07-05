@@ -2782,13 +2782,13 @@ resource "test_resource" "a" {
 		},
 	})
 
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
 	t.Run("conditions pass", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 			m := req.ProposedNewState.AsValueMap()
 			m["output"] = cty.StringVal("bar")
@@ -2820,6 +2820,12 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition fail", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode: plans.NormalMode,
 			SetVariables: InputValues{
@@ -2841,6 +2847,12 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		state := states.BuildState(func(s *states.SyncState) {
 			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
@@ -2869,6 +2881,12 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("postcondition fail", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 			m := req.ProposedNewState.AsValueMap()
 			m["output"] = cty.StringVal("")
@@ -2898,6 +2916,12 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("postcondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		state := states.BuildState(func(s *states.SyncState) {
 			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
@@ -2945,6 +2969,12 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition and postcondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
+
 		state := states.BuildState(func(s *states.SyncState) {
 			s.SetResourceInstanceCurrent(mustResourceInstanceAddr("test_resource.a"), &states.ResourceInstanceObjectSrc{
 				AttrsJSON: []byte(`{"value":"boop","output":"blorp"}`),
@@ -3054,13 +3084,12 @@ resource "test_resource" "a" {
 		},
 	})
 
-	ctx := testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
-		},
-	})
-
 	t.Run("conditions pass", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
 				"foo":     cty.StringVal("boop"),
@@ -3106,6 +3135,11 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition fail", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		_, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode: plans.NormalMode,
 			SetVariables: InputValues{
@@ -3127,6 +3161,11 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		plan, diags := ctx.Plan(m, states.NewState(), &PlanOpts{
 			Mode: plans.RefreshOnlyMode,
 			SetVariables: InputValues{
@@ -3160,6 +3199,11 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("postcondition fail", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
 				"foo":     cty.StringVal("boop"),
@@ -3187,6 +3231,11 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("postcondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
 				"foo":     cty.StringVal("boop"),
@@ -3223,6 +3272,11 @@ resource "test_resource" "a" {
 	})
 
 	t.Run("precondition and postcondition fail refresh-only", func(t *testing.T) {
+		ctx := testContext2(t, &ContextOpts{
+			Providers: map[addrs.Provider]providers.Factory{
+				addrs.NewDefaultProvider("test"): testProviderFuncFixed(p),
+			},
+		})
 		p.ReadDataSourceResponse = &providers.ReadDataSourceResponse{
 			State: cty.ObjectVal(map[string]cty.Value{
 				"foo":     cty.StringVal("nope"),

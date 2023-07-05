@@ -149,7 +149,22 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.Schemas, error) {
+	// first see if we have already have an initialized provider to avoid
+	// re-loading it only for the schema
+	p := ctx.Provider(addr)
+	if p != nil {
+		resp := p.GetProviderSchema()
+		// convert any diagnostics here in case this is the first call
+		// FIXME: better control provider instantiation so we can be sure this
+		// won't be the first call to ProviderSchema
+		var err error
+		if resp.Diagnostics.HasErrors() {
+			err = resp.Diagnostics.ErrWithWarnings()
+		}
+		return resp, err
+	}
+
 	return ctx.Plugins.ProviderSchema(addr.Provider)
 }
 
@@ -178,16 +193,6 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(addr addrs.AbsProviderConfig, c
 	p := ctx.Provider(addr)
 	if p == nil {
 		diags = diags.Append(fmt.Errorf("%s not initialized", addr))
-		return diags
-	}
-
-	providerSchema, err := ctx.ProviderSchema(addr)
-	if err != nil {
-		diags = diags.Append(fmt.Errorf("failed to read schema for %s: %s", addr, err))
-		return diags
-	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("schema for %s is not available", addr))
 		return diags
 	}
 

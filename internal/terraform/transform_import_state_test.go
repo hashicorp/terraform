@@ -72,13 +72,15 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.Schemas{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
@@ -132,13 +134,15 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: &ProviderSchema{
-			ResourceTypes: map[string]*configschema.Block{
+		ProviderSchemaSchema: providers.Schemas{
+			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
-					Attributes: map[string]*configschema.Attribute{
-						"id": {
-							Type:     cty.String,
-							Computed: true,
+					Block: &configschema.Block{
+						Attributes: map[string]*configschema.Attribute{
+							"id": {
+								Type:     cty.String,
+								Computed: true,
+							},
 						},
 					},
 				},
