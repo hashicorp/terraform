@@ -37,7 +37,8 @@ func validateKMSKeyID(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 }
 
 func validateKMSKeyARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
-	if _, err := arn.Parse(s); err != nil {
+	parsedARN, err := arn.Parse(s)
+	if err != nil {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid KMS Key ARN",
@@ -47,7 +48,7 @@ func validateKMSKeyARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 		return diags
 	}
 
-	if !isKeyARN(s) {
+	if !isKeyARN(parsedARN) {
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
 			"Invalid KMS Key ARN",
@@ -60,13 +61,8 @@ func validateKMSKeyARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 	return diags
 }
 
-func isKeyARN(s string) bool {
-	parsedARN, err := arn.Parse(s)
-	if err != nil {
-		return false
-	}
-
-	return keyIdFromARNResource(parsedARN.Resource) != ""
+func isKeyARN(arn arn.ARN) bool {
+	return keyIdFromARNResource(arn.Resource) != ""
 }
 
 func keyIdFromARNResource(s string) string {
