@@ -334,7 +334,6 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
 
-	// WarnOnEmptyString(), LenEquals(44), IsBase64Encoded()
 	if customerKey, ok := stringAttrOk(obj, "sse_customer_key"); ok {
 		if len(customerKey) != 44 {
 			diags = diags.Append(tfdiags.AttributeValue(

@@ -195,7 +195,7 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 	}
 }
 
-func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
+func TestBackendConfig_DynamoDBEndpointEnvVar(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
 		"region": "us-west-1",
@@ -220,7 +220,21 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	checkClientEndpoint(t, b.dynClient.Config, "dynamo.test")
 }
 
-func TestBackendConfig_S3Endpoint(t *testing.T) {
+func TestBackendConfig_DynamoDBEndpointConfig(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region":            "us-west-1",
+		"bucket":            "tf-test",
+		"key":               "state",
+		"dynamodb_endpoint": "dynamo.test",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	checkClientEndpoint(t, b.dynClient.Config, "dynamo.test")
+}
+
+func TestBackendConfig_S3EndpointEnvVar(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
 		"region": "us-west-1",
@@ -245,7 +259,21 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	checkClientEndpoint(t, b.s3Client.Config, "s3.test")
 }
 
-func TestBackendConfig_STSEndpoint(t *testing.T) {
+func TestBackendConfig_S3EndpointConfig(t *testing.T) {
+	testACC(t)
+	config := map[string]interface{}{
+		"region":   "us-west-1",
+		"bucket":   "tf-test",
+		"key":      "state",
+		"endpoint": "s3.test",
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	checkClientEndpoint(t, b.s3Client.Config, "s3.test")
+}
+
+func TestBackendConfig_STSEndpointEnvVar(t *testing.T) {
 	testACC(t)
 
 	testCases := []struct {
@@ -297,6 +325,69 @@ func TestBackendConfig_STSEndpoint(t *testing.T) {
 				t.Cleanup(func() {
 					os.Unsetenv("AWS_STS_ENDPOINT")
 				})
+			}
+
+			b := New()
+			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(testCase.Config)))
+
+			if diags.HasErrors() {
+				for _, diag := range diags {
+					t.Errorf("unexpected error: %s", diag.Description().Summary)
+				}
+			}
+		})
+	}
+}
+
+func TestBackendConfig_STSEndpointConfig(t *testing.T) {
+	testACC(t)
+
+	testCases := []struct {
+		Config           map[string]interface{}
+		Description      string
+		MockStsEndpoints []*awsbase.MockEndpoint
+	}{
+		{
+			Config: map[string]interface{}{
+				"bucket":       "tf-test",
+				"key":          "state",
+				"region":       "us-west-1",
+				"role_arn":     awsbase.MockStsAssumeRoleArn,
+				"session_name": awsbase.MockStsAssumeRoleSessionName,
+			},
+			Description: "role_arn",
+			MockStsEndpoints: []*awsbase.MockEndpoint{
+				{
+					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+						"Action":          []string{"AssumeRole"},
+						"DurationSeconds": []string{"900"},
+						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"Version":         []string{"2011-06-15"},
+					}.Encode()},
+					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+				},
+				{
+					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+				},
+			},
+		},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+
+		t.Run(testCase.Description, func(t *testing.T) {
+			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
+			defer closeSts()
+
+			if err != nil {
+				t.Fatalf("unexpected error creating mock STS server: %s", err)
+			}
+
+			if mockStsSession != nil && mockStsSession.Config != nil {
+				testCase.Config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
 			}
 
 			b := New()
