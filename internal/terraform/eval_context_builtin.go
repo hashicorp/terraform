@@ -149,7 +149,7 @@ func (ctx *BuiltinEvalContext) Provider(addr addrs.AbsProviderConfig) providers.
 	return ctx.ProviderCache[addr.String()]
 }
 
-func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.Schemas, error) {
+func (ctx *BuiltinEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
 	// first see if we have already have an initialized provider to avoid
 	// re-loading it only for the schema
 	p := ctx.Provider(addr)

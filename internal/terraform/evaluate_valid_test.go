@@ -84,7 +84,7 @@ For example, to correlate with indices of a referring resource, use:
 	cfg := testModule(t, "static-validate-refs")
 	evaluator := &Evaluator{
 		Config: cfg,
-		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.Schemas{
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("aws"): {
 				ResourceTypes: map[string]providers.Schema{
 					"aws_instance": {

@@ -17,7 +17,7 @@ import (
 
 // validateSelfRef checks to ensure that expressions within a particular
 // referencable block do not reference that same block.
-func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema providers.Schemas) tfdiags.Diagnostics {
+func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	addrStrs := make([]string, 0, 1)

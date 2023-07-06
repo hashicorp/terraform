@@ -6987,7 +6987,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			tfschemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]providers.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
 					src.ProviderAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{
 							src.Addr.Resource.Resource.Type: {

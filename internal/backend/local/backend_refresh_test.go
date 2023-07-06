@@ -63,7 +63,7 @@ test_instance.foo:
 func TestLocal_refreshInput(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := providers.Schemas{
+	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -158,7 +158,7 @@ test_instance.foo:
 func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := providers.Schemas{
+	schema := providers.ProviderSchema{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{
@@ -305,8 +305,8 @@ func testRefreshState() *states.State {
 // refreshFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/refresh . This schema should be
 // assigned to a mock provider named "test".
-func refreshFixtureSchema() providers.Schemas {
-	return providers.Schemas{
+func refreshFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

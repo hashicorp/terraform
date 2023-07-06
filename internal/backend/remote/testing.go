@@ -182,7 +182,7 @@ func testLocalBackend(t *testing.T, remote *Remote) backend.Enhanced {
 	b := backendLocal.NewWithBackend(remote)
 
 	// Add a test provider to the local backend.
-	p := backendLocal.TestLocalProvider(t, b, "null", providers.Schemas{
+	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
 				Block: &configschema.Block{

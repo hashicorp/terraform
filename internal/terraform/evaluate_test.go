@@ -265,7 +265,7 @@ func TestEvaluatorGetResource(t *testing.T) {
 			},
 		},
 		State: stateSync,
-		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.Schemas{
+		Plugins: schemaOnlyProvidersForTesting(map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {
@@ -437,7 +437,7 @@ func TestEvaluatorGetResource_changes(t *testing.T) {
 
 	// Set up our schemas
 	schemas := &Schemas{
-		Providers: map[addrs.Provider]providers.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_resource": {

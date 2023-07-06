@@ -137,7 +137,7 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 
 // readDiff returns the planned change for a particular resource instance
 // object.
-func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.Schemas) (*plans.ResourceInstanceChange, error) {
+func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.ProviderSchema) (*plans.ResourceInstanceChange, error) {
 	changes := ctx.Changes()
 	addr := n.ResourceInstanceAddr()
 

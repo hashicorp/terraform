@@ -122,7 +122,7 @@ func TestLocal_applyCheck(t *testing.T) {
 func TestLocal_applyEmptyDir(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", providers.Schemas{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -156,7 +156,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", providers.Schemas{})
+	p := TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -186,7 +186,7 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := providers.Schemas{
+	schema := providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{
@@ -387,8 +387,8 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() providers.Schemas {
-	return providers.Schemas{
+func applyFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

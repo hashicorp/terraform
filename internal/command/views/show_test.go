@@ -131,7 +131,7 @@ func TestShowJSON(t *testing.T) {
 			v := NewShow(arguments.ViewJSON, view)
 
 			schemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]providers.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
 					addrs.NewDefaultProvider("test"): {
 						ResourceTypes: map[string]providers.Schema{
 							"test_resource": {

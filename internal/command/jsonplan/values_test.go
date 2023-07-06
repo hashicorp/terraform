@@ -345,8 +345,8 @@ func TestMarshalPlanValuesNoopDeposed(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]providers.Schemas{
-			addrs.NewDefaultProvider("test"): providers.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): providers.ProviderSchema{
 				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
 						Version: 1,

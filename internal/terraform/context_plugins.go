@@ -65,7 +65,7 @@ func (cp *contextPlugins) NewProvisionerInstance(typ string) (provisioners.Inter
 // ProviderSchema memoizes results by unique provider address, so it's fine
 // to repeatedly call this method with the same address if various different
 // parts of Terraform all need the same schema information.
-func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.Schemas, error) {
+func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema, error) {
 	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its schema", addr)
 
 	// check the global schema cache first

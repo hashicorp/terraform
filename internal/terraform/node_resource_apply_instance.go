@@ -401,7 +401,7 @@ func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalCo
 // Errors here are most often indicative of a bug in the provider, so our error
 // messages will report with that in mind. It's also possible that there's a bug
 // in Terraform's Core's own "proposed new value" code in EvalDiff.
-func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema providers.Schemas) tfdiags.Diagnostics {
+func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
 

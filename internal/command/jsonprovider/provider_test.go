@@ -17,11 +17,11 @@ import (
 
 func TestMarshalProvider(t *testing.T) {
 	tests := []struct {
-		Input providers.Schemas
+		Input providers.ProviderSchema
 		Want  *Provider
 	}{
 		{
-			providers.Schemas{},
+			providers.ProviderSchema{},
 			&Provider{
 				Provider:          &Schema{},
 				ResourceSchemas:   map[string]*Schema{},
@@ -158,8 +158,8 @@ func TestMarshalProvider(t *testing.T) {
 	}
 }
 
-func testProvider() providers.Schemas {
-	return providers.Schemas{
+func testProvider() providers.ProviderSchema {
+	return providers.ProviderSchema{
 		Provider: providers.Schema{
 			Block: &configschema.Block{
 				Attributes: map[string]*configschema.Attribute{

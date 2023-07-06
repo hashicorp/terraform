@@ -72,7 +72,7 @@ func TestGraphNodeImportStateSubExecute(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: providers.Schemas{
+		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
 					Block: &configschema.Block{
@@ -134,7 +134,7 @@ func TestGraphNodeImportStateSubExecuteNull(t *testing.T) {
 	ctx := &MockEvalContext{
 		StateState:       state.SyncWrapper(),
 		ProviderProvider: provider,
-		ProviderSchemaSchema: providers.Schemas{
+		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"aws_instance": {
 					Block: &configschema.Block{

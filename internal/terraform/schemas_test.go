@@ -14,7 +14,7 @@ func simpleTestSchemas() *Schemas {
 	provisioner := simpleMockProvisioner()
 
 	return &Schemas{
-		Providers: map[addrs.Provider]providers.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 		Provisioners: map[string]*configschema.Block{
@@ -31,7 +31,7 @@ func simpleTestSchemas() *Schemas {
 // The intended use for this is in testing components that use schemas to
 // drive other behavior, such as reference analysis during graph construction,
 // but that don't actually need to interact with providers otherwise.
-func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]providers.Schemas) *contextPlugins {
+func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]providers.ProviderSchema) *contextPlugins {
 	factories := make(map[addrs.Provider]providers.Factory, len(schemas))
 
 	for providerAddr, schema := range schemas {

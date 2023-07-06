@@ -808,7 +808,7 @@ func TestMarshalModules_parent_no_resources(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]providers.Schemas{
+		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {

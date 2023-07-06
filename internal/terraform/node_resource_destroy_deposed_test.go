@@ -40,7 +40,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		PrevRunStateState: state.DeepCopy().SyncWrapper(),
 		RefreshStateState: state.DeepCopy().SyncWrapper(),
 		ProviderProvider:  p,
-		ProviderSchemaSchema: providers.Schemas{
+		ProviderSchemaSchema: providers.ProviderSchema{
 			ResourceTypes: map[string]providers.Schema{
 				"test_instance": {
 					Block: &configschema.Block{
@@ -98,7 +98,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
 	)
 
-	schema := providers.Schemas{
+	schema := providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

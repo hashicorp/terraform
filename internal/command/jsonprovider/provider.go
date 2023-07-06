@@ -54,7 +54,7 @@ func Marshal(s *terraform.Schemas) ([]byte, error) {
 	return ret, err
 }
 
-func marshalProvider(tps providers.Schemas) *Provider {
+func marshalProvider(tps providers.ProviderSchema) *Provider {
 	return &Provider{
 		Provider:          marshalSchema(tps.Provider),
 		ResourceSchemas:   marshalSchemas(tps.ResourceTypes),

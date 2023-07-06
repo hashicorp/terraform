@@ -89,7 +89,7 @@ func TestLocal_planInAutomation(t *testing.T) {
 
 func TestLocal_planNoConfig(t *testing.T) {
 	b := TestLocal(t)
-	TestLocalProvider(t, b, "test", providers.Schemas{})
+	TestLocalProvider(t, b, "test", providers.ProviderSchema{})
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/empty")
 	defer configCleanup()
@@ -855,8 +855,8 @@ func testReadPlan(t *testing.T, path string) *plans.Plan {
 // planFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/plan . This schema should be
 // assigned to a mock provider named "test".
-func planFixtureSchema() providers.Schemas {
-	return providers.Schemas{
+func planFixtureSchema() providers.ProviderSchema {
+	return providers.ProviderSchema{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
 				Block: &configschema.Block{

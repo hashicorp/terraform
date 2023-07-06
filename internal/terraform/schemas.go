@@ -18,7 +18,7 @@ import (
 // Schemas is a container for various kinds of schema that Terraform needs
 // during processing.
 type Schemas struct {
-	Providers    map[addrs.Provider]providers.Schemas
+	Providers    map[addrs.Provider]providers.ProviderSchema
 	Provisioners map[string]*configschema.Block
 }
 
@@ -27,7 +27,7 @@ type Schemas struct {
 //
 // It's usually better to go use the more precise methods offered by type
 // Schemas to handle this detail automatically.
-func (ss *Schemas) ProviderSchema(provider addrs.Provider) providers.Schemas {
+func (ss *Schemas) ProviderSchema(provider addrs.Provider) providers.ProviderSchema {
 	return ss.Providers[provider]
 }
 
@@ -72,7 +72,7 @@ func (ss *Schemas) ProvisionerConfig(name string) *configschema.Block {
 // still valid but may be incomplete.
 func loadSchemas(config *configs.Config, state *states.State, plugins *contextPlugins) (*Schemas, error) {
 	schemas := &Schemas{
-		Providers:    map[addrs.Provider]providers.Schemas{},
+		Providers:    map[addrs.Provider]providers.ProviderSchema{},
 		Provisioners: map[string]*configschema.Block{},
 	}
 	var diags tfdiags.Diagnostics
@@ -85,7 +85,7 @@ func loadSchemas(config *configs.Config, state *states.State, plugins *contextPl
 	return schemas, diags.Err()
 }
 
-func loadProviderSchemas(schemas map[addrs.Provider]providers.Schemas, config *configs.Config, state *states.State, plugins *contextPlugins) tfdiags.Diagnostics {
+func loadProviderSchemas(schemas map[addrs.Provider]providers.ProviderSchema, config *configs.Config, state *states.State, plugins *contextPlugins) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	ensure := func(fqn addrs.Provider) {
@@ -101,7 +101,7 @@ func loadProviderSchemas(schemas map[addrs.Provider]providers.Schemas, config *c
 			// We'll put a stub in the map so we won't re-attempt this on
 			// future calls, which would then repeat the same error message
 			// multiple times.
-			schemas[fqn] = providers.Schemas{}
+			schemas[fqn] = providers.ProviderSchema{}
 			diags = diags.Append(
 				tfdiags.Sourceless(
 					tfdiags.Error,

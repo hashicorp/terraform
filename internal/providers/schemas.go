@@ -8,13 +8,13 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 )
 
-// Schemas is an overall container for all of the schemas for all configurable
+// ProviderSchema is an overall container for all of the schemas for all configurable
 // objects defined within a particular provider.
-type Schemas = GetProviderSchemaResponse
+type ProviderSchema = GetProviderSchemaResponse
 
 // SchemaForResourceType attempts to find a schema for the given mode and type.
 // Returns nil if no such schema is available.
-func (ss Schemas) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
+func (ss ProviderSchema) SchemaForResourceType(mode addrs.ResourceMode, typeName string) (schema *configschema.Block, version uint64) {
 	switch mode {
 	case addrs.ManagedResourceMode:
 		res := ss.ResourceTypes[typeName]
@@ -30,6 +30,6 @@ func (ss Schemas) SchemaForResourceType(mode addrs.ResourceMode, typeName string
 
 // SchemaForResourceAddr attempts to find a schema for the mode and type from
 // the given resource address. Returns nil if no such schema is available.
-func (ss Schemas) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
+func (ss ProviderSchema) SchemaForResourceAddr(addr addrs.Resource) (schema *configschema.Block, version uint64) {
 	return ss.SchemaForResourceType(addr.Mode, addr.Type)
 }
