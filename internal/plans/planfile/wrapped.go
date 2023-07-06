@@ -1,6 +1,7 @@
 package planfile
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
@@ -81,10 +82,13 @@ func OpenWrapped(filename string) (*WrappedPlanFile, error) {
 	if cloudErr == nil {
 		return &WrappedPlanFile{cloud: &cloud}, nil
 	}
-	// If neither worked, return both errors. In general we don't care to give
-	// any advice about how to fix an internal problem in a plan file, since
-	// both formats are opaque, but we do want to give the user the best chance
-	// at resolving whatever their problem was.
+	// If neither worked, prioritize definitive "confirmed the format but can't
+	// use it" errors, then fall back to dumping everything we know.
+	var ulp *ErrUnusableLocalPlan
+	if errors.As(localErr, &ulp) {
+		return nil, ulp
+	}
+
 	combinedErr := fmt.Errorf("couldn't load the provided path as either a local plan file (%s) or a saved cloud plan (%s)", localErr, cloudErr)
 	return nil, combinedErr
 }
