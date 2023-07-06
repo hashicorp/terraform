@@ -46,7 +46,7 @@ type MockEvalContext struct {
 
 	ProviderSchemaCalled bool
 	ProviderSchemaAddr   addrs.AbsProviderConfig
-	ProviderSchemaSchema *ProviderSchema
+	ProviderSchemaSchema providers.ProviderSchema
 	ProviderSchemaError  error
 
 	CloseProviderCalled   bool
@@ -190,7 +190,7 @@ func (c *MockEvalContext) Provider(addr addrs.AbsProviderConfig) providers.Inter
 	return c.ProviderProvider
 }
 
-func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (*ProviderSchema, error) {
+func (c *MockEvalContext) ProviderSchema(addr addrs.AbsProviderConfig) (providers.ProviderSchema, error) {
 	c.ProviderSchemaCalled = true
 	c.ProviderSchemaAddr = addr
 	return c.ProviderSchemaSchema, c.ProviderSchemaError

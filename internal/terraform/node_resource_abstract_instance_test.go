@@ -171,7 +171,7 @@ func TestNodeAbstractResourceInstance_WriteResourceInstanceState(t *testing.T) {
 		},
 	}
 	ctx.ProviderProvider = mockProvider
-	ctx.ProviderSchemaSchema = mockProvider.ProviderSchema()
+	ctx.ProviderSchemaSchema = mockProvider.GetProviderSchema()
 
 	err := node.writeResourceInstanceState(ctx, obj, workingState)
 	if err != nil {

@@ -170,32 +170,33 @@ func testSetResourceInstanceTainted(module *states.Module, resource, attrsJson, 
 }
 
 func testProviderFuncFixed(rp providers.Interface) providers.Factory {
-	return func() (providers.Interface, error) {
-		if p, ok := rp.(*MockProvider); ok {
-			// make sure none of the methods were "called" on this new instance
-			p.GetProviderSchemaCalled = false
-			p.ValidateProviderConfigCalled = false
-			p.ValidateResourceConfigCalled = false
-			p.ValidateDataResourceConfigCalled = false
-			p.UpgradeResourceStateCalled = false
-			p.ConfigureProviderCalled = false
-			p.StopCalled = false
-			p.ReadResourceCalled = false
-			p.PlanResourceChangeCalled = false
-			p.ApplyResourceChangeCalled = false
-			p.ImportResourceStateCalled = false
-			p.ReadDataSourceCalled = false
-			p.CloseCalled = false
-		}
+	if p, ok := rp.(*MockProvider); ok {
+		// make sure none of the methods were "called" on this new instance
+		p.GetProviderSchemaCalled = false
+		p.ValidateProviderConfigCalled = false
+		p.ValidateResourceConfigCalled = false
+		p.ValidateDataResourceConfigCalled = false
+		p.UpgradeResourceStateCalled = false
+		p.ConfigureProviderCalled = false
+		p.StopCalled = false
+		p.ReadResourceCalled = false
+		p.PlanResourceChangeCalled = false
+		p.ApplyResourceChangeCalled = false
+		p.ImportResourceStateCalled = false
+		p.ReadDataSourceCalled = false
+		p.CloseCalled = false
+	}
 
+	return func() (providers.Interface, error) {
 		return rp, nil
 	}
 }
 
 func testProvisionerFuncFixed(rp *MockProvisioner) provisioners.Factory {
+	// make sure this provisioner has has not been closed
+	rp.CloseCalled = false
+
 	return func() (provisioners.Interface, error) {
-		// make sure this provisioner has has not been closed
-		rp.CloseCalled = false
 		return rp, nil
 	}
 }
