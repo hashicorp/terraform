@@ -24,3 +24,19 @@ func diagnosticComparer(l, r tfdiags.Diagnostic) bool {
 
 	return true
 }
+
+// diagnosticSummaryComparer is a Comparer function for use with cmp.Diff to compare
+// the Severity and Summary fields two tfdiags.Diagnostic values
+func diagnosticSummaryComparer(l, r tfdiags.Diagnostic) bool {
+	if l.Severity() != r.Severity() {
+		return false
+	}
+
+	ld := l.Description()
+	rd := r.Description()
+	if ld.Summary != rd.Summary {
+		return false
+	}
+
+	return true
+}

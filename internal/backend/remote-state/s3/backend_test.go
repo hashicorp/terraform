@@ -195,208 +195,202 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 	}
 }
 
-func TestBackendConfig_DynamoDBEndpointEnvVar(t *testing.T) {
-	testACC(t)
-	config := map[string]interface{}{
-		"region": "us-west-1",
-		"bucket": "tf-test",
-		"key":    "state",
-	}
-
-	vars := map[string]string{
-		"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
-	}
-	for k, v := range vars {
-		os.Setenv(k, v)
-	}
-	t.Cleanup(func() {
-		for k := range vars {
-			os.Unsetenv(k)
-		}
-	})
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-	checkClientEndpoint(t, b.dynClient.Config, "dynamo.test")
-}
-
-func TestBackendConfig_DynamoDBEndpointConfig(t *testing.T) {
-	testACC(t)
-	config := map[string]interface{}{
-		"region":            "us-west-1",
-		"bucket":            "tf-test",
-		"key":               "state",
-		"dynamodb_endpoint": "dynamo.test",
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-	checkClientEndpoint(t, b.dynClient.Config, "dynamo.test")
-}
-
-func TestBackendConfig_S3EndpointEnvVar(t *testing.T) {
-	testACC(t)
-	config := map[string]interface{}{
-		"region": "us-west-1",
-		"bucket": "tf-test",
-		"key":    "state",
-	}
-
-	vars := map[string]string{
-		"AWS_S3_ENDPOINT": "s3.test",
-	}
-	for k, v := range vars {
-		os.Setenv(k, v)
-	}
-	t.Cleanup(func() {
-		for k := range vars {
-			os.Unsetenv(k)
-		}
-	})
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-	checkClientEndpoint(t, b.s3Client.Config, "s3.test")
-}
-
-func TestBackendConfig_S3EndpointConfig(t *testing.T) {
-	testACC(t)
-	config := map[string]interface{}{
-		"region":   "us-west-1",
-		"bucket":   "tf-test",
-		"key":      "state",
-		"endpoint": "s3.test",
-	}
-
-	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-	checkClientEndpoint(t, b.s3Client.Config, "s3.test")
-}
-
-func TestBackendConfig_STSEndpointEnvVar(t *testing.T) {
+func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	testACC(t)
 
-	testCases := []struct {
-		Config           map[string]interface{}
-		Description      string
-		MockStsEndpoints []*awsbase.MockEndpoint
+	cases := map[string]struct {
+		config   map[string]any
+		vars     map[string]string
+		expected string
 	}{
-		{
-			Config: map[string]interface{}{
-				"bucket":       "tf-test",
-				"key":          "state",
-				"region":       "us-west-1",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
+		"none": {
+			expected: "",
+		},
+		"config": {
+			config: map[string]any{
+				"dynamodb_endpoint": "dynamo.test",
 			},
-			Description: "role_arn",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
-				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
-						"Action":          []string{"AssumeRole"},
-						"DurationSeconds": []string{"900"},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
-						"Version":         []string{"2011-06-15"},
-					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
-				},
-				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
-				},
+			expected: "dynamo.test",
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
 			},
+			expected: "dynamo.test",
 		},
 	}
 
-	for _, testCase := range testCases {
-		testCase := testCase
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
 
-		t.Run(testCase.Description, func(t *testing.T) {
-			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
-			defer closeSts()
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
 
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+			checkClientEndpoint(t, b.dynClient.Config, tc.expected)
+		})
+	}
+}
+
+func TestBackendConfig_S3Endpoint(t *testing.T) {
+	testACC(t)
+
+	cases := map[string]struct {
+		config   map[string]any
+		vars     map[string]string
+		expected string
+	}{
+		"none": {
+			expected: "",
+		},
+		"config": {
+			config: map[string]any{
+				"endpoint": "s3.test",
+			},
+			expected: "s3.test",
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_S3_ENDPOINT": "s3.test",
+			},
+			expected: "s3.test",
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
+
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
+
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+			checkClientEndpoint(t, b.s3Client.Config, tc.expected)
+		})
+	}
+}
+
+func TestBackendConfig_STSEndpoint(t *testing.T) {
+	testACC(t)
+
+	stsMocks := []*awsbase.MockEndpoint{
+		{
+			Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+				"Action":          []string{"AssumeRole"},
+				"DurationSeconds": []string{"900"},
+				"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
+				"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+				"Version":         []string{"2011-06-15"},
+			}.Encode()},
+			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+		},
+		{
+			Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+		},
+	}
+
+	cases := map[string]struct {
+		setConfig     bool
+		setEnvVars    bool
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"none": {
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.Sourceless(
+					tfdiags.Error,
+					"Failed to configure AWS client",
+					``,
+				),
+			},
+		},
+		"config": {
+			setConfig: true,
+		},
+		"envvar": {
+			setEnvVars: true,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region":       "us-west-1",
+				"bucket":       "tf-test",
+				"key":          "state",
+				"role_arn":     awsbase.MockStsAssumeRoleArn,
+				"session_name": awsbase.MockStsAssumeRoleSessionName,
+			}
+
+			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", stsMocks)
 			if err != nil {
 				t.Fatalf("unexpected error creating mock STS server: %s", err)
 			}
+			defer closeSts()
 
-			if mockStsSession != nil && mockStsSession.Config != nil {
+			if tc.setEnvVars {
 				os.Setenv("AWS_STS_ENDPOINT", aws.StringValue(mockStsSession.Config.Endpoint))
 				t.Cleanup(func() {
 					os.Unsetenv("AWS_STS_ENDPOINT")
 				})
 			}
 
-			b := New()
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(testCase.Config)))
-
-			if diags.HasErrors() {
-				for _, diag := range diags {
-					t.Errorf("unexpected error: %s", diag.Description().Summary)
-				}
-			}
-		})
-	}
-}
-
-func TestBackendConfig_STSEndpointConfig(t *testing.T) {
-	testACC(t)
-
-	testCases := []struct {
-		Config           map[string]interface{}
-		Description      string
-		MockStsEndpoints []*awsbase.MockEndpoint
-	}{
-		{
-			Config: map[string]interface{}{
-				"bucket":       "tf-test",
-				"key":          "state",
-				"region":       "us-west-1",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
-			},
-			Description: "role_arn",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
-				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
-						"Action":          []string{"AssumeRole"},
-						"DurationSeconds": []string{"900"},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
-						"Version":         []string{"2011-06-15"},
-					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
-				},
-				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
-				},
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		testCase := testCase
-
-		t.Run(testCase.Description, func(t *testing.T) {
-			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
-			defer closeSts()
-
-			if err != nil {
-				t.Fatalf("unexpected error creating mock STS server: %s", err)
-			}
-
-			if mockStsSession != nil && mockStsSession.Config != nil {
-				testCase.Config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
+			if tc.setConfig {
+				config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
 			}
 
 			b := New()
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(testCase.Config)))
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
 
-			if diags.HasErrors() {
-				for _, diag := range diags {
-					t.Errorf("unexpected error: %s", diag.Description().Summary)
-				}
+			configSchema, diags := b.PrepareConfig(configSchema)
+			if len(diags) > 0 {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+
+			confDiags := b.Configure(configSchema)
+			diags = diags.Append(confDiags)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticSummaryComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
 	}
