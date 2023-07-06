@@ -130,15 +130,15 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "Skip the credentials validation via STS API.",
 			},
-			"skip_region_validation": {
-				Type:        cty.Bool,
-				Optional:    true,
-				Description: "Skip static validation of region name.",
-			},
 			"skip_metadata_api_check": {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Skip the AWS Metadata API check.",
+			},
+			"skip_region_validation": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip static validation of region name.",
 			},
 			"sse_customer_key": {
 				Type:        cty.String,
