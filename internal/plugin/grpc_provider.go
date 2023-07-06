@@ -137,13 +137,16 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
 	}
 
+	// FIXME: Waiting for a provider capability to prevent caching
+	//        providers which always need GetProviderSchema called.
 	// set the global cache if we can
-	if !p.Addr.IsZero() {
-		providers.SchemaCache.Set(p.Addr, resp)
-	} else {
-		// otherwise store it in the local cache
-		p.schemas = resp
-	}
+	//if !p.Addr.IsZero() {
+	//    providers.SchemaCache.Set(p.Addr, resp)
+	//} else {
+	//    // otherwise store it in the local cache
+	//    p.schemas = resp
+	//}
+	p.schemas = resp
 
 	return resp
 }
