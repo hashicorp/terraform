@@ -511,6 +511,9 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *MockProvider) Close() error {
+	p.Lock()
+	defer p.Unlock()
+
 	p.CloseCalled = true
 	return p.CloseError
 }
