@@ -27,7 +27,6 @@ import (
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -123,7 +122,7 @@ func TestLocal_applyCheck(t *testing.T) {
 func TestLocal_applyEmptyDir(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.Schemas{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{NewState: cty.ObjectVal(map[string]cty.Value{"id": cty.StringVal("yes")})}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -157,7 +156,7 @@ func TestLocal_applyEmptyDir(t *testing.T) {
 func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 	b := TestLocal(t)
 
-	p := TestLocalProvider(t, b, "test", &terraform.ProviderSchema{})
+	p := TestLocalProvider(t, b, "test", providers.Schemas{})
 	p.ApplyResourceChangeResponse = &providers.ApplyResourceChangeResponse{}
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/empty")
@@ -187,12 +186,14 @@ func TestLocal_applyEmptyDirDestroy(t *testing.T) {
 func TestLocal_applyError(t *testing.T) {
 	b := TestLocal(t)
 
-	schema := &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	schema := providers.Schemas{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},
@@ -386,13 +387,15 @@ func testOperationApply(t *testing.T, configDir string) (*backend.Operation, fun
 // applyFixtureSchema returns a schema suitable for processing the
 // configuration in testdata/apply . This schema should be
 // assigned to a mock provider named "test".
-func applyFixtureSchema() *terraform.ProviderSchema {
-	return &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+func applyFixtureSchema() providers.Schemas {
+	return providers.Schemas{
+		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
-				Attributes: map[string]*configschema.Attribute{
-					"ami": {Type: cty.String, Optional: true},
-					"id":  {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"ami": {Type: cty.String, Optional: true},
+						"id":  {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

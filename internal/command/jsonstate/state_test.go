@@ -14,6 +14,7 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terraform"
 )
@@ -807,25 +808,31 @@ func TestMarshalModules_parent_no_resources(t *testing.T) {
 
 func testSchemas() *terraform.Schemas {
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
+		Providers: map[addrs.Provider]providers.Schemas{
 			addrs.NewDefaultProvider("test"): {
-				ResourceTypes: map[string]*configschema.Block{
+				ResourceTypes: map[string]providers.Schema{
 					"test_thing": {
-						Attributes: map[string]*configschema.Attribute{
-							"woozles": {Type: cty.String, Optional: true, Computed: true},
-							"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"woozles": {Type: cty.String, Optional: true, Computed: true},
+								"foozles": {Type: cty.String, Optional: true, Sensitive: true},
+							},
 						},
 					},
 					"test_instance": {
-						Attributes: map[string]*configschema.Attribute{
-							"id":  {Type: cty.String, Optional: true, Computed: true},
-							"foo": {Type: cty.String, Optional: true},
-							"bar": {Type: cty.String, Optional: true},
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"id":  {Type: cty.String, Optional: true, Computed: true},
+								"foo": {Type: cty.String, Optional: true},
+								"bar": {Type: cty.String, Optional: true},
+							},
 						},
 					},
 					"test_map_attr": {
-						Attributes: map[string]*configschema.Attribute{
-							"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
+						Block: &configschema.Block{
+							Attributes: map[string]*configschema.Attribute{
+								"data": {Type: cty.Map(cty.String), Optional: true, Computed: true, Sensitive: true},
+							},
 						},
 					},
 				},

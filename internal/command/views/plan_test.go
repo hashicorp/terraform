@@ -133,8 +133,8 @@ func testPlanWithDatasource(t *testing.T) *plans.Plan {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+		Providers: map[addrs.Provider]providers.Schemas{
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 	}
 }

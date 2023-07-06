@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statefile"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -130,13 +131,15 @@ func TestShowJSON(t *testing.T) {
 			v := NewShow(arguments.ViewJSON, view)
 
 			schemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]*terraform.ProviderSchema{
+				Providers: map[addrs.Provider]providers.Schemas{
 					addrs.NewDefaultProvider("test"): {
-						ResourceTypes: map[string]*configschema.Block{
+						ResourceTypes: map[string]providers.Schema{
 							"test_resource": {
-								Attributes: map[string]*configschema.Attribute{
-									"id":  {Type: cty.String, Optional: true, Computed: true},
-									"foo": {Type: cty.String, Optional: true},
+								Block: &configschema.Block{
+									Attributes: map[string]*configschema.Attribute{
+										"id":  {Type: cty.String, Optional: true, Computed: true},
+										"foo": {Type: cty.String, Optional: true},
+									},
 								},
 							},
 						},

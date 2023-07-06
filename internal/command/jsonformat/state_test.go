@@ -156,8 +156,8 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 func testSchemas() *terraform.Schemas {
 	provider := testProvider()
 	return &terraform.Schemas{
-		Providers: map[addrs.Provider]*terraform.ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+		Providers: map[addrs.Provider]providers.Schemas{
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 	}
 }
