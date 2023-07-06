@@ -85,8 +85,9 @@ func TestCloud_PrepareConfig(t *testing.T) {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedErr: `Invalid or missing required argument: "organization" must be set in the cloud configuration or as an environment variable: TF_CLOUD_ORGANIZATION.`,
@@ -102,8 +103,9 @@ func TestCloud_PrepareConfig(t *testing.T) {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("org"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.NullVal(cty.String),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedErr: `Invalid workspaces configuration: Missing workspace mapping strategy. Either workspace "tags" or "name" is required.`,
@@ -112,8 +114,9 @@ func TestCloud_PrepareConfig(t *testing.T) {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("org"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedErr: `Invalid workspaces configuration: Only one of workspace "tags" or "name" is allowed.`,
@@ -128,6 +131,7 @@ func TestCloud_PrepareConfig(t *testing.T) {
 							cty.StringVal("billing"),
 						},
 					),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedErr: `Invalid workspaces configuration: Only one of workspace "tags" or "name" is allowed.`,
@@ -159,8 +163,9 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -171,8 +176,9 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars:        map[string]string{},
@@ -187,7 +193,7 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 				"TF_WORKSPACE": "my-workspace",
 			},
 		},
-		"organization and workspace env var": {
+		"organization and workspace and project env var": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.NullVal(cty.String),
 				"workspaces":   cty.NullVal(cty.String),
@@ -195,6 +201,43 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 			vars: map[string]string{
 				"TF_CLOUD_ORGANIZATION": "hashicorp",
 				"TF_WORKSPACE":          "my-workspace",
+				"TF_CLOUD_PROJECT":      "example-project",
+			},
+		},
+		"with no project": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("organization"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+		},
+		"with null project": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("organization"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_PROJECT": "example-project",
+			},
+		},
+		"with project env var ovewrite config value": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("organization"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.StringVal("project-name"),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_PROJECT": "example-project",
 			},
 		},
 	}
@@ -224,7 +267,7 @@ func TestCloud_PrepareConfigWithEnvVars(t *testing.T) {
 	}
 }
 
-func TestCloud_configWithEnvVars(t *testing.T) {
+func WithEnvVars(t *testing.T) {
 	cases := map[string]struct {
 		setup                 func(b *Cloud)
 		config                cty.Value
@@ -232,6 +275,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 		expectedOrganization  string
 		expectedHostname      string
 		expectedWorkspaceName string
+		expectedProjectName   string
 		expectedErr           string
 	}{
 		"with no organization specified": {
@@ -240,8 +284,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -255,8 +300,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -270,8 +316,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -285,8 +332,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -300,8 +348,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("hashicorp"),
 				"workspaces": cty.NullVal(cty.Object(map[string]cty.Type{
-					"name": cty.String,
-					"tags": cty.Set(cty.String),
+					"name":    cty.String,
+					"tags":    cty.Set(cty.String),
+					"project": cty.String,
 				})),
 			}),
 			vars: map[string]string{
@@ -315,8 +364,9 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"token":        cty.NullVal(cty.String),
 				"organization": cty.StringVal("mordor"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("mt-doom"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("mt-doom"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -343,6 +393,7 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 					"tags": cty.SetVal([]cty.Value{
 						cty.StringVal("cloud"),
 					}),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
@@ -374,12 +425,90 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 					"tags": cty.SetVal([]cty.Value{
 						cty.StringVal("hobbity"),
 					}),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			vars: map[string]string{
 				"TF_WORKSPACE": "shire",
 			},
 			expectedWorkspaceName: "", // No error is raised, but workspace is not set
+		},
+		"project specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("mt-doom"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.StringVal("my-project"),
+				}),
+			}),
+			expectedWorkspaceName: "mt-doom",
+			expectedProjectName:   "my-project",
+		},
+		"project env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("mt-doom"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_PROJECT": "other-project",
+			},
+			expectedWorkspaceName: "mt-doom",
+			expectedProjectName:   "other-project",
+		},
+		"project and env var specified": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("mt-doom"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.StringVal("my-project"),
+				}),
+			}),
+			vars: map[string]string{
+				"TF_CLOUD_PROJECT": "other-project",
+			},
+			expectedWorkspaceName: "mt-doom",
+			expectedProjectName:   "my-project",
+		},
+		"workspace exists but in different project": {
+			setup: func(b *Cloud) {
+				b.client.Organizations.Create(context.Background(), tfe.OrganizationCreateOptions{
+					Name: tfe.String("mordor"),
+				})
+
+				project, _ := b.client.Projects.Create(context.Background(), "mordor", tfe.ProjectCreateOptions{
+					Name: "another-project",
+				})
+
+				b.client.Workspaces.Create(context.Background(), "mordor", tfe.WorkspaceCreateOptions{
+					Name:    tfe.String("shire"),
+					Project: project,
+				})
+			},
+			config: cty.ObjectVal(map[string]cty.Value{
+				"hostname":     cty.NullVal(cty.String),
+				"token":        cty.NullVal(cty.String),
+				"organization": cty.StringVal("mordor"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name": cty.NullVal(cty.String),
+					"tags": cty.SetVal([]cty.Value{
+						cty.StringVal("hobbity"),
+					}),
+					"project": cty.StringVal("my-project"),
+				}),
+			}),
+			expectedProjectName: "another-project", // No error is raised, workspace is still in the original project
 		},
 		"with everything set as env vars": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -392,10 +521,12 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 				"TF_CLOUD_ORGANIZATION": "mordor",
 				"TF_WORKSPACE":          "mt-doom",
 				"TF_CLOUD_HOSTNAME":     "mycool.tfe-host.io",
+				"TF_CLOUD_PROJECT":      "my-project",
 			},
 			expectedOrganization:  "mordor",
 			expectedWorkspaceName: "mt-doom",
 			expectedHostname:      "mycool.tfe-host.io",
+			expectedProjectName:   "my-project",
 		},
 	}
 
@@ -440,6 +571,10 @@ func TestCloud_configWithEnvVars(t *testing.T) {
 			if tc.expectedWorkspaceName != "" && tc.expectedWorkspaceName != b.WorkspaceMapping.Name {
 				t.Fatalf("%s: workspace name not valid: %s, expected: %s", name, b.WorkspaceMapping.Name, tc.expectedWorkspaceName)
 			}
+
+			if tc.expectedProjectName != "" && tc.expectedProjectName != b.WorkspaceMapping.Project {
+				t.Fatalf("%s: project name not valid: %s, expected: %s", name, b.WorkspaceMapping.Project, tc.expectedProjectName)
+			}
 		})
 	}
 }
@@ -456,8 +591,9 @@ func TestCloud_config(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			confErr: "Host nontfe.local does not provide a tfe service",
@@ -469,8 +605,9 @@ func TestCloud_config(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			confErr: "terraform login localhost",
@@ -487,6 +624,7 @@ func TestCloud_config(t *testing.T) {
 							cty.StringVal("billing"),
 						},
 					),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 		},
@@ -496,8 +634,9 @@ func TestCloud_config(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 		},
@@ -507,8 +646,9 @@ func TestCloud_config(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"token":        cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.NullVal(cty.String),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			valErr: `Missing workspace mapping strategy.`,
@@ -525,6 +665,7 @@ func TestCloud_config(t *testing.T) {
 							cty.StringVal("billing"),
 						},
 					),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			valErr: `Only one of workspace "tags" or "name" is allowed.`,
@@ -568,6 +709,7 @@ func TestCloud_configVerifyMinimumTFEVersion(t *testing.T) {
 					cty.StringVal("billing"),
 				},
 			),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 
@@ -604,6 +746,7 @@ func TestCloud_configVerifyMinimumTFEVersionInAutomation(t *testing.T) {
 					cty.StringVal("billing"),
 				},
 			),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 
@@ -647,6 +790,7 @@ func TestCloud_setUnavailableTerraformVersion(t *testing.T) {
 					cty.StringVal("sometag"),
 				},
 			),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 
@@ -690,6 +834,7 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 		expectedHostname      string
 		expectedOrganziation  string
 		expectedWorkspaceName string
+		expectedProjectName   string
 		expectedWorkspaceTags []string
 		expectedForceLocal    bool
 		setEnv                func()
@@ -701,8 +846,9 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedHostname:     "hashicorp.com",
@@ -713,8 +859,9 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.NullVal(cty.String),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedHostname:     defaultHostname,
@@ -725,8 +872,9 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.StringVal("prod"),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedHostname:      "hashicorp.com",
@@ -744,19 +892,36 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 							cty.StringVal("billing"),
 						},
 					),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedHostname:      "hashicorp.com",
 			expectedOrganziation:  "hashicorp",
 			expectedWorkspaceTags: []string{"billing"},
 		},
+		"with project name set": {
+			obj: cty.ObjectVal(map[string]cty.Value{
+				"organization": cty.StringVal("hashicorp"),
+				"hostname":     cty.StringVal("hashicorp.com"),
+				"workspaces": cty.ObjectVal(map[string]cty.Value{
+					"name":    cty.StringVal("prod"),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.StringVal("my-project"),
+				}),
+			}),
+			expectedHostname:      "hashicorp.com",
+			expectedOrganziation:  "hashicorp",
+			expectedWorkspaceName: "prod",
+			expectedProjectName:   "my-project",
+		},
 		"with force local set": {
 			obj: cty.ObjectVal(map[string]cty.Value{
 				"organization": cty.StringVal("hashicorp"),
 				"hostname":     cty.StringVal("hashicorp.com"),
 				"workspaces": cty.ObjectVal(map[string]cty.Value{
-					"name": cty.NullVal(cty.String),
-					"tags": cty.NullVal(cty.Set(cty.String)),
+					"name":    cty.NullVal(cty.String),
+					"tags":    cty.NullVal(cty.Set(cty.String)),
+					"project": cty.NullVal(cty.String),
 				}),
 			}),
 			expectedHostname:     "hashicorp.com",
@@ -834,6 +999,9 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 		}
 		if tc.expectedForceLocal != false && b.forceLocal != tc.expectedForceLocal {
 			t.Fatalf("%s: expected force local backend to be set ", name)
+		}
+		if tc.expectedProjectName != "" && b.WorkspaceMapping.Project != tc.expectedProjectName {
+			t.Fatalf("%s: expected project name mapping (%s) to match configured project name (%s)", name, b.WorkspaceMapping.Project, tc.expectedProjectName)
 		}
 	}
 }

@@ -148,6 +148,11 @@ func (b *Cloud) ConfigSchema() *configschema.Block {
 							Optional:    true,
 							Description: schemaDescriptionName,
 						},
+						"project": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: schemaDescriptionProject,
+						},
 						"tags": {
 							Type:        cty.Set(cty.String),
 							Optional:    true,
@@ -178,9 +183,19 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	WorkspaceMapping := WorkspaceMapping{}
+
+	// Initially set the project via env var
+	WorkspaceMapping.Project = os.Getenv("TF_CLOUD_PROJECT")
+
+	// Initially set the workspace name via env var
+	WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
+
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
 			WorkspaceMapping.Name = val.AsString()
+		}
+		if val := workspaces.GetAttr("project"); !val.IsNull() {
+			WorkspaceMapping.Project = val.AsString()
 		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
@@ -188,8 +203,6 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 				log.Panicf("An unxpected error occurred: %s", err)
 			}
 		}
-	} else {
-		WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	switch WorkspaceMapping.Strategy() {
@@ -413,9 +426,20 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 		b.organization = val.AsString()
 	}
 
+	// Initially set the project via env var
+	b.WorkspaceMapping.Project = os.Getenv("TF_CLOUD_PROJECT")
+
+	// Initially set the workspace name via env var
+	b.WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
+
 	// Get the workspaces configuration block and retrieve the
 	// default workspace name.
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
+
+		// Check if the project is present and valid in the config.
+		if val := workspaces.GetAttr("project"); !val.IsNull() && val.AsString() != "" {
+			b.WorkspaceMapping.Project = val.AsString()
+		}
 
 		// PrepareConfig checks that you cannot set both of these.
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
@@ -430,8 +454,6 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 			b.WorkspaceMapping.Tags = tags
 		}
-	} else {
-		b.WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 	}
 
 	// Determine if we are forced to use the local backend.
@@ -534,6 +556,22 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		options.Tags = taglist
 	}
 
+	if b.WorkspaceMapping.Project != "" {
+		listOpts := &tfe.ProjectListOptions{
+			Name: b.WorkspaceMapping.Project,
+		}
+		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		if err != nil && err != tfe.ErrResourceNotFound {
+			return nil, fmt.Errorf("failed to retrieve project %s: %v", listOpts.Name, err)
+		}
+		for _, p := range projects.Items {
+			if p.Name == b.WorkspaceMapping.Project {
+				options.ProjectID = p.ID
+				break
+			}
+		}
+	}
+
 	for {
 		wl, err := b.client.Workspaces.List(context.Background(), b.organization, options)
 		if err != nil {
@@ -604,16 +642,48 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 	}
 
 	if err == tfe.ErrResourceNotFound {
-		// Create a workspace
-		options := tfe.WorkspaceCreateOptions{
+
+		// Worksapce Create Options
+		workspaceCreateOptions := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
 			Tags: b.WorkspaceMapping.tfeTags(),
 		}
 
+		// Create project if not exists, otherwise use it
+		if b.WorkspaceMapping.Project != "" {
+			listOpts := &tfe.ProjectListOptions{
+				Name: b.WorkspaceMapping.Project,
+			}
+			projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+			if err != nil && err != tfe.ErrResourceNotFound {
+				return nil, fmt.Errorf("failed to retrieve project %s: %v", name, err)
+			}
+			for _, p := range projects.Items {
+				if p.Name == b.WorkspaceMapping.Project {
+					workspaceCreateOptions.Project = p
+					break
+				}
+			}
+
+			if workspaceCreateOptions.Project == nil {
+				createOpts := tfe.ProjectCreateOptions{
+					Name: b.WorkspaceMapping.Project,
+				}
+				// didn't find project, create it instead
+				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.organization, b.WorkspaceMapping.Project)
+				project, err := b.client.Projects.Create(context.Background(), b.organization, createOpts)
+				if err != nil && err != tfe.ErrResourceNotFound {
+					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
+				}
+				workspaceCreateOptions.Project = project
+			}
+		}
+
+		// Create a workspace
 		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
-		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
+		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, workspaceCreateOptions)
 		if err != nil {
-			return nil, fmt.Errorf("Error creating workspace %s: %v", name, err)
+			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
 		}
 
 		remoteTFVersion = workspace.TerraformVersion
@@ -990,8 +1060,9 @@ func (b *Cloud) workspaceTagsRequireUpdate(workspace *tfe.Workspace, workspaceMa
 }
 
 type WorkspaceMapping struct {
-	Name string
-	Tags []string
+	Name    string
+	Project string
+	Tags    []string
 }
 
 type workspaceStrategy string
@@ -1217,4 +1288,6 @@ is the primary and recommended strategy to use.  This option conflicts with "nam
 
 	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
 When configured, only the specified workspace can be used. This option conflicts with "tags".`
+
+	schemaDescriptionProject = `The name of a project that resulting workspace(s) will be created in.`
 )
