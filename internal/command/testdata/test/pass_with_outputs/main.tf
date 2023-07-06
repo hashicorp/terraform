@@ -2,6 +2,6 @@ resource "test_resource" "foo" {
   value = "bar"
 }
 
-locals {
+output "value" {
   value = test_resource.foo.value
 }
