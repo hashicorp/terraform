@@ -11,6 +11,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang"
 )
@@ -115,7 +116,16 @@ func TestNodeRootVariableExecute(t *testing.T) {
 				Value:      cty.StringVal("5"),
 				SourceType: ValueFromUnknown,
 			},
+			Planning: true,
 		}
+
+		ctx.ChecksState = checks.NewState(&configs.Config{
+			Module: &configs.Module{
+				Variables: map[string]*configs.Variable{
+					"foo": n.Config,
+				},
+			},
+		})
 
 		diags := n.Execute(ctx, walkApply)
 		if diags.HasErrors() {
@@ -133,6 +143,9 @@ func TestNodeRootVariableExecute(t *testing.T) {
 			// cty.String, so it was NodeRootVariable's responsibility to convert
 			// as part of preparing the "final value".
 			t.Errorf("wrong value for ctx.SetRootModuleArgument\ngot:  %#v\nwant: %#v", got, want)
+		}
+		if status := ctx.Checks().ObjectCheckStatus(n.Addr.Absolute(addrs.RootModuleInstance)); status != checks.StatusPass {
+			t.Errorf("expected checks to pass but go %s instead", status)
 		}
 	})
 }

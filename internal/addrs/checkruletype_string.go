@@ -14,11 +14,12 @@ func _() {
 	_ = x[OutputPrecondition-3]
 	_ = x[CheckDataResource-4]
 	_ = x[CheckAssertion-5]
+	_ = x[InputValidation-6]
 }
 
-const _CheckRuleType_name = "InvalidConditionResourcePreconditionResourcePostconditionOutputPreconditionCheckDataResourceCheckAssertion"
+const _CheckRuleType_name = "InvalidConditionResourcePreconditionResourcePostconditionOutputPreconditionCheckDataResourceCheckAssertionInputValidation"
 
-var _CheckRuleType_index = [...]uint8{0, 16, 36, 57, 75, 92, 106}
+var _CheckRuleType_index = [...]uint8{0, 16, 36, 57, 75, 92, 106, 121}
 
 func (i CheckRuleType) String() string {
 	if i < 0 || i >= CheckRuleType(len(_CheckRuleType_index)-1) {
