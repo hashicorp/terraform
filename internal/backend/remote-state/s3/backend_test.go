@@ -16,12 +16,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/google/go-cmp/cmp"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/remote"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -92,6 +94,61 @@ func TestBackendConfig(t *testing.T) {
 func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
 	if a := aws.StringValue(config.Endpoint); a != expected {
 		t.Errorf("expected endpoint %q, got %q", expected, a)
+	}
+}
+
+func TestBackendConfig_InvalidRegion(t *testing.T) {
+	testACC(t)
+
+	cases := map[string]struct {
+		config        map[string]any
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"with region validation": {
+			config: map[string]interface{}{
+				"region":                      "nonesuch",
+				"bucket":                      "tf-test",
+				"key":                         "state",
+				"skip_credentials_validation": true,
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Invalid region value",
+					`Invalid AWS Region: nonesuch`,
+					cty.Path{cty.GetAttrStep{Name: "region"}},
+				),
+			},
+		},
+		"skip region validation": {
+			config: map[string]interface{}{
+				"region":                      "nonesuch",
+				"bucket":                      "tf-test",
+				"key":                         "state",
+				"skip_region_validation":      true,
+				"skip_credentials_validation": true,
+			},
+			expectedDiags: nil,
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			b := New()
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(tc.config))
+
+			configSchema, diags := b.PrepareConfig(configSchema)
+			if len(diags) > 0 {
+				t.Fatal(diags.ErrWithWarnings())
+			}
+
+			confDiags := b.Configure(configSchema)
+			diags = diags.Append(confDiags)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
 	}
 }
 
@@ -695,6 +752,7 @@ func TestBackend(t *testing.T) {
 		"bucket":  bucketName,
 		"key":     keyName,
 		"encrypt": true,
+		"region":  "us-west-1",
 	})).(*Backend)
 
 	createS3Bucket(t, b.s3Client, bucketName)
@@ -714,6 +772,7 @@ func TestBackendLocked(t *testing.T) {
 		"key":            keyName,
 		"encrypt":        true,
 		"dynamodb_table": bucketName,
+		"region":         "us-west-1",
 	})).(*Backend)
 
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -721,6 +780,7 @@ func TestBackendLocked(t *testing.T) {
 		"key":            keyName,
 		"encrypt":        true,
 		"dynamodb_table": bucketName,
+		"region":         "us-west-1",
 	})).(*Backend)
 
 	createS3Bucket(t, b1.s3Client, bucketName)
@@ -762,6 +822,7 @@ func TestBackendSSECustomerKeyConfig(t *testing.T) {
 				"encrypt":          true,
 				"key":              "test-SSE-C",
 				"sse_customer_key": testCase.customerKey,
+				"region":           "us-west-1",
 			}
 
 			b := New().(*Backend)
@@ -822,6 +883,7 @@ func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
 				"bucket":  bucketName,
 				"encrypt": true,
 				"key":     "test-SSE-C",
+				"region":  "us-west-1",
 			}
 
 			os.Setenv("AWS_SSE_CUSTOMER_KEY", testCase.customerKey)

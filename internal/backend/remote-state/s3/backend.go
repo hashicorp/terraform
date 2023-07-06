@@ -314,7 +314,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		region = v
 	}
 
-	if boolAttr(obj, "skip_region_validation") {
+	if region != "" && !boolAttr(obj, "skip_region_validation") {
 		if err := awsbase.ValidateRegion(region); err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
