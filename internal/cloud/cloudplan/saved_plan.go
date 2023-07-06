@@ -47,6 +47,11 @@ func LoadSavedPlanBookmark(filepath string) (SavedPlanBookmark, error) {
 		return bookmark, err
 	}
 
+	// Note that these error cases are somewhat ambiguous, but they *likely*
+	// mean we're not looking at a saved plan bookmark at all. Since we're not
+	// certain about the format at this point, it doesn't quite make sense to
+	// emit a "known file type but bad" error struct the way we do over in the
+	// planfile and statefile packages.
 	if bookmark.RemotePlanFormat != 1 {
 		return bookmark, ErrInvalidRemotePlanFormat
 	} else if bookmark.Hostname == "" {
