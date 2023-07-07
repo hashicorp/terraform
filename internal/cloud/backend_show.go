@@ -22,8 +22,6 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	var jsonBytes []byte
 	mode := plans.NormalMode
 	var opts []plans.Quality
-	header := ""
-	footer := ""
 
 	// Bail early if wrong hostname
 	if runHostname != b.hostname {
@@ -77,12 +75,9 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 		return nil, fmt.Errorf("couldn't read plan data for cloud run %s: %w", runID, err)
 	}
 
-	// Format a run header
-	header = fmt.Sprintf(runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID)
-	header = strings.TrimSpace(header)
-	// Format a run footer
-	footer = statusFooter(r.Status, r.Actions.IsConfirmable, r.Workspace.Locked)
-	footer = strings.TrimSpace(footer)
+	// Format a run header and footer
+	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID))
+	footer := strings.TrimSpace(statusFooter(r.Status, r.Actions.IsConfirmable, r.Workspace.Locked))
 
 	out := &cloudplan.PlanJSON{
 		JSONBytes: jsonBytes,
