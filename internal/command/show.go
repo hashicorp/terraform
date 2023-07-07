@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -22,6 +23,24 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
+
+// Many of the methods we get data from can emit special error types if they're
+// pretty sure about the file type but still can't use it. But they can't all do
+// that! So, we have to do a couple ourselves if we want to preserve that data.
+type errUnusableDataMisc struct {
+	inner error
+	kind  string
+}
+
+func errUnusable(err error, kind string) *errUnusableDataMisc {
+	return &errUnusableDataMisc{inner: err, kind: kind}
+}
+func (e *errUnusableDataMisc) Error() string {
+	return e.inner.Error()
+}
+func (e *errUnusableDataMisc) Unwrap() error {
+	return e.inner
+}
 
 // ShowCommand is a Command implementation that reads and outputs the
 // contents of a Terraform plan or state file.
@@ -171,13 +190,58 @@ func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *cloudplan.PlanJSO
 	if planErr != nil {
 		stateFile, stateErr = getStateFromPath(path)
 		if stateErr != nil {
-			diags = diags.Append(
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to read the given file as a state or plan file",
-					fmt.Sprintf("State read error: %s\n\nPlan read error: %s", stateErr, planErr),
-				),
-			)
+			// To avoid spamming the user with irrelevant errors, first check to
+			// see if one of our errors happens to know for a fact what file
+			// type we were dealing with. If so, then we can ignore the other
+			// ones (which are likely to be something unhelpful like "not a
+			// valid zip file"). If not, we can fall back to dumping whatever
+			// we've got.
+			var unLocal *planfile.ErrUnusableLocalPlan
+			var unState *statefile.ErrUnusableState
+			var unMisc *errUnusableDataMisc
+			if errors.As(planErr, &unLocal) {
+				diags = diags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Couldn't show local plan",
+						fmt.Sprintf("Plan read error: %s", unLocal),
+					),
+				)
+			} else if errors.As(planErr, &unMisc) {
+				diags = diags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Couldn't show %s", unMisc.kind),
+						fmt.Sprintf("Plan read error: %s", unMisc),
+					),
+				)
+			} else if errors.As(stateErr, &unState) {
+				diags = diags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Couldn't show state file",
+						fmt.Sprintf("Plan read error: %s", unState),
+					),
+				)
+			} else if errors.As(stateErr, &unMisc) {
+				diags = diags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						fmt.Sprintf("Couldn't show %s", unMisc.kind),
+						fmt.Sprintf("Plan read error: %s", unMisc),
+					),
+				)
+			} else {
+				// Ok, give up and show the really big error
+				diags = diags.Append(
+					tfdiags.Sourceless(
+						tfdiags.Error,
+						"Failed to read the given file as a state or plan file",
+						fmt.Sprintf("State read error: %s\n\nPlan read error: %s", stateErr, planErr),
+					),
+				)
+			}
+
 			return nil, nil, nil, nil, diags
 		}
 	}
@@ -216,15 +280,19 @@ func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, re
 	// Set up the backend
 	b, backendDiags := c.Backend(nil)
 	if backendDiags.HasErrors() {
-		return nil, backendDiags.Err()
+		return nil, errUnusable(backendDiags.Err(), "cloud plan")
 	}
 	// Cloud plans only work if we're cloud.
 	cl, ok := b.(*cloud.Cloud)
 	if !ok {
-		return nil, fmt.Errorf("can't show a saved cloud plan unless the current root module is connected to Terraform Cloud")
+		return nil, errUnusable(fmt.Errorf("can't show a saved cloud plan unless the current root module is connected to Terraform Cloud"), "cloud plan")
 	}
 
-	return cl.ShowPlanForRun(context.Background(), plan.RunID, plan.Hostname, redacted)
+	result, err := cl.ShowPlanForRun(context.Background(), plan.RunID, plan.Hostname, redacted)
+	if err != nil {
+		err = errUnusable(err, "cloud plan")
+	}
+	return result, err
 }
 
 // getDataFromPlanfileReader returns a plan, statefile, and config, extracted from a local plan file.
@@ -244,7 +312,7 @@ func getDataFromPlanfileReader(planReader *planfile.Reader) (*plans.Plan, *state
 	// Get config
 	config, diags := planReader.ReadConfig()
 	if diags.HasErrors() {
-		return nil, nil, nil, diags.Err()
+		return nil, nil, nil, errUnusable(diags.Err(), "local plan")
 	}
 
 	return plan, stateFile, config, err
@@ -254,14 +322,14 @@ func getDataFromPlanfileReader(planReader *planfile.Reader) (*plans.Plan, *state
 func getStateFromPath(path string) (*statefile.File, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading statefile: %s", err)
+		return nil, fmt.Errorf("Error loading statefile: %w", err)
 	}
 	defer file.Close()
 
 	var stateFile *statefile.File
 	stateFile, err = statefile.Read(file)
 	if err != nil {
-		return nil, fmt.Errorf("Error reading %s as a statefile: %s", path, err)
+		return nil, fmt.Errorf("Error reading %s as a statefile: %w", path, err)
 	}
 	return stateFile, nil
 }
@@ -271,12 +339,12 @@ func getStateFromBackend(b backend.Backend, workspace string) (*statefile.File, 
 	// Get the state store for the given workspace
 	stateStore, err := b.StateMgr(workspace)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to load state manager: %s", err)
+		return nil, fmt.Errorf("Failed to load state manager: %w", err)
 	}
 
 	// Refresh the state store with the latest state snapshot from persistent storage
 	if err := stateStore.RefreshState(); err != nil {
-		return nil, fmt.Errorf("Failed to load state: %s", err)
+		return nil, fmt.Errorf("Failed to load state: %w", err)
 	}
 
 	// Get the latest state snapshot and return it
