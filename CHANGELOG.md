@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+* core: Terraform could fail to evaluate module outputs when they are used in a provider configuration during a destroy operation ([#33462](https://github.com/hashicorp/terraform/pull/33462))
 * backend/consul: When failing to save state, `consul CAS failed with transaction errors` no longer shows an error instance memory address, but an actual error message. ([#33108](https://github.com/hashicorp/terraform/pull/33108))
 * plan renderer: Fixes crash when rendering the plan if a relevant attribute contains an integer index specified as a string. ([#33475](https://github.com/hashicorp/terraform/issues/33475))
 
