@@ -31,7 +31,7 @@ func TestShowHuman(t *testing.T) {
 	}
 	testCases := map[string]struct {
 		plan       *plans.Plan
-		jsonPlan   *cloudplan.PlanJSON
+		jsonPlan   *cloudplan.RemotePlanJSON
 		stateFile  *statefile.File
 		schemas    *terraform.Schemas
 		wantExact  bool
@@ -47,7 +47,7 @@ func TestShowHuman(t *testing.T) {
 		},
 		"cloud plan file": {
 			nil,
-			&cloudplan.PlanJSON{
+			&cloudplan.RemotePlanJSON{
 				JSONBytes: redactedPlanJson,
 				Redacted:  true,
 				Mode:      plans.NormalMode,
@@ -123,7 +123,7 @@ func TestShowJSON(t *testing.T) {
 	}
 	testCases := map[string]struct {
 		plan      *plans.Plan
-		jsonPlan  *cloudplan.PlanJSON
+		jsonPlan  *cloudplan.RemotePlanJSON
 		stateFile *statefile.File
 	}{
 		"plan file": {
@@ -133,7 +133,7 @@ func TestShowJSON(t *testing.T) {
 		},
 		"cloud plan file": {
 			nil,
-			&cloudplan.PlanJSON{
+			&cloudplan.RemotePlanJSON{
 				JSONBytes: unredactedPlanJson,
 				Redacted:  false,
 				Mode:      plans.NormalMode,

@@ -107,10 +107,10 @@ func (c *ShowCommand) Synopsis() string {
 	return "Show the current state or a saved plan"
 }
 
-func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.PlanJSON, *statefile.File, *configs.Config, *terraform.Schemas, tfdiags.Diagnostics) {
+func (c *ShowCommand) show(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, *terraform.Schemas, tfdiags.Diagnostics) {
 	var diags, showDiags tfdiags.Diagnostics
 	var plan *plans.Plan
-	var jsonPlan *cloudplan.PlanJSON
+	var jsonPlan *cloudplan.RemotePlanJSON
 	var stateFile *statefile.File
 	var config *configs.Config
 	var schemas *terraform.Schemas
@@ -174,11 +174,11 @@ func (c *ShowCommand) showFromLatestStateSnapshot() (*statefile.File, tfdiags.Di
 	return stateFile, diags
 }
 
-func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *cloudplan.PlanJSON, *statefile.File, *configs.Config, tfdiags.Diagnostics) {
+func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	var planErr, stateErr error
 	var plan *plans.Plan
-	var jsonPlan *cloudplan.PlanJSON
+	var jsonPlan *cloudplan.RemotePlanJSON
 	var stateFile *statefile.File
 	var config *configs.Config
 
@@ -254,10 +254,10 @@ func (c *ShowCommand) showFromPath(path string) (*plans.Plan, *cloudplan.PlanJSO
 // yield a json plan, and cloud plans do not yield real plan/state/config
 // structs. An error generally suggests that the given path is either a
 // directory or a statefile.
-func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.PlanJSON, *statefile.File, *configs.Config, error) {
+func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.RemotePlanJSON, *statefile.File, *configs.Config, error) {
 	var err error
 	var plan *plans.Plan
-	var jsonPlan *cloudplan.PlanJSON
+	var jsonPlan *cloudplan.RemotePlanJSON
 	var stateFile *statefile.File
 	var config *configs.Config
 
@@ -276,7 +276,7 @@ func (c *ShowCommand) getPlanFromPath(path string) (*plans.Plan, *cloudplan.Plan
 	return plan, jsonPlan, stateFile, config, err
 }
 
-func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.PlanJSON, error) {
+func (c *ShowCommand) getDataFromCloudPlan(plan *cloudplan.SavedPlanBookmark, redacted bool) (*cloudplan.RemotePlanJSON, error) {
 	// Set up the backend
 	b, backendDiags := c.Backend(nil)
 	if backendDiags.HasErrors() {

@@ -7,14 +7,14 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 )
 
-// PlanJSON is a wrapper struct that associates a pre-baked JSON plan with
+// RemotePlanJSON is a wrapper struct that associates a pre-baked JSON plan with
 // several pieces of metadata that can't be derived directly from the JSON
 // contents and must instead be discovered from a tfe.Run or tfe.Plan. The
 // wrapper is useful for moving data between the Cloud backend (which is the
 // only thing able to fetch the JSON and determine values for the metadata) and
 // the command.ShowCommand and views.Show interface (which need to have all of
 // this information together).
-type PlanJSON struct {
+type RemotePlanJSON struct {
 	// The raw bytes of json we got from the API.
 	JSONBytes []byte
 	// Indicates whether the json bytes are the "redacted json plan" format, or

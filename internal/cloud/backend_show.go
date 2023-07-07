@@ -15,10 +15,10 @@ import (
 
 // ShowPlanForRun downloads the JSON plan output for the specified cloud run
 // (either the redacted or unredacted format, per the caller's request), and
-// returns it in a cloudplan.PlanJSON wrapper struct (along with various
+// returns it in a cloudplan.RemotePlanJSON wrapper struct (along with various
 // metadata required by terraform show). It's intended for use by the terraform
 // show command, in order to format and display a saved cloud plan.
-func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, redacted bool) (*cloudplan.PlanJSON, error) {
+func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, redacted bool) (*cloudplan.RemotePlanJSON, error) {
 	var jsonBytes []byte
 	mode := plans.NormalMode
 	var opts []plans.Quality
@@ -79,7 +79,7 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID))
 	footer := strings.TrimSpace(statusFooter(r.Status, r.Actions.IsConfirmable, r.Workspace.Locked))
 
-	out := &cloudplan.PlanJSON{
+	out := &cloudplan.RemotePlanJSON{
 		JSONBytes: jsonBytes,
 		Redacted:  redacted,
 		Mode:      mode,

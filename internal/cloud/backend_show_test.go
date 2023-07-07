@@ -20,7 +20,7 @@ import (
 // 1. TFC API returns redacted or unredacted plan JSON on request, if permission
 // requirements are met and the run is in a condition where that JSON exists.
 // 2. Cloud.ShowPlanForRun() makes correct API calls, calculates metadata
-// properly given a tfe.Run, and returns either a cloudplan.PlanJSON or an err.
+// properly given a tfe.Run, and returns either a cloudplan.RemotePlanJSON or an err.
 // 3. The Show command instantiates Cloud backend when given a cloud planfile,
 // calls .ShowPlanForRun() on it, and passes result to Display() impls.
 // 4. Display() impls yield the correct output when given a cloud plan json biscuit.

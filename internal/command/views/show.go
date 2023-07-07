@@ -23,7 +23,7 @@ import (
 
 type Show interface {
 	// Display renders the plan, if it is available. If plan is nil, it renders the statefile.
-	Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.PlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int
+	Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int
 
 	// Diagnostics renders early diagnostics, resulting from argument parsing.
 	Diagnostics(diags tfdiags.Diagnostics)
@@ -46,7 +46,7 @@ type ShowHuman struct {
 
 var _ Show = (*ShowHuman)(nil)
 
-func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.PlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
+func (v *ShowHuman) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	renderer := jsonformat.Renderer{
 		Colorize:            v.view.colorize,
 		Streams:             v.view.streams,
@@ -131,7 +131,7 @@ type ShowJSON struct {
 
 var _ Show = (*ShowJSON)(nil)
 
-func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.PlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
+func (v *ShowJSON) Display(config *configs.Config, plan *plans.Plan, planJSON *cloudplan.RemotePlanJSON, stateFile *statefile.File, schemas *terraform.Schemas) int {
 	// Prefer to display a pre-built JSON plan, if we got one; then, fall back
 	// to building one ourselves.
 	if planJSON != nil {
