@@ -66,6 +66,16 @@ func realMain() int {
 
 	var err error
 
+	err = openTelemetryInit()
+	if err != nil {
+		// openTelemetryInit can only fail if Terraform was run with an
+		// explicit environment variable to enable telemetry collection,
+		// so in typical use we cannot get here.
+		Ui.Error(fmt.Sprintf("Could not initialize telemetry: %s", err))
+		Ui.Error(fmt.Sprintf("Unset environment variable %s if you don't intend to collect telemetry from Terraform.", openTelemetryExporterEnvVar))
+		return 1
+	}
+
 	tmpLogPath := os.Getenv(envTmpLogPath)
 	if tmpLogPath != "" {
 		f, err := os.OpenFile(tmpLogPath, os.O_RDWR|os.O_APPEND, 0666)
