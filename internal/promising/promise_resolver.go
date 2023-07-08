@@ -2,6 +2,9 @@ package promising
 
 import (
 	"context"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // PromiseResolver is an object representing responsibility for a promise, which
@@ -21,6 +24,23 @@ func (pr PromiseResolver[T]) Resolve(ctx context.Context, v T, err error) {
 		panic("promise resolved by incorrect task")
 	}
 	resolvePromise(pr.p, v, err)
+
+	resolvingTaskSpan := trace.SpanFromContext(ctx)
+	resolvingTaskSpanContext := resolvingTaskSpan.SpanContext()
+	promiseSpanContext := pr.p.traceSpan.SpanContext()
+	pr.p.traceSpan.AddEvent(
+		"resolved",
+		trace.WithAttributes(
+			attribute.String("promising.resolved_by", resolvingTaskSpanContext.SpanID().String()),
+		),
+	)
+	resolvingTaskSpan.AddEvent(
+		"resolved a promise",
+		trace.WithAttributes(
+			attribute.String("promising.resolved_id", promiseSpanContext.SpanID().String()),
+		),
+	)
+	pr.p.traceSpan.End()
 }
 
 func (pr PromiseResolver[T]) PromiseID() PromiseID {

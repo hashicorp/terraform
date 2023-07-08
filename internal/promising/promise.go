@@ -4,6 +4,9 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // promise represents a result that will become available at some point
@@ -11,6 +14,7 @@ import (
 type promise struct {
 	responsible atomic.Pointer[task]
 	result      atomic.Pointer[promiseResult]
+	traceSpan   trace.Span
 
 	waiting   []chan<- struct{}
 	waitingMu sync.Mutex
@@ -66,9 +70,21 @@ func NewPromise[T any](ctx context.Context) (PromiseResolver[T], PromiseGet[T]) 
 	p.responsible.Store(initialResponsible)
 	initialResponsible.responsible[p] = struct{}{}
 
+	ctx, span := tracer.Start(
+		ctx, "promise",
+		trace.WithNewRoot(),
+		trace.WithLinks(trace.Link{
+			SpanContext: trace.SpanContextFromContext(ctx),
+		}),
+	)
+	p.traceSpan = span
+	promiseSpanContext := span.SpanContext()
+
 	resolver := PromiseResolver[T]{p}
 	getter := PromiseGet[T](func(ctx context.Context) (T, error) {
 		reqT := mustTaskFromContext(ctx)
+
+		waiterSpan := trace.SpanFromContext(ctx)
 
 		ok := reqT.awaiting.CompareAndSwap(nil, p)
 		if !ok {
@@ -138,6 +154,12 @@ func NewPromise[T any](ctx context.Context) (PromiseResolver[T], PromiseGet[T]) 
 		if result := p.result.Load(); result != nil {
 			// No need to wait because the result is already available.
 			p.waitingMu.Unlock()
+			waiterSpan.AddEvent(
+				"promise is already resolved",
+				trace.WithAttributes(
+					attribute.String("promise.waiting_for_id", promiseSpanContext.SpanID().String()),
+				),
+			)
 			return getResolvedPromiseResult[T](result)
 		}
 
@@ -145,6 +167,18 @@ func NewPromise[T any](ctx context.Context) (PromiseResolver[T], PromiseGet[T]) 
 		p.waiting = append(p.waiting, ch)
 		p.waitingMu.Unlock()
 
+		waiterSpan.AddEvent(
+			"waiting for promise result",
+			trace.WithAttributes(
+				attribute.String("promise.waiting_for_id", promiseSpanContext.SpanID().String()),
+			),
+		)
+		p.traceSpan.AddEvent(
+			"new task waiting",
+			trace.WithAttributes(
+				attribute.String("promise.waiter_id", waiterSpan.SpanContext().SpanID().String()),
+			),
+		)
 		<-ch // channel will be closed once promise is resolved
 		if result := p.result.Load(); result != nil {
 			return getResolvedPromiseResult[T](result)

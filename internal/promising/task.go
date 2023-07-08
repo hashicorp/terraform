@@ -3,6 +3,8 @@ package promising
 import (
 	"context"
 	"sync/atomic"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // task represents one of a set of collaborating tasks that are communicating
@@ -20,7 +22,9 @@ func MainTask[T any](ctx context.Context, impl func(ctx context.Context) (T, err
 		responsible: make(promiseSet),
 	}
 	ctx = contextWithTask(ctx, mainT)
+	ctx, span := tracer.Start(ctx, "main task")
 	v, err := impl(ctx)
+	span.End()
 
 	// The implementation function must have either resolved all of its
 	// promises or transferred responsibility for them to another task
@@ -74,8 +78,23 @@ func AsyncTask[P PromiseContainer](ctx context.Context, promises P, impl func(ct
 		p.responsible.Store(newT)
 	})
 
+	// We treat async tasks as disconnected from their caller when tracing,
+	// because each task has an independent lifetime, but we do still track
+	// the causal relationship between the two using span links.
+	callerSpanContext := trace.SpanFromContext(ctx).SpanContext()
+
 	go func() {
-		ctx := contextWithTask(ctx, newT)
+		ctx, span := tracer.Start(
+			ctx, "async task",
+			trace.WithNewRoot(),
+			trace.WithLinks(
+				trace.Link{
+					SpanContext: callerSpanContext,
+				},
+			),
+		)
+		defer span.End()
+		ctx = contextWithTask(ctx, newT)
 		impl(ctx, promises)
 
 		// The implementation function must have either resolved all of its
