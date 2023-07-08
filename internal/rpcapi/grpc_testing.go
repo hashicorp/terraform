@@ -5,6 +5,7 @@ import (
 	"net"
 	"testing"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
 )
@@ -19,7 +20,10 @@ import (
 // server end of this fake connection.
 func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices func(srv *grpc.Server)) (conn grpc.ClientConnInterface, close func()) {
 	fakeListener := bufconn.Listen(1024 /* buffer size */)
-	srv := grpc.NewServer()
+	srv := grpc.NewServer(
+		grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+		grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+	)
 
 	// Caller gets an opportunity to register specific services before
 	// we actually start "serving".
@@ -40,6 +44,8 @@ func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices fu
 		ctx, "testfake",
 		grpc.WithContextDialer(fakeDialer),
 		grpc.WithInsecure(),
+		grpc.WithUnaryInterceptor(otelgrpc.UnaryClientInterceptor()),
+		grpc.WithStreamInterceptor(otelgrpc.StreamClientInterceptor()),
 	)
 	if err != nil {
 		t.Fatalf("failed to connect to the fake server: %s", err)

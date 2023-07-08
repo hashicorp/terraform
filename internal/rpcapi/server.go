@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/go-plugin"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -34,7 +35,12 @@ func ServePlugin(ctx context.Context, opts ServerOpts) error {
 			},
 		},
 		GRPCServer: func(opts []grpc.ServerOption) *grpc.Server {
-			server := grpc.NewServer(opts...)
+			fullOpts := []grpc.ServerOption{
+				grpc.UnaryInterceptor(otelgrpc.UnaryServerInterceptor()),
+				grpc.StreamInterceptor(otelgrpc.StreamServerInterceptor()),
+			}
+			fullOpts = append(fullOpts, opts...)
+			server := grpc.NewServer(fullOpts...)
 			// We'll also monitor the given context for cancellation
 			// and terminate the server gracefully if we get cancelled.
 			go func() {

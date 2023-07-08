@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -39,7 +40,13 @@ func (s *setupServer) Handshake(ctx context.Context, req *terraform1.Handshake_R
 		return nil, status.Error(codes.FailedPrecondition, "handshake already completed")
 	}
 
-	serverCaps, err := s.initOthers(ctx, req.Capabilities)
+	var serverCaps *terraform1.ServerCapabilities
+	var err error
+	{
+		ctx, span := tracer.Start(ctx, "initialize RPC services")
+		serverCaps, err = s.initOthers(ctx, req.Capabilities)
+		span.End()
+	}
 	s.initOthers = nil // cannot handshake again
 	if err != nil {
 		return nil, err
