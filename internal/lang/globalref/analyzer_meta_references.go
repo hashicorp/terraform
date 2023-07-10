@@ -200,8 +200,8 @@ func (a *Analyzer) metaReferencesResourceInstance(moduleAddr addrs.ModuleInstanc
 	// available. In invalid cases we might be dealing with partial information,
 	// and so the schema might be nil so we won't be able to return reference
 	// information for this particular situation.
-	providerSchema := a.providerSchemas[rc.Provider]
-	if providerSchema == nil {
+	providerSchema, ok := a.providerSchemas[rc.Provider]
+	if !ok {
 		return nil
 	}
 

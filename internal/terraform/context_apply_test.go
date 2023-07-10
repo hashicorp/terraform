@@ -11381,33 +11381,7 @@ locals {
 // Ensure that we can destroy when a provider references a resource that will
 // also be destroyed
 func TestContext2Apply_destroyProviderReference(t *testing.T) {
-	m := testModuleInline(t, map[string]string{
-		"main.tf": `
-provider "null" {
-  value = ""
-}
-
-module "mod" {
-  source = "./mod"
-}
-
-provider "test" {
-  value = module.mod.output
-}
-
-resource "test_instance" "bar" {
-}
-`,
-		"mod/main.tf": `
-data "null_data_source" "foo" {
-       count = 1
-}
-
-
-output "output" {
-  value = data.null_data_source.foo[0].output
-}
-`})
+	m, snap := testModuleWithSnapshot(t, "apply-destroy-provisider-refs")
 
 	schemaFn := func(name string) *ProviderSchema {
 		return &ProviderSchema{
@@ -11506,11 +11480,12 @@ output "output" {
 		t.Fatalf("apply errors: %s", diags.Err())
 	}
 
+	providers := map[addrs.Provider]providers.Factory{
+		addrs.NewDefaultProvider("test"): testProviderFuncFixed(testP),
+		addrs.NewDefaultProvider("null"): testProviderFuncFixed(nullP),
+	}
 	ctx = testContext2(t, &ContextOpts{
-		Providers: map[addrs.Provider]providers.Factory{
-			addrs.NewDefaultProvider("test"): testProviderFuncFixed(testP),
-			addrs.NewDefaultProvider("null"): testProviderFuncFixed(nullP),
-		},
+		Providers: providers,
 	})
 
 	plan, diags = ctx.Plan(m, state, &PlanOpts{
@@ -11518,6 +11493,19 @@ output "output" {
 	})
 	assertNoErrors(t, diags)
 
+	// We'll marshal and unmarshal the plan here, to ensure that we have
+	// a clean new context as would be created if we separately ran
+	// terraform plan -out=tfplan && terraform apply tfplan
+	ctxOpts, m, plan, err := contextOptsForPlanViaFile(t, snap, plan)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctxOpts.Providers = providers
+	ctx, diags = NewContext(ctxOpts)
+
+	if diags.HasErrors() {
+		t.Fatalf("failed to create context for plan: %s", diags.Err())
+	}
 	if _, diags := ctx.Apply(plan, m); diags.HasErrors() {
 		t.Fatalf("destroy apply errors: %s", diags.Err())
 	}

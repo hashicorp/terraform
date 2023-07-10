@@ -6,11 +6,13 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
@@ -26,6 +28,10 @@ import (
 // steps for validating module blocks, separate from this transform.
 type ModuleVariableTransformer struct {
 	Config *configs.Config
+
+	// Planning must be set to true when building a planning graph, and must be
+	// false when building an apply graph.
+	Planning bool
 }
 
 func (t *ModuleVariableTransformer) Transform(g *Graph) error {
@@ -104,9 +110,10 @@ func (t *ModuleVariableTransformer) transformSingle(g *Graph, parent, c *configs
 			Addr: addrs.InputVariable{
 				Name: v.Name,
 			},
-			Module: c.Path,
-			Config: v,
-			Expr:   expr,
+			Module:   c.Path,
+			Config:   v,
+			Expr:     expr,
+			Planning: t.Planning,
 		}
 		g.Add(node)
 	}

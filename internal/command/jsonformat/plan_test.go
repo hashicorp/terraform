@@ -6987,13 +6987,17 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 			}
 
 			tfschemas := &terraform.Schemas{
-				Providers: map[addrs.Provider]*providers.Schemas{
+				Providers: map[addrs.Provider]providers.ProviderSchema{
 					src.ProviderAddr.Provider: {
-						ResourceTypes: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						ResourceTypes: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
-						DataSources: map[string]*configschema.Block{
-							src.Addr.Resource.Resource.Type: tc.Schema,
+						DataSources: map[string]providers.Schema{
+							src.Addr.Resource.Resource.Type: {
+								Block: tc.Schema,
+							},
 						},
 					},
 				},

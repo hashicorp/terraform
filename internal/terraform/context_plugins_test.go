@@ -41,7 +41,6 @@ func simpleMockPluginLibrary() *contextPlugins {
 			},
 		},
 	}
-	ret.init() // prepare the internal cache data structures
 	return ret
 }
 

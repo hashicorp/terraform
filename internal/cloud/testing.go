@@ -345,11 +345,13 @@ func testLocalBackend(t *testing.T, cloud *Cloud) backend.Enhanced {
 	b := backendLocal.NewWithBackend(cloud)
 
 	// Add a test provider to the local backend.
-	p := backendLocal.TestLocalProvider(t, b, "null", &terraform.ProviderSchema{
-		ResourceTypes: map[string]*configschema.Block{
+	p := backendLocal.TestLocalProvider(t, b, "null", providers.ProviderSchema{
+		ResourceTypes: map[string]providers.Schema{
 			"null_resource": {
-				Attributes: map[string]*configschema.Attribute{
-					"id": {Type: cty.String, Computed: true},
+				Block: &configschema.Block{
+					Attributes: map[string]*configschema.Attribute{
+						"id": {Type: cty.String, Computed: true},
+					},
 				},
 			},
 		},

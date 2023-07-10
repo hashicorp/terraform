@@ -54,6 +54,44 @@ func TestConsolidateWarnings(t *testing.T) {
 		},
 	})
 
+	// Finally, we'll just add a set of diags that should not be consolidated.
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "do not consolidate",
+		Detail:   "warning 1, I should not have been consolidated",
+		Subject: &hcl.Range{
+			Filename: "bar.tf",
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		},
+		Extra: doNotConsolidate(true),
+	})
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "do not consolidate",
+		Detail:   "warning 2, I should not have been consolidated",
+		Subject: &hcl.Range{
+			Filename: "bar.tf",
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		},
+		Extra: doNotConsolidate(true),
+	})
+
+	diags = diags.Append(&hcl.Diagnostic{
+		Severity: hcl.DiagWarning,
+		Summary:  "do not consolidate",
+		Detail:   "warning 3, I should not have been consolidated",
+		Subject: &hcl.Range{
+			Filename: "bar.tf",
+			Start:    hcl.Pos{Line: 1, Column: 1, Byte: 0},
+			End:      hcl.Pos{Line: 1, Column: 1, Byte: 0},
+		},
+		Extra: doNotConsolidate(true),
+	})
+
 	// We're using ForRPC here to force the diagnostics to be of a consistent
 	// type that we can easily assert against below.
 	got := diags.ConsolidateWarnings(2).ForRPC()
@@ -174,9 +212,50 @@ func TestConsolidateWarnings(t *testing.T) {
 				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
 			},
 		},
+
+		// The final set of warnings should not have been consolidated because
+		// of our filter function.
+		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "do not consolidate",
+			Detail_:   "warning 1, I should not have been consolidated",
+			Subject_: &SourceRange{
+				Filename: "bar.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
+		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "do not consolidate",
+			Detail_:   "warning 2, I should not have been consolidated",
+			Subject_: &SourceRange{
+				Filename: "bar.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
+		&rpcFriendlyDiag{
+			Severity_: Warning,
+			Summary_:  "do not consolidate",
+			Detail_:   "warning 3, I should not have been consolidated",
+			Subject_: &SourceRange{
+				Filename: "bar.tf",
+				Start:    SourcePos{Line: 1, Column: 1, Byte: 0},
+				End:      SourcePos{Line: 1, Column: 1, Byte: 0},
+			},
+		},
 	}
 
 	if diff := cmp.Diff(want, got); diff != "" {
 		t.Errorf("wrong result\n%s", diff)
 	}
+}
+
+type doNotConsolidate bool
+
+var _ DiagnosticExtraDoNotConsolidate = doNotConsolidate(true)
+
+func (d doNotConsolidate) DoNotConsolidateDiagnostic() bool {
+	return bool(d)
 }

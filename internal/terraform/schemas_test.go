@@ -14,8 +14,8 @@ func simpleTestSchemas() *Schemas {
 	provisioner := simpleMockProvisioner()
 
 	return &Schemas{
-		Providers: map[addrs.Provider]*ProviderSchema{
-			addrs.NewDefaultProvider("test"): provider.ProviderSchema(),
+		Providers: map[addrs.Provider]providers.ProviderSchema{
+			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},
 		Provisioners: map[string]*configschema.Block{
 			"test": provisioner.GetSchemaResponse.Provisioner,
@@ -31,32 +31,14 @@ func simpleTestSchemas() *Schemas {
 // The intended use for this is in testing components that use schemas to
 // drive other behavior, such as reference analysis during graph construction,
 // but that don't actually need to interact with providers otherwise.
-func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]*ProviderSchema) *contextPlugins {
+func schemaOnlyProvidersForTesting(schemas map[addrs.Provider]providers.ProviderSchema) *contextPlugins {
 	factories := make(map[addrs.Provider]providers.Factory, len(schemas))
 
 	for providerAddr, schema := range schemas {
-
-		resp := &providers.GetProviderSchemaResponse{
-			Provider: providers.Schema{
-				Block: schema.Provider,
-			},
-			ResourceTypes: make(map[string]providers.Schema),
-			DataSources:   make(map[string]providers.Schema),
-		}
-		for t, tSchema := range schema.ResourceTypes {
-			resp.ResourceTypes[t] = providers.Schema{
-				Block:   tSchema,
-				Version: int64(schema.ResourceTypeSchemaVersions[t]),
-			}
-		}
-		for t, tSchema := range schema.DataSources {
-			resp.DataSources[t] = providers.Schema{
-				Block: tSchema,
-			}
-		}
+		schema := schema
 
 		provider := &MockProvider{
-			GetProviderSchemaResponse: resp,
+			GetProviderSchemaResponse: &schema,
 		}
 
 		factories[providerAddr] = func() (providers.Interface, error) {

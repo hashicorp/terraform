@@ -10,12 +10,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
@@ -202,6 +204,16 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	}
 	log.Printf("[TRACE] evalVariableValidations: validating %s", addr)
 
+	checkState := ctx.Checks()
+	if !checkState.ConfigHasChecks(addr.ConfigCheckable()) {
+		// We have nothing to do if this object doesn't have any checks,
+		// but the "rules" slice should agree that we don't.
+		if ct := len(config.Validations); ct != 0 {
+			panic(fmt.Sprintf("check state says that %s should have no rules, but it has %d", addr, ct))
+		}
+		return diags
+	}
+
 	// Variable nodes evaluate in the parent module to where they were declared
 	// because the value expression (n.Expr, if set) comes from the calling
 	// "module" block in the parent module.
@@ -229,169 +241,186 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 		Functions: ctx.EvaluationScope(nil, nil, EvalDataForNoInstanceKey).Functions(),
 	}
 
-	for _, validation := range config.Validations {
-		const errInvalidCondition = "Invalid variable validation result"
-		const errInvalidValue = "Invalid value for variable"
-		var ruleDiags tfdiags.Diagnostics
-
-		result, moreDiags := validation.Condition.Value(hclCtx)
-		ruleDiags = ruleDiags.Append(moreDiags)
-		errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
-
-		// The following error handling is a workaround to preserve backwards
-		// compatibility. Due to an implementation quirk, all prior versions of
-		// Terraform would treat error messages specified using JSON
-		// configuration syntax (.tf.json) as string literals, even if they
-		// contained the "${" template expression operator. This behaviour did
-		// not match that of HCL configuration syntax, where a template
-		// expression would result in a validation error.
-		//
-		// As a result, users writing or generating JSON configuration syntax
-		// may have specified error messages which are invalid template
-		// expressions. As we add support for error message expressions, we are
-		// unable to perfectly distinguish between these two cases.
-		//
-		// To ensure that we don't break backwards compatibility, we have the
-		// below fallback logic if the error message fails to evaluate. This
-		// should only have any effect for JSON configurations. The gohcl
-		// DecodeExpression function behaves differently when the source of the
-		// expression is a JSON configuration file and a nil context is passed.
-		if errorDiags.HasErrors() {
-			// Attempt to decode the expression as a string literal. Passing
-			// nil as the context forces a JSON syntax string value to be
-			// interpreted as a string literal.
-			var errorString string
-			moreErrorDiags := gohcl.DecodeExpression(validation.ErrorMessage, nil, &errorString)
-			if !moreErrorDiags.HasErrors() {
-				// Decoding succeeded, meaning that this is a JSON syntax
-				// string value. We rewrap that as a cty value to allow later
-				// decoding to succeed.
-				errorValue = cty.StringVal(errorString)
-
-				// This warning diagnostic explains this odd behaviour, while
-				// giving us an escape hatch to change this to a hard failure
-				// in some future Terraform 1.x version.
-				errorDiags = hcl.Diagnostics{
-					&hcl.Diagnostic{
-						Severity:    hcl.DiagWarning,
-						Summary:     "Validation error message expression is invalid",
-						Detail:      fmt.Sprintf("The error message provided could not be evaluated as an expression, so Terraform is interpreting it as a string literal.\n\nIn future versions of Terraform, this will be considered an error. Please file a GitHub issue if this would break your workflow.\n\n%s", errorDiags.Error()),
-						Subject:     validation.ErrorMessage.Range().Ptr(),
-						Context:     validation.DeclRange.Ptr(),
-						Expression:  validation.ErrorMessage,
-						EvalContext: hclCtx,
-					},
-				}
-			}
-
-			// We want to either report the original diagnostics if the
-			// fallback failed, or the warning generated above if it succeeded.
-			ruleDiags = ruleDiags.Append(errorDiags)
-		}
-
+	for ix, validation := range config.Validations {
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, addr, config, expr)
 		diags = diags.Append(ruleDiags)
 
-		if ruleDiags.HasErrors() {
-			log.Printf("[TRACE] evalVariableValidations: %s rule %s check rule evaluation failed: %s", addr, validation.DeclRange, ruleDiags.Err().Error())
-		}
-		if !result.IsKnown() {
-			log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", addr, validation.DeclRange)
-			continue // We'll wait until we've learned more, then.
-		}
-		if result.IsNull() {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     errInvalidCondition,
-				Detail:      "Validation condition expression must return either true or false, not null.",
-				Subject:     validation.Condition.Range().Ptr(),
-				Expression:  validation.Condition,
-				EvalContext: hclCtx,
-			})
-			continue
-		}
-		var err error
-		result, err = convert.Convert(result, cty.Bool)
-		if err != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     errInvalidCondition,
-				Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
-				Subject:     validation.Condition.Range().Ptr(),
-				Expression:  validation.Condition,
-				EvalContext: hclCtx,
-			})
-			continue
-		}
-
-		// Validation condition may be marked if the input variable is bound to
-		// a sensitive value. This is irrelevant to the validation process, so
-		// we discard the marks now.
-		result, _ = result.Unmark()
-
-		if result.True() {
-			continue
-		}
-
-		var errorMessage string
-		if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
-			var err error
-			errorValue, err = convert.Convert(errorValue, cty.String)
-			if err != nil {
-				diags = diags.Append(&hcl.Diagnostic{
-					Severity:    hcl.DiagError,
-					Summary:     "Invalid error message",
-					Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
-					Subject:     validation.ErrorMessage.Range().Ptr(),
-					Expression:  validation.ErrorMessage,
-					EvalContext: hclCtx,
-				})
-			} else {
-				if marks.Has(errorValue, marks.Sensitive) {
-					diags = diags.Append(&hcl.Diagnostic{
-						Severity: hcl.DiagError,
-
-						Summary: "Error message refers to sensitive values",
-						Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
-
-You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
-
-						Subject:     validation.ErrorMessage.Range().Ptr(),
-						Expression:  validation.ErrorMessage,
-						EvalContext: hclCtx,
-					})
-					errorMessage = "The error message included a sensitive value, so it will not be displayed."
-				} else {
-					errorMessage = strings.TrimSpace(errorValue.AsString())
-				}
-			}
-		}
-		if errorMessage == "" {
-			errorMessage = "Failed to evaluate condition error message."
-		}
-
-		if expr != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     errInvalidValue,
-				Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
-				Subject:     expr.Range().Ptr(),
-				Expression:  validation.Condition,
-				EvalContext: hclCtx,
-			})
+		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
+		if result.Status == checks.StatusFail {
+			checkState.ReportCheckFailure(addr, addrs.InputValidation, ix, result.FailureMessage)
 		} else {
-			// Since we don't have a source expression for a root module
-			// variable, we'll just report the error from the perspective
-			// of the variable declaration itself.
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     errInvalidValue,
-				Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
-				Subject:     config.DeclRange.Ptr(),
-				Expression:  validation.Condition,
-				EvalContext: hclCtx,
-			})
+			checkState.ReportCheckResult(addr, addrs.InputValidation, ix, result.Status)
 		}
 	}
 
 	return diags
+}
+
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, addr addrs.AbsInputVariableInstance, config *configs.Variable, expr hcl.Expression) (checkResult, tfdiags.Diagnostics) {
+	const errInvalidCondition = "Invalid variable validation result"
+	const errInvalidValue = "Invalid value for variable"
+	var diags tfdiags.Diagnostics
+
+	result, moreDiags := validation.Condition.Value(hclCtx)
+	diags = diags.Append(moreDiags)
+	errorValue, errorDiags := validation.ErrorMessage.Value(hclCtx)
+
+	// The following error handling is a workaround to preserve backwards
+	// compatibility. Due to an implementation quirk, all prior versions of
+	// Terraform would treat error messages specified using JSON
+	// configuration syntax (.tf.json) as string literals, even if they
+	// contained the "${" template expression operator. This behaviour did
+	// not match that of HCL configuration syntax, where a template
+	// expression would result in a validation error.
+	//
+	// As a result, users writing or generating JSON configuration syntax
+	// may have specified error messages which are invalid template
+	// expressions. As we add support for error message expressions, we are
+	// unable to perfectly distinguish between these two cases.
+	//
+	// To ensure that we don't break backwards compatibility, we have the
+	// below fallback logic if the error message fails to evaluate. This
+	// should only have any effect for JSON configurations. The gohcl
+	// DecodeExpression function behaves differently when the source of the
+	// expression is a JSON configuration file and a nil context is passed.
+	if errorDiags.HasErrors() {
+		// Attempt to decode the expression as a string literal. Passing
+		// nil as the context forces a JSON syntax string value to be
+		// interpreted as a string literal.
+		var errorString string
+		moreErrorDiags := gohcl.DecodeExpression(validation.ErrorMessage, nil, &errorString)
+		if !moreErrorDiags.HasErrors() {
+			// Decoding succeeded, meaning that this is a JSON syntax
+			// string value. We rewrap that as a cty value to allow later
+			// decoding to succeed.
+			errorValue = cty.StringVal(errorString)
+
+			// This warning diagnostic explains this odd behaviour, while
+			// giving us an escape hatch to change this to a hard failure
+			// in some future Terraform 1.x version.
+			errorDiags = hcl.Diagnostics{
+				&hcl.Diagnostic{
+					Severity:    hcl.DiagWarning,
+					Summary:     "Validation error message expression is invalid",
+					Detail:      fmt.Sprintf("The error message provided could not be evaluated as an expression, so Terraform is interpreting it as a string literal.\n\nIn future versions of Terraform, this will be considered an error. Please file a GitHub issue if this would break your workflow.\n\n%s", errorDiags.Error()),
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Context:     validation.DeclRange.Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
+				},
+			}
+		}
+
+		// We want to either report the original diagnostics if the
+		// fallback failed, or the warning generated above if it succeeded.
+		diags = diags.Append(errorDiags)
+	}
+
+	if diags.HasErrors() {
+		log.Printf("[TRACE] evalVariableValidations: %s rule %s check rule evaluation failed: %s", addr, validation.DeclRange, diags.Err().Error())
+	}
+	if !result.IsKnown() {
+		log.Printf("[TRACE] evalVariableValidations: %s rule %s condition value is unknown, so skipping validation for now", addr, validation.DeclRange)
+
+		return checkResult{Status: checks.StatusUnknown}, diags // We'll wait until we've learned more, then.
+	}
+	if result.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      "Validation condition expression must return either true or false, not null.",
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return checkResult{Status: checks.StatusError}, diags
+	}
+	var err error
+	result, err = convert.Convert(result, cty.Bool)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidCondition,
+			Detail:      fmt.Sprintf("Invalid validation condition result value: %s.", tfdiags.FormatError(err)),
+			Subject:     validation.Condition.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+		return checkResult{Status: checks.StatusError}, diags
+	}
+
+	// Validation condition may be marked if the input variable is bound to
+	// a sensitive value. This is irrelevant to the validation process, so
+	// we discard the marks now.
+	result, _ = result.Unmark()
+	status := checks.StatusForCtyValue(result)
+
+	if status != checks.StatusFail {
+		return checkResult{Status: status}, diags
+	}
+
+	var errorMessage string
+	if !errorDiags.HasErrors() && errorValue.IsKnown() && !errorValue.IsNull() {
+		var err error
+		errorValue, err = convert.Convert(errorValue, cty.String)
+		if err != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid error message",
+				Detail:      fmt.Sprintf("Unsuitable value for error message: %s.", tfdiags.FormatError(err)),
+				Subject:     validation.ErrorMessage.Range().Ptr(),
+				Expression:  validation.ErrorMessage,
+				EvalContext: hclCtx,
+			})
+		} else {
+			if marks.Has(errorValue, marks.Sensitive) {
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+
+					Summary: "Error message refers to sensitive values",
+					Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+
+You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
+
+					Subject:     validation.ErrorMessage.Range().Ptr(),
+					Expression:  validation.ErrorMessage,
+					EvalContext: hclCtx,
+				})
+				errorMessage = "The error message included a sensitive value, so it will not be displayed."
+			} else {
+				errorMessage = strings.TrimSpace(errorValue.AsString())
+			}
+		}
+	}
+	if errorMessage == "" {
+		errorMessage = "Failed to evaluate condition error message."
+	}
+
+	if expr != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidValue,
+			Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+			Subject:     expr.Range().Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+	} else {
+		// Since we don't have a source expression for a root module
+		// variable, we'll just report the error from the perspective
+		// of the variable declaration itself.
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     errInvalidValue,
+			Detail:      fmt.Sprintf("%s\n\nThis was checked by the validation rule at %s.", errorMessage, validation.DeclRange.String()),
+			Subject:     config.DeclRange.Ptr(),
+			Expression:  validation.Condition,
+			EvalContext: hclCtx,
+		})
+	}
+
+	return checkResult{
+		Status:         status,
+		FailureMessage: errorMessage,
+	}, diags
 }
