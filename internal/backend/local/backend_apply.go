@@ -10,6 +10,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -198,9 +199,10 @@ func (b *Local) opApply(
 			// is needlessly confusing.
 			var filteredDiags tfdiags.Diagnostics
 			for _, diag := range diags {
-				if !tfdiags.IsFromCheckBlock(diag) {
-					filteredDiags = filteredDiags.Append(diag)
+				if rule, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok && rule.Container.CheckableKind() == addrs.CheckableCheck {
+					continue
 				}
+				filteredDiags = filteredDiags.Append(diag)
 			}
 			diags = filteredDiags
 		}
