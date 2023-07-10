@@ -52,10 +52,11 @@ type CheckableKind rune
 //go:generate go run golang.org/x/tools/cmd/stringer -type=CheckableKind checkable.go
 
 const (
-	CheckableKindInvalid CheckableKind = 0
-	CheckableResource    CheckableKind = 'R'
-	CheckableOutputValue CheckableKind = 'O'
-	CheckableCheck       CheckableKind = 'C'
+	CheckableKindInvalid   CheckableKind = 0
+	CheckableResource      CheckableKind = 'R'
+	CheckableOutputValue   CheckableKind = 'O'
+	CheckableCheck         CheckableKind = 'C'
+	CheckableInputVariable CheckableKind = 'I'
 )
 
 // ConfigCheckable is an interfaces implemented by address types that represent
@@ -178,6 +179,14 @@ func ParseCheckableStr(kind CheckableKind, src string) (Checkable, tfdiags.Diagn
 			return nil, diags
 		}
 		return Check{Name: name}.Absolute(path), diags
+
+	case CheckableInputVariable:
+		name, nameDiags := getCheckableName("var", "variable value")
+		diags = diags.Append(nameDiags)
+		if diags.HasErrors() {
+			return nil, diags
+		}
+		return InputVariable{Name: name}.Absolute(path), diags
 
 	default:
 		panic(fmt.Sprintf("unsupported CheckableKind %s", kind))

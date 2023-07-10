@@ -44,6 +44,12 @@ func (c CheckRule) String() string {
 		return fmt.Sprintf("%s.postcondition[%d]", container, c.Index)
 	case OutputPrecondition:
 		return fmt.Sprintf("%s.precondition[%d]", container, c.Index)
+	case CheckDataResource:
+		return fmt.Sprintf("%s.data[%d]", container, c.Index)
+	case CheckAssertion:
+		return fmt.Sprintf("%s.assert[%d]", container, c.Index)
+	case InputValidation:
+		return fmt.Sprintf("%s.validation[%d]", container, c.Index)
 	default:
 		// This should not happen
 		return fmt.Sprintf("%s.condition[%d]", container, c.Index)
@@ -85,6 +91,7 @@ const (
 	OutputPrecondition    CheckRuleType = 3
 	CheckDataResource     CheckRuleType = 4
 	CheckAssertion        CheckRuleType = 5
+	InputValidation       CheckRuleType = 6
 )
 
 // Description returns a human-readable description of the check type. This is
@@ -101,6 +108,8 @@ func (c CheckRuleType) Description() string {
 		return "Check block data resource"
 	case CheckAssertion:
 		return "Check block assertion"
+	case InputValidation:
+		return "Input variable validation"
 	default:
 		// This should not happen
 		return "Condition"
