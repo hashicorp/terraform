@@ -42,7 +42,8 @@ func init() {
 // the standard OpenTelemetry environment variable OTEL_TRACES_EXPORTER=otlp
 // to enable an OTLP exporter, which is in turn configured by all of the
 // standard OTLP exporter environment variables:
-//    https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration-options
+//
+//	https://opentelemetry.io/docs/specs/otel/protocol/exporter/#configuration-options
 //
 // We don't currently support any other telemetry export protocols, because
 // OTLP has emerged as a de-facto standard and each other exporter we support

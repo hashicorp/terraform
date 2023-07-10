@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -28,6 +29,10 @@ func (c *GetCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	path, err := ModulePath(cmdFlags.Args())
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -36,7 +41,7 @@ func (c *GetCommand) Run(args []string) int {
 
 	path = c.normalizePath(path)
 
-	abort, diags := getModules(&c.Meta, path, update)
+	abort, diags := getModules(ctx, &c.Meta, path, update)
 	c.showDiagnostics(diags)
 	if abort || diags.HasErrors() {
 		return 1
@@ -76,10 +81,10 @@ func (c *GetCommand) Synopsis() string {
 	return "Install or upgrade remote Terraform modules"
 }
 
-func getModules(m *Meta, path string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
+func getModules(ctx context.Context, m *Meta, path string, upgrade bool) (abort bool, diags tfdiags.Diagnostics) {
 	hooks := uiModuleInstallHooks{
 		Ui:             m.Ui,
 		ShowLocalPaths: true,
 	}
-	return m.installModules(path, upgrade, hooks)
+	return m.installModules(ctx, path, upgrade, hooks)
 }

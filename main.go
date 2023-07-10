@@ -4,6 +4,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/apparentlymart/go-shquot/shquot"
 	"github.com/hashicorp/go-plugin"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -26,6 +28,7 @@ import (
 	"github.com/mattn/go-shellwords"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
+	"go.opentelemetry.io/otel/trace"
 
 	backendInit "github.com/hashicorp/terraform/internal/backend/init"
 )
@@ -74,6 +77,14 @@ func realMain() int {
 		Ui.Error(fmt.Sprintf("Could not initialize telemetry: %s", err))
 		Ui.Error(fmt.Sprintf("Unset environment variable %s if you don't intend to collect telemetry from Terraform.", openTelemetryExporterEnvVar))
 		return 1
+	}
+	var ctx context.Context
+	var otelSpan trace.Span
+	{
+		// At minimum we emit a span covering the entire command execution.
+		_, displayArgs := shquot.POSIXShellSplit(os.Args)
+		ctx, otelSpan = tracer.Start(context.Background(), fmt.Sprintf("terraform %s", displayArgs))
+		defer otelSpan.End()
 	}
 
 	tmpLogPath := os.Getenv(envTmpLogPath)
@@ -235,11 +246,11 @@ func realMain() int {
 		// in case they need to refer back to it for any special reason, though
 		// they should primarily be working with the override working directory
 		// that we've now switched to above.
-		initCommands(originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
+		initCommands(ctx, originalWd, streams, config, services, providerSrc, providerDevOverrides, unmanagedProviders)
 	}
 
 	// Run checkpoint
-	go runCheckpoint(config)
+	go runCheckpoint(ctx, config)
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
