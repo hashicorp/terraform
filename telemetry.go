@@ -14,6 +14,15 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// If this environment variable is set to "otlp" when running Terraform CLI
+// then we'll enable an experimental OTLP trace exporter.
+//
+// BEWARE! This is not a committed external interface.
+//
+// Everything about this is experimental and subject to change in future
+// releases. Do not depend on anything about the structure of this output.
+// This mechanism might be removed altogether if a different strategy seems
+// better based on experience with this experiment.
 const openTelemetryExporterEnvVar = "OTEL_TRACES_EXPORTER"
 
 // tracer is the OpenTelemetry tracer to use for traces in package main only.
