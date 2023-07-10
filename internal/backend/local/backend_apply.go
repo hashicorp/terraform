@@ -10,6 +10,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -99,13 +100,7 @@ func (b *Local) opApply(
 			// plan.Errored will be true in this case, which our plan
 			// renderer can rely on to tailor its messaging.
 			if plan != nil && (len(plan.Changes.Resources) != 0 || len(plan.Changes.Outputs) != 0) {
-				schemas, moreDiags := lr.Core.Schemas(lr.Config, lr.InputState)
-				// If schema loading returns errors then we'll just give up and
-				// ignore them to avoid distracting from the plan-time errors we're
-				// mainly trying to report here.
-				if !moreDiags.HasErrors() {
-					op.View.Plan(plan, schemas)
-				}
+				op.View.Plan(plan, schemas)
 			}
 			op.ReportResult(runningOp, diags)
 			return
@@ -204,9 +199,10 @@ func (b *Local) opApply(
 			// is needlessly confusing.
 			var filteredDiags tfdiags.Diagnostics
 			for _, diag := range diags {
-				if !tfdiags.IsFromCheckBlock(diag) {
-					filteredDiags = filteredDiags.Append(diag)
+				if rule, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok && rule.Container.CheckableKind() == addrs.CheckableCheck {
+					continue
 				}
+				filteredDiags = filteredDiags.Append(diag)
 			}
 			diags = filteredDiags
 		}

@@ -4,7 +4,7 @@
 package jsonprovider
 
 import (
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/providers"
 )
 
 type Schema struct {
@@ -14,28 +14,25 @@ type Schema struct {
 
 // marshalSchema is a convenience wrapper around mashalBlock. Schema version
 // should be set by the caller.
-func marshalSchema(block *configschema.Block) *Schema {
-	if block == nil {
+func marshalSchema(schema providers.Schema) *Schema {
+	if schema.Block == nil {
 		return &Schema{}
 	}
 
 	var ret Schema
-	ret.Block = marshalBlock(block)
+	ret.Block = marshalBlock(schema.Block)
+	ret.Version = uint64(schema.Version)
 
 	return &ret
 }
 
-func marshalSchemas(blocks map[string]*configschema.Block, rVersions map[string]uint64) map[string]*Schema {
-	if blocks == nil {
+func marshalSchemas(schemas map[string]providers.Schema) map[string]*Schema {
+	if schemas == nil {
 		return map[string]*Schema{}
 	}
-	ret := make(map[string]*Schema, len(blocks))
-	for k, v := range blocks {
+	ret := make(map[string]*Schema, len(schemas))
+	for k, v := range schemas {
 		ret[k] = marshalSchema(v)
-		version, ok := rVersions[k]
-		if ok {
-			ret[k].Version = version
-		}
 	}
 	return ret
 }

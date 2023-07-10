@@ -11,7 +11,6 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/providers"
 )
@@ -110,31 +109,6 @@ func (p *MockProvider) getProviderSchema() providers.GetProviderSchemaResponse {
 		DataSources:   map[string]providers.Schema{},
 		ResourceTypes: map[string]providers.Schema{},
 	}
-}
-
-// ProviderSchema is a helper to convert from the internal GetProviderSchemaResponse to
-// a ProviderSchema.
-func (p *MockProvider) ProviderSchema() *ProviderSchema {
-	resp := p.getProviderSchema()
-
-	schema := &ProviderSchema{
-		Provider:                   resp.Provider.Block,
-		ProviderMeta:               resp.ProviderMeta.Block,
-		ResourceTypes:              map[string]*configschema.Block{},
-		DataSources:                map[string]*configschema.Block{},
-		ResourceTypeSchemaVersions: map[string]uint64{},
-	}
-
-	for resType, s := range resp.ResourceTypes {
-		schema.ResourceTypes[resType] = s.Block
-		schema.ResourceTypeSchemaVersions[resType] = uint64(s.Version)
-	}
-
-	for dataSource, s := range resp.DataSources {
-		schema.DataSources[dataSource] = s.Block
-	}
-
-	return schema
 }
 
 func (p *MockProvider) ValidateProviderConfig(r providers.ValidateProviderConfigRequest) (resp providers.ValidateProviderConfigResponse) {
@@ -537,6 +511,9 @@ func (p *MockProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 }
 
 func (p *MockProvider) Close() error {
+	p.Lock()
+	defer p.Unlock()
+
 	p.CloseCalled = true
 	return p.CloseError
 }
