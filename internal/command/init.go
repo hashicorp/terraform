@@ -647,7 +647,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
 							errorTy.Hostname, provider.String(),
 						),
 					))
@@ -656,7 +656,7 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in in provider source address %q does not offer a Terraform provider registry.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
 							errorTy.Hostname, provider.String(),
 						),
 					))

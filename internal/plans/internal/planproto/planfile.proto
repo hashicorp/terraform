@@ -253,6 +253,7 @@ message CheckResults {
         RESOURCE = 1;
         OUTPUT_VALUE = 2;
         CHECK = 3;
+        INPUT_VARIABLE = 4;
     }
 
     message ObjectResult {

@@ -120,6 +120,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 			objKind = addrs.CheckableOutputValue
 		case planproto.CheckResults_CHECK:
 			objKind = addrs.CheckableCheck
+		case planproto.CheckResults_INPUT_VARIABLE:
+			objKind = addrs.CheckableInputVariable
 		default:
 			return nil, fmt.Errorf("aggregate check results for %s have unsupported object kind %s", rawCRs.ConfigAddr, objKind)
 		}
@@ -545,6 +547,8 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 				pcrs.Kind = planproto.CheckResults_OUTPUT_VALUE
 			case addrs.CheckableCheck:
 				pcrs.Kind = planproto.CheckResults_CHECK
+			case addrs.CheckableInputVariable:
+				pcrs.Kind = planproto.CheckResults_INPUT_VARIABLE
 			default:
 				return fmt.Errorf("checkable configuration %s has unsupported object type kind %s", configElem.Key, kind)
 			}

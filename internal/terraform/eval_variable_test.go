@@ -12,6 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/checks"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -1107,12 +1108,14 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 		given    cty.Value
 		wantErr  []string
 		wantWarn []string
+		status   checks.Status
 	}{
 		// Valid variable validation declaration, assigned value which passes
 		// the condition generates no diagnostics.
 		{
 			varName: "valid",
 			given:   cty.StringVal("foo"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message with the expression successfully evaluated.
@@ -1123,6 +1126,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Invalid value for variable",
 				"Valid template string bar",
 			},
+			status: checks.StatusFail,
 		},
 		// Invalid variable validation declaration due to an unparseable
 		// template string. Assigning a value which passes the condition
@@ -1134,6 +1138,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates an error
 		// message including the configured string interpreted as a literal
@@ -1149,6 +1154,7 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				"Validation error message expression is invalid",
 				"Missing expression; Expected the start of an expression, but found the end of the file.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1173,10 +1179,16 @@ func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 				}
 				return test.given
 			}
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 && len(test.wantWarn) == 0 {
 				if len(gotDiags) > 0 {
@@ -1258,12 +1270,14 @@ variable "bar" {
 		varName string
 		given   cty.Value
 		wantErr []string
+		status  checks.Status
 	}{
 		// Validations pass on a sensitive variable with an error message which
 		// would generate a sensitive value
 		{
 			varName: "foo",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a sensitive
 		// error message, which is elided and generates another error
@@ -1275,12 +1289,14 @@ variable "bar" {
 				"The error message included a sensitive value, so it will not be displayed.",
 				"Error message refers to sensitive values",
 			},
+			status: checks.StatusFail,
 		},
 		// Validations pass on a sensitive variable with a correctly defined
 		// error message
 		{
 			varName: "bar",
 			given:   cty.StringVal("boop"),
+			status:  checks.StatusPass,
 		},
 		// Assigning a value which fails the condition generates a nonsensitive
 		// error message, which is displayed
@@ -1291,6 +1307,7 @@ variable "bar" {
 				"Invalid value for variable",
 				"Bar must be 4 characters, not 3.",
 			},
+			status: checks.StatusFail,
 		},
 	}
 
@@ -1319,10 +1336,16 @@ variable "bar" {
 					return test.given
 				}
 			}
+			ctx.ChecksState = checks.NewState(cfg)
+			ctx.ChecksState.ReportCheckableObjects(varAddr.ConfigCheckable(), addrs.MakeSet[addrs.Checkable](varAddr))
 
 			gotDiags := evalVariableValidations(
 				varAddr, varCfg, nil, ctx,
 			)
+
+			if ctx.ChecksState.ObjectCheckStatus(varAddr) != test.status {
+				t.Errorf("expected check result %s but instead %s", test.status, ctx.ChecksState.ObjectCheckStatus(varAddr))
+			}
 
 			if len(test.wantErr) == 0 {
 				if len(gotDiags) > 0 {

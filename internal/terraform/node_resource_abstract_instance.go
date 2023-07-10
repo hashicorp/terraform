@@ -137,7 +137,7 @@ func (n *NodeAbstractResourceInstance) AttachResourceState(s *states.Resource) {
 
 // readDiff returns the planned change for a particular resource instance
 // object.
-func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema *ProviderSchema) (*plans.ResourceInstanceChange, error) {
+func (n *NodeAbstractResourceInstance) readDiff(ctx EvalContext, providerSchema providers.ProviderSchema) (*plans.ResourceInstanceChange, error) {
 	changes := ctx.Changes()
 	addr := n.ResourceInstanceAddr()
 
@@ -323,18 +323,13 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 		return nil
 	}
 
-	if providerSchema == nil {
-		// Should never happen, unless our state object is nil
-		panic("writeResourceInstanceStateImpl used with nil ProviderSchema")
-	}
-
 	if obj != nil {
 		log.Printf("[TRACE] %s: writing state object for %s", logFuncName, absAddr)
 	} else {
 		log.Printf("[TRACE] %s: removing state object for %s", logFuncName, absAddr)
 	}
 
-	schema, currentVersion := (*providerSchema).SchemaForResourceAddr(absAddr.ContainingResource().Resource)
+	schema, currentVersion := providerSchema.SchemaForResourceAddr(absAddr.ContainingResource().Resource)
 	if schema == nil {
 		// It shouldn't be possible to get this far in any real scenario
 		// without a schema, but we might end up here in contrived tests that
@@ -663,10 +658,6 @@ func (n *NodeAbstractResourceInstance) plan(
 		return nil, nil, keyData, diags.Append(err)
 	}
 
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema is unavailable for %s", n.Addr))
-		return nil, nil, keyData, diags
-	}
 	schema, _ := providerSchema.SchemaForResourceAddr(resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
@@ -1416,10 +1407,6 @@ func (n *NodeAbstractResourceInstance) readDataSource(ctx EvalContext, configVal
 	if diags.HasErrors() {
 		return newVal, diags
 	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-		return newVal, diags
-	}
 	schema, _ := providerSchema.SchemaForResourceAddr(n.Addr.ContainingResource().Resource)
 	if schema == nil {
 		// Should be caught during validation, so we don't bother with a pretty error here
@@ -1539,13 +1526,10 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 	if err != nil {
 		return metaConfigVal, diags.Append(err)
 	}
-	if providerSchema == nil {
-		return metaConfigVal, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-	}
 	if n.ProviderMetas != nil {
 		if m, ok := n.ProviderMetas[n.ResolvedProvider.Provider]; ok && m != nil {
 			// if the provider doesn't support this feature, throw an error
-			if providerSchema.ProviderMeta == nil {
+			if providerSchema.ProviderMeta.Block == nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Provider %s doesn't support provider_meta", n.ResolvedProvider.Provider.String()),
@@ -1554,7 +1538,7 @@ func (n *NodeAbstractResourceInstance) providerMetas(ctx EvalContext) (cty.Value
 				})
 			} else {
 				var configDiags tfdiags.Diagnostics
-				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta, nil, EvalDataForNoInstanceKey)
+				metaConfigVal, _, configDiags = ctx.EvaluateBlock(m.Config, providerSchema.ProviderMeta.Block, nil, EvalDataForNoInstanceKey)
 				diags = diags.Append(configDiags)
 			}
 		}
@@ -1579,9 +1563,6 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	_, providerSchema, err := getProvider(ctx, n.ResolvedProvider)
 	if err != nil {
 		return nil, nil, keyData, diags.Append(err)
-	}
-	if providerSchema == nil {
-		return nil, nil, keyData, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
 	}
 
 	config := *n.Config
@@ -1722,6 +1703,8 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	// an apply operation.
 
 	if nested {
+		addr := check.Addr().Absolute(n.Addr.Module)
+
 		// Let's fix things up for a nested data block.
 		//
 		// A nested data block doesn't error, and creates a planned change. So,
@@ -1738,13 +1721,17 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 
 			// We still want to report the check as failed even if we are still
 			// letting it run again during the apply stage.
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
+			ctx.Checks().ReportCheckFailure(addr, addrs.CheckDataResource, 0, readDiags.Err().Error())
 		}
 
 		// Any warning or error diagnostics we'll wrap with some special checks
 		// diagnostics. This is so we can identify them later, and so they'll
 		// only report as warnings.
-		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
+		readDiags = tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+			return &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+			}
+		})
 
 		if !skipPlanChanges {
 			// refreshOnly plans cannot produce planned changes, so we only do
@@ -1851,10 +1838,6 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 	if err != nil {
 		return nil, keyData, diags.Append(err)
 	}
-	if providerSchema == nil {
-		return nil, keyData, diags.Append(fmt.Errorf("provider schema not available for %s", n.Addr))
-	}
-
 	if planned != nil && planned.Action != plans.Read && planned.Action != plans.NoOp {
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
@@ -1905,21 +1888,31 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 
 	newVal, readDiags := n.readDataSource(ctx, configVal)
 	if check, nested := n.nestedInCheckBlock(); nested {
+		addr := check.Addr().Absolute(n.Addr.Module)
+
 		// We're just going to jump in here and hide away any errors for nested
 		// data blocks.
 		if readDiags.HasErrors() {
-			ctx.Checks().ReportCheckFailure(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, readDiags.Err().Error())
-			diags = diags.Append(tfdiags.AsCheckBlockDiagnostics(readDiags))
+			ctx.Checks().ReportCheckFailure(addr, addrs.CheckDataResource, 0, readDiags.Err().Error())
+			diags = diags.Append(tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+				return &addrs.CheckRuleDiagnosticExtra{
+					CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+				}
+			}))
 			return nil, keyData, diags
 		}
 
 		// Even though we know there are no errors here, we still want to
 		// identify these diags has having been generated from a check block.
-		readDiags = tfdiags.AsCheckBlockDiagnostics(readDiags)
+		readDiags = tfdiags.OverrideAll(readDiags, tfdiags.Warning, func() tfdiags.DiagnosticExtraWrapper {
+			return &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addrs.NewCheckRule(addr, addrs.CheckDataResource, 0),
+			}
+		})
 
 		// If no errors, just remember to report this as a success and continue
 		// as normal.
-		ctx.Checks().ReportCheckResult(check.Addr().Absolute(n.Addr.Module), addrs.CheckDataResource, 0, checks.StatusPass)
+		ctx.Checks().ReportCheckResult(addr, addrs.CheckDataResource, 0, checks.StatusPass)
 	}
 
 	diags = diags.Append(readDiags)

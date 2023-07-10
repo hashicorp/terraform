@@ -643,6 +643,8 @@ func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
 		return addrs.CheckableOutputValue
 	case "check":
 		return addrs.CheckableCheck
+	case "var":
+		return addrs.CheckableInputVariable
 	default:
 		// We'll treat anything else as invalid just as a concession to
 		// forward-compatible parsing, in case a later version of Terraform
@@ -659,6 +661,8 @@ func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
 		return "output"
 	case addrs.CheckableCheck:
 		return "check"
+	case addrs.CheckableInputVariable:
+		return "var"
 	default:
 		panic(fmt.Sprintf("unsupported checkable object kind %s", in))
 	}

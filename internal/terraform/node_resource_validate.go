@@ -276,10 +276,6 @@ func (n *NodeValidatableResource) validateResource(ctx EvalContext) tfdiags.Diag
 	if diags.HasErrors() {
 		return diags
 	}
-	if providerSchema == nil {
-		diags = diags.Append(fmt.Errorf("validateResource has nil schema for %s", n.Addr))
-		return diags
-	}
 
 	keyData := EvalDataForNoInstanceKey
 

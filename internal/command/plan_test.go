@@ -472,7 +472,7 @@ func TestPlan_outBackend(t *testing.T) {
 func TestPlan_refreshFalse(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("plan"), td)
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
 	defer testChdir(t, td)()
 
 	p := planFixtureProvider()
@@ -495,6 +495,71 @@ func TestPlan_refreshFalse(t *testing.T) {
 
 	if p.ReadResourceCalled {
 		t.Fatal("ReadResource should not have been called")
+	}
+}
+
+func TestPlan_refreshTrue(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
+	defer testChdir(t, td)()
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-refresh=true",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatalf("ReadResource should have been called")
+	}
+}
+
+// A consumer relies on the fact that running
+// terraform plan -refresh=false -refresh=true gives the same result as
+// terraform plan -refresh=true.
+// While the flag logic itself is handled by the stdlib flags package (and code
+// in main() that is tested elsewhere), we verify the overall plan command
+// behaviour here in case we accidentally break this with additional logic.
+func TestPlan_refreshFalseRefreshTrue(t *testing.T) {
+	// Create a temporary working directory that is empty
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("plan-existing-state"), td)
+	defer testChdir(t, td)()
+
+	p := planFixtureProvider()
+	view, done := testView(t)
+	c := &PlanCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(p),
+			View:             view,
+		},
+	}
+
+	args := []string{
+		"-refresh=false",
+		"-refresh=true",
+	}
+	code := c.Run(args)
+	output := done(t)
+	if code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
+	}
+
+	if !p.ReadResourceCalled {
+		t.Fatal("ReadResource should have been called")
 	}
 }
 
