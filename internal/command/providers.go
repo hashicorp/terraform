@@ -6,6 +6,7 @@ package command
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/xlab/treeprint"
 
@@ -69,7 +70,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		return 1
 	}
 
-	config, configDiags := c.loadConfig(configPath)
+	config, configDiags := c.loadConfigWithTests(configPath, "tests")
 	diags = diags.Append(configDiags)
 	if configDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -145,6 +146,24 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 			versionsStr = " " + versionsStr
 		}
 		tree.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
+	}
+	for name, testNode := range node.Tests {
+		name = strings.TrimSuffix(name, ".tftest")
+		name = strings.ReplaceAll(name, "/", ".")
+		branch := tree.AddBranch(fmt.Sprintf("test.%s", name))
+
+		for fqn, dep := range testNode.Requirements {
+			versionsStr := getproviders.VersionConstraintsString(dep)
+			if versionsStr != "" {
+				versionsStr = " " + versionsStr
+			}
+			branch.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
+		}
+
+		for _, run := range testNode.Runs {
+			branch := branch.AddBranch(fmt.Sprintf("run.%s", run.Name))
+			c.populateTreeNode(branch, run)
+		}
 	}
 	for name, childNode := range node.Children {
 		branch := tree.AddBranch(fmt.Sprintf("module.%s", name))

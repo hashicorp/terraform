@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules"
 )
@@ -157,36 +158,9 @@ func decodeModuleBlock(block *hcl.Block, override bool) (*ModuleCall, hcl.Diagno
 	}
 
 	if attr, exists := content.Attributes["providers"]; exists {
-		seen := make(map[string]hcl.Range)
-		pairs, pDiags := hcl.ExprMap(attr.Expr)
-		diags = append(diags, pDiags...)
-		for _, pair := range pairs {
-			key, keyDiags := decodeProviderConfigRef(pair.Key, "providers")
-			diags = append(diags, keyDiags...)
-			value, valueDiags := decodeProviderConfigRef(pair.Value, "providers")
-			diags = append(diags, valueDiags...)
-			if keyDiags.HasErrors() || valueDiags.HasErrors() {
-				continue
-			}
-
-			matchKey := key.String()
-			if prev, exists := seen[matchKey]; exists {
-				diags = append(diags, &hcl.Diagnostic{
-					Severity: hcl.DiagError,
-					Summary:  "Duplicate provider address",
-					Detail:   fmt.Sprintf("A provider configuration was already passed to %s at %s. Each child provider configuration can be assigned only once.", matchKey, prev),
-					Subject:  pair.Value.Range().Ptr(),
-				})
-				continue
-			}
-
-			rng := hcl.RangeBetween(pair.Key.Range(), pair.Value.Range())
-			seen[matchKey] = rng
-			mc.Providers = append(mc.Providers, PassedProviderConfig{
-				InChild:  key,
-				InParent: value,
-			})
-		}
+		providers, providerDiags := decodePassedProviderConfigs(attr)
+		diags = append(diags, providerDiags...)
+		mc.Providers = append(mc.Providers, providers...)
 	}
 
 	var seenEscapeBlock *hcl.Block
@@ -244,6 +218,43 @@ func (mc *ModuleCall) EntersNewPackage() bool {
 type PassedProviderConfig struct {
 	InChild  *ProviderConfigRef
 	InParent *ProviderConfigRef
+}
+
+func decodePassedProviderConfigs(attr *hcl.Attribute) ([]PassedProviderConfig, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+	var providers []PassedProviderConfig
+
+	seen := make(map[string]hcl.Range)
+	pairs, pDiags := hcl.ExprMap(attr.Expr)
+	diags = append(diags, pDiags...)
+	for _, pair := range pairs {
+		key, keyDiags := decodeProviderConfigRef(pair.Key, "providers")
+		diags = append(diags, keyDiags...)
+		value, valueDiags := decodeProviderConfigRef(pair.Value, "providers")
+		diags = append(diags, valueDiags...)
+		if keyDiags.HasErrors() || valueDiags.HasErrors() {
+			continue
+		}
+
+		matchKey := key.String()
+		if prev, exists := seen[matchKey]; exists {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Duplicate provider address",
+				Detail:   fmt.Sprintf("A provider configuration was already passed to %s at %s. Each child provider configuration can be assigned only once.", matchKey, prev),
+				Subject:  pair.Value.Range().Ptr(),
+			})
+			continue
+		}
+
+		rng := hcl.RangeBetween(pair.Key.Range(), pair.Value.Range())
+		seen[matchKey] = rng
+		providers = append(providers, PassedProviderConfig{
+			InChild:  key,
+			InParent: value,
+		})
+	}
+	return providers, diags
 }
 
 var moduleBlockSchema = &hcl.BodySchema{

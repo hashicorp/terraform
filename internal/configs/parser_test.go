@@ -68,6 +68,23 @@ func testModuleConfigFromDir(path string) (*Config, hcl.Diagnostics) {
 	return cfg, append(diags, moreDiags...)
 }
 
+// testNestedModuleConfigFromDirWithTests matches testNestedModuleConfigFromDir
+// except it also loads any test files within the directory.
+func testNestedModuleConfigFromDirWithTests(t *testing.T, path string) (*Config, hcl.Diagnostics) {
+	t.Helper()
+
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests(path, "tests")
+	if mod == nil {
+		t.Fatal("got nil root module; want non-nil")
+	}
+
+	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
+
+	diags = append(diags, nestedDiags...)
+	return cfg, diags
+}
+
 // testNestedModuleConfigFromDir reads configuration from the given directory path as
 // a module with (optional) submodules and returns its configuration. This is a
 // helper for use in unit tests.
@@ -80,8 +97,15 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 		t.Fatal("got nil root module; want non-nil")
 	}
 
+	cfg, nestedDiags := buildNestedModuleConfig(mod, path, parser)
+
+	diags = append(diags, nestedDiags...)
+	return cfg, diags
+}
+
+func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config, hcl.Diagnostics) {
 	versionI := 0
-	cfg, nestedDiags := BuildConfig(mod, ModuleWalkerFunc(
+	return BuildConfig(mod, ModuleWalkerFunc(
 		func(req *ModuleRequest) (*Module, *version.Version, hcl.Diagnostics) {
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to the calling module.
@@ -103,9 +127,6 @@ func testNestedModuleConfigFromDir(t *testing.T, path string) (*Config, hcl.Diag
 			return mod, version, diags
 		},
 	))
-
-	diags = append(diags, nestedDiags...)
-	return cfg, diags
 }
 
 func assertNoDiagnostics(t *testing.T, diags hcl.Diagnostics) bool {

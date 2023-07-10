@@ -44,6 +44,13 @@ type TestFile struct {
 	// for every run block within the test file.
 	Variables map[string]hcl.Expression
 
+	// Providers defines a set of providers that are available to run blocks
+	// within this test file.
+	//
+	// If empty, tests should use the default providers for the module under
+	// test.
+	Providers map[string]*Provider
+
 	// Runs defines the sequential list of run blocks that should be executed in
 	// order.
 	Runs []*TestRun
@@ -76,6 +83,14 @@ type TestRun struct {
 	// Any variables specified locally that clash with the global variables will
 	// take precedence over the global definition.
 	Variables map[string]hcl.Expression
+
+	// Providers specifies the set of providers that should be loaded into the
+	// module for this run block.
+	//
+	// Providers specified here must be configured in one of the provider blocks
+	// for this file. If empty, the run block will load the default providers
+	// for the module under test.
+	Providers []PassedProviderConfig
 
 	// CheckRules defines the list of assertions/validations that should be
 	// checked by this run block.
@@ -144,7 +159,9 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 	content, contentDiags := body.Content(testFileSchema)
 	diags = append(diags, contentDiags...)
 
-	tf := TestFile{}
+	tf := TestFile{
+		Providers: make(map[string]*Provider),
+	}
 
 	for _, block := range content.Blocks {
 		switch block.Type {
@@ -172,6 +189,12 @@ func loadTestFile(body hcl.Body) (*TestFile, hcl.Diagnostics) {
 			diags = append(diags, varsDiags...)
 			for _, v := range vars {
 				tf.Variables[v.Name] = v.Expr
+			}
+		case "provider":
+			provider, providerDiags := decodeProviderBlock(block)
+			diags = append(diags, providerDiags...)
+			if provider != nil {
+				tf.Providers[provider.moduleUniqueKey()] = provider
 			}
 		}
 	}
@@ -283,6 +306,12 @@ func decodeTestRunBlock(block *hcl.Block) (*TestRun, hcl.Diagnostics) {
 		}
 	} else {
 		r.Command = ApplyTestCommand // Default to apply
+	}
+
+	if attr, exists := content.Attributes["providers"]; exists {
+		providers, providerDiags := decodePassedProviderConfigs(attr)
+		diags = append(diags, providerDiags...)
+		r.Providers = append(r.Providers, providers...)
 	}
 
 	if attr, exists := content.Attributes["expect_failures"]; exists {
@@ -465,6 +494,10 @@ var testFileSchema = &hcl.BodySchema{
 			LabelNames: []string{"name"},
 		},
 		{
+			Type:       "provider",
+			LabelNames: []string{"name"},
+		},
+		{
 			Type: "variables",
 		},
 	},
@@ -473,6 +506,7 @@ var testFileSchema = &hcl.BodySchema{
 var testRunBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "command"},
+		{Name: "providers"},
 		{Name: "expect_failures"},
 	},
 	Blocks: []hcl.BlockHeaderSchema{
