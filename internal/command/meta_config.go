@@ -12,6 +12,9 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configload"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
@@ -19,8 +22,6 @@ import (
 	"github.com/hashicorp/terraform/internal/registry"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
-	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // normalizePath normalizes a given path so that it is, if possible, relative
@@ -69,6 +70,23 @@ func (m *Meta) loadSingleModule(dir string) (*configs.Module, tfdiags.Diagnostic
 	}
 
 	module, hclDiags := loader.Parser().LoadConfigDir(dir)
+	diags = diags.Append(hclDiags)
+	return module, diags
+}
+
+// loadSingleModuleWithTests matches loadSingleModule except it also loads any
+// tests for the target module.
+func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.Module, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	dir = m.normalizePath(dir)
+
+	loader, err := m.initConfigLoader()
+	if err != nil {
+		diags = diags.Append(err)
+		return nil, diags
+	}
+
+	module, hclDiags := loader.Parser().LoadConfigDirWithTests(dir, testDir)
 	diags = diags.Append(hclDiags)
 	return module, diags
 }

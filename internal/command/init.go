@@ -158,7 +158,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Load just the root module to begin backend and module initialization
-	rootModEarly, earlyConfDiags := c.loadSingleModule(path)
+	rootModEarly, earlyConfDiags := c.loadSingleModuleWithTests(path, "tests")
 
 	// There may be parsing errors in config loading but these will be shown later _after_
 	// checking for core version requirement errors. Not meeting the version requirement should
@@ -329,7 +329,16 @@ func (c *InitCommand) Run(args []string) int {
 }
 
 func (c *InitCommand) getModules(path string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
-	if len(earlyRoot.ModuleCalls) == 0 {
+	testModules := false // We can also have modules buried in test files.
+	for _, file := range earlyRoot.Tests {
+		for _, run := range file.Runs {
+			if run.Module != nil {
+				testModules = true
+			}
+		}
+	}
+
+	if len(earlyRoot.ModuleCalls) == 0 && !testModules {
 		// Nothing to do
 		return false, false, nil
 	}

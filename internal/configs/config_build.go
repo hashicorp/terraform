@@ -5,10 +5,13 @@ package configs
 
 import (
 	"fmt"
+	"path"
 	"sort"
+	"strings"
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
@@ -26,6 +29,7 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	}
 	cfg.Root = cfg // Root module is self-referential.
 	cfg.Children, diags = buildChildModules(cfg, walker)
+	diags = append(diags, buildTestModules(cfg, walker)...)
 
 	// Skip provider resolution if there are any errors, since the provider
 	// configurations themselves may not be valid.
@@ -38,6 +42,64 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
 
 	return cfg, diags
+}
+
+func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
+	var diags hcl.Diagnostics
+
+	for name, file := range root.Module.Tests {
+		for _, run := range file.Runs {
+			if run.Module == nil {
+				continue
+			}
+
+			// We want to make sure the path for the testing modules are unique
+			// so we create a dedicated path for them.
+			//
+			// Some examples:
+			//    - file: main.tftest, run: setup - test.main.setup
+			//    - file: tests/main.tftest, run: setup - test.tests.main.setup
+
+			dir := path.Dir(name)
+			base := path.Base(name)
+
+			path := addrs.Module{}
+			path = append(path, "test")
+			if dir != "." {
+				path = append(path, strings.Split(dir, "/")...)
+			}
+			path = append(path, strings.TrimSuffix(base, ".tftest"), run.Name)
+
+			req := ModuleRequest{
+				Name:              run.Name,
+				Path:              path,
+				SourceAddr:        run.Module.Source,
+				SourceAddrRange:   run.Module.SourceDeclRange,
+				VersionConstraint: run.Module.Version,
+				Parent:            root,
+				CallRange:         run.Module.DeclRange,
+			}
+
+			cfg, modDiags := loadModule(root, &req, walker)
+			diags = append(diags, modDiags...)
+
+			if cfg != nil {
+				// To get the loader to work, we need to set a bunch of values
+				// (like the name, path, and parent) as if the module was being
+				// loaded as a child of the root config.
+				//
+				// In actuality, when this is executed it will be as if the
+				// module was the root. So, we'll post-process some things to
+				// get it to behave as expected later.
+				cfg.Path = addrs.RootModule
+				cfg.Parent = nil
+				cfg.Root = cfg
+				run.ConfigUnderTest = cfg
+			}
+		}
+	}
+
+	return diags
 }
 
 func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config, hcl.Diagnostics) {
@@ -69,52 +131,65 @@ func buildChildModules(parent *Config, walker ModuleWalker) (map[string]*Config,
 			Parent:            parent,
 			CallRange:         call.DeclRange,
 		}
-
-		mod, ver, modDiags := walker.LoadModule(&req)
+		child, modDiags := loadModule(parent.Root, &req, walker)
 		diags = append(diags, modDiags...)
-		if mod == nil {
-			// nil can be returned if the source address was invalid and so
-			// nothing could be loaded whatsoever. LoadModule should've
-			// returned at least one error diagnostic in that case.
+		if child == nil {
+			// This means an error occurred, there should be diagnostics within
+			// modDiags for this.
 			continue
-		}
-
-		child := &Config{
-			Parent:          parent,
-			Root:            parent.Root,
-			Path:            path,
-			Module:          mod,
-			CallRange:       call.DeclRange,
-			SourceAddr:      call.SourceAddr,
-			SourceAddrRange: call.SourceAddrRange,
-			Version:         ver,
-		}
-
-		child.Children, modDiags = buildChildModules(child, walker)
-		diags = append(diags, modDiags...)
-
-		if mod.Backend != nil {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagWarning,
-				Summary:  "Backend configuration ignored",
-				Detail:   "Any selected backend applies to the entire configuration, so Terraform expects provider configurations only in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
-				Subject:  mod.Backend.DeclRange.Ptr(),
-			})
-		}
-
-		if len(mod.Import) > 0 {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity: hcl.DiagError,
-				Summary:  "Invalid import configuration",
-				Detail:   fmt.Sprintf("An import block was detected in %q. Import blocks are only allowed in the root module.", child.Path),
-				Subject:  mod.Import[0].DeclRange.Ptr(),
-			})
 		}
 
 		ret[call.Name] = child
 	}
 
 	return ret, diags
+}
+
+func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config, hcl.Diagnostics) {
+	var diags hcl.Diagnostics
+
+	mod, ver, modDiags := walker.LoadModule(req)
+	diags = append(diags, modDiags...)
+	if mod == nil {
+		// nil can be returned if the source address was invalid and so
+		// nothing could be loaded whatsoever. LoadModule should've
+		// returned at least one error diagnostic in that case.
+		return nil, diags
+	}
+
+	cfg := &Config{
+		Parent:          req.Parent,
+		Root:            root,
+		Path:            req.Path,
+		Module:          mod,
+		CallRange:       req.CallRange,
+		SourceAddr:      req.SourceAddr,
+		SourceAddrRange: req.SourceAddrRange,
+		Version:         ver,
+	}
+
+	cfg.Children, modDiags = buildChildModules(cfg, walker)
+	diags = append(diags, modDiags...)
+
+	if mod.Backend != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagWarning,
+			Summary:  "Backend configuration ignored",
+			Detail:   "Any selected backend applies to the entire configuration, so Terraform expects provider configurations only in the root module.\n\nThis is a warning rather than an error because it's sometimes convenient to temporarily call a root module as a child module for testing purposes, but this backend configuration block will have no effect.",
+			Subject:  mod.Backend.DeclRange.Ptr(),
+		})
+	}
+
+	if len(mod.Import) > 0 {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid import configuration",
+			Detail:   fmt.Sprintf("An import block was detected in %q. Import blocks are only allowed in the root module.", cfg.Path),
+			Subject:  mod.Import[0].DeclRange.Ptr(),
+		})
+	}
+
+	return cfg, diags
 }
 
 // A ModuleWalker knows how to find and load a child module given details about
