@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"runtime/debug"
 	"sort"
 	"strings"
 
@@ -395,7 +394,6 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	go func() {
-		defer captureTestPanic(identifier, &planDiags)
 		defer done()
 		plan, planDiags = tfCtx.Plan(config, state, opts)
 	}()
@@ -429,7 +427,6 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var applyDiags tfdiags.Diagnostics
 
 	go func() {
-		defer captureTestPanic(identifier, &applyDiags)
 		defer done()
 		updated, applyDiags = tfCtx.Apply(plan, config)
 	}()
@@ -665,20 +662,4 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		}
 	}
 	return backend.ParseVariableValues(unparsed, config.Module.Variables)
-}
-
-func captureTestPanic(identifier string, diags *tfdiags.Diagnostics) {
-	// We will actually try to recover from a panic as we can still
-	// execute all the other test files.
-	if r := recover(); r != nil {
-
-		// Just create an error diagnostics explaining why this test
-		// run failed. A panic is almost always a bug in Terraform as
-		// we should catch errors nicely so this does tell the user
-		// to report it while (hopefully) showing the stack trace.
-		*diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Terraform Crash",
-			fmt.Sprintf("Terraform crashed while executing %s. This is a bug in Terraform, please report it.\n%v\n%s", identifier, r, string(debug.Stack()))))
-	}
 }
