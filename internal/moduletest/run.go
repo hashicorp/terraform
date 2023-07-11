@@ -153,6 +153,32 @@ func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.
 				// Otherwise, this isn't an expected failure so just fall out
 				// and add it into the returned set of diagnostics below.
 
+			case addrs.CheckableInputVariable:
+				addr := rule.Container.(addrs.AbsInputVariableInstance)
+				if !addr.Module.IsRoot() {
+					// failures can only be expected against checkable objects
+					// in the root module. This diagnostic will be added into
+					// returned set below.
+					break
+				}
+
+				if diag.Severity() == tfdiags.Warning {
+					// Warnings don't count as errors. This diagnostic will be
+					// added into the returned set below.
+					break
+				}
+				if expectedFailures.Has(addr.Variable) {
+					// Then this failure is expected! Mark the original map as
+					// having found a failure and swallow this error by
+					// continuing and not adding it into the returned set of
+					// diagnostics.
+					expectedFailures.Put(addr.Variable, true)
+					continue
+				}
+
+				// Otherwise, this isn't an expected failure so just fall out
+				// and add it into the returned set of diagnostics below.
+
 			case addrs.CheckableResource:
 				addr := rule.Container.(addrs.AbsResourceInstance)
 				if !addr.Module.IsRoot() {
