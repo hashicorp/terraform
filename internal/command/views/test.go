@@ -346,7 +346,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
 			} else {
 				t.view.log.Info(
-					fmt.Sprintf("-verbose flag enabled, printing state"),
+					"-verbose flag enabled, printing state",
 					"type", json.MessageTestState,
 					json.MessageTestState, state,
 					"@testfile", file.Name,
@@ -361,7 +361,7 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
 			} else {
 				t.view.log.Info(
-					fmt.Sprintf("-verbose flag enabled, printing plan"),
+					"-verbose flag enabled, printing plan",
 					"type", json.MessageTestPlan,
 					json.MessageTestPlan, plan,
 					"@testfile", file.Name,

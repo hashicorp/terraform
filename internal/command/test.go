@@ -784,16 +784,14 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		}
 	}
 
-	if globals != nil {
-		for name, variable := range globals {
-			if _, exists := variables[name]; exists {
-				// Then this value was already defined at either the run level
-				// or the file level, and we want those values to take
-				// precedence.
-				continue
-			}
-			variables[name] = variable
+	for name, variable := range globals {
+		if _, exists := variables[name]; exists {
+			// Then this value was already defined at either the run level
+			// or the file level, and we want those values to take
+			// precedence.
+			continue
 		}
+		variables[name] = variable
 	}
 
 	return backend.ParseVariableValues(variables, config.Module.Variables)
