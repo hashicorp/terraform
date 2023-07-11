@@ -48,11 +48,11 @@ const (
 
 // Plan is the top-level representation of the json format of a plan. It includes
 // the complete config and current state.
-type plan struct {
+type Plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
 	TerraformVersion string      `json:"terraform_version,omitempty"`
-	Variables        variables   `json:"variables,omitempty"`
-	PlannedValues    stateValues `json:"planned_values,omitempty"`
+	Variables        Variables   `json:"variables,omitempty"`
+	PlannedValues    StateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
 	// that is undefined at this time, but consistent.
 	ResourceDrift      []ResourceChange  `json:"resource_drift,omitempty"`
@@ -66,8 +66,8 @@ type plan struct {
 	Errored            bool              `json:"errored"`
 }
 
-func newPlan() *plan {
-	return &plan{
+func newPlan() *Plan {
+	return &Plan{
 		FormatVersion: FormatVersion,
 	}
 }
@@ -150,17 +150,17 @@ type Importing struct {
 	ID string `json:"id,omitempty"`
 }
 
-type output struct {
+type Output struct {
 	Sensitive bool            `json:"sensitive"`
 	Type      json.RawMessage `json:"type,omitempty"`
 	Value     json.RawMessage `json:"value,omitempty"`
 }
 
-// variables is the JSON representation of the variables provided to the current
+// Variables is the JSON representation of the variables provided to the current
 // plan.
-type variables map[string]*variable
+type Variables map[string]*Variable
 
-type variable struct {
+type Variable struct {
 	Value json.RawMessage `json:"value,omitempty"`
 }
 
@@ -212,13 +212,14 @@ func MarshalForRenderer(
 	return output.OutputChanges, output.ResourceChanges, output.ResourceDrift, output.RelevantAttributes, nil
 }
 
-// Marshal returns the json encoding of a terraform plan.
-func Marshal(
+// MarshalForLog returns the original JSON compatible plan, ready for a logging
+// package to marshal further.
+func MarshalForLog(
 	config *configs.Config,
 	p *plans.Plan,
 	sf *statefile.File,
 	schemas *terraform.Schemas,
-) ([]byte, error) {
+) (*Plan, error) {
 	output := newPlan()
 	output.TerraformVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
@@ -293,12 +294,26 @@ func Marshal(
 		return nil, fmt.Errorf("error marshaling config: %s", err)
 	}
 
-	ret, err := json.Marshal(output)
-	return ret, err
+	return output, nil
 }
 
-func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
-	p.Variables = make(variables, len(vars))
+// Marshal returns the json encoding of a terraform plan.
+func Marshal(
+	config *configs.Config,
+	p *plans.Plan,
+	sf *statefile.File,
+	schemas *terraform.Schemas,
+) ([]byte, error) {
+	output, err := MarshalForLog(config, p, sf, schemas)
+	if err != nil {
+		return nil, err
+	}
+
+	return json.Marshal(output)
+}
+
+func (p *Plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls map[string]*configs.Variable) error {
+	p.Variables = make(Variables, len(vars))
 
 	for k, v := range vars {
 		val, err := v.Decode(cty.DynamicPseudoType)
@@ -309,7 +324,7 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 		if err != nil {
 			return err
 		}
-		p.Variables[k] = &variable{
+		p.Variables[k] = &Variable{
 			Value: valJSON,
 		}
 	}
@@ -338,7 +353,7 @@ func (p *plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 			if err != nil {
 				return err
 			}
-			p.Variables[name] = &variable{
+			p.Variables[name] = &Variable{
 				Value: valJSON,
 			}
 		}
@@ -639,7 +654,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *Plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {
@@ -657,7 +672,7 @@ func (p *plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.S
 	return nil
 }
 
-func (p *plan) marshalRelevantAttrs(plan *plans.Plan) error {
+func (p *Plan) marshalRelevantAttrs(plan *plans.Plan) error {
 	for _, ra := range plan.RelevantAttributes {
 		addr := ra.Resource.String()
 		path, err := encodePath(ra.Attr)

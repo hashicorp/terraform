@@ -181,7 +181,7 @@ func (m *Meta) loadHCLFile(filename string) (hcl.Body, tfdiags.Diagnostics) {
 // can then be relayed to the end-user. The uiModuleInstallHooks type in
 // this package has a reasonable implementation for displaying notifications
 // via a provided cli.Ui.
-func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
+func (m *Meta) installModules(rootDir, testsDir string, upgrade bool, hooks initwd.ModuleInstallHooks) (abort bool, diags tfdiags.Diagnostics) {
 	rootDir = m.normalizePath(rootDir)
 
 	err := os.MkdirAll(m.modulesDir(), os.ModePerm)
@@ -202,7 +202,7 @@ func (m *Meta) installModules(rootDir string, upgrade bool, hooks initwd.ModuleI
 	ctx, done := m.InterruptibleContext()
 	defer done()
 
-	_, moreDiags := inst.InstallModules(ctx, rootDir, upgrade, hooks)
+	_, moreDiags := inst.InstallModules(ctx, rootDir, testsDir, upgrade, hooks)
 	diags = diags.Append(moreDiags)
 
 	if ctx.Err() == context.Canceled {
