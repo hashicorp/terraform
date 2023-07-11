@@ -97,11 +97,9 @@ remote access credentials to be provided.
 
 ### Provisioning files using cloud-config
 
-Under some circumstances it may be feasible to
-[yamlencode](https://www.terraform.io/language/functions/yamlencode) your entire
-[cloud-config](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs)
-file. In that case you could use the `write_files` section in place of file
-provisioners. For example:
+You can add the [`cloudinit_config`](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs) data source to your Terraform configuration and specify the files you want to provision as `text/cloud-config` content. The `cloudinit_config` data source renders multi-part MIME configurations for use with [cloud-init](https://cloudinit.readthedocs.io/en/latest/). Pass the files in the `content` field as YAML-encoded configurations using the `write_files` block. 
+
+In the following example, the `my_cloud_config` data source specifies a `text/cloud-config` MIME part named `cloud.conf`. The `part.content` field is set to [`yamlencode`](/terraform/language/functions/yamlencode), which encodes the `write_files` JSON object as YAML so that the system can provision the referenced files.
 
 ```hcl
 data "cloudinit_config" "my_cloud_config" {
