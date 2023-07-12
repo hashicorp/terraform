@@ -1,4 +1,4 @@
-## 1.5.3 (Unreleased)
+## 1.5.3 (July 12, 2023)
 
 BUG FIXES:
 
