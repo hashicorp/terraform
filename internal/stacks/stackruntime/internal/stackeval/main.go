@@ -21,10 +21,21 @@ import (
 type Main struct {
 	config *stackconfig.Config
 
+	// validating captures the data needed when validating configuration,
+	// in which case we consider _only_ the configuration and don't take
+	// into account any existing state or specific input variable values.
+	validating *mainValidating
+
 	// planning captures the data needed when creating or applying a plan,
 	// but which need not be populated when only using the validation-related
 	// functionality of this package.
 	planning *mainPlanning
+
+	// applying captures the data needed when applying a plan. This can
+	// only be populated if "planning" is also populated, because the process
+	// of applying includes re-evaluation of plans based on new information
+	// gathered during the apply process.
+	applying *mainApplying
 
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
@@ -34,12 +45,61 @@ type Main struct {
 
 var _ namedPromiseReporter = (*Main)(nil)
 
+type mainValidating struct {
+	opts ValidateOpts
+}
+
 type mainPlanning struct {
 	opts PlanOpts
 }
 
 type mainApplying struct {
 	opts ApplyOpts
+}
+
+func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
+	return &Main{
+		config: config,
+		validating: &mainValidating{
+			opts: opts,
+		},
+	}
+}
+
+func NewForPlanning(config *stackconfig.Config, opts PlanOpts) *Main {
+	// TODO: This function should also take an optional prior state, but we
+	// don't actually have a type for that yet.
+
+	return &Main{
+		config: config,
+		planning: &mainPlanning{
+			opts: opts,
+		},
+	}
+}
+
+// Validating returns true if the receiving [Main] is configured for validating.
+//
+// If this returns false then validation methods may panic or return strange
+// results.
+func (m *Main) Validating() bool {
+	return m.validating != nil
+}
+
+// Planning returns true if the receiving [Main] is configured for planning.
+//
+// If this returns false then planning methods may panic or return strange
+// results.
+func (m *Main) Planning() bool {
+	return m.planning != nil
+}
+
+// Applying returns true if the receiving [Main] is configured for applying.
+//
+// If this returns false then applying methods may panic or return strange
+// results.
+func (m *Main) Applying() bool {
+	return m.applying != nil && m.Planning()
 }
 
 // MainStackConfig returns the [StackConfig] object representing the main

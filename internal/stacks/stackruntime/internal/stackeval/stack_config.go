@@ -42,6 +42,10 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		addr:   addr,
 		config: config,
 		main:   main,
+
+		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
+		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 	}
 }
 
@@ -91,6 +95,18 @@ func (s *StackConfig) ChildConfig(ctx context.Context, step stackaddrs.StackStep
 	return ret
 }
 
+func (s *StackConfig) ChildConfigs(ctx context.Context) map[stackaddrs.StackStep]*StackConfig {
+	if len(s.config.Children) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.StackStep]*StackConfig, len(s.config.Children))
+	for n := range s.config.Children {
+		stepAddr := stackaddrs.StackStep{Name: n}
+		ret[stepAddr] = s.ChildConfig(ctx, stepAddr)
+	}
+	return ret
+}
+
 // InputVariable returns an [InputVariableConfig] representing the input
 // variable declared within this stack config that matches the given
 // address, or nil if there is no such declaration.
@@ -105,7 +121,8 @@ func (s *StackConfig) InputVariable(ctx context.Context, addr stackaddrs.InputVa
 			return nil
 		}
 		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		s.inputVariables[addr] = newInputVariableConfig(s.main, cfgAddr, cfg)
+		ret = newInputVariableConfig(s.main, cfgAddr, cfg)
+		s.inputVariables[addr] = ret
 	}
 	return ret
 }
@@ -138,7 +155,22 @@ func (s *StackConfig) StackCall(ctx context.Context, addr stackaddrs.StackCall) 
 			return nil
 		}
 		cfgAddr := stackaddrs.Config(s.Addr(), addr)
-		s.stackCalls[addr] = newStackCallConfig(s.main, cfgAddr, cfg)
+		ret = newStackCallConfig(s.main, cfgAddr, cfg)
+		s.stackCalls[addr] = ret
+	}
+	return ret
+}
+
+// StackCalls returns a map of objects representing all of the embedded stack
+// calls inside this stack configuration.
+func (s *StackConfig) StackCalls(ctx context.Context) map[stackaddrs.StackCall]*StackCallConfig {
+	if len(s.config.Children) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.StackCall]*StackCallConfig, len(s.config.Children))
+	for n := range s.config.Children {
+		stepAddr := stackaddrs.StackCall{Name: n}
+		ret[stepAddr] = s.StackCall(ctx, stepAddr)
 	}
 	return ret
 }

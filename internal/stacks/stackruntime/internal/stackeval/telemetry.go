@@ -5,8 +5,14 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var telemetry trace.Tracer
+var tracer trace.Tracer
 
 func init() {
-	telemetry = otel.Tracer("github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval")
+	tracer = otel.Tracer("github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval")
+}
+
+// tracingNamer is implemented by types that can return a suitable name for
+// themselves to use in the names or attributes of tracing spans.
+type tracingNamer interface {
+	tracingName() string
 }

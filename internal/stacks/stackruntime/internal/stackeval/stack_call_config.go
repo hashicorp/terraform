@@ -41,6 +41,10 @@ func (s *StackCallConfig) Addr() stackaddrs.ConfigStackCall {
 	return s.addr
 }
 
+func (s *StackCallConfig) tracingName() string {
+	return s.Addr().String()
+}
+
 // CallerConfig returns the object representing the stack configuration that this
 // stack call was declared within.
 func (s *StackCallConfig) CallerConfig(ctx context.Context) *StackConfig {
@@ -89,10 +93,16 @@ func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context) (map[
 
 			oty := cty.ObjectWithOptionalAttrs(atys, optional)
 
-			varsObj, moreDiags := EvalExpr(ctx, s.config.Inputs, ValidatePhase, s)
-			diags = diags.Append(moreDiags)
-			if moreDiags.HasErrors() {
-				varsObj = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+			var varsObj cty.Value
+			if s.config.Inputs != nil {
+				v, moreDiags := EvalExpr(ctx, s.config.Inputs, ValidatePhase, s)
+				diags = diags.Append(moreDiags)
+				if moreDiags.HasErrors() {
+					v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+				}
+				varsObj = v
+			} else {
+				varsObj = cty.EmptyObjectVal
 			}
 
 			// FIXME: TODO: We need to apply the nested optional attribute defaults
@@ -143,13 +153,7 @@ func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context) (map[
 		}, nil
 	})
 	if err != nil {
-		// TODO: A better error message for promise resolution failures.
-		ret.Diagnostics = ret.Diagnostics.Append(&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  "Failed to evaluate input variable definitions",
-			Detail:   fmt.Sprintf("Could not evaluate the input variable definitions for this call: %s.", err),
-			Subject:  s.config.DeclRange.ToHCL().Ptr(),
-		})
+		ret.Diagnostics = ret.Diagnostics.Append(diagnosticsForPromisingTaskError(err, s.main))
 	}
 	return ret.Result, ret.Diagnostics
 }
@@ -195,9 +199,8 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 // Validate implements Validatable
 func (s *StackCallConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(
-		s.ValidateInputVariableValues(ctx),
-	)
+	_, moreDiags := s.ValidateInputVariableValues(ctx)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 

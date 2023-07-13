@@ -5,6 +5,7 @@ package stackeval
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -13,6 +14,64 @@ import (
 type withDiagnostics[T any] struct {
 	Result      T
 	Diagnostics tfdiags.Diagnostics
+}
+
+// syncDiagnostics is a synchronization helper for functions that run two or
+// more asynchronous tasks that can potentially generate diagnostics.
+//
+// It allows concurrent tasks to all safely append new diagnostics into a
+// mutable container without data races.
+type syncDiagnostics struct {
+	diags tfdiags.Diagnostics
+	mu    sync.Mutex
+}
+
+// Append converts all of the given arguments to zero or more diagnostics
+// and appends them to the internal diagnostics list, modifying this object
+// in-place.
+func (sd *syncDiagnostics) Append(new ...any) {
+	sd.mu.Lock()
+	sd.diags = sd.diags.Append(new...)
+	sd.mu.Unlock()
+}
+
+// Take retrieves all of the diagnostics accumulated so far and resets
+// the internal list to empty so that future calls can append more without
+// any confusion about which diagnostics were already taken.
+func (sd *syncDiagnostics) Take() tfdiags.Diagnostics {
+	sd.mu.Lock()
+	ret := sd.diags
+	sd.diags = nil
+	sd.mu.Unlock()
+	return ret
+}
+
+// diagnosticsForPromisingTaskError takes an error returned by
+// promising.MainTask or promising.Once.Do, if any, and transforms it into one
+// or more diagnostics describing the problem in a manner suitable for
+// presentation directly to end-users.
+//
+// If the given error is nil then this always returns an empty diagnostics.
+//
+// This is intended only for tasks where the error result is exclusively
+// used for promise- and task-related errors, with other errors already being
+// presented as diagnostics. The result of this function will be relatively
+// unhelpful for other errors and so better to handle those some other way.
+func diagnosticsForPromisingTaskError(err error, root namedPromiseReporter) tfdiags.Diagnostics {
+	if err == nil {
+		return nil
+	}
+
+	var diags tfdiags.Diagnostics
+	switch err := err.(type) {
+	case promising.ErrSelfDependent:
+		diags = diags.Append(taskSelfDependencyDiagnostics(err, root))
+	default:
+		// For all other errors we'll just let tfdiags.Diagnostics do its
+		// usual best effort to coerse into diagnostics.
+		diags = diags.Append(err)
+	}
+	return diags
 }
 
 // taskSelfDependencyDiagnostics transforms a [promising.ErrSelfDependent]

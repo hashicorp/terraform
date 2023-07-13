@@ -29,6 +29,9 @@ var _ Referenceable = (*InputVariableConfig)(nil)
 var _ namedPromiseReporter = (*InputVariableConfig)(nil)
 
 func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, config *stackconfig.InputVariable) *InputVariableConfig {
+	if config == nil {
+		panic("newInputVariableConfig with nil configuration")
+	}
 	return &InputVariableConfig{
 		addr:   addr,
 		config: config,
@@ -38,6 +41,10 @@ func newInputVariableConfig(main *Main, addr stackaddrs.ConfigInputVariable, con
 
 func (v *InputVariableConfig) Addr() stackaddrs.ConfigInputVariable {
 	return v.addr
+}
+
+func (v *InputVariableConfig) tracingName() string {
+	return v.Addr().String()
 }
 
 func (v *InputVariableConfig) TypeConstraint() cty.Type {
@@ -132,9 +139,8 @@ func (v *InputVariableConfig) ExprReferenceValue(ctx context.Context, phase Eval
 // Validate implements Validatable
 func (v *InputVariableConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	diags = diags.Append(
-		v.ValidateDefaultValue(ctx),
-	)
+	_, moreDiags := v.ValidateDefaultValue(ctx)
+	diags = diags.Append(moreDiags)
 	return diags
 }
 

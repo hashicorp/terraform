@@ -26,4 +26,8 @@ type Validatable interface {
 	// so it's unnecessary and harmful to try to handle validation on behalf of
 	// some other related object.
 	Validate(ctx context.Context) tfdiags.Diagnostics
+
+	// Our general async validation helper relies on this to name its
+	// tracing span.
+	tracingNamer
 }
