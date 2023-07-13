@@ -22,9 +22,7 @@ func MainTask[T any](ctx context.Context, impl func(ctx context.Context) (T, err
 		responsible: make(promiseSet),
 	}
 	ctx = contextWithTask(ctx, mainT)
-	ctx, span := tracer.Start(ctx, "main task")
 	v, err := impl(ctx)
-	span.End()
 
 	// The implementation function must have either resolved all of its
 	// promises or transferred responsibility for them to another task
