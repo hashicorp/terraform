@@ -106,6 +106,19 @@ func AsyncTask[P PromiseContainer](ctx context.Context, promises P, impl func(ct
 	}()
 }
 
+// AssertContextInTask panics if the given context does not belong to a
+// promising task, or does nothing at all if it does.
+//
+// This is here just as a helper for clearly marking functions that only
+// make sense to call when in a task context, typically because they are
+// going to rely on promises.
+func AssertContextInTask(ctx context.Context) {
+	_, ok := ctx.Value(taskContextKey).(*task)
+	if !ok {
+		panic("function requires an active task, but the given context does not belong to one")
+	}
+}
+
 func mustTaskFromContext(ctx context.Context) *task {
 	ret, ok := ctx.Value(taskContextKey).(*task)
 	if !ok {
