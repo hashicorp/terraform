@@ -106,6 +106,54 @@ func TestMultiEnvDefaultFunc(t *testing.T) {
 	}
 }
 
+func TestEnvPrefixFunc(t *testing.T) {
+	keyPrefix := "TF_TEST_ENV_PREFIX"
+
+	keyOne := fmt.Sprintf("%s_ONE", keyPrefix)
+	keyTwo := fmt.Sprintf("%s_TWO", keyPrefix)
+
+	defer os.Unsetenv(keyOne)
+	defer os.Unsetenv(keyTwo)
+
+	f := EnvPrefixFunc(keyPrefix)
+
+	actual, err := f()
+	m, ok := actual.(map[string]interface{})
+
+	if !ok {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if len(m) != 0 {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if err := os.Setenv(keyOne, "foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := os.Setenv(keyTwo, "bar"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err = f()
+	m, ok = actual.(map[string]interface{})
+
+	if !ok {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if m["ONE"] != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+	if m["TWO"] != "bar" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestValueType_Zero(t *testing.T) {
 	cases := []struct {
 		Type  ValueType

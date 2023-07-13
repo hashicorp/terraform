@@ -36,6 +36,8 @@ type httpClient struct {
 	Username string
 	Password string
 
+	Headers map[string]interface{}
+
 	lockID       string
 	jsonLockInfo []byte
 }
@@ -55,6 +57,13 @@ func (c *httpClient) httpRequest(method string, url *url.URL, data *[]byte, what
 	// Set up basic auth
 	if c.Username != "" {
 		req.SetBasicAuth(c.Username, c.Password)
+	}
+
+	// Work with headers
+	if c.Headers != nil {
+		for k, v := range c.Headers {
+			req.Header.Set(k, v.(string))
+		}
 	}
 
 	// Work with data/body

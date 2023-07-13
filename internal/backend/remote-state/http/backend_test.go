@@ -82,6 +82,7 @@ func TestHTTPClientFactory(t *testing.T) {
 		t.Fatalf("Unexpected username \"%s\" vs \"%s\" or password \"%s\" vs \"%s\"", client.Username, conf["username"],
 			client.Password, conf["password"])
 	}
+
 	if client.Client.RetryMax != 999 {
 		t.Fatalf("Expected retry_max \"%d\", got \"%d\"", 999, client.Client.RetryMax)
 	}

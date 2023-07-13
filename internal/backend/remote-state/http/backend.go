@@ -116,6 +116,13 @@ func New() backend.Backend {
 				DefaultFunc: schema.EnvDefaultFunc("TF_HTTP_CLIENT_PRIVATE_KEY_PEM", ""),
 				Description: "A PEM-encoded private key, required if client_certificate_pem is specified.",
 			},
+			"headers": &schema.Schema{
+				Type:        schema.TypeMap,
+				Optional:    true,
+				DefaultFunc: schema.EnvPrefixFunc("TF_HTTP_HEADERS"),
+				Description: "A map of HTTP headers to add to all requests.",
+				Elem:        &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 
@@ -225,6 +232,13 @@ func (b *Backend) configure(ctx context.Context) error {
 		return err
 	}
 
+	headers := make(map[string]interface{})
+	if v, ok := data.GetOk("headers"); ok {
+		for key, val := range v.(map[string]interface{}) {
+			headers[key] = val
+		}
+	}
+
 	b.client = &httpClient{
 		URL:          updateURL,
 		UpdateMethod: updateMethod,
@@ -236,6 +250,8 @@ func (b *Backend) configure(ctx context.Context) error {
 
 		Username: data.Get("username").(string),
 		Password: data.Get("password").(string),
+
+		Headers: headers,
 
 		// accessible only for testing use
 		Client: rClient,

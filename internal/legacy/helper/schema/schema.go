@@ -302,6 +302,24 @@ func MultiEnvDefaultFunc(ks []string, dv interface{}) SchemaDefaultFunc {
 	}
 }
 
+// EnvPrefixDefaultFunc is a helper function that returns a map of values of the
+// given environment variable prefix, if any exist, or and empty map otherwise.
+func EnvPrefixFunc(p string) SchemaDefaultFunc {
+	prefix := fmt.Sprintf("%s_", p)
+
+	return func() (interface{}, error) {
+		env := make(map[string]interface{})
+		for _, e := range os.Environ() {
+			pair := strings.SplitN(e, "=", 2)
+			if strings.HasPrefix(pair[0], prefix) {
+				env[strings.TrimPrefix(pair[0], prefix)] = pair[1]
+			}
+		}
+
+		return env, nil
+	}
+}
+
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.
 type SchemaSetFunc func(interface{}) int
