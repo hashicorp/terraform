@@ -22,10 +22,10 @@ type Once[T any] struct {
 // The first and all subsequent calls then block on the completion of that
 // asynchronous call and all return its single result.
 //
-// The context used for the call does not need to already belong to a task,
-// but it's harmless if it does. The context passed to f _does_ belong to
-// a task and so f may optionally use that context to create its own promises
-// and start async tasks to resolve them.
+// The context used for the call must belong to an active task. The context
+// passed to f will belong to a separate asynchronous task and so f can
+// create its own promises and create further asynchronous tasks to deal
+// with them, as normal.
 //
 // The typical way to use Do is to have only a single callsite where f is
 // set to a function literal whose behavior and results would be equivalent
@@ -44,34 +44,33 @@ type Once[T any] struct {
 // no built-in facility to catch and recover from such panics since they occur
 // in a separate goroutine from all of the waiters.
 func (o *Once[T]) Do(ctx context.Context, f func(ctx context.Context) (T, error)) (T, error) {
-	return MainTask(ctx, func(ctx context.Context) (T, error) {
-		o.mu.Lock()
-		if o.get == nil {
-			// We seem to be the first call, so we'll get the asynchronous task
-			// running and then block on its result.
-			resolver, get := NewPromise[T](ctx)
-			o.get = get
-			o.promiseID = resolver.PromiseID()
-			o.mu.Unlock()
+	AssertContextInTask(ctx)
+	o.mu.Lock()
+	if o.get == nil {
+		// We seem to be the first call, so we'll get the asynchronous task
+		// running and then block on its result.
+		resolver, get := NewPromise[T](ctx)
+		o.get = get
+		o.promiseID = resolver.PromiseID()
+		o.mu.Unlock()
 
-			// The responsibility for resolving the promise transfers to the
-			// asynchronous task, which makes it valid for this main task to
-			// await it without a self-dependency error.
-			AsyncTask(
-				ctx, resolver,
-				func(ctx context.Context, resolver PromiseResolver[T]) {
-					v, err := f(ctx)
-					resolver.Resolve(ctx, v, err)
-				},
-			)
-		} else {
-			o.mu.Unlock()
-		}
+		// The responsibility for resolving the promise transfers to the
+		// asynchronous task, which makes it valid for this main task to
+		// await it without a self-dependency error.
+		AsyncTask(
+			ctx, resolver,
+			func(ctx context.Context, resolver PromiseResolver[T]) {
+				v, err := f(ctx)
+				resolver.Resolve(ctx, v, err)
+			},
+		)
+	} else {
+		o.mu.Unlock()
+	}
 
-		// Regardless of whether we launched the async task or not, we'll
-		// wait for it to resolve the promise before we return.
-		return o.get(ctx)
-	})
+	// Regardless of whether we launched the async task or not, we'll
+	// wait for it to resolve the promise before we return.
+	return o.get(ctx)
 }
 
 // PromiseID returns the unique identifier for the backing promise of the

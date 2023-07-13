@@ -19,11 +19,15 @@ func TestOnce(t *testing.T) {
 	results := make([]*FakeResult, 5)
 	var callCount atomic.Int64
 	for i := range results {
-		result, err := o.Do(ctx, func(ctx context.Context) (*FakeResult, error) {
-			callCount.Add(1)
-			return &FakeResult{
-				msg: "hello",
-			}, nil
+		// The "Once" mechanism expects to be run inside a task so that
+		// it can create promises and detect self-dependency problems.
+		result, err := promising.MainTask(ctx, func(ctx context.Context) (*FakeResult, error) {
+			return o.Do(ctx, func(ctx context.Context) (*FakeResult, error) {
+				callCount.Add(1)
+				return &FakeResult{
+					msg: "hello",
+				}, nil
+			})
 		})
 		if err != nil {
 			t.Fatal(err)
