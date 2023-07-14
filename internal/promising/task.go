@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -64,6 +65,21 @@ func AsyncTask[P PromiseContainer](ctx context.Context, promises P, impl func(ct
 		responsible: make(promiseSet),
 	}
 
+	// We treat async tasks as disconnected from their caller when tracing,
+	// because each task has an independent lifetime, but we do still track
+	// the causal relationship between the two using span links.
+	callerSpanContext := trace.SpanFromContext(ctx).SpanContext()
+
+	childCtx, childSpan := tracer.Start(
+		ctx, "async task",
+		trace.WithNewRoot(),
+		trace.WithLinks(
+			trace.Link{
+				SpanContext: callerSpanContext,
+			},
+		),
+	)
+
 	promises.AnnounceContainedPromises(func(apr AnyPromiseResolver) {
 		p := apr.promise()
 		if p.responsible.Load() != callerT {
@@ -74,24 +90,18 @@ func AsyncTask[P PromiseContainer](ctx context.Context, promises P, impl func(ct
 		newT.responsible.Add(p)
 		callerT.responsible.Remove(p)
 		p.responsible.Store(newT)
+		p.traceSpan.AddEvent("delegated to new task", trace.WithAttributes(
+			attribute.String("promising.delegated_from", callerSpanContext.SpanID().String()),
+			attribute.String("promising.delegated_to", childSpan.SpanContext().SpanID().String()),
+		))
+		childSpan.AddEvent("inherited promise responsibility", trace.WithAttributes(
+			attribute.String("promising.responsible_for", p.traceSpan.SpanContext().SpanID().String()),
+		))
 	})
 
-	// We treat async tasks as disconnected from their caller when tracing,
-	// because each task has an independent lifetime, but we do still track
-	// the causal relationship between the two using span links.
-	callerSpanContext := trace.SpanFromContext(ctx).SpanContext()
-
 	go func() {
-		ctx, span := tracer.Start(
-			ctx, "async task",
-			trace.WithNewRoot(),
-			trace.WithLinks(
-				trace.Link{
-					SpanContext: callerSpanContext,
-				},
-			),
-		)
-		defer span.End()
+		ctx := childCtx
+		defer childSpan.End()
 		ctx = contextWithTask(ctx, newT)
 		impl(ctx, promises)
 

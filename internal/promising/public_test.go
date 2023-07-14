@@ -185,9 +185,9 @@ func TestPromiseSelfDependentNested(t *testing.T) {
 		resolver2, get2 := promising.NewPromise[string](ctx)
 		pair := promising.PromiseResolverPair[string, string]{A: resolver1, B: resolver2}
 
-		// The following is an intentional self-dependency, though its
-		// unpredictable which of the two tasks will actually detect the error,
-		// since it'll be whichever one reaches its getter second.
+		// The following is an intentional self-dependency. Both calls should
+		// fail here, since a self-dependency problem causes all affected
+		// promises to immediately emit an error.
 		promising.AsyncTask(
 			ctx, pair,
 			func(ctx context.Context, pair promising.PromiseResolverPair[string, string]) {
