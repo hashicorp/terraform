@@ -22,10 +22,13 @@ type StackCallConfig struct {
 
 	main *Main
 
+	forEachValue        promising.Once[withDiagnostics[cty.Value]]
 	inputVariableValues promising.Once[withDiagnostics[map[stackaddrs.InputVariable]cty.Value]]
+	resultValue         promising.Once[withDiagnostics[cty.Value]]
 }
 
 var _ Validatable = (*StackCallConfig)(nil)
+var _ Referenceable = (*StackCallConfig)(nil)
 var _ ExpressionScope = (*StackCallConfig)(nil)
 var _ namedPromiseReporter = (*StackCallConfig)(nil)
 
@@ -57,6 +60,110 @@ func (s *StackCallConfig) CalleeConfig(ctx context.Context) *StackConfig {
 	return s.main.mustStackConfig(ctx, s.Addr().Stack.Child(s.addr.Item.Name))
 }
 
+// ResultType returns the type of the overall result value for this call.
+//
+// If this call uses for_each then the result type is a map of object types.
+// If it has no repetition then it's just a naked object type.
+func (s *StackCallConfig) ResultType(ctx context.Context) cty.Type {
+	// The result type of each of our instances is an object type constructed
+	// from all of the declared output values in the child stack.
+	calleeStack := s.CalleeConfig(ctx)
+	calleeOutputs := calleeStack.OutputValues(ctx)
+	atys := make(map[string]cty.Type, len(calleeOutputs))
+	for addr, ov := range calleeOutputs {
+		atys[addr.Name] = ov.ValueTypeConstraint(ctx)
+	}
+	instTy := cty.Object(atys)
+
+	switch {
+	case s.config.ForEach != nil:
+		return cty.Map(instTy)
+	default:
+		// No repetition
+		return instTy
+	}
+}
+
+// ValidateForEachValue validates and returns the value from this stack call's
+// for_each argument, or returns [cty.NilVal] if it doesn't use for_each.
+//
+// If the for_each expression is invalid in some way then the returned
+// diagnostics will contain errors and the returned value will be a placeholder
+// unknown value.
+func (s *StackCallConfig) ValidateForEachValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return withCtyDynamicValPlaceholder(doOnceWithDiags(
+		ctx, &s.forEachValue, s.main,
+		s.validateForEachValueInner,
+	))
+}
+
+func (s *StackCallConfig) validateForEachValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	if s.config.ForEach == nil {
+		// This stack config isn't even using for_each.
+		return cty.NilVal, diags
+	}
+
+	// for_each gets evaluated using the containing stack config scope rather
+	// than this call's scope, because the for_each result affects how the
+	// call's scope gets populated (making each.key and each.value available).
+	v, hclCtx, moreDiags := EvalExprAndEvalContext(
+		ctx, s.config.ForEach, ValidatePhase, s.CallerConfig(ctx),
+	)
+	diags = diags.Append(moreDiags)
+	if moreDiags.HasErrors() {
+		return cty.DynamicVal, diags
+	}
+	ty := v.Type()
+
+	const invalidForEachSummary = "Invalid for_each value"
+	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack."
+	switch {
+	case ty.IsObjectType() || ty.IsMapType():
+		// okay
+	case ty.IsSetType():
+		if !ty.ElementType().Equals(cty.String) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     invalidForEachSummary,
+				Detail:      invalidForEachDetail,
+				Subject:     s.config.ForEach.Range().Ptr(),
+				Expression:  s.config.ForEach,
+				EvalContext: hclCtx,
+			})
+			return cty.DynamicVal, diags
+		}
+	default:
+		if !ty.ElementType().Equals(cty.String) {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     invalidForEachSummary,
+				Detail:      invalidForEachDetail,
+				Subject:     s.config.ForEach.Range().Ptr(),
+				Expression:  s.config.ForEach,
+				EvalContext: hclCtx,
+			})
+			return cty.DynamicVal, diags
+		}
+	}
+	if v.IsNull() {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity:    hcl.DiagError,
+			Summary:     invalidForEachSummary,
+			Detail:      "The for_each value must not be null.",
+			Subject:     s.config.ForEach.Range().Ptr(),
+			Expression:  s.config.ForEach,
+			EvalContext: hclCtx,
+		})
+	}
+	// Unknown and sensitive values are also disallowed, but known-ness and
+	// sensitivity get decided dynamically based on data flow and so we'll
+	// treat those as plan-time errors.
+
+	return v, diags
+}
+
 // ValidateInputVariableValues evaluates the "inputs" argument inside the
 // configuration block, ensure that it's valid per the expectations of the
 // child stack config, and then returns the resulting values.
@@ -70,92 +177,99 @@ func (s *StackCallConfig) CalleeConfig(ctx context.Context) *StackConfig {
 // be incomplete, but should at least be of the types specified in the
 // variable declarations.
 func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
-	// FIXME: This once-handling is pretty awkward when there are diagnostics
-	// involved. Can we find a better way to handle this common situation?
-	ret, err := s.inputVariableValues.Do(ctx, func(ctx context.Context) (withDiagnostics[map[stackaddrs.InputVariable]cty.Value], error) {
-		ret, diags := func() (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
-			var diags tfdiags.Diagnostics
-			callee := s.CalleeConfig(ctx)
-			vars := callee.InputVariables(ctx)
+	return doOnceWithDiags(
+		ctx, &s.inputVariableValues, s.main,
+		s.validateInputVariableValuesInner,
+	)
+}
 
-			atys := make(map[string]cty.Type, len(vars))
-			var optional []string
-			defs := make(map[string]cty.Value, len(vars))
-			for addr, v := range vars {
-				aty := v.TypeConstraint()
+func (s *StackCallConfig) validateInputVariableValuesInner(ctx context.Context) (map[stackaddrs.InputVariable]cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	callee := s.CalleeConfig(ctx)
+	vars := callee.InputVariables(ctx)
 
-				atys[addr.Name] = aty
-				if def := v.DefaultValue(ctx); def != cty.NilVal {
-					optional = append(optional, addr.Name)
-					defs[addr.Name] = def
-				}
-			}
+	atys := make(map[string]cty.Type, len(vars))
+	var optional []string
+	defs := make(map[string]cty.Value, len(vars))
+	for addr, v := range vars {
+		aty := v.TypeConstraint()
 
-			oty := cty.ObjectWithOptionalAttrs(atys, optional)
+		atys[addr.Name] = aty
+		if def := v.DefaultValue(ctx); def != cty.NilVal {
+			optional = append(optional, addr.Name)
+			defs[addr.Name] = def
+		}
+	}
 
-			var varsObj cty.Value
-			if s.config.Inputs != nil {
-				v, moreDiags := EvalExpr(ctx, s.config.Inputs, ValidatePhase, s)
-				diags = diags.Append(moreDiags)
-				if moreDiags.HasErrors() {
-					v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
-				}
-				varsObj = v
+	oty := cty.ObjectWithOptionalAttrs(atys, optional)
+
+	var varsObj cty.Value
+	var hclCtx *hcl.EvalContext // NOTE: remains nil when h.config.Inputs is unset
+	if s.config.Inputs != nil {
+		v, hCtx, moreDiags := EvalExprAndEvalContext(ctx, s.config.Inputs, ValidatePhase, s)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+		}
+		varsObj = v
+		hclCtx = hCtx
+	} else {
+		varsObj = cty.EmptyObjectVal
+	}
+
+	// FIXME: TODO: We need to apply the nested optional attribute defaults
+	// somewhere in here too, but it isn't clear where we should do that since
+	// we're supposed to do that before type conversion but we don't yet have
+	// the isolated variable values to apply the defaults to.
+
+	varsObj, err := convert.Convert(varsObj, oty)
+	if err != nil {
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid input variable definitions",
+			Detail: fmt.Sprintf(
+				"Unsuitable input variable definitions: %s.",
+				tfdiags.FormatError(err),
+			),
+			Subject: s.config.Inputs.Range().Ptr(),
+
+			// NOTE: The following two will be nil if the author didn't
+			// actually define the "inputs" argument, but that's okay
+			// because these fields are both optional anyway.
+			Expression:  s.config.Inputs,
+			EvalContext: hclCtx,
+		})
+		varsObj = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+	}
+
+	ret := make(map[stackaddrs.InputVariable]cty.Value, len(vars))
+
+	for addr := range vars {
+		val := varsObj.GetAttr(addr.Name)
+		if val.IsNull() {
+			if def, ok := defs[addr.Name]; ok {
+				ret[addr] = def
 			} else {
-				varsObj = cty.EmptyObjectVal
-			}
-
-			// FIXME: TODO: We need to apply the nested optional attribute defaults
-			// somewhere in here too, but it isn't clear where we should do that since
-			// we're supposed to do that before type conversion but we don't yet have
-			// the isolated variable values to apply the defaults to.
-
-			varsObj, err := convert.Convert(varsObj, oty)
-			if err != nil {
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
-					Summary:  "Invalid input variable definitions",
-					Detail: fmt.Sprintf(
-						"Unsuitable input variable definitions: %s.",
-						tfdiags.FormatError(err),
-					),
-					Subject: s.config.Inputs.Range().Ptr(),
+					Summary:  "Missing definition for required input variable",
+					Detail:   fmt.Sprintf("The input variable %q is required, so cannot be omitted.", addr.Name),
+					Subject:  s.config.Inputs.Range().Ptr(),
+
+					// NOTE: The following two will be nil if the author didn't
+					// actually define the "inputs" argument, but that's okay
+					// because these fields are both optional anyway.
+					Expression:  s.config.Inputs,
+					EvalContext: hclCtx,
 				})
-				varsObj = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
+				ret[addr] = cty.UnknownVal(atys[addr.Name])
 			}
-
-			ret := make(map[stackaddrs.InputVariable]cty.Value, len(vars))
-
-			for addr := range vars {
-				val := varsObj.GetAttr(addr.Name)
-				if val.IsNull() {
-					if def, ok := defs[addr.Name]; ok {
-						ret[addr] = def
-					} else {
-						diags = diags.Append(&hcl.Diagnostic{
-							Severity: hcl.DiagError,
-							Summary:  "Missing definition for required input variable",
-							Detail:   fmt.Sprintf("The input variable %q is required, so cannot be omitted.", addr.Name),
-							Subject:  s.config.Inputs.Range().Ptr(),
-						})
-						ret[addr] = cty.UnknownVal(atys[addr.Name])
-					}
-				} else {
-					ret[addr] = val
-				}
-			}
-
-			return ret, diags
-		}()
-		return withDiagnostics[map[stackaddrs.InputVariable]cty.Value]{
-			Result:      ret,
-			Diagnostics: diags,
-		}, nil
-	})
-	if err != nil {
-		ret.Diagnostics = ret.Diagnostics.Append(diagnosticsForPromisingTaskError(err, s.main))
+		} else {
+			ret[addr] = val
+		}
 	}
-	return ret.Result, ret.Diagnostics
+
+	return ret, diags
 }
 
 // InputVariableValues returns the effective input variable values specified
@@ -168,6 +282,67 @@ func (s *StackCallConfig) ValidateInputVariableValues(ctx context.Context) (map[
 func (s *StackCallConfig) InputVariableValues(ctx context.Context) map[stackaddrs.InputVariable]cty.Value {
 	ret, _ := s.ValidateInputVariableValues(ctx)
 	return ret
+}
+
+// ResultValue returns a suitable placeholder value to use to approximate the
+// result of this call during the validation phase, where we typically don't
+// yet have access to all necessary information.
+//
+// If the stack configuration is itself invalid then this will still return
+// a suitably-typed unknown value, to permit partial validation downstream.
+//
+// The result is a good value to use for resolving "stack.foo" references
+// in expressions elsewhere while running in validation mode.
+func (s *StackCallConfig) ResultValue(ctx context.Context) cty.Value {
+	v, _ := s.ValidateResultValue(ctx)
+	return v
+}
+
+// ValidateResultValue returns a validation-time approximation of the overall
+// result of the embedded stack call, along with diagnostics describing any
+// problems with the stack call itself (NOT with the child stack that was called)
+// that we discover in the process of building it.
+//
+// During validation we don't perform instance expansion of any embedded stacks
+// and so the validation-time approximation of a multi-instance embedded stack
+// is always an unknown value with a suitable type constraint, allowing
+// downstream references to detect type-related errors but not value-related
+// errors.
+func (s *StackCallConfig) ValidateResultValue(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	return withCtyDynamicValPlaceholder(doOnceWithDiags(
+		ctx, &s.resultValue, s.main,
+		s.validateResultValueInner,
+	))
+}
+
+func (s *StackCallConfig) validateResultValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	// Our result is really just all of the output values of all of our
+	// instances aggregated together into a single data structure, but
+	// we do need to do this a little differently depending on what
+	// kind of repetition (if any) this stack call is using.
+	switch {
+	case s.config.ForEach != nil:
+		// The call uses for_each, and so we can't actually build a known
+		// result just yet because we don't know yet how many instances
+		// there will be and what their keys will be. We'll just construct
+		// an unknown value of a suitable type instead.
+		return cty.UnknownVal(s.ResultType(ctx)), diags
+	default:
+		// No repetition at all, then. In this case we _can_ attempt to
+		// construct at least a partial result, because we already know
+		// there will be exactly one instance and can assume that
+		// the output value implementation will provide a suitable
+		// approximation of the final value.
+		calleeStack := s.CalleeConfig(ctx)
+		calleeOutputs := calleeStack.OutputValues(ctx)
+		attrs := make(map[string]cty.Value, len(calleeOutputs))
+		for addr, ov := range calleeOutputs {
+			attrs[addr.Name] = ov.Value(ctx)
+		}
+		return cty.ObjectVal(attrs), diags
+	}
 }
 
 // ResolveExpressionReference implements ExpressionScope for evaluating
@@ -199,12 +374,23 @@ func (s *StackCallConfig) ResolveExpressionReference(ctx context.Context, ref st
 // Validate implements Validatable
 func (s *StackCallConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
-	_, moreDiags := s.ValidateInputVariableValues(ctx)
+	_, moreDiags := s.ValidateForEachValue(ctx)
+	diags = diags.Append(moreDiags)
+	_, moreDiags = s.ValidateInputVariableValues(ctx)
+	diags = diags.Append(moreDiags)
+	_, moreDiags = s.ValidateResultValue(ctx)
 	diags = diags.Append(moreDiags)
 	return diags
 }
 
+// ExprReferenceValue implements Referenceable.
+func (s *StackCallConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	return s.ResultValue(ctx)
+}
+
 // reportNamedPromises implements namedPromiseReporter.
 func (s *StackCallConfig) reportNamedPromises(cb func(id promising.PromiseID, name string)) {
+	cb(s.forEachValue.PromiseID(), s.Addr().String()+" for_each")
 	cb(s.inputVariableValues.PromiseID(), s.Addr().String()+" inputs")
+	cb(s.resultValue.PromiseID(), s.Addr().String()+" collected outputs")
 }

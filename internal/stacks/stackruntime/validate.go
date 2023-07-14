@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // Validate performs static validation of a full stack configuration, returning
@@ -15,7 +16,11 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 	defer span.End()
 
 	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{})
-	return main.ValidateAll(ctx)
+	diags := main.ValidateAll(ctx)
+	if diags.HasErrors() {
+		span.SetStatus(codes.Error, "validation returned errors")
+	}
+	return diags
 }
 
 type ValidateRequest struct {

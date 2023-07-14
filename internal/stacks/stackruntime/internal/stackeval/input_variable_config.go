@@ -109,12 +109,13 @@ func (v *InputVariableConfig) StackConfig(ctx context.Context) *StackConfig {
 // main (root) stack and therefore its value would come from outside of
 // the configuration.
 func (v *InputVariableConfig) StackCallConfig(ctx context.Context) *StackCallConfig {
-	if v.Addr().Stack.IsRoot() {
+	calleeAddr := v.Addr().Stack
+	if calleeAddr.IsRoot() {
 		return nil
 	}
-	stackConfigAddr := v.Addr().Stack.Parent()
-	caller := v.main.mustStackConfig(ctx, stackConfigAddr)
-	return caller.StackCall(ctx, stackaddrs.StackCall{Name: stackConfigAddr[len(stackConfigAddr)-1].Name})
+	callerAddr := calleeAddr.Parent()
+	caller := v.main.mustStackConfig(ctx, callerAddr)
+	return caller.StackCall(ctx, stackaddrs.StackCall{Name: calleeAddr[len(calleeAddr)-1].Name})
 }
 
 // ExprReferenceValue implements Referenceable

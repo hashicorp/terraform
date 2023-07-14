@@ -49,9 +49,14 @@ type ExpressionScope interface {
 	ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics)
 }
 
-// EvalExpr evaluates the given HCL expression in the given expression scope
-// and returns the resulting value.
-func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+// EvalContextForExpr produces an HCL expression evaluation context for the
+// given expression in the given evaluation phase within the given expression
+// scope.
+//
+// [EvalExprAndEvalContext] is a convenient wrapper around this which also does
+// the final step of evaluating the expression, returning both the value
+// and the evaluation context that was used to build it.
+func EvalContextForExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	traversals := expr.Variables()
 	refs := make(map[stackaddrs.Referenceable]Referenceable)
@@ -69,7 +74,7 @@ func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope E
 		refs[ref.Target] = obj
 	}
 	if diags.HasErrors() {
-		return cty.DynamicVal, diags
+		return nil, diags
 	}
 
 	varVals := make(map[string]cty.Value)
@@ -123,10 +128,39 @@ func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope E
 		Functions: fakeScope.Functions(),
 	}
 
+	return hclCtx, diags
+}
+
+// EvalExprAndEvalContext evaluates the given HCL expression in the given
+// expression scope and returns the resulting value, along with the HCL
+// evaluation context that was used to produce it.
+//
+// This compact helper function is intended for the relatively-common case
+// where a caller needs to perform some additional validation on the result
+// of the expression which might generate additional diagnostics, and so
+// the caller will need the HCL evaluation context in order to construct
+// a fully-annotated diagnostic object.
+func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, *hcl.EvalContext, tfdiags.Diagnostics) {
+	hclCtx, diags := EvalContextForExpr(ctx, expr, phase, scope)
+	if hclCtx == nil {
+		return cty.DynamicVal, nil, diags
+	}
 	val, hclDiags := expr.Value(hclCtx)
 	diags = diags.Append(hclDiags)
 	if val == cty.NilVal {
 		val = cty.DynamicVal // just so the caller can assume the result is always a value
 	}
-	return val, diags
+	return val, hclCtx, diags
+}
+
+// EvalExpr evaluates the given HCL expression in the given expression scope
+// and returns the resulting value.
+//
+// Sometimes callers also need the [hcl.EvalContext] that the expression was
+// evaluated with in order to annotate later diagnostics. In that case,
+// use [EvalExprAndEvalContext] instead to obtain both the resulting value
+// and the evaluation context that was used to produce it.
+func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+	v, _, diags := EvalExprAndEvalContext(ctx, expr, phase, scope)
+	return v, diags
 }

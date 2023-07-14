@@ -31,6 +31,7 @@ type StackConfig struct {
 	mu             sync.Mutex
 	children       map[stackaddrs.StackStep]*StackConfig
 	inputVariables map[stackaddrs.InputVariable]*InputVariableConfig
+	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 }
 
@@ -45,6 +46,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 
 		children:       make(map[stackaddrs.StackStep]*StackConfig, len(config.Children)),
 		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
+		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 	}
 }
@@ -141,6 +143,40 @@ func (s *StackConfig) InputVariables(ctx context.Context) map[stackaddrs.InputVa
 	return ret
 }
 
+// OutputValue returns an [OutputValueConfig] representing the output
+// value declared within this stack config that matches the given
+// address, or nil if there is no such declaration.
+func (s *StackConfig) OutputValue(ctx context.Context, addr stackaddrs.OutputValue) *OutputValueConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.outputValues[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.OutputValues[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newOutputValueConfig(s.main, cfgAddr, cfg)
+		s.outputValues[addr] = ret
+	}
+	return ret
+}
+
+// InputVariables returns a map of the objects representing all of the
+// input variables declared inside this stack configuration.
+func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*OutputValueConfig {
+	if len(s.config.Stack.OutputValues) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.OutputValue]*OutputValueConfig, len(s.config.Stack.OutputValues))
+	for name := range s.config.Stack.OutputValues {
+		addr := stackaddrs.OutputValue{Name: name}
+		ret[addr] = s.OutputValue(ctx, addr)
+	}
+	return ret
+}
+
 // StackCall returns a [StackCallConfig] representing the "stack" block
 // matching the given address declared within this stack config, or nil if
 // there is no such declaration.
@@ -198,7 +234,18 @@ func (s *StackConfig) resolveExpressionReference(ctx context.Context, ref stacka
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undefined input variable",
-				Detail:   fmt.Sprintf("There is no variable %q block in this stack.", addr.Name),
+				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+		return ret, diags
+	case stackaddrs.StackCall:
+		ret := s.StackCall(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undefined embedded stack",
+				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 		}
@@ -223,6 +270,9 @@ func (s *StackConfig) reportNamedPromises(cb func(id promising.PromiseID, name s
 		child.reportNamedPromises(cb)
 	}
 	for _, child := range s.inputVariables {
+		child.reportNamedPromises(cb)
+	}
+	for _, child := range s.outputValues {
 		child.reportNamedPromises(cb)
 	}
 	for _, child := range s.stackCalls {

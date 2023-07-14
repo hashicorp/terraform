@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"go.opentelemetry.io/otel/codes"
 )
 
 // ValidateAll checks the validation rules for declared in the configuration
@@ -34,11 +35,15 @@ func (m *Main) ValidateAll(ctx context.Context) tfdiags.Diagnostics {
 		return complete(), nil
 	})
 	diags = diags.Append(diagnosticsForPromisingTaskError(err, m))
-	return diags
+	return finalDiagnosticsFromEval(diags)
 }
 
 func (m *Main) walkValidateStackConfig(ctx context.Context, ws *walkState, cfg *StackConfig) {
 	for _, obj := range cfg.InputVariables(ctx) {
+		m.walkValidateObject(ctx, ws, obj)
+	}
+
+	for _, obj := range cfg.OutputValues(ctx) {
 		m.walkValidateObject(ctx, ws, obj)
 	}
 
@@ -66,6 +71,9 @@ func (m *Main) walkValidateObject(ctx context.Context, ws *walkState, obj Valida
 		ctx, span := tracer.Start(ctx, obj.tracingName()+" validation")
 		diags := obj.Validate(ctx)
 		ws.AddDiags(diags)
+		if diags.HasErrors() {
+			span.SetStatus(codes.Error, "validation returned errors")
+		}
 		defer span.End()
 	})
 }

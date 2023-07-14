@@ -40,6 +40,10 @@ func loadConfigForTest(t *testing.T, bundleRoot string, configSourceAddr string)
 	return cfg
 }
 
+func mainBundleSourceAddrStr(dirName string) string {
+	return "git::https://example.com/test.git//" + dirName
+}
+
 // loadMainBundleConfigForTest is a convenience wrapper around
 // loadConfigForTest that knows the location and package address of our
 // "main" source bundle, in ./testdata/mainbundle, so that we can use that
@@ -53,7 +57,7 @@ func loadConfigForTest(t *testing.T, bundleRoot string, configSourceAddr string)
 // what we're using this as.)
 func loadMainBundleConfigForTest(t *testing.T, dirName string) *stackconfig.Config {
 	t.Helper()
-	fullSourceAddr := "git::https://example.com/test.git//" + dirName
+	fullSourceAddr := mainBundleSourceAddrStr(dirName)
 	return loadConfigForTest(t, "./testdata/mainbundle", fullSourceAddr)
 }
 
