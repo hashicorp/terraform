@@ -1,5 +1,7 @@
 package stackaddrs
 
+import "github.com/hashicorp/terraform/internal/collections"
+
 type LocalValue struct {
 	Name string
 }
@@ -11,6 +13,13 @@ func (LocalValue) inStackInstanceSigil() {}
 func (v LocalValue) String() string {
 	return "local." + v.Name
 }
+
+func (v LocalValue) UniqueKey() collections.UniqueKey[LocalValue] {
+	return v
+}
+
+// A LocalValue is its own [collections.UniqueKey].
+func (LocalValue) IsUniqueKey(LocalValue) {}
 
 // ConfigLocalValue places a [LocalValue] in the context of a particular [Stack].
 type ConfigLocalValue = InStackConfig[LocalValue]

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 )
 
 // ProviderConfigRef is a reference-only address type representing a reference
@@ -37,6 +38,13 @@ func (c ProviderConfig) String() string {
 	return fmt.Sprintf("provider[%q].%s", c.Provider, c.Name)
 }
 
+func (v ProviderConfig) UniqueKey() collections.UniqueKey[ProviderConfig] {
+	return v
+}
+
+// A ProviderConfig is its own [collections.UniqueKey].
+func (ProviderConfig) IsUniqueKey(ProviderConfig) {}
+
 // ConfigProviderConfig places a [ProviderConfig] in the context of a particular [Stack].
 type ConfigProviderConfig = InStackConfig[ProviderConfig]
 
@@ -60,6 +68,13 @@ func (c ProviderConfigInstance) String() string {
 	}
 	return c.ProviderConfig.String() + c.Key.String()
 }
+
+func (v ProviderConfigInstance) UniqueKey() collections.UniqueKey[ProviderConfigInstance] {
+	return v
+}
+
+// A ProviderConfigInstance is its own [collections.UniqueKey].
+func (ProviderConfigInstance) IsUniqueKey(ProviderConfigInstance) {}
 
 // ConfigProviderConfigInstance places a [ProviderConfigInstance] in the context of a particular [Stack].
 type ConfigProviderConfigInstance = InStackConfig[ProviderConfigInstance]

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
 )
 
 // Stack represents the address of a stack within the tree of stacks.
@@ -60,6 +61,15 @@ func (s Stack) String() string {
 	}
 	return buf.String()
 }
+
+func (s Stack) UniqueKey() collections.UniqueKey[Stack] {
+	return stackUniqueKey(s.String())
+}
+
+type stackUniqueKey string
+
+// IsUniqueKey implements collections.UniqueKey.
+func (stackUniqueKey) IsUniqueKey(Stack) {}
 
 // StackInstance represents the address of an instance of a stack within
 // the tree of stacks.
@@ -150,3 +160,12 @@ func (s StackInstance) String() string {
 	}
 	return buf.String()
 }
+
+func (s StackInstance) UniqueKey() collections.UniqueKey[StackInstance] {
+	return stackInstanceUniqueKey(s.String())
+}
+
+type stackInstanceUniqueKey string
+
+// IsUniqueKey implements collections.UniqueKey.
+func (stackInstanceUniqueKey) IsUniqueKey(StackInstance) {}

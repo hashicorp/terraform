@@ -1,6 +1,9 @@
 package stackaddrs
 
-import "github.com/hashicorp/terraform/internal/addrs"
+import (
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/collections"
+)
 
 // StackCall represents a call to an embedded stack. This is essentially the
 // address of a "stack" block in the configuration, before it's been fully
@@ -16,6 +19,15 @@ func (StackCall) inStackInstanceSigil() {}
 func (c StackCall) String() string {
 	return "stack." + c.Name
 }
+
+func (c StackCall) UniqueKey() collections.UniqueKey[StackCall] {
+	return stackCallUniqueKey(c.String())
+}
+
+type stackCallUniqueKey string
+
+// IsUniqueKey implements collections.UniqueKey.
+func (stackCallUniqueKey) IsUniqueKey(StackCall) {}
 
 // ConfigStackCall represents a static stack call inside a particular [Stack].
 type ConfigStackCall = InStackConfig[StackCall]
