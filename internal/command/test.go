@@ -394,6 +394,7 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		plan, planDiags = tfCtx.Plan(config, state, opts)
 	}()
@@ -427,6 +428,7 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var applyDiags tfdiags.Diagnostics
 
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		updated, applyDiags = tfCtx.Apply(plan, config)
 	}()
