@@ -10,6 +10,12 @@ package addrs
 // by ranging over the map values, but making direct modifications could
 // potentially make the set data invalid or inconsistent, leading to undefined
 // behavior elsewhere.
+//
+// This implementation of Set is specific to our [UniqueKey] and [UniqueKeyer]
+// convention here in package addrs, which predated Go supporting type
+// parameters. For types outside of addrs consider using the generalized version
+// in sibling package "collections". Perhaps one day we'll rework this
+// addrs-specific implementation to use [collections.Set] instead.
 type Set[T UniqueKeyer] map[UniqueKey]T
 
 func MakeSet[T UniqueKeyer](elems ...T) Set[T] {

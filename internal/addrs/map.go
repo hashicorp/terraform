@@ -10,6 +10,12 @@ package addrs
 // type cannot work with the typical Go map access syntax, and so instead has
 // a method-based syntax. Use this type only for situations where the key
 // type isn't guaranteed to always be a valid key for a standard Go map.
+//
+// This implementation of Map is specific to our [UniqueKey] and [UniqueKeyer]
+// convention here in package addrs, which predated Go supporting type
+// parameters. For types outside of addrs consider using the generalized version
+// in sibling package "collections". Perhaps one day we'll rework this
+// addrs-specific implementation to use [collections.Map] instead.
 type Map[K UniqueKeyer, V any] struct {
 	// Elems is the internal data structure of the map.
 	//
