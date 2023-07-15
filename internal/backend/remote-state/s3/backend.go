@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
+	awsbasev1 "github.com/hashicorp/aws-sdk-go-base/v2/awsv1shim/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
 	"github.com/hashicorp/terraform/internal/logging"
@@ -161,13 +163,6 @@ func New() backend.Backend {
 				Type:        schema.TypeBool,
 				Optional:    true,
 				Description: "Skip static validation of region name.",
-				Default:     false,
-			},
-
-			"skip_metadata_api_check": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip the AWS Metadata API check.",
 				Default:     false,
 			},
 
@@ -328,27 +323,28 @@ func (b *Backend) configure(ctx context.Context) error {
 		}
 	}
 
-	cfg := &awsbase.Config{
-		AccessKey:                 data.Get("access_key").(string),
-		AssumeRoleARN:             data.Get("role_arn").(string),
-		AssumeRoleDurationSeconds: data.Get("assume_role_duration_seconds").(int),
-		AssumeRoleExternalID:      data.Get("external_id").(string),
-		AssumeRolePolicy:          data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName:     data.Get("session_name").(string),
-		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
-		CallerName:                "S3 Backend",
-		CredsFilename:             data.Get("shared_credentials_file").(string),
-		DebugLogging:              logging.IsDebugOrHigher(),
-		IamEndpoint:               data.Get("iam_endpoint").(string),
-		MaxRetries:                data.Get("max_retries").(int),
-		Profile:                   data.Get("profile").(string),
-		Region:                    data.Get("region").(string),
-		SecretKey:                 data.Get("secret_key").(string),
-		SkipCredsValidation:       data.Get("skip_credentials_validation").(bool),
-		SkipMetadataApiCheck:      data.Get("skip_metadata_api_check").(bool),
-		StsEndpoint:               data.Get("sts_endpoint").(string),
-		Token:                     data.Get("token").(string),
-		UserAgentProducts: []*awsbase.UserAgentProduct{
+	awsbaseConfig := awsbase.Config{
+		AccessKey: data.Get("access_key").(string),
+		AssumeRole: &awsbase.AssumeRole{
+			RoleARN:     data.Get("role_arn").(string),
+			Duration:    time.Duration(data.Get("assume_role_duration_seconds").(int)) * time.Second,
+			ExternalID:  data.Get("external_id").(string),
+			Policy:      data.Get("assume_role_policy").(string),
+			SessionName: data.Get("session_name").(string),
+		},
+		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerName:             "S3 Backend",
+		SharedCredentialsFiles: []string{data.Get("shared_credentials_file").(string)},
+		SuppressDebugLog:       !logging.IsDebugOrHigher(),
+		IamEndpoint:            data.Get("iam_endpoint").(string),
+		MaxRetries:             data.Get("max_retries").(int),
+		Profile:                data.Get("profile").(string),
+		Region:                 data.Get("region").(string),
+		SecretKey:              data.Get("secret_key").(string),
+		SkipCredsValidation:    data.Get("skip_credentials_validation").(bool),
+		StsEndpoint:            data.Get("sts_endpoint").(string),
+		Token:                  data.Get("token").(string),
+		UserAgent: awsbase.UserAgentProducts{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
 			{Name: "Terraform", Version: version.String()},
@@ -363,12 +359,12 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, policyARN)
+			awsbaseConfig.AssumeRole.PolicyARNs = append(awsbaseConfig.AssumeRole.PolicyARNs, policyARN)
 		}
 	}
 
 	if tagMap := data.Get("assume_role_tags").(map[string]interface{}); len(tagMap) > 0 {
-		cfg.AssumeRoleTags = make(map[string]string)
+		awsbaseConfig.AssumeRole.Tags = make(map[string]string)
 
 		for k, vRaw := range tagMap {
 			v, ok := vRaw.(string)
@@ -377,7 +373,7 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRoleTags[k] = v
+			awsbaseConfig.AssumeRole.Tags[k] = v
 		}
 	}
 
@@ -389,11 +385,16 @@ func (b *Backend) configure(ctx context.Context) error {
 				continue
 			}
 
-			cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, transitiveTagKey)
+			awsbaseConfig.AssumeRole.TransitiveTagKeys = append(awsbaseConfig.AssumeRole.TransitiveTagKeys, transitiveTagKey)
 		}
 	}
 
-	sess, err := awsbase.GetSession(cfg)
+	ctx, cfg, err := awsbase.GetAwsConfig(ctx, &awsbaseConfig)
+	if err != nil {
+		return fmt.Errorf("error configuring S3 Backend: %w", err)
+	}
+
+	sess, err := awsbasev1.GetSession(ctx, &cfg, &awsbaseConfig)
 	if err != nil {
 		return fmt.Errorf("error configuring S3 Backend: %w", err)
 	}

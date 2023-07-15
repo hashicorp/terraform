@@ -14,7 +14,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
-	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	mockdatav1 "github.com/hashicorp/aws-sdk-go-base/v2/awsv1shim/v2/mockdata"
+	"github.com/hashicorp/aws-sdk-go-base/v2/servicemocks"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
 	"github.com/hashicorp/terraform/internal/states"
@@ -84,31 +85,31 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 	testCases := []struct {
 		Config           map[string]interface{}
 		Description      string
-		MockStsEndpoints []*awsbase.MockEndpoint
+		MockStsEndpoints []*servicemocks.MockEndpoint
 	}{
 		{
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
 				"key":          "state",
 				"region":       "us-west-1",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":     servicemocks.MockStsAssumeRoleArn,
+				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "role_arn",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"900"},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"RoleArn":         []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{servicemocks.MockStsAssumeRoleSessionName},
 						"Version":         []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
@@ -118,172 +119,172 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 				"bucket":                       "tf-test",
 				"key":                          "state",
 				"region":                       "us-west-1",
-				"role_arn":                     awsbase.MockStsAssumeRoleArn,
-				"session_name":                 awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":                     servicemocks.MockStsAssumeRoleArn,
+				"session_name":                 servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "assume_role_duration_seconds",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"3600"},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"RoleArn":         []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{servicemocks.MockStsAssumeRoleSessionName},
 						"Version":         []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
 		{
 			Config: map[string]interface{}{
 				"bucket":       "tf-test",
-				"external_id":  awsbase.MockStsAssumeRoleExternalId,
+				"external_id":  servicemocks.MockStsAssumeRoleExternalId,
 				"key":          "state",
 				"region":       "us-west-1",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":     servicemocks.MockStsAssumeRoleArn,
+				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "external_id",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"900"},
-						"ExternalId":      []string{awsbase.MockStsAssumeRoleExternalId},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"ExternalId":      []string{servicemocks.MockStsAssumeRoleExternalId},
+						"RoleArn":         []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{servicemocks.MockStsAssumeRoleSessionName},
 						"Version":         []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
 		{
 			Config: map[string]interface{}{
-				"assume_role_policy": awsbase.MockStsAssumeRolePolicy,
+				"assume_role_policy": servicemocks.MockStsAssumeRolePolicy,
 				"bucket":             "tf-test",
 				"key":                "state",
 				"region":             "us-west-1",
-				"role_arn":           awsbase.MockStsAssumeRoleArn,
-				"session_name":       awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":           servicemocks.MockStsAssumeRoleArn,
+				"session_name":       servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "assume_role_policy",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":          []string{"AssumeRole"},
 						"DurationSeconds": []string{"900"},
-						"Policy":          []string{awsbase.MockStsAssumeRolePolicy},
-						"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
+						"Policy":          []string{servicemocks.MockStsAssumeRolePolicy},
+						"RoleArn":         []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName": []string{servicemocks.MockStsAssumeRoleSessionName},
 						"Version":         []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
 		{
 			Config: map[string]interface{}{
-				"assume_role_policy_arns": []interface{}{awsbase.MockStsAssumeRolePolicyArn},
+				"assume_role_policy_arns": []interface{}{servicemocks.MockStsAssumeRolePolicyArn},
 				"bucket":                  "tf-test",
 				"key":                     "state",
 				"region":                  "us-west-1",
-				"role_arn":                awsbase.MockStsAssumeRoleArn,
-				"session_name":            awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":                servicemocks.MockStsAssumeRoleArn,
+				"session_name":            servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "assume_role_policy_arns",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":                  []string{"AssumeRole"},
 						"DurationSeconds":         []string{"900"},
-						"PolicyArns.member.1.arn": []string{awsbase.MockStsAssumeRolePolicyArn},
-						"RoleArn":                 []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName":         []string{awsbase.MockStsAssumeRoleSessionName},
+						"PolicyArns.member.1.arn": []string{servicemocks.MockStsAssumeRolePolicyArn},
+						"RoleArn":                 []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName":         []string{servicemocks.MockStsAssumeRoleSessionName},
 						"Version":                 []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
 		{
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
-					awsbase.MockStsAssumeRoleTagKey: awsbase.MockStsAssumeRoleTagValue,
+					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
 				},
 				"bucket":       "tf-test",
 				"key":          "state",
 				"region":       "us-west-1",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":     servicemocks.MockStsAssumeRoleArn,
+				"session_name": servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "assume_role_tags",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":              []string{"AssumeRole"},
 						"DurationSeconds":     []string{"900"},
-						"RoleArn":             []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName":     []string{awsbase.MockStsAssumeRoleSessionName},
-						"Tags.member.1.Key":   []string{awsbase.MockStsAssumeRoleTagKey},
-						"Tags.member.1.Value": []string{awsbase.MockStsAssumeRoleTagValue},
+						"RoleArn":             []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName":     []string{servicemocks.MockStsAssumeRoleSessionName},
+						"Tags.member.1.Key":   []string{servicemocks.MockStsAssumeRoleTagKey},
+						"Tags.member.1.Value": []string{servicemocks.MockStsAssumeRoleTagValue},
 						"Version":             []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
 		{
 			Config: map[string]interface{}{
 				"assume_role_tags": map[string]interface{}{
-					awsbase.MockStsAssumeRoleTagKey: awsbase.MockStsAssumeRoleTagValue,
+					servicemocks.MockStsAssumeRoleTagKey: servicemocks.MockStsAssumeRoleTagValue,
 				},
-				"assume_role_transitive_tag_keys": []interface{}{awsbase.MockStsAssumeRoleTagKey},
+				"assume_role_transitive_tag_keys": []interface{}{servicemocks.MockStsAssumeRoleTagKey},
 				"bucket":                          "tf-test",
 				"key":                             "state",
 				"region":                          "us-west-1",
-				"role_arn":                        awsbase.MockStsAssumeRoleArn,
-				"session_name":                    awsbase.MockStsAssumeRoleSessionName,
+				"role_arn":                        servicemocks.MockStsAssumeRoleArn,
+				"session_name":                    servicemocks.MockStsAssumeRoleSessionName,
 			},
 			Description: "assume_role_transitive_tag_keys",
-			MockStsEndpoints: []*awsbase.MockEndpoint{
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
 				{
-					Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
+					Request: &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
 						"Action":                     []string{"AssumeRole"},
 						"DurationSeconds":            []string{"900"},
-						"RoleArn":                    []string{awsbase.MockStsAssumeRoleArn},
-						"RoleSessionName":            []string{awsbase.MockStsAssumeRoleSessionName},
-						"Tags.member.1.Key":          []string{awsbase.MockStsAssumeRoleTagKey},
-						"Tags.member.1.Value":        []string{awsbase.MockStsAssumeRoleTagValue},
-						"TransitiveTagKeys.member.1": []string{awsbase.MockStsAssumeRoleTagKey},
+						"RoleArn":                    []string{servicemocks.MockStsAssumeRoleArn},
+						"RoleSessionName":            []string{servicemocks.MockStsAssumeRoleSessionName},
+						"Tags.member.1.Key":          []string{servicemocks.MockStsAssumeRoleTagKey},
+						"Tags.member.1.Value":        []string{servicemocks.MockStsAssumeRoleTagValue},
+						"TransitiveTagKeys.member.1": []string{servicemocks.MockStsAssumeRoleTagKey},
 						"Version":                    []string{"2011-06-15"},
 					}.Encode()},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
 				},
 				{
-					Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-					Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
+					Request:  &servicemocks.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
+					Response: &servicemocks.MockResponse{StatusCode: 200, Body: servicemocks.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
 				},
 			},
 		},
@@ -293,7 +294,7 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 		testCase := testCase
 
 		t.Run(testCase.Description, func(t *testing.T) {
-			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
+			closeSts, mockStsSession, err := mockdatav1.GetMockedAwsApiSession("STS", testCase.MockStsEndpoints)
 			defer closeSts()
 
 			if err != nil {
