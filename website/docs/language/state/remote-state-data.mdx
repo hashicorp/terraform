@@ -116,6 +116,36 @@ resource "aws_instance" "foo" {
 }
 ```
 
+### Example Usage (`remote` S3 Backend while assuming an IAM role)
+
+```hcl
+data "terraform_remote_state" "sso" {
+  backend = "s3"
+
+  config = {
+    encrypt      = true
+    bucket       = "<bucket name>"
+    key          = "<bucket key>"
+    region       = "us-west-2"
+    role_arn     = "arn:aws:iam::<account id>:role/TFStateRole"
+    session_name = "<session name>"
+    external_id  = "<external id>"
+  }
+}
+
+# Terraform >= 0.12
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = data.terraform_remote_state.vpc.outputs.subnet_id
+}
+
+# Terraform <= 0.11
+resource "aws_instance" "foo" {
+  # ...
+  subnet_id = "${data.terraform_remote_state.vpc.subnet_id}"
+}
+```
+
 ## Example Usage (`local` Backend)
 
 ```hcl
