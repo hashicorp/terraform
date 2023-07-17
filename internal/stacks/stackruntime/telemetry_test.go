@@ -178,7 +178,7 @@ func (t *testLogTracer) Start(ctx context.Context, spanName string, opts ...trac
 		TraceID: fakeTraceIDForTesting,
 		SpanID:  spanID,
 	})
-	span := testLogTraceSpan{
+	span := &testLogTraceSpan{
 		name:        spanName,
 		context:     &spanCtx,
 		t:           t.t,
@@ -210,7 +210,7 @@ type testLogTraceSpan struct {
 	embedded.Span
 }
 
-var _ trace.Span = testLogTraceSpan{}
+var _ trace.Span = (*testLogTraceSpan)(nil)
 
 func (s testLogTraceSpan) log(f string, args ...any) {
 	s.t.Helper()
@@ -263,7 +263,7 @@ func (s testLogTraceSpan) SetAttributes(kv ...attribute.KeyValue) {
 }
 
 // SetName implements trace.Span.
-func (s testLogTraceSpan) SetName(name string) {
+func (s *testLogTraceSpan) SetName(name string) {
 	s.t.Helper()
 	s.log("RENAMED to %s", name)
 	s.name = name
