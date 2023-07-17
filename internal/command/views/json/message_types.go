@@ -30,9 +30,10 @@ const (
 	MessageRefreshComplete   MessageType = "refresh_complete"
 
 	// Test messages
-	MessageTestAbstract MessageType = "test_abstract"
-	MessageTestFile     MessageType = "test_file"
-	MessageTestRun      MessageType = "test_run"
-	MessageTestSummary  MessageType = "test_summary"
-	MessageTestCleanup  MessageType = "test_cleanup"
+	MessageTestAbstract  MessageType = "test_abstract"
+	MessageTestFile      MessageType = "test_file"
+	MessageTestRun       MessageType = "test_run"
+	MessageTestSummary   MessageType = "test_summary"
+	MessageTestCleanup   MessageType = "test_cleanup"
+	MessageTestInterrupt MessageType = "test_interrupt"
 )

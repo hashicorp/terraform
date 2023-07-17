@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views/json"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
@@ -46,6 +47,16 @@ type Test interface {
 	// FatalInterrupt prints out a message stating that a hard interrupt has
 	// been received and testing will stop and cleanup will be skipped.
 	FatalInterrupt()
+
+	// FatalInterruptSummary prints out the resources that were held in state
+	// and were being created at the time the FatalInterrupt was received.
+	//
+	// This will typically be called in place of DestroySummary, as there is no
+	// guarantee that this function will be called during a FatalInterrupt. In
+	// addition, this function prints additional details about the current
+	// operation alongside the current state as the state will be missing newly
+	// created resources that also need to be handled manually.
+	FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc)
 }
 
 func NewTest(vt arguments.ViewType, view *View) Test {
@@ -148,11 +159,65 @@ func (t *TestHuman) Diagnostics(_ *moduletest.Run, _ *moduletest.File, diags tfd
 }
 
 func (t *TestHuman) Interrupted() {
-	t.view.streams.Print(interrupted)
+	t.view.streams.Eprint(interrupted)
 }
 
 func (t *TestHuman) FatalInterrupt() {
-	t.view.streams.Print(fatalInterrupt)
+	t.view.streams.Eprint(fatalInterrupt)
+}
+
+func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+	t.view.streams.Eprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name)
+
+	for run, state := range existingStates {
+		if state.Empty() {
+			// Then it's fine, don't worry about it.
+			continue
+		}
+
+		if run == nil {
+			// Then this is just the main state for the whole file.
+			t.view.streams.Eprintln("\nTerraform has already created the following resources from the module under test:")
+			for _, resource := range state.AllResourceInstanceObjectAddrs() {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Eprintf("  - %s\n", resource.Instance)
+			}
+		} else {
+			t.view.streams.Eprintf("\nTerraform has already created the following resources for %s from %s:\n", run.Name, run.Config.Module.Source)
+			for _, resource := range state.AllResourceInstanceObjectAddrs() {
+				if resource.DeposedKey != states.NotDeposed {
+					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+					continue
+				}
+				t.view.streams.Eprintf("  - %s\n", resource.Instance)
+			}
+		}
+	}
+
+	if len(created) == 0 {
+		// No planned changes, so we won't print anything.
+		return
+	}
+
+	var resources []string
+	for _, change := range created {
+		resources = append(resources, change.Addr.String())
+	}
+
+	if len(resources) > 0 {
+		module := "the module under test"
+		if run.Config.ConfigUnderTest != nil {
+			module = run.Config.Module.Source.String()
+		}
+
+		t.view.streams.Eprintf("\nTerraform was in the process of creating the following resources for %s from %s, and they may not have been destroyed:\n", run.Name, module)
+		for _, resource := range resources {
+			t.view.streams.Eprintf("  - %s\n", resource)
+		}
+	}
 }
 
 type TestJSON struct {
@@ -307,6 +372,50 @@ func (t *TestJSON) Interrupted() {
 
 func (t *TestJSON) FatalInterrupt() {
 	t.view.Log(fatalInterrupt)
+}
+
+func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+
+	message := json.TestFatalInterrupt{
+		States: make(map[string][]json.TestFailedResource),
+	}
+
+	for run, state := range existingStates {
+		if state.Empty() {
+			continue
+		}
+
+		var resources []json.TestFailedResource
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			resources = append(resources, json.TestFailedResource{
+				Instance:   resource.Instance.String(),
+				DeposedKey: resource.DeposedKey.String(),
+			})
+		}
+
+		if run == nil {
+			message.State = resources
+		} else {
+			message.States[run.Name] = resources
+		}
+	}
+
+	if len(created) > 0 {
+		for _, change := range created {
+			message.Planned = append(message.Planned, change.Addr.String())
+		}
+	}
+
+	if len(message.States) == 0 && len(message.State) == 0 && len(message.Planned) == 0 {
+		// Then we don't have any information to share with the user.
+		return
+	}
+
+	t.view.log.Error(
+		"Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+		"type", json.MessageTestInterrupt,
+		json.MessageTestInterrupt, message,
+		"@testfile", file.Name)
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {

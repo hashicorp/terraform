@@ -7,7 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -770,6 +772,285 @@ Terraform left the following resources in state after executing main.tftest, the
 			}
 
 			actual, expected = output.Stderr(), tc.stderr
+			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
+				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+			}
+		})
+	}
+}
+
+func TestTestHuman_FatalInterruptSummary(t *testing.T) {
+	tcs := map[string]struct {
+		states  map[*moduletest.Run]*states.State
+		run     *moduletest.Run
+		created []*plans.ResourceInstanceChangeSrc
+		want    string
+	}{
+		"no_state_only_plan": {
+			states: make(map[*moduletest.Run]*states.State),
+			run: &moduletest.Run{
+				Config: &configs.TestRun{},
+				Name:   "run_block",
+			},
+			created: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "one",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "two",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+			},
+			want: `
+Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+
+Terraform was in the process of creating the following resources for run_block from the module under test, and they may not have been destroyed:
+  - test_instance.one
+  - test_instance.two
+`,
+		},
+		"file_state_no_plan": {
+			states: map[*moduletest.Run]*states.State{
+				nil: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			created: nil,
+			want: `
+Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+
+Terraform has already created the following resources from the module under test:
+  - test_instance.one
+  - test_instance.two
+`,
+		},
+		"run_states_no_plan": {
+			states: map[*moduletest.Run]*states.State{
+				&moduletest.Run{
+					Name: "setup_block",
+					Config: &configs.TestRun{
+						Module: &configs.TestRunModuleCall{
+							Source: addrs.ModuleSourceLocal("../setup"),
+						},
+					},
+				}: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			created: nil,
+			want: `
+Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+
+Terraform has already created the following resources for setup_block from ../setup:
+  - test_instance.one
+  - test_instance.two
+`,
+		},
+		"all_states_with_plan": {
+			states: map[*moduletest.Run]*states.State{
+				&moduletest.Run{
+					Name: "setup_block",
+					Config: &configs.TestRun{
+						Module: &configs.TestRunModuleCall{
+							Source: addrs.ModuleSourceLocal("../setup"),
+						},
+					},
+				}: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "setup_one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "setup_two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+				nil: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			created: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "new_one",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "new_two",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+			},
+			run: &moduletest.Run{
+				Config: &configs.TestRun{},
+				Name:   "run_block",
+			},
+			want: `
+Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+
+Terraform has already created the following resources for setup_block from ../setup:
+  - test_instance.setup_one
+  - test_instance.setup_two
+
+Terraform has already created the following resources from the module under test:
+  - test_instance.one
+  - test_instance.two
+
+Terraform was in the process of creating the following resources for run_block from the module under test, and they may not have been destroyed:
+  - test_instance.new_one
+  - test_instance.new_two
+`,
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewHuman, NewView(streams))
+
+			file := &moduletest.File{Name: "main.tftest"}
+
+			view.FatalInterruptSummary(tc.run, file, tc.states, tc.created)
+			actual, expected := done(t).Stderr(), tc.want
 			if diff := cmp.Diff(expected, actual); len(diff) > 0 {
 				t.Errorf("expected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
 			}
@@ -2042,6 +2323,312 @@ func TestTestJSON_Run(t *testing.T) {
 			file := &moduletest.File{Name: "main.tftest"}
 
 			view.Run(tc.run, file)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+		})
+	}
+}
+
+func TestTestJSON_FatalInterruptSummary(t *testing.T) {
+	tcs := map[string]struct {
+		states  map[*moduletest.Run]*states.State
+		changes []*plans.ResourceInstanceChangeSrc
+		want    []map[string]interface{}
+	}{
+		"no_state_only_plan": {
+			states: make(map[*moduletest.Run]*states.State),
+			changes: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "one",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "two",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_interrupt": map[string]interface{}{
+						"planned": []interface{}{
+							"test_instance.one",
+							"test_instance.two",
+						},
+					},
+					"type": "test_interrupt",
+				},
+			},
+		},
+		"file_state_no_plan": {
+			states: map[*moduletest.Run]*states.State{
+				nil: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			changes: nil,
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_interrupt": map[string]interface{}{
+						"state": []interface{}{
+							map[string]interface{}{
+								"instance": "test_instance.one",
+							},
+							map[string]interface{}{
+								"instance": "test_instance.two",
+							},
+						},
+					},
+					"type": "test_interrupt",
+				},
+			},
+		},
+		"run_states_no_plan": {
+			states: map[*moduletest.Run]*states.State{
+				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			changes: nil,
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_interrupt": map[string]interface{}{
+						"states": map[string]interface{}{
+							"setup_block": []interface{}{
+								map[string]interface{}{
+									"instance": "test_instance.one",
+								},
+								map[string]interface{}{
+									"instance": "test_instance.two",
+								},
+							},
+						},
+					},
+					"type": "test_interrupt",
+				},
+			},
+		},
+		"all_states_with_plan": {
+			states: map[*moduletest.Run]*states.State{
+				&moduletest.Run{Name: "setup_block"}: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "setup_one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "setup_two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+				nil: states.BuildState(func(state *states.SyncState) {
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "one",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+
+					state.SetResourceInstanceCurrent(
+						addrs.AbsResourceInstance{
+							Module: addrs.RootModuleInstance,
+							Resource: addrs.ResourceInstance{
+								Resource: addrs.Resource{
+									Mode: addrs.ManagedResourceMode,
+									Type: "test_instance",
+									Name: "two",
+								},
+							},
+						},
+						&states.ResourceInstanceObjectSrc{},
+						addrs.AbsProviderConfig{})
+				}),
+			},
+			changes: []*plans.ResourceInstanceChangeSrc{
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "new_one",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+				{
+					Addr: addrs.AbsResourceInstance{
+						Module: addrs.RootModuleInstance,
+						Resource: addrs.ResourceInstance{
+							Resource: addrs.Resource{
+								Mode: addrs.ManagedResourceMode,
+								Type: "test_instance",
+								Name: "new_two",
+							},
+						},
+					},
+					ChangeSrc: plans.ChangeSrc{
+						Action: plans.Create,
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "error",
+					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"test_interrupt": map[string]interface{}{
+						"state": []interface{}{
+							map[string]interface{}{
+								"instance": "test_instance.one",
+							},
+							map[string]interface{}{
+								"instance": "test_instance.two",
+							},
+						},
+						"states": map[string]interface{}{
+							"setup_block": []interface{}{
+								map[string]interface{}{
+									"instance": "test_instance.setup_one",
+								},
+								map[string]interface{}{
+									"instance": "test_instance.setup_two",
+								},
+							},
+						},
+						"planned": []interface{}{
+							"test_instance.new_one",
+							"test_instance.new_two",
+						},
+					},
+					"type": "test_interrupt",
+				},
+			},
+		},
+	}
+	for name, tc := range tcs {
+		t.Run(name, func(t *testing.T) {
+			streams, done := terminal.StreamsForTesting(t)
+			view := NewTest(arguments.ViewJSON, NewView(streams))
+
+			file := &moduletest.File{Name: "main.tftest"}
+			run := &moduletest.Run{Name: "run_block"}
+
+			view.FatalInterruptSummary(run, file, tc.states, tc.changes)
 			testJSONViewOutputEquals(t, done(t).All(), tc.want)
 		})
 	}

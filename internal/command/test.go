@@ -2,9 +2,9 @@ package command
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/hcl/v2"
 
@@ -87,6 +87,14 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		}(),
 	}
 
+	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
+	// is a soft request to stop. We'll finish the current test, do the tidy up,
+	// but then skip all remaining tests and run blocks. A 'cancel' is a hard
+	// request to stop now. We'll cancel the current operation immediately
+	// even if it's a delete operation, and we won't clean up any infrastructure
+	// if we're halfway through a test. We'll print details explaining what was
+	// stopped so the user can do their best to recover from it.
+
 	runningCtx, done := context.WithCancel(context.Background())
 	stopCtx, stop := context.WithCancel(runningCtx)
 	cancelCtx, cancel := context.WithCancel(context.Background())
@@ -111,7 +119,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 	go func() {
 		defer logging.PanicHandler()
-		defer done() // We completed successfully.
+		defer done()
 		defer stop()
 		defer cancel()
 
@@ -136,10 +144,12 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			runner.Cancelled = true
 			cancel()
 
-			// TODO(liamcervante): Should we add a timer here? That would mean
-			//   after 5 seconds we just give up and don't even print out the
-			//   lists of resources left behind?
-			<-runningCtx.Done() // Nothing left to do now but wait.
+			// We'll wait 5 seconds for this operation to finish now, regardless
+			// of whether it finishes successfully or not.
+			select {
+			case <-runningCtx.Done():
+			case <-time.After(5 * time.Second):
+			}
 
 		case <-runningCtx.Done():
 			// The application finished nicely after the request was stopped.
@@ -240,13 +250,13 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File) {
 		if run.Config.ConfigUnderTest != nil {
 			// Then we want to execute a different module under a kind of
 			// sandbox.
-			state := runner.ExecuteTestRun(run, file, states.NewState(), run.Config.ConfigUnderTest)
+			state := runner.ExecuteTestRun(mgr, run, file, states.NewState(), run.Config.ConfigUnderTest)
 			mgr.States = append(mgr.States, &TestModuleState{
 				State: state,
 				Run:   run,
 			})
 		} else {
-			mgr.State = runner.ExecuteTestRun(run, file, mgr.State, runner.Config)
+			mgr.State = runner.ExecuteTestRun(mgr, run, file, mgr.State, runner.Config)
 		}
 		file.Status = file.Status.Merge(run.Status)
 	}
@@ -257,7 +267,7 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File) {
 	}
 }
 
-func (runner *TestRunner) ExecuteTestRun(run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) *states.State {
+func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config) *states.State {
 	if runner.Cancelled {
 		// Don't do anything, just give up and return immediately.
 		// The surrounding functions should stop this even being called, but in
@@ -285,7 +295,7 @@ func (runner *TestRunner) ExecuteTestRun(run *moduletest.Run, file *moduletest.F
 		return state
 	}
 
-	ctx, plan, state, diags := runner.execute(run, file, config, state, &terraform.PlanOpts{
+	ctx, plan, state, diags := runner.execute(mgr, run, file, config, state, &terraform.PlanOpts{
 		Mode: func() plans.Mode {
 			switch run.Config.Options.Mode {
 			case configs.RefreshOnlyTestMode:
@@ -339,15 +349,10 @@ func (runner *TestRunner) ExecuteTestRun(run *moduletest.Run, file *moduletest.F
 //
 // The command argument decides whether it executes only a plan or also applies
 // the plan it creates during the planning.
-func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, config *configs.Config, state *states.State, opts *terraform.PlanOpts, command configs.TestCommand) (*terraform.Context, *plans.Plan, *states.State, tfdiags.Diagnostics) {
+func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, config *configs.Config, state *states.State, opts *terraform.PlanOpts, command configs.TestCommand) (*terraform.Context, *plans.Plan, *states.State, tfdiags.Diagnostics) {
 	if opts.Mode == plans.DestroyMode && state.Empty() {
 		// Nothing to do!
 		return nil, nil, state, nil
-	}
-
-	identifier := file.Name
-	if run != nil {
-		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
 	}
 
 	// First, transform the config for the given test run and test file.
@@ -397,7 +402,7 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 		defer done()
 		plan, planDiags = tfCtx.Plan(config, state, opts)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, opts, identifier)
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
 	planDiags = planDiags.Append(waitDiags)
 
 	diags = diags.Append(planDiags)
@@ -423,6 +428,25 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 
 	runningCtx, done = context.WithCancel(context.Background())
 
+	// If things get cancelled while we are executing the apply operation below
+	// we want to print out all the objects that we were creating so the user
+	// can verify we managed to tidy everything up possibly.
+	//
+	// Unfortunately, this creates a race condition as the apply operation can
+	// edit the plan (by removing changes once they are applied) while at the
+	// same time our cancellation process will try to read the plan.
+	//
+	// We take a quick copy of the changes we care about here, which will then
+	// be used in place of the plan when we print out the objects to be created
+	// as part of the cancellation process.
+	var created []*plans.ResourceInstanceChangeSrc
+	for _, change := range plan.Changes.Resources {
+		if change.Action != plans.Create {
+			continue
+		}
+		created = append(created, change)
+	}
+
 	var updated *states.State
 	var applyDiags tfdiags.Diagnostics
 
@@ -430,77 +454,58 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 		defer done()
 		updated, applyDiags = tfCtx.Apply(plan, config)
 	}()
-	waitDiags, _ = runner.wait(tfCtx, runningCtx, opts, identifier)
+	waitDiags, _ = runner.wait(tfCtx, runningCtx, mgr, run, file, created)
 	applyDiags = applyDiags.Append(waitDiags)
 
 	diags = diags.Append(applyDiags)
 	return tfCtx, plan, updated, diags
 }
 
-func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Context, opts *terraform.PlanOpts, identifier string) (diags tfdiags.Diagnostics, cancelled bool) {
-	select {
-	case <-runner.StoppedCtx.Done():
+func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Context, mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
 
-		if opts.Mode != plans.DestroyMode {
-			// It takes more impetus from the user to cancel the cleanup
-			// operations, so we only do this during the actual tests.
-			cancelled = true
-			go ctx.Stop()
+	// This function handles what happens when the user presses the second
+	// interrupt. This is a "hard cancel", we are going to stop doing whatever
+	// it is we're doing. This means even if we're halfway through creating or
+	// destroying infrastructure we just give up.
+	handleCancelled := func() {
+
+		states := make(map[*moduletest.Run]*states.State)
+		states[nil] = mgr.State
+		for _, module := range mgr.States {
+			states[module.Run] = module.State
 		}
+		runner.View.FatalInterruptSummary(run, file, states, created)
 
-		select {
-		case <-runner.CancelledCtx.Done():
-
-			// If the user still really wants to cancel, then we'll oblige
-			// even during the destroy mode at this point.
-			if opts.Mode == plans.DestroyMode {
-				cancelled = true
-				go ctx.Stop()
-			}
-
-			diags = diags.Append(tfdiags.Sourceless(
-				tfdiags.Error,
-				"Terraform Test Interrupted",
-				fmt.Sprintf("Terraform test was interrupted while executing %s. This means resources that were created during the test may have been left active, please monitor the rest of the output closely as any dangling resources will be listed.", identifier)))
-
-			// It is actually quite disastrous if we exist early at this
-			// point as it means we'll have created resources that we
-			// haven't tracked at all. So for now, we won't ever actually
-			// forcibly terminate the test. When cancelled, we make the
-			// clean up faster by not performing it but we should still
-			// always manage it give an accurate list of resources left
-			// alive.
-			// TODO(liamcervante): Consider adding a timer here, so that we
-			//   exit early even if that means some resources are just lost
-			//   forever.
-			<-runningCtx.Done() // Just wait for things to finish now.
-
-		case <-runningCtx.Done():
-			// The operation exited nicely when asked!
-		}
-	case <-runner.CancelledCtx.Done():
-		// This shouldn't really happen, as we'd expect to see the StoppedCtx
-		// being triggered first. But, just in case.
 		cancelled = true
 		go ctx.Stop()
 
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Terraform Test Interrupted",
-			fmt.Sprintf("Terraform test was interrupted while executing %s. This means resources that were created during the test may have been left active, please monitor the rest of the output closely as any dangling resources will be listed.", identifier)))
+		// Just wait for things to finish now, the overall test execution will
+		// exit early if this takes too long.
+		<-runningCtx.Done()
+	}
 
-		// It is actually quite disastrous if we exist early at this
-		// point as it means we'll have created resources that we
-		// haven't tracked at all. So for now, we won't ever actually
-		// forcibly terminate the test. When cancelled, we make the
-		// clean up faster by not performing it but we should still
-		// always manage it give an accurate list of resources left
-		// alive.
-		// TODO(liamcervante): Consider adding a timer here, so that we
-		//   exit early even if that means some resources are just lost
-		//   forever.
-		<-runningCtx.Done() // Just wait for things to finish now.
+	// This function handles what happens when the user presses the first
+	// interrupt. This is essentially a "soft cancel", we're not going to do
+	// anything but just wait for things to finish safely. But, we do listen
+	// for the crucial second interrupt which will prompt a hard stop / cancel.
+	handleStopped := func() {
+		select {
+		case <-runner.CancelledCtx.Done():
+			// We've been asked again. This time we stop whatever we're doing
+			// and abandon all attempts to do anything reasonable.
+			handleCancelled()
+		case <-runningCtx.Done():
+			// Do nothing, we finished safely and skipping the remaining tests
+			// will be handled elsewhere.
+		}
 
+	}
+
+	select {
+	case <-runner.StoppedCtx.Done():
+		handleStopped()
+	case <-runner.CancelledCtx.Done():
+		handleCancelled()
 	case <-runningCtx.Done():
 		// The operation exited normally.
 	}
@@ -541,26 +546,20 @@ type TestModuleState struct {
 
 func (manager *TestStateManager) cleanupStates(file *moduletest.File) {
 	if manager.runner.Cancelled {
-
-		// We are still going to print out the resources that we have left
-		// even though the user asked for an immediate exit.
-
-		var diags tfdiags.Diagnostics
-		diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Test cleanup skipped due to immediate exit", "Terraform could not clean up the state left behind due to immediate interrupt."))
-		manager.runner.View.DestroySummary(diags, nil, file, manager.State)
-
-		for _, module := range manager.States {
-			manager.runner.View.DestroySummary(diags, module.Run, file, module.State)
-		}
-
+		// Don't try and clean anything up if the execution has been cancelled.
 		return
 	}
 
 	// First, we'll clean up the main state.
-	_, _, state, diags := manager.runner.execute(nil, file, manager.runner.Config, manager.State, &terraform.PlanOpts{
+	_, _, state, diags := manager.runner.execute(manager, nil, file, manager.runner.Config, manager.State, &terraform.PlanOpts{
 		Mode: plans.DestroyMode,
 	}, configs.ApplyTestCommand)
 	manager.runner.View.DestroySummary(diags, nil, file, state)
+
+	if manager.runner.Cancelled {
+		// In case things were cancelled during the last execution.
+		return
+	}
 
 	// Then we'll clean up the additional states for custom modules in reverse
 	// order.
@@ -570,11 +569,10 @@ func (manager *TestStateManager) cleanupStates(file *moduletest.File) {
 		if manager.runner.Cancelled {
 			// In case the cancellation came while a previous state was being
 			// destroyed.
-			manager.runner.View.DestroySummary(diags, module.Run, file, module.State)
-			continue
+			return
 		}
 
-		_, _, state, diags := manager.runner.execute(module.Run, file, module.Run.Config.ConfigUnderTest, module.State, &terraform.PlanOpts{
+		_, _, state, diags := manager.runner.execute(manager, module.Run, file, module.Run.Config.ConfigUnderTest, module.State, &terraform.PlanOpts{
 			Mode: plans.DestroyMode,
 		}, configs.ApplyTestCommand)
 		manager.runner.View.DestroySummary(diags, module.Run, file, state)
