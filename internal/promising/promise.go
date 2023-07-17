@@ -85,6 +85,7 @@ func NewPromise[T any](ctx context.Context) (PromiseResolver[T], PromiseGet[T]) 
 			SpanContext: trace.SpanContextFromContext(ctx),
 		}),
 	)
+	_ = ctx // prevent staticcheck from complaining until we have something actually using this
 	p.traceSpan = span
 	promiseSpanContext := span.SpanContext()
 
