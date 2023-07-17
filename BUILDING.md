@@ -29,8 +29,14 @@ Experimental features of Terraform will be disabled unless `main.experimentsAllo
 go build -ldflags "-w -s -X 'main.experimentsAllowed=yes'" -o bin/ .
 ```
 
+In the official build process for Terraform, experiments are only allowed in alpha release builds. We recommend that third-party distributors follow that convention in order to reduce user confusion.
+
 ## Go Options
 
-The Terraform release process uses the Go toolchain defaults for the current operating system and processor architecture.
+For the most part, the Terraform release process relies on the Go toolchain defaults for the target operating system and processor architecture.
+
+### `CGO_ENABLED`
+
+One exception is the `CGO_ENABLED` option, which is set explicitly when building Terraform binaries. For most platforms, we build with `CGO_ENABLED=0` in order to produce a statically linked binary. For MacOS/Darwin operating systems, we build with `CGO_ENABLED=1` to avoid a platform-specific issue with DNS resolution. 
 
 
