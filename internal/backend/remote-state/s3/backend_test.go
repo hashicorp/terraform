@@ -1038,7 +1038,9 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// Write the first state
 	stateMgr := &remote.State{Client: client}
-	stateMgr.WriteState(s1)
+	if err := stateMgr.WriteState(s1); err != nil {
+		t.Fatal(err)
+	}
 	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -1048,7 +1050,9 @@ func TestBackendExtraPaths(t *testing.T) {
 	// states are equal, the state will not Put to the remote
 	client.path = b.path("s2")
 	stateMgr2 := &remote.State{Client: client}
-	stateMgr2.WriteState(s2)
+	if err := stateMgr2.WriteState(s2); err != nil {
+		t.Fatal(err)
+	}
 	if err := stateMgr2.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -1061,7 +1065,9 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// put a state in an env directory name
 	client.path = b.workspaceKeyPrefix + "/error"
-	stateMgr.WriteState(states.NewState())
+	if err := stateMgr.WriteState(states.NewState()); err != nil {
+		t.Fatal(err)
+	}
 	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -1071,7 +1077,9 @@ func TestBackendExtraPaths(t *testing.T) {
 
 	// add state with the wrong key for an existing env
 	client.path = b.workspaceKeyPrefix + "/s2/notTestState"
-	stateMgr.WriteState(states.NewState())
+	if err := stateMgr.WriteState(states.NewState()); err != nil {
+		t.Fatal(err)
+	}
 	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}
@@ -1105,12 +1113,14 @@ func TestBackendExtraPaths(t *testing.T) {
 	if s2Mgr.(*remote.State).StateSnapshotMeta().Lineage == s2Lineage {
 		t.Fatal("state s2 was not deleted")
 	}
-	s2 = s2Mgr.State()
+	_ = s2Mgr.State() // We need the side-effect
 	s2Lineage = stateMgr.StateSnapshotMeta().Lineage
 
 	// add a state with a key that matches an existing environment dir name
 	client.path = b.workspaceKeyPrefix + "/s2/"
-	stateMgr.WriteState(states.NewState())
+	if err := stateMgr.WriteState(states.NewState()); err != nil {
+		t.Fatal(err)
+	}
 	if err := stateMgr.PersistState(nil); err != nil {
 		t.Fatal(err)
 	}

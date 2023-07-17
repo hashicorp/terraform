@@ -18,11 +18,7 @@ func diagnosticComparer(l, r tfdiags.Diagnostic) bool {
 	if len(lp) != len(rp) {
 		return false
 	}
-	if !lp.Equals(rp) {
-		return false
-	}
-
-	return true
+	return lp.Equals(rp)
 }
 
 // diagnosticSummaryComparer is a Comparer function for use with cmp.Diff to compare
@@ -34,9 +30,5 @@ func diagnosticSummaryComparer(l, r tfdiags.Diagnostic) bool {
 
 	ld := l.Description()
 	rd := r.Description()
-	if ld.Summary != rd.Summary {
-		return false
-	}
-
-	return true
+	return ld.Summary == rd.Summary
 }
