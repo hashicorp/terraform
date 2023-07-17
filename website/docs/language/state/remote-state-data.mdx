@@ -119,7 +119,7 @@ resource "aws_instance" "foo" {
 ### Example Usage (`remote` S3 Backend while assuming an IAM role)
 
 ```hcl
-data "terraform_remote_state" "sso" {
+data "terraform_remote_state" "vpc" {
   backend = "s3"
 
   config = {
