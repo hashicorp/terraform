@@ -172,7 +172,7 @@ func TestBuildConfigInvalidModules(t *testing.T) {
 			parser := NewParser(nil)
 			path := filepath.Join(testDir, name)
 
-			mod, diags := parser.LoadConfigDir(path)
+			mod, diags := parser.LoadConfigDirWithTests(path, "tests")
 			if diags.HasErrors() {
 				// these tests should only trigger errors that are caught in
 				// the config loader.
