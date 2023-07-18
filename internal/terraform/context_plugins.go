@@ -68,7 +68,10 @@ func (cp *contextPlugins) NewProvisionerInstance(typ string) (provisioners.Inter
 func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema, error) {
 	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its schema", addr)
 
-	// check the global schema cache first
+	// Check the global schema cache first.
+	// This cache is only written by the provider client, and transparently
+	// used by GetProviderSchema, but we check it here because at this point we
+	// may be able to avoid spinning up the provider instance at all.
 	schemas, ok := providers.SchemaCache.Get(addr)
 	if ok {
 		return schemas, nil
