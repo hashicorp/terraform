@@ -60,7 +60,7 @@ var protocSteps = []protocStep{
 	},
 	{
 		"tfplan (plan file serialization)",
-		"internal/plans/internal/planproto",
+		"internal/plans/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
 	},
 	{
