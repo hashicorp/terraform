@@ -1,13 +1,19 @@
 package views
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/terminal"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -524,6 +530,162 @@ other details
 Error: an error occurred
 
 something bad happened during this test
+`,
+		},
+		"verbose_plan": {
+			Run: &moduletest.Run{
+				Name:   "run_block",
+				Status: moduletest.Pass,
+				Config: &configs.TestRun{
+					Command: configs.PlanTestCommand,
+				},
+				Verbose: &moduletest.Verbose{
+					Plan: &plans.Plan{
+						Changes: &plans.Changes{
+							Resources: []*plans.ResourceInstanceChangeSrc{
+								{
+									Addr: addrs.AbsResourceInstance{
+										Module: addrs.RootModuleInstance,
+										Resource: addrs.ResourceInstance{
+											Resource: addrs.Resource{
+												Mode: addrs.ManagedResourceMode,
+												Type: "test_resource",
+												Name: "creating",
+											},
+										},
+									},
+									PrevRunAddr: addrs.AbsResourceInstance{
+										Module: addrs.RootModuleInstance,
+										Resource: addrs.ResourceInstance{
+											Resource: addrs.Resource{
+												Mode: addrs.ManagedResourceMode,
+												Type: "test_resource",
+												Name: "creating",
+											},
+										},
+									},
+									ProviderAddr: addrs.AbsProviderConfig{
+										Module: addrs.RootModule,
+										Provider: addrs.Provider{
+											Hostname:  addrs.DefaultProviderRegistryHost,
+											Namespace: "hashicorp",
+											Type:      "test",
+										},
+									},
+									ChangeSrc: plans.ChangeSrc{
+										Action: plans.Create,
+										After: dynamicValue(
+											t,
+											cty.ObjectVal(map[string]cty.Value{
+												"value": cty.StringVal("Hello, world!"),
+											}),
+											cty.Object(map[string]cty.Type{
+												"value": cty.String,
+											})),
+									},
+								},
+							},
+						},
+					},
+					State:  states.NewState(), // empty state
+					Config: &configs.Config{},
+					Providers: map[addrs.Provider]providers.ProviderSchema{
+						addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "hashicorp",
+							Type:      "test",
+						}: {
+							ResourceTypes: map[string]providers.Schema{
+								"test_resource": {
+									Block: &configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value": {
+												Type: cty.String,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			StdOut: `  run "run_block"... pass
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.creating will be created
+  + resource "test_resource" "creating" {
+      + value = "Hello, world!"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+`,
+		},
+		"verbose_apply": {
+			Run: &moduletest.Run{
+				Name:   "run_block",
+				Status: moduletest.Pass,
+				Config: &configs.TestRun{
+					Command: configs.ApplyTestCommand,
+				},
+				Verbose: &moduletest.Verbose{
+					Plan: &plans.Plan{}, // empty plan
+					State: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.AbsResourceInstance{
+								Module: addrs.RootModuleInstance,
+								Resource: addrs.ResourceInstance{
+									Resource: addrs.Resource{
+										Mode: addrs.ManagedResourceMode,
+										Type: "test_resource",
+										Name: "creating",
+									},
+								},
+							},
+							&states.ResourceInstanceObjectSrc{
+								AttrsJSON: []byte(`{"value":"foobar"}`),
+							},
+							addrs.AbsProviderConfig{
+								Module: addrs.RootModule,
+								Provider: addrs.Provider{
+									Hostname:  addrs.DefaultProviderRegistryHost,
+									Namespace: "hashicorp",
+									Type:      "test",
+								},
+							})
+					}),
+					Config: &configs.Config{},
+					Providers: map[addrs.Provider]providers.ProviderSchema{
+						addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "hashicorp",
+							Type:      "test",
+						}: {
+							ResourceTypes: map[string]providers.Schema{
+								"test_resource": {
+									Block: &configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value": {
+												Type: cty.String,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			StdOut: `  run "run_block"... pass
+# test_resource.creating:
+resource "test_resource" "creating" {
+    value = "foobar"
+}
 `,
 		},
 	}
@@ -2033,6 +2195,257 @@ func TestTestJSON_Run(t *testing.T) {
 				},
 			},
 		},
+
+		"verbose_plan": {
+			run: &moduletest.Run{
+				Name:   "run_block",
+				Status: moduletest.Pass,
+				Config: &configs.TestRun{
+					Command: configs.PlanTestCommand,
+				},
+				Verbose: &moduletest.Verbose{
+					Plan: &plans.Plan{
+						Changes: &plans.Changes{
+							Resources: []*plans.ResourceInstanceChangeSrc{
+								{
+									Addr: addrs.AbsResourceInstance{
+										Module: addrs.RootModuleInstance,
+										Resource: addrs.ResourceInstance{
+											Resource: addrs.Resource{
+												Mode: addrs.ManagedResourceMode,
+												Type: "test_resource",
+												Name: "creating",
+											},
+										},
+									},
+									PrevRunAddr: addrs.AbsResourceInstance{
+										Module: addrs.RootModuleInstance,
+										Resource: addrs.ResourceInstance{
+											Resource: addrs.Resource{
+												Mode: addrs.ManagedResourceMode,
+												Type: "test_resource",
+												Name: "creating",
+											},
+										},
+									},
+									ProviderAddr: addrs.AbsProviderConfig{
+										Module: addrs.RootModule,
+										Provider: addrs.Provider{
+											Hostname:  addrs.DefaultProviderRegistryHost,
+											Namespace: "hashicorp",
+											Type:      "test",
+										},
+									},
+									ChangeSrc: plans.ChangeSrc{
+										Action: plans.Create,
+										After: dynamicValue(
+											t,
+											cty.ObjectVal(map[string]cty.Value{
+												"value": cty.StringVal("foobar"),
+											}),
+											cty.Object(map[string]cty.Type{
+												"value": cty.String,
+											})),
+									},
+								},
+							},
+						},
+					},
+					State: states.NewState(), // empty state
+					Config: &configs.Config{
+						Module: &configs.Module{
+							ProviderRequirements: &configs.RequiredProviders{},
+						},
+					},
+					Providers: map[addrs.Provider]providers.ProviderSchema{
+						addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "hashicorp",
+							Type:      "test",
+						}: {
+							ResourceTypes: map[string]providers.Schema{
+								"test_resource": {
+									Block: &configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value": {
+												Type: cty.String,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... pass",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "pass",
+					},
+					"type": "test_run",
+				},
+				{
+					"@level":    "info",
+					"@message":  "-verbose flag enabled, printing plan",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_plan": map[string]interface{}{
+						"configuration": map[string]interface{}{
+							"root_module": map[string]interface{}{},
+						},
+						"errored": false,
+						"planned_values": map[string]interface{}{
+							"root_module": map[string]interface{}{
+								"resources": []interface{}{
+									map[string]interface{}{
+										"address":          "test_resource.creating",
+										"mode":             "managed",
+										"name":             "creating",
+										"provider_name":    "registry.terraform.io/hashicorp/test",
+										"schema_version":   0.0,
+										"sensitive_values": map[string]interface{}{},
+										"type":             "test_resource",
+										"values": map[string]interface{}{
+											"value": "foobar",
+										},
+									},
+								},
+							},
+						},
+						"resource_changes": []interface{}{
+							map[string]interface{}{
+								"address": "test_resource.creating",
+								"change": map[string]interface{}{
+									"actions": []interface{}{"create"},
+									"after": map[string]interface{}{
+										"value": "foobar",
+									},
+									"after_sensitive":  map[string]interface{}{},
+									"after_unknown":    map[string]interface{}{},
+									"before":           nil,
+									"before_sensitive": false,
+								},
+								"mode":          "managed",
+								"name":          "creating",
+								"provider_name": "registry.terraform.io/hashicorp/test",
+								"type":          "test_resource",
+							},
+						},
+					},
+					"type": "test_plan",
+				},
+			},
+		},
+		"verbose_apply": {
+			run: &moduletest.Run{
+				Name:   "run_block",
+				Status: moduletest.Pass,
+				Config: &configs.TestRun{
+					Command: configs.ApplyTestCommand,
+				},
+				Verbose: &moduletest.Verbose{
+					Plan: &plans.Plan{}, // empty plan
+					State: states.BuildState(func(state *states.SyncState) {
+						state.SetResourceInstanceCurrent(
+							addrs.AbsResourceInstance{
+								Module: addrs.RootModuleInstance,
+								Resource: addrs.ResourceInstance{
+									Resource: addrs.Resource{
+										Mode: addrs.ManagedResourceMode,
+										Type: "test_resource",
+										Name: "creating",
+									},
+								},
+							},
+							&states.ResourceInstanceObjectSrc{
+								AttrsJSON: []byte(`{"value":"foobar"}`),
+							},
+							addrs.AbsProviderConfig{
+								Module: addrs.RootModule,
+								Provider: addrs.Provider{
+									Hostname:  addrs.DefaultProviderRegistryHost,
+									Namespace: "hashicorp",
+									Type:      "test",
+								},
+							})
+					}),
+					Config: &configs.Config{
+						Module: &configs.Module{},
+					},
+					Providers: map[addrs.Provider]providers.ProviderSchema{
+						addrs.Provider{
+							Hostname:  addrs.DefaultProviderRegistryHost,
+							Namespace: "hashicorp",
+							Type:      "test",
+						}: {
+							ResourceTypes: map[string]providers.Schema{
+								"test_resource": {
+									Block: &configschema.Block{
+										Attributes: map[string]*configschema.Attribute{
+											"value": {
+												Type: cty.String,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: []map[string]interface{}{
+				{
+					"@level":    "info",
+					"@message":  "  \"run_block\"... pass",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_run": map[string]interface{}{
+						"path":   "main.tftest",
+						"run":    "run_block",
+						"status": "pass",
+					},
+					"type": "test_run",
+				},
+				{
+					"@level":    "info",
+					"@message":  "-verbose flag enabled, printing state",
+					"@module":   "terraform.ui",
+					"@testfile": "main.tftest",
+					"@testrun":  "run_block",
+					"test_state": map[string]interface{}{
+						"values": map[string]interface{}{
+							"root_module": map[string]interface{}{
+								"resources": []interface{}{
+									map[string]interface{}{
+										"address":          "test_resource.creating",
+										"mode":             "managed",
+										"name":             "creating",
+										"provider_name":    "registry.terraform.io/hashicorp/test",
+										"schema_version":   0.0,
+										"sensitive_values": map[string]interface{}{},
+										"type":             "test_resource",
+										"values": map[string]interface{}{
+											"value": "foobar",
+										},
+									},
+								},
+							},
+						},
+					},
+					"type": "test_state",
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -2042,7 +2455,17 @@ func TestTestJSON_Run(t *testing.T) {
 			file := &moduletest.File{Name: "main.tftest"}
 
 			view.Run(tc.run, file)
-			testJSONViewOutputEquals(t, done(t).All(), tc.want)
+			testJSONViewOutputEquals(t, done(t).All(), tc.want, cmp.FilterPath(func(path cmp.Path) bool {
+				return strings.Contains(path.Last().String(), "version") || strings.Contains(path.Last().String(), "timestamp")
+			}, cmp.Ignore()))
 		})
 	}
+}
+
+func dynamicValue(t *testing.T, value cty.Value, typ cty.Type) plans.DynamicValue {
+	d, err := plans.NewDynamicValue(value, typ)
+	if err != nil {
+		t.Fatalf("failed to create dynamic value: %s", err)
+	}
+	return d
 }

@@ -33,6 +33,8 @@ const (
 	MessageTestAbstract MessageType = "test_abstract"
 	MessageTestFile     MessageType = "test_file"
 	MessageTestRun      MessageType = "test_run"
+	MessageTestPlan     MessageType = "test_plan"
+	MessageTestState    MessageType = "test_state"
 	MessageTestSummary  MessageType = "test_summary"
 	MessageTestCleanup  MessageType = "test_cleanup"
 )

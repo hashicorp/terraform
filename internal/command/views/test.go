@@ -7,9 +7,16 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -115,6 +122,72 @@ func (t *TestHuman) File(file *moduletest.File) {
 
 func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 	t.view.streams.Printf("  run %q... %s\n", run.Name, colorizeTestStatus(run.Status, t.view.colorize))
+
+	if run.Verbose != nil {
+		// We're going to be more verbose about what we print, here's the plan
+		// or the state depending on the type of run we did.
+
+		schemas := &terraform.Schemas{
+			Providers:    run.Verbose.Providers,
+			Provisioners: run.Verbose.Provisioners,
+		}
+
+		renderer := jsonformat.Renderer{
+			Streams:             t.view.streams,
+			Colorize:            t.view.colorize,
+			RunningInAutomation: t.view.runningInAutomation,
+		}
+
+		if run.Config.Command == configs.ApplyTestCommand {
+			// Then we'll print the state.
+			root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test state",
+					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
+			} else {
+				state := jsonformat.State{
+					StateFormatVersion:    jsonstate.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					RootModule:            root,
+					RootModuleOutputs:     outputs,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+				}
+
+				renderer.RenderHumanState(state)
+			}
+		} else {
+			// We'll print the plan.
+			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test plan",
+					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
+			} else {
+				plan := jsonformat.Plan{
+					PlanFormatVersion:     jsonplan.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					OutputChanges:         outputs,
+					ResourceChanges:       changed,
+					ResourceDrift:         drift,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					RelevantAttributes:    attrs,
+				}
+
+				var opts []jsonformat.PlanRendererOpt
+				if !run.Verbose.Plan.CanApply() {
+					opts = append(opts, jsonformat.CanNotApply)
+				}
+				if run.Verbose.Plan.Errored {
+					opts = append(opts, jsonformat.Errored)
+				}
+
+				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)
+			}
+		}
+	}
 
 	// Finally we'll print out a summary of the diagnostics from the run.
 	t.Diagnostics(run, file, run.Diagnostics)
@@ -256,6 +329,46 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 		json.MessageTestRun, json.TestRunStatus{file.Name, run.Name, json.ToTestStatus(run.Status)},
 		"@testfile", file.Name,
 		"@testrun", run.Name)
+
+	if run.Verbose != nil {
+
+		schemas := &terraform.Schemas{
+			Providers:    run.Verbose.Providers,
+			Provisioners: run.Verbose.Provisioners,
+		}
+
+		if run.Config.Command == configs.ApplyTestCommand {
+			state, err := jsonstate.MarshalForLog(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test state",
+					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
+			} else {
+				t.view.log.Info(
+					"-verbose flag enabled, printing state",
+					"type", json.MessageTestState,
+					json.MessageTestState, state,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			}
+		} else {
+			plan, err := jsonplan.MarshalForLog(run.Verbose.Config, run.Verbose.Plan, nil, schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test plan",
+					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
+			} else {
+				t.view.log.Info(
+					"-verbose flag enabled, printing plan",
+					"type", json.MessageTestPlan,
+					json.MessageTestPlan, plan,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			}
+		}
+	}
 
 	t.Diagnostics(run, file, run.Diagnostics)
 }

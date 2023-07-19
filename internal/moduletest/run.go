@@ -7,16 +7,36 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type Run struct {
 	Config *configs.TestRun
 
+	Verbose *Verbose
+
 	Name   string
+	Index  int
 	Status Status
 
 	Diagnostics tfdiags.Diagnostics
+}
+
+// Verbose is a utility struct that holds all the information required for a run
+// to render the results verbosely.
+//
+// At the moment, this basically means printing out the plan. To do that we need
+// all the information within this struct.
+type Verbose struct {
+	Plan         *plans.Plan
+	State        *states.State
+	Config       *configs.Config
+	Providers    map[addrs.Provider]providers.ProviderSchema
+	Provisioners map[string]*configschema.Block
 }
 
 func (run *Run) GetTargets() ([]addrs.Targetable, tfdiags.Diagnostics) {
