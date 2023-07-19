@@ -1,13 +1,13 @@
 package stackplan
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/collections"
-	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 )
 
-// Plan is the main type in this package, representing an entire stack plan.
+// Plan is the main type in this package, representing an entire stack plan,
+// or at least the subset of the information that Terraform needs to reliably
+// apply the plan and detect any inconsistencies during the apply process.
 //
 // However, the process of _creating_ a plan doesn't actually produce a single
 // object of this type, and instead produces fragments of it gradually as the
@@ -26,8 +26,4 @@ type Plan struct {
 	// instances defined in the overall stack configuration, including any
 	// nested component instances from embedded stacks.
 	Components collections.Map[stackaddrs.AbsComponentInstance, *Component]
-
-	// OutputValues describes the planned changes to the output values of
-	// the topmost stack configuration.
-	OutputValues map[addrs.OutputValue]*plans.OutputChange
 }
