@@ -79,12 +79,14 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	if !p.Addr.IsZero() {
+	if !p.Addr.IsZero() && resp.ServerCapabilities.GetProviderSchemaOptional {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok {
 			return resp
 		}
 	}
 
+	// If the local cache is non-zero, we know this instance has called
+	// GetProviderSchema at least once and we can return early.
 	if p.schema.Provider.Block != nil {
 		return p.schema
 	}
@@ -139,12 +141,13 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	}
 
 	// set the global cache if we can
-	if !p.Addr.IsZero() && resp.ServerCapabilities.GetProviderSchemaOptional {
+	if !p.Addr.IsZero() {
 		providers.SchemaCache.Set(p.Addr, resp)
-	} else {
-		// otherwise store it in the local cache
-		p.schema = resp
 	}
+
+	// always store this here in the client for providers that are not able to
+	// use GetProviderSchemaOptional
+	p.schema = resp
 
 	return resp
 }
