@@ -184,6 +184,112 @@ func TestRun_ValidateExpectedFailures(t *testing.T) {
 				},
 			},
 		},
+		"variables": {
+			ExpectedFailures: []string{
+				"var.expected_one",
+				"var.expected_two",
+			},
+			Input: createDiagnostics(func(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
+
+				// First, let's create an input that failed that isn't
+				// expected. This should be unaffected by our function.
+				diags = diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "unexpected failure",
+						Detail:   "this should not be removed",
+						Extra: &addrs.CheckRuleDiagnosticExtra{
+							CheckRule: addrs.NewCheckRule(addrs.AbsInputVariableInstance{
+								Module:   addrs.RootModuleInstance,
+								Variable: addrs.InputVariable{Name: "unexpected"},
+							}, addrs.InputValidation, 0),
+						},
+					})
+
+				// Second, let's create an input that failed but is expected.
+				// Our function should remove this from the set of diags.
+				diags = diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "expected failure",
+						Detail:   "this should be removed",
+						Extra: &addrs.CheckRuleDiagnosticExtra{
+							CheckRule: addrs.NewCheckRule(addrs.AbsInputVariableInstance{
+								Module:   addrs.RootModuleInstance,
+								Variable: addrs.InputVariable{Name: "expected_one"},
+							}, addrs.InputValidation, 0),
+						},
+					})
+
+				diags = diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagWarning,
+						Summary:  "expected warning",
+						Detail:   "this should not be removed",
+						Extra: &addrs.CheckRuleDiagnosticExtra{
+							CheckRule: addrs.NewCheckRule(addrs.AbsInputVariableInstance{
+								Module:   addrs.RootModuleInstance,
+								Variable: addrs.InputVariable{Name: "expected_one"},
+							}, addrs.InputValidation, 0),
+						},
+					})
+
+				// The error we are adding here is for expected_two but in a
+				// child module. We expect that this diagnostic shouldn't
+				// trigger our expected failure, and that an extra diagnostic
+				// should be created complaining that the output wasn't actually
+				// triggered.
+
+				diags = diags.Append(
+					&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "error in child module",
+						Detail:   "this should not be removed",
+						Extra: &addrs.CheckRuleDiagnosticExtra{
+							CheckRule: addrs.NewCheckRule(addrs.AbsInputVariableInstance{
+								Module: []addrs.ModuleInstanceStep{
+									{
+										Name: "child_module",
+									},
+								},
+								Variable: addrs.InputVariable{Name: "expected_two"},
+							}, addrs.InputValidation, 0),
+						},
+					})
+
+				return diags
+			}),
+			Output: []output{
+				{
+					Description: tfdiags.Description{
+						Summary: "unexpected failure",
+						Detail:  "this should not be removed",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "expected warning",
+						Detail:  "this should not be removed",
+					},
+					Severity: tfdiags.Warning,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "error in child module",
+						Detail:  "this should not be removed",
+					},
+					Severity: tfdiags.Error,
+				},
+				{
+					Description: tfdiags.Description{
+						Summary: "Missing expected failure",
+						Detail:  "The checkable object, var.expected_two, was expected to report an error but did not.",
+					},
+					Severity: tfdiags.Error,
+				},
+			},
+		},
 		"resources": {
 			ExpectedFailures: []string{
 				"test_instance.single",

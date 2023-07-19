@@ -56,30 +56,18 @@ func TestTest(t *testing.T) {
 		"expect_failures_checks": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_inputs": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_outputs": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_resources": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"multiple_files": {
 			expected: "2 passed, 0 failed",
@@ -108,10 +96,6 @@ func TestTest(t *testing.T) {
 		"custom_condition_checks": {
 			expected: "0 passed, 1 failed.",
 			code:     1,
-			// TODO(liamcervante): Enable this, at the moment checks aren't
-			//   causing the tests to fail when they should. Also, it's not
-			//   skipping warnings during the plan when it should.
-			skip: true,
 		},
 		"custom_condition_inputs": {
 			expected: "0 passed, 1 failed.",

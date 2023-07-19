@@ -7,6 +7,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
+
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -389,6 +392,7 @@ func (runner *TestRunner) ExecuteTestRun(run *moduletest.Run, file *moduletest.F
 		SkipRefresh:        !run.Config.Options.Refresh,
 		ExternalReferences: references,
 	}, run.Config.Command, globals)
+	diags = run.ValidateExpectedFailures(diags)
 	run.Diagnostics = run.Diagnostics.Append(diags)
 
 	if runner.Cancelled {
@@ -530,6 +534,19 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 		// stop the plan being applied and using more time.
 		return tfCtx, plan, state, diags
 	}
+
+	// We're also going to strip out any warnings from check blocks, as we do
+	// for normal executions. Since we're going to go ahead and execute the
+	// plan immediately, any warnings from the check block are just not relevant
+	// any more.
+	var filteredDiags tfdiags.Diagnostics
+	for _, diag := range diags {
+		if rule, ok := addrs.DiagnosticOriginatesFromCheckRule(diag); ok && rule.Container.CheckableKind() == addrs.CheckableCheck {
+			continue
+		}
+		filteredDiags = filteredDiags.Append(diag)
+	}
+	diags = filteredDiags
 
 	// Fourth, execute apply stage.
 	tfCtx, ctxDiags = terraform.NewContext(tfCtxOpts)
