@@ -7,16 +7,36 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type Run struct {
 	Config *configs.TestRun
 
+	Verbose *Verbose
+
 	Name   string
+	Index  int
 	Status Status
 
 	Diagnostics tfdiags.Diagnostics
+}
+
+// Verbose is a utility struct that holds all the information required for a run
+// to render the results verbosely.
+//
+// At the moment, this basically means printing out the plan. To do that we need
+// all the information within this struct.
+type Verbose struct {
+	Plan         *plans.Plan
+	State        *states.State
+	Config       *configs.Config
+	Providers    map[addrs.Provider]providers.ProviderSchema
+	Provisioners map[string]*configschema.Block
 }
 
 func (run *Run) GetTargets() ([]addrs.Targetable, tfdiags.Diagnostics) {
@@ -147,6 +167,32 @@ func (run *Run) ValidateExpectedFailures(originals tfdiags.Diagnostics) tfdiags.
 					// continuing and not adding it into the returned set of
 					// diagnostics.
 					expectedFailures.Put(addr.OutputValue, true)
+					continue
+				}
+
+				// Otherwise, this isn't an expected failure so just fall out
+				// and add it into the returned set of diagnostics below.
+
+			case addrs.CheckableInputVariable:
+				addr := rule.Container.(addrs.AbsInputVariableInstance)
+				if !addr.Module.IsRoot() {
+					// failures can only be expected against checkable objects
+					// in the root module. This diagnostic will be added into
+					// returned set below.
+					break
+				}
+
+				if diag.Severity() == tfdiags.Warning {
+					// Warnings don't count as errors. This diagnostic will be
+					// added into the returned set below.
+					break
+				}
+				if expectedFailures.Has(addr.Variable) {
+					// Then this failure is expected! Mark the original map as
+					// having found a failure and swallow this error by
+					// continuing and not adding it into the returned set of
+					// diagnostics.
+					expectedFailures.Put(addr.Variable, true)
 					continue
 				}
 

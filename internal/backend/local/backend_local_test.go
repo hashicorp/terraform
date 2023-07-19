@@ -32,7 +32,7 @@ func TestLocalRun(t *testing.T) {
 	configDir := "./testdata/empty"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -63,7 +63,7 @@ func TestLocalRun_error(t *testing.T) {
 	// should then cause LocalRun to return with the state unlocked.
 	b.Backend = backendWithStateStorageThatFailsRefresh{}
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	streams, _ := terminal.StreamsForTesting(t)
@@ -90,7 +90,7 @@ func TestLocalRun_stalePlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
 	// Write an empty state file with serial 3

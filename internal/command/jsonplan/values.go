@@ -19,22 +19,22 @@ import (
 	"github.com/hashicorp/terraform/internal/terraform"
 )
 
-// stateValues is the common representation of resolved values for both the
+// StateValues is the common representation of resolved values for both the
 // prior state (which is always complete) and the planned new state.
-type stateValues struct {
-	Outputs    map[string]output `json:"outputs,omitempty"`
-	RootModule module            `json:"root_module,omitempty"`
+type StateValues struct {
+	Outputs    map[string]Output `json:"outputs,omitempty"`
+	RootModule Module            `json:"root_module,omitempty"`
 }
 
-// attributeValues is the JSON representation of the attribute values of the
+// AttributeValues is the JSON representation of the attribute values of the
 // resource, whose structure depends on the resource type schema.
-type attributeValues map[string]interface{}
+type AttributeValues map[string]interface{}
 
-func marshalAttributeValues(value cty.Value, schema *configschema.Block) attributeValues {
+func marshalAttributeValues(value cty.Value, schema *configschema.Block) AttributeValues {
 	if value == cty.NilVal || value.IsNull() {
 		return nil
 	}
-	ret := make(attributeValues)
+	ret := make(AttributeValues)
 
 	it := value.ElementIterator()
 	for it.Next() {
@@ -47,13 +47,13 @@ func marshalAttributeValues(value cty.Value, schema *configschema.Block) attribu
 
 // marshalPlannedOutputs takes a list of changes and returns a map of output
 // values
-func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
+func marshalPlannedOutputs(changes *plans.Changes) (map[string]Output, error) {
 	if changes.Outputs == nil {
 		// No changes - we're done here!
 		return nil, nil
 	}
 
-	ret := make(map[string]output)
+	ret := make(map[string]Output)
 
 	for _, oc := range changes.Outputs {
 		if oc.ChangeSrc.Action == plans.Delete {
@@ -82,7 +82,7 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 			}
 		}
 
-		ret[oc.Addr.OutputValue.Name] = output{
+		ret[oc.Addr.OutputValue.Name] = Output{
 			Value:     json.RawMessage(after),
 			Type:      json.RawMessage(afterType),
 			Sensitive: oc.Sensitive,
@@ -93,8 +93,8 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]output, error) {
 
 }
 
-func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (module, error) {
-	var ret module
+func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (Module, error) {
+	var ret Module
 
 	// build two maps:
 	// 		module name -> [resource addresses]
@@ -166,8 +166,8 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (m
 }
 
 // marshalPlanResources
-func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]resource, error) {
-	var ret []resource
+func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]Resource, error) {
+	var ret []Resource
 
 	for _, ri := range ris {
 		r := changes.ResourceInstance(ri)
@@ -175,7 +175,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 			continue
 		}
 
-		resource := resource{
+		resource := Resource{
 			Address:      r.Addr.String(),
 			Type:         r.Addr.Resource.Resource.Type,
 			Name:         r.Addr.Resource.Resource.Name,
@@ -252,14 +252,14 @@ func marshalPlanModules(
 	childModules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,
 	moduleResourceMap map[string][]addrs.AbsResourceInstance,
-) ([]module, error) {
+) ([]Module, error) {
 
-	var ret []module
+	var ret []Module
 
 	for _, child := range childModules {
 		moduleResources := moduleResourceMap[child.String()]
 		// cm for child module, naming things is hard.
-		var cm module
+		var cm Module
 		// don't populate the address for the root module
 		if child.String() != "" {
 			cm.Address = child.String()

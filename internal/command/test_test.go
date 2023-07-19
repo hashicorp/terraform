@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
@@ -17,6 +18,7 @@ import (
 
 func TestTest(t *testing.T) {
 	tcs := map[string]struct {
+		override string
 		args     []string
 		expected string
 		code     int
@@ -27,6 +29,11 @@ func TestTest(t *testing.T) {
 			code:     0,
 		},
 		"simple_pass_nested": {
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
+		"simple_pass_nested_alternate": {
+			args:     []string{"-test-directory", "other"},
 			expected: "1 passed, 0 failed.",
 			code:     0,
 		},
@@ -49,30 +56,38 @@ func TestTest(t *testing.T) {
 		"expect_failures_checks": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_inputs": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_outputs": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
 		},
 		"expect_failures_resources": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
-			// TODO(liamcervante): Enable this when support for expect_failures
-			//   has been added.
-			skip: true,
+		},
+		"multiple_files": {
+			expected: "2 passed, 0 failed",
+			code:     0,
+		},
+		"multiple_files_with_filter": {
+			override: "multiple_files",
+			args:     []string{"-filter=one.tftest"},
+			expected: "1 passed, 0 failed",
+			code:     0,
+		},
+		"variables": {
+			expected: "2 passed, 0 failed",
+			code:     0,
+		},
+		"variables_overridden": {
+			override: "variables",
+			args:     []string{"-var=input=foo"},
+			expected: "1 passed, 1 failed",
+			code:     1,
 		},
 		"simple_fail": {
 			expected: "0 passed, 1 failed.",
@@ -81,10 +96,6 @@ func TestTest(t *testing.T) {
 		"custom_condition_checks": {
 			expected: "0 passed, 1 failed.",
 			code:     1,
-			// TODO(liamcervante): Enable this, at the moment checks aren't
-			//   causing the tests to fail when they should. Also, it's not
-			//   skipping warnings during the plan when it should.
-			skip: true,
 		},
 		"custom_condition_inputs": {
 			expected: "0 passed, 1 failed.",
@@ -105,8 +116,13 @@ func TestTest(t *testing.T) {
 				t.Skip()
 			}
 
+			file := name
+			if len(tc.override) > 0 {
+				file = tc.override
+			}
+
 			td := t.TempDir()
-			testCopyDir(t, testFixturePath(path.Join("test", name)), td)
+			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
 			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
@@ -353,5 +369,64 @@ func TestTest_ModuleDependencies(t *testing.T) {
 		} else {
 			t.Errorf("should have deleted all resources on completion but left %s", setup.ResourceString())
 		}
+	}
+}
+
+func TestTest_Verbose(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "plan_then_apply")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-verbose", "-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest... pass
+  run "validate_test_resource"... pass
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.foo will be created
+  + resource "test_resource" "foo" {
+      + id    = "constant_value"
+      + value = "bar"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+  run "validate_test_resource"... pass
+# test_resource.foo:
+resource "test_resource" "foo" {
+    id    = "constant_value"
+    value = "bar"
+}
+
+Success! 2 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
