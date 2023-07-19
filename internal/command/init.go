@@ -15,6 +15,9 @@ import (
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -108,6 +111,10 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	// This will track whether we outputted anything so that we know whether
 	// to output a newline before the success message
 	var header bool
@@ -135,12 +142,19 @@ func (c *InitCommand) Run(args []string) int {
 			ShowLocalPaths: false, // since they are in a weird location for init
 		}
 
-		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(path, src, hooks)
+		ctx, span := tracer.Start(ctx, "-from-module=...", trace.WithAttributes(
+			attribute.String("module_source", src),
+		))
+
+		initDirFromModuleAbort, initDirFromModuleDiags := c.initDirFromModule(ctx, path, src, hooks)
 		diags = diags.Append(initDirFromModuleDiags)
 		if initDirFromModuleAbort || initDirFromModuleDiags.HasErrors() {
 			c.showDiagnostics(diags)
+			span.SetStatus(codes.Error, "module installation failed")
+			span.End()
 			return 1
 		}
+		span.End()
 
 		c.Ui.Output("")
 	}
@@ -182,12 +196,12 @@ func (c *InitCommand) Run(args []string) int {
 
 	switch {
 	case flagCloud && rootModEarly.CloudConfig != nil:
-		back, backendOutput, backDiags = c.initCloud(rootModEarly, flagConfigExtra)
+		back, backendOutput, backDiags = c.initCloud(ctx, rootModEarly, flagConfigExtra)
 	case flagBackend:
-		back, backendOutput, backDiags = c.initBackend(rootModEarly, flagConfigExtra)
+		back, backendOutput, backDiags = c.initBackend(ctx, rootModEarly, flagConfigExtra)
 	default:
 		// load the previously-stored backend config
-		back, backDiags = c.Meta.backendFromState()
+		back, backDiags = c.Meta.backendFromState(ctx)
 	}
 	if backendOutput {
 		header = true
@@ -220,7 +234,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	if flagGet {
-		modsOutput, modsAbort, modsDiags := c.getModules(path, testsDirectory, rootModEarly, flagUpgrade)
+		modsOutput, modsAbort, modsDiags := c.getModules(ctx, path, testsDirectory, rootModEarly, flagUpgrade)
 		diags = diags.Append(modsDiags)
 		if modsAbort || modsDiags.HasErrors() {
 			c.showDiagnostics(diags)
@@ -288,7 +302,7 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Now that we have loaded all modules, check the module tree for missing providers.
-	providersOutput, providersAbort, providerDiags := c.getProviders(config, state, flagUpgrade, flagPluginPath, flagLockfile)
+	providersOutput, providersAbort, providerDiags := c.getProviders(ctx, config, state, flagUpgrade, flagPluginPath, flagLockfile)
 	diags = diags.Append(providerDiags)
 	if providersAbort || providerDiags.HasErrors() {
 		c.showDiagnostics(diags)
@@ -329,7 +343,7 @@ func (c *InitCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *InitCommand) getModules(path, testsDir string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, earlyRoot *configs.Module, upgrade bool) (output bool, abort bool, diags tfdiags.Diagnostics) {
 	testModules := false // We can also have modules buried in test files.
 	for _, file := range earlyRoot.Tests {
 		for _, run := range file.Runs {
@@ -344,6 +358,11 @@ func (c *InitCommand) getModules(path, testsDir string, earlyRoot *configs.Modul
 		return false, false, nil
 	}
 
+	ctx, span := tracer.Start(ctx, "install modules", trace.WithAttributes(
+		attribute.Bool("upgrade", upgrade),
+	))
+	defer span.End()
+
 	if upgrade {
 		c.Ui.Output(c.Colorize().Color("[reset][bold]Upgrading modules..."))
 	} else {
@@ -355,7 +374,7 @@ func (c *InitCommand) getModules(path, testsDir string, earlyRoot *configs.Modul
 		ShowLocalPaths: true,
 	}
 
-	installAbort, installDiags := c.installModules(path, testsDir, upgrade, hooks)
+	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, hooks)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
@@ -378,7 +397,11 @@ func (c *InitCommand) getModules(path, testsDir string, earlyRoot *configs.Modul
 	return true, installAbort, diags
 }
 
-func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
+
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
 
 	if len(extraConfig.AllItems()) != 0 {
@@ -402,7 +425,11 @@ func (c *InitCommand) initCloud(root *configs.Module, extraConfig rawFlags) (be 
 	return back, true, diags
 }
 
-func (c *InitCommand) initBackend(root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "initialize backend")
+	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
+	defer span.End()
+
 	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing the backend..."))
 
 	var backendConfig *configs.Backend
@@ -483,7 +510,10 @@ the backend configuration is present and valid.
 
 // Load the complete module tree, and fetch any missing providers.
 // This method outputs its own Ui.
-func (c *InitCommand) getProviders(config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
+func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, state *states.State, upgrade bool, pluginDirs []string, flagLockfile string) (output, abort bool, diags tfdiags.Diagnostics) {
+	ctx, span := tracer.Start(ctx, "install providers")
+	defer span.End()
+
 	// Dev overrides cause the result of "terraform init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
 	// confusion when Terraform ends up using a different provider than the
@@ -540,10 +570,6 @@ func (c *InitCommand) getProviders(config *configs.Config, state *states.State, 
 		log.Println("[DEBUG] init: overriding provider plugin search paths")
 		log.Printf("[DEBUG] will search for provider plugins in %s", pluginDirs)
 	}
-
-	// Installation can be aborted by interruption signals
-	ctx, done := c.InterruptibleContext()
-	defer done()
 
 	// We want to print out a nice warning if we don't manage to pull
 	// checksums for all our providers. This is tracked via callbacks

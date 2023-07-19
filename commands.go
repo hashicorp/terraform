@@ -4,15 +4,15 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
-
-	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/go-plugin"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/auth"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/mitchellh/cli"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command"
@@ -53,6 +53,7 @@ var HiddenCommands map[string]struct{}
 var Ui cli.Ui
 
 func initCommands(
+	ctx context.Context,
 	originalWorkingDir string,
 	streams *terminal.Streams,
 	config *cliconfig.Config,
@@ -101,7 +102,8 @@ func initCommands(
 
 		PluginCacheMayBreakDependencyLockFile: config.PluginCacheMayBreakDependencyLockFile,
 
-		ShutdownCh: makeShutdownCh(),
+		ShutdownCh:    makeShutdownCh(),
+		CallerContext: ctx,
 
 		ProviderSource:       providerSrc,
 		ProviderDevOverrides: providerDevOverrides,

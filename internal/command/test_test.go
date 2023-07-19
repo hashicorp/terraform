@@ -223,7 +223,7 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 	c.Run(nil)
 	output := done(t).All()
 
-	if !strings.Contains(output, "Terraform Test Interrupted") {
+	if !strings.Contains(output, "Two interrupts received") {
 		t.Errorf("output didn't produce the right output:\n\n%s", output)
 	}
 
