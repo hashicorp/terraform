@@ -38,6 +38,12 @@ type TestFailedResource struct {
 	DeposedKey string `json:"deposed_key,omitempty"`
 }
 
+type TestFatalInterrupt struct {
+	State   []TestFailedResource            `json:"state,omitempty"`
+	States  map[string][]TestFailedResource `json:"states,omitempty"`
+	Planned []string                        `json:"planned,omitempty"`
+}
+
 func ToTestStatus(status moduletest.Status) TestStatus {
 	return TestStatus(strings.ToLower(status.String()))
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
@@ -217,6 +218,11 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		for ix := 0; ix < int(count); ix++ {
 			provider.Interrupt <- struct{}{}
 		}
+
+		// Wait for a second to make sure the interrupts are processed by
+		// Terraform before the provider finishes. This is an attempt to ensure
+		// the output of any tests that rely on this behaviour is deterministic.
+		time.Sleep(time.Second)
 	}
 
 	provider.Store.Put(provider.GetResourceKey(id.AsString()), resource)

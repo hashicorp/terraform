@@ -211,6 +211,19 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 		t.Errorf("output didn't produce the right output:\n\n%s", output)
 	}
 
+	cleanupMessage := `Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+
+Terraform has already created the following resources from the module under test:
+  - test_resource.primary
+  - test_resource.secondary
+  - test_resource.tertiary`
+
+	// It's really important that the above message is printed, so we're testing
+	// for it specifically and making sure it contains all the resources.
+	if !strings.Contains(output, cleanupMessage) {
+		t.Errorf("output didn't produce the right output:\n\n%s", output)
+	}
+
 	// This time the test command shouldn't have cleaned up the resource because
 	// of the hard interrupt.
 	if provider.ResourceCount() != 3 {
