@@ -67,6 +67,16 @@ type ConfigComponentInstance = InStackConfig[ComponentInstance]
 // particular [StackInstance].
 type AbsComponentInstance = InStackInstance[ComponentInstance]
 
+func ConfigComponentForAbsInstance(instAddr AbsComponentInstance) ConfigComponent {
+	configInst := ConfigForAbs(instAddr) // a ConfigComponentInstance
+	return ConfigComponent{
+		Stack: configInst.Stack,
+		Item: Component{
+			Name: configInst.Item.Component.Name,
+		},
+	}
+}
+
 func ParseAbsComponentInstance(traversal hcl.Traversal) (AbsComponentInstance, tfdiags.Diagnostics) {
 	if traversal.IsRelative() {
 		// This is always a caller bug: caller must only pass absolute
