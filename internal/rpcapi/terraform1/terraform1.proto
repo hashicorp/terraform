@@ -294,6 +294,11 @@ message PlannedChange {
         // instance keys on the component itself or instance keys on any
         // of the containing embedded stacks.
         string component_instance_addr = 2;
+        // The changes to the existence of this instance relative to the
+        // prior state. This only considers the component instance directly,
+        // and doesn't take into account what actions are planned for any
+        // resource instances inside.
+        repeated ChangeType actions = 3;
     }
     message ResourceInstance {
         ResourceInstanceInStackAddr addr = 1;
