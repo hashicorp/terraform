@@ -7,8 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/hcl/v2"
-
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -515,6 +513,7 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		plan, planDiags = tfCtx.Plan(config, state, opts)
 	}()
@@ -561,6 +560,7 @@ func (runner *TestRunner) execute(run *moduletest.Run, file *moduletest.File, co
 	var applyDiags tfdiags.Diagnostics
 
 	go func() {
+		defer logging.PanicHandler()
 		defer done()
 		updated, applyDiags = tfCtx.Apply(plan, config)
 	}()
