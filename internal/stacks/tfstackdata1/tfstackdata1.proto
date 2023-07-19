@@ -1,0 +1,155 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
+syntax = "proto3";
+package tfstackdata1;
+
+import "planfile.proto"; // tfplan, from internal/plans/planproto
+
+// These definitions describe the PRIVATE raw format that we use to persist
+// stack and plan information for stacks between operations.
+//
+// Nothing outside of this codebase should attempt to produce or consume
+// these formats. They are subject to change at any time.
+
+///////////// PLAN SEQUENCE MESSAGES
+//
+// A "stack plan" consists of a sequence of messages emitted gradually from
+// the streaming Stacks.PlanStackChanges RPC in the Terraform Core RPC API.
+//
+// From the perspective of that protocol the objects in the sequence are
+// opaque and to be preserved byte-for-byte without any external interpretation,
+// in the same order they were emitted from Terraform Core.
+//
+// Internally, we decode each one based on the type field of google.protobuf.Any,
+// treating each one as some kind of mutation of our in-memory plan data
+// structure.
+//
+// These message types only cover the data that Terraform needs to apply the
+// plan, and so don't cover any information that Terraform Core might emit
+// only for the caller's benefit.
+//////////////
+
+// Appears early in a raw plan sequence to capture some metadata that we need
+// to process subsequent messages, or to abort if we're being asked to decode
+// a plan created by a different version of Terraform.
+message PlanHeader {
+    // The canonical version string for the version of Terraform that created
+    // the plan sequence that this message belongs to.
+    //
+    // The raw plan sequence loader will fail if it finds a message of this
+    // type with a version string that disagrees with the version of Terraform
+    // decoding the message, because we always expect plans to be applied by
+    // the same version of Terraform that created them.
+    string terraform_version = 1;
+}
+
+// Confirms whether the overall plan whose raw plan sequence includes this
+// message is complete enough and valid enough to be applied.
+//
+// If a the sequence of raw plan messages includes multiple messages of this
+// type then the one with the latest position in the list "wins" during
+// decoding of the overall sequence, although in practice there isn't yet
+// any clear reason to include more than one instance of this message type in a
+// plan.
+message PlanApplyable {
+    bool applyable = 1;
+}
+
+// Represents the existence of a particular component instance, and so must
+// always appear before any messages representing objects that belong to that
+// component instance.
+//
+// This message type exists to avoid the ambiguity between a component instance
+// existing with zero resource instances inside vs. a component instance
+// not existing at all.
+message PlanComponentInstance {
+    string component_instance_addr = 1;
+
+    // plan_timestamp records the time when the plan for this component
+    // instance was created, exclusively for making sure that the
+    // "plantimestamp" function can return the same value during the apply
+    // phase. It must not be used for any other purpose.
+    string plan_timestamp = 2;
+}
+
+// Represents a planned change to a particular resource instance within a
+// particular component instance.
+message PlanResourceInstanceChangePlanned {
+    // The same string must previously have been announced with a
+    // PlanComponentInstance message, or the overall plan sequence is invalid.
+    string component_instance_addr = 1;
+
+    tfplan.ResourceInstanceChange change = 2;
+}
+
+// Represents a change to a particular resource instance within a particular
+// component instance that Terraform has detected was made outside of Terraform
+// since the most recent apply.
+message PlanResourceInstanceChangeOutside {
+    // The same string must previously have been announced with a
+    // PlanComponentInstance message, or the overall plan sequence is invalid.
+    string component_instance_addr = 1;
+
+    tfplan.ResourceInstanceChange change = 2;
+}
+
+///////////// STATE MAP MESSAGES
+//
+// A "stack state snapshot" is a mapping from arbitrary keys to messages
+// emitted gradually from the streaming Stacks.ApplyStackChanges RPC in the
+// Terraform Core RPC API.
+//
+// From the perspective of that protocol the keys and values in the map are
+// opaque and to be preserved verbatim without any external interpretation,
+// overwriting any previous value that had the same key.
+//
+// Internally, we decode each one based on the type field of google.protobuf.Any,
+// treating each one as some kind of mutation of our in-memory plan data
+// structure.
+//
+// These message types only cover the data that Terraform needs to produce
+// a future plan based on this snapshot, and don't cover any information that
+// Terraform Core might emit only for the caller's benefit.
+//
+// Because state messages survive from one run to the next, all top-level
+// messages used for state snapshots have a format version suffix that is
+// currently always 1. The functions that load a state map into the in-memory
+// state structure will fail if any of the messages are of an unknown type, so
+// we should increment the format version only as a last resort because this
+// will prevent users from downgrading to an earlier version of Terraform once
+// they've got at least one state map message that is of a newer version.
+//////////////
+
+// Represents the existence of a particular component instance.
+//
+// This is here just to remove the ambiguity between a component instance that
+// exists but contains no resource instances vs. a component instance that
+// doesn't exist at all.
+//
+// Because the state map is updated on a per-element basis rather than
+// atomically, it's possible that the state map might contain resource instances
+// which belong to a component instance that is not tracked by a message of
+// this type. In that case, the state loader will just assume an implied
+// message of this type with a matching component instance address and with
+// all other fields unset.
+message StateComponentInstanceV1 {
+    string component_instance_addr = 1;
+}
+
+// Represents the existence of a particular resource instance in a particular
+// component instance.
+//
+// A resource instance message should typically be accompanied by a
+// StateComponentInstanceV1 (or later version) that represents the existence
+// of the component itself, but for robustness we tolerate the absense of
+// such a message and just assume that all of its fields (other than the
+// component instance address) are unset.
+message StateResourceInstanceV1 {
+    string component_instance_addr = 1;
+    string resource_instance_addr = 2;
+    string deposed_key = 3;
+
+    tfplan.DynamicValue value = 4;
+    tfplan.Path sensitive_paths = 5;
+}
