@@ -74,6 +74,10 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 		}
 	}
 
+	// Installation steps can be cancelled by SIGINT and similar.
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
 	config, confDiags := c.loadConfig(".")
 	diags = diags.Append(confDiags)
 	reqs, moreDiags := config.ProviderRequirements()
@@ -132,8 +136,6 @@ func (c *ProvidersMirrorCommand) Run(args []string) int {
 	//   infrequently to update a mirror, so it doesn't need to optimize away
 	//   fetches of packages that might already be present.
 
-	ctx, cancel := c.InterruptibleContext()
-	defer cancel()
 	for provider, constraints := range reqs {
 		if provider.IsBuiltIn() {
 			c.Ui.Output(fmt.Sprintf("- Skipping %s because it is built in to Terraform CLI", provider.ForDisplay()))

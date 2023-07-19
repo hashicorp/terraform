@@ -4,6 +4,7 @@
 package command
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -1939,7 +1940,7 @@ func TestBackendFromState(t *testing.T) {
 	// them to match just for this test.
 	wd.OverrideDataDir(".")
 
-	stateBackend, diags := m.backendFromState()
+	stateBackend, diags := m.backendFromState(context.Background())
 	if diags.HasErrors() {
 		t.Fatal(diags.Err())
 	}

@@ -118,6 +118,12 @@ type ServerCapabilities struct {
 	// PlanDestroy signals that this provider expects to receive a
 	// PlanResourceChange call for resources that are to be destroyed.
 	PlanDestroy bool
+
+	// The GetProviderSchemaOptional capability indicates that this
+	// provider does not require calling GetProviderSchema to operate
+	// normally, and the caller can used a cached copy of the provider's
+	// schema.
+	GetProviderSchemaOptional bool
 }
 
 type ValidateProviderConfigRequest struct {

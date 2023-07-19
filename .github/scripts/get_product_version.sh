@@ -28,8 +28,7 @@ LDFLAGS="-w -s"
 if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
 LDFLAGS="${LDFLAGS} -X 'main.experimentsAllowed=yes'"
 fi
-LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.Version=${BASE_VERSION}'"
-LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.Prerelease=${PRERELEASE}'"
+LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.dev=no'"
 
 echo "Building Terraform CLI ${VERSION}"
 if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
