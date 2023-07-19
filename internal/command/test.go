@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
 	"path"
 	"sort"
 	"strings"
@@ -93,6 +94,9 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	runCount := 0
+	fileCount := 0
+
 	var fileDiags tfdiags.Diagnostics
 	suite := moduletest.Suite{
 		Files: func() map[string]*moduletest.File {
@@ -112,6 +116,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 						continue
 					}
 
+					fileCount++
+
 					var runs []*moduletest.Run
 					for ix, run := range file.Runs {
 						runs = append(runs, &moduletest.Run{
@@ -120,6 +126,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 							Name:   run.Name,
 						})
 					}
+
+					runCount += len(runs)
 					files[name] = &moduletest.File{
 						Config: file,
 						Name:   name,
@@ -132,6 +140,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 			// Otherwise, we'll just do all the tests in the directory!
 			for name, file := range config.Module.Tests {
+				fileCount++
+
 				var runs []*moduletest.Run
 				for ix, run := range file.Runs {
 					runs = append(runs, &moduletest.Run{
@@ -140,6 +150,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 						Name:   run.Name,
 					})
 				}
+
+				runCount += len(runs)
 				files[name] = &moduletest.File{
 					Config: file,
 					Name:   name,
@@ -149,6 +161,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			return files
 		}(),
 	}
+
+	log.Printf("[DEBUG] TestCommand: found %d files with %d run blocks", fileCount, runCount)
 
 	diags = diags.Append(fileDiags)
 	if fileDiags.HasErrors() {
@@ -173,6 +187,11 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
+
+	// Print out all the diagnostics we have from the setup. These will just be
+	// warnings, and we want them out of the way before we start the actual
+	// testing.
+	view.Diagnostics(nil, nil, diags)
 
 	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
 	// is a soft request to stop. We'll finish the current test, do the tidy up,
@@ -310,6 +329,8 @@ func (runner *TestRunner) Start(globals map[string]backend.UnparsedVariableValue
 }
 
 func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
+	log.Printf("[TRACE] TestRunner: executing test file %s", file.Name)
+
 	mgr := new(TestStateManager)
 	mgr.runner = runner
 	mgr.State = states.NewState()
@@ -360,6 +381,8 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[str
 }
 
 func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config, globals map[string]backend.UnparsedVariableValue) *states.State {
+	log.Printf("[TRACE] TestRunner: executing run block %s/%s", file.Name, run.Name)
+
 	if runner.Cancelled {
 		// Don't do anything, just give up and return immediately.
 		// The surrounding functions should stop this even being called, but in
@@ -405,12 +428,15 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 	run.Diagnostics = run.Diagnostics.Append(diags)
 
 	if runner.Cancelled {
+		log.Printf("[DEBUG] TestRunner: exiting after test execution for %s/%s due to cancellation", file.Name, run.Name)
+
 		// Print out the diagnostics from the run now, since it was cancelled
 		// the normal set of diagnostics will not be printed otherwise.
 		runner.View.Diagnostics(run, file, run.Diagnostics)
 		run.Status = moduletest.Error
 		return state
 	}
+	log.Printf("[DEBUG] TestRunner: completed test execution for %s/%s", file.Name, run.Name)
 
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -470,8 +496,15 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 // The command argument decides whether it executes only a plan or also applies
 // the plan it creates during the planning.
 func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, config *configs.Config, state *states.State, opts *terraform.PlanOpts, command configs.TestCommand, globals map[string]backend.UnparsedVariableValue) (*terraform.Context, *plans.Plan, *states.State, tfdiags.Diagnostics) {
+	identifier := file.Name
+	if run != nil {
+		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	}
+	log.Printf("[TRACE] TestRunner: executing %s for %s", opts.Mode, identifier)
+
 	if opts.Mode == plans.DestroyMode && state.Empty() {
 		// Nothing to do!
+		log.Printf("[DEBUG] TestRunner: nothing to destroy for %s", identifier)
 		return nil, nil, state, nil
 	}
 
@@ -521,7 +554,10 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
+
+		log.Printf("[DEBUG] TestRunner: starting plan for %s", identifier)
 		plan, planDiags = tfCtx.Plan(config, state, opts)
+		log.Printf("[DEBUG] TestRunner: completed plan for %s", identifier)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
 	planDiags = planDiags.Append(waitDiags)
@@ -535,6 +571,7 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	}
 
 	if cancelled {
+		log.Printf("[DEBUG] TestRunner: skipping apply stage for %s due to cancellation", identifier)
 		// If the execution was cancelled during the plan, we'll exit here to
 		// stop the plan being applied and using more time.
 		return tfCtx, plan, state, diags
@@ -587,7 +624,9 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
+		log.Printf("[DEBUG] TestRunner: starting apply for %s", identifier)
 		updated, applyDiags = tfCtx.Apply(plan, config)
+		log.Printf("[DEBUG] TestRunner: completed apply for %s", identifier)
 	}()
 	waitDiags, _ = runner.wait(tfCtx, runningCtx, mgr, run, file, created)
 	applyDiags = applyDiags.Append(waitDiags)
@@ -597,12 +636,18 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 }
 
 func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Context, mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
+	identifier := file.Name
+	if run != nil {
+		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	}
+	log.Printf("[TRACE] TestRunner: waiting for execution during %s", identifier)
 
 	// This function handles what happens when the user presses the second
 	// interrupt. This is a "hard cancel", we are going to stop doing whatever
 	// it is we're doing. This means even if we're halfway through creating or
 	// destroying infrastructure we just give up.
 	handleCancelled := func() {
+		log.Printf("[DEBUG] TestRunner: test execution cancelled during %s", identifier)
 
 		states := make(map[*moduletest.Run]*states.State)
 		states[nil] = mgr.State
@@ -624,6 +669,8 @@ func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Contex
 	// anything but just wait for things to finish safely. But, we do listen
 	// for the crucial second interrupt which will prompt a hard stop / cancel.
 	handleStopped := func() {
+		log.Printf("[DEBUG] TestRunner: test execution stopped during %s", identifier)
+
 		select {
 		case <-runner.CancelledCtx.Done():
 			// We've been asked again. This time we stop whatever we're doing
@@ -680,8 +727,11 @@ type TestModuleState struct {
 }
 
 func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
+	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
+
 	if manager.runner.Cancelled {
 		// Don't try and clean anything up if the execution has been cancelled.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
 		return
 	}
 
@@ -701,9 +751,12 @@ func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals ma
 	for ix := len(manager.States); ix > 0; ix-- {
 		module := manager.States[ix-1]
 
+		log.Printf("[DEBUG] TestStateManager: cleaning up state for %s/%s", file.Name, module.Run.Name)
+
 		if manager.runner.Cancelled {
 			// In case the cancellation came while a previous state was being
 			// destroyed.
+			log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s/%s due to cancellation", file.Name, module.Run.Name)
 			return
 		}
 
