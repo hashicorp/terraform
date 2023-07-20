@@ -2,6 +2,7 @@ package rpcapi
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
@@ -11,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 type stacksServer struct {
@@ -131,6 +135,8 @@ func stackConfigMetaforProto(cfgNode *stackconfig.ConfigNode) *terraform1.FindSt
 }
 
 func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request, evts terraform1.Stacks_PlanStackChangesServer) error {
+	ctx := evts.Context()
+
 	cfgHnd := handle[*stackconfig.Config](req.StackConfigHandle)
 	cfg := s.handles.StackConfig(cfgHnd)
 	if cfg == nil {
@@ -155,22 +161,92 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		return status.Errorf(codes.InvalidArgument, "don't yet support planning with a previous state")
 	}
 
-	// TEMP: For now we're just pretending that we've planned and reporting that
-	// nothing needs to change, so this is just enough to be able to implement
-	// the client to this RPC independently from writing its real implementation.
-	//
-	// However, we will emit a diagnostic warning that we didn't make a real
-	// plan so that once there is a real implementation it'll be easy to
-	// recognize whether we're actually using it or not.
-	evts.Send(&terraform1.PlanStackChanges_Event{
-		Event: &terraform1.PlanStackChanges_Event_Diagnostic{
-			Diagnostic: &terraform1.Diagnostic{
-				Severity: terraform1.Diagnostic_WARNING,
-				Summary:  "Fake planning implementation",
-				Detail:   "This plan contains no changes because this result was built from an early stub of the Terraform Core API for stack planning, which does not have any real logic for planning.",
-			},
-		},
-	})
+	changesCh := make(chan stackplan.PlannedChange, 8)
+	diagsCh := make(chan tfdiags.Diagnostic, 2)
+	rtReq := stackruntime.PlanRequest{
+		Config: cfg,
+	}
+	rtResp := stackruntime.PlanResponse{
+		PlannedChanges: changesCh,
+		Diagnostics:    diagsCh,
+	}
+
+	// The actual plan operation runs in the background, and emits events
+	// to us via the channels in rtResp before finally closing changesCh
+	// to signal that the process is complete.
+	go stackruntime.Plan(ctx, &rtReq, &rtResp)
+
+	emitDiag := func(diag tfdiags.Diagnostic) {
+		diags := tfdiags.Diagnostics{diag}
+		protoDiags := diagnosticsToProto(diags)
+		for _, protoDiag := range protoDiags {
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_Diagnostic{
+					Diagnostic: protoDiag,
+				},
+			})
+		}
+	}
+
+	// There is no strong ordering between the planned changes and the
+	// diagnostics, so we need to be prepared for them to arrive in any
+	// order. However, stackruntime.Plan does guarantee that it will
+	// close changesCh only after it's finished writing to and closing
+	// everything else, and so we can assume that once changesCh is
+	// closed we only need to worry about whatever's left in the
+	// diagsCh buffer.
+Events:
+	for {
+		select {
+
+		case change, ok := <-changesCh:
+			if !ok {
+				if diagsCh != nil {
+					// Async work is done! We do still need to consume the rest
+					// of diagsCh before we stop, though, because there might
+					// be some extras in the channel's buffer that we didn't
+					// get to yet.
+					for diag := range diagsCh {
+						emitDiag(diag)
+					}
+				}
+				break Events
+			}
+
+			protoChange, err := change.PlannedChangeProto()
+			if err != nil {
+				// Should not get here: it always indicates a bug in
+				// PlannedChangeProto or in the code which constructed
+				// the change over in package stackeval.
+				emitDiag(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Incorrectly-constructed change",
+					fmt.Sprintf(
+						"Failed to serialize a %T value for recording in the saved plan: %s.\n\nThis is a bug in Terraform; please report it!",
+						protoChange, err,
+					),
+				))
+				continue
+			}
+
+			evts.Send(&terraform1.PlanStackChanges_Event{
+				Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+					PlannedChange: protoChange,
+				},
+			})
+
+		case diag, ok := <-diagsCh:
+			if !ok {
+				// The diagnostics channel has closed, so we'll just stop
+				// trying to read from it and wait for changesCh to close,
+				// which will be our final signal that everything is done.
+				diagsCh = nil
+				continue
+			}
+			emitDiag(diag)
+
+		}
+	}
 
 	return nil
 }
