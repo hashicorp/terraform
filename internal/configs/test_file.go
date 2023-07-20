@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // TestCommand represents the Terraform a given run block will execute, plan
@@ -121,6 +122,39 @@ type TestRun struct {
 	NameDeclRange      hcl.Range
 	VariablesDeclRange hcl.Range
 	DeclRange          hcl.Range
+}
+
+// Validate does a very simple and cursory check across the run block to look
+// for simple issues we can highlight early on.
+func (run *TestRun) Validate() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	// For now, we only want to make sure all the ExpectFailure references are
+	// the correct kind of reference.
+	for _, traversal := range run.ExpectFailures {
+
+		reference, refDiags := addrs.ParseRefFromTestingScope(traversal)
+		diags = diags.Append(refDiags)
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		switch reference.Subject.(type) {
+		// You can only reference outputs, inputs, checks, and resources.
+		case addrs.OutputValue, addrs.InputVariable, addrs.Check, addrs.ResourceInstance, addrs.Resource:
+			// Do nothing, these are okay!
+		default:
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid `expect_failures` reference",
+				Detail:   fmt.Sprintf("You cannot expect failures from %s. You can only expect failures from checkable objects such as input variables, output values, check blocks, managed resources and data sources.", reference.Subject.String()),
+				Subject:  reference.SourceRange.ToHCL().Ptr(),
+			})
+		}
+
+	}
+
+	return diags
 }
 
 // TestRunModuleCall specifies which module should be executed by a given run

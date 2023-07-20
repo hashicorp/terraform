@@ -12,8 +12,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
+	testing_command "github.com/hashicorp/terraform/internal/command/testing"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terminal"
@@ -214,6 +217,95 @@ func TestMissingDefinedVar(t *testing.T) {
 	// correctly, not that they all have defined values.
 	if code != 0 {
 		t.Fatalf("Should have passed: %d\n\n%s", code, output.Stderr())
+	}
+}
+
+func TestValidateWithInvalidTestFile(t *testing.T) {
+
+	// We're reusing some testing configs that were written for testing the
+	// test command here, so we have to initalise things slightly differently
+	// to the other tests.
+
+	view, done := testView(t)
+	provider := testing_command.NewProvider(nil)
+	c := &ValidateCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	var args []string
+	args = append(args, "-no-color")
+	args = append(args, testFixturePath("test/invalid"))
+
+	code := c.Run(args)
+	output := done(t)
+
+	if code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+	}
+
+	wantError := "Error: Invalid `expect_failures` reference"
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
+	}
+}
+
+func TestValidateWithInvalidTestModule(t *testing.T) {
+
+	// We're reusing some testing configs that were written for testing the
+	// test command here, so we have to initalise things slightly differently
+	// to the other tests.
+
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
+	defer testChdir(t, td)()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	c := &ValidateCommand{
+		Meta: meta,
+	}
+
+	var args []string
+	args = append(args, "-no-color")
+
+	code := c.Run(args)
+	output := done(t)
+
+	if code != 1 {
+		t.Fatalf("Should have failed: %d\n\n%s", code, output.Stderr())
+	}
+
+	wantError := "Error: Reference to undeclared input variable"
+	if !strings.Contains(output.Stderr(), wantError) {
+		t.Fatalf("Missing error string %q\n\n'%s'", wantError, output.Stderr())
 	}
 }
 

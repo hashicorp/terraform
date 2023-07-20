@@ -50,6 +50,8 @@ Options:
   -json                 If specified, machine readable output will be printed in
                         JSON format
 
+  -no-color             If specified, output won't contain any color.
+
   -test-directory=path	Set the Terraform test directory, defaults to "tests".    
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
@@ -212,6 +214,23 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
+		// Validate the main config first.
+		validateDiags := runner.Validate()
+
+		// Print out any warnings or errors from the validation.
+		view.Diagnostics(nil, nil, validateDiags)
+		if validateDiags.HasErrors() {
+			// Don't try and run the tests if the validation actually failed.
+			// We'll also leave the test status as pending as we actually made
+			// no effort to run the tests.
+			return
+		}
+
+		if runner.Stopped || runner.Cancelled {
+			suite.Status = moduletest.Error
+			return
+		}
+
 		runner.Start(variables)
 	}()
 
@@ -288,6 +307,62 @@ type TestRunner struct {
 
 	// Verbose tells the runner to print out plan files during each test run.
 	Verbose bool
+}
+
+func (runner *TestRunner) Validate() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	diags = diags.Append(runner.validateConfig(runner.Config))
+	if runner.Cancelled || runner.Stopped {
+		return diags
+	}
+
+	// We've validated the main configuration under test. We now need to
+	// validate any other modules that are being executed by the test files.
+	//
+	// We only validate modules that are sourced locally, we're making an
+	// assumption that any remote modules were properly vetted and tested before
+	// being used in our tests.
+	validatedModules := make(map[string]bool)
+
+	for _, file := range runner.Suite.Files {
+		for _, run := range file.Runs {
+
+			if runner.Cancelled || runner.Stopped {
+				return diags
+			}
+
+			// While we're here, also do a quick validation of the config of the
+			// actual run block.
+			diags = diags.Append(run.Config.Validate())
+
+			// If the run block is executing another local module, we should
+			// validate that before we try and run it.
+			if run.Config.ConfigUnderTest != nil {
+
+				if _, ok := run.Config.Module.Source.(addrs.ModuleSourceLocal); !ok {
+					// If it's not a local module, we're not going to validate
+					// it. The idea here is that if we're retrieving this module
+					// from the registry it's not the job of this run of the
+					// testing framework to test it. We should assume it's
+					// working correctly.
+					continue
+				}
+
+				if validated := validatedModules[run.Config.Module.Source.String()]; validated {
+					// We've validated this local module before, so don't do
+					// it again.
+					continue
+				}
+
+				validatedModules[run.Config.Module.Source.String()] = true
+				diags = diags.Append(runner.validateConfig(run.Config.ConfigUnderTest))
+			}
+
+		}
+	}
+
+	return diags
 }
 
 func (runner *TestRunner) Start(globals map[string]backend.UnparsedVariableValue) {
@@ -465,6 +540,40 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 	return state
 }
 
+func (runner *TestRunner) validateConfig(config *configs.Config) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	tfCtxOpts, err := runner.command.contextOpts()
+	diags = diags.Append(err)
+	if err != nil {
+		return diags
+	}
+
+	tfCtx, ctxDiags := terraform.NewContext(tfCtxOpts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return diags
+	}
+
+	runningCtx, done := context.WithCancel(context.Background())
+
+	var validateDiags tfdiags.Diagnostics
+	go func() {
+		defer logging.PanicHandler()
+		defer done()
+		validateDiags = tfCtx.Validate(config)
+	}()
+	// We don't need to pass in any metadata here, as we're only validating
+	// so if something is cancelled it doesn't matter. We only pass in the
+	// metadata so we can print context around the cancellation which we don't
+	// need to do in this case.
+	waitDiags, _ := runner.wait(tfCtx, runningCtx, nil, nil, nil, nil)
+
+	diags = diags.Append(validateDiags)
+	diags = diags.Append(waitDiags)
+	return diags
+}
+
 // execute executes Terraform plan and apply operations for the given arguments.
 //
 // The command argument decides whether it executes only a plan or also applies
@@ -604,12 +713,20 @@ func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Contex
 	// destroying infrastructure we just give up.
 	handleCancelled := func() {
 
-		states := make(map[*moduletest.Run]*states.State)
-		states[nil] = mgr.State
-		for _, module := range mgr.States {
-			states[module.Run] = module.State
+		if mgr != nil {
+
+			// The state manager might be nil if we are waiting for a validate
+			// call to finish. This is fine, it just means there's no state
+			// that might be need to be cleaned up.
+
+			states := make(map[*moduletest.Run]*states.State)
+			states[nil] = mgr.State
+			for _, module := range mgr.States {
+				states[module.Run] = module.State
+			}
+			runner.View.FatalInterruptSummary(run, file, states, created)
+
 		}
-		runner.View.FatalInterruptSummary(run, file, states, created)
 
 		cancelled = true
 		go ctx.Stop()
