@@ -75,7 +75,7 @@ func TestTest(t *testing.T) {
 		},
 		"multiple_files_with_filter": {
 			override: "multiple_files",
-			args:     []string{"-filter=one.tftest"},
+			args:     []string{"-filter=one.tftest.hcl"},
 			expected: "1 passed, 0 failed",
 			code:     0,
 		},
@@ -211,7 +211,7 @@ func TestTest_DoubleInterrupt(t *testing.T) {
 		t.Errorf("output didn't produce the right output:\n\n%s", output)
 	}
 
-	cleanupMessage := `Terraform was interrupted while executing main.tftest, and may not have
+	cleanupMessage := `Terraform was interrupted while executing main.tftest.hcl, and may not have
 performed the expected cleanup operations.
 
 Terraform has already created the following resources from the module under
@@ -396,7 +396,7 @@ func TestTest_Verbose(t *testing.T) {
 		t.Errorf("expected status code 0 but got %d", code)
 	}
 
-	expected := `main.tftest... pass
+	expected := `main.tftest.hcl... pass
   run "validate_test_resource"... pass
 
 Terraform used the selected providers to generate the following execution
