@@ -1,0 +1,128 @@
+package stackeval
+
+import (
+	"context"
+	"sync"
+
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/hooks"
+)
+
+// Hooks is an optional API for external callers to be notified about various
+// progress events during plan and apply operations.
+//
+// This type is exposed to external callers through a type alias in package
+// stackruntime, and so it is part of the public API of that package despite
+// being defined in here.
+type Hooks struct {
+
+	// ContextAttach is an optional callback for wrapping a non-nil value
+	// returned by a [hooks.BeginFunc] into a [context.Context] to be passed
+	// to other context-aware operations that descend from the operation that
+	// was begun.
+	//
+	// See the docs for [hooks.ContextAttachFunc] for more information.
+	ContextAttach hooks.ContextAttachFunc
+}
+
+// A do-nothing default Hooks that we use when the caller doesn't provide one.
+var noHooks = &Hooks{}
+
+// ContextWithHooks returns a context that carries the given [Hooks] as
+// one of its values.
+func ContextWithHooks(parent context.Context, hooks *Hooks) context.Context {
+	return context.WithValue(parent, hooksContextKey{}, hooks)
+}
+
+func hooksFromContext(ctx context.Context) *Hooks {
+	hooks, ok := ctx.Value(hooksContextKey{}).(*Hooks)
+	if !ok {
+		return noHooks
+	}
+	return hooks
+}
+
+type hooksContextKey struct{}
+
+// hookSeq is a small helper for keeping track of a sequence of hooks related
+// to the same multi-step action.
+//
+// It retains the hook implementer's arbitrary tracking values between calls
+// so as to reduce the visual noise and complexity of our main evaluation code.
+// Once a hook sequence has begun using a "begin" callback, it's safe to run
+// subsequent hooks concurrently from multiple goroutines, although from
+// the caller's perspective that will make the propagation of changes to their
+// tracking values appear unpredictable.
+type hookSeq struct {
+	tracking any
+	mu       sync.Mutex
+}
+
+// hookBegin begins a hook sequence by calling a [hooks.BeginFunc] callback.
+//
+// The result can be used with [hookMore] to report ongoing progress or
+// completion of whatever multi-step process has begun.
+//
+// This function also deals with the optional [hook.ContextAttachFunc] that
+// hook implementers may provide. If it's non-nil then the returned context
+// is the result of that function. Otherwise it is the same context provided
+// by the caller.
+
+// Callers should use the returned context for all subsequent context-aware
+// calls that are related to whatever multi-step operation this hook sequence
+// represents, so that the hook subscriber can use this mechanism to propagate
+// distributed tracing spans to downstream operations. Callers MUST also use
+// descendents of the resulting context for any subsequent calls to
+// [runHookBegin] using the returned [hookSeq].
+func hookBegin[Msg any](ctx context.Context, cb hooks.BeginFunc[Msg], ctxCb hooks.ContextAttachFunc, msg Msg) (*hookSeq, context.Context) {
+	tracking := runHookBegin(ctx, cb, msg)
+	if ctxCb != nil {
+		ctx = ctxCb(ctx, tracking)
+	}
+	return &hookSeq{
+		tracking: tracking,
+	}, ctx
+}
+
+// hookMore continues a hook sequence by calling a [hooks.MoreFunc] callback
+// using the tracking state retained by the given [hookSeq].
+//
+// It's safe to use [hookMore] with the same [hookSeq] from multiple goroutines
+// concurrently, and it's guaranteed that no two hooks will run concurrently
+// within the same sequence, but it'll be unpredictable from the caller's
+// standpoint which order the hooks will occur.
+func hookMore[Msg any](ctx context.Context, seq *hookSeq, cb hooks.MoreFunc[Msg], msg Msg) {
+	// We hold the lock throughout the hook call so that callers don't need
+	// to worry about concurrent calls to their hooks and so that the
+	// propagation of the arbitrary "tracking" values from one hook to the
+	// next will always exact follow the sequence of the calls.
+	seq.mu.Lock()
+	seq.tracking = runHookMore(ctx, cb, seq.tracking, msg)
+	seq.mu.Unlock()
+}
+
+// runHookBegin is a lower-level helper that just directly runs a given
+// callback if it isn't nil and returns its result. If the given callback is
+// nil then runHookBegin immediately returns nil.
+func runHookBegin[Msg any](ctx context.Context, cb hooks.BeginFunc[Msg], msg Msg) any {
+	if cb == nil {
+		return nil
+	}
+	return cb(ctx, msg)
+}
+
+// runHookMore is a lower-level helper that just directly runs a given
+// callback if it isn't nil and returns the effective new tracking value,
+// which may or may not be the same value passed as "tracking".
+// If the given callback is nil then runHookMore immediately returns the given
+// tracking value.
+func runHookMore[Msg any](ctx context.Context, cb hooks.MoreFunc[Msg], tracking any, msg Msg) any {
+	if cb == nil {
+		// We'll retain any existing tracking value, then.
+		return tracking
+	}
+	newTracking := cb(ctx, tracking, msg)
+	if newTracking != nil {
+		return newTracking
+	}
+	return tracking
+}
