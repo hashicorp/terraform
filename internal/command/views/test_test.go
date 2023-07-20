@@ -762,7 +762,8 @@ Warning: second warning
 
 some thing not very bad happened again
 `,
-			stderr: `Terraform encountered an error destroying resources created while executing main.tftest.
+			stderr: `Terraform encountered an error destroying resources created while executing
+main.tftest.
 
 Error: first error
 
@@ -776,7 +777,8 @@ this time it is very bad
 			run:   &moduletest.Run{Name: "run_block"},
 			file:  &moduletest.File{Name: "main.tftest"},
 			state: states.NewState(),
-			stderr: `Terraform encountered an error destroying resources created while executing main.tftest/run_block.
+			stderr: `Terraform encountered an error destroying resources created while executing
+main.tftest/run_block.
 
 Error: first error
 
@@ -841,7 +843,8 @@ Warning: second warning
 some thing not very bad happened again
 `,
 			stderr: `
-Terraform left the following resources in state after executing main.tftest, they need to be cleaned up manually:
+Terraform left the following resources in state after executing main.tftest,
+and they need to be cleaned up manually:
   - test.bar
   - test.bar (0fcb640a)
   - test.foo
@@ -905,13 +908,15 @@ Warning: second warning
 
 some thing not very bad happened again
 `,
-			stderr: `Terraform encountered an error destroying resources created while executing main.tftest.
+			stderr: `Terraform encountered an error destroying resources created while executing
+main.tftest.
 
 Error: first error
 
 this time it is very bad
 
-Terraform left the following resources in state after executing main.tftest, they need to be cleaned up manually:
+Terraform left the following resources in state after executing main.tftest,
+and they need to be cleaned up manually:
   - test.bar
   - test.bar (0fcb640a)
   - test.foo
@@ -985,9 +990,11 @@ func TestTestHuman_FatalInterruptSummary(t *testing.T) {
 				},
 			},
 			want: `
-Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+Terraform was interrupted while executing main.tftest, and may not have
+performed the expected cleanup operations.
 
-Terraform was in the process of creating the following resources for run_block from the module under test, and they may not have been destroyed:
+Terraform was in the process of creating the following resources for
+"run_block" from the module under test, and they may not have been destroyed:
   - test_instance.one
   - test_instance.two
 `,
@@ -1026,9 +1033,11 @@ Terraform was in the process of creating the following resources for run_block f
 			},
 			created: nil,
 			want: `
-Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+Terraform was interrupted while executing main.tftest, and may not have
+performed the expected cleanup operations.
 
-Terraform has already created the following resources from the module under test:
+Terraform has already created the following resources from the module under
+test:
   - test_instance.one
   - test_instance.two
 `,
@@ -1074,9 +1083,11 @@ Terraform has already created the following resources from the module under test
 			},
 			created: nil,
 			want: `
-Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+Terraform was interrupted while executing main.tftest, and may not have
+performed the expected cleanup operations.
 
-Terraform has already created the following resources for setup_block from ../setup:
+Terraform has already created the following resources for "setup_block" from
+"../setup":
   - test_instance.one
   - test_instance.two
 `,
@@ -1186,17 +1197,21 @@ Terraform has already created the following resources for setup_block from ../se
 				Name:   "run_block",
 			},
 			want: `
-Terraform was interrupted while executing main.tftest, and may not have performed the expected cleanup operations.
+Terraform was interrupted while executing main.tftest, and may not have
+performed the expected cleanup operations.
 
-Terraform has already created the following resources for setup_block from ../setup:
+Terraform has already created the following resources for "setup_block" from
+"../setup":
   - test_instance.setup_one
   - test_instance.setup_two
 
-Terraform has already created the following resources from the module under test:
+Terraform has already created the following resources from the module under
+test:
   - test_instance.one
   - test_instance.two
 
-Terraform was in the process of creating the following resources for run_block from the module under test, and they may not have been destroyed:
+Terraform was in the process of creating the following resources for
+"run_block" from the module under test, and they may not have been destroyed:
   - test_instance.new_one
   - test_instance.new_two
 `,
