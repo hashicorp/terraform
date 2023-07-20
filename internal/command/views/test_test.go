@@ -844,7 +844,7 @@ some thing not very bad happened again
 `,
 			stderr: `
 Terraform left the following resources in state after executing main.tftest,
-they need to be cleaned up manually:
+and they need to be cleaned up manually:
   - test.bar
   - test.bar (0fcb640a)
   - test.foo
@@ -916,7 +916,7 @@ Error: first error
 this time it is very bad
 
 Terraform left the following resources in state after executing main.tftest,
-they need to be cleaned up manually:
+and they need to be cleaned up manually:
   - test.bar
   - test.bar (0fcb640a)
   - test.foo

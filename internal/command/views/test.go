@@ -217,7 +217,7 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	t.Diagnostics(run, file, diags)
 
 	if state.HasManagedResourceInstanceObjects() {
-		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
