@@ -22,6 +22,7 @@ func TestImportBlock_decode(t *testing.T) {
 	}
 
 	foo_str_expr := hcltest.MockExprLiteral(cty.StringVal("foo"))
+	blank_str_expr := hcltest.MockExprLiteral(cty.StringVal(""))
 	bar_expr := hcltest.MockExprTraversalSrc("test_instance.bar")
 
 	bar_index_expr := hcltest.MockExprTraversalSrc("test_instance.bar[\"one\"]")
