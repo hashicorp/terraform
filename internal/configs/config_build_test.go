@@ -316,7 +316,7 @@ func TestBuildConfig_WithTestModule(t *testing.T) {
 		t.Fatalf("expected exactly one test case but found %d", len(cfg.Module.Tests))
 	}
 
-	test := cfg.Module.Tests["main.tftest"]
+	test := cfg.Module.Tests["main.tftest.hcl"]
 	if len(test.Runs) != 2 {
 		t.Fatalf("expected two test runs but found %d", len(test.Runs))
 	}

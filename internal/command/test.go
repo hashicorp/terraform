@@ -32,10 +32,10 @@ Usage: terraform [global options] test [options]
   Executes automated integration tests against the current Terraform 
   configuration.
 
-  Terraform will search for .tftest files within the current configuration and 
-  testing directories. Terraform will then execute the testing run blocks within
-  any testing files in order, and verify conditional checks and assertions 
-  against the created infrastructure. 
+  Terraform will search for .tftest.hcl files within the current configuration 
+  and testing directories. Terraform will then execute the testing run blocks 
+  within any testing files in order, and verify conditional checks and 
+  assertions against the created infrastructure. 
 
   This command creates real infrastructure and will attempt to clean up the
   testing infrastructure on completion. Monitor the output carefully to ensure

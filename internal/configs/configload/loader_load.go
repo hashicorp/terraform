@@ -8,6 +8,7 @@ import (
 
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
+
 	"github.com/hashicorp/terraform/internal/configs"
 )
 
@@ -26,7 +27,7 @@ func (l *Loader) LoadConfig(rootDir string) (*configs.Config, hcl.Diagnostics) {
 }
 
 // LoadConfigWithTests matches LoadConfig, except the configs.Config contains
-// any relevant .tftest files.
+// any relevant .tftest.hcl files.
 func (l *Loader) LoadConfigWithTests(rootDir string, testDir string) (*configs.Config, hcl.Diagnostics) {
 	return l.loadConfig(l.parser.LoadConfigDirWithTests(rootDir, testDir))
 }
