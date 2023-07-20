@@ -1200,15 +1200,15 @@ Terraform has already created the following resources for "setup_block" from
 Terraform was interrupted while executing main.tftest.hcl, and may not have
 performed the expected cleanup operations.
 
-Terraform has already created the following resources for "setup_block" from
-"../setup":
-  - test_instance.setup_one
-  - test_instance.setup_two
-
 Terraform has already created the following resources from the module under
 test:
   - test_instance.one
   - test_instance.two
+
+Terraform has already created the following resources for "setup_block" from
+"../setup":
+  - test_instance.setup_one
+  - test_instance.setup_two
 
 Terraform was in the process of creating the following resources for
 "run_block" from the module under test, and they may not have been destroyed:
@@ -1222,7 +1222,18 @@ Terraform was in the process of creating the following resources for
 			streams, done := terminal.StreamsForTesting(t)
 			view := NewTest(arguments.ViewHuman, NewView(streams))
 
-			file := &moduletest.File{Name: "main.tftest.hcl"}
+			file := &moduletest.File{
+				Name: "main.tftest.hcl",
+				Runs: func() []*moduletest.Run {
+					var runs []*moduletest.Run
+					for run := range tc.states {
+						if run != nil {
+							runs = append(runs, run)
+						}
+					}
+					return runs
+				}(),
+			}
 
 			view.FatalInterruptSummary(tc.run, file, tc.states, tc.created)
 			actual, expected := done(t).Stderr(), tc.want

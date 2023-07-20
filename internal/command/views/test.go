@@ -243,31 +243,33 @@ func (t *TestHuman) FatalInterrupt() {
 func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
 	t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name), t.view.errorColumns()))
 
-	for run, state := range existingStates {
-		if state.Empty() {
-			// Then it's fine, don't worry about it.
+	// Print out the main state first, this is the state that isn't associated
+	// with a run block.
+	if state, exists := existingStates[nil]; exists && !state.Empty() {
+		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
+			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		}
+	}
+
+	// Then print out the other states in order.
+	for _, run := range file.Runs {
+		state, exists := existingStates[run]
+		if !exists || state.Empty() {
 			continue
 		}
 
-		if run == nil {
-			// Then this is just the main state for the whole file.
-			t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
-			for _, resource := range state.AllResourceInstanceObjectAddrs() {
-				if resource.DeposedKey != states.NotDeposed {
-					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-					continue
-				}
-				t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
 			}
-		} else {
-			t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
-			for _, resource := range state.AllResourceInstanceObjectAddrs() {
-				if resource.DeposedKey != states.NotDeposed {
-					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-					continue
-				}
-				t.view.streams.Eprintf("  - %s\n", resource.Instance)
-			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
 		}
 	}
 
