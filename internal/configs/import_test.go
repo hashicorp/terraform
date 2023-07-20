@@ -143,6 +143,29 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			"Missing required argument",
 		},
+		"error: blank id argument": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
+						},
+						"id": {
+							Name: "id",
+							Expr: blank_str_expr,
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				ID:        mustAbsResourceInstanceAddr("test_instance.bar"),
+				DeclRange: blockRange,
+			},
+			"id argument is blank",
+		},
 	}
 
 	for name, test := range tests {

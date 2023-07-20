@@ -32,7 +32,14 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 	if attr, exists := content.Attributes["id"]; exists {
 		attrDiags := gohcl.DecodeExpression(attr.Expr, nil, &imp.ID)
 		diags = append(diags, attrDiags...)
-
+		if (len(imp.ID) == 0) {
+			diags = append(diags, &hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Import ID cannot be blank",
+				Detail:   "The id argument of the import block must be a non-empty string. Please see the resource documentation for how to find the import ID.",
+				Subject:  attr.Range.Ptr(),
+			})
+		}
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
