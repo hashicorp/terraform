@@ -313,6 +313,23 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[str
 	mgr := new(TestStateManager)
 	mgr.runner = runner
 	mgr.State = states.NewState()
+
+	// We're going to check if the cleanupStates function call will actually
+	// work before we start the test.
+	diags := mgr.prepare(file, globals)
+	if diags.HasErrors() || runner.Cancelled || runner.Stopped {
+		file.Status = moduletest.Error
+		runner.View.File(file)
+		runner.View.Diagnostics(nil, file, diags)
+		for _, run := range file.Runs {
+			run.Status = moduletest.Skip
+			runner.View.Run(run, file)
+		}
+		return
+	}
+
+	// Make sure we clean up any states created during the execution of this
+	// file.
 	defer mgr.cleanupStates(file, globals)
 
 	file.Status = file.Status.Merge(moduletest.Pass)
@@ -354,6 +371,7 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[str
 	}
 
 	runner.View.File(file)
+	runner.View.Diagnostics(nil, file, diags) // Print out any warnings from the preparation.
 	for _, run := range file.Runs {
 		runner.View.Run(run, file)
 	}
@@ -449,7 +467,7 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	variables, diags := buildInputVariablesForAssertions(run, file, config, globals)
+	variables, diags := buildInputVariablesForAssertions(run, file, globals)
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -679,6 +697,26 @@ type TestModuleState struct {
 	Run *moduletest.Run
 }
 
+// prepare makes some simple checks that increase our confidence that a later
+// clean up operation will succeed.
+//
+// When it comes time to execute cleanupStates below, we only have the
+// information available at the file level. Our run blocks may have executed
+// with additional data and configuration, so it's possible that we could
+// successfully execute all our run blocks and then find we cannot perform any
+// cleanup. We want to use this function to check that our cleanup can happen
+// using only the information available within the file.
+func (manager *TestStateManager) prepare(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+
+	// For now, the only thing we care about is making sure all the required
+	// variables have values.
+	_, diags := buildInputVariablesForTest(nil, file, manager.runner.Config, globals)
+
+	// Return the sum of diagnostics that might indicate a problem for any
+	// future attempted cleanup.
+	return diags
+}
+
 func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
 	if manager.runner.Cancelled {
 		// Don't try and clean anything up if the execution has been cancelled.
@@ -768,13 +806,9 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 //
 // Crucially, it differs from buildInputVariablesForTest in that the returned
 // input values include all variables available even if they are not defined
-// within the config.
-//
-// This does mean the returned diags might contain warnings about variables not
-// defined within the config. We might want to remove these warnings in the
-// future, since it is actually okay for test files to have variables defined
-// outside the configuration.
-func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, config *configs.Config, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
+// within the config. This allows the assertions to refer to variables defined
+// solely within the test file, and not only those within the configuration.
+func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
@@ -810,5 +844,12 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		variables[name] = variable
 	}
 
-	return backend.ParseVariableValues(variables, config.Module.Variables)
+	inputs := make(terraform.InputValues, len(variables))
+	var diags tfdiags.Diagnostics
+	for name, variable := range variables {
+		value, valueDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
+		diags = diags.Append(valueDiags)
+		inputs[name] = value
+	}
+	return inputs, diags
 }
