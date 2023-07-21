@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -143,6 +146,12 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 		return status.Error(codes.InvalidArgument, "the given stack configuration handle is invalid")
 	}
 
+	// We'll hook some internal events in the planning process both to generate
+	// tracing information if we're in an OpenTelemetry-aware context and
+	// to propagate a subset of the events to our client.
+	hooks := stackPlanHooks(evts, cfg.Root.Stack.SourceAddr)
+	ctx = stackruntime.ContextWithHooks(ctx, hooks)
+
 	var planMode plans.Mode
 	switch req.PlanMode {
 	case terraform1.PlanMode_NORMAL:
@@ -249,4 +258,34 @@ Events:
 	}
 
 	return nil
+}
+
+func stackPlanHooks(evts terraform1.Stacks_PlanStackChangesServer, mainStackSource sourceaddrs.FinalSource) *stackruntime.Hooks {
+	return &stackruntime.Hooks{
+		// For any BeginFunc-shaped hook that returns an OpenTelemetry tracing
+		// span, we'll wrap it in a context so that the runtime's downstream
+		// operations will appear as children of it.
+		ContextAttach: func(parent context.Context, tracking any) context.Context {
+			span, ok := tracking.(trace.Span)
+			if !ok {
+				return parent
+			}
+			return trace.ContextWithSpan(parent, span)
+		},
+
+		// For the overall plan operation we don't emit any events to the client,
+		// since it already knows it has asked us to plan, but we do establish
+		// a root tracing span for all of the downstream planning operations to
+		// attach themselves to.
+		BeginPlan: func(ctx context.Context, s struct{}) any {
+			_, span := tracer.Start(ctx, "planning", trace.WithAttributes(
+				attribute.String("main_stack_source", mainStackSource.String()),
+			))
+			return span
+		},
+		EndPlan: func(ctx context.Context, span any, s struct{}) any {
+			span.(trace.Span).End()
+			return nil
+		},
+	}
 }

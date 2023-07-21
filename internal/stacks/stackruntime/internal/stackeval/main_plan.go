@@ -18,6 +18,10 @@ import (
 // the provided callbacks and, if necessary, construct their own overall
 // data structure by aggregating the results.
 func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
+	hooks := hooksFromContext(ctx)
+	hs, ctx := hookBegin(ctx, hooks.BeginPlan, hooks.ContextAttach, struct{}{})
+	defer hookMore(ctx, hs, hooks.EndPlan, struct{}{})
+
 	// An important design goal here is that only our main walk code in this
 	// file interacts directly with the async PlanOutput API, with it calling
 	// into "normal-shaped" functions elsewhere that just run to completion
@@ -38,6 +42,10 @@ func (m *Main) PlanAll(ctx context.Context, outp PlanOutput) {
 			"This plan contains no changes because this result was built from an early stub of the Terraform Core API for stack planning, which does not have any real logic for planning.",
 		),
 	})
+
+	// The caller (in stackruntime) is responsible for generating the final
+	// stackplan.PlannedChangeApplyable message, just in case it detects
+	// problems of its own before finally returning.
 }
 
 type PlanOutput struct {

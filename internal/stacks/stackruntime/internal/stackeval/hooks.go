@@ -14,6 +14,21 @@ import (
 // stackruntime, and so it is part of the public API of that package despite
 // being defined in here.
 type Hooks struct {
+	// BeginPlan is called at the very start of a stack plan operation,
+	// encompassing that entire operation to allow establishing a top-level
+	// tracing context for that operation.
+	//
+	// BeginPlan does not provide any additional data, because no work has
+	// happened yet.
+	BeginPlan hooks.BeginFunc[struct{}]
+
+	// EndPlan marks the end of the overall planning process started at
+	// [Hooks.BeginPlan]. If [Hooks.BeginPlan] opened a tracing span then
+	// this EndPlan should end it.
+	//
+	// EndPlan does not provide any additional data, because all relevant
+	// information is provided by other means.
+	EndPlan hooks.MoreFunc[struct{}]
 
 	// ContextAttach is an optional callback for wrapping a non-nil value
 	// returned by a [hooks.BeginFunc] into a [context.Context] to be passed
