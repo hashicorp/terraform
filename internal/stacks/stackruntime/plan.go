@@ -2,9 +2,11 @@ package stackruntime
 
 import (
 	"context"
+	"sync"
 
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -21,13 +23,35 @@ import (
 // through resp after passing it to this function, aside from the implicit
 // modifications to the internal state of channels caused by reading them.
 func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
-	resp.Applyable = false // we'll reset this to true later if appropriate
+	resp.Applyable = true // we'll reset this to false later if appropriate
 
-	resp.Diagnostics <- tfdiags.Sourceless(
-		tfdiags.Warning,
-		"Fake planning implementation",
-		"This plan contains no changes because this result was built from an early stub of the Terraform Core API for stack planning, which does not have any real logic for planning.",
-	)
+	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
+
+	main := stackeval.NewForPlanning(req.Config, stackeval.PlanOpts{})
+	main.PlanAll(ctx, stackeval.PlanOutput{
+		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
+			resp.PlannedChanges <- change
+		},
+		AnnounceDiagnostics: func(ctx context.Context, diags tfdiags.Diagnostics) {
+			for _, diag := range diags {
+				if diag.Severity() == tfdiags.Error {
+					respMu.Lock()
+					// NOTE: Applyable can never become true again after this point.
+					resp.Applyable = false
+					respMu.Unlock()
+				}
+				resp.Diagnostics <- diag
+			}
+		},
+	})
+
+	// Before we return we'll emit one more special planned change just to
+	// remember in the raw plan sequence whether we considered this plan to be
+	// applyable, so we don't need to rely on the caller to remember
+	// resp.Applyable separately.
+	resp.PlannedChanges <- &stackplan.PlannedChangeApplyable{
+		Applyable: resp.Applyable,
+	}
 
 	close(resp.Diagnostics)
 	close(resp.PlannedChanges) // MUST be the last channel to close

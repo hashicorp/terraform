@@ -8,6 +8,8 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/anypb"
 )
 
 // grpcClientForTesting creates an in-memory-only gRPC server, offers the
@@ -56,4 +58,13 @@ func grpcClientForTesting(ctx context.Context, t *testing.T, registerServices fu
 		srv.Stop()
 		fakeListener.Close()
 	}
+}
+
+func mustMarshalAnyPb(msg proto.Message) *anypb.Any {
+	var ret anypb.Any
+	err := anypb.MarshalFrom(&ret, msg, proto.MarshalOptions{})
+	if err != nil {
+		panic(err)
+	}
+	return &ret
 }

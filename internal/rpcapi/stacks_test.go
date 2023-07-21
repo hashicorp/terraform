@@ -12,9 +12,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/anypb"
 
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/tfstackdata1"
+	"github.com/hashicorp/terraform/version"
 )
 
 func TestStacksOpenCloseStackConfiguration(t *testing.T) {
@@ -256,7 +259,18 @@ func TestStacksPlanStackChanges(t *testing.T) {
 		t.Fatalf("unexpected error: %s", err)
 	}
 
-	wantEvents := []*terraform1.PlanStackChanges_Event{
+	wantEvents := splitStackOperationEvents([]*terraform1.PlanStackChanges_Event{
+		{
+			Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+				PlannedChange: &terraform1.PlannedChange{
+					Raw: []*anypb.Any{
+						mustMarshalAnyPb(&tfstackdata1.PlanHeader{
+							TerraformVersion: version.SemVer.String(),
+						}),
+					},
+				},
+			},
+		},
 		{
 			Event: &terraform1.PlanStackChanges_Event_Diagnostic{
 				Diagnostic: &terraform1.Diagnostic{
@@ -266,8 +280,19 @@ func TestStacksPlanStackChanges(t *testing.T) {
 				},
 			},
 		},
-	}
-	var gotEvents []*terraform1.PlanStackChanges_Event
+		{
+			Event: &terraform1.PlanStackChanges_Event_PlannedChange{
+				PlannedChange: &terraform1.PlannedChange{
+					Raw: []*anypb.Any{
+						mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
+							Applyable: true,
+						}),
+					},
+				},
+			},
+		},
+	})
+	var gotEventsAll []*terraform1.PlanStackChanges_Event
 	for {
 		event, err := events.Recv()
 		if err == io.EOF {
@@ -276,10 +301,47 @@ func TestStacksPlanStackChanges(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %s", err)
 		}
-		gotEvents = append(gotEvents, event)
+		gotEventsAll = append(gotEventsAll, event)
 	}
+	gotEvents := splitStackOperationEvents(gotEventsAll)
 
 	if diff := cmp.Diff(wantEvents, gotEvents, protocmp.Transform()); diff != "" {
 		t.Errorf("wrong events\n%s", diff)
 	}
+}
+
+// stackOperationEventStreams represents the three different kinds of events
+// whose emission is independent from one another and so the relative ordering
+// between them is not guaranteed between runs. For easier comparison in
+// tests, use splitStackOperationEvents to obtain a value of this type.
+//
+// Note that even after splitting the streams will not be directly comparable
+// for most non-trivial operations, because a typical configuration only
+// forces a partial order of operations. Except in carefully-crafted tests
+// that are explicitly testing an explicit ordering, it may be better to
+// just scan the entire event stream and cherry-pick particular events of
+// interest, which will also avoid the need to update every test whenever we
+// add something entirely new to the even stream.
+type stackOperationEventStreams struct {
+	PlannedChanges []*terraform1.PlanStackChanges_Event
+	Diagnostics    []*terraform1.PlanStackChanges_Event
+
+	// MiscHooks is the "everything else" category where the detailed begin/end
+	// events for individual Terraform Core operations appear.
+	MiscHooks []*terraform1.PlanStackChanges_Event
+}
+
+func splitStackOperationEvents(all []*terraform1.PlanStackChanges_Event) stackOperationEventStreams {
+	ret := stackOperationEventStreams{}
+	for _, evt := range all {
+		switch evt.Event.(type) {
+		case *terraform1.PlanStackChanges_Event_PlannedChange:
+			ret.PlannedChanges = append(ret.PlannedChanges, evt)
+		case *terraform1.PlanStackChanges_Event_Diagnostic:
+			ret.Diagnostics = append(ret.Diagnostics, evt)
+		default:
+			ret.MiscHooks = append(ret.MiscHooks, evt)
+		}
+	}
+	return ret
 }
