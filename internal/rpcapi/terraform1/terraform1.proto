@@ -275,6 +275,7 @@ message PlannedChange {
         ResourceInstance resource_instance_drifted = 3;
         ResourceInstance resource_instance_planned = 4;
         OutputValue output_value_planned = 5;
+        bool plan_applyable = 6;
     }
 
     // A set of provider selections that will be needed to apply this

@@ -272,21 +272,15 @@ func TestStacksPlanStackChanges(t *testing.T) {
 			},
 		},
 		{
-			Event: &terraform1.PlanStackChanges_Event_Diagnostic{
-				Diagnostic: &terraform1.Diagnostic{
-					Severity: terraform1.Diagnostic_WARNING,
-					Summary:  "Fake planning implementation",
-					Detail:   "This plan contains no changes because this result was built from an early stub of the Terraform Core API for stack planning, which does not have any real logic for planning.",
-				},
-			},
-		},
-		{
 			Event: &terraform1.PlanStackChanges_Event_PlannedChange{
 				PlannedChange: &terraform1.PlannedChange{
 					Raw: []*anypb.Any{
 						mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
 							Applyable: true,
 						}),
+					},
+					Description: &terraform1.PlannedChange_PlanApplyable{
+						PlanApplyable: true,
 					},
 				},
 			},

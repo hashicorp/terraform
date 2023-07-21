@@ -261,9 +261,6 @@ func (pc *PlannedChangeHeader) PlannedChangeProto() (*terraform1.PlannedChange, 
 // end of the raw plan stream to represent that the planning process ran to
 // completion without encountering any errors, and therefore the plan could
 // potentially be applied.
-//
-// PlannedChangeApplyable has only a raw message and does not contribute
-// to the external-facing plan description.
 type PlannedChangeApplyable struct {
 	Applyable bool
 }
@@ -282,5 +279,8 @@ func (pc *PlannedChangeApplyable) PlannedChangeProto() (*terraform1.PlannedChang
 
 	return &terraform1.PlannedChange{
 		Raw: []*anypb.Any{&raw},
+		Description: &terraform1.PlannedChange_PlanApplyable{
+			PlanApplyable: pc.Applyable,
+		},
 	}, nil
 }

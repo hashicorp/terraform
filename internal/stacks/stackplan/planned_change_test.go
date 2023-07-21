@@ -54,6 +54,9 @@ func TestPlannedChangeAsProto(t *testing.T) {
 						Applyable: true,
 					}),
 				},
+				Description: &terraform1.PlannedChange_PlanApplyable{
+					PlanApplyable: true,
+				},
 			},
 		},
 		"applyable false": {
@@ -65,6 +68,9 @@ func TestPlannedChangeAsProto(t *testing.T) {
 					mustMarshalAnyPb(&tfstackdata1.PlanApplyable{
 						// false is the default
 					}),
+				},
+				Description: &terraform1.PlannedChange_PlanApplyable{
+					PlanApplyable: false,
 				},
 			},
 		},
