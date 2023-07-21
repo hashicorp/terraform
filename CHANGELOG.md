@@ -10,7 +10,7 @@ ENHANCEMENTS:
 * jsonplan: Added `errored` field to JSON plan output, indicating whether a plan errored. [GH-33372]
 
 BUG FIXES:
-* The upstream dependency that Terraform uses for service discovery of Terraform-native services such as Terraform Cloud/Enterprise state storage was previously not concurrency-safe, but Terraform was treating it as if it was in situations like when a configuration has multiple `terraform_remote_state` blocks all using the "remote" backend. Terraform is now using a newer version of that library which updates its internal caches in a concurrency-safe way. [GH-33364]
+* The upstream dependency that Terraform uses for service discovery of Terraform-native services such as Terraform Cloud/Enterprise state storage was previously not concurrency-safe, but Terraform was treating it as if it was in situations like when a configuration has multiple `terraform_remote_state` blocks all using the "remote" backend. Terraform is now using a newer version of that library which updates its internal caches in a concurrency-safe way. [GH-33364] [GH-33333]
 * Transitive dependencies were lost during apply when the referenced resource expanded into zero instances [GH-33403]
 
 ## Previous Releases
