@@ -22,6 +22,24 @@ import (
 type walkState struct {
 	wg    sync.WaitGroup
 	diags syncDiagnostics
+
+	// handleDiags is called for each call to [walkState.AddDiags], with
+	// a set of diagnostics produced from that call's arguments.
+	//
+	// Callback functions can choose between either accumulating diagnostics
+	// into an overall set and finally returning it from getFinalDiags, or
+	// immediately dispatching the diagnostics to some other location and
+	// then returning nothing from the final call to getFinalDiags.
+	handleDiags func(tfdiags.Diagnostics)
+
+	// getFinalDiags should return any diagnostics that were previously
+	// passed to handleDiags but not yet sent anywhere other than the
+	// internal state of a particular walkState object.
+	//
+	// For handleDiags implementations that immediately send all diagnostics
+	// somewhere out-of-hand, this should return nil to avoid those diagnostics
+	// getting duplicated by being returned through multiple paths.
+	getFinalDiags func() tfdiags.Diagnostics
 }
 
 // newWalkState creates a new walkState object that's ready to be passed down
@@ -31,11 +49,42 @@ type walkState struct {
 // by the top-level function that is orchestrating the walk and called only
 // once all downstream work has had a chance to start, so that it can block
 // for all of those tasks to complete.
+//
+// This default variant of newWalkState maintains an internal set of
+// accumulated diagnostics and eventually returns it from the completion
+// callback. Callers that need to handle diagnostics differently -- for example,
+// by streaming them to callers via an out-of-band mechanism as they arrive --
+// can use newWalkStateCustomDiags to customize the diagnostics handling.
 func newWalkState() (ws *walkState, complete func() tfdiags.Diagnostics) {
-	ret := &walkState{}
+	var diags syncDiagnostics
+	handleDiags := func(moreDiags tfdiags.Diagnostics) {
+		diags.Append(moreDiags)
+	}
+	getFinalDiags := func() tfdiags.Diagnostics {
+		return diags.Take()
+	}
+	return newWalkStateCustomDiags(
+		handleDiags,
+		getFinalDiags,
+	)
+}
+
+// newWalkStateCustomDiags is like [newWalkState] except it allows for the
+// caller to provide custom callbacks for handling diagnostics.
+//
+// See the documentation of the fields of the same name in [walkState]
+// above for what each of these callbacks represents and how it ought to
+// behave.
+func newWalkStateCustomDiags(
+	handleDiags func(tfdiags.Diagnostics), getFinalDiags func() tfdiags.Diagnostics,
+) (ws *walkState, complete func() tfdiags.Diagnostics) {
+	ret := &walkState{
+		handleDiags:   handleDiags,
+		getFinalDiags: getFinalDiags,
+	}
 	return ret, func() tfdiags.Diagnostics {
 		ret.wg.Wait()
-		diags := ret.diags.Take()
+		diags := ret.getFinalDiags()
 		diags.Sort()
 		return diags
 	}
@@ -71,7 +120,9 @@ func (ws *walkState) AsyncTask(ctx context.Context, impl func(ctx context.Contex
 // This is safe to call from multiple concurrent tasks. The full set of
 // diagnostics will be returned from the [walkState]'s completion function.
 func (ws *walkState) AddDiags(new ...any) {
-	ws.diags.Append(new...)
+	var diags tfdiags.Diagnostics
+	diags = diags.Append(new...)
+	ws.handleDiags(diags)
 }
 
 func contextInWalkTask(parent context.Context) context.Context {
