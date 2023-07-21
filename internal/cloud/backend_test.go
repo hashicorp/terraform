@@ -1145,7 +1145,7 @@ func TestCloud_VerifyWorkspaceTerraformVersion_ignoreFlagSet(t *testing.T) {
 	}
 }
 
-func TestClodBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
+func TestCloudBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 	safeDeleteWorkspaceName := "safe-delete-workspace"
@@ -1211,12 +1211,38 @@ func TestClodBackend_DeleteWorkspace_SafeAndForce(t *testing.T) {
 	}
 }
 
-func TestClodBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
+func TestCloudBackend_DeleteWorkspace_DoesNotExist(t *testing.T) {
 	b, bCleanup := testBackendWithTags(t)
 	defer bCleanup()
 
 	err := b.DeleteWorkspace("non-existent-workspace", false)
 	if err != nil {
 		t.Fatalf("expected deleting a workspace which does not exist to succeed")
+	}
+}
+
+func TestCloud_ServiceDiscoveryAliases(t *testing.T) {
+	s := testServer(t)
+	b := New(testDisco(s))
+
+	diag := b.Configure(cty.ObjectVal(map[string]cty.Value{
+		"hostname":     cty.NullVal(cty.String), // Forces aliasing to test server
+		"organization": cty.StringVal("hashicorp"),
+		"token":        cty.NullVal(cty.String),
+		"workspaces": cty.ObjectVal(map[string]cty.Value{
+			"name": cty.StringVal("prod"),
+			"tags": cty.NullVal(cty.Set(cty.String)),
+		}),
+	}))
+	if diag.HasErrors() {
+		t.Fatalf("expected no diagnostic errors, got %s", diag.Err())
+	}
+
+	aliases, err := b.ServiceDiscoveryAliases()
+	if err != nil {
+		t.Fatalf("expected no errors, got %s", err)
+	}
+	if len(aliases) != 1 {
+		t.Fatalf("expected 1 alias but got %d", len(aliases))
 	}
 }
