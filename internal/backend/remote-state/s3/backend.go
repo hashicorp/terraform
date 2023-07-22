@@ -129,6 +129,13 @@ func New() backend.Backend {
 				Default:     "",
 			},
 
+			"dynamodb_lock_ttl": {
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Description: "TTL for state lock stored in DynamoDB",
+				Default:     0,
+			},
+
 			"profile": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -290,6 +297,7 @@ type Backend struct {
 	acl                   string
 	kmsKeyID              string
 	ddbTable              string
+	ddbLockTTL            int
 	workspaceKeyPrefix    string
 }
 
@@ -314,6 +322,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	b.serverSideEncryption = data.Get("encrypt").(bool)
 	b.kmsKeyID = data.Get("kms_key_id").(string)
 	b.ddbTable = data.Get("dynamodb_table").(string)
+	b.ddbLockTTL = data.Get("dynamodb_lock_ttl").(int)
 
 	customerKeyString := data.Get("sse_customer_key").(string)
 	if customerKeyString != "" {

@@ -122,6 +122,7 @@ func (b *Backend) remoteClient(name string) (*RemoteClient, error) {
 		acl:                   b.acl,
 		kmsKeyID:              b.kmsKeyID,
 		ddbTable:              b.ddbTable,
+		ddbLockTTL:            b.ddbLockTTL,
 	}
 
 	return client, nil

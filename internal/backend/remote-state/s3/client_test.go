@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -79,6 +80,167 @@ func TestRemoteClientLocks(t *testing.T) {
 	}
 
 	remote.TestRemoteLocks(t, s1.(*remote.State).Client, s2.(*remote.State).Client)
+}
+
+func TestRemoteClientLocksWithoutTTLMigrateToTTL(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	config := map[string]interface{}{
+		"bucket":         bucketName,
+		"key":            keyName,
+		"encrypt":        true,
+		"dynamodb_table": bucketName,
+	}
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+	createDynamoDBTable(t, b.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
+
+	s, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	locker, ok := s.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client s not a statemgr.Locker")
+	}
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "client"
+	_, err = locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+
+	config["dynamodb_lock_ttl"] = 3
+	b = backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+	updateDynamoDBTableWithTTL(t, b.dynClient, bucketName)
+	s, err = b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	locker, ok = s.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client s not a statemgr.Locker")
+	}
+	info = statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "client"
+	_, err = locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to overwrite existing locks without TTL:", err)
+	}
+}
+
+func TestRemoteClientLocksWithTTL(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":            bucketName,
+		"key":               keyName,
+		"encrypt":           true,
+		"dynamodb_table":    bucketName,
+		"dynamodb_lock_ttl": 10,
+	})).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+	createDynamoDBTable(t, b.dynClient, bucketName)
+	updateDynamoDBTableWithTTL(t, b.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
+
+	s, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	locker, ok := s.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client s not a statemgr.Locker")
+	}
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "client"
+	lockTime := time.Now()
+	lockID, err := locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+	item := getDynamoDBLockItem(t, b.dynClient, bucketName, fmt.Sprintf("%s/%s", bucketName, keyName))
+	ttl, err := strconv.Atoi(*item["ttl"].N)
+	if err != nil {
+		t.Fatal("Unable to convert ttl to integer")
+	}
+	ttlTime := time.Unix(int64(ttl), 0)
+	if ttlTime.After(lockTime.Add(10*time.Second)) || ttlTime.Before(lockTime) {
+		t.Fatal(fmt.Sprintf("TTL time is unexpected: %s", ttlTime))
+	}
+	if locker.Unlock(lockID) != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+}
+
+func TestRemoteClientLocksWithTTLExpired(t *testing.T) {
+	testACC(t)
+	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	keyName := "testState"
+	dynamoDBlockTTL := 2
+
+	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
+		"bucket":            bucketName,
+		"key":               keyName,
+		"encrypt":           true,
+		"dynamodb_table":    bucketName,
+		"dynamodb_lock_ttl": dynamoDBlockTTL,
+	})).(*Backend)
+
+	createS3Bucket(t, b.s3Client, bucketName)
+	defer deleteS3Bucket(t, b.s3Client, bucketName)
+	createDynamoDBTable(t, b.dynClient, bucketName)
+	updateDynamoDBTableWithTTL(t, b.dynClient, bucketName)
+	defer deleteDynamoDBTable(t, b.dynClient, bucketName)
+
+	s, err := b.StateMgr(backend.DefaultStateName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	locker, ok := s.(statemgr.Locker)
+	if !ok {
+		t.Fatal("client s not a statemgr.Locker")
+	}
+	info := statemgr.NewLockInfo()
+	info.Operation = "test"
+	info.Who = "client"
+	lockID, err := locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+	time.Sleep(time.Duration(dynamoDBlockTTL) * time.Second)
+
+	lockTime := time.Now()
+	lockID, err = locker.Lock(info)
+	if err != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
+	item := getDynamoDBLockItem(t, b.dynClient, bucketName, fmt.Sprintf("%s/%s", bucketName, keyName))
+	ttl, err := strconv.Atoi(*item["ttl"].N)
+	if err != nil {
+		t.Fatal("Unable to convert ttl to integer")
+	}
+	ttlTime := time.Unix(int64(ttl), 0)
+	if ttlTime.After(lockTime.Add(10*time.Second)) || ttlTime.Before(lockTime) {
+		t.Fatal(fmt.Sprintf("TTL time is unexpected: %s", ttlTime))
+	}
+
+	if locker.Unlock(lockID) != nil {
+		t.Fatal("unable to get initial lock:", err)
+	}
 }
 
 // verify that we can unlock a state with an existing lock

@@ -787,6 +787,20 @@ func createDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 
 }
 
+func updateDynamoDBTableWithTTL(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
+	params := &dynamodb.UpdateTimeToLiveInput{
+		TableName: aws.String(tableName),
+		TimeToLiveSpecification: &dynamodb.TimeToLiveSpecification{
+			AttributeName: aws.String("ttl"),
+			Enabled:       aws.Bool(true),
+		},
+	}
+	_, err := dynClient.UpdateTimeToLive(params)
+	if err != nil {
+		t.Logf("WARNING: Failed to update TTL for the test DynamoDB table %q. (error was %s)", tableName, err)
+	}
+}
+
 func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string) {
 	params := &dynamodb.DeleteTableInput{
 		TableName: aws.String(tableName),
@@ -795,4 +809,18 @@ func deleteDynamoDBTable(t *testing.T, dynClient *dynamodb.DynamoDB, tableName s
 	if err != nil {
 		t.Logf("WARNING: Failed to delete the test DynamoDB table %q. It has been left in your AWS account and may incur charges. (error was %s)", tableName, err)
 	}
+}
+
+func getDynamoDBLockItem(t *testing.T, dynClient *dynamodb.DynamoDB, tableName string, key string) map[string]*dynamodb.AttributeValue {
+	getParams := &dynamodb.GetItemInput{
+		TableName: &tableName,
+		Key: map[string]*dynamodb.AttributeValue{
+			"LockID": {S: aws.String(key)},
+		},
+	}
+	output, err := dynClient.GetItem(getParams)
+	if err != nil {
+		t.Logf("WARNING: Failed to get lock with key %s from the test DynamoDB table %q. (error was %s)", key, tableName, err)
+	}
+	return output.Item
 }
