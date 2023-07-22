@@ -100,13 +100,13 @@ func newWalkStateCustomDiags(
 // been resolved, so that the promise resolution cannot outlive the
 // supervising walkState.
 //
-// This AsyncTask method is only for top-level AsyncTasks started while
-// preparing for the walk. If the given context descends from some earlier
-// call to AsyncTask then this method will panic. Use [promising.AsyncTask]
-// directly if you need to create indirect asynchronous tasks (but be sure to
-// wait for them to complete before returning from the top-level task!)
+// It's safe to make nested calls to AsyncTask (inside another AsyncTask) as
+// long as the child call returns, scheduling the child task, before the
+// calling task completes. This constraint normally holds automatically when
+// the child call is directly inside the parent's callback, but will require
+// extra care if a task starts goroutines or non-walkState-supervised async
+// tasks that might call this function.
 func (ws *walkState) AsyncTask(ctx context.Context, impl func(ctx context.Context)) {
-	ctx = contextInWalkTask(ctx) // panics if given ctx is descended from another contextInWalkTask
 	ws.wg.Add(1)
 	promising.AsyncTask(ctx, promising.NoPromises, func(ctx context.Context, none promising.PromiseContainer) {
 		impl(ctx)
@@ -123,13 +123,6 @@ func (ws *walkState) AddDiags(new ...any) {
 	var diags tfdiags.Diagnostics
 	diags = diags.Append(new...)
 	ws.handleDiags(diags)
-}
-
-func contextInWalkTask(parent context.Context) context.Context {
-	if parent.Value(walkTaskContextKey{}) != nil {
-		panic("call to walkState.AsyncTask from inside another async task")
-	}
-	return context.WithValue(parent, walkTaskContextKey{}, walkTaskContextKey{})
 }
 
 type walkTaskContextKey struct{}

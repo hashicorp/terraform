@@ -1,0 +1,182 @@
+package stackeval
+
+//lint:file-ignore U1000 This package is still WIP so not everything is here yet.
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
+)
+
+// StackCallInstance represents an instance of a [StackCall], acting as
+// an expression scope for evaluating the expressions inside the configuration
+// block.
+//
+// This does not represent the child stack object itself, although if you
+// are holding a valid [StackCallInstance] then you can call
+// [StackCallInstance.CalledStack] to get that stack.
+type StackCallInstance struct {
+	call *StackCall
+	key  addrs.InstanceKey
+
+	main *Main
+
+	repetition instances.RepetitionData
+}
+
+var _ ExpressionScope = (*StackCallInstance)(nil)
+var _ Plannable = (*StackCallInstance)(nil)
+
+func newStackCallInstance(call *StackCall, key addrs.InstanceKey, repetition instances.RepetitionData) *StackCallInstance {
+	return &StackCallInstance{
+		call:       call,
+		key:        key,
+		main:       call.main,
+		repetition: repetition,
+	}
+}
+
+// CallerStack returns the stack instance that contains the call that this
+// is an instance of.
+func (c *StackCallInstance) CallerStack(ctx context.Context) *Stack {
+	stackAddr := c.call.Addr().Stack
+	// "Unchecked" is safe because newStackCallInstance is only called
+	// based on the results of evaluating the call's for_each.
+	return c.main.StackUnchecked(ctx, stackAddr)
+}
+
+// Call returns the stack call that this is an instance of.
+func (c *StackCallInstance) Call(ctx context.Context) *StackCall {
+	return c.call
+}
+
+func (c *StackCallInstance) CalledStackAddr() stackaddrs.StackInstance {
+	callAddr := c.call.Addr()
+	callerAddr := callAddr.Stack
+	return callerAddr.Child(callAddr.Item.Name, c.key)
+
+}
+
+// CalledStack returns the stack instance that this call is instantiating.
+func (c *StackCallInstance) CalledStack(ctx context.Context) *Stack {
+	// "Unchecked" is safe because newStackCallInstance is only called
+	// based on the results of evaluating the call's for_each.
+	return c.main.StackUnchecked(ctx, c.CalledStackAddr())
+}
+
+// InputVariableValues returns the [cty.Value] representing the input variable
+// values to pass to the child stack.
+//
+// If the definition of the input variable values is invalid then the result
+// is [cty.DynamicVal] to represent that the values aren't known.
+func (c *StackCallInstance) InputVariableValues(ctx context.Context, phase EvalPhase) cty.Value {
+	v, _ := c.CheckInputVariableValues(ctx, phase)
+	return v
+}
+
+// CheckInputVariableValues returns the [cty.Value] representing the input
+// variable values to pass to the child stack.
+//
+// If the configuration is valid then the resulting value is always of an
+// object type derived from the child stack's input variable declarations.
+// The resulting object type is guaranteed to have an attribute for each of
+// the child stack's input variables, whose type conforms to the input
+// variable's declared type constraint.
+//
+// If the configuration is invalid then the returned diagnostics will have
+// errors and the result value will be [cty.DynamicVal] representing that
+// we don't actually know the input variable values.
+//
+// CheckInputVariableValues checks whether the given object conforms to
+// the input variables' type constraints and inserts default values where
+// appropriate, but it doesn't check other details such as whether the
+// values pass any author-defined custom validation rules. Those other details
+// must be handled by the [InputVariable] objects representing each individual
+// child stack input variable declaration, as part of preparing the individual
+// attributes of the result for their appearance in downstream expressions.
+func (c *StackCallInstance) CheckInputVariableValues(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	wantTy, defs := c.CalledStack(ctx).InputsType(ctx)
+	decl := c.call.Declaration(ctx)
+
+	v := cty.EmptyObjectVal
+	expr := decl.Inputs
+	rng := decl.DeclRange
+	var hclCtx *hcl.EvalContext
+	if expr != nil {
+		result, moreDiags := EvalExprAndEvalContext(ctx, expr, phase, c)
+		diags = diags.Append(moreDiags)
+		if moreDiags.HasErrors() {
+			return cty.DynamicVal, diags
+		}
+		expr = result.Expression
+		hclCtx = result.EvalContext
+	}
+
+	v = defs.Apply(v)
+	v, err := convert.Convert(v, wantTy)
+	if err != nil {
+		// A conversion failure here could either be caused by an author-provided
+		// expression that's invalid or by the author omitting the argument
+		// altogether when there's at least one required attribute, so we'll
+		// return slightly different messages in each case.
+		if expr != nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity:    hcl.DiagError,
+				Summary:     "Invalid inputs for embedded stack",
+				Detail:      fmt.Sprintf("Invalid input variable definition object: %s.", tfdiags.FormatError(err)),
+				Subject:     rng.ToHCL().Ptr(),
+				Expression:  expr,
+				EvalContext: hclCtx,
+			})
+		} else {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Missing required inputs for embedded stack",
+				Detail:   fmt.Sprintf("Must provide \"inputs\" argument to define the embedded stack's input variables: %s.", tfdiags.FormatError(err)),
+				Subject:  rng.ToHCL().Ptr(),
+			})
+		}
+		return cty.DynamicVal, diags
+	}
+
+	return v, diags
+}
+
+// ResolveExpressionReference implements ExpressionScope for the arguments
+// inside an embedded stack call block, evaluated in the context of a
+// particular instance of that call.
+func (c *StackCallInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
+	stack := c.CallerStack(ctx)
+	return stack.resolveExpressionReference(ctx, ref, nil, c.repetition)
+}
+
+// PlanChanges implements Plannable by performing plan-time validation of
+// all of the per-instance arguments in the stack call configuration.
+//
+// This does not check the child stack instance implied by the call, so the
+// plan walk driver must call [StackCallInstance.CalledStack] and explore
+// it and all of its contents too.
+func (c *StackCallInstance) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	// This is really just a "plan-time validation" behavior, since stack
+	// calls never contribute directly to the planned changes.
+	var diags tfdiags.Diagnostics
+
+	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
+	diags = diags.Append(moreDiags)
+
+	return nil, diags
+}
+
+// tracingName implements Plannable.
+func (c *StackCallInstance) tracingName() string {
+	return fmt.Sprintf("%s call", c.CalledStackAddr())
+}

@@ -41,6 +41,10 @@ func (ov *OutputValueConfig) Addr() stackaddrs.ConfigOutputValue {
 	return ov.addr
 }
 
+func (ov *OutputValueConfig) Declaration(ctx context.Context) *stackconfig.OutputValue {
+	return ov.config
+}
+
 func (ov *OutputValueConfig) tracingName() string {
 	return ov.Addr().String()
 }
@@ -89,7 +93,8 @@ func (ov *OutputValueConfig) ValidateValue(ctx context.Context) (cty.Value, tfdi
 func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	v, hclCtx, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, ValidatePhase, ov.StackConfig(ctx))
+	result, moreDiags := EvalExprAndEvalContext(ctx, ov.config.Value, ValidatePhase, ov.StackConfig(ctx))
+	v := result.Value
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		v = cty.UnknownVal(ov.ValueTypeConstraint(ctx))
@@ -107,8 +112,8 @@ func (ov *OutputValueConfig) validateValueInner(ctx context.Context) (cty.Value,
 				tfdiags.FormatError(err),
 			),
 			Subject:     ov.config.Value.Range().Ptr(),
-			Expression:  ov.config.Value,
-			EvalContext: hclCtx,
+			Expression:  result.Expression,
+			EvalContext: result.EvalContext,
 		})
 	}
 

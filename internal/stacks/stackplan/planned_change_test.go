@@ -277,7 +277,7 @@ func TestPlannedChangeAsProto(t *testing.T) {
 		},
 		"output value updated": {
 			Receiver: &PlannedChangeOutputValue{
-				Addr:   addrs.OutputValue{Name: "thingy_id"},
+				Addr:   stackaddrs.OutputValue{Name: "thingy_id"},
 				Action: plans.Update,
 
 				// NOTE: This is a bit unrealistic since we're reporting an

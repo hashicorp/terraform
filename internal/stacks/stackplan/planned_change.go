@@ -8,7 +8,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 
-	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/plans/planfile"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
@@ -192,7 +191,7 @@ func (pc *PlannedChangeResourceInstanceOutside) PlannedChangeProto() (*terraform
 // This change type only includes an external description, and does not
 // contribute anything to the raw plan sequence.
 type PlannedChangeOutputValue struct {
-	Addr   addrs.OutputValue // Covers only root stack output values
+	Addr   stackaddrs.OutputValue // Covers only root stack output values
 	Action plans.Action
 
 	OldValue, NewValue           plans.DynamicValue

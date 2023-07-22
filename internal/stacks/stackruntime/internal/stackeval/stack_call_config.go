@@ -60,6 +60,11 @@ func (s *StackCallConfig) CalleeConfig(ctx context.Context) *StackConfig {
 	return s.main.mustStackConfig(ctx, s.Addr().Stack.Child(s.addr.Item.Name))
 }
 
+// Declaration returns the [stackconfig.EmbeddedStack] that declared this object.
+func (s *StackCallConfig) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
+	return s.config
+}
+
 // ResultType returns the type of the overall result value for this call.
 //
 // If this call uses for_each then the result type is a map of object types.
@@ -105,63 +110,9 @@ func (s *StackCallConfig) validateForEachValueInner(ctx context.Context) (cty.Va
 		return cty.NilVal, diags
 	}
 
-	// for_each gets evaluated using the containing stack config scope rather
-	// than this call's scope, because the for_each result affects how the
-	// call's scope gets populated (making each.key and each.value available).
-	v, hclCtx, moreDiags := EvalExprAndEvalContext(
-		ctx, s.config.ForEach, ValidatePhase, s.CallerConfig(ctx),
-	)
+	result, moreDiags := evaluateForEachExpr(ctx, s.config.ForEach, ValidatePhase, s.CallerConfig(ctx))
 	diags = diags.Append(moreDiags)
-	if moreDiags.HasErrors() {
-		return cty.DynamicVal, diags
-	}
-	ty := v.Type()
-
-	const invalidForEachSummary = "Invalid for_each value"
-	const invalidForEachDetail = "The for_each expression must produce either a map of any type or a set of strings. The keys of the map or the set elements will serve as unique identifiers for multiple instances of this embedded stack."
-	switch {
-	case ty.IsObjectType() || ty.IsMapType():
-		// okay
-	case ty.IsSetType():
-		if !ty.ElementType().Equals(cty.String) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     invalidForEachSummary,
-				Detail:      invalidForEachDetail,
-				Subject:     s.config.ForEach.Range().Ptr(),
-				Expression:  s.config.ForEach,
-				EvalContext: hclCtx,
-			})
-			return cty.DynamicVal, diags
-		}
-	default:
-		if !ty.ElementType().Equals(cty.String) {
-			diags = diags.Append(&hcl.Diagnostic{
-				Severity:    hcl.DiagError,
-				Summary:     invalidForEachSummary,
-				Detail:      invalidForEachDetail,
-				Subject:     s.config.ForEach.Range().Ptr(),
-				Expression:  s.config.ForEach,
-				EvalContext: hclCtx,
-			})
-			return cty.DynamicVal, diags
-		}
-	}
-	if v.IsNull() {
-		diags = diags.Append(&hcl.Diagnostic{
-			Severity:    hcl.DiagError,
-			Summary:     invalidForEachSummary,
-			Detail:      "The for_each value must not be null.",
-			Subject:     s.config.ForEach.Range().Ptr(),
-			Expression:  s.config.ForEach,
-			EvalContext: hclCtx,
-		})
-	}
-	// Unknown and sensitive values are also disallowed, but known-ness and
-	// sensitivity get decided dynamically based on data flow and so we'll
-	// treat those as plan-time errors.
-
-	return v, diags
+	return result.Value, diags
 }
 
 // ValidateInputVariableValues evaluates the "inputs" argument inside the
@@ -206,13 +157,14 @@ func (s *StackCallConfig) validateInputVariableValuesInner(ctx context.Context) 
 	var varsObj cty.Value
 	var hclCtx *hcl.EvalContext // NOTE: remains nil when h.config.Inputs is unset
 	if s.config.Inputs != nil {
-		v, hCtx, moreDiags := EvalExprAndEvalContext(ctx, s.config.Inputs, ValidatePhase, s)
+		result, moreDiags := EvalExprAndEvalContext(ctx, s.config.Inputs, ValidatePhase, s)
+		v := result.Value
 		diags = diags.Append(moreDiags)
 		if moreDiags.HasErrors() {
 			v = cty.UnknownVal(oty.WithoutOptionalAttributesDeep())
 		}
 		varsObj = v
-		hclCtx = hCtx
+		hclCtx = result.EvalContext
 	} else {
 		varsObj = cty.EmptyObjectVal
 	}

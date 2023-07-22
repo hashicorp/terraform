@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // StackConfig represents a stack as represented in the configuration: either the
@@ -63,6 +64,13 @@ func (s *StackConfig) IsRoot() bool {
 // on the root stack (since it has no parent).
 func (s *StackConfig) ParentAddr() stackaddrs.Stack {
 	return s.addr.Parent()
+}
+
+// ConfigDeclarations returns a pointer to the [stackconfig.Declarations]
+// object describing the configured declarations from this stack config's
+// configuration files.
+func (s *StackConfig) ConfigDeclarations(ctx context.Context) *stackconfig.Declarations {
+	return &s.config.Stack.Declarations
 }
 
 // ParentConfig returns the [StackConfig] object representing the configuration
@@ -175,6 +183,15 @@ func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputVal
 		ret[addr] = s.OutputValue(ctx, addr)
 	}
 	return ret
+}
+
+func (s *StackConfig) ResultType(ctx context.Context) cty.Type {
+	os := s.OutputValues(ctx)
+	atys := make(map[string]cty.Type, len(os))
+	for addr, o := range os {
+		atys[addr.Name] = o.ValueTypeConstraint(ctx)
+	}
+	return cty.Object(atys)
 }
 
 // StackCall returns a [StackCallConfig] representing the "stack" block

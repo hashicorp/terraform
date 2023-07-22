@@ -3,7 +3,17 @@ package stackeval
 //lint:file-ignore U1000 This package is still WIP so not everything is here yet.
 
 import (
+	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // StackCall represents a "stack" block in a stack configuration after
@@ -12,8 +22,275 @@ type StackCall struct {
 	addr stackaddrs.AbsStackCall
 
 	main *Main
+
+	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+}
+
+var _ Plannable = (*StackCall)(nil)
+var _ Referenceable = (*StackCall)(nil)
+
+func newStackCall(main *Main, addr stackaddrs.AbsStackCall) *StackCall {
+	return &StackCall{
+		addr: addr,
+		main: main,
+	}
 }
 
 func (c *StackCall) Addr() stackaddrs.AbsStackCall {
 	return c.addr
+}
+
+func (c *StackCall) Config(ctx context.Context) *StackCallConfig {
+	configAddr := stackaddrs.ConfigForAbs(c.addr)
+	return c.main.StackCallConfig(ctx, configAddr)
+}
+
+func (c *StackCall) Caller(ctx context.Context) *Stack {
+	callerAddr := c.Addr().Stack
+	// Unchecked because StackCall instances only get constructed from
+	// Stack objects, and so our address is derived from there.
+	return c.main.StackUnchecked(ctx, callerAddr)
+}
+
+func (c *StackCall) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
+	return c.Config(ctx).Declaration(ctx)
+}
+
+// ForEachValue returns the result of evaluating the "for_each" expression
+// for this stack call, with the following exceptions:
+//   - If the stack call doesn't use "for_each" at all, returns [cty.NilVal].
+//   - If the for_each expression is present but too invalid to evaluate,
+//     returns [cty.DynamicVal] to represent that the for_each value cannot
+//     be determined.
+//
+// A present and valid "for_each" expression produces a result that's
+// guaranteed to be:
+// - Either a set of strings, a map of any element type, or an object type
+// - Known and not null (only the top-level value)
+// - Not sensitive (only the top-level value)
+func (c *StackCall) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value {
+	ret, _ := c.CheckForEachValue(ctx, phase)
+	return ret
+}
+
+// CheckForEachValue evaluates the "for_each" expression if present, validates
+// that its value is valid, and then returns that value.
+//
+// If this call does not use "for_each" then this immediately returns cty.NilVal
+// representing the absense of the value.
+//
+// If the diagnostics does not include errors and the result is not cty.NilVal
+// then callers can assume that the result value will be:
+// - Either a set of strings, a map of any element type, or an object type
+// - Known and not null (except for nested map/object element values)
+// - Not sensitive (only the top-level value)
+//
+// If the diagnostics _does_ include errors then the result might be
+// [cty.DynamicVal], which represents that the for_each expression was so invalid
+// that we cannot know the for_each value.
+func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
+	val, diags := doOnceWithDiags(
+		ctx, c.forEachValue.For(phase), c.main,
+		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
+			var diags tfdiags.Diagnostics
+			cfg := c.Declaration(ctx)
+
+			switch {
+
+			case cfg.ForEach != nil:
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Caller(ctx))
+				diags = diags.Append(moreDiags)
+				if diags.HasErrors() {
+					return cty.DynamicVal, diags
+				}
+
+				if !result.Value.IsKnown() {
+					// FIXME: We should somehow allow this and emit a
+					// "deferred change" representing all of the as-yet-unknown
+					// instances of this call and everything beneath it.
+					diags = diags.Append(result.Diagnostic(
+						tfdiags.Error,
+						"Invalid for_each value",
+						"The for_each value must not be derived from values that will be determined only during the apply phase.",
+					))
+				}
+
+				return result.Value, diags
+
+			default:
+				// This stack config doesn't use for_each at all
+				return cty.NilVal, diags
+			}
+		},
+	)
+	if val == cty.NilVal && diags.HasErrors() {
+		// We use cty.DynamicVal as the placeholder for an invalid for_each,
+		// to represent "unknown for_each value" as distinct from "no for_each
+		// expression at all".
+		val = cty.DynamicVal
+	}
+	return val, diags
+}
+
+// Instances returns all of the instances of the call known to be declared
+// by the configuration.
+//
+// Calcluating this involves evaluating the call's for_each expression if any,
+// and so this call may block on evaluation of other objects in the
+// configuration.
+//
+// If the configuration has an invalid definition of the instances then the
+// result will be nil. Callers that need to distinguish between invalid
+// definitions and valid definitions of zero instances can rely on the
+// result being a non-nil zero-length map in the latter case.
+//
+// This function doesn't return any diagnostics describing ways in which the
+// for_each expression is invalid because we assume that the main plan walk
+// will visit the stack call directly and ask it to check itself, and that
+// call will be the one responsible for returning any diagnostics.
+func (c *StackCall) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*StackCallInstance {
+	forEachVal := c.ForEachValue(ctx, phase)
+
+	switch {
+	case forEachVal == cty.NilVal:
+		// No for_each expression at all, then. We have exactly one instance
+		// without an instance key and with no repetition data.
+		return map[addrs.InstanceKey]*StackCallInstance{
+			addrs.NoKey: newStackCallInstance(c, addrs.NoKey, instances.RepetitionData{
+				// no repetition symbols available in this case
+			}),
+		}
+
+	case !forEachVal.IsKnown():
+		// The for_each expression is too invalid for us to be able to
+		// know which instances exist. A totally nil map (as opposed to a
+		// non-nil map of length zero) signals that situation.
+		return nil
+
+	default:
+		// Otherwise we should be able to assume the value is valid per the
+		// definition of [CheckForEachValue]. The following will panic if
+		// that other function doesn't satisfy its documented contract;
+		// if that happens, prefer to correct [CheckForEachValue] than to
+		// add additional complexity here.
+
+		// NOTE: We MUST return a non-nil map from every return path under
+		// this case, even if there are zero elements in it, because a nil map
+		// represents an _invalid_ for_each expression (handled above).
+
+		ty := forEachVal.Type()
+		switch {
+		case ty.IsObjectType() || ty.IsMapType():
+			elems := forEachVal.AsValueMap()
+			ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
+			for k, v := range elems {
+				ik := addrs.StringKey(k)
+				ret[ik] = newStackCallInstance(c, ik, instances.RepetitionData{
+					EachKey:   cty.StringVal(k),
+					EachValue: v,
+				})
+			}
+			return ret
+
+		case ty.IsSetType():
+			// ForEachValue should have already guaranteed us a set of strings,
+			// but we'll check again here just so we can panic more intellgibly
+			// if that function is buggy.
+			if ty.ElementType() != cty.String {
+				panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
+			}
+
+			elems := forEachVal.AsValueSlice()
+			ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
+			for _, sv := range elems {
+				k := addrs.StringKey(sv.AsString())
+				ret[k] = newStackCallInstance(c, k, instances.RepetitionData{
+					EachKey:   sv,
+					EachValue: sv,
+				})
+			}
+			return ret
+
+		default:
+			panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
+		}
+	}
+}
+
+func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
+	decl := c.Declaration(ctx)
+	insts := c.Instances(ctx, phase)
+	childResultType := c.Config(ctx).CalleeConfig(ctx).ResultType(ctx)
+
+	switch {
+	case decl.ForEach != nil:
+		if insts == nil {
+			// If we don't even know what instances we have then all we can
+			// say is that our result ought to be a map of an object type
+			// constructed from the child stack's output values.
+			return cty.UnknownVal(cty.Map(childResultType))
+		}
+
+		// We expect that the instances all have string keys, which will
+		// become the keys of a map that we're returning.
+		elems := make(map[string]cty.Value, len(insts))
+		for instKey, inst := range insts {
+			k, ok := instKey.(addrs.StringKey)
+			if !ok {
+				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
+			}
+			elems[string(k)] = inst.CalledStack(ctx).ResultValue(ctx, phase)
+		}
+		return cty.MapVal(elems)
+
+	default:
+		if insts == nil {
+			// If we don't even know what instances we have then all we can
+			// say is that our result ought to have an object type
+			// constructed from the child stack's output values.
+			return cty.UnknownVal(childResultType)
+		}
+		if len(insts) != 1 {
+			// Should not happen: we should have exactly one instance with addrs.NoKey
+			panic("single-instance stack call does not have exactly one instance")
+		}
+		inst, ok := insts[addrs.NoKey]
+		if !ok {
+			panic("single-instance stack call does not have an addrs.NoKey instance")
+		}
+
+		return inst.CalledStack(ctx).ResultValue(ctx, phase)
+	}
+}
+
+// ExprReferenceValue implements Referenceable.
+func (c *StackCall) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	return c.ResultValue(ctx, phase)
+}
+
+// PlanChanges implements Plannable to perform "plan-time validation" of the
+// stack call.
+//
+// This does not validate the instances of the stack call or the child stack
+// instances they imply, so the plan walk driver must also call
+// [StackCall.Instances] and explore the child objects directly.
+func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
+	// Stack calls never contribute "planned changes" directly, but we
+	// can potentially generate diagnostics if the call configuration is
+	// invalid. This is therefore more a "plan-time validation" than actually
+	// planning.
+	var diags tfdiags.Diagnostics
+
+	_, moreDiags := c.CheckForEachValue(ctx, PlanPhase)
+	diags = diags.Append(moreDiags)
+
+	// All of the other arguments in a stack call get evaluated separately
+	// for each instance of the call, so [StackCallInstance.PlanChanges]
+	// must deal with those.
+
+	return nil, diags
+}
+
+func (c *StackCall) tracingName() string {
+	return c.Addr().String()
 }

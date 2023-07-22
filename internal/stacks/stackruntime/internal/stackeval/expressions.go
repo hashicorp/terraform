@@ -3,6 +3,7 @@ package stackeval
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/lang"
@@ -140,17 +141,25 @@ func EvalContextForExpr(ctx context.Context, expr hcl.Expression, phase EvalPhas
 // of the expression which might generate additional diagnostics, and so
 // the caller will need the HCL evaluation context in order to construct
 // a fully-annotated diagnostic object.
-func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, *hcl.EvalContext, tfdiags.Diagnostics) {
+func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (ExprResultValue, tfdiags.Diagnostics) {
 	hclCtx, diags := EvalContextForExpr(ctx, expr, phase, scope)
 	if hclCtx == nil {
-		return cty.DynamicVal, nil, diags
+		return ExprResultValue{
+			Value:       cty.NilVal,
+			Expression:  expr,
+			EvalContext: hclCtx,
+		}, diags
 	}
 	val, hclDiags := expr.Value(hclCtx)
 	diags = diags.Append(hclDiags)
 	if val == cty.NilVal {
 		val = cty.DynamicVal // just so the caller can assume the result is always a value
 	}
-	return val, hclCtx, diags
+	return ExprResultValue{
+		Value:       val,
+		Expression:  expr,
+		EvalContext: hclCtx,
+	}, diags
 }
 
 // EvalExpr evaluates the given HCL expression in the given expression scope
@@ -161,6 +170,84 @@ func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase Eval
 // use [EvalExprAndEvalContext] instead to obtain both the resulting value
 // and the evaluation context that was used to produce it.
 func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
-	v, _, diags := EvalExprAndEvalContext(ctx, expr, phase, scope)
-	return v, diags
+	result, diags := EvalExprAndEvalContext(ctx, expr, phase, scope)
+	return result.Value, diags
+}
+
+// ExprResult bundles an arbitrary result value with the expression and
+// evaluation context it was derived from, allowing the recipient to
+// potentially emit additional diagnostics if the result is problematic.
+//
+// (HCL diagnostics related to expressions should typically carry both
+// the expression and evaluation context so that we can describe the
+// values that were in scope as part of our user-facing diagnostic messages.)
+type ExprResult[T any] struct {
+	Value T
+
+	Expression  hcl.Expression
+	EvalContext *hcl.EvalContext
+}
+
+// ExprResultValue is an alias for the common case of an expression result
+// being a [cty.Value].
+type ExprResultValue = ExprResult[cty.Value]
+
+// DerivedExprResult propagates the expression evaluation context through to
+// a new result that was presumably derived from the original result but
+// still, from a user perspective, associated with the original expression.
+func DerivedExprResult[From, To any](from ExprResult[From], newResult To) ExprResult[To] {
+	return ExprResult[To]{
+		Value:       newResult,
+		Expression:  from.Expression,
+		EvalContext: from.EvalContext,
+	}
+}
+
+func (r ExprResult[T]) Diagnostic(severity tfdiags.Severity, summary string, detail string) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity:    severity.ToHCL(),
+		Summary:     summary,
+		Detail:      detail,
+		Subject:     r.Expression.Range().Ptr(),
+		Expression:  r.Expression,
+		EvalContext: r.EvalContext,
+	}
+}
+
+// perEvalPhase is a helper for segregating multiple results for the same
+// conceptual operation into a separate result per evaluation phase.
+// This is typically needed for any result that's derived from expression
+// evaluation, since the values produced for references are constructed
+// differently depending on the phase.
+//
+// This utility works best for types that have a ready-to-use zero value.
+// If callers will need to modify the returned objects, type T should be
+// a pointer type or other reference type.
+type perEvalPhase[T any] struct {
+	mu   sync.Mutex
+	vals map[EvalPhase]*T
+}
+
+// For returns a pointer to the value belonging to the given evaluation phase,
+// automatically allocating a new zero-value T if this is the first call for
+// the given phase.
+//
+// This method is itself safe to call concurrently, but it does not constrain
+// access to the returned value, and so interaction with that object may
+// require additional care depending on the definition of T.
+func (pep *perEvalPhase[T]) For(phase EvalPhase) *T {
+	if phase == NoPhase {
+		// Asking for the value for no phase at all is a nonsense.
+		panic("perEvalPhase.For(NoPhase)")
+	}
+	pep.mu.Lock()
+	if pep.vals == nil {
+		pep.vals = make(map[EvalPhase]*T)
+	}
+	if _, exists := pep.vals[phase]; !exists {
+		pep.vals[phase] = new(T)
+	}
+	ret := pep.vals[phase]
+	pep.mu.Unlock()
+	return ret
 }

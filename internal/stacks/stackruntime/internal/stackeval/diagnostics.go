@@ -36,6 +36,9 @@ func doOnceWithDiags[T any](
 	root namedPromiseReporter,
 	f func(ctx context.Context) (T, tfdiags.Diagnostics),
 ) (T, tfdiags.Diagnostics) {
+	if once == nil {
+		panic("doOnceWithDiags with nil Once")
+	}
 	ret, err := once.Do(ctx, func(ctx context.Context) (withDiagnostics[T], error) {
 		ret, diags := f(ctx)
 		return withDiagnostics[T]{
@@ -127,13 +130,7 @@ func finalDiagnosticsFromEval(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
 	// we really need to.
 	foundSelfDepErrs := 0
 	for _, diag := range diags {
-		// This intentionally diverges from our usual convention of
-		// using interface types for "extra info" matching because this
-		// is a very specialized case confined only to this package, and
-		// so we can be sure that nothing else will need to generate
-		// differently-typed variants of this information.
-		// (Refer to type taskSelfDependencyDiagnostic below for more on this.)
-		if ptr := tfdiags.ExtraInfo[*promising.ErrSelfDependent](diag); ptr != nil {
+		if diagIsPromiseSelfReference(diag) {
 			foundSelfDepErrs++
 		}
 	}
@@ -147,7 +144,7 @@ func finalDiagnosticsFromEval(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
 	fixedSelfDepErrors := 0
 	for i := 0; i < len(diags); i++ {
 		diag := diags[i]
-		if ptr := tfdiags.ExtraInfo[*promising.ErrSelfDependent](diag); ptr == nil {
+		if !diagIsPromiseSelfReference(diag) {
 			continue
 		}
 		fixedSelfDepErrors++
@@ -161,6 +158,17 @@ func finalDiagnosticsFromEval(diags tfdiags.Diagnostics) tfdiags.Diagnostics {
 		i-- // must still visit the next item that we've moved to an earlier index
 	}
 	return diags
+}
+
+func diagIsPromiseSelfReference(diag tfdiags.Diagnostic) bool {
+	// This intentionally diverges from our usual convention of
+	// using interface types for "extra info" matching because this
+	// is a very specialized case confined only to this package, and
+	// so we can be sure that nothing else will need to generate
+	// differently-typed variants of this information.
+	// (Refer to type taskSelfDependencyDiagnostic below for more on this.)
+	ptr := tfdiags.ExtraInfo[*promising.ErrSelfDependent](diag)
+	return ptr != nil
 }
 
 // diagnosticsForPromisingTaskError takes an error returned by

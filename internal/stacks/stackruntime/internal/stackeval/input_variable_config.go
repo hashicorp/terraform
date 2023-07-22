@@ -47,6 +47,10 @@ func (v *InputVariableConfig) tracingName() string {
 	return v.Addr().String()
 }
 
+func (v *InputVariableConfig) Declaration() *stackconfig.InputVariable {
+	return v.config
+}
+
 func (v *InputVariableConfig) TypeConstraint() cty.Type {
 	return v.config.Type.Constraint
 }
