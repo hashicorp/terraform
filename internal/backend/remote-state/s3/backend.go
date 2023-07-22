@@ -28,6 +28,9 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the S3 bucket",
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_STATE_BUCKET",
+				}, nil),
 			},
 
 			"key": {
