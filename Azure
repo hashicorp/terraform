@@ -1,0 +1,101 @@
+About Terraform
+
+Terraform is an open-source tool created by HashiCorp for developing, changing and versioning infrastructure safely and efficiently. It provides a service known as "Infrastructure as Code" which enables users to define and provision infrastructure using a high-level configuration language.
+
+About the Terraform extension
+
+This extension provides the following components:
+
+A service connection for connecting to an Amazon Web Services(AWS) account
+A service connection for connecting to a Google Cloud Platform(GCP) account
+A task for installing a specific version of Terraform, if not already installed, on the agent
+A task for executing the core Terraform commands
+The Terraform tool installer task acquires a specified version of Terraform from the Internet or the tools cache and prepends it to the PATH of the Azure Pipelines Agent (hosted or private). This task can be used to change the version of Terraform used in subsequent tasks. Adding this task before the Teraform task in a build definition ensures you are using that task with the right Terraform version.
+
+The Terraform task enables running Terraform commands as part of Azure Build and Release Pipelines providing support for the following Terraform commands
+
+init
+validate
+show
+plan
+apply
+output
+custom (any command terraform CLI supports natively)
+destroy
+This extension is intended to run on Windows, Linux and MacOS agents.
+
+Create a new service connection for connecting to an AWS account
+
+The Terraform task requires a AWS service connection for setting up the credentials to connect to an AWS account. For setting up a new AWS service connection:
+
+On the project page, go to Project settings and choose Service connections.
+In the New service connection list, choose AWS for Terraform.
+Enter the following details to set up the service connection:
+Connection name*: Enter a unique name of the service connection to identify it within the project
+Access key id*: Enter the access key id for your AWS account
+Secret access key*: Enter the secret access key associated with the access key id
+Region*: Enter the region of the Amazon Simple Storage Service(S3) bucket in which you want to store the Terraform remote state file e.g. 'us-east-1'
+Creating an AWS service connection
+Create a new service connection for connecting to a GCP account
+
+The Terraform task requires a GCP service connection for setting up the credentials to connect to a GCP service account. For setting up a new GCP service connection:
+
+Download the JSON key file containing the required credentials
+In the GCP Console, go to the Create service account key page.
+From the Service account list, select the existing service account or New service account to create a new one.
+If New service account was selected in the previous step, in the Service account name field, enter a name.
+From the Role list, select Project > Owner.
+Click Create. A JSON file that contains your key downloads to your computer.
+On the project page, go to Project settings and choose Service connections.
+In the New service connection list, choose GCP for Terraform.
+Enter the following details to set up the service connection:
+Connection name*: Enter a unique name of the service connection to identify it within the project
+Project id*: Enter the project id of the GCP project in which the resources will be managed
+Client email*: Enter the value of the client_email field in the JSON key file
+Token uri*: Enter the value of the token_uri field in the JSON key file
+Scope*: Enter the scope of access to GCP resources e.g. https://www.googleapis.com/auth/cloud-platform. For more information, see granting roles to service accounts
+Private key*: Enter the value of the private_key field in the JSON key file
+Creating a GCP service connection
+Terraform tool installer task
+
+Search for Terraform tool installer and click on Add
+Adding Terraform tool installer task
+In the Version input, select the exact version of terraform you want to install on the build agent. e.g. if you want to install version 0.10.3, enter 0.10.3
+Using Terraform tool installer task
+Terraform task
+
+Search for Terraform and click on Add
+Adding Terraform task
+Select the required provider from the Provider list. The available options denote the following:
+azurerm - Azure Resource Manager
+aws - Amazon Web Services
+gcp - Google Cloud Platform
+From the Command list, select the terraform command to execute.
+In the Configuration directory input, select the path to the directory that contains all the relevant terraform config (.tf) files. The task intends to use Terraform to build infrastructure on one provider at a time. So, all the config files in the configuration directory together should not specify more than one provider.
+In the Additional command arguments input, provide any additional arguments for the selected command either as key-value pairs(-key=value) or as command line flags(-flag). Multiple options can also be provided delimited by spaces(-key1=value1 -key2=value2 -flag1 -flag2). Examples:
+-out=tfplan (for terraform plan)
+tfplan -auto-approve (for terraform apply)
+Generic inputs
+For plan, apply and destroy commands:
+Azure subscription (only if "azurerm" provider is selected)*: Select the AzureRM subscription to use for managing the resources used by the plan, apply and destroy commands.
+Amazon Web Services connection (only if "aws" provider is selected)*: Select the AWS connection to use for managing the resources used by the plan, apply and destroy commands.
+Google Cloud Platform connection (only if "gcp" provider is selected)*: Select the GCP connection to use for managing the resources used by the plan, apply and destroy commands.
+Plan, apply, destroy
+Setting up AzureRM backend configuration
+
+Azure subscription*: Select the Azure subscription to use for AzureRM backend configuration
+Resource group*: Select the name of the resource group in which you want to store the terraform remote state file
+Storage account*: Select the name of the storage account belonging to the selected resource group in which you want to store the terrafor remote state file
+Container*: Select the name of the Azure Blob container belonging to the storage account in which you want to store the terrafor remote state file
+Key*: Specify the relative path to the state file inside the selected container. For example, if you want to store the state file, named terraform.tfstate, inside a folder, named tf, then give the input "tf/terraform.tfstate"
+Setting up AWS backend configuration
+
+Amazon Web Services connection*: Select the AWS connection to use for AWS backend configuration
+Bucket*: Select the name of the Amazon S3 bucket in which you want to store the terraform remote state file
+Key*: Specify the relative path to the state file inside the selected S3 bucket. For example, if you want to store the state file, named terraform.tfstate, inside a folder, named tf, then give the input "tf/terraform.tfstate"
+Setting up GCP backend configuration
+
+Google Cloud Platform connection*: Select the GCP connection to use for GCP backend configuration
+Bucket*: Select the name of the GCP storage bucket in which you want to store the terraform remote state file
+Prefix of state file: Specify the relative path to the state file inside the GCP bucket. For example, if you give the input as "terraform", then the state file, named default.tfstate, will be stored inside an object called terraform.
+NOTE: If your connection is not listed or if you want to use an existing connection, you can setup a service connection, using the 'Add' or 'Manage' button.
