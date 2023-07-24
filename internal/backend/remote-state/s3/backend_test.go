@@ -50,7 +50,7 @@ func TestBackend_impl(t *testing.T) {
 	var _ backend.Backend = new(Backend)
 }
 
-func TestBackendConfig(t *testing.T) {
+func TestBackendConfig_original(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
 		"region":         "us-west-1",
@@ -1447,25 +1447,6 @@ func unmarshalObject(dec cty.Value, atys map[string]cty.Type, path cty.Path) (ct
 	}
 
 	return cty.ObjectVal(vals), nil
-}
-
-func stashEnv() []string {
-	env := os.Environ()
-	os.Clearenv()
-	return env
-}
-
-func popEnv(env []string) {
-	os.Clearenv()
-
-	for _, e := range env {
-		p := strings.SplitN(e, "=", 2)
-		k, v := p[0], ""
-		if len(p) > 1 {
-			v = p[1]
-		}
-		os.Setenv(k, v)
-	}
 }
 
 func must[T any](v T, err error) T {
