@@ -47,6 +47,7 @@ func Reset() {
 func New() backend.Backend {
 	// Set the schema
 	s := &schema.Backend{
+		Type: "inmem",
 		Schema: map[string]*schema.Schema{
 			"lock_id": &schema.Schema{
 				Type:        schema.TypeString,

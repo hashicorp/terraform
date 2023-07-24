@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
+	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -175,7 +176,8 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 				opts.DestinationType),
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateMultiToMulti),
-				opts.SourceType, opts.DestinationType),
+				opts.SourceType, opts.DestinationType,
+				logging.Indent(opts.Source.String()), logging.Indent(opts.Destination.String())),
 		})
 		if err != nil {
 			return fmt.Errorf(
@@ -474,7 +476,8 @@ func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opt
 			Query: "Do you want to copy existing state to the new backend?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateEmpty),
-				opts.SourceType, opts.DestinationType),
+				opts.SourceType, opts.DestinationType,
+				logging.Indent(opts.Source.String()), logging.Indent(opts.Destination.String())),
 		}
 	}
 
@@ -526,7 +529,8 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 			Query: "Do you want to copy existing state to the new backend?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateNonEmpty),
-				opts.SourceType, opts.DestinationType, sourcePath, destinationPath),
+				opts.SourceType, opts.DestinationType, sourcePath, destinationPath,
+				logging.Indent(opts.Source.String()), logging.Indent(opts.Destination.String())),
 		}
 	}
 
@@ -1055,7 +1059,17 @@ Enter "yes" to proceed or "no" to cancel.
 const inputBackendMigrateEmpty = `
 Pre-existing state was found while migrating the previous %q backend to the
 newly configured %q backend. No existing state was found in the newly
-configured %[2]q backend. Do you want to copy this state to the new %[2]q
+configured %[2]q backend.
+
+The configuration for the previous %[1]q backend was:
+
+%[3]s
+
+The configuration for the new %[2]q backend is:
+
+%[4]s
+
+Do you want to copy this state to the new %[2]q
 backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
@@ -1073,6 +1087,14 @@ removed after responding to this query.
 
 Previous (type %[1]q): %[3]s
 New      (type %[2]q): %[4]s
+
+The configuration for the previous %[1]q backend was:
+
+%[5]s
+
+The configuration for the new %[2]q backend is:
+
+%[6]s
 
 Do you want to overwrite the state in the new backend with the previous state?
 Enter "yes" to copy and "no" to start with the existing state in the newly
@@ -1110,6 +1132,14 @@ states in the destination.
 Terraform initialization doesn't currently migrate only select workspaces.
 If you want to migrate a select number of workspaces, you must manually
 pull and push those states.
+
+The configuration for the previous %[1]q backend was:
+
+%[3]s
+
+The configuration for the new %[2]q backend is:
+
+%[4]s
 
 If you answer "yes", Terraform will migrate all states. If you answer
 "no", Terraform will abort.

@@ -372,3 +372,7 @@ func (b backendFailsConfigure) DeleteWorkspace(name string, _ bool) error {
 func (b backendFailsConfigure) Workspaces() ([]string, error) {
 	return nil, fmt.Errorf("Workspaces not implemented")
 }
+
+func (b backendFailsConfigure) String() string {
+	return ""
+}

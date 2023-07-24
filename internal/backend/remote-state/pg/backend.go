@@ -33,6 +33,7 @@ func defaultBoolFunc(k string, dv bool) schema.SchemaDefaultFunc {
 // New creates a new backend for Postgres remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "pg",
 		Schema: map[string]*schema.Schema{
 			"conn_str": {
 				Type:        schema.TypeString,

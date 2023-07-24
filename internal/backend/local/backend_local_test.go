@@ -201,6 +201,10 @@ func (b backendWithStateStorageThatFailsRefresh) Workspaces() ([]string, error) 
 	return []string{"default"}, nil
 }
 
+func (b backendWithStateStorageThatFailsRefresh) String() string {
+	return ""
+}
+
 type stateStorageThatFailsRefresh struct {
 	locked bool
 }

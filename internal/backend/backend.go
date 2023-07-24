@@ -118,6 +118,10 @@ type Backend interface {
 	// States returns a list of the names of all of the workspaces that exist
 	// in this backend.
 	Workspaces() ([]string, error)
+
+	// String returns a valid string representation of the backend as it would
+	// appear in the Terraform configuration
+	String() string
 }
 
 // HostAlias describes a list of aliases that should be used when initializing an

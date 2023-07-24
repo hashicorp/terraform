@@ -14,6 +14,7 @@ import (
 // New creates a new backend for Azure remote state.
 func New() backend.Backend {
 	s := &schema.Backend{
+		Type: "azure",
 		Schema: map[string]*schema.Schema{
 			"storage_account_name": {
 				Type:        schema.TypeString,

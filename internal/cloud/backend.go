@@ -18,6 +18,8 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
+	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/hashicorp/hcl/v2/hclwrite"
 	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/mitchellh/cli"
@@ -116,6 +118,31 @@ func New(services *disco.Disco) *Cloud {
 	return &Cloud{
 		services: services,
 	}
+}
+
+func (b *Cloud) String() string {
+	f := hclwrite.NewFile()
+
+	body := f.Body().AppendNewBlock("backend", []string{"cloud"}).Body()
+	body.SetAttributeValue("hostname", cty.StringVal(b.hostname))
+	body.SetAttributeValue("organization", cty.StringVal(b.organization))
+	body.SetAttributeRaw("token", hclwrite.Tokens{&hclwrite.Token{
+		Type:  hclsyntax.TokenIdent,
+		Bytes: []byte("(sensitive)"),
+	}})
+	body.AppendNewline()
+
+	body = body.AppendNewBlock("workspaces", []string{}).Body()
+
+	var tags []cty.Value
+	for _, t := range b.WorkspaceMapping.Tags {
+		tags = append(tags, cty.StringVal(t))
+	}
+
+	body.SetAttributeValue("name", cty.StringVal(b.WorkspaceMapping.Name))
+	body.SetAttributeValue("tags", cty.ListVal(tags))
+
+	return strings.TrimSpace(string(f.Bytes()))
 }
 
 // ConfigSchema implements backend.Enhanced.
