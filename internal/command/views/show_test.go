@@ -25,7 +25,7 @@ import (
 )
 
 func TestShowHuman(t *testing.T) {
-	redactedPath := "../../cloud/testdata/plan-json-basic/plan-redacted.json"
+	redactedPath := "./testdata/plans/redacted-plan.json"
 	redactedPlanJson, err := os.ReadFile(redactedPath)
 	if err != nil {
 		t.Fatalf("couldn't read json plan test data at %s for showing a cloud plan. Did the file get moved?", redactedPath)

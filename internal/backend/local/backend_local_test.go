@@ -90,10 +90,10 @@ func TestLocalRun_cloudPlan(t *testing.T) {
 	configDir := "./testdata/apply"
 	b := TestLocal(t)
 
-	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir)
+	_, configLoader, configCleanup := initwd.MustLoadConfigForTests(t, configDir, "tests")
 	defer configCleanup()
 
-	planPath := "../../cloud/cloudplan/testdata/plan-bookmark/bookmark.json"
+	planPath := "./testdata/plan-bookmark/bookmark.json"
 
 	planFile, err := planfile.OpenWrapped(planPath)
 	if err != nil {
