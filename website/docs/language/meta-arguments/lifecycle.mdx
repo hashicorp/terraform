@@ -49,7 +49,7 @@ The arguments available within a `lifecycle` block are `create_before_destroy`,
   such features, so you must understand the constraints for each resource
   type before using `create_before_destroy` with it.
 
-  Note that Terraform propagates and applies `create_before_destroy` meta-attribute
+  Note that Terraform propagates and applies the `create_before_destroy` meta-attribute
   behaviour to all resource dependencies. For example, if resource A with enabled
   `create_before_destroy` depends on resource B with disabled `create_before_destroy`
   (by default), then Terraform enables `create_before_destroy` for resource B
