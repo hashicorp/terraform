@@ -33,6 +33,7 @@ type Stack struct {
 	inputVariables map[stackaddrs.InputVariable]*InputVariable
 	stackCalls     map[stackaddrs.StackCall]*StackCall
 	outputValues   map[stackaddrs.OutputValue]*OutputValue
+	components     map[stackaddrs.Component]*Component
 }
 
 var _ ExpressionScope = (*Stack)(nil)
@@ -236,6 +237,33 @@ func (s *Stack) EmbeddedStackCalls(ctx context.Context) map[stackaddrs.StackCall
 
 func (s *Stack) EmbeddedStackCall(ctx context.Context, addr stackaddrs.StackCall) *StackCall {
 	return s.EmbeddedStackCalls(ctx)[addr]
+}
+
+func (s *Stack) Components(ctx context.Context) map[stackaddrs.Component]*Component {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// We intentionally save a non-nil map below even if it's empty so that
+	// we can unambiguously recognize whether we've loaded this or not.
+	if s.components != nil {
+		return s.components
+	}
+
+	decls := s.ConfigDeclarations(ctx)
+	ret := make(map[stackaddrs.Component]*Component, len(decls.Components))
+	for _, c := range decls.Components {
+		absAddr := stackaddrs.AbsComponent{
+			Stack: s.Addr(),
+			Item:  stackaddrs.Component{Name: c.Name},
+		}
+		ret[absAddr.Item] = newComponent(s.main, absAddr)
+	}
+	s.components = ret
+	return ret
+}
+
+func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Component {
+	return s.Components(ctx)[addr]
 }
 
 // OutputValues returns a map of all of the output values declared within

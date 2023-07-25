@@ -34,6 +34,7 @@ type StackConfig struct {
 	inputVariables map[stackaddrs.InputVariable]*InputVariableConfig
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
+	components     map[stackaddrs.Component]*ComponentConfig
 }
 
 var _ ExpressionScope = (*StackConfig)(nil)
@@ -49,6 +50,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		inputVariables: make(map[stackaddrs.InputVariable]*InputVariableConfig, len(config.Stack.Declarations.InputVariables)),
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
+		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
 	}
 }
 
@@ -224,6 +226,40 @@ func (s *StackConfig) StackCalls(ctx context.Context) map[stackaddrs.StackCall]*
 	for n := range s.config.Children {
 		stepAddr := stackaddrs.StackCall{Name: n}
 		ret[stepAddr] = s.StackCall(ctx, stepAddr)
+	}
+	return ret
+}
+
+// Component returns a [ComponentConfig] representing the component call
+// declared within this stack config that matches the given address, or nil if
+// there is no such declaration.
+func (s *StackConfig) Component(ctx context.Context, addr stackaddrs.Component) *ComponentConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.components[addr]
+	if !ok {
+		cfg, ok := s.config.Stack.Components[addr.Name]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newComponentConfig(s.main, cfgAddr, cfg)
+		s.components[addr] = ret
+	}
+	return ret
+}
+
+// Components returns a map of the objects representing all of the
+// component calls declared inside this stack configuration.
+func (s *StackConfig) Components(ctx context.Context) map[stackaddrs.Component]*ComponentConfig {
+	if len(s.config.Stack.Components) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.Component]*ComponentConfig, len(s.config.Stack.Components))
+	for name := range s.config.Stack.InputVariables {
+		addr := stackaddrs.Component{Name: name}
+		ret[addr] = s.Component(ctx, addr)
 	}
 	return ret
 }

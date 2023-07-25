@@ -137,6 +137,8 @@ func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack
 	// stack call can represent zero or more child stacks that we'll analyze
 	// by recursive calls to this function.
 	for _, call := range stack.EmbeddedStackCalls(ctx) {
+		m.walkPlanValidateConfig(ctx, walk, call.Config(ctx))
+
 		// We need to perform the whole expansion in an overall async task
 		// because it involves evaluating for_each expressions, and one
 		// stack call's for_each might depend on the results of another.
@@ -157,11 +159,28 @@ func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack
 
 	// We also need to plan all of the other declarations in the current stack.
 
+	for _, obj := range stack.Components(ctx) {
+		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
+		m.walkPlanObjectChanges(ctx, walk, obj)
+
+		// We need to perform the instance expansion in an overall async task
+		// because it involves potentially evaluating a for_each expression.
+		// and that might depend on data from elsewhere in the same stack.
+		walk.AsyncTask(ctx, func(ctx context.Context) {
+			insts := obj.Instances(ctx, PlanPhase)
+			for _, inst := range insts {
+				m.walkPlanObjectChanges(ctx, walk, inst)
+			}
+		})
+	}
+
 	for _, obj := range stack.InputVariables(ctx) {
+		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
 		m.walkPlanObjectChanges(ctx, walk, obj)
 	}
 
 	for _, obj := range stack.OutputValues(ctx) {
+		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
 		m.walkPlanObjectChanges(ctx, walk, obj)
 	}
 
@@ -179,6 +198,24 @@ func (m *Main) walkPlanObjectChanges(ctx context.Context, walk *planWalk, obj Pl
 		for _, change := range changes {
 			walk.out.AnnouncePlannedChange(ctx, change)
 		}
+		if len(diags) != 0 {
+			walk.out.AnnounceDiagnostics(ctx, diags)
+		}
+	})
+}
+
+// walkPlanValidateConfig adapts the Validatable API to work in the planning
+// phase, so that we can reuse the config-level validation logic to detect
+// and report errors during planning.
+//
+// FIXME: The way we're currently calling this above is a bit wonky because
+// we'll be re-validating the same objects multiple times for each instance
+// of an embedded stack. Should probably treat the validation pass as a
+// separate walk to be done first -- before planning -- so we can have it
+// walk the configuration tree instead of the instance tree.
+func (m *Main) walkPlanValidateConfig(ctx context.Context, walk *planWalk, obj Validatable) {
+	walk.AsyncTask(ctx, func(ctx context.Context) {
+		diags := obj.Validate(ctx)
 		if len(diags) != 0 {
 			walk.out.AnnounceDiagnostics(ctx, diags)
 		}

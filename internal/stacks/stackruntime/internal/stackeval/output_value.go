@@ -105,7 +105,7 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 				diags = diags.Append(result.Diagnostic(
 					tfdiags.Error,
 					"Invalid output value result",
-					fmt.Sprintf("Unsuitable value for output %q: %s.", tfdiags.FormatError(err)),
+					fmt.Sprintf("Unsuitable value for output %q: %s.", v.Addr().Item.Name, tfdiags.FormatError(err)),
 				))
 				return cty.UnknownVal(ty), diags
 			}

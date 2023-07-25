@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
@@ -101,6 +102,24 @@ func (m *Main) Planning() bool {
 // results.
 func (m *Main) Applying() bool {
 	return m.applying != nil && m.Planning()
+}
+
+// PlanningMode returns the planning options to use during the planning phase,
+// or panics if this [Main] was not instantiated for planning.
+//
+// Do not modify anything reachable through the returned pointer.
+func (m *Main) PlanningOpts() *PlanOpts {
+	if !m.Planning() {
+		panic("stacks language runtime is not instantiated for planning")
+	}
+	return &m.planning.opts
+}
+
+// SourceBundle returns the source code bundle that the stack configuration
+// was originally loaded from and that should also contain the source code
+// for any modules that "component" blocks refer to.
+func (m *Main) SourceBundle(ctx context.Context) *sourcebundle.Bundle {
+	return m.config.Sources
 }
 
 // MainStackConfig returns the [StackConfig] object representing the main
