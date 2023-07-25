@@ -126,7 +126,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "MFA token",
 			},
 			"skip_credentials_validation": {
-				Type:        cty.String,
+				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Skip the credentials validation via STS API.",
 			},
