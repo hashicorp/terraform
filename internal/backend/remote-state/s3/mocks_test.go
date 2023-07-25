@@ -115,3 +115,15 @@ func ecsCredentialsApiMock() func() {
 	os.Setenv("AWS_CONTAINER_CREDENTIALS_FULL_URI", ts.URL+"/creds")
 	return ts.Close
 }
+
+// TODO: replace with `aws-sdk-go-base/v2/servicemocks.Ec2metadata_instanceIdentityEndpoint`
+func ec2metadata_instanceIdentityEndpoint(region string) *servicemocks.MetadataResponse {
+	return &servicemocks.MetadataResponse{
+		Uri: "/latest/dynamic/instance-identity/document",
+		Body: fmt.Sprintf(`{
+	"version": "2017-09-30",
+	"instanceId": "mock-instance-id",
+	"region": %q
+}`, region),
+	}
+}

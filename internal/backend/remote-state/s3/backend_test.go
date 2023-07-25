@@ -62,10 +62,10 @@ func TestBackendConfig_original(t *testing.T) {
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-	if *b.s3Client.Config.Region != "us-west-1" {
+	if aws.StringValue(b.s3Client.Config.Region) != "us-west-1" {
 		t.Fatalf("Incorrect region was populated")
 	}
-	if *b.s3Client.Config.MaxRetries != 5 {
+	if aws.IntValue(b.s3Client.Config.MaxRetries) != 5 {
 		t.Fatalf("Default max_retries was not set")
 	}
 	if b.bucketName != "tf-test" {
@@ -188,7 +188,7 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 
 			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
-			if *b.s3Client.Config.Region != "us-west-1" {
+			if aws.StringValue(b.s3Client.Config.Region) != "us-west-1" {
 				t.Fatalf("Incorrect region was populated")
 			}
 		})
@@ -1259,7 +1259,7 @@ func createS3Bucket(t *testing.T, s3Client *s3.S3, bucketName string) {
 
 	// Be clear about what we're doing in case the user needs to clean
 	// this up later.
-	t.Logf("creating S3 bucket %s in %s", bucketName, *s3Client.Config.Region)
+	t.Logf("creating S3 bucket %s in %s", bucketName, aws.StringValue(s3Client.Config.Region))
 	_, err := s3Client.CreateBucket(createBucketReq)
 	if err != nil {
 		t.Fatal("failed to create test S3 bucket:", err)

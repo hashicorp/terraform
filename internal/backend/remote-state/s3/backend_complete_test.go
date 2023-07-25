@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/google/go-cmp/cmp"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
@@ -906,8 +907,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared configuration file: %s", err)
 				}
 
-				os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
-				os.Setenv("AWS_CONFIG_FILE", file.Name())
+				setSharedConfigFile(file.Name())
 			}
 
 			if tc.SharedCredentialsFile != "" {
@@ -932,15 +932,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				os.Setenv(k, v)
 			}
 
-			b := New().(*Backend)
-			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(tc.config))
-
-			configSchema, diags := b.PrepareConfig(configSchema)
-
-			if !diags.HasErrors() {
-				confDiags := b.Configure(configSchema)
-				diags = diags.Append(confDiags)
-			}
+			b, diags := configureBackend(t, tc.config)
 
 			tc.ValidateDiags(t, diags)
 
@@ -958,4 +950,235 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 		})
 	}
+}
+
+func TestBackendConfig_Region(t *testing.T) {
+	testCases := map[string]struct {
+		config                  map[string]any
+		EnvironmentVariables    map[string]string
+		IMDSRegion              string
+		SharedConfigurationFile string
+		ExpectedRegion          string
+	}{
+		// NOT SUPPORTED: region is required
+		// "no configuration": {
+		// 	config: map[string]any{
+		// 		"access_key": awsbase.MockStaticAccessKey,
+		// 		"secret_key": servicemocks.MockStaticSecretKey,
+		// 	},
+		// 	ExpectedRegion: "",
+		// },
+
+		"config": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"region":     "us-east-1",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+
+		"AWS_REGION": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_REGION": "us-east-1",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+		"AWS_DEFAULT_REGION": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_DEFAULT_REGION": "us-east-1",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+		"AWS_REGION overrides AWS_DEFAULT_REGION": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_REGION":         "us-east-1",
+				"AWS_DEFAULT_REGION": "us-west-2",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+
+		// NOT SUPPORTED: region from shared configuration file
+		// 		"shared configuration file": {
+		// 			config: map[string]any{
+		// 				"access_key": awsbase.MockStaticAccessKey,
+		// 				"secret_key": servicemocks.MockStaticSecretKey,
+		// 			},
+		// 			SharedConfigurationFile: `
+		// [default]
+		// region = us-east-1
+		// `,
+		// 			ExpectedRegion: "us-east-1",
+		// 		},
+
+		// NOT SUPPORTED: region from IMDS
+		// "IMDS": {
+		// 	config:         map[string]any{},
+		// 	IMDSRegion:     "us-east-1",
+		// 	ExpectedRegion: "us-east-1",
+		// },
+
+		"config overrides AWS_REGION": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"region":     "us-east-1",
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_REGION": "us-west-2",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+		"config overrides AWS_DEFAULT_REGION": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"region":     "us-east-1",
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_DEFAULT_REGION": "us-west-2",
+			},
+			ExpectedRegion: "us-east-1",
+		},
+
+		"config overrides IMDS": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"region":     "us-west-2",
+			},
+			IMDSRegion:     "us-east-1",
+			ExpectedRegion: "us-west-2",
+		},
+
+		"AWS_REGION overrides shared configuration": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_REGION": "us-east-1",
+			},
+			SharedConfigurationFile: `
+[default]
+region = us-west-2
+`,
+			ExpectedRegion: "us-east-1",
+		},
+		"AWS_DEFAULT_REGION overrides shared configuration": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_DEFAULT_REGION": "us-east-1",
+			},
+			SharedConfigurationFile: `
+[default]
+region = us-west-2
+`,
+			ExpectedRegion: "us-east-1",
+		},
+
+		"AWS_REGION overrides IMDS": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_REGION": "us-east-1",
+			},
+			IMDSRegion:     "us-west-2",
+			ExpectedRegion: "us-east-1",
+		},
+	}
+
+	for name, tc := range testCases {
+		tc := tc
+
+		t.Run(name, func(t *testing.T) {
+			oldEnv := initSessionTestEnv()
+			defer popEnv(oldEnv)
+
+			// Populate required fields
+			tc.config["bucket"] = "bucket"
+			tc.config["key"] = "key"
+
+			for k, v := range tc.EnvironmentVariables {
+				os.Setenv(k, v)
+			}
+
+			if tc.IMDSRegion != "" {
+				closeEc2Metadata := awsMetadataApiMock(append(
+					ec2metadata_securityCredentialsEndpoints,
+					ec2metadata_instanceIdEndpoint,
+					ec2metadata_iamInfoEndpoint,
+					ec2metadata_instanceIdentityEndpoint(tc.IMDSRegion),
+				))
+				defer closeEc2Metadata()
+			}
+
+			if tc.SharedConfigurationFile != "" {
+				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
+
+				if err != nil {
+					t.Fatalf("unexpected error creating temporary shared configuration file: %s", err)
+				}
+
+				defer os.Remove(file.Name())
+
+				err = os.WriteFile(file.Name(), []byte(tc.SharedConfigurationFile), 0600)
+
+				if err != nil {
+					t.Fatalf("unexpected error writing shared configuration file: %s", err)
+				}
+
+				setSharedConfigFile(file.Name())
+			}
+
+			tc.config["skip_credentials_validation"] = true
+
+			b, diags := configureBackend(t, tc.config)
+			if diags.HasErrors() {
+				t.Fatalf("configuring backend: %s", diagnosticsString(diags))
+			}
+
+			if a, e := aws.StringValue(b.s3Client.Config.Region), tc.ExpectedRegion; a != e {
+				t.Errorf("expected Region %q, got: %q", e, a)
+			}
+		})
+	}
+}
+
+func setSharedConfigFile(filename string) {
+	os.Setenv("AWS_SDK_LOAD_CONFIG", "1")
+	os.Setenv("AWS_CONFIG_FILE", filename)
+}
+
+func configureBackend(t *testing.T, config map[string]any) (*Backend, tfdiags.Diagnostics) {
+	b := New().(*Backend)
+	configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
+
+	configSchema, diags := b.PrepareConfig(configSchema)
+
+	if diags.HasErrors() {
+		return b, diags
+	}
+
+	confDiags := b.Configure(configSchema)
+	diags = diags.Append(confDiags)
+
+	return b, diags
 }
