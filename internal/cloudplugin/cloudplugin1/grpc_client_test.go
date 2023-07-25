@@ -132,6 +132,6 @@ func Test_GRPCCloudClient_Execute(t *testing.T) {
 	}
 
 	if stdoutBuffer.String() != "firstcall\nsecondcall\n" {
-		t.Errorf("expected error %q, got %q", "firstcall\nsecondcall\n", stdoutBuffer.String())
+		t.Errorf("expected output %q, got %q", "firstcall\nsecondcall\n", stdoutBuffer.String())
 	}
 }

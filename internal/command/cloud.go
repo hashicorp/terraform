@@ -73,7 +73,7 @@ func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
 	// multiple versions are possible.
 	cloud1, ok := raw.(cloudplugin.Cloud1)
 	if !ok {
-		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in terraform.")
+		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in Terraform.")
 		return ExitRPCError
 	}
 	return cloud1.Execute(args, stdout, stderr)
@@ -86,7 +86,7 @@ func (c *CloudCommand) Run(args []string) int {
 	// TODO: Download and verify the signing of the terraform-cloudplugin
 	// release that is appropriate for this OS/Arch
 	if _, err := os.Stat("./terraform-cloudplugin"); err != nil {
-		c.Ui.Warn("terraform-cloudplugin not found. This plugin does not have an official release, yet.")
+		c.Ui.Warn("terraform-cloudplugin not found. This plugin does not have an official release yet.")
 		return 1
 	}
 
