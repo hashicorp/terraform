@@ -20,6 +20,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
@@ -337,7 +338,7 @@ func TestCloud_planWithPlan(t *testing.T) {
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -366,8 +367,11 @@ func TestCloud_planWithPath(t *testing.T) {
 
 	op, configCleanup, done := testOperationPlan(t, "./testdata/plan")
 	defer configCleanup()
+	defer done(t)
 
-	op.PlanOutPath = "./testdata/plan"
+	tmpDir := t.TempDir()
+	pfPath := tmpDir + "/plan.tfplan"
+	op.PlanOutPath = pfPath
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -376,17 +380,27 @@ func TestCloud_planWithPath(t *testing.T) {
 	}
 
 	<-run.Done()
-	output := done(t)
-	if run.Result == backend.OperationSuccess {
-		t.Fatal("expected plan operation to fail")
+	if run.Result != backend.OperationSuccess {
+		t.Fatalf("operation failed: %s", b.CLI.(*cli.MockUi).ErrorWriter.String())
 	}
-	if !run.PlanEmpty {
-		t.Fatalf("expected plan to be empty")
+	if run.PlanEmpty {
+		t.Fatal("expected a non-empty plan")
 	}
 
-	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "generated plan is currently not supported") {
-		t.Fatalf("expected a generated plan error, got: %v", errOutput)
+	output := b.CLI.(*cli.MockUi).OutputWriter.String()
+	if !strings.Contains(output, "Running plan in Terraform Cloud") {
+		t.Fatalf("expected TFC header in output: %s", output)
+	}
+	if !strings.Contains(output, "1 to add, 0 to change, 0 to destroy") {
+		t.Fatalf("expected plan summary in output: %s", output)
+	}
+
+	plan, err := cloudplan.LoadSavedPlanBookmark(pfPath)
+	if err != nil {
+		t.Fatalf("error loading cloud plan file: %v", err)
+	}
+	if !strings.Contains(plan.RunID, "run-") || plan.Hostname != "app.terraform.io" {
+		t.Fatalf("unexpected contents in saved cloud plan: %v", plan)
 	}
 }
 
