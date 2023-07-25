@@ -19,8 +19,8 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// ConsoleCommand is a Command implementation that applies a Terraform
-// configuration and actually builds or changes infrastructure.
+// ConsoleCommand is a Command implementation that starts an interactive
+// console that can be used to try expressions with the current config.
 type ConsoleCommand struct {
 	Meta
 }
