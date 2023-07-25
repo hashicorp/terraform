@@ -198,6 +198,7 @@ func (s *Stack) InputsType(ctx context.Context) (cty.Type, *typeexpr.Defaults) {
 		atys[vAddr.Name] = cfg.TypeConstraint()
 		if def := cfg.DefaultValue(ctx); def != cty.NilVal {
 			defs.DefaultValues[vAddr.Name] = def
+			opts = append(opts, vAddr.Name)
 		}
 		if childDefs := cfg.NestedDefaults(); childDefs != nil {
 			defs.Children[vAddr.Name] = childDefs

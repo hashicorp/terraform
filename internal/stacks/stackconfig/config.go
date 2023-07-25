@@ -27,6 +27,12 @@ const maxEmbeddedStackNesting = 20
 // so on for arbitrary levels of nesting.
 type Config struct {
 	Root *ConfigNode
+
+	// Sources is the source bundle that the configuration was loaded from.
+	//
+	// This is also the source bundle that any Terraform modules used by
+	// components should be loaded from.
+	Sources *sourcebundle.Bundle
 }
 
 // ConfigNode represents a node in a tree of stacks that are to be planned and
@@ -66,7 +72,8 @@ func LoadConfigDir(sourceAddr sourceaddrs.FinalSource, sources *sourcebundle.Bun
 	}
 
 	ret := &Config{
-		Root: rootNode,
+		Root:    rootNode,
+		Sources: sources,
 	}
 
 	// Before we return we need to walk the tree and resolve all of the
