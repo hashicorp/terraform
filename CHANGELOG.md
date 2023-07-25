@@ -1,5 +1,9 @@
 ## 1.5.6 (Unreleased)
 
+BUG FIXES:
+
+* terraform_remote_state: Fixed a potential unsafe read panic when reading from multiple terraform_remote_state data sources ([#33333](https://github.com/hashicorp/terraform/issues/33333))
+
 ## 1.5.5 (August 9, 2023)
 
 * `terraform init`: Fix crash when using invalid configuration in backend blocks. ([#33628](https://github.com/hashicorp/terraform/issues/33628))
@@ -37,18 +41,18 @@ NEW FEATURES:
 
 * `check` blocks for validating infrastructure: Module and configuration authors can now write independent check blocks within their configuration to validate assertions about their infrastructure.
 
-    The new independent `check` blocks must specify at least one `assert` block, but possibly many, each one with a `condition` expression and an `error_message` expression matching the existing [Custom Condition Checks](https://developer.hashicorp.com/terraform/language/v1.4.x/expressions/custom-conditions). 
+    The new independent `check` blocks must specify at least one `assert` block, but possibly many, each one with a `condition` expression and an `error_message` expression matching the existing [Custom Condition Checks](https://developer.hashicorp.com/terraform/language/v1.4.x/expressions/custom-conditions).
     Additionally, check blocks can optionally load a scoped [data source](https://developer.hashicorp.com/terraform/language/v1.4.x/data-sources). Scoped data sources match the existing data sources with the exception that they can only be referenced from within their check block.
 
-    Unlike the existing `precondition` and `postcondition` blocks, Terraform will not halt execution should the scoped data block fail or error or if any of the assertions fail. 
-    This allows practitioners to continually validate the state of their infrastructure outside the usual lifecycle management cycle. 
-    
-* `import` blocks for importing infrastructure: Root module authors can now use the `import` block to declare their intent that Terraform adopt an existing resource. 
-  
-    Import is now a configuration-driven, plannable action, and is processed as part of a normal plan. Running `terraform plan` will show a summary of the resources that Terraform has planned to import, along with any other plan changes. 
-    
+    Unlike the existing `precondition` and `postcondition` blocks, Terraform will not halt execution should the scoped data block fail or error or if any of the assertions fail.
+    This allows practitioners to continually validate the state of their infrastructure outside the usual lifecycle management cycle.
+
+* `import` blocks for importing infrastructure: Root module authors can now use the `import` block to declare their intent that Terraform adopt an existing resource.
+
+    Import is now a configuration-driven, plannable action, and is processed as part of a normal plan. Running `terraform plan` will show a summary of the resources that Terraform has planned to import, along with any other plan changes.
+
     The existing `terraform import` CLI command has not been modified.
-    
+
     This is an early version of the `import` block feature, for which we are actively seeking user feedback to shape future development. The `import` block currently does not support interpolation in the `id` field, which must be a string.
 
 * Generating configuration for imported resources: in conjunction with the `import` block, this feature enables easy templating of configuration when importing existing resources into Terraform. A new flag `-generate-config-out=PATH` is added to `terraform plan`. When this flag is set, Terraform will generate HCL configuration for any resource included in an `import` block that does not already have associated configuration, and write it to a new file at `PATH`. Before applying, review the generated configuration and edit it as necessary.
