@@ -11,7 +11,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/states"
@@ -37,13 +40,14 @@ func TestContextImport_basic(t *testing.T) {
 		},
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -88,13 +92,14 @@ resource "aws_instance" "foo" {
 		},
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.IntKey(0),
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -149,13 +154,14 @@ func TestContextImport_collision(t *testing.T) {
 		},
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, state, &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -193,13 +199,14 @@ func TestContextImport_missingType(t *testing.T) {
 		},
 	})
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -244,13 +251,14 @@ func TestContextImport_moduleProvider(t *testing.T) {
 		},
 	})
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -299,13 +307,14 @@ func TestContextImport_providerModule(t *testing.T) {
 		return
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -355,13 +364,14 @@ func TestContextImport_providerConfig(t *testing.T) {
 				},
 			}
 
+			barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 			state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 				Targets: []*ImportTarget{
 					{
 						Addr: addrs.RootModuleInstance.ResourceInstance(
 							addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 						),
-						ID: "bar",
+						ID: barExpr,
 					},
 				},
 				SetVariables: InputValues{
@@ -415,13 +425,14 @@ func TestContextImport_providerConfigResources(t *testing.T) {
 		},
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	_, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -486,13 +497,14 @@ data "aws_data_source" "bar" {
 		}),
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -537,13 +549,14 @@ func TestContextImport_refreshNil(t *testing.T) {
 		}
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -578,13 +591,14 @@ func TestContextImport_module(t *testing.T) {
 		},
 	}
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -619,13 +633,14 @@ func TestContextImport_moduleDepth2(t *testing.T) {
 		},
 	}
 
+	bazExpr := hcl.StaticExpr(cty.StringVal("baz"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).Child("nested", addrs.NoKey).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "baz",
+				ID: bazExpr,
 			},
 		},
 	})
@@ -660,13 +675,14 @@ func TestContextImport_moduleDiff(t *testing.T) {
 		},
 	}
 
+	bazExpr := hcl.StaticExpr(cty.StringVal("baz"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.Child("child", addrs.IntKey(0)).ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "baz",
+				ID: bazExpr,
 			},
 		},
 	})
@@ -728,13 +744,14 @@ func TestContextImport_multiState(t *testing.T) {
 		},
 	})
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -802,13 +819,14 @@ func TestContextImport_multiStateSame(t *testing.T) {
 		},
 	})
 
+	barExpr := hcl.StaticExpr(cty.StringVal("bar"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: barExpr,
 			},
 		},
 	})
@@ -896,13 +914,14 @@ resource "test_resource" "unused" {
 		},
 	})
 
+	testExpr := hcl.StaticExpr(cty.StringVal("test"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				ID: "test",
+				ID: testExpr,
 			},
 		},
 	})
@@ -966,13 +985,14 @@ resource "test_resource" "test" {
 		},
 	})
 
+	testExpr := hcl.StaticExpr(cty.StringVal("test"), configs.SynthBody("import", nil).MissingItemRange())
 	state, diags := ctx.Import(m, states.NewState(), &ImportOpts{
 		Targets: []*ImportTarget{
 			{
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "test_resource", "test", addrs.NoKey,
 				),
-				ID: "test",
+				ID: testExpr,
 			},
 		},
 	})
@@ -993,6 +1013,7 @@ resource "test_resource" "test" {
 func TestContextImport_33572(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "issue-33572")
+	bar_expr := hcltest.MockExprLiteral(cty.StringVal("bar"))
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1017,7 +1038,7 @@ func TestContextImport_33572(t *testing.T) {
 				Addr: addrs.RootModuleInstance.ResourceInstance(
 					addrs.ManagedResourceMode, "aws_instance", "foo", addrs.NoKey,
 				),
-				ID: "bar",
+				ID: bar_expr,
 			},
 		},
 	})

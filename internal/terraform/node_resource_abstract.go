@@ -140,10 +140,9 @@ func (n *NodeAbstractResource) ReferenceableAddrs() []addrs.Referenceable {
 
 // GraphNodeReferencer
 func (n *NodeAbstractResource) References() []*addrs.Reference {
+	var result []*addrs.Reference
 	// If we have a config then we prefer to use that.
 	if c := n.Config; c != nil {
-		var result []*addrs.Reference
-
 		result = append(result, n.DependsOn()...)
 
 		if n.Schema == nil {
@@ -204,12 +203,14 @@ func (n *NodeAbstractResource) References() []*addrs.Reference {
 			refs, _ = lang.ReferencesInExpr(addrs.ParseRef, check.ErrorMessage)
 			result = append(result, refs...)
 		}
-
-		return result
 	}
 
-	// Otherwise, we have no references.
-	return nil
+	for _, importTarget := range n.importTargets {
+		refs, _ := lang.ReferencesInExpr(addrs.ParseRef, importTarget.ID)
+		result = append(result, refs...)
+	}
+
+	return result
 }
 
 func (n *NodeAbstractResource) DependsOn() []*addrs.Reference {

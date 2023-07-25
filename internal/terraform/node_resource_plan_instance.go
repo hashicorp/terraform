@@ -159,7 +159,18 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.ID != ""
+	importing := n.importTarget.ID != nil
+	var importId string
+
+	if importing {
+		var evalDiags tfdiags.Diagnostics
+
+		importId, evalDiags = evaluateImportIdExpression(n.importTarget.ID, ctx)
+		if evalDiags.HasErrors() {
+			diags = diags.Append(evalDiags)
+			return diags
+		}
+	}
 
 	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
 		// Then the user wrote an import target to a target that didn't exist.
@@ -187,7 +198,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 	// If the resource is to be imported, we now ask the provider for an Import
 	// and a Refresh, and save the resulting state to instanceRefreshState.
 	if importing {
-		instanceRefreshState, diags = n.importState(ctx, addr, provider, providerSchema)
+		instanceRefreshState, diags = n.importState(ctx, addr, importId, provider, providerSchema)
 	} else {
 		var readDiags tfdiags.Diagnostics
 		instanceRefreshState, readDiags = n.readResourceInstanceState(ctx, addr)
@@ -297,7 +308,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 
 		if importing {
-			change.Importing = &plans.Importing{ID: n.importTarget.ID}
+			change.Importing = &plans.Importing{ID: importId}
 		}
 
 		// FIXME: here we udpate the change to reflect the reason for
@@ -439,12 +450,12 @@ func (n *NodePlannableResourceInstance) replaceTriggered(ctx EvalContext, repDat
 	return diags
 }
 
-func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
+func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.AbsResourceInstance, importId string, provider providers.Interface, providerSchema providers.ProviderSchema) (*states.ResourceInstanceObject, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	absAddr := addr.Resource.Absolute(ctx.Path())
 
 	diags = diags.Append(ctx.Hook(func(h Hook) (HookAction, error) {
-		return h.PrePlanImport(absAddr, n.importTarget.ID)
+		return h.PrePlanImport(absAddr, importId)
 	}))
 	if diags.HasErrors() {
 		return nil, diags
@@ -452,7 +463,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	resp := provider.ImportResourceState(providers.ImportResourceStateRequest{
 		TypeName: addr.Resource.Resource.Type,
-		ID:       n.importTarget.ID,
+		ID:       importId,
 	})
 	diags = diags.Append(resp.Diagnostics)
 	if diags.HasErrors() {
@@ -467,13 +478,13 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			"Import returned no resources",
 			fmt.Sprintf("While attempting to import with ID %s, the provider"+
 				"returned no instance states.",
-				n.importTarget.ID,
+				importId,
 			),
 		))
 		return nil, diags
 	}
 	for _, obj := range imported {
-		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), n.importTarget.ID, obj.TypeName)
+		log.Printf("[TRACE] graphNodeImportState: import %s %q produced instance object of type %s", absAddr.String(), importId, obj.TypeName)
 	}
 	if len(imported) > 1 {
 		diags = diags.Append(tfdiags.Sourceless(
@@ -482,7 +493,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 			fmt.Sprintf("While attempting to import with ID %s, the provider "+
 				"returned multiple resource instance states. This "+
 				"is not currently supported.",
-				n.importTarget.ID,
+				importId,
 			),
 		))
 		return nil, diags
