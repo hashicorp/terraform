@@ -162,7 +162,7 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				ID:        mustAbsResourceInstanceAddr("test_instance.bar"),
+				To:        mustAbsResourceInstanceAddr("test_instance.bar"),
 				DeclRange: blockRange,
 			},
 			"id argument is blank",
