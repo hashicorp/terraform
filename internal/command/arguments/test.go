@@ -1,6 +1,9 @@
 package arguments
 
-import "github.com/hashicorp/terraform/internal/tfdiags"
+import (
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 // Test represents the command-line arguments for the test command.
 type Test struct {
@@ -36,7 +39,7 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	var jsonOutput bool
 	cmdFlags := extendedFlagSet("test", nil, nil, test.Vars)
 	cmdFlags.Var((*flagStringSlice)(&test.Filter), "filter", "filter")
-	cmdFlags.StringVar(&test.TestDirectory, "test-directory", "tests", "test-directory")
+	cmdFlags.StringVar(&test.TestDirectory, "test-directory", configs.DefaultTestDirectory, "test-directory")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
 

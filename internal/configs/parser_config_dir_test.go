@@ -118,15 +118,22 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 		"testdata/valid-modules/with-tests",
 		"testdata/valid-modules/with-tests-expect-failures",
 		"testdata/valid-modules/with-tests-nested",
+		"testdata/valid-modules/with-tests-very-nested",
 		"testdata/valid-modules/with-tests-json",
 	}
 
 	for _, directory := range directories {
 		t.Run(directory, func(t *testing.T) {
+
+			testDirectory := DefaultTestDirectory
+			if directory == "testdata/valid-modules/with-tests-very-nested" {
+				testDirectory = "very/nested"
+			}
+
 			parser := NewParser(nil)
-			mod, diags := parser.LoadConfigDirWithTests(directory, "tests")
-			if diags.HasErrors() {
-				t.Errorf("unexpected error diagnostics")
+			mod, diags := parser.LoadConfigDirWithTests(directory, testDirectory)
+			if len(diags) > 0 { // We don't want any warnings or errors.
+				t.Errorf("unexpected diagnostics")
 				for _, diag := range diags {
 					t.Logf("- %s", diag)
 				}
@@ -136,6 +143,32 @@ func TestParserLoadConfigDirWithTests(t *testing.T) {
 				t.Errorf("incorrect number of test files found: %d", len(mod.Tests))
 			}
 		})
+	}
+}
+
+func TestParserLoadConfigDirWithTests_ReturnsWarnings(t *testing.T) {
+	parser := NewParser(nil)
+	mod, diags := parser.LoadConfigDirWithTests("testdata/valid-modules/with-tests", "not_real")
+	if len(diags) != 1 {
+		t.Errorf("expected exactly 1 diagnostic, but found %d", len(diags))
+	} else {
+		if diags[0].Severity != hcl.DiagWarning {
+			t.Errorf("expected warning severity but found %d", diags[0].Severity)
+		}
+
+		if diags[0].Summary != "Test directory does not exist" {
+			t.Errorf("expected summary to be \"Test directory does not exist\" but was \"%s\"", diags[0].Summary)
+		}
+
+		if diags[0].Detail != "Requested test directory testdata/valid-modules/with-tests/not_real does not exist." {
+			t.Errorf("expected detail to be \"Requested test directory testdata/valid-modules/with-tests/not_real does not exist.\" but was \"%s\"", diags[0].Detail)
+		}
+	}
+
+	// Despite the warning, should still have loaded the tests in the
+	// configuration directory.
+	if len(mod.Tests) != 2 {
+		t.Errorf("incorrect number of test files found: %d", len(mod.Tests))
 	}
 }
 
