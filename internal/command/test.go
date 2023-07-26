@@ -329,6 +329,8 @@ type TestRunner struct {
 }
 
 func (runner *TestRunner) Validate() tfdiags.Diagnostics {
+	log.Printf("[TRACE] TestRunner: Validating configuration.")
+
 	var diags tfdiags.Diagnostics
 
 	diags = diags.Append(runner.validateConfig(runner.Config))
@@ -585,6 +587,8 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 }
 
 func (runner *TestRunner) validateConfig(config *configs.Config) tfdiags.Diagnostics {
+	log.Printf("[TRACE] TestRunner: validating specific config %s", config.Path)
+
 	var diags tfdiags.Diagnostics
 
 	tfCtxOpts, err := runner.command.contextOpts()
@@ -763,9 +767,14 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 }
 
 func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Context, mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
-	identifier := file.Name
-	if run != nil {
-		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	var identifier string
+	if file == nil {
+		identifier = "validate"
+	} else {
+		identifier = file.Name
+		if run != nil {
+			identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+		}
 	}
 	log.Printf("[TRACE] TestRunner: waiting for execution during %s", identifier)
 
