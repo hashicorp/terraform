@@ -383,7 +383,7 @@ func TestConfigProviderRequirementsByModuleInclTests(t *testing.T) {
 		},
 		Children: make(map[string]*ModuleRequirements),
 		Tests: map[string]*TestFileModuleRequirements{
-			"provider-reqs-root.tftest": {
+			"provider-reqs-root.tftest.hcl": {
 				Requirements: getproviders.Requirements{
 					configuredProvider: getproviders.MustParseVersionConstraints("~> 1.4"),
 				},

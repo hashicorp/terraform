@@ -36,10 +36,12 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	if !diags.HasErrors() {
 		// Now that the config is built, we can connect the provider names to all
 		// the known types for validation.
-		cfg.resolveProviderTypes()
+		providers := cfg.resolveProviderTypes()
+		cfg.resolveProviderTypesForTests(providers)
 	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
+	diags = append(diags, validateProviderConfigsForTests(cfg)...)
 
 	return cfg, diags
 }
@@ -57,8 +59,8 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 			// so we create a dedicated path for them.
 			//
 			// Some examples:
-			//    - file: main.tftest, run: setup - test.main.setup
-			//    - file: tests/main.tftest, run: setup - test.tests.main.setup
+			//    - file: main.tftest.hcl, run: setup - test.main.setup
+			//    - file: tests/main.tftest.hcl, run: setup - test.tests.main.setup
 
 			dir := path.Dir(name)
 			base := path.Base(name)
@@ -68,7 +70,7 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 			if dir != "." {
 				path = append(path, strings.Split(dir, "/")...)
 			}
-			path = append(path, strings.TrimSuffix(base, ".tftest"), run.Name)
+			path = append(path, strings.TrimSuffix(base, ".tftest.hcl"), run.Name)
 
 			req := ModuleRequest{
 				Name:              run.Name,

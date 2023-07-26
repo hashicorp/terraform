@@ -151,7 +151,7 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 		tree.AddNode(fmt.Sprintf("provider[%s]%s", fqn.String(), versionsStr))
 	}
 	for name, testNode := range node.Tests {
-		name = strings.TrimSuffix(name, ".tftest")
+		name = strings.TrimSuffix(name, ".tftest.hcl")
 		name = strings.ReplaceAll(name, "/", ".")
 		branch := tree.AddBranch(fmt.Sprintf("test.%s", name))
 

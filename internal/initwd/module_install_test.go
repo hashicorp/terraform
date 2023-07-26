@@ -743,7 +743,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
 	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
-	if config.Module.Tests["tests/main.tftest"].Runs[0].ConfigUnderTest == nil {
+	if config.Module.Tests["tests/main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
 		t.Fatalf("should have loaded config into the relevant run block but did not")
 	}
 }
@@ -805,7 +805,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 			LocalPath: filepath.Join(dir, ".terraform/modules/test.main.setup"),
 		},
 
-		// main.tftest.setup.child_a
+		// main.tftest.hcl.setup.child_a
 		// (no download because it's a relative path inside acctest_child_a)
 		{
 			Name:       "Install",
@@ -813,8 +813,8 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_a"),
 		},
 
-		// main.tftest.setup.child_a.child_b
-		// (no download because it's a relative path inside main.tftest.setup.child_a)
+		// main.tftest.hcl.setup.child_a.child_b
+		// (no download because it's a relative path inside main.tftest.hcl.setup.child_a)
 		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a.child_b",
@@ -852,7 +852,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 	config, loadDiags := loader.LoadConfigWithTests(".", "tests")
 	assertNoDiagnostics(t, tfdiags.Diagnostics{}.Append(loadDiags))
 
-	if config.Module.Tests["main.tftest"].Runs[0].ConfigUnderTest == nil {
+	if config.Module.Tests["main.tftest.hcl"].Runs[0].ConfigUnderTest == nil {
 		t.Fatalf("should have loaded config into the relevant run block but did not")
 	}
 }

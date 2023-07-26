@@ -51,7 +51,7 @@ func (p *Parser) LoadConfigDir(path string) (*Module, hcl.Diagnostics) {
 }
 
 // LoadConfigDirWithTests matches LoadConfigDir, but the return Module also
-// contains any relevant .tftest files.
+// contains any relevant .tftest.hcl files.
 func (p *Parser) LoadConfigDirWithTests(path string, testDirectory string) (*Module, hcl.Diagnostics) {
 	primaryPaths, overridePaths, testPaths, diags := p.dirFiles(path, testDirectory)
 	if diags.HasErrors() {
@@ -158,7 +158,7 @@ func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests
 						continue
 					}
 
-					if strings.HasSuffix(testInfo.Name(), ".tftest") || strings.HasSuffix(testInfo.Name(), ".tftest.json") {
+					if strings.HasSuffix(testInfo.Name(), ".tftest.hcl") || strings.HasSuffix(testInfo.Name(), ".tftest.json") {
 						tests = append(tests, filepath.Join(testsDir, testInfo.Name()))
 					}
 				}
@@ -175,7 +175,7 @@ func (p *Parser) dirFiles(dir string, testsDir string) (primary, override, tests
 			continue
 		}
 
-		if ext == ".tftest" || ext == ".tftest.json" {
+		if ext == ".tftest.hcl" || ext == ".tftest.json" {
 			if includeTests {
 				tests = append(tests, filepath.Join(dir, name))
 			}
@@ -229,8 +229,8 @@ func fileExt(path string) string {
 		return ".tf"
 	} else if strings.HasSuffix(path, ".tf.json") {
 		return ".tf.json"
-	} else if strings.HasSuffix(path, ".tftest") {
-		return ".tftest"
+	} else if strings.HasSuffix(path, ".tftest.hcl") {
+		return ".tftest.hcl"
 	} else if strings.HasSuffix(path, ".tftest.json") {
 		return ".tftest.json"
 	} else {

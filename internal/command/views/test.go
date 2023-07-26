@@ -7,6 +7,7 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/format"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/jsonplan"
 	"github.com/hashicorp/terraform/internal/command/jsonprovider"
@@ -104,7 +105,7 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 
 	if suite.Status <= moduletest.Skip {
 		// Then no tests.
-		t.view.streams.Printf("Executed 0 tests")
+		t.view.streams.Print("Executed 0 tests")
 		if counts[moduletest.Skip] > 0 {
 			t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
 		} else {
@@ -187,12 +188,12 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 					RelevantAttributes:    attrs,
 				}
 
-				var opts []jsonformat.PlanRendererOpt
+				var opts []plans.Quality
 				if !run.Verbose.Plan.CanApply() {
-					opts = append(opts, jsonformat.CanNotApply)
+					opts = append(opts, plans.NoChanges)
 				}
 				if run.Verbose.Plan.Errored {
-					opts = append(opts, jsonformat.Errored)
+					opts = append(opts, plans.Errored)
 				}
 
 				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)
@@ -211,12 +212,12 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 
 	if diags.HasErrors() {
-		t.view.streams.Eprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier), t.view.errorColumns()))
 	}
 	t.Diagnostics(run, file, diags)
 
 	if state.HasManagedResourceInstanceObjects() {
-		t.view.streams.Eprintf("\nTerraform left the following resources in state after executing %s, they need to be cleaned up manually:\n", identifier)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
@@ -232,41 +233,43 @@ func (t *TestHuman) Diagnostics(_ *moduletest.Run, _ *moduletest.File, diags tfd
 }
 
 func (t *TestHuman) Interrupted() {
-	t.view.streams.Eprint(interrupted)
+	t.view.streams.Eprintln(format.WordWrap(interrupted, t.view.errorColumns()))
 }
 
 func (t *TestHuman) FatalInterrupt() {
-	t.view.streams.Eprint(fatalInterrupt)
+	t.view.streams.Eprintln(format.WordWrap(fatalInterrupt, t.view.errorColumns()))
 }
 
 func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
-	t.view.streams.Eprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name)
+	t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name), t.view.errorColumns()))
 
-	for run, state := range existingStates {
-		if state.Empty() {
-			// Then it's fine, don't worry about it.
+	// Print out the main state first, this is the state that isn't associated
+	// with a run block.
+	if state, exists := existingStates[nil]; exists && !state.Empty() {
+		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
+			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		}
+	}
+
+	// Then print out the other states in order.
+	for _, run := range file.Runs {
+		state, exists := existingStates[run]
+		if !exists || state.Empty() {
 			continue
 		}
 
-		if run == nil {
-			// Then this is just the main state for the whole file.
-			t.view.streams.Eprintln("\nTerraform has already created the following resources from the module under test:")
-			for _, resource := range state.AllResourceInstanceObjectAddrs() {
-				if resource.DeposedKey != states.NotDeposed {
-					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-					continue
-				}
-				t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
 			}
-		} else {
-			t.view.streams.Eprintf("\nTerraform has already created the following resources for %s from %s:\n", run.Name, run.Config.Module.Source)
-			for _, resource := range state.AllResourceInstanceObjectAddrs() {
-				if resource.DeposedKey != states.NotDeposed {
-					t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
-					continue
-				}
-				t.view.streams.Eprintf("  - %s\n", resource.Instance)
-			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
 		}
 	}
 
@@ -283,10 +286,10 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 	if len(resources) > 0 {
 		module := "the module under test"
 		if run.Config.ConfigUnderTest != nil {
-			module = run.Config.Module.Source.String()
+			module = fmt.Sprintf("%q", run.Config.Module.Source.String())
 		}
 
-		t.view.streams.Eprintf("\nTerraform was in the process of creating the following resources for %s from %s, and they may not have been destroyed:\n", run.Name, module)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module), t.view.errorColumns()))
 		for _, resource := range resources {
 			t.view.streams.Eprintf("  - %s\n", resource)
 		}

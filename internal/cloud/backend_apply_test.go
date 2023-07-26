@@ -22,6 +22,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
@@ -407,14 +408,15 @@ func TestCloud_applyWithParallelism(t *testing.T) {
 	}
 }
 
-func TestCloud_applyWithPlan(t *testing.T) {
+// Apply with local plan file should fail.
+func TestCloud_applyWithLocalPlan(t *testing.T) {
 	b, bCleanup := testBackendWithName(t)
 	defer bCleanup()
 
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = testBackendSingleWorkspaceName
 
 	run, err := b.Operation(context.Background(), op)
@@ -432,8 +434,77 @@ func TestCloud_applyWithPlan(t *testing.T) {
 	}
 
 	errOutput := output.Stderr()
-	if !strings.Contains(errOutput, "saved plan is currently not supported") {
+	if !strings.Contains(errOutput, "saved local plan is not supported") {
 		t.Fatalf("expected a saved plan error, got: %v", errOutput)
+	}
+}
+
+// Apply with bookmark to an existing cloud plan that's in a confirmable state
+// should work.
+func TestCloud_applyWithCloudPlan(t *testing.T) {
+	b, bCleanup := testBackendWithName(t)
+	defer bCleanup()
+
+	op, configCleanup, done := testOperationApply(t, "./testdata/apply-json")
+	defer configCleanup()
+	defer done(t)
+
+	op.UIOut = b.CLI
+	op.Workspace = testBackendSingleWorkspaceName
+
+	mockSROWorkspace(t, b, op.Workspace)
+
+	// Perform the plan before trying to apply it
+	ws, err := b.client.Workspaces.Read(context.Background(), b.organization, b.WorkspaceMapping.Name)
+	if err != nil {
+		t.Fatalf("Couldn't read workspace: %s", err)
+	}
+
+	planRun, err := b.plan(context.Background(), context.Background(), op, ws)
+	if err != nil {
+		t.Fatalf("Couldn't perform plan: %s", err)
+	}
+
+	// Synthesize a cloud plan file with the plan's run ID
+	pf := &cloudplan.SavedPlanBookmark{
+		RemotePlanFormat: 1,
+		RunID:            planRun.ID,
+		Hostname:         b.hostname,
+	}
+	op.PlanFile = planfile.NewWrappedCloud(pf)
+
+	// Start spying on the apply output (now that the plan's done)
+	stream, close := terminal.StreamsForTesting(t)
+
+	b.renderer = &jsonformat.Renderer{
+		Streams:  stream,
+		Colorize: mockColorize(),
+	}
+
+	// Try apply
+	run, err := b.Operation(context.Background(), op)
+	if err != nil {
+		t.Fatalf("error starting operation: %v", err)
+	}
+
+	<-run.Done()
+	output := close(t)
+	if run.Result != backend.OperationSuccess {
+		t.Fatal("expected apply operation to succeed")
+	}
+	if run.PlanEmpty {
+		t.Fatalf("expected plan to not be empty")
+	}
+
+	gotOut := output.Stdout()
+	if !strings.Contains(gotOut, "1 added, 0 changed, 0 destroyed") {
+		t.Fatalf("expected apply summary in output: %s", gotOut)
+	}
+
+	stateMgr, _ := b.StateMgr(testBackendSingleWorkspaceName)
+	// An error suggests that the state was not unlocked after apply
+	if _, err := stateMgr.Lock(statemgr.NewLockInfo()); err != nil {
+		t.Fatalf("unexpected error locking state after apply: %s", err.Error())
 	}
 }
 

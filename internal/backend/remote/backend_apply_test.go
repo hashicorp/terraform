@@ -264,7 +264,7 @@ func TestRemote_applyWithPlan(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply")
 	defer configCleanup()
 
-	op.PlanFile = &planfile.Reader{}
+	op.PlanFile = planfile.NewWrappedLocal(&planfile.Reader{})
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)

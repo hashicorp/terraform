@@ -79,9 +79,9 @@ func TestParseTest(t *testing.T) {
 			wantDiags: nil,
 		},
 		"with-filters": {
-			args: []string{"-filter=one.tftest", "-filter=two.tftest"},
+			args: []string{"-filter=one.tftest.hcl", "-filter=two.tftest.hcl"},
 			want: &Test{
-				Filter:        []string{"one.tftest", "two.tftest"},
+				Filter:        []string{"one.tftest.hcl", "two.tftest.hcl"},
 				TestDirectory: "tests",
 				ViewType:      ViewHuman,
 				Vars:          &Vars{},
