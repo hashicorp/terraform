@@ -51,6 +51,15 @@ func TestPlanWithSingleResource(t *testing.T) {
 		&stackplan.PlannedChangeApplyable{
 			Applyable: true,
 		},
+		&stackplan.PlannedChangeComponentInstance{
+			Addr: stackaddrs.Absolute(
+				stackaddrs.RootStackInstance,
+				stackaddrs.ComponentInstance{
+					Component: stackaddrs.Component{Name: "self"},
+				},
+			),
+			Action: plans.Create,
+		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
 		},

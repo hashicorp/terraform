@@ -269,6 +269,17 @@ func (c *ComponentInstance) PlanChanges(ctx context.Context) ([]stackplan.Planne
 	var changes []stackplan.PlannedChange
 	var diags tfdiags.Diagnostics
 
+	// We must always at least announce that the component instance exists,
+	// and that must come before any resource instance changes referring to it.
+	changes = append(changes, &stackplan.PlannedChangeComponentInstance{
+		Addr: c.Addr(),
+
+		// FIXME: Once we actually have a prior state this should vary
+		// depending on whether the same component instance existed in
+		// the prior state.
+		Action: plans.Create,
+	})
+
 	_, moreDiags := c.CheckInputVariableValues(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
