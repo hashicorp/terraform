@@ -7,7 +7,10 @@ import (
 	"encoding/base64"
 	"fmt"
 	"os"
+	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -150,46 +153,54 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "The role to be assumed",
+				Deprecated:  true,
 			},
 			"session_name": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "The session name to use when assuming the role.",
+				Deprecated:  true,
 			},
 			"external_id": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "The external ID to use when assuming the role",
+				Deprecated:  true,
 			},
 
 			"assume_role_duration_seconds": {
 				Type:        cty.Number,
 				Optional:    true,
 				Description: "Seconds to restrict the assume role session duration.",
+				Deprecated:  true,
 			},
 
 			"assume_role_policy": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+				Deprecated:  true,
 			},
 
 			"assume_role_policy_arns": {
 				Type:        cty.Set(cty.String),
 				Optional:    true,
 				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+				Deprecated:  true,
 			},
 
 			"assume_role_tags": {
 				Type:        cty.Map(cty.String),
 				Optional:    true,
 				Description: "Assume role session tags.",
+				Deprecated:  true,
 			},
 
 			"assume_role_transitive_tag_keys": {
 				Type:        cty.Set(cty.String),
 				Optional:    true,
 				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+				Deprecated:  true,
 			},
 
 			"workspace_key_prefix": {
@@ -208,6 +219,79 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Number,
 				Optional:    true,
 				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+			},
+
+			"assume_role": {
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingSingle,
+					Attributes: map[string]*configschema.Attribute{
+						"role_arn": {
+							Type:        cty.String,
+							Required:    true,
+							Description: "The role to be assumed.",
+						},
+
+						"duration": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+						},
+
+						// "external_id": {
+						// 	Type:        schema.TypeString,
+						// 	Optional:    true,
+						// 	Description: "A unique identifier that might be required when you assume a role in another account.",
+						// 	ValidateFunc: validation.All(
+						// 		validation.StringLenBetween(2, 1224),
+						// 		validation.StringMatch(regexp.MustCompile(`[\w+=,.@:\/\-]*`), ""),
+						// 	),
+						// },
+
+						// "policy": {
+						// 	Type:         schema.TypeString,
+						// 	Optional:     true,
+						// 	Description:  "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+						// 	ValidateFunc: validation.StringIsJSON,
+						// },
+
+						// "policy_arns": {
+						// 	Type:        schema.TypeSet,
+						// 	Optional:    true,
+						// 	Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+						// 	Elem: &schema.Schema{
+						// 		Type:         schema.TypeString,
+						// 		ValidateFunc: verify.ValidARN,
+						// 	},
+						// },
+
+						"session_name": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "The session name to use when assuming the role.",
+						},
+
+						// "source_identity": {
+						// 	Type:         schema.TypeString,
+						// 	Optional:     true,
+						// 	Description:  "Source identity specified by the principal assuming the role.",
+						// 	ValidateFunc: validAssumeRoleSourceIdentity,
+						// },
+
+						// "tags": {
+						// 	Type:        schema.TypeMap,
+						// 	Optional:    true,
+						// 	Description: "Assume role session tags.",
+						// 	Elem:        &schema.Schema{Type: schema.TypeString},
+						// },
+
+						// "transitive_tag_keys": {
+						// 	Type:        schema.TypeSet,
+						// 	Optional:    true,
+						// 	Description: "Assume role session tag keys to pass to any subsequent sessions.",
+						// 	Elem:        &schema.Schema{Type: schema.TypeString},
+						// },
+					},
+				},
 			},
 		},
 	}
@@ -294,7 +378,70 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	var assumeRoleDeprecatedFields = map[string]string{
+		"role_arn":                        "assume_role.role_arn",
+		"session_name":                    "assume_role.session_name",
+		"external_id":                     "assume_role.external_id",
+		"assume_role_duration_seconds":    "assume_role.duration",
+		"assume_role_policy":              "assume_role.policy",
+		"assume_role_policy_arns":         "assume_role.policy_arns",
+		"assume_role_tags":                "assume_role.tags",
+		"assume_role_transitive_tag_keys": "assume_role.transitive_tag_keys",
+	}
+
+	if val := obj.GetAttr("assume_role"); !val.IsNull() {
+		diags = diags.Append(prepareAssumeRoleConfig(val, cty.Path{cty.GetAttrStep{Name: "assume_role"}}))
+
+		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
+			diags = diags.Append(tfdiags.WholeContainingBody(
+				tfdiags.Error,
+				"Conflicting Parameters",
+				`The following deprecated parameters conflict with the parameter "assume_role". Replace them as follows:`+"\n"+
+					formatDeprecations(defined),
+			))
+		}
+	} else {
+		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
+			diags = diags.Append(tfdiags.WholeContainingBody(
+				tfdiags.Warning,
+				"Deprecated Parameters",
+				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
+					formatDeprecations(defined),
+			))
+		}
+	}
+
 	return obj, diags
+}
+
+func findDeprecatedFields(obj cty.Value, attrs map[string]string) map[string]string {
+	defined := make(map[string]string)
+	for attr, v := range attrs {
+		if val := obj.GetAttr(attr); !val.IsNull() {
+			defined[attr] = v
+		}
+	}
+	return defined
+}
+
+func formatDeprecations(attrs map[string]string) string {
+	names := make([]string, 0, len(attrs))
+	var maxLen int
+	for attr := range attrs {
+		names = append(names, attr)
+		if l := len(attr); l > maxLen {
+			maxLen = l
+		}
+	}
+	sort.Strings(names)
+
+	var buf strings.Builder
+
+	for _, attr := range names {
+		replacement := attrs[attr]
+		fmt.Fprintf(&buf, "  * %-[1]*[2]s -> %[3]s\n", maxLen, attr, replacement)
+	}
+	return buf.String()
 }
 
 // Configure uses the provided configuration to set configuration fields
@@ -355,7 +502,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
 		if len(customerKey) != 44 {
-			diags = diags.Append(tfdiags.Sourceless(
+			diags = diags.Append(tfdiags.WholeContainingBody(
 				tfdiags.Error,
 				"Invalid AWS_SSE_CUSTOMER_KEY value",
 				`The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
@@ -363,7 +510,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		} else {
 			var err error
 			if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
-				diags = diags.Append(tfdiags.Sourceless(
+				diags = diags.Append(tfdiags.WholeContainingBody(
 					tfdiags.Error,
 					"Invalid AWS_SSE_CUSTOMER_KEY value",
 					fmt.Sprintf(`The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded: %s`, err),
@@ -373,25 +520,20 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	cfg := &awsbase.Config{
-		AccessKey:                 stringAttr(obj, "access_key"),
-		AssumeRoleARN:             stringAttr(obj, "role_arn"),
-		AssumeRoleDurationSeconds: intAttr(obj, "assume_role_duration_seconds"),
-		AssumeRoleExternalID:      stringAttr(obj, "external_id"),
-		AssumeRolePolicy:          stringAttr(obj, "assume_role_policy"),
-		AssumeRoleSessionName:     stringAttr(obj, "session_name"),
-		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
-		CallerName:                "S3 Backend",
-		CredsFilename:             stringAttr(obj, "shared_credentials_file"),
-		DebugLogging:              logging.IsDebugOrHigher(),
-		IamEndpoint:               stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
-		MaxRetries:                intAttrDefault(obj, "max_retries", 5),
-		Profile:                   stringAttr(obj, "profile"),
-		Region:                    stringAttr(obj, "region"),
-		SecretKey:                 stringAttr(obj, "secret_key"),
-		SkipCredsValidation:       boolAttr(obj, "skip_credentials_validation"),
-		SkipMetadataApiCheck:      boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:               stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
-		Token:                     stringAttr(obj, "token"),
+		AccessKey:              stringAttr(obj, "access_key"),
+		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerName:             "S3 Backend",
+		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
+		DebugLogging:           logging.IsDebugOrHigher(),
+		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
+		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
+		Profile:                stringAttr(obj, "profile"),
+		Region:                 stringAttr(obj, "region"),
+		SecretKey:              stringAttr(obj, "secret_key"),
+		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
+		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
+		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
+		Token:                  stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
@@ -399,36 +541,55 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		},
 	}
 
-	if policyARNSet := obj.GetAttr("assume_role_policy_arns"); !policyARNSet.IsNull() {
-		policyARNSet.ForEachElement(func(key, val cty.Value) (stop bool) {
-			v, ok := stringValueOk(val)
-			if ok {
-				cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, v)
-			}
-			return
-		})
-	}
+	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
+		if val, ok := stringValueOk(assumeRole.GetAttr("role_arn")); ok {
+			cfg.AssumeRoleARN = val
+		}
+		if val, ok := stringValueOk(assumeRole.GetAttr("duration")); ok {
+			duration, _ := time.ParseDuration(val)
+			cfg.AssumeRoleDurationSeconds = int(duration.Seconds())
+		}
+		if val, ok := stringValueOk(assumeRole.GetAttr("session_name")); ok {
+			cfg.AssumeRoleSessionName = val
+		}
+	} else {
+		cfg.AssumeRoleARN = stringAttr(obj, "role_arn")
+		cfg.AssumeRoleSessionName = stringAttr(obj, "session_name")
+		cfg.AssumeRoleDurationSeconds = intAttr(obj, "assume_role_duration_seconds")
+		cfg.AssumeRoleExternalID = stringAttr(obj, "external_id")
+		cfg.AssumeRolePolicy = stringAttr(obj, "assume_role_policy")
 
-	if tagMap := obj.GetAttr("assume_role_tags"); !tagMap.IsNull() {
-		cfg.AssumeRoleTags = make(map[string]string, tagMap.LengthInt())
-		tagMap.ForEachElement(func(key, val cty.Value) (stop bool) {
-			k := stringValue(key)
-			v, ok := stringValueOk(val)
-			if ok {
-				cfg.AssumeRoleTags[k] = v
-			}
-			return
-		})
-	}
+		if policyARNSet := obj.GetAttr("assume_role_policy_arns"); !policyARNSet.IsNull() {
+			policyARNSet.ForEachElement(func(key, val cty.Value) (stop bool) {
+				v, ok := stringValueOk(val)
+				if ok {
+					cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, v)
+				}
+				return
+			})
+		}
 
-	if transitiveTagKeySet := obj.GetAttr("assume_role_transitive_tag_keys"); !transitiveTagKeySet.IsNull() {
-		transitiveTagKeySet.ForEachElement(func(key, val cty.Value) (stop bool) {
-			v, ok := stringValueOk(val)
-			if ok {
-				cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, v)
-			}
-			return
-		})
+		if tagMap := obj.GetAttr("assume_role_tags"); !tagMap.IsNull() {
+			cfg.AssumeRoleTags = make(map[string]string, tagMap.LengthInt())
+			tagMap.ForEachElement(func(key, val cty.Value) (stop bool) {
+				k := stringValue(key)
+				v, ok := stringValueOk(val)
+				if ok {
+					cfg.AssumeRoleTags[k] = v
+				}
+				return
+			})
+		}
+
+		if transitiveTagKeySet := obj.GetAttr("assume_role_transitive_tag_keys"); !transitiveTagKeySet.IsNull() {
+			transitiveTagKeySet.ForEachElement(func(key, val cty.Value) (stop bool) {
+				v, ok := stringValueOk(val)
+				if ok {
+					cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, v)
+				}
+				return
+			})
+		}
 	}
 
 	sess, err := awsbase.GetSession(cfg)
@@ -547,6 +708,18 @@ func intAttrDefault(obj cty.Value, name string, def int) int {
 	}
 }
 
+// func objBlockOk(obj cty.Value, name string, block *configschema.Block) (cty.Value, bool) {
+// 	// if val := obj.GetAttr(name); val.IsNull() {
+// 	// 	return cty.NilVal, false
+// 	// } else {
+
+// 	// }
+// 	attr := obj.GetAttr(name)
+
+// 	val, err := block.CoerceValue(attr)
+// 	return val, err == nil
+// }
+
 const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
 
 The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
@@ -558,3 +731,57 @@ const encryptionKeyConflictEnvVarError = `Only one of "kms_key_id" and the envir
 The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
 while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`
+
+func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
+
+	if val, ok := stringAttrOk(obj, "role_arn"); ok {
+		diags = diags.Append(validateIAMRoleARN(path.GetAttr("role_arn"), val))
+	}
+
+	if val, ok := stringAttrOk(obj, "duration"); ok {
+		duration, err := time.ParseDuration(val)
+		if err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Assume Role Duration",
+				fmt.Sprintf("The value %q cannot be parsed as a duration: %s", val, err),
+				path.GetAttr("duration"),
+			))
+		} else {
+			if duration.Minutes() < 15 || duration.Hours() > 12 {
+				diags = diags.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Invalid Assume Role Duration",
+					fmt.Sprintf("Duration must be between 15 minutes (15m) and 12 hours (12h), had: %s", duration.String()),
+					path.GetAttr("duration"),
+				))
+			}
+		}
+	}
+
+	if val, ok := stringAttrOk(obj, "session_name"); ok {
+		if l := len(val); l < 2 || l > 64 {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Assume Role Session Name",
+				fmt.Sprintf("The session name must be between %d and %d characters, had: %d", 2, 64, l),
+				path.GetAttr("session_name"),
+			))
+		}
+		re := regexp.MustCompile(`^[\w+=,.@\-]*$`)
+		if !re.MatchString(val) {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Assume Role Session Name",
+				`The session name can only contain letters, numbers, or the following characters: =,.@\-`,
+				path.GetAttr("session_name"),
+			))
+		}
+	}
+
+	return diags
+}

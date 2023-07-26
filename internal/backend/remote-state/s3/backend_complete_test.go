@@ -24,7 +24,7 @@ func ExpectNoDiags(t *testing.T, diags tfdiags.Diagnostics) {
 
 func expectDiagsCount(t *testing.T, diags tfdiags.Diagnostics, c int) {
 	if l := len(diags); l != c {
-		t.Fatalf("Diagnostics: expected %d element, got %d\n%#v", c, l, diags)
+		t.Fatalf("Diagnostics: expected %d element, got %d\n%s", c, l, diagnosticsString(diags))
 	}
 }
 
@@ -38,21 +38,40 @@ func ExpectDiagsEqual(expected tfdiags.Diagnostics) DiagsValidator {
 
 // ExpectDiagMatching returns a validator expeceting a single Diagnostic with fields matching the expectation
 func ExpectDiagMatching(severity tfdiags.Severity, summary matcher, detail matcher) DiagsValidator {
+	return ExpectDiags(
+		diagMatching(severity, summary, detail),
+	)
+}
+
+type diagValidator func(*testing.T, tfdiags.Diagnostic)
+
+func ExpectDiags(validators ...diagValidator) DiagsValidator {
 	return func(t *testing.T, diags tfdiags.Diagnostics) {
-		for _, d := range diags {
-			if !summary.Match(d.Description().Summary) || !detail.Match(d.Description().Detail) {
-				t.Fatalf("expected Diagnostic matching %#v, got %#v",
-					tfdiags.Sourceless(
-						severity,
-						summary.String(),
-						detail.String(),
-					),
-					d,
-				)
-			}
+		count := len(validators)
+		if l := len(diags); l < count {
+			count = l
 		}
 
-		expectDiagsCount(t, diags, 1)
+		for i := 0; i < count; i++ {
+			validators[i](t, diags[i])
+		}
+
+		expectDiagsCount(t, diags, len(validators))
+	}
+}
+
+func diagMatching(severity tfdiags.Severity, summary matcher, detail matcher) diagValidator {
+	return func(t *testing.T, diag tfdiags.Diagnostic) {
+		if severity != diag.Severity() || !summary.Match(diag.Description().Summary) || !detail.Match(diag.Description().Detail) {
+			t.Errorf("expected Diagnostic matching %#v, got %#v",
+				tfdiags.Sourceless(
+					severity,
+					summary.String(),
+					detail.String(),
+				),
+				diag,
+			)
+		}
 	}
 }
 
@@ -87,6 +106,16 @@ func (m regexpMatcher) Match(s string) bool {
 
 func (m regexpMatcher) String() string {
 	return m.re.String()
+}
+
+type ignoreMatcher struct{}
+
+func (m ignoreMatcher) Match(s string) bool {
+	return true
+}
+
+func (m ignoreMatcher) String() string {
+	return "ignored"
 }
 
 func TestBackendConfig_Authentication(t *testing.T) {
@@ -136,6 +165,27 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpoint,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
+		},
+
+		"config AccessKey config AssumeRoleARN access key nested": {
+			config: map[string]any{
+				"access_key": awsbase.MockStaticAccessKey,
+				"secret_key": servicemocks.MockStaticSecretKey,
+				"assume_role": map[string]any{
+					"role_arn":     servicemocks.MockStsAssumeRoleArn,
+					"session_name": servicemocks.MockStsAssumeRoleSessionName,
+				},
+			},
+			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
+				servicemocks.MockStsAssumeRoleValidEndpoint,
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			},
 		},
 
 		"config AssumeRoleDuration": {
@@ -151,6 +201,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"DurationSeconds": "3600"}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"config AssumeRoleExternalID": {
@@ -166,6 +221,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"ExternalId": servicemocks.MockStsAssumeRoleExternalId}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"config AssumeRolePolicy": {
@@ -181,6 +241,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Policy": servicemocks.MockStsAssumeRolePolicy}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"config AssumeRolePolicyARNs": {
@@ -196,6 +261,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"PolicyArns.member.1.arn": servicemocks.MockStsAssumeRolePolicyArn}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"config AssumeRoleTags": {
@@ -213,6 +283,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Tags.member.1.Key": servicemocks.MockStsAssumeRoleTagKey, "Tags.member.1.Value": servicemocks.MockStsAssumeRoleTagValue}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"config AssumeRoleTransitiveTagKeys": {
@@ -231,6 +306,11 @@ func TestBackendConfig_Authentication(t *testing.T) {
 				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Tags.member.1.Key": servicemocks.MockStsAssumeRoleTagKey, "Tags.member.1.Value": servicemocks.MockStsAssumeRoleTagValue, "TransitiveTagKeys.member.1": servicemocks.MockStsAssumeRoleTagKey}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		// NOT SUPPORTED: AssumeRoleSourceIdentity
@@ -363,6 +443,11 @@ aws_secret_access_key = SharedConfigurationSourceSecretKey
 				servicemocks.MockStsAssumeRoleValidEndpoint,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"environment AWS_PROFILE shared credentials profile aws_access_key_id": {
@@ -476,6 +561,11 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 aws_access_key_id = DefaultSharedCredentialsAccessKey
 aws_secret_access_key = DefaultSharedCredentialsSecretKey
 `,
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"web identity token access key": {
@@ -509,6 +599,11 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				servicemocks.MockStsAssumeRoleValidEndpoint,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"ECS credentials access key": {
@@ -531,6 +626,11 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				servicemocks.MockStsAssumeRoleValidEndpoint,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		"AssumeWebIdentity envvar AssumeRoleARN access key": {
@@ -545,6 +645,11 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				servicemocks.MockStsAssumeRoleValidEndpoint,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Warning,
+				equalsMatcher("Deprecated Parameters"),
+				ignoreMatcher{},
+			),
 		},
 
 		// NOT SUPPORTED: AssumeWebIdentity config
@@ -731,10 +836,22 @@ region = us-east-1
 				servicemocks.MockStsAssumeRoleInvalidEndpointInvalidClientTokenId,
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
-			ValidateDiags: ExpectDiagMatching(
-				tfdiags.Error,
-				equalsMatcher("Failed to configure AWS client"),
-				newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
+			// ValidateDiags: ExpectDiagMatching(
+			// 	tfdiags.Error,
+			// 	equalsMatcher("Failed to configure AWS client"),
+			// 	newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
+			// ),
+			ValidateDiags: ExpectDiags(
+				diagMatching(
+					tfdiags.Warning,
+					equalsMatcher("Deprecated Parameters"),
+					ignoreMatcher{},
+				),
+				diagMatching(
+					tfdiags.Error,
+					equalsMatcher("Failed to configure AWS client"),
+					newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
+				),
 			),
 		},
 

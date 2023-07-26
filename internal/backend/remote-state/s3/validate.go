@@ -3,6 +3,7 @@ package s3
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -73,4 +74,28 @@ func keyIdFromARNResource(s string) string {
 	}
 
 	return matches[1]
+}
+
+func validateIAMRoleARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
+	parsedARN, err := arn.Parse(s)
+	if err != nil {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid IAM Role ARN",
+			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", s),
+			path,
+		))
+		return diags
+	}
+
+	if !strings.HasPrefix(parsedARN.Resource, "role/") {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid IAM Role ARN",
+			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", s),
+			path,
+		))
+	}
+
+	return diags
 }
