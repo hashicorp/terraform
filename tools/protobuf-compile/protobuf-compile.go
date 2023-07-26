@@ -58,6 +58,11 @@ var protocSteps = []protocStep{
 		"internal/plans/internal/planproto",
 		[]string{"--go_out=paths=source_relative:.", "planfile.proto"},
 	},
+	{
+		"cloudproto1 (cloud protocol version 1)",
+		"internal/cloudplugin/cloudproto1",
+		[]string{"--go_out=paths=source_relative,plugins=grpc:.", "cloudproto1.proto"},
+	},
 }
 
 func main() {

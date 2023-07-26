@@ -188,12 +188,12 @@ func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 					RelevantAttributes:    attrs,
 				}
 
-				var opts []jsonformat.PlanRendererOpt
+				var opts []plans.Quality
 				if !run.Verbose.Plan.CanApply() {
-					opts = append(opts, jsonformat.CanNotApply)
+					opts = append(opts, plans.NoChanges)
 				}
 				if run.Verbose.Plan.Errored {
-					opts = append(opts, jsonformat.Errored)
+					opts = append(opts, plans.Errored)
 				}
 
 				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)
