@@ -210,6 +210,14 @@ func (m *MockConfigurationVersions) Create(ctx context.Context, workspaceID stri
 		UploadURL: url,
 	}
 
+	if options.Provisional != nil && *options.Provisional {
+		cv.Provisional = true
+	}
+
+	if options.Speculative != nil && *options.Speculative {
+		cv.Speculative = true
+	}
+
 	m.configVersions[cv.ID] = cv
 	m.uploadURLs[url] = cv
 
