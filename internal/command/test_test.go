@@ -487,3 +487,131 @@ Success! 2 passed, 0 failed.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
+
+func TestTest_ValidatesBeforeExecution(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-verbose", "-no-color"})
+	output := done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	expectedOut := `
+Executed 0 tests.
+`
+	expectedErr := `
+Error: Invalid ` + "`expect_failures`" + ` reference
+
+  on main.tftest.hcl line 5, in run "invalid":
+   5:         local.my_value,
+
+You cannot expect failures from local.my_value. You can only expect failures
+from checkable objects such as input variables, output values, check blocks,
+managed resources and data sources.
+`
+
+	actualOut := output.Stdout()
+	actualErr := output.Stderr()
+
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_ValidatesLocalModulesBeforeExecution(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 1 {
+		t.Errorf("expected status code 1 but got %d", code)
+	}
+
+	expectedOut := `
+Executed 0 tests.
+`
+	expectedErr := `
+Error: Reference to undeclared input variable
+
+  on setup/main.tf line 3, in resource "test_resource" "setup":
+   3:     value = var.not_real // Oh no!
+
+An input variable with the name "not_real" has not been declared. This
+variable can be declared with a variable "not_real" {} block.
+`
+
+	actualOut := output.Stdout()
+	actualErr := output.Stderr()
+
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
