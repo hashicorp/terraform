@@ -85,11 +85,11 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir string, upgrade bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
-	rootMod, mDiags := i.loader.Parser().LoadConfigDirWithTests(rootDir, "tests")
+	rootMod, mDiags := i.loader.Parser().LoadConfigDirWithTests(rootDir, testsDir)
 	if rootMod == nil {
 		// We drop the diagnostics here because we only want to report module
 		// loading errors after checking the core version constraints, which we

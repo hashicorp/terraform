@@ -59,8 +59,8 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 			// so we create a dedicated path for them.
 			//
 			// Some examples:
-			//    - file: main.tftest, run: setup - test.main.setup
-			//    - file: tests/main.tftest, run: setup - test.tests.main.setup
+			//    - file: main.tftest.hcl, run: setup - test.main.setup
+			//    - file: tests/main.tftest.hcl, run: setup - test.tests.main.setup
 
 			dir := path.Dir(name)
 			base := path.Base(name)
@@ -70,7 +70,7 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 			if dir != "." {
 				path = append(path, strings.Split(dir, "/")...)
 			}
-			path = append(path, strings.TrimSuffix(base, ".tftest"), run.Name)
+			path = append(path, strings.TrimSuffix(base, ".tftest.hcl"), run.Name)
 
 			req := ModuleRequest{
 				Name:              run.Name,

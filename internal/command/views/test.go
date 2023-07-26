@@ -7,9 +7,18 @@ import (
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/format"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/jsonplan"
+	"github.com/hashicorp/terraform/internal/command/jsonprovider"
+	"github.com/hashicorp/terraform/internal/command/jsonstate"
 	"github.com/hashicorp/terraform/internal/command/views/json"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/moduletest"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
@@ -46,6 +55,16 @@ type Test interface {
 	// FatalInterrupt prints out a message stating that a hard interrupt has
 	// been received and testing will stop and cleanup will be skipped.
 	FatalInterrupt()
+
+	// FatalInterruptSummary prints out the resources that were held in state
+	// and were being created at the time the FatalInterrupt was received.
+	//
+	// This will typically be called in place of DestroySummary, as there is no
+	// guarantee that this function will be called during a FatalInterrupt. In
+	// addition, this function prints additional details about the current
+	// operation alongside the current state as the state will be missing newly
+	// created resources that also need to be handled manually.
+	FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc)
 }
 
 func NewTest(vt arguments.ViewType, view *View) Test {
@@ -86,7 +105,7 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 
 	if suite.Status <= moduletest.Skip {
 		// Then no tests.
-		t.view.streams.Printf("Executed 0 tests")
+		t.view.streams.Print("Executed 0 tests")
 		if counts[moduletest.Skip] > 0 {
 			t.view.streams.Printf(", %d skipped.\n", counts[moduletest.Skip])
 		} else {
@@ -116,6 +135,72 @@ func (t *TestHuman) File(file *moduletest.File) {
 func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
 	t.view.streams.Printf("  run %q... %s\n", run.Name, colorizeTestStatus(run.Status, t.view.colorize))
 
+	if run.Verbose != nil {
+		// We're going to be more verbose about what we print, here's the plan
+		// or the state depending on the type of run we did.
+
+		schemas := &terraform.Schemas{
+			Providers:    run.Verbose.Providers,
+			Provisioners: run.Verbose.Provisioners,
+		}
+
+		renderer := jsonformat.Renderer{
+			Streams:             t.view.streams,
+			Colorize:            t.view.colorize,
+			RunningInAutomation: t.view.runningInAutomation,
+		}
+
+		if run.Config.Command == configs.ApplyTestCommand {
+			// Then we'll print the state.
+			root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test state",
+					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
+			} else {
+				state := jsonformat.State{
+					StateFormatVersion:    jsonstate.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					RootModule:            root,
+					RootModuleOutputs:     outputs,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+				}
+
+				renderer.RenderHumanState(state)
+			}
+		} else {
+			// We'll print the plan.
+			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test plan",
+					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
+			} else {
+				plan := jsonformat.Plan{
+					PlanFormatVersion:     jsonplan.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					OutputChanges:         outputs,
+					ResourceChanges:       changed,
+					ResourceDrift:         drift,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					RelevantAttributes:    attrs,
+				}
+
+				var opts []plans.Quality
+				if !run.Verbose.Plan.CanApply() {
+					opts = append(opts, plans.NoChanges)
+				}
+				if run.Verbose.Plan.Errored {
+					opts = append(opts, plans.Errored)
+				}
+
+				renderer.RenderHumanPlan(plan, run.Verbose.Plan.UIMode, opts...)
+			}
+		}
+	}
+
 	// Finally we'll print out a summary of the diagnostics from the run.
 	t.Diagnostics(run, file, run.Diagnostics)
 }
@@ -127,12 +212,12 @@ func (t *TestHuman) DestroySummary(diags tfdiags.Diagnostics, run *moduletest.Ru
 	}
 
 	if diags.HasErrors() {
-		t.view.streams.Eprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("Terraform encountered an error destroying resources created while executing %s.\n", identifier), t.view.errorColumns()))
 	}
 	t.Diagnostics(run, file, diags)
 
 	if state.HasManagedResourceInstanceObjects() {
-		t.view.streams.Eprintf("\nTerraform left the following resources in state after executing %s, they need to be cleaned up manually:\n", identifier)
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform left the following resources in state after executing %s, and they need to be cleaned up manually:\n", identifier), t.view.errorColumns()))
 		for _, resource := range state.AllResourceInstanceObjectAddrs() {
 			if resource.DeposedKey != states.NotDeposed {
 				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
@@ -148,11 +233,67 @@ func (t *TestHuman) Diagnostics(_ *moduletest.Run, _ *moduletest.File, diags tfd
 }
 
 func (t *TestHuman) Interrupted() {
-	t.view.streams.Print(interrupted)
+	t.view.streams.Eprintln(format.WordWrap(interrupted, t.view.errorColumns()))
 }
 
 func (t *TestHuman) FatalInterrupt() {
-	t.view.streams.Print(fatalInterrupt)
+	t.view.streams.Eprintln(format.WordWrap(fatalInterrupt, t.view.errorColumns()))
+}
+
+func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+	t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was interrupted while executing %s, and may not have performed the expected cleanup operations.\n", file.Name), t.view.errorColumns()))
+
+	// Print out the main state first, this is the state that isn't associated
+	// with a run block.
+	if state, exists := existingStates[nil]; exists && !state.Empty() {
+		t.view.streams.Eprint(format.WordWrap("\nTerraform has already created the following resources from the module under test:\n", t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
+			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		}
+	}
+
+	// Then print out the other states in order.
+	for _, run := range file.Runs {
+		state, exists := existingStates[run]
+		if !exists || state.Empty() {
+			continue
+		}
+
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform has already created the following resources for %q from %q:\n", run.Name, run.Config.Module.Source), t.view.errorColumns()))
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			if resource.DeposedKey != states.NotDeposed {
+				t.view.streams.Eprintf("  - %s (%s)\n", resource.Instance, resource.DeposedKey)
+				continue
+			}
+			t.view.streams.Eprintf("  - %s\n", resource.Instance)
+		}
+	}
+
+	if len(created) == 0 {
+		// No planned changes, so we won't print anything.
+		return
+	}
+
+	var resources []string
+	for _, change := range created {
+		resources = append(resources, change.Addr.String())
+	}
+
+	if len(resources) > 0 {
+		module := "the module under test"
+		if run.Config.ConfigUnderTest != nil {
+			module = fmt.Sprintf("%q", run.Config.Module.Source.String())
+		}
+
+		t.view.streams.Eprint(format.WordWrap(fmt.Sprintf("\nTerraform was in the process of creating the following resources for %q from %s, and they may not have been destroyed:\n", run.Name, module), t.view.errorColumns()))
+		for _, resource := range resources {
+			t.view.streams.Eprintf("  - %s\n", resource)
+		}
+	}
 }
 
 type TestJSON struct {
@@ -257,6 +398,46 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 		"@testfile", file.Name,
 		"@testrun", run.Name)
 
+	if run.Verbose != nil {
+
+		schemas := &terraform.Schemas{
+			Providers:    run.Verbose.Providers,
+			Provisioners: run.Verbose.Provisioners,
+		}
+
+		if run.Config.Command == configs.ApplyTestCommand {
+			state, err := jsonstate.MarshalForLog(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test state",
+					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
+			} else {
+				t.view.log.Info(
+					"-verbose flag enabled, printing state",
+					"type", json.MessageTestState,
+					json.MessageTestState, state,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			}
+		} else {
+			plan, err := jsonplan.MarshalForLog(run.Verbose.Config, run.Verbose.Plan, nil, schemas)
+			if err != nil {
+				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
+					tfdiags.Warning,
+					"Failed to render test plan",
+					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
+			} else {
+				t.view.log.Info(
+					"-verbose flag enabled, printing plan",
+					"type", json.MessageTestPlan,
+					json.MessageTestPlan, plan,
+					"@testfile", file.Name,
+					"@testrun", run.Name)
+			}
+		}
+	}
+
 	t.Diagnostics(run, file, run.Diagnostics)
 }
 
@@ -307,6 +488,50 @@ func (t *TestJSON) Interrupted() {
 
 func (t *TestJSON) FatalInterrupt() {
 	t.view.Log(fatalInterrupt)
+}
+
+func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, existingStates map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc) {
+
+	message := json.TestFatalInterrupt{
+		States: make(map[string][]json.TestFailedResource),
+	}
+
+	for run, state := range existingStates {
+		if state.Empty() {
+			continue
+		}
+
+		var resources []json.TestFailedResource
+		for _, resource := range state.AllResourceInstanceObjectAddrs() {
+			resources = append(resources, json.TestFailedResource{
+				Instance:   resource.Instance.String(),
+				DeposedKey: resource.DeposedKey.String(),
+			})
+		}
+
+		if run == nil {
+			message.State = resources
+		} else {
+			message.States[run.Name] = resources
+		}
+	}
+
+	if len(created) > 0 {
+		for _, change := range created {
+			message.Planned = append(message.Planned, change.Addr.String())
+		}
+	}
+
+	if len(message.States) == 0 && len(message.State) == 0 && len(message.Planned) == 0 {
+		// Then we don't have any information to share with the user.
+		return
+	}
+
+	t.view.log.Error(
+		"Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+		"type", json.MessageTestInterrupt,
+		json.MessageTestInterrupt, message,
+		"@testfile", file.Name)
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {

@@ -242,7 +242,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	}
 
 	for ix, validation := range config.Validations {
-		result, ruleDiags := evalVariableValidation(validation, hclCtx, addr, config, expr)
+		result, ruleDiags := evalVariableValidation(validation, hclCtx, addr, config, expr, ix)
 		diags = diags.Append(ruleDiags)
 
 		log.Printf("[TRACE] evalVariableValidations: %s status is now %s", addr, result.Status)
@@ -256,7 +256,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 	return diags
 }
 
-func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, addr addrs.AbsInputVariableInstance, config *configs.Variable, expr hcl.Expression) (checkResult, tfdiags.Diagnostics) {
+func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalContext, addr addrs.AbsInputVariableInstance, config *configs.Variable, expr hcl.Expression, ix int) (checkResult, tfdiags.Diagnostics) {
 	const errInvalidCondition = "Invalid variable validation result"
 	const errInvalidValue = "Invalid value for variable"
 	var diags tfdiags.Diagnostics
@@ -404,6 +404,9 @@ You can correct this by removing references to sensitive values, or by carefully
 			Subject:     expr.Range().Ptr(),
 			Expression:  validation.Condition,
 			EvalContext: hclCtx,
+			Extra: &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addr.CheckRule(addrs.InputValidation, ix),
+			},
 		})
 	} else {
 		// Since we don't have a source expression for a root module
@@ -416,6 +419,9 @@ You can correct this by removing references to sensitive values, or by carefully
 			Subject:     config.DeclRange.Ptr(),
 			Expression:  validation.Condition,
 			EvalContext: hclCtx,
+			Extra: &addrs.CheckRuleDiagnosticExtra{
+				CheckRule: addr.CheckRule(addrs.InputValidation, ix),
+			},
 		})
 	}
 

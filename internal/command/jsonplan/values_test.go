@@ -8,19 +8,20 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/zclconf/go-cty/cty"
 )
 
 func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
 		Attr   cty.Value
 		Schema *configschema.Block
-		Want   attributeValues
+		Want   AttributeValues
 	}{
 		{
 			cty.NilVal,
@@ -58,7 +59,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			attributeValues{"foo": json.RawMessage(`"bar"`)},
+			AttributeValues{"foo": json.RawMessage(`"bar"`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -72,7 +73,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			attributeValues{"foo": json.RawMessage(`null`)},
+			AttributeValues{"foo": json.RawMessage(`null`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -96,7 +97,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			attributeValues{
+			AttributeValues{
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
@@ -117,7 +118,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 
 	tests := []struct {
 		Changes *plans.Changes
-		Want    map[string]output
+		Want    map[string]Output
 		Err     bool
 	}{
 		{
@@ -138,7 +139,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 					},
 				},
 			},
-			map[string]output{
+			map[string]Output{
 				"bar": {
 					Sensitive: false,
 					Type:      json.RawMessage(`"string"`),
@@ -159,7 +160,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 					},
 				},
 			},
-			map[string]output{},
+			map[string]Output{},
 			false,
 		},
 	}
@@ -187,7 +188,7 @@ func TestMarshalPlanResources(t *testing.T) {
 		Action plans.Action
 		Before cty.Value
 		After  cty.Value
-		Want   []resource
+		Want   []Resource
 		Err    bool
 	}{
 		"create with unknowns": {
@@ -197,7 +198,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.UnknownVal(cty.String),
 				"foozles": cty.UnknownVal(cty.String),
 			}),
-			Want: []resource{{
+			Want: []Resource{{
 				Address:         "test_thing.example",
 				Mode:            "managed",
 				Type:            "test_thing",
@@ -205,7 +206,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Index:           addrs.InstanceKey(nil),
 				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
-				AttributeValues: attributeValues{},
+				AttributeValues: AttributeValues{},
 				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
@@ -240,7 +241,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.StringVal("baz"),
 				"foozles": cty.StringVal("bat"),
 			}),
-			Want: []resource{{
+			Want: []Resource{{
 				Address:       "test_thing.example",
 				Mode:          "managed",
 				Type:          "test_thing",
@@ -248,7 +249,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Index:         addrs.InstanceKey(nil),
 				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
-				AttributeValues: attributeValues{
+				AttributeValues: AttributeValues{
 					"woozles": json.RawMessage(`"baz"`),
 					"foozles": json.RawMessage(`"bat"`),
 				},

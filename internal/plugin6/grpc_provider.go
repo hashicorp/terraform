@@ -68,9 +68,9 @@ type GRPCProvider struct {
 	ctx context.Context
 
 	// schema stores the schema for this provider. This is used to properly
-	// serialize the state for requests.
-	mu      sync.Mutex
-	schemas providers.GetProviderSchemaResponse
+	// serialize the requests for schemas.
+	mu     sync.Mutex
+	schema providers.GetProviderSchemaResponse
 }
 
 func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResponse) {
@@ -79,14 +79,16 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 	defer p.mu.Unlock()
 
 	// check the global cache if we can
-	if !p.Addr.IsZero() {
+	if !p.Addr.IsZero() && resp.ServerCapabilities.GetProviderSchemaOptional {
 		if resp, ok := providers.SchemaCache.Get(p.Addr); ok {
 			return resp
 		}
 	}
 
-	if p.schemas.Provider.Block != nil {
-		return p.schemas
+	// If the local cache is non-zero, we know this instance has called
+	// GetProviderSchema at least once and we can return early.
+	if p.schema.Provider.Block != nil {
+		return p.schema
 	}
 
 	resp.ResourceTypes = make(map[string]providers.Schema)
@@ -135,18 +137,17 @@ func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResp
 
 	if protoResp.ServerCapabilities != nil {
 		resp.ServerCapabilities.PlanDestroy = protoResp.ServerCapabilities.PlanDestroy
+		resp.ServerCapabilities.GetProviderSchemaOptional = protoResp.ServerCapabilities.GetProviderSchemaOptional
 	}
 
-	// FIXME: Waiting for a provider capability to prevent caching
-	//        providers which always need GetProviderSchema called.
 	// set the global cache if we can
-	//if !p.Addr.IsZero() {
-	//    providers.SchemaCache.Set(p.Addr, resp)
-	//} else {
-	//    // otherwise store it in the local cache
-	//    p.schemas = resp
-	//}
-	p.schemas = resp
+	if !p.Addr.IsZero() {
+		providers.SchemaCache.Set(p.Addr, resp)
+	}
+
+	// always store this here in the client for providers that are not able to
+	// use GetProviderSchemaOptional
+	p.schema = resp
 
 	return resp
 }

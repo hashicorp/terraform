@@ -34,7 +34,7 @@ resource "test_resource" "a" {
 	value = "Hello, world!"
 }
 `,
-				"main.tftest": `
+				"main.tftest.hcl": `
 run "test_case" {
 	assert {
 		condition = test_resource.a.value == "Hello, world!"
@@ -90,7 +90,7 @@ resource "test_resource" "a" {
 	value = var.value
 }
 `,
-				"main.tftest": `
+				"main.tftest.hcl": `
 variables {
 	value = "Hello, world!"
 }
@@ -151,7 +151,7 @@ resource "test_resource" "a" {
 	value = "Hello, world!"
 }
 `,
-				"main.tftest": `
+				"main.tftest.hcl": `
 run "test_case" {
 	assert {
 		condition = test_resource.a.value == "incorrect!"
@@ -213,7 +213,7 @@ run "test_case" {
 			})
 
 			run := moduletest.Run{
-				Config: config.Module.Tests["main.tftest"].Runs[0],
+				Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
 				Name:   "test_case",
 			}
 
@@ -247,7 +247,7 @@ resource "test_resource" "a" {
 	value = "Hello, world!"
 }
 `,
-				"main.tftest": `
+				"main.tftest.hcl": `
 run "test_case" {
 	assert {
 		condition = test_resource.a.value == "Hello, world!"
@@ -323,7 +323,7 @@ resource "test_resource" "a" {
 	value = "Hello, world!"
 }
 `,
-				"main.tftest": `
+				"main.tftest.hcl": `
 run "test_case" {
 	assert {
 		condition = test_resource.a.value == "incorrect!"
@@ -409,7 +409,7 @@ run "test_case" {
 			})
 
 			run := moduletest.Run{
-				Config: config.Module.Tests["main.tftest"].Runs[0],
+				Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
 				Name:   "test_case",
 			}
 

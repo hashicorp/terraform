@@ -5,10 +5,12 @@ package views
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/initwd"
@@ -23,8 +25,14 @@ import (
 )
 
 func TestShowHuman(t *testing.T) {
+	redactedPath := "./testdata/plans/redacted-plan.json"
+	redactedPlanJson, err := os.ReadFile(redactedPath)
+	if err != nil {
+		t.Fatalf("couldn't read json plan test data at %s for showing a cloud plan. Did the file get moved?", redactedPath)
+	}
 	testCases := map[string]struct {
 		plan       *plans.Plan
+		jsonPlan   *cloudplan.RemotePlanJSON
 		stateFile  *statefile.File
 		schemas    *terraform.Schemas
 		wantExact  bool
@@ -33,11 +41,28 @@ func TestShowHuman(t *testing.T) {
 		"plan file": {
 			testPlan(t),
 			nil,
+			nil,
 			testSchemas(),
 			false,
 			"# test_resource.foo will be created",
 		},
+		"cloud plan file": {
+			nil,
+			&cloudplan.RemotePlanJSON{
+				JSONBytes: redactedPlanJson,
+				Redacted:  true,
+				Mode:      plans.NormalMode,
+				Qualities: []plans.Quality{},
+				RunHeader: "[reset][yellow]To view this run in a browser, visit:\nhttps://app.terraform.io/app/example_org/example_workspace/runs/run-run-bugsBUGSbugsBUGS[reset]",
+				RunFooter: "[reset][green]Run status: planned and saved (confirmable)[reset]\n[green]Workspace is unlocked[reset]",
+			},
+			nil,
+			nil,
+			false,
+			"# null_resource.foo will be created",
+		},
 		"statefile": {
+			nil,
 			nil,
 			&statefile.File{
 				Serial:  0,
@@ -49,6 +74,7 @@ func TestShowHuman(t *testing.T) {
 			"# test_resource.foo:",
 		},
 		"empty statefile": {
+			nil,
 			nil,
 			&statefile.File{
 				Serial:  0,
@@ -63,6 +89,7 @@ func TestShowHuman(t *testing.T) {
 			nil,
 			nil,
 			nil,
+			nil,
 			true,
 			"No state.\n",
 		},
@@ -74,7 +101,7 @@ func TestShowHuman(t *testing.T) {
 			view.Configure(&arguments.View{NoColor: true})
 			v := NewShow(arguments.ViewHuman, view)
 
-			code := v.Display(nil, testCase.plan, testCase.stateFile, testCase.schemas)
+			code := v.Display(nil, testCase.plan, testCase.jsonPlan, testCase.stateFile, testCase.schemas)
 			if code != 0 {
 				t.Errorf("expected 0 return code, got %d", code)
 			}
@@ -90,15 +117,35 @@ func TestShowHuman(t *testing.T) {
 }
 
 func TestShowJSON(t *testing.T) {
+	unredactedPath := "../testdata/show-json/basic-create/output.json"
+	unredactedPlanJson, err := os.ReadFile(unredactedPath)
+	if err != nil {
+		t.Fatalf("couldn't read json plan test data at %s for showing a cloud plan. Did the file get moved?", unredactedPath)
+	}
 	testCases := map[string]struct {
 		plan      *plans.Plan
+		jsonPlan  *cloudplan.RemotePlanJSON
 		stateFile *statefile.File
 	}{
 		"plan file": {
 			testPlan(t),
 			nil,
+			nil,
+		},
+		"cloud plan file": {
+			nil,
+			&cloudplan.RemotePlanJSON{
+				JSONBytes: unredactedPlanJson,
+				Redacted:  false,
+				Mode:      plans.NormalMode,
+				Qualities: []plans.Quality{},
+				RunHeader: "[reset][yellow]To view this run in a browser, visit:\nhttps://app.terraform.io/app/example_org/example_workspace/runs/run-run-bugsBUGSbugsBUGS[reset]",
+				RunFooter: "[reset][green]Run status: planned and saved (confirmable)[reset]\n[green]Workspace is unlocked[reset]",
+			},
+			nil,
 		},
 		"statefile": {
+			nil,
 			nil,
 			&statefile.File{
 				Serial:  0,
@@ -107,6 +154,7 @@ func TestShowJSON(t *testing.T) {
 			},
 		},
 		"empty statefile": {
+			nil,
 			nil,
 			&statefile.File{
 				Serial:  0,
@@ -117,10 +165,11 @@ func TestShowJSON(t *testing.T) {
 		"nothing": {
 			nil,
 			nil,
+			nil,
 		},
 	}
 
-	config, _, configCleanup := initwd.MustLoadConfigForTests(t, "./testdata/show")
+	config, _, configCleanup := initwd.MustLoadConfigForTests(t, "./testdata/show", "tests")
 	defer configCleanup()
 
 	for name, testCase := range testCases {
@@ -147,7 +196,7 @@ func TestShowJSON(t *testing.T) {
 				},
 			}
 
-			code := v.Display(config, testCase.plan, testCase.stateFile, schemas)
+			code := v.Display(config, testCase.plan, testCase.jsonPlan, testCase.stateFile, schemas)
 
 			if code != 0 {
 				t.Errorf("expected 0 return code, got %d", code)

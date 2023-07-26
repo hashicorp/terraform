@@ -23,6 +23,7 @@ import (
 	version "github.com/hashicorp/go-version"
 
 	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/genconfig"
@@ -65,15 +66,6 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		))
 	}
 
-	if op.PlanOutPath != "" {
-		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Saving a generated plan is currently not supported",
-			`Terraform Cloud does not support saving the generated execution `+
-				`plan locally at this time.`,
-		))
-	}
-
 	if !op.HasConfig() && op.PlanMode != plans.DestroyMode {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -95,7 +87,25 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		return nil, diags.Err()
 	}
 
-	return b.plan(stopCtx, cancelCtx, op, w)
+	// If the run errored, exit before checking whether to save a plan file
+	run, err := b.plan(stopCtx, cancelCtx, op, w)
+	if err != nil {
+		return nil, err
+	}
+
+	// Save plan file if -out <FILE> was specified
+	if op.PlanOutPath != "" {
+		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
+		err = bookmark.Save(op.PlanOutPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Everything succeded, so display next steps
+	op.View.PlanNextStep(op.PlanOutPath, op.GenerateConfigOut)
+
+	return run, nil
 }
 
 func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -107,9 +117,12 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
 
+	// Plan-only means they ran terraform plan without -out.
+	planOnly := op.Type == backend.OperationTypePlan && op.PlanOutPath == ""
+
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
-		Speculative:   tfe.Bool(op.Type == backend.OperationTypePlan),
+		Speculative:   tfe.Bool(planOnly),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
@@ -206,6 +219,7 @@ in order to capture the filesystem context the remote workspace expects:
 		Refresh:              tfe.Bool(op.PlanRefresh),
 		Workspace:            w,
 		AutoApply:            tfe.Bool(op.AutoApprove),
+		SavePlan:             tfe.Bool(op.PlanOutPath != ""),
 	}
 
 	switch op.PlanMode {
@@ -495,9 +509,13 @@ func (b *Cloud) renderPlanLogs(ctx context.Context, op *backend.Operation, run *
 		return err
 	}
 	if renderSRO || shouldGenerateConfig {
-		redactedPlan, err = readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
+		jsonBytes, err := readRedactedPlan(ctx, b.client.BaseURL(), b.token, run.Plan.ID)
 		if err != nil {
 			return generalError("Failed to read JSON plan", err)
+		}
+		redactedPlan, err = decodeRedactedPlan(jsonBytes)
+		if err != nil {
+			return generalError("Failed to decode JSON plan", err)
 		}
 	}
 
