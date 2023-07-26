@@ -68,10 +68,13 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 
 func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
+	var cfg *configs.Config
 
-	cfg, cfgDiags := c.loadConfigWithTests(dir, testDir)
-	diags = diags.Append(cfgDiags)
-
+	if noTests {
+		cfg, diags = c.loadConfig(dir)
+	} else {
+		cfg, diags = c.loadConfigWithTests(dir, testDir)
+	}
 	if diags.HasErrors() {
 		return diags
 	}
