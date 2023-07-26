@@ -510,7 +510,10 @@ func TestTest_ValidatesBeforeExecution(t *testing.T) {
 		t.Errorf("expected status code 1 but got %d", code)
 	}
 
-	expected := `
+	expectedOut := `
+Executed 0 tests.
+`
+	expectedErr := `
 Error: Invalid ` + "`expect_failures`" + ` reference
 
   on main.tftest.hcl line 5, in run "invalid":
@@ -519,14 +522,17 @@ Error: Invalid ` + "`expect_failures`" + ` reference
 You cannot expect failures from local.my_value. You can only expect failures
 from checkable objects such as input variables, output values, check blocks,
 managed resources and data sources.
-
-Executed 0 tests.
 `
 
-	actual := output.All()
+	actualOut := output.Stdout()
+	actualErr := output.Stderr()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
@@ -577,7 +583,10 @@ func TestTest_ValidatesLocalModulesBeforeExecution(t *testing.T) {
 		t.Errorf("expected status code 1 but got %d", code)
 	}
 
-	expected := `
+	expectedOut := `
+Executed 0 tests.
+`
+	expectedErr := `
 Error: Reference to undeclared input variable
 
   on setup/main.tf line 3, in resource "test_resource" "setup":
@@ -585,14 +594,21 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "not_real" has not been declared. This
 variable can be declared with a variable "not_real" {} block.
-
-Executed 0 tests.
 `
 
-	actual := output.All()
+	actualOut := output.Stdout()
+	actualErr := output.Stderr()
 
-	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 
 	if provider.ResourceCount() > 0 {
