@@ -60,7 +60,7 @@ func TestValidate_undeclaredVariable(t *testing.T) {
 	var wantDiags tfdiags.Diagnostics
 	wantDiags = wantDiags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
-		Summary:  "Reference to undefined input variable",
+		Summary:  "Reference to undeclared input variable",
 		Detail:   `There is no variable "a" block declared in this stack.`,
 		Subject: &hcl.Range{
 			Filename: mainBundleSourceAddrStr("validate-undeclared-variable/validate-undeclared-variable.tfstack.hcl"),

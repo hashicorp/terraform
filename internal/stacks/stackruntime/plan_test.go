@@ -2,6 +2,8 @@ package stackruntime
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -11,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
 )
 
 func TestPlanWithSingleResource(t *testing.T) {
@@ -34,9 +37,31 @@ func TestPlanWithSingleResource(t *testing.T) {
 		t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
 	}
 
+	// The order of emission for our planned changes is unspecified since it
+	// depends on how the various goroutines get scheduled, and so we'll
+	// arbitrarily sort gotChanges lexically by the name of the change type
+	// so that we have some dependable order to diff against below.
+	sort.Slice(gotChanges, func(i, j int) bool {
+		ic := gotChanges[i]
+		jc := gotChanges[j]
+		return fmt.Sprintf("%T", ic) < fmt.Sprintf("%T", jc)
+	})
+
 	wantChanges := []stackplan.PlannedChange{
+		&stackplan.PlannedChangeApplyable{
+			Applyable: true,
+		},
 		&stackplan.PlannedChangeHeader{
 			TerraformVersion: version.SemVer,
+		},
+		&stackplan.PlannedChangeOutputValue{
+			Addr:     stackaddrs.OutputValue{Name: "obj"},
+			Action:   plans.Create,
+			OldValue: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
+			NewValue: mustPlanDynamicValue(cty.ObjectVal(map[string]cty.Value{
+				"input":  cty.StringVal("hello"),
+				"output": cty.UnknownVal(cty.String),
+			})),
 		},
 		&stackplan.PlannedChangeResourceInstancePlanned{
 			ComponentInstanceAddr: stackaddrs.Absolute(
@@ -62,24 +87,29 @@ func TestPlanWithSingleResource(t *testing.T) {
 				},
 				ChangeSrc: plans.ChangeSrc{
 					Action: plans.Create,
-					Before: plans.DynamicValue{0xc0}, // MessagePack-encoded null
+					Before: mustPlanDynamicValue(cty.NullVal(cty.DynamicPseudoType)),
 					After: plans.DynamicValue{
-						// This is a MessagePack-encoded object type conforming
-						// to the terraform_data resource type's schema.
-						// FIXME: Should write this a different way that
-						// is more scrutable and won't break each time something
-						// gets added to the terraform_data schema.
-						0x84, 0xa2, 0x69, 0x64, 0xc7, 0x03, 0x0c, 0x81, 0x01,
-						0xc2, 0xa5, 0x69, 0x6e, 0x70, 0x75, 0x74, 0xc0, 0xa6,
-						0x6f, 0x75, 0x74, 0x70, 0x75, 0x74, 0xc0, 0xb0, 0x74,
-						0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x73, 0x5f, 0x72,
-						0x65, 0x70, 0x6c, 0x61, 0x63, 0x65, 0xc0,
+						// This is an object conforming to the terraform_data
+						// resource type's schema.
+						//
+						// FIXME: Should write this a different way that is
+						// scrutable and won't break each time something gets
+						// added to the terraform_data schema. (We can't use
+						// mustPlanDynamicValue here because the resource type
+						// uses DynamicPseudoType attributes, which require
+						// explicitly-typed encoding.)
+						0x84, 0xa2, 0x69, 0x64, 0xc7, 0x03, 0x0c, 0x81,
+						0x01, 0xc2, 0xa5, 0x69, 0x6e, 0x70, 0x75, 0x74,
+						0x92, 0xc4, 0x08, 0x22, 0x73, 0x74, 0x72, 0x69,
+						0x6e, 0x67, 0x22, 0xa5, 0x68, 0x65, 0x6c, 0x6c,
+						0x6f, 0xa6, 0x6f, 0x75, 0x74, 0x70, 0x75, 0x74,
+						0x92, 0xc4, 0x08, 0x22, 0x73, 0x74, 0x72, 0x69,
+						0x6e, 0x67, 0x22, 0xd4, 0x00, 0x00, 0xb0, 0x74,
+						0x72, 0x69, 0x67, 0x67, 0x65, 0x72, 0x73, 0x5f,
+						0x72, 0x65, 0x70, 0x6c, 0x61, 0x63, 0x65, 0xc0,
 					},
 				},
 			},
-		},
-		&stackplan.PlannedChangeApplyable{
-			Applyable: true,
 		},
 	}
 
@@ -160,6 +190,4 @@ func collectPlanOutput(changesCh <-chan stackplan.PlannedChange, diagsCh <-chan 
 			diags = append(diags, diag)
 		}
 	}
-
-	return changes, diags
 }

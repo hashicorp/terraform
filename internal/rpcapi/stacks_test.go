@@ -224,13 +224,6 @@ func TestStacksPlanStackChanges(t *testing.T) {
 	handles := newHandleTable()
 	stacksServer := newStacksServer(handles)
 
-	// TEMP: For now this RPC doesn't actually really do any work and instead
-	// just immediately emits a warning diagnostic admitting that it's a liar.
-	// We'll replace this with a real implementation in later commits.
-	// This test implementation is equally fake, using invalid stubs of
-	// everything just to get the right types for this to compile and
-	// generate the expected warning.
-
 	fakeSourceBundle := &sourcebundle.Bundle{}
 	bundleHnd := handles.NewSourceBundle(fakeSourceBundle)
 	emptyConfig := &stackconfig.Config{

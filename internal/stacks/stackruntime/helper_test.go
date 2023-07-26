@@ -6,8 +6,10 @@ import (
 
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // This file has helper functions used by other tests. It doesn't contain any
@@ -96,4 +98,12 @@ func reportDiagnosticsForTest(t *testing.T, diags tfdiags.Diagnostics) {
 	if diags.HasErrors() {
 		t.FailNow()
 	}
+}
+
+func mustPlanDynamicValue(v cty.Value) plans.DynamicValue {
+	ret, err := plans.NewDynamicValue(v, v.Type())
+	if err != nil {
+		panic(err)
+	}
+	return ret
 }

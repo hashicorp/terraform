@@ -323,8 +323,19 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Reference to undefined input variable",
+				Summary:  "Reference to undeclared input variable",
 				Detail:   fmt.Sprintf("There is no variable %q block declared in this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+		return ret, diags
+	case stackaddrs.Component:
+		ret := s.Component(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared component",
+				Detail:   fmt.Sprintf("There is no component %q block declared in this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 		}
@@ -334,7 +345,7 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 		if ret == nil {
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Summary:  "Reference to undefined embedded stack",
+				Summary:  "Reference to undeclared embedded stack",
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})

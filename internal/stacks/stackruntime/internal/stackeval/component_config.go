@@ -165,6 +165,17 @@ func (c *ComponentConfig) InputsType(ctx context.Context) (cty.Type, *typeexpr.D
 	return retTy, defs
 }
 
+// ExprReferenceValue implements Referenceable.
+func (c *ComponentConfig) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	// Currently we don't say anything at all about component results during
+	// validation, since the main Terraform language's validate call doesn't
+	// return any information about hypothetical root module output values.
+	// We don't expose ComponentConfig in any scope outside of the validation
+	// phase, so this is sufficient for all phases. (See [Component] for how
+	// component results get calculated during the plan and apply phases.)
+	return cty.DynamicVal
+}
+
 // Validate implements Validatable.
 func (c *ComponentConfig) Validate(ctx context.Context) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics

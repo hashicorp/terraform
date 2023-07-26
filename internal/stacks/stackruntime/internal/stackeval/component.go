@@ -221,9 +221,56 @@ func (c *Component) Instances(ctx context.Context, phase EvalPhase) map[addrs.In
 	}
 }
 
+func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
+	decl := c.Declaration(ctx)
+	insts := c.Instances(ctx, phase)
+
+	switch {
+	case decl.ForEach != nil:
+		// NOTE: Unlike with StackCall, we must return object types rather than
+		// map types here since the main Terraform language does not require
+		// exact type constraints for its output values and so each instance of
+		// a component can potentially produce a different object type.
+
+		if insts == nil {
+			// If we don't even know what instances we have then we can't
+			// predict anything about our result.
+			return cty.DynamicVal
+		}
+
+		// We expect that the instances all have string keys, which will
+		// become the keys of a map that we're returning.
+		elems := make(map[string]cty.Value, len(insts))
+		for instKey, inst := range insts {
+			k, ok := instKey.(addrs.StringKey)
+			if !ok {
+				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
+			}
+			elems[string(k)] = inst.ResultValue(ctx, phase)
+		}
+		return cty.ObjectVal(elems)
+
+	default:
+		if insts == nil {
+			// If we don't even know what instances we have then we can't
+			// predict anything about our result.
+			return cty.DynamicVal
+		}
+		if len(insts) != 1 {
+			// Should not happen: we should have exactly one instance with addrs.NoKey
+			panic("single-instance stack call does not have exactly one instance")
+		}
+		inst, ok := insts[addrs.NoKey]
+		if !ok {
+			panic("single-instance stack call does not have an addrs.NoKey instance")
+		}
+		return inst.ResultValue(ctx, phase)
+	}
+}
+
 // ExprReferenceValue implements Referenceable.
 func (c *Component) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	panic("unimplemented")
+	return c.ResultValue(ctx, phase)
 }
 
 // PlanChanges implements Plannable by performing plan-time validation of

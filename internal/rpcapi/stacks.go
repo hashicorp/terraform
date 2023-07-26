@@ -163,10 +163,10 @@ func (s *stacksServer) PlanStackChanges(req *terraform1.PlanStackChanges_Request
 	default:
 		return status.Errorf(codes.InvalidArgument, "unsupported planning mode %d", req.PlanMode)
 	}
-	log.Printf("[TRACE] plan mode is %s", planMode) // TEMP: Just so planMode is used for now
+	log.Printf("[TRACE] plan mode is %s", planMode) // TODO: Just so planMode is used for now
 
 	if len(req.PreviousState) != 0 {
-		// TEMP: We don't yet support planning from a prior state.
+		// TODO: We don't yet support planning from a prior state.
 		return status.Errorf(codes.InvalidArgument, "don't yet support planning with a previous state")
 	}
 

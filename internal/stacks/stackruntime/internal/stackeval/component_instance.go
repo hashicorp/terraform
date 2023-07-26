@@ -223,6 +223,39 @@ func (c *ComponentInstance) CheckModuleTreePlan(ctx context.Context) (*plans.Pla
 	)
 }
 
+func (c *ComponentInstance) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
+	switch phase {
+	case PlanPhase:
+		plan := c.ModuleTreePlan(ctx)
+		if plan == nil {
+			// Planning seems to have failed so we cannot decide a result value yet.
+			// FIXME: Should use an unknown value of a specific object type
+			// constraint derived from the root module's output values.
+			return cty.DynamicVal
+		}
+
+		// During the plan phase we use the planned output changes to construct
+		// our value.
+		outputChanges := plan.Changes.Outputs
+		attrs := make(map[string]cty.Value, len(outputChanges))
+		for _, changeSrc := range outputChanges {
+			name := changeSrc.Addr.OutputValue.Name
+			change, err := changeSrc.Decode()
+			if err != nil {
+				attrs[name] = cty.DynamicVal
+			}
+			attrs[name] = change.After
+		}
+		return cty.ObjectVal(attrs)
+
+	default:
+		// We can't produce a concrete value for any other phase.
+		// FIXME: Should use an unknown value of a specific object type
+		// constraint derived from the root module's output values.
+		return cty.DynamicVal
+	}
+}
+
 // ResolveExpressionReference implements ExpressionScope.
 func (c *ComponentInstance) ResolveExpressionReference(ctx context.Context, ref stackaddrs.Reference) (Referenceable, tfdiags.Diagnostics) {
 	stack := c.call.Stack(ctx)
