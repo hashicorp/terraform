@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"fmt"
+	"log"
 	"path"
 	"sort"
 	"strings"
@@ -95,6 +96,9 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		return 1
 	}
 
+	runCount := 0
+	fileCount := 0
+
 	var fileDiags tfdiags.Diagnostics
 	suite := moduletest.Suite{
 		Files: func() map[string]*moduletest.File {
@@ -114,6 +118,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 						continue
 					}
 
+					fileCount++
+
 					var runs []*moduletest.Run
 					for ix, run := range file.Runs {
 						runs = append(runs, &moduletest.Run{
@@ -122,6 +128,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 							Name:   run.Name,
 						})
 					}
+
+					runCount += len(runs)
 					files[name] = &moduletest.File{
 						Config: file,
 						Name:   name,
@@ -134,6 +142,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 			// Otherwise, we'll just do all the tests in the directory!
 			for name, file := range config.Module.Tests {
+				fileCount++
+
 				var runs []*moduletest.Run
 				for ix, run := range file.Runs {
 					runs = append(runs, &moduletest.Run{
@@ -142,6 +152,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 						Name:   run.Name,
 					})
 				}
+
+				runCount += len(runs)
 				files[name] = &moduletest.File{
 					Config: file,
 					Name:   name,
@@ -151,6 +163,8 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			return files
 		}(),
 	}
+
+	log.Printf("[DEBUG] TestCommand: found %d files with %d run blocks", fileCount, runCount)
 
 	diags = diags.Append(fileDiags)
 	if fileDiags.HasErrors() {
@@ -175,6 +189,11 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		view.Diagnostics(nil, nil, diags)
 		return 1
 	}
+
+	// Print out all the diagnostics we have from the setup. These will just be
+	// warnings, and we want them out of the way before we start the actual
+	// testing.
+	view.Diagnostics(nil, nil, diags)
 
 	// We have two levels of interrupt here. A 'stop' and a 'cancel'. A 'stop'
 	// is a soft request to stop. We'll finish the current test, do the tidy up,
@@ -385,9 +404,28 @@ func (runner *TestRunner) Start(globals map[string]backend.UnparsedVariableValue
 }
 
 func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
+	log.Printf("[TRACE] TestRunner: executing test file %s", file.Name)
+
 	mgr := new(TestStateManager)
 	mgr.runner = runner
 	mgr.State = states.NewState()
+
+	// We're going to check if the cleanupStates function call will actually
+	// work before we start the test.
+	diags := mgr.prepare(file, globals)
+	if diags.HasErrors() || runner.Cancelled || runner.Stopped {
+		file.Status = moduletest.Error
+		runner.View.File(file)
+		runner.View.Diagnostics(nil, file, diags)
+		for _, run := range file.Runs {
+			run.Status = moduletest.Skip
+			runner.View.Run(run, file)
+		}
+		return
+	}
+
+	// Make sure we clean up any states created during the execution of this
+	// file.
 	defer mgr.cleanupStates(file, globals)
 
 	file.Status = file.Status.Merge(moduletest.Pass)
@@ -429,12 +467,15 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[str
 	}
 
 	runner.View.File(file)
+	runner.View.Diagnostics(nil, file, diags) // Print out any warnings from the preparation.
 	for _, run := range file.Runs {
 		runner.View.Run(run, file)
 	}
 }
 
 func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config, globals map[string]backend.UnparsedVariableValue) *states.State {
+	log.Printf("[TRACE] TestRunner: executing run block %s/%s", file.Name, run.Name)
+
 	if runner.Cancelled {
 		// Don't do anything, just give up and return immediately.
 		// The surrounding functions should stop this even being called, but in
@@ -480,12 +521,15 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 	run.Diagnostics = run.Diagnostics.Append(diags)
 
 	if runner.Cancelled {
+		log.Printf("[DEBUG] TestRunner: exiting after test execution for %s/%s due to cancellation", file.Name, run.Name)
+
 		// Print out the diagnostics from the run now, since it was cancelled
 		// the normal set of diagnostics will not be printed otherwise.
 		runner.View.Diagnostics(run, file, run.Diagnostics)
 		run.Status = moduletest.Error
 		return state
 	}
+	log.Printf("[DEBUG] TestRunner: completed test execution for %s/%s", file.Name, run.Name)
 
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -524,7 +568,7 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	variables, diags := buildInputVariablesForAssertions(run, file, config, globals)
+	variables, diags := buildInputVariablesForAssertions(run, file, globals)
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -579,8 +623,15 @@ func (runner *TestRunner) validateConfig(config *configs.Config) tfdiags.Diagnos
 // The command argument decides whether it executes only a plan or also applies
 // the plan it creates during the planning.
 func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, config *configs.Config, state *states.State, opts *terraform.PlanOpts, command configs.TestCommand, globals map[string]backend.UnparsedVariableValue) (*terraform.Context, *plans.Plan, *states.State, tfdiags.Diagnostics) {
+	identifier := file.Name
+	if run != nil {
+		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	}
+	log.Printf("[TRACE] TestRunner: executing %s for %s", opts.Mode, identifier)
+
 	if opts.Mode == plans.DestroyMode && state.Empty() {
 		// Nothing to do!
+		log.Printf("[DEBUG] TestRunner: nothing to destroy for %s", identifier)
 		return nil, nil, state, nil
 	}
 
@@ -630,7 +681,10 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
+
+		log.Printf("[DEBUG] TestRunner: starting plan for %s", identifier)
 		plan, planDiags = tfCtx.Plan(config, state, opts)
+		log.Printf("[DEBUG] TestRunner: completed plan for %s", identifier)
 	}()
 	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
 	planDiags = planDiags.Append(waitDiags)
@@ -644,6 +698,7 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	}
 
 	if cancelled {
+		log.Printf("[DEBUG] TestRunner: skipping apply stage for %s due to cancellation", identifier)
 		// If the execution was cancelled during the plan, we'll exit here to
 		// stop the plan being applied and using more time.
 		return tfCtx, plan, state, diags
@@ -696,7 +751,9 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
+		log.Printf("[DEBUG] TestRunner: starting apply for %s", identifier)
 		updated, applyDiags = tfCtx.Apply(plan, config)
+		log.Printf("[DEBUG] TestRunner: completed apply for %s", identifier)
 	}()
 	waitDiags, _ = runner.wait(tfCtx, runningCtx, mgr, run, file, created)
 	applyDiags = applyDiags.Append(waitDiags)
@@ -706,12 +763,18 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 }
 
 func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Context, mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
+	identifier := file.Name
+	if run != nil {
+		identifier = fmt.Sprintf("%s/%s", identifier, run.Name)
+	}
+	log.Printf("[TRACE] TestRunner: waiting for execution during %s", identifier)
 
 	// This function handles what happens when the user presses the second
 	// interrupt. This is a "hard cancel", we are going to stop doing whatever
 	// it is we're doing. This means even if we're halfway through creating or
 	// destroying infrastructure we just give up.
 	handleCancelled := func() {
+		log.Printf("[DEBUG] TestRunner: test execution cancelled during %s", identifier)
 
 		if mgr != nil {
 
@@ -741,6 +804,8 @@ func (runner *TestRunner) wait(ctx *terraform.Context, runningCtx context.Contex
 	// anything but just wait for things to finish safely. But, we do listen
 	// for the crucial second interrupt which will prompt a hard stop / cancel.
 	handleStopped := func() {
+		log.Printf("[DEBUG] TestRunner: test execution stopped during %s", identifier)
+
 		select {
 		case <-runner.CancelledCtx.Done():
 			// We've been asked again. This time we stop whatever we're doing
@@ -796,9 +861,32 @@ type TestModuleState struct {
 	Run *moduletest.Run
 }
 
+// prepare makes some simple checks that increase our confidence that a later
+// clean up operation will succeed.
+//
+// When it comes time to execute cleanupStates below, we only have the
+// information available at the file level. Our run blocks may have executed
+// with additional data and configuration, so it's possible that we could
+// successfully execute all our run blocks and then find we cannot perform any
+// cleanup. We want to use this function to check that our cleanup can happen
+// using only the information available within the file.
+func (manager *TestStateManager) prepare(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+
+	// For now, the only thing we care about is making sure all the required
+	// variables have values.
+	_, diags := buildInputVariablesForTest(nil, file, manager.runner.Config, globals)
+
+	// Return the sum of diagnostics that might indicate a problem for any
+	// future attempted cleanup.
+	return diags
+}
+
 func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
+	log.Printf("[TRACE] TestStateManager: cleaning up state for %s", file.Name)
+
 	if manager.runner.Cancelled {
 		// Don't try and clean anything up if the execution has been cancelled.
+		log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s due to cancellation", file.Name)
 		return
 	}
 
@@ -818,9 +906,12 @@ func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals ma
 	for ix := len(manager.States); ix > 0; ix-- {
 		module := manager.States[ix-1]
 
+		log.Printf("[DEBUG] TestStateManager: cleaning up state for %s/%s", file.Name, module.Run.Name)
+
 		if manager.runner.Cancelled {
 			// In case the cancellation came while a previous state was being
 			// destroyed.
+			log.Printf("[DEBUG] TestStateManager: skipping state cleanup for %s/%s due to cancellation", file.Name, module.Run.Name)
 			return
 		}
 
@@ -885,13 +976,9 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 //
 // Crucially, it differs from buildInputVariablesForTest in that the returned
 // input values include all variables available even if they are not defined
-// within the config.
-//
-// This does mean the returned diags might contain warnings about variables not
-// defined within the config. We might want to remove these warnings in the
-// future, since it is actually okay for test files to have variables defined
-// outside the configuration.
-func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, config *configs.Config, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
+// within the config. This allows the assertions to refer to variables defined
+// solely within the test file, and not only those within the configuration.
+func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
@@ -927,5 +1014,12 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		variables[name] = variable
 	}
 
-	return backend.ParseVariableValues(variables, config.Module.Variables)
+	inputs := make(terraform.InputValues, len(variables))
+	var diags tfdiags.Diagnostics
+	for name, variable := range variables {
+		value, valueDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
+		diags = diags.Append(valueDiags)
+		inputs[name] = value
+	}
+	return inputs, diags
 }

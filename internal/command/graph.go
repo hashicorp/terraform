@@ -55,7 +55,7 @@ func (c *GraphCommand) Run(args []string) int {
 	}
 
 	// Try to load plan if path is specified
-	var planFile *planfile.Reader
+	var planFile *planfile.WrappedPlanFile
 	if planPath != "" {
 		planFile, err = c.PlanFile(planPath)
 		if err != nil {

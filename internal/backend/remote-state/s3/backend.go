@@ -4,10 +4,9 @@
 package s3
 
 import (
-	"context"
 	"encoding/base64"
-	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -15,271 +14,19 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
+	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-// New creates a new backend for S3 remote state.
 func New() backend.Backend {
-	s := &schema.Backend{
-		Schema: map[string]*schema.Schema{
-			"bucket": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The name of the S3 bucket",
-			},
-
-			"key": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "The path to the state file inside the bucket",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					// s3 will strip leading slashes from an object, so while this will
-					// technically be accepted by s3, it will break our workspace hierarchy.
-					if strings.HasPrefix(v.(string), "/") {
-						return nil, []error{errors.New("key must not start with '/'")}
-					}
-					// s3 will recognize objects with a trailing slash as a directory
-					// so they should not be valid keys
-					if strings.HasSuffix(v.(string), "/") {
-						return nil, []error{errors.New("key must not end with '/'")}
-					}
-					return nil, nil
-				},
-			},
-
-			"region": {
-				Type:        schema.TypeString,
-				Required:    true,
-				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_REGION",
-					"AWS_DEFAULT_REGION",
-				}, nil),
-			},
-
-			"dynamodb_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the DynamoDB API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_DYNAMODB_ENDPOINT", ""),
-			},
-
-			"endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the S3 API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_S3_ENDPOINT", ""),
-			},
-
-			"iam_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the IAM API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_IAM_ENDPOINT", ""),
-			},
-
-			"sts_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the STS API",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_STS_ENDPOINT", ""),
-			},
-
-			"encrypt": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Whether to enable server side encryption of the state file",
-				Default:     false,
-			},
-
-			"acl": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Canned ACL to be applied to the state file",
-				Default:     "",
-			},
-
-			"access_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS access key",
-				Default:     "",
-			},
-
-			"secret_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS secret key",
-				Default:     "",
-			},
-
-			"kms_key_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The ARN of a KMS Key to use for encrypting the state",
-				Default:     "",
-			},
-
-			"dynamodb_table": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "DynamoDB table for state locking and consistency",
-				Default:     "",
-			},
-
-			"profile": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "AWS profile name",
-				Default:     "",
-			},
-
-			"shared_credentials_file": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "Path to a shared credentials file",
-				Default:     "",
-			},
-
-			"token": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "MFA token",
-				Default:     "",
-			},
-
-			"skip_credentials_validation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip the credentials validation via STS API.",
-				Default:     false,
-			},
-
-			"skip_region_validation": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip static validation of region name.",
-				Default:     false,
-			},
-
-			"skip_metadata_api_check": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Skip the AWS Metadata API check.",
-				Default:     false,
-			},
-
-			"sse_customer_key": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
-				DefaultFunc: schema.EnvDefaultFunc("AWS_SSE_CUSTOMER_KEY", ""),
-				Sensitive:   true,
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					key := v.(string)
-					if key != "" && len(key) != 44 {
-						return nil, []error{errors.New("sse_customer_key must be 44 characters in length (256 bits, base64 encoded)")}
-					}
-					return nil, nil
-				},
-			},
-
-			"role_arn": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The role to be assumed",
-				Default:     "",
-			},
-
-			"session_name": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The session name to use when assuming the role.",
-				Default:     "",
-			},
-
-			"external_id": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The external ID to use when assuming the role",
-				Default:     "",
-			},
-
-			"assume_role_duration_seconds": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "Seconds to restrict the assume role session duration.",
-			},
-
-			"assume_role_policy": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-				Default:     "",
-			},
-
-			"assume_role_policy_arns": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"assume_role_tags": {
-				Type:        schema.TypeMap,
-				Optional:    true,
-				Description: "Assume role session tags.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"assume_role_transitive_tag_keys": {
-				Type:        schema.TypeSet,
-				Optional:    true,
-				Description: "Assume role session tag keys to pass to any subsequent sessions.",
-				Elem:        &schema.Schema{Type: schema.TypeString},
-			},
-
-			"workspace_key_prefix": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "The prefix applied to the non-default state path inside the bucket.",
-				Default:     "env:",
-				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
-					prefix := v.(string)
-					if strings.HasPrefix(prefix, "/") || strings.HasSuffix(prefix, "/") {
-						return nil, []error{errors.New("workspace_key_prefix must not start or end with '/'")}
-					}
-					return nil, nil
-				},
-			},
-
-			"force_path_style": {
-				Type:        schema.TypeBool,
-				Optional:    true,
-				Description: "Force s3 to use path style api.",
-				Default:     false,
-			},
-
-			"max_retries": {
-				Type:        schema.TypeInt,
-				Optional:    true,
-				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
-				Default:     5,
-			},
-		},
-	}
-
-	result := &Backend{Backend: s}
-	result.Backend.ConfigureFunc = result.configure
-	return result
+	return &Backend{}
 }
 
 type Backend struct {
-	*schema.Backend
-
-	// The fields below are set from configure
 	s3Client  *s3.S3
 	dynClient *dynamodb.DynamoDB
 
@@ -293,61 +40,358 @@ type Backend struct {
 	workspaceKeyPrefix    string
 }
 
-func (b *Backend) configure(ctx context.Context) error {
-	if b.s3Client != nil {
-		return nil
+// ConfigSchema returns a description of the expected configuration
+// structure for the receiving backend.
+func (b *Backend) ConfigSchema() *configschema.Block {
+	return &configschema.Block{
+		Attributes: map[string]*configschema.Attribute{
+			"bucket": {
+				Type:        cty.String,
+				Required:    true,
+				Description: "The name of the S3 bucket",
+			},
+			"key": {
+				Type:        cty.String,
+				Required:    true,
+				Description: "The path to the state file inside the bucket",
+			},
+			"region": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS region of the S3 Bucket and DynamoDB Table (if used).",
+			},
+			"dynamodb_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the DynamoDB API",
+			},
+			"endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the S3 API",
+			},
+			"iam_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the IAM API",
+			},
+			"sts_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "A custom endpoint for the STS API",
+			},
+			"encrypt": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Whether to enable server side encryption of the state file",
+			},
+			"acl": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Canned ACL to be applied to the state file",
+			},
+			"access_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS access key",
+			},
+			"secret_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS secret key",
+			},
+			"kms_key_id": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The ARN of a KMS Key to use for encrypting the state",
+			},
+			"dynamodb_table": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "DynamoDB table for state locking and consistency",
+			},
+			"profile": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS profile name",
+			},
+			"shared_credentials_file": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Path to a shared credentials file",
+			},
+			"token": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "MFA token",
+			},
+			"skip_credentials_validation": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip the credentials validation via STS API.",
+			},
+			"skip_metadata_api_check": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip the AWS Metadata API check.",
+			},
+			"skip_region_validation": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Skip static validation of region name.",
+			},
+			"sse_customer_key": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The base64-encoded encryption key to use for server-side encryption with customer-provided keys (SSE-C).",
+				Sensitive:   true,
+			},
+			"role_arn": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The role to be assumed",
+			},
+			"session_name": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			"external_id": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+			},
+
+			"assume_role_duration_seconds": {
+				Type:        cty.Number,
+				Optional:    true,
+				Description: "Seconds to restrict the assume role session duration.",
+			},
+
+			"assume_role_policy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+
+			"assume_role_policy_arns": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+
+			"assume_role_tags": {
+				Type:        cty.Map(cty.String),
+				Optional:    true,
+				Description: "Assume role session tags.",
+			},
+
+			"assume_role_transitive_tag_keys": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+			},
+
+			"workspace_key_prefix": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The prefix applied to the non-default state path inside the bucket.",
+			},
+
+			"force_path_style": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force s3 to use path style api.",
+			},
+
+			"max_retries": {
+				Type:        cty.Number,
+				Optional:    true,
+				Description: "The maximum number of times an AWS API request is retried on retryable failure.",
+			},
+		},
+	}
+}
+
+// PrepareConfig checks the validity of the values in the given
+// configuration, and inserts any missing defaults, assuming that its
+// structure has already been validated per the schema returned by
+// ConfigSchema.
+func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return obj, diags
 	}
 
-	// Grab the resource data
-	data := schema.FromContextBackendConfig(ctx)
+	if val := obj.GetAttr("bucket"); val.IsNull() || val.AsString() == "" {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid bucket value",
+			`The "bucket" attribute value must not be empty.`,
+			cty.Path{cty.GetAttrStep{Name: "bucket"}},
+		))
+	}
 
-	if !data.Get("skip_region_validation").(bool) {
-		if err := awsbase.ValidateRegion(data.Get("region").(string)); err != nil {
-			return err
+	if val := obj.GetAttr("key"); val.IsNull() || val.AsString() == "" {
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid key value",
+			`The "key" attribute value must not be empty.`,
+			cty.Path{cty.GetAttrStep{Name: "key"}},
+		))
+	} else if strings.HasPrefix(val.AsString(), "/") || strings.HasSuffix(val.AsString(), "/") {
+		// S3 will strip leading slashes from an object, so while this will
+		// technically be accepted by S3, it will break our workspace hierarchy.
+		// S3 will recognize objects with a trailing slash as a directory
+		// so they should not be valid keys
+		diags = diags.Append(tfdiags.AttributeValue(
+			tfdiags.Error,
+			"Invalid key value",
+			`The "key" attribute value must not start or end with with "/".`,
+			cty.Path{cty.GetAttrStep{Name: "key"}},
+		))
+	}
+
+	if val := obj.GetAttr("region"); val.IsNull() || val.AsString() == "" {
+		if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Missing region value",
+				`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
+				cty.Path{cty.GetAttrStep{Name: "region"}},
+			))
 		}
 	}
 
-	b.bucketName = data.Get("bucket").(string)
-	b.keyName = data.Get("key").(string)
-	b.acl = data.Get("acl").(string)
-	b.workspaceKeyPrefix = data.Get("workspace_key_prefix").(string)
-	b.serverSideEncryption = data.Get("encrypt").(bool)
-	b.kmsKeyID = data.Get("kms_key_id").(string)
-	b.ddbTable = data.Get("dynamodb_table").(string)
-
-	customerKeyString := data.Get("sse_customer_key").(string)
-	if customerKeyString != "" {
-		if b.kmsKeyID != "" {
-			return errors.New(encryptionKeyConflictError)
+	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
+		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid encryption configuration",
+				encryptionKeyConflictError,
+				cty.Path{},
+			))
+		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid encryption configuration",
+				encryptionKeyConflictEnvVarError,
+				cty.Path{},
+			))
 		}
 
-		var err error
-		b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKeyString)
-		if err != nil {
-			return fmt.Errorf("Failed to decode sse_customer_key: %s", err.Error())
+		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
+	}
+
+	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
+		if v := val.AsString(); strings.HasPrefix(v, "/") || strings.HasSuffix(v, "/") {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid workspace_key_prefix value",
+				`The "workspace_key_prefix" attribute value must not start with "/".`,
+				cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
+			))
+		}
+	}
+
+	return obj, diags
+}
+
+// Configure uses the provided configuration to set configuration fields
+// within the backend.
+//
+// The given configuration is assumed to have already been validated
+// against the schema returned by ConfigSchema and passed validation
+// via PrepareConfig.
+func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
+
+	var region string
+	if v, ok := stringAttrOk(obj, "region"); ok {
+		region = v
+	}
+
+	if region != "" && !boolAttr(obj, "skip_region_validation") {
+		if err := awsbase.ValidateRegion(region); err != nil {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid region value",
+				err.Error(),
+				cty.Path{cty.GetAttrStep{Name: "region"}},
+			))
+			return diags
+		}
+	}
+
+	b.bucketName = stringAttr(obj, "bucket")
+	b.keyName = stringAttr(obj, "key")
+	b.acl = stringAttr(obj, "acl")
+	b.workspaceKeyPrefix = stringAttrDefault(obj, "workspace_key_prefix", "env:")
+	b.serverSideEncryption = boolAttr(obj, "encrypt")
+	b.kmsKeyID = stringAttr(obj, "kms_key_id")
+	b.ddbTable = stringAttr(obj, "dynamodb_table")
+
+	if customerKey, ok := stringAttrOk(obj, "sse_customer_key"); ok {
+		if len(customerKey) != 44 {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid sse_customer_key value",
+				"sse_customer_key must be 44 characters in length",
+				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+			))
+		} else {
+			var err error
+			if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
+				diags = diags.Append(tfdiags.AttributeValue(
+					tfdiags.Error,
+					"Invalid sse_customer_key value",
+					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
+					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+				))
+			}
+		}
+	} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+		if len(customerKey) != 44 {
+			diags = diags.Append(tfdiags.Sourceless(
+				tfdiags.Error,
+				"Invalid AWS_SSE_CUSTOMER_KEY value",
+				`The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
+			))
+		} else {
+			var err error
+			if b.customerEncryptionKey, err = base64.StdEncoding.DecodeString(customerKey); err != nil {
+				diags = diags.Append(tfdiags.Sourceless(
+					tfdiags.Error,
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					fmt.Sprintf(`The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded: %s`, err),
+				))
+			}
 		}
 	}
 
 	cfg := &awsbase.Config{
-		AccessKey:                 data.Get("access_key").(string),
-		AssumeRoleARN:             data.Get("role_arn").(string),
-		AssumeRoleDurationSeconds: data.Get("assume_role_duration_seconds").(int),
-		AssumeRoleExternalID:      data.Get("external_id").(string),
-		AssumeRolePolicy:          data.Get("assume_role_policy").(string),
-		AssumeRoleSessionName:     data.Get("session_name").(string),
+		AccessKey:                 stringAttr(obj, "access_key"),
+		AssumeRoleARN:             stringAttr(obj, "role_arn"),
+		AssumeRoleDurationSeconds: intAttr(obj, "assume_role_duration_seconds"),
+		AssumeRoleExternalID:      stringAttr(obj, "external_id"),
+		AssumeRolePolicy:          stringAttr(obj, "assume_role_policy"),
+		AssumeRoleSessionName:     stringAttr(obj, "session_name"),
 		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:                "S3 Backend",
-		CredsFilename:             data.Get("shared_credentials_file").(string),
+		CredsFilename:             stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:              logging.IsDebugOrHigher(),
-		IamEndpoint:               data.Get("iam_endpoint").(string),
-		MaxRetries:                data.Get("max_retries").(int),
-		Profile:                   data.Get("profile").(string),
-		Region:                    data.Get("region").(string),
-		SecretKey:                 data.Get("secret_key").(string),
-		SkipCredsValidation:       data.Get("skip_credentials_validation").(bool),
-		SkipMetadataApiCheck:      data.Get("skip_metadata_api_check").(bool),
-		StsEndpoint:               data.Get("sts_endpoint").(string),
-		Token:                     data.Get("token").(string),
+		IamEndpoint:               stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
+		MaxRetries:                intAttrDefault(obj, "max_retries", 5),
+		Profile:                   stringAttr(obj, "profile"),
+		Region:                    stringAttr(obj, "region"),
+		SecretKey:                 stringAttr(obj, "secret_key"),
+		SkipCredsValidation:       boolAttr(obj, "skip_credentials_validation"),
+		SkipMetadataApiCheck:      boolAttr(obj, "skip_metadata_api_check"),
+		StsEndpoint:               stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
+		Token:                     stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
@@ -355,62 +399,162 @@ func (b *Backend) configure(ctx context.Context) error {
 		},
 	}
 
-	if policyARNSet := data.Get("assume_role_policy_arns").(*schema.Set); policyARNSet.Len() > 0 {
-		for _, policyARNRaw := range policyARNSet.List() {
-			policyARN, ok := policyARNRaw.(string)
-
-			if !ok {
-				continue
+	if policyARNSet := obj.GetAttr("assume_role_policy_arns"); !policyARNSet.IsNull() {
+		policyARNSet.ForEachElement(func(key, val cty.Value) (stop bool) {
+			v, ok := stringValueOk(val)
+			if ok {
+				cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, v)
 			}
-
-			cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, policyARN)
-		}
+			return
+		})
 	}
 
-	if tagMap := data.Get("assume_role_tags").(map[string]interface{}); len(tagMap) > 0 {
-		cfg.AssumeRoleTags = make(map[string]string)
-
-		for k, vRaw := range tagMap {
-			v, ok := vRaw.(string)
-
-			if !ok {
-				continue
+	if tagMap := obj.GetAttr("assume_role_tags"); !tagMap.IsNull() {
+		cfg.AssumeRoleTags = make(map[string]string, tagMap.LengthInt())
+		tagMap.ForEachElement(func(key, val cty.Value) (stop bool) {
+			k := stringValue(key)
+			v, ok := stringValueOk(val)
+			if ok {
+				cfg.AssumeRoleTags[k] = v
 			}
-
-			cfg.AssumeRoleTags[k] = v
-		}
+			return
+		})
 	}
 
-	if transitiveTagKeySet := data.Get("assume_role_transitive_tag_keys").(*schema.Set); transitiveTagKeySet.Len() > 0 {
-		for _, transitiveTagKeyRaw := range transitiveTagKeySet.List() {
-			transitiveTagKey, ok := transitiveTagKeyRaw.(string)
-
-			if !ok {
-				continue
+	if transitiveTagKeySet := obj.GetAttr("assume_role_transitive_tag_keys"); !transitiveTagKeySet.IsNull() {
+		transitiveTagKeySet.ForEachElement(func(key, val cty.Value) (stop bool) {
+			v, ok := stringValueOk(val)
+			if ok {
+				cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, v)
 			}
-
-			cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, transitiveTagKey)
-		}
+			return
+		})
 	}
 
 	sess, err := awsbase.GetSession(cfg)
 	if err != nil {
-		return fmt.Errorf("error configuring S3 Backend: %w", err)
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Failed to configure AWS client",
+			fmt.Sprintf(`The "S3" backend encountered an unexpected error while creating the AWS client: %s`, err),
+		))
+		return diags
 	}
 
-	b.dynClient = dynamodb.New(sess.Copy(&aws.Config{
-		Endpoint: aws.String(data.Get("dynamodb_endpoint").(string)),
-	}))
-	b.s3Client = s3.New(sess.Copy(&aws.Config{
-		Endpoint:         aws.String(data.Get("endpoint").(string)),
-		S3ForcePathStyle: aws.Bool(data.Get("force_path_style").(bool)),
-	}))
+	var dynamoConfig aws.Config
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
+		dynamoConfig.Endpoint = aws.String(v)
+	}
+	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
-	return nil
+	var s3Config aws.Config
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
+		s3Config.Endpoint = aws.String(v)
+	}
+	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
+		s3Config.S3ForcePathStyle = aws.Bool(v)
+	}
+	b.s3Client = s3.New(sess.Copy(&s3Config))
+
+	return diags
 }
 
-const encryptionKeyConflictError = `Cannot have both kms_key_id and sse_customer_key set.
+func stringValue(val cty.Value) string {
+	v, _ := stringValueOk(val)
+	return v
+}
 
-The kms_key_id is used for encryption with KMS-Managed Keys (SSE-KMS)
-while sse_customer_key is used for encryption with customer-managed keys (SSE-C).
+func stringValueOk(val cty.Value) (string, bool) {
+	if val.IsNull() {
+		return "", false
+	} else {
+		return val.AsString(), true
+	}
+}
+
+func stringAttr(obj cty.Value, name string) string {
+	return stringValue(obj.GetAttr(name))
+}
+
+func stringAttrOk(obj cty.Value, name string) (string, bool) {
+	return stringValueOk(obj.GetAttr(name))
+}
+
+func stringAttrDefault(obj cty.Value, name, def string) string {
+	if v, ok := stringAttrOk(obj, name); !ok {
+		return def
+	} else {
+		return v
+	}
+}
+
+func stringAttrDefaultEnvVar(obj cty.Value, name string, envvars ...string) string {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, name, envvars...); !ok {
+		return ""
+	} else {
+		return v
+	}
+}
+
+func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (string, bool) {
+	if v, ok := stringAttrOk(obj, name); !ok {
+		for _, envvar := range envvars {
+			if v := os.Getenv(envvar); v != "" {
+				return v, true
+			}
+		}
+		return "", false
+	} else {
+		return v, true
+	}
+}
+
+func boolAttr(obj cty.Value, name string) bool {
+	v, _ := boolAttrOk(obj, name)
+	return v
+}
+
+func boolAttrOk(obj cty.Value, name string) (bool, bool) {
+	if val := obj.GetAttr(name); val.IsNull() {
+		return false, false
+	} else {
+		return val.True(), true
+	}
+}
+
+func intAttr(obj cty.Value, name string) int {
+	v, _ := intAttrOk(obj, name)
+	return v
+}
+
+func intAttrOk(obj cty.Value, name string) (int, bool) {
+	if val := obj.GetAttr(name); val.IsNull() {
+		return 0, false
+	} else {
+		var v int
+		if err := gocty.FromCtyValue(val, &v); err != nil {
+			return 0, false
+		}
+		return v, true
+	}
+}
+
+func intAttrDefault(obj cty.Value, name string, def int) int {
+	if v, ok := intAttrOk(obj, name); !ok {
+		return def
+	} else {
+		return v
+	}
+}
+
+const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
+
+The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
+while "sse_customer_key" is used for encryption with customer-managed keys (SSE-C).
+Please choose one or the other.`
+
+const encryptionKeyConflictEnvVarError = `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set.
+
+The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
+while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`

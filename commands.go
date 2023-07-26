@@ -414,6 +414,14 @@ func initCommands(
 		},
 	}
 
+	if meta.AllowExperimentalFeatures {
+		Commands["cloud"] = func() (cli.Command, error) {
+			return &command.CloudCommand{
+				Meta: meta,
+			}, nil
+		}
+	}
+
 	PrimaryCommands = []string{
 		"init",
 		"validate",
@@ -423,11 +431,10 @@ func initCommands(
 	}
 
 	HiddenCommands = map[string]struct{}{
-		"env":             struct{}{},
-		"internal-plugin": struct{}{},
-		"push":            struct{}{},
+		"env":             {},
+		"internal-plugin": {},
+		"push":            {},
 	}
-
 }
 
 // makeShutdownCh creates an interrupt listener and returns a channel.

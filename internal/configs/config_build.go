@@ -36,10 +36,12 @@ func BuildConfig(root *Module, walker ModuleWalker) (*Config, hcl.Diagnostics) {
 	if !diags.HasErrors() {
 		// Now that the config is built, we can connect the provider names to all
 		// the known types for validation.
-		cfg.resolveProviderTypes()
+		providers := cfg.resolveProviderTypes()
+		cfg.resolveProviderTypesForTests(providers)
 	}
 
 	diags = append(diags, validateProviderConfigs(nil, cfg, nil)...)
+	diags = append(diags, validateProviderConfigsForTests(cfg)...)
 
 	return cfg, diags
 }

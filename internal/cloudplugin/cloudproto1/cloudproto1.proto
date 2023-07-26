@@ -1,0 +1,27 @@
+syntax = "proto3";
+package cloudproto1;
+
+option go_package = "github.com/hashicorp/terraform/internal/cloudplugin/cloudproto1";
+
+// CommandRequest is used to request the execution of a specific command with
+// provided flags. It is the raw args from the terraform cloud command.
+message CommandRequest {
+  repeated string args = 1;
+}
+
+// CommandResponse contains the result of the command execution, including any
+// output or errors.
+message CommandResponse {
+  oneof data {
+    int32 exitCode = 1;
+    bytes stdout = 2;
+    bytes stderr = 3;
+  }
+}
+
+// PluginService defines the gRPC service to handle available commands and
+// their execution.
+service CommandService {
+  // Execute runs a specific command with the provided flags and returns the result.
+  rpc Execute(CommandRequest) returns (stream CommandResponse) {}
+}

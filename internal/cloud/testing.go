@@ -26,7 +26,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/httpclient"
@@ -84,6 +83,11 @@ func testInput(t *testing.T, answers map[string]string) *mockInput {
 }
 
 func testBackendWithName(t *testing.T) (*Cloud, func()) {
+	b, _, c := testBackendAndMocksWithName(t)
+	return b, c
+}
+
+func testBackendAndMocksWithName(t *testing.T) (*Cloud, *MockClient, func()) {
 	obj := cty.ObjectVal(map[string]cty.Value{
 		"hostname":     cty.NullVal(cty.String),
 		"organization": cty.StringVal("hashicorp"),
@@ -110,7 +114,8 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 			),
 		}),
 	})
-	return testBackend(t, obj, nil)
+	b, _, c := testBackend(t, obj, nil)
+	return b, c
 }
 
 func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
@@ -123,7 +128,8 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj, nil)
+	b, _, c := testBackend(t, obj, nil)
+	return b, c
 }
 
 func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
@@ -136,7 +142,8 @@ func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.Respons
 			"tags": cty.NullVal(cty.Set(cty.String)),
 		}),
 	})
-	return testBackend(t, obj, handlers)
+	b, _, c := testBackend(t, obj, handlers)
+	return b, c
 }
 
 func testCloudState(t *testing.T) *State {
@@ -213,7 +220,7 @@ func testBackendWithOutputs(t *testing.T) (*Cloud, func()) {
 	return b, cleanup
 }
 
-func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, func()) {
+func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.ResponseWriter, *http.Request)) (*Cloud, *MockClient, func()) {
 	var s *httptest.Server
 	if handlers != nil {
 		s = testServerWithHandlers(handlers)
@@ -264,7 +271,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 	}
 	baseURL.Path = "/api/v2/"
 
-	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) ([]byte, error) {
 		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
@@ -288,7 +295,7 @@ func testBackend(t *testing.T, obj cty.Value, handlers map[string]func(http.Resp
 		}
 	}
 
-	return b, s.Close
+	return b, mc, s.Close
 }
 
 // testUnconfiguredBackend is used for testing the configuration of the backend
@@ -322,6 +329,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	b.client.Runs = mc.Runs
 	b.client.RunEvents = mc.RunEvents
 	b.client.StateVersions = mc.StateVersions
+	b.client.StateVersionOutputs = mc.StateVersionOutputs
 	b.client.Variables = mc.Variables
 	b.client.Workspaces = mc.Workspaces
 
@@ -331,7 +339,7 @@ func testUnconfiguredBackend(t *testing.T) (*Cloud, func()) {
 	}
 	baseURL.Path = "/api/v2/"
 
-	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) (*jsonformat.Plan, error) {
+	readRedactedPlan = func(ctx context.Context, baseURL url.URL, token, planID string) ([]byte, error) {
 		return mc.RedactedPlans.Read(ctx, baseURL.Hostname(), token, planID)
 	}
 
