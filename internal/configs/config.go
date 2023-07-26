@@ -594,7 +594,7 @@ func (c *Config) addProviderRequirementsFromProviderBlock(reqs getproviders.Requ
 // resolveProviderTypes walks through the providers in the module and ensures
 // the true types are assigned based on the provider requirements for the
 // module.
-func (c *Config) resolveProviderTypes() {
+func (c *Config) resolveProviderTypes() map[string]addrs.Provider {
 	for _, child := range c.Children {
 		child.resolveProviderTypes()
 	}
@@ -636,6 +636,147 @@ func (c *Config) resolveProviderTypes() {
 			}
 		}
 	}
+
+	return providers
+}
+
+// resolveProviderTypesForTests matches resolveProviderTypes except it uses
+// the information from resolveProviderTypes to resolve the provider types for
+// providers defined within the configs test files.
+func (c *Config) resolveProviderTypesForTests(providers map[string]addrs.Provider) {
+
+	for _, test := range c.Module.Tests {
+
+		// testProviders contains the configuration blocks for all the providers
+		// defined by this test file. It is keyed by the name of the provider
+		// and the values are a slice of provider configurations which contains
+		// all the definitions of a named provider of which there can be
+		// multiple because of aliases.
+		testProviders := make(map[string][]*Provider)
+		for _, provider := range test.Providers {
+			testProviders[provider.Name] = append(testProviders[provider.Name], provider)
+		}
+
+		// matchedProviders maps the names of providers from testProviders to
+		// the provider type we have identified for them so far. If during the
+		// course of resolving the types we find a run block is attempting to
+		// reuse a provider that has already been assigned a different type,
+		// then this is an error that we can raise now.
+		matchedProviders := make(map[string]addrs.Provider)
+
+		// First, we primarily draw our provider types from the main
+		// configuration under test. The providers for the main configuration
+		// are provided to us in the argument.
+
+		// We've now set provider types for all the providers required by the
+		// main configuration. But we can have modules with their own required
+		// providers referenced by the run blocks. We also have passed provider
+		// configs that can affect the types of providers when the names don't
+		// match, so we'll do that here.
+
+		for _, run := range test.Runs {
+
+			// If this run block is executing against our main configuration, we
+			// want to use the external providers passed in. If we are executing
+			// against a different module then we need to resolve the provider
+			// types for that first, and then use those providers.
+			providers := providers
+			if run.ConfigUnderTest != nil {
+				providers = run.ConfigUnderTest.resolveProviderTypes()
+			}
+
+			// We now check to see what providers this run block is actually
+			// using, and we can then assign types back to the
+
+			if len(run.Providers) > 0 {
+				// This provider is only using the subset of providers specified
+				// within the provider block.
+
+				for _, p := range run.Providers {
+					addr, exists := providers[p.InChild.Name]
+					if !exists {
+						// If this provider wasn't explicitly defined in the
+						// target module, then we'll set it to the default.
+						addr = addrs.NewDefaultProvider(p.InChild.Name)
+					}
+
+					// The child type is always just derived from the providers
+					// within the config this run block is using.
+					p.InChild.providerType = addr
+
+					// If we have previously assigned a type to the provider
+					// for the parent reference, then we use that for the
+					// parent type.
+					if addr, exists := matchedProviders[p.InParent.Name]; exists {
+						p.InParent.providerType = addr
+						continue
+					}
+
+					// Otherwise, we'll define the parent type based on the
+					// child and reference that backwards.
+					p.InParent.providerType = p.InChild.providerType
+
+					if aliases, exists := testProviders[p.InParent.Name]; exists {
+						matchedProviders[p.InParent.Name] = p.InParent.providerType
+						for _, alias := range aliases {
+							alias.providerType = p.InParent.providerType
+						}
+					}
+				}
+
+			} else {
+				// This provider is going to load all the providers it can using
+				// simple name matching.
+
+				for name, addr := range providers {
+
+					if _, exists := matchedProviders[name]; exists {
+						// Then we've already handled providers of this type
+						// previously.
+						continue
+					}
+
+					if aliases, exists := testProviders[name]; exists {
+						// Then this provider has been defined within our test
+						// config. Let's give it the appropriate type.
+						matchedProviders[name] = addr
+						for _, alias := range aliases {
+							alias.providerType = addr
+						}
+
+						continue
+					}
+
+					// If we get here then it means we don't actually have a
+					// provider block for this provider name within our test
+					// file. This is fine, it just means we don't have to do
+					// anything and the test will use the default provider for
+					// that name.
+
+				}
+			}
+
+		}
+
+		// Now, we've analysed all the test runs for this file. If any providers
+		// have not been claimed then we'll just give them the default provider
+		// for their name.
+		for name, aliases := range testProviders {
+			if _, exists := matchedProviders[name]; exists {
+				// Then this provider has a type already.
+				continue
+			}
+
+			addr := addrs.NewDefaultProvider(name)
+			matchedProviders[name] = addr
+
+			for _, alias := range aliases {
+				alias.providerType = addr
+			}
+		}
+
+	}
+
 }
 
 // ProviderTypes returns the FQNs of each distinct provider type referenced
