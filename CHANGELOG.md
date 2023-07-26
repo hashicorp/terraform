@@ -1,3 +1,10 @@
+## 1.5.4 (Unreleased)
+
+BUG FIXES:
+
+* `check` blocks: Fixes crash when nested data sources are within configuration targeted by the terraform import command. ([#33578](https://github.com/hashicorp/terraform/issues/33578))
+* `check` blocks: Check blocks now operate in line with other checkable objects by also executing during import operations. ([#33578](https://github.com/hashicorp/terraform/issues/33578))
+
 ## 1.5.3 (July 12, 2023)
 
 BUG FIXES:
