@@ -615,3 +615,58 @@ variable can be declared with a variable "not_real" {} block.
 		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
+
+func TestTest_NestedSetupModules(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "with_nested_setup_modules")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	command := &TestCommand{
+		Meta: meta,
+	}
+
+	code := command.Run(nil)
+	output := done(t)
+
+	printedOutput := false
+
+	if code != 0 {
+		printedOutput = true
+		t.Errorf("expected status code 0 but got %d: %s", code, output.All())
+	}
+
+	if provider.ResourceCount() > 0 {
+		if !printedOutput {
+			t.Errorf("should have deleted all resources on completion but left %s\n\n%s", provider.ResourceString(), output.All())
+		} else {
+			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
+		}
+	}
+}

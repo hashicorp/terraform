@@ -93,9 +93,18 @@ func buildTestModules(root *Config, walker ModuleWalker) hcl.Diagnostics {
 				// In actuality, when this is executed it will be as if the
 				// module was the root. So, we'll post-process some things to
 				// get it to behave as expected later.
-				cfg.Path = addrs.RootModule
+
+				// First, update the main module for this test run to behave as
+				// if it is the root module.
 				cfg.Parent = nil
-				cfg.Root = cfg
+
+				// Then we need to update the paths for this config and all
+				// children, so they think they are all relative to the root
+				// module we just created.
+				rebaseChildModule(cfg, cfg)
+
+				// Finally, link the new config back into our test run so
+				// it can be retrieved later.
 				run.ConfigUnderTest = cfg
 			}
 		}
@@ -192,6 +201,27 @@ func loadModule(root *Config, req *ModuleRequest, walker ModuleWalker) (*Config,
 	}
 
 	return cfg, diags
+}
+
+// rebaseChildModule updates cfg to make it act as if root is the base of the
+// module tree.
+//
+// This is used for modules loaded directly from test files. In order to load
+// them properly, and reuse the code for loading modules from normal
+// configuration files, we pretend they are children of the main configuration
+// object. Later, when it comes time for them to execute they will act as if
+// they are the root module directly.
+//
+// This function updates cfg so that it treats the provided root as the actual
+// root of this module tree. It then recurses into all the child modules and
+// does the same for them.
+func rebaseChildModule(cfg *Config, root *Config) {
+	for _, child := range cfg.Children {
+		rebaseChildModule(child, root)
+	}
+
+	cfg.Path = cfg.Path[len(root.Path):]
+	cfg.Root = root
 }
 
 // A ModuleWalker knows how to find and load a child module given details about
