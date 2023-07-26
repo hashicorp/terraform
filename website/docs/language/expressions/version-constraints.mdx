@@ -46,7 +46,8 @@ The following operators are valid:
 - `~>`: Allows only the _rightmost_ version component to increment. For example,
   to allow new patch releases within a specific minor release, use the full
   version number: `~> 1.0.4` will allow installation of `1.0.5` and `1.0.10`
-  but not `1.1.0`. This is usually called the pessimistic constraint operator.
+  but not `1.1.0`. `~> 1.1` will allow installation of `1.2` and 1.10` but 
+  not `2.0`. This is usually called the pessimistic constraint operator.
 
 ## Version Constraint Behavior
 
