@@ -65,6 +65,14 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 	wantTy, defs := c.call.Config(ctx).InputsType(ctx)
 	decl := c.call.Declaration(ctx)
 
+	if wantTy == cty.NilType {
+		// Suggests that the target module is invalid in some way, so we'll
+		// just report that we don't know the input variable values and trust
+		// that the module's problems will be reported by some other return
+		// path.
+		return cty.DynamicVal, diags
+	}
+
 	v := cty.EmptyObjectVal
 	expr := decl.Inputs
 	rng := decl.DeclRange
@@ -79,7 +87,9 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 		hclCtx = result.EvalContext
 	}
 
-	v = defs.Apply(v)
+	if defs != nil {
+		v = defs.Apply(v)
+	}
 	v, err := convert.Convert(v, wantTy)
 	if err != nil {
 		// A conversion failure here could either be caused by an author-provided
