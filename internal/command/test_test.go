@@ -37,6 +37,17 @@ func TestTest(t *testing.T) {
 			expected: "1 passed, 0 failed.",
 			code:     0,
 		},
+		"simple_pass_very_nested": {
+			args:     []string{"-test-directory", "tests/subdir"},
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
+		"simple_pass_very_nested_alternate": {
+			override: "simple_pass_very_nested",
+			args:     []string{"-test-directory", "./tests/subdir"},
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
 		"pass_with_locals": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
