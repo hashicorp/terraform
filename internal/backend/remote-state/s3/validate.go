@@ -77,30 +77,6 @@ func keyIdFromARNResource(s string) string {
 	return matches[1]
 }
 
-func validateIAMRoleARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
-	parsedARN, err := arn.Parse(s)
-	if err != nil {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid IAM Role ARN",
-			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", s),
-			path,
-		))
-		return diags
-	}
-
-	if !strings.HasPrefix(parsedARN.Resource, "role/") {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid IAM Role ARN",
-			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", s),
-			path,
-		))
-	}
-
-	return diags
-}
-
 type stringValidator func(val string, path cty.Path, diags *tfdiags.Diagnostics)
 
 func validateStringLenBetween(min, max int) stringValidator {
@@ -124,6 +100,36 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 				path,
 			))
 		}
+	}
+}
+
+func validateARN(validators ...arnValidator) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		parsedARN, err := arn.Parse(val)
+		if err != nil {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid ARN",
+				fmt.Sprintf("The value %q cannot be parsed as an ARN: %s", val, err),
+				path,
+			))
+			return
+		}
+
+		for _, validator := range validators {
+			validator(parsedARN, path, diags)
+		}
+	}
+}
+
+type arnValidator func(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics)
+
+func validateIAMRoleARN(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics) {
+	if !strings.HasPrefix(val.Resource, "role/") {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid IAM Role ARN",
+			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", val),
+			path,
+		))
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
@@ -249,6 +250,77 @@ func TestValidateStringMatches(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestValidateARN(t *testing.T) {
+	t.Parallel()
+
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	testcases := map[string]struct {
+		val       string
+		validator arnValidator
+		expected  tfdiags.Diagnostics
+	}{
+		"valid": {
+			val: "arn:aws:kms:us-west-2:111122223333:key/57ff7a43-341d-46b6-aee3-a450c9de6dc8",
+		},
+
+		"invalid": {
+			val: "not an ARN",
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid ARN",
+					fmt.Sprintf("The value %q cannot be parsed as an ARN: %s", "not an ARN", arnParseError("not an ARN")),
+					path,
+				),
+			},
+		},
+
+		"fails validator": {
+			val: "arn:aws:kms:us-west-2:111122223333:key/57ff7a43-341d-46b6-aee3-a450c9de6dc8",
+			validator: func(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics) {
+				*diags = diags.Append(attributeErrDiag(
+					"Test",
+					"Test",
+					path,
+				))
+			},
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Test",
+					"Test",
+					path,
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var validators []arnValidator
+			if testcase.validator != nil {
+				validators = []arnValidator{
+					testcase.validator,
+				}
+			}
+
+			var diags tfdiags.Diagnostics
+			validateARN(validators...)(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
+func arnParseError(s string) error {
+	_, err := arn.Parse(s)
+	return err
 }
 
 func TestValidateDuration(t *testing.T) {

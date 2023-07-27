@@ -755,7 +755,10 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 	}
 
 	if val, ok := stringAttrOk(obj, "role_arn"); ok {
-		diags = diags.Append(validateIAMRoleARN(path.GetAttr("role_arn"), val))
+		attrPath := path.GetAttr("role_arn")
+		validateARN(
+			validateIAMRoleARN,
+		)(val, attrPath, &diags)
 	}
 
 	if val, ok := stringAttrOk(obj, "duration"); ok {
