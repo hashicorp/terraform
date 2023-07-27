@@ -237,32 +237,28 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 							Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
 						},
 
-						// "external_id": {
-						// 	Type:        schema.TypeString,
-						// 	Optional:    true,
-						// 	Description: "A unique identifier that might be required when you assume a role in another account.",
-						// 	ValidateFunc: validation.All(
-						// 		validation.StringLenBetween(2, 1224),
-						// 		validation.StringMatch(regexp.MustCompile(`[\w+=,.@:\/\-]*`), ""),
-						// 	),
-						// },
+						"external_id": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "The external ID to use when assuming the role",
+						},
 
-						// "policy": {
-						// 	Type:         schema.TypeString,
-						// 	Optional:     true,
-						// 	Description:  "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-						// 	ValidateFunc: validation.StringIsJSON,
-						// },
+						"policy": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+							// ValidateFunc: validation.StringIsJSON,
+						},
 
-						// "policy_arns": {
-						// 	Type:        schema.TypeSet,
-						// 	Optional:    true,
-						// 	Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-						// 	Elem: &schema.Schema{
-						// 		Type:         schema.TypeString,
-						// 		ValidateFunc: verify.ValidARN,
-						// 	},
-						// },
+						"policy_arns": {
+							Type:        cty.Set(cty.String),
+							Optional:    true,
+							Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+							// Elem: &schema.Schema{
+							// 	Type:         schema.TypeString,
+							// 	ValidateFunc: verify.ValidARN,
+							// },
+						},
 
 						"session_name": {
 							Type:        cty.String,
@@ -270,6 +266,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 							Description: "The session name to use when assuming the role.",
 						},
 
+						// NOT SUPPORTED by `aws-sdk-go-base/v1`
 						// "source_identity": {
 						// 	Type:         schema.TypeString,
 						// 	Optional:     true,
@@ -277,19 +274,17 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 						// 	ValidateFunc: validAssumeRoleSourceIdentity,
 						// },
 
-						// "tags": {
-						// 	Type:        schema.TypeMap,
-						// 	Optional:    true,
-						// 	Description: "Assume role session tags.",
-						// 	Elem:        &schema.Schema{Type: schema.TypeString},
-						// },
+						"tags": {
+							Type:        cty.Map(cty.String),
+							Optional:    true,
+							Description: "Assume role session tags.",
+						},
 
-						// "transitive_tag_keys": {
-						// 	Type:        schema.TypeSet,
-						// 	Optional:    true,
-						// 	Description: "Assume role session tag keys to pass to any subsequent sessions.",
-						// 	Elem:        &schema.Schema{Type: schema.TypeString},
-						// },
+						"transitive_tag_keys": {
+							Type:        cty.Set(cty.String),
+							Optional:    true,
+							Description: "Assume role session tag keys to pass to any subsequent sessions.",
+						},
 					},
 				},
 			},
@@ -542,15 +537,30 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
-		if val, ok := stringValueOk(assumeRole.GetAttr("role_arn")); ok {
+		if val, ok := stringAttrOk(assumeRole, "role_arn"); ok {
 			cfg.AssumeRoleARN = val
 		}
-		if val, ok := stringValueOk(assumeRole.GetAttr("duration")); ok {
+		if val, ok := stringAttrOk(assumeRole, "duration"); ok {
 			duration, _ := time.ParseDuration(val)
 			cfg.AssumeRoleDurationSeconds = int(duration.Seconds())
 		}
-		if val, ok := stringValueOk(assumeRole.GetAttr("session_name")); ok {
+		if val, ok := stringAttrOk(assumeRole, "external_id"); ok {
+			cfg.AssumeRoleExternalID = val
+		}
+		if val, ok := stringAttrOk(assumeRole, "policy"); ok {
+			cfg.AssumeRolePolicy = val
+		}
+		if val, ok := stringListAttrOk(assumeRole, "policy_arns"); ok {
+			cfg.AssumeRolePolicyARNs = val
+		}
+		if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
 			cfg.AssumeRoleSessionName = val
+		}
+		if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
+			cfg.AssumeRoleTags = val
+		}
+		if val, ok := stringListAttrOk(assumeRole, "transitive_tag_keys"); ok {
+			cfg.AssumeRoleTransitiveTagKeys = val
 		}
 	} else {
 		cfg.AssumeRoleARN = stringAttr(obj, "role_arn")
@@ -559,36 +569,16 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRoleExternalID = stringAttr(obj, "external_id")
 		cfg.AssumeRolePolicy = stringAttr(obj, "assume_role_policy")
 
-		if policyARNSet := obj.GetAttr("assume_role_policy_arns"); !policyARNSet.IsNull() {
-			policyARNSet.ForEachElement(func(key, val cty.Value) (stop bool) {
-				v, ok := stringValueOk(val)
-				if ok {
-					cfg.AssumeRolePolicyARNs = append(cfg.AssumeRolePolicyARNs, v)
-				}
-				return
-			})
+		if val, ok := stringListAttrOk(obj, "assume_role_policy_arns"); ok {
+			cfg.AssumeRolePolicyARNs = val
 		}
 
-		if tagMap := obj.GetAttr("assume_role_tags"); !tagMap.IsNull() {
-			cfg.AssumeRoleTags = make(map[string]string, tagMap.LengthInt())
-			tagMap.ForEachElement(func(key, val cty.Value) (stop bool) {
-				k := stringValue(key)
-				v, ok := stringValueOk(val)
-				if ok {
-					cfg.AssumeRoleTags[k] = v
-				}
-				return
-			})
+		if val, ok := stringMapAttrOk(obj, "assume_role_tags"); ok {
+			cfg.AssumeRoleTags = val
 		}
 
-		if transitiveTagKeySet := obj.GetAttr("assume_role_transitive_tag_keys"); !transitiveTagKeySet.IsNull() {
-			transitiveTagKeySet.ForEachElement(func(key, val cty.Value) (stop bool) {
-				v, ok := stringValueOk(val)
-				if ok {
-					cfg.AssumeRoleTransitiveTagKeys = append(cfg.AssumeRoleTransitiveTagKeys, v)
-				}
-				return
-			})
+		if val, ok := stringListAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
+			cfg.AssumeRoleTransitiveTagKeys = val
 		}
 	}
 
@@ -668,6 +658,32 @@ func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (s
 	} else {
 		return v, true
 	}
+}
+
+func stringListValueOk(val cty.Value) ([]string, bool) {
+	var list []string
+	err := gocty.FromCtyValue(val, &list)
+	if err != nil {
+		return nil, false
+	}
+	return list, true
+}
+
+func stringListAttrOk(obj cty.Value, name string) ([]string, bool) {
+	return stringListValueOk(obj.GetAttr(name))
+}
+
+func stringMapValueOk(val cty.Value) (map[string]string, bool) {
+	var m map[string]string
+	err := gocty.FromCtyValue(val, &m)
+	if err != nil {
+		return nil, false
+	}
+	return m, true
+}
+
+func stringMapAttrOk(obj cty.Value, name string) (map[string]string, bool) {
+	return stringMapValueOk(obj.GetAttr(name))
 }
 
 func boolAttr(obj cty.Value, name string) bool {
@@ -763,12 +779,37 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 		}
 	}
 
-	if val, ok := stringAttrOk(obj, "session_name"); ok {
-		if l := len(val); l < 2 || l > 64 {
+	if val, ok := stringAttrOk(obj, "external_id"); ok {
+		const min, max = 2, 1224
+		if l := len(val); l < min || l > max {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Assume Role External ID",
+				fmt.Sprintf("The external ID must be between %d and %d characters, had: %d", min, max, l),
+				path.GetAttr("external_id"),
+			))
+		}
+		re := regexp.MustCompile(`^[\w+=,.@:\/\-]*$`)
+		if !re.MatchString(val) {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid Assume Role Session Name",
-				fmt.Sprintf("The session name must be between %d and %d characters, had: %d", 2, 64, l),
+				`The session name can only contain letters, numbers, or the following characters: =,.@/-`,
+				path.GetAttr("session_name"),
+			))
+		}
+	}
+
+	// TODO: validate `policy`
+	// TODO: validate `policy_arns`
+
+	if val, ok := stringAttrOk(obj, "session_name"); ok {
+		const min, max = 2, 64
+		if l := len(val); l < min || l > max {
+			diags = diags.Append(tfdiags.AttributeValue(
+				tfdiags.Error,
+				"Invalid Assume Role Session Name",
+				fmt.Sprintf("The session name must be between %d and %d characters, had: %d", min, max, l),
 				path.GetAttr("session_name"),
 			))
 		}
@@ -777,7 +818,7 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid Assume Role Session Name",
-				`The session name can only contain letters, numbers, or the following characters: =,.@\-`,
+				`The session name can only contain letters, numbers, or the following characters: =,.@-`,
 				path.GetAttr("session_name"),
 			))
 		}
