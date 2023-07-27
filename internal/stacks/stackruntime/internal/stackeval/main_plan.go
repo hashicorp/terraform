@@ -136,7 +136,14 @@ func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack
 	// we can explore downstream stacks concurrently with this one. Each
 	// stack call can represent zero or more child stacks that we'll analyze
 	// by recursive calls to this function.
-	for _, call := range stack.EmbeddedStackCalls(ctx) {
+	for _, obj := range stack.EmbeddedStackCalls(ctx) {
+		// This must be a local variable inside the loop and _not_ a
+		// loop iterator variable because otherwise the function below
+		// will capture the same variable on every iteration, rather
+		// than a separate value each time.
+		call := obj
+		obj = nil // DO NOT use obj in the rest of this loop
+
 		m.walkPlanValidateConfig(ctx, walk, call.Config(ctx))
 
 		// We need to perform the whole expansion in an overall async task
@@ -160,14 +167,21 @@ func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack
 	// We also need to plan all of the other declarations in the current stack.
 
 	for _, obj := range stack.Components(ctx) {
-		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
-		m.walkPlanObjectChanges(ctx, walk, obj)
+		// This must be a local variable inside the loop and _not_ a
+		// loop iterator variable because otherwise the function below
+		// will capture the same variable on every iteration, rather
+		// than a separate value each time.
+		component := obj
+		obj = nil // DO NOT use obj in the rest of this loop
+
+		m.walkPlanValidateConfig(ctx, walk, component.Config(ctx))
+		m.walkPlanObjectChanges(ctx, walk, component)
 
 		// We need to perform the instance expansion in an overall async task
 		// because it involves potentially evaluating a for_each expression.
 		// and that might depend on data from elsewhere in the same stack.
 		walk.AsyncTask(ctx, func(ctx context.Context) {
-			insts := obj.Instances(ctx, PlanPhase)
+			insts := component.Instances(ctx, PlanPhase)
 			for _, inst := range insts {
 				m.walkPlanObjectChanges(ctx, walk, inst)
 			}
