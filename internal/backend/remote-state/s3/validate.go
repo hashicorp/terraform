@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -120,6 +121,38 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 			*diags = diags.Append(attributeErrDiag(
 				"Invalid Value",
 				description,
+				path,
+			))
+		}
+	}
+}
+
+func validateDuration(validators ...durationValidator) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		duration, err := time.ParseDuration(val)
+		if err != nil {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Duration",
+				fmt.Sprintf("The value %q cannot be parsed as a duration: %s", val, err),
+				path,
+			))
+			return
+		}
+
+		for _, validator := range validators {
+			validator(duration, path, diags)
+		}
+	}
+}
+
+type durationValidator func(val time.Duration, path cty.Path, diags *tfdiags.Diagnostics)
+
+func validateDurationBetween(min, max time.Duration) durationValidator {
+	return func(val time.Duration, path cty.Path, diags *tfdiags.Diagnostics) {
+		if val < min || val > max {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Duration",
+				fmt.Sprintf("Duration must be between %s and %s, had %s", min, max, val),
 				path,
 			))
 		}

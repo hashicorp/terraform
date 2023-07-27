@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -242,6 +243,129 @@ func TestValidateStringMatches(t *testing.T) {
 
 			var diags tfdiags.Diagnostics
 			validateStringMatches(testcase.re, "Value must be like ok")(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
+func TestValidateDuration(t *testing.T) {
+	t.Parallel()
+
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	testcases := map[string]struct {
+		val       string
+		validator durationValidator
+		expected  tfdiags.Diagnostics
+	}{
+		"valid": {
+			val: "1h",
+		},
+
+		"invalid": {
+			val: "one hour",
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Duration",
+					fmt.Sprintf("The value %q cannot be parsed as a duration: %s", "one hour", durationParseError("one hour")),
+					path,
+				),
+			},
+		},
+
+		"fails validator": {
+			val: "1h",
+			validator: func(val time.Duration, path cty.Path, diags *tfdiags.Diagnostics) {
+				*diags = diags.Append(attributeErrDiag(
+					"Test",
+					"Test",
+					path,
+				))
+			},
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Test",
+					"Test",
+					path,
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var validators []durationValidator
+			if testcase.validator != nil {
+				validators = []durationValidator{
+					testcase.validator,
+				}
+			}
+
+			var diags tfdiags.Diagnostics
+			validateDuration(validators...)(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
+func durationParseError(s string) error {
+	_, err := time.ParseDuration(s)
+	return err
+}
+
+func TestValidateDurationBetween(t *testing.T) {
+	t.Parallel()
+
+	const min, max = 15 * time.Minute, 12 * time.Hour
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	testcases := map[string]struct {
+		val      time.Duration
+		expected tfdiags.Diagnostics
+	}{
+		"valid": {
+			val: 1 * time.Hour,
+		},
+
+		"too short": {
+			val: 1 * time.Minute,
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Duration",
+					fmt.Sprintf("Duration must be between %s and %s, had %s", min, max, 1*time.Minute),
+					path,
+				),
+			},
+		},
+
+		"too long": {
+			val: 24 * time.Hour,
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Duration",
+					fmt.Sprintf("Duration must be between %s and %s, had %s", min, max, 24*time.Hour),
+					path,
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var diags tfdiags.Diagnostics
+			validateDurationBetween(min, max)(testcase.val, path, &diags)
 
 			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)

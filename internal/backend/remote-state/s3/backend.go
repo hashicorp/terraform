@@ -759,24 +759,10 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 	}
 
 	if val, ok := stringAttrOk(obj, "duration"); ok {
-		duration, err := time.ParseDuration(val)
-		if err != nil {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Assume Role Duration",
-				fmt.Sprintf("The value %q cannot be parsed as a duration: %s", val, err),
-				path.GetAttr("duration"),
-			))
-		} else {
-			if duration.Minutes() < 15 || duration.Hours() > 12 {
-				diags = diags.Append(tfdiags.AttributeValue(
-					tfdiags.Error,
-					"Invalid Assume Role Duration",
-					fmt.Sprintf("Duration must be between 15 minutes (15m) and 12 hours (12h), had: %s", duration.String()),
-					path.GetAttr("duration"),
-				))
-			}
-		}
+		attrPath := path.GetAttr("duration")
+		validateDuration(
+			validateDurationBetween(15*time.Minute, 12*time.Hour),
+		)(val, attrPath, &diags)
 	}
 
 	if val, ok := stringAttrOk(obj, "external_id"); ok {
