@@ -99,3 +99,33 @@ func validateIAMRoleARN(path cty.Path, s string) (diags tfdiags.Diagnostics) {
 
 	return diags
 }
+
+type stringValidator func(val string, path cty.Path, diags *tfdiags.Diagnostics)
+
+func validateStringLenBetween(min, max int) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		if l := len(val); l < min || l > max {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Value Length",
+				fmt.Sprintf("Length must be between %d and %d, had %d", min, max, l),
+				path,
+			))
+		}
+	}
+}
+
+func validateStringMatches(re *regexp.Regexp, description string) stringValidator {
+	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+		if !re.MatchString(val) {
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid Value",
+				description,
+				path,
+			))
+		}
+	}
+}
+
+func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
+	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath)
+}

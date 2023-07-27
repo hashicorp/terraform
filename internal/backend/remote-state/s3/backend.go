@@ -780,48 +780,23 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 	}
 
 	if val, ok := stringAttrOk(obj, "external_id"); ok {
-		const min, max = 2, 1224
-		if l := len(val); l < min || l > max {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Assume Role External ID",
-				fmt.Sprintf("The external ID must be between %d and %d characters, had: %d", min, max, l),
-				path.GetAttr("external_id"),
-			))
-		}
-		re := regexp.MustCompile(`^[\w+=,.@:\/\-]*$`)
-		if !re.MatchString(val) {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Assume Role Session Name",
-				`The session name can only contain letters, numbers, or the following characters: =,.@/-`,
-				path.GetAttr("session_name"),
-			))
-		}
+		attrPath := path.GetAttr("external_id")
+		validateStringLenBetween(2, 1224)(val, attrPath, &diags)
+		validateStringMatches(
+			regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
+			`Value can only contain letters, numbers, or the following characters: =,.@/-`,
+		)
 	}
 
 	// TODO: validate `policy`
 	// TODO: validate `policy_arns`
 
 	if val, ok := stringAttrOk(obj, "session_name"); ok {
-		const min, max = 2, 64
-		if l := len(val); l < min || l > max {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Assume Role Session Name",
-				fmt.Sprintf("The session name must be between %d and %d characters, had: %d", min, max, l),
-				path.GetAttr("session_name"),
-			))
-		}
-		re := regexp.MustCompile(`^[\w+=,.@\-]*$`)
-		if !re.MatchString(val) {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid Assume Role Session Name",
-				`The session name can only contain letters, numbers, or the following characters: =,.@-`,
-				path.GetAttr("session_name"),
-			))
-		}
+		validateStringLenBetween(2, 64)(val, path.GetAttr("session_name"), &diags)
+		validateStringMatches(
+			regexp.MustCompile(`^[\w+=,.@\-]*$`),
+			`Value can only contain letters, numbers, or the following characters: =,.@-`,
+		)
 	}
 
 	return diags
