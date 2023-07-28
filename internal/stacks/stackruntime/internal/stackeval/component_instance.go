@@ -85,6 +85,7 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 		}
 		expr = result.Expression
 		hclCtx = result.EvalContext
+		v = result.Value
 	}
 
 	if defs != nil {
