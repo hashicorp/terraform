@@ -1,6 +1,8 @@
 package s3
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -79,6 +81,17 @@ func keyIdFromARNResource(s string) string {
 
 type stringValidator func(val string, path cty.Path, diags *tfdiags.Diagnostics)
 
+func validateStringNotEmpty(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	val = strings.TrimSpace(val)
+	if len(val) == 0 {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			"The value cannot be empty or all whitespace",
+			path,
+		))
+	}
+}
+
 func validateStringLenBetween(min, max int) stringValidator {
 	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		if l := len(val); l < min || l > max {
@@ -117,6 +130,73 @@ func validateARN(validators ...arnValidator) stringValidator {
 
 		for _, validator := range validators {
 			validator(parsedARN, path, diags)
+		}
+	}
+}
+
+// Copied from `ValidIAMPolicyJSON` (https://github.com/hashicorp/terraform-provider-aws/blob/ffd1c8a006dcd5a6b58a643df9cc147acb5b7a53/internal/verify/validate.go#L154)
+func validateIAMPolicyDocument(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	// IAM Policy documents need to be valid JSON, and pass legacy parsing
+	val = strings.TrimSpace(val)
+	if first := val[:1]; first != "{" {
+		switch val[:1] {
+		case `"`:
+			// There are some common mistakes that lead to strings appearing
+			// here instead of objects, so we'll try some heuristics to
+			// check for those so we might give more actionable feedback in
+			// these situations.
+			var content string
+			var innerContent any
+			if err := json.Unmarshal([]byte(val), &content); err == nil {
+				if strings.HasSuffix(content, ".json") {
+					*diags = diags.Append(attributeErrDiag(
+						"Invalid IAM Policy Document",
+						fmt.Sprintf(`Expected a JSON object describing the policy, had a JSON-encoded string.
+
+The string %q looks like a filename, please pass the contents of the file instead of the filename.`,
+							content,
+						),
+						path,
+					))
+					return
+				} else if err := json.Unmarshal([]byte(content), &innerContent); err == nil {
+					// hint = " (have you double-encoded your JSON data?)"
+					*diags = diags.Append(attributeErrDiag(
+						"Invalid IAM Policy Document",
+						`Expected a JSON object describing the policy, had a JSON-encoded string.
+
+The string content was valid JSON, your policy document may have been double-encoded.`,
+						path,
+					))
+					return
+				}
+			}
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid IAM Policy Document",
+				"Expected a JSON object describing the policy, had a JSON-encoded string.",
+				path,
+			))
+		default:
+			// Generic error for if we didn't find something more specific to say.
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid IAM Policy Document",
+				"Expected a JSON object describing the policy",
+				path,
+			))
+		}
+	} else {
+		var j any
+		if err := json.Unmarshal([]byte(val), &j); err != nil {
+			errStr := err.Error()
+			var jsonErr *json.SyntaxError
+			if errors.As(err, &jsonErr) {
+				errStr += fmt.Sprintf(", at byte offset %d", jsonErr.Offset)
+			}
+			*diags = diags.Append(attributeErrDiag(
+				"Invalid JSON Document",
+				fmt.Sprintf("The JSON document contains an error: %s", errStr),
+				path,
+			))
 		}
 	}
 }

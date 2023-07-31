@@ -548,7 +548,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			cfg.AssumeRoleExternalID = val
 		}
 		if val, ok := stringAttrOk(assumeRole, "policy"); ok {
-			cfg.AssumeRolePolicy = val
+			cfg.AssumeRolePolicy = strings.TrimSpace(val)
 		}
 		if val, ok := stringSetAttrOk(assumeRole, "policy_arns"); ok {
 			cfg.AssumeRolePolicyARNs = val
@@ -567,8 +567,9 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRoleSessionName = stringAttr(obj, "session_name")
 		cfg.AssumeRoleDurationSeconds = intAttr(obj, "assume_role_duration_seconds")
 		cfg.AssumeRoleExternalID = stringAttr(obj, "external_id")
-		cfg.AssumeRolePolicy = stringAttr(obj, "assume_role_policy")
-
+		if val, ok := stringAttrOk(obj, "assume_role_policy"); ok {
+			cfg.AssumeRolePolicy = strings.TrimSpace(val)
+		}
 		if val, ok := stringSetAttrOk(obj, "assume_role_policy_arns"); ok {
 			cfg.AssumeRolePolicyARNs = val
 		}
@@ -769,7 +770,11 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 		)
 	}
 
-	// TODO: validate `policy`
+	if val, ok := stringAttrOk(obj, "policy"); ok {
+		attrPath := path.GetAttr("policy")
+		validateStringNotEmpty(val, attrPath, &diags)
+		validateIAMPolicyDocument(val, path, &diags)
+	}
 
 	if val, ok := stringSetAttrOk(obj, "policy_arns"); ok {
 		attrPath := path.GetAttr("policy_arns")

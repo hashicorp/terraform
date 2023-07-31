@@ -118,6 +118,16 @@ func (m ignoreMatcher) String() string {
 	return "ignored"
 }
 
+// Corrected from aws-sdk-go-base v1 & v2
+const mockStsAssumeRolePolicy = `{
+	"Version": "2012-10-17",
+	"Statement": {
+	  "Effect": "Allow",
+	  "Action": "*",
+	  "Resource": "*"
+	}
+  }`
+
 func TestBackendConfig_Authentication(t *testing.T) {
 	testCases := map[string]struct {
 		config                     map[string]any
@@ -937,11 +947,11 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				"secret_key":         servicemocks.MockStaticSecretKey,
 				"role_arn":           servicemocks.MockStsAssumeRoleArn,
 				"session_name":       servicemocks.MockStsAssumeRoleSessionName,
-				"assume_role_policy": servicemocks.MockStsAssumeRolePolicy,
+				"assume_role_policy": mockStsAssumeRolePolicy,
 			},
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
-				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Policy": servicemocks.MockStsAssumeRolePolicy}),
+				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Policy": mockStsAssumeRolePolicy}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 			ValidateDiags: ExpectDiagMatching(
@@ -1386,12 +1396,12 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				"assume_role": map[string]any{
 					"role_arn":     servicemocks.MockStsAssumeRoleArn,
 					"session_name": servicemocks.MockStsAssumeRoleSessionName,
-					"policy":       servicemocks.MockStsAssumeRolePolicy,
+					"policy":       mockStsAssumeRolePolicy,
 				},
 			},
 			ExpectedCredentialsValue: mockdata.MockStsAssumeRoleCredentials,
 			MockStsEndpoints: []*servicemocks.MockEndpoint{
-				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Policy": servicemocks.MockStsAssumeRolePolicy}),
+				servicemocks.MockStsAssumeRoleValidEndpointWithOptions(map[string]string{"Policy": mockStsAssumeRolePolicy}),
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 		},

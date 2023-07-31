@@ -323,6 +323,152 @@ func arnParseError(s string) error {
 	return err
 }
 
+func TestValidateIAMPolicyDocument(t *testing.T) {
+	t.Parallel()
+
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	testcases := map[string]struct {
+		val      string
+		expected tfdiags.Diagnostics
+	}{
+		"empty": {
+			val: `{}`,
+			// Valid JSON, not valid IAM policy (but passes provider's test)
+		},
+		"array": {
+			val: `{"abc":["1","2"]}`,
+			// Valid JSON, not valid IAM policy (but passes provider's test)
+		},
+		"invalid key": {
+			val: `{0:"1"}`,
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid JSON Document",
+					"The JSON document contains an error: invalid character '0' looking for beginning of object key string, at byte offset 2",
+					path,
+				),
+			},
+		},
+		"leading whitespace": {
+			val: `    {"xyz": "foo"}`,
+			// Valid, must be trimmed before passing to AWS
+		},
+		"is a string": {
+			val: `"blub"`,
+			// Valid JSON, not valid IAM policy
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid IAM Policy Document",
+					`Expected a JSON object describing the policy, had a JSON-encoded string.`,
+					path,
+				),
+			},
+		},
+		"contains filename": {
+			val: `"../some-filename.json"`,
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid IAM Policy Document",
+					`Expected a JSON object describing the policy, had a JSON-encoded string.
+
+The string "../some-filename.json" looks like a filename, please pass the contents of the file instead of the filename.`,
+					path,
+				),
+			},
+		},
+		"double encoded": {
+			val: `"{\"Version\":\"...\"}"`,
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid IAM Policy Document",
+					`Expected a JSON object describing the policy, had a JSON-encoded string.
+
+The string content was valid JSON, your policy document may have been double-encoded.`,
+					path,
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var diags tfdiags.Diagnostics
+			validateIAMPolicyDocument(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
+func TestValidateStringSetValues(t *testing.T) {
+	t.Parallel()
+
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	testcases := map[string]struct {
+		val       []string
+		validator stringValidator
+		expected  tfdiags.Diagnostics
+	}{
+		"valid": {
+			val: []string{
+				"valid",
+				"also valid",
+			},
+		},
+
+		"fails validator": {
+			val: []string{
+				"valid",
+				"invalid",
+			},
+			validator: func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+				if val == "invalid" {
+					*diags = diags.Append(attributeErrDiag(
+						"Test",
+						"Test",
+						path,
+					))
+				}
+			},
+			expected: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Test",
+					"Test",
+					path.Index(cty.StringVal("invalid")),
+				),
+			},
+		},
+	}
+
+	for name, testcase := range testcases {
+		testcase := testcase
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			var validators []stringValidator
+			if testcase.validator != nil {
+				validators = []stringValidator{
+					testcase.validator,
+				}
+			}
+
+			var diags tfdiags.Diagnostics
+			validateStringSetValues(validators...)(testcase.val, path, &diags)
+
+			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
 func TestValidateDuration(t *testing.T) {
 	t.Parallel()
 
