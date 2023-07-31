@@ -120,6 +120,14 @@ func TestTest(t *testing.T) {
 			expected: "0 passed, 1 failed.",
 			code:     1,
 		},
+		"default_variables": {
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
+		"undefined_variables": {
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {

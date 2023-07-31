@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -570,7 +572,9 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	variables, diags := buildInputVariablesForAssertions(run, file, globals)
+	variables, reset, diags := prepareInputVariablesForAssertions(config, run, file, globals)
+	defer reset()
+
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -936,7 +940,7 @@ func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals ma
 // buildInputVariablesForTest creates a terraform.InputValues mapping for
 // variable values that are relevant to the config being tested.
 //
-// Crucially, it differs from buildInputVariablesForAssertions in that it only
+// Crucially, it differs from prepareInputVariablesForAssertions in that it only
 // includes variables that are reference by the config and not everything that
 // is defined within the test run block and test file.
 func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
@@ -979,15 +983,19 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 	return backend.ParseVariableValues(variables, config.Module.Variables)
 }
 
-// buildInputVariablesForAssertions creates a terraform.InputValues mapping that
-// contains all the variables defined for a given run and file, alongside any
-// unset variables that have defaults within the provided config.
+// prepareInputVariablesForAssertions creates a terraform.InputValues mapping
+// that contains all the variables defined for a given run and file, alongside
+// any unset variables that have defaults within the provided config.
 //
 // Crucially, it differs from buildInputVariablesForTest in that the returned
 // input values include all variables available even if they are not defined
 // within the config. This allows the assertions to refer to variables defined
 // solely within the test file, and not only those within the configuration.
-func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
+//
+// In addition, it modifies the provided config so that any variables that are
+// available are also defined in the config. It returns a function that resets
+// the config which must be called so the config can be reused going forward.
+func prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, func(), tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
@@ -1023,6 +1031,9 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		variables[name] = variable
 	}
 
+	// We've gathered all the values we have, let's convert them into
+	// terraform.InputValues so they can be passed into the Terraform graph.
+
 	inputs := make(terraform.InputValues, len(variables))
 	var diags tfdiags.Diagnostics
 	for name, variable := range variables {
@@ -1030,5 +1041,59 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		diags = diags.Append(valueDiags)
 		inputs[name] = value
 	}
-	return inputs, diags
+
+	// Next, we're going to apply any default values from the configuration.
+	// We do this after the conversion into terraform.InputValues, as the
+	// defaults have already been converted into cty.Value objects.
+
+	for name, variable := range config.Module.Variables {
+		if _, exists := variables[name]; exists {
+			// Then we don't want to apply the default for this variable as we
+			// already have a value.
+			continue
+		}
+
+		if variable.Default != cty.NilVal {
+			inputs[name] = &terraform.InputValue{
+				Value:       variable.Default,
+				SourceType:  terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+			}
+		}
+	}
+
+	// Finally, we're going to do a some modifications to the config.
+	// If we have got variable values from the test file we need to make sure
+	// they have an equivalent entry in the configuration. We're going to do
+	// that dynamically here.
+
+	// First, take a backup of the existing configuration so we can easily
+	// restore it later.
+	currentVars := make(map[string]*configs.Variable)
+	for name, variable := range config.Module.Variables {
+		currentVars[name] = variable
+	}
+
+	// Next, let's go through our entire inputs and add any that aren't already
+	// defined into the config.
+	for name, value := range inputs {
+		if _, exists := config.Module.Variables[name]; exists {
+			continue
+		}
+
+		config.Module.Variables[name] = &configs.Variable{
+			Name:           name,
+			Type:           value.Value.Type(),
+			ConstraintType: value.Value.Type(),
+			DeclRange:      value.SourceRange.ToHCL(),
+		}
+	}
+
+	// We return our input values, a function that will reset the variables
+	// within the config so it can be used again, and any diagnostics reporting
+	// variables that we couldn't parse.
+
+	return inputs, func() {
+		config.Module.Variables = currentVars
+	}, diags
 }
