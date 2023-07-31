@@ -550,7 +550,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		if val, ok := stringAttrOk(assumeRole, "policy"); ok {
 			cfg.AssumeRolePolicy = val
 		}
-		if val, ok := stringListAttrOk(assumeRole, "policy_arns"); ok {
+		if val, ok := stringSetAttrOk(assumeRole, "policy_arns"); ok {
 			cfg.AssumeRolePolicyARNs = val
 		}
 		if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
@@ -559,7 +559,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
 			cfg.AssumeRoleTags = val
 		}
-		if val, ok := stringListAttrOk(assumeRole, "transitive_tag_keys"); ok {
+		if val, ok := stringSetAttrOk(assumeRole, "transitive_tag_keys"); ok {
 			cfg.AssumeRoleTransitiveTagKeys = val
 		}
 	} else {
@@ -569,7 +569,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRoleExternalID = stringAttr(obj, "external_id")
 		cfg.AssumeRolePolicy = stringAttr(obj, "assume_role_policy")
 
-		if val, ok := stringListAttrOk(obj, "assume_role_policy_arns"); ok {
+		if val, ok := stringSetAttrOk(obj, "assume_role_policy_arns"); ok {
 			cfg.AssumeRolePolicyARNs = val
 		}
 
@@ -577,7 +577,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			cfg.AssumeRoleTags = val
 		}
 
-		if val, ok := stringListAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
+		if val, ok := stringSetAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
 			cfg.AssumeRoleTransitiveTagKeys = val
 		}
 	}
@@ -660,8 +660,12 @@ func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (s
 	}
 }
 
-func stringListValueOk(val cty.Value) ([]string, bool) {
+func stringSetValueOk(val cty.Value) ([]string, bool) {
 	var list []string
+	typ := val.Type()
+	if !typ.IsSetType() {
+		return nil, false
+	}
 	err := gocty.FromCtyValue(val, &list)
 	if err != nil {
 		return nil, false
@@ -669,8 +673,8 @@ func stringListValueOk(val cty.Value) ([]string, bool) {
 	return list, true
 }
 
-func stringListAttrOk(obj cty.Value, name string) ([]string, bool) {
-	return stringListValueOk(obj.GetAttr(name))
+func stringSetAttrOk(obj cty.Value, name string) ([]string, bool) {
+	return stringSetValueOk(obj.GetAttr(name))
 }
 
 func stringMapValueOk(val cty.Value) (map[string]string, bool) {
@@ -723,18 +727,6 @@ func intAttrDefault(obj cty.Value, name string, def int) int {
 		return v
 	}
 }
-
-// func objBlockOk(obj cty.Value, name string, block *configschema.Block) (cty.Value, bool) {
-// 	// if val := obj.GetAttr(name); val.IsNull() {
-// 	// 	return cty.NilVal, false
-// 	// } else {
-
-// 	// }
-// 	attr := obj.GetAttr(name)
-
-// 	val, err := block.CoerceValue(attr)
-// 	return val, err == nil
-// }
 
 const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
 
