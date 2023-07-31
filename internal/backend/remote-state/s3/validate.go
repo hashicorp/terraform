@@ -121,6 +121,24 @@ func validateARN(validators ...arnValidator) stringValidator {
 	}
 }
 
+type stringSetValidator func(val []string, path cty.Path, diags *tfdiags.Diagnostics)
+
+func validateStringSetValues(validators ...stringValidator) stringSetValidator {
+	return func(val []string, path cty.Path, diags *tfdiags.Diagnostics) {
+		eltPath := make(cty.Path, len(path)+1)
+		copy(eltPath, path)
+
+		idxIdx := len(path)
+		for _, elt := range val {
+			eltPath[idxIdx] = cty.IndexStep{Key: cty.StringVal(elt)}
+
+			for _, validator := range validators {
+				validator(elt, eltPath, diags)
+			}
+		}
+	}
+}
+
 type arnValidator func(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics)
 
 func validateIAMRoleARN(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics) {
@@ -128,6 +146,16 @@ func validateIAMRoleARN(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics) 
 		*diags = diags.Append(attributeErrDiag(
 			"Invalid IAM Role ARN",
 			fmt.Sprintf("Value must be a valid IAM Role ARN, got %q", val),
+			path,
+		))
+	}
+}
+
+func validateIAMPolicyARN(val arn.ARN, path cty.Path, diags *tfdiags.Diagnostics) {
+	if !strings.HasPrefix(val.Resource, "policy/") {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid IAM Policy ARN",
+			fmt.Sprintf("Value must be a valid IAM Policy ARN, got %q", val),
 			path,
 		))
 	}

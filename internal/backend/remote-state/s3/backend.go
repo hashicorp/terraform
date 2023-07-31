@@ -770,7 +770,15 @@ func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
 	}
 
 	// TODO: validate `policy`
-	// TODO: validate `policy_arns`
+
+	if val, ok := stringSetAttrOk(obj, "policy_arns"); ok {
+		attrPath := path.GetAttr("policy_arns")
+		validateStringSetValues(
+			validateARN(
+				validateIAMPolicyARN,
+			),
+		)(val, attrPath, &diags)
+	}
 
 	if val, ok := stringAttrOk(obj, "session_name"); ok {
 		validateStringLenBetween(2, 64)(val, path.GetAttr("session_name"), &diags)
