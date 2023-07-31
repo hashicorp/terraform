@@ -247,17 +247,12 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 							Type:        cty.String,
 							Optional:    true,
 							Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-							// ValidateFunc: validation.StringIsJSON,
 						},
 
 						"policy_arns": {
 							Type:        cty.Set(cty.String),
 							Optional:    true,
 							Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-							// Elem: &schema.Schema{
-							// 	Type:         schema.TypeString,
-							// 	ValidateFunc: verify.ValidARN,
-							// },
 						},
 
 						"session_name": {
