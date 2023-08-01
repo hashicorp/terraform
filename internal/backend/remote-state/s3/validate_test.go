@@ -406,28 +406,28 @@ The string content was valid JSON, your policy document may have been double-enc
 	}
 }
 
-func TestValidateStringSetValues(t *testing.T) {
+func TestValidateSetStringElements(t *testing.T) {
 	t.Parallel()
 
 	path := cty.Path{cty.GetAttrStep{Name: "field"}}
 
 	testcases := map[string]struct {
-		val       []string
+		val       cty.Value
 		validator stringValidator
 		expected  tfdiags.Diagnostics
 	}{
 		"valid": {
-			val: []string{
-				"valid",
-				"also valid",
-			},
+			val: cty.SetVal([]cty.Value{
+				cty.StringVal("valid"),
+				cty.StringVal("also valid"),
+			}),
 		},
 
 		"fails validator": {
-			val: []string{
-				"valid",
-				"invalid",
-			},
+			val: cty.SetVal([]cty.Value{
+				cty.StringVal("valid"),
+				cty.StringVal("invalid"),
+			}),
 			validator: func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 				if val == "invalid" {
 					*diags = diags.Append(attributeErrDiag(
@@ -460,7 +460,7 @@ func TestValidateStringSetValues(t *testing.T) {
 			}
 
 			var diags tfdiags.Diagnostics
-			validateStringSetValues(validators...)(testcase.val, path, &diags)
+			validateSetStringElements(validators...)(testcase.val, path, &diags)
 
 			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
@@ -468,6 +468,69 @@ func TestValidateStringSetValues(t *testing.T) {
 		})
 	}
 }
+
+// func TestValidateStringSetValues(t *testing.T) {
+// 	t.Parallel()
+
+// 	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+// 	testcases := map[string]struct {
+// 		val       []string
+// 		validator stringValidator
+// 		expected  tfdiags.Diagnostics
+// 	}{
+// 		"valid": {
+// 			val: []string{
+// 				"valid",
+// 				"also valid",
+// 			},
+// 		},
+
+// 		"fails validator": {
+// 			val: []string{
+// 				"valid",
+// 				"invalid",
+// 			},
+// 			validator: func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+// 				if val == "invalid" {
+// 					*diags = diags.Append(attributeErrDiag(
+// 						"Test",
+// 						"Test",
+// 						path,
+// 					))
+// 				}
+// 			},
+// 			expected: tfdiags.Diagnostics{
+// 				attributeErrDiag(
+// 					"Test",
+// 					"Test",
+// 					path.Index(cty.StringVal("invalid")),
+// 				),
+// 			},
+// 		},
+// 	}
+
+// 	for name, testcase := range testcases {
+// 		testcase := testcase
+// 		t.Run(name, func(t *testing.T) {
+// 			t.Parallel()
+
+// 			var validators []stringValidator
+// 			if testcase.validator != nil {
+// 				validators = []stringValidator{
+// 					testcase.validator,
+// 				}
+// 			}
+
+// 			var diags tfdiags.Diagnostics
+// 			validateStringSetValues(validators...)(testcase.val, path, &diags)
+
+// 			if diff := cmp.Diff(diags, testcase.expected, cmp.Comparer(diagnosticComparer)); diff != "" {
+// 				t.Errorf("unexpected diagnostics difference: %s", diff)
+// 			}
+// 		})
+// 	}
+// }
 
 func TestValidateDuration(t *testing.T) {
 	t.Parallel()

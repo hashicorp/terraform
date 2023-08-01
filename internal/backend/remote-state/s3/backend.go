@@ -736,57 +736,153 @@ The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
 while "AWS_SSE_CUSTOMER_KEY" is used for encryption with customer-managed keys (SSE-C).
 Please choose one or the other.`
 
-func prepareAssumeRoleConfig(obj cty.Value, path cty.Path) tfdiags.Diagnostics {
+func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
 		return diags
 	}
 
-	if val, ok := stringAttrOk(obj, "role_arn"); ok {
-		attrPath := path.GetAttr("role_arn")
-		validateARN(
-			validateIAMRoleARN,
-		)(val, attrPath, &diags)
-	}
-
-	if val, ok := stringAttrOk(obj, "duration"); ok {
-		attrPath := path.GetAttr("duration")
-		validateDuration(
-			validateDurationBetween(15*time.Minute, 12*time.Hour),
-		)(val, attrPath, &diags)
-	}
-
-	if val, ok := stringAttrOk(obj, "external_id"); ok {
-		attrPath := path.GetAttr("external_id")
-		validateStringLenBetween(2, 1224)(val, attrPath, &diags)
-		validateStringMatches(
-			regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
-			`Value can only contain letters, numbers, or the following characters: =,.@/-`,
-		)
-	}
-
-	if val, ok := stringAttrOk(obj, "policy"); ok {
-		attrPath := path.GetAttr("policy")
-		validateStringNotEmpty(val, attrPath, &diags)
-		validateIAMPolicyDocument(val, path, &diags)
-	}
-
-	if val, ok := stringSetAttrOk(obj, "policy_arns"); ok {
-		attrPath := path.GetAttr("policy_arns")
-		validateStringSetValues(
-			validateARN(
-				validateIAMPolicyARN,
-			),
-		)(val, attrPath, &diags)
-	}
-
-	if val, ok := stringAttrOk(obj, "session_name"); ok {
-		validateStringLenBetween(2, 64)(val, path.GetAttr("session_name"), &diags)
-		validateStringMatches(
-			regexp.MustCompile(`^[\w+=,.@\-]*$`),
-			`Value can only contain letters, numbers, or the following characters: =,.@-`,
-		)
+	for attr, validator := range assumeRoleConfigValidators() {
+		attrPath := objPath.GetAttr(attr)
+		validator.ValidateAttr(obj, attrPath, &diags)
 	}
 
 	return diags
+}
+
+type validateSchema interface {
+	ValidateAttr(cty.Value, cty.Path, *tfdiags.Diagnostics)
+}
+
+type validateString struct {
+	Validators []stringValidator
+}
+
+func (v validateString) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
+	objPath, step := splitPath(attrPath)
+	switch step.(type) {
+	case cty.GetAttrStep:
+		val, err := step.Apply(obj)
+		if err != nil {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Unable to access attribute: %s`, err),
+				objPath,
+			))
+			return
+		}
+		if val.Type() != cty.String {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, cty.String.FriendlyName(), val.Type().FriendlyName()),
+				attrPath,
+			))
+			return
+		}
+		if val.IsNull() {
+			return
+		}
+		s := val.AsString()
+		for _, validator := range v.Validators {
+			validator(s, attrPath, diags)
+		}
+	}
+}
+
+type validateSet struct {
+	Validators []setValidator
+}
+
+func (v validateSet) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
+	objPath, step := splitPath(attrPath)
+	switch step.(type) {
+	case cty.GetAttrStep:
+		val, err := step.Apply(obj)
+		if err != nil {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Unable to access attribute: %s`, err),
+				objPath,
+			))
+			return
+		}
+		if typ := val.Type(); !typ.IsSetType() {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, "a set type", val.Type().FriendlyName()),
+				attrPath,
+			))
+			return
+		}
+		if val.IsNull() {
+			return
+		}
+		for _, validator := range v.Validators {
+			validator(val, attrPath, diags)
+		}
+	}
+}
+
+func assumeRoleConfigValidators() map[string]validateSchema {
+	return map[string]validateSchema{
+		"role_arn": validateString{
+			Validators: []stringValidator{
+				validateARN(
+					validateIAMRoleARN,
+				),
+			},
+		},
+		"duration": validateString{
+			Validators: []stringValidator{
+				validateDuration(
+					validateDurationBetween(15*time.Minute, 12*time.Hour),
+				),
+			},
+		},
+		"external_id": validateString{
+			Validators: []stringValidator{
+				validateStringLenBetween(2, 1224),
+				validateStringMatches(
+					regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
+					`Value can only contain letters, numbers, or the following characters: =,.@/-`,
+				),
+			},
+		},
+		"policy": validateString{
+			Validators: []stringValidator{
+				validateStringNotEmpty,
+				validateIAMPolicyDocument,
+			},
+		},
+		"policy_arns": validateSet{
+			Validators: []setValidator{
+				validateSetStringElements(
+					validateARN(
+						validateIAMPolicyARN,
+					),
+				),
+			},
+		},
+		"session_name": validateString{
+			Validators: []stringValidator{
+				validateStringLenBetween(2, 64),
+				validateStringMatches(
+					regexp.MustCompile(`^[\w+=,.@\-]*$`),
+					`Value can only contain letters, numbers, or the following characters: =,.@-`,
+				),
+			},
+		},
+	}
+}
+
+// splitPath splits the path into the remainder of the path and the final step
+func splitPath(path cty.Path) (cty.Path, cty.PathStep) {
+	if len(path) == 0 {
+		return cty.Path{}, nil
+	}
+	if len(path) == 1 {
+		return cty.Path{}, path[0]
+	}
+	idx := len(path) - 1
+	return path[0:idx], path[idx]
 }

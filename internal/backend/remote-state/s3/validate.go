@@ -201,19 +201,33 @@ The string content was valid JSON, your policy document may have been double-enc
 	}
 }
 
-type stringSetValidator func(val []string, path cty.Path, diags *tfdiags.Diagnostics)
+// Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet
+type setValidator func(val cty.Value, path cty.Path, diags *tfdiags.Diagnostics)
 
-func validateStringSetValues(validators ...stringValidator) stringSetValidator {
-	return func(val []string, path cty.Path, diags *tfdiags.Diagnostics) {
+func validateSetStringElements(validators ...stringValidator) setValidator {
+	return func(val cty.Value, path cty.Path, diags *tfdiags.Diagnostics) {
+		typ := val.Type()
+		if eltTyp := typ.ElementType(); eltTyp != cty.String {
+			*diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, cty.Set(cty.String).FriendlyName(), val.Type().FriendlyName()),
+				path,
+			))
+			return
+		}
+
 		eltPath := make(cty.Path, len(path)+1)
 		copy(eltPath, path)
-
 		idxIdx := len(path)
-		for _, elt := range val {
-			eltPath[idxIdx] = cty.IndexStep{Key: cty.StringVal(elt)}
+
+		iter := val.ElementIterator()
+		for iter.Next() {
+			idx, elt := iter.Element()
+
+			eltPath[idxIdx] = cty.IndexStep{Key: idx}
 
 			for _, validator := range validators {
-				validator(elt, eltPath, diags)
+				validator(elt.AsString(), eltPath, diags)
 			}
 		}
 	}
@@ -274,5 +288,5 @@ func validateDurationBetween(min, max time.Duration) durationValidator {
 }
 
 func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
-	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath)
+	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath.Copy())
 }
