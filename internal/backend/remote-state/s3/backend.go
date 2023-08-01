@@ -686,9 +686,38 @@ func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostic
 		return diags
 	}
 
-	for attr, validator := range assumeRoleConfigValidators() {
-		attrPath := objPath.GetAttr(attr)
-		validator.ValidateAttr(obj, attrPath, &diags)
+	schema := assumeRoleFullSchema()
+
+	iter := obj.ElementIterator()
+	for iter.Next() {
+		name, attrVal := iter.Element()
+		if attrVal.IsNull() {
+			continue
+		}
+
+		attrPath := objPath.GetAttr(name.AsString())
+
+		attrSchema, ok := schema[name.AsString()]
+		if !ok {
+			diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				"Attribute not found in schema",
+				attrPath,
+			))
+			continue
+		}
+
+		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
+			diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
+				attrPath,
+			))
+			continue
+		}
+
+		validator := attrSchema.Validator()
+		validator.ValidateAttr(attrVal, attrPath, &diags)
 	}
 
 	return diags
@@ -702,77 +731,30 @@ type validateString struct {
 	Validators []stringValidator
 }
 
-func (v validateString) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
-	objPath, step := splitPath(attrPath)
-	switch step.(type) {
-	case cty.GetAttrStep:
-		val, err := step.Apply(obj)
-		if err != nil {
-			*diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				fmt.Sprintf(`Unable to access attribute: %s`, err),
-				objPath,
-			))
-			return
-		}
-		if val.Type() != cty.String {
-			*diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				fmt.Sprintf(`Expected type to be %s, got: %s`, cty.String.FriendlyName(), val.Type().FriendlyName()),
-				attrPath,
-			))
-			return
-		}
-		if val.IsNull() {
-			return
-		}
-		s := val.AsString()
-		for _, validator := range v.Validators {
-			validator(s, attrPath, diags)
-		}
+func (v validateString) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
+	s := val.AsString()
+	for _, validator := range v.Validators {
+		validator(s, attrPath, diags)
 	}
 }
 
 type validateMap struct{}
 
-func (v validateMap) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {}
+func (v validateMap) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {}
 
 type validateSet struct {
 	Validators []setValidator
 }
 
-func (v validateSet) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
-	objPath, step := splitPath(attrPath)
-	switch step.(type) {
-	case cty.GetAttrStep:
-		val, err := step.Apply(obj)
-		if err != nil {
-			*diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				fmt.Sprintf(`Unable to access attribute: %s`, err),
-				objPath,
-			))
-			return
-		}
-		if typ := val.Type(); !typ.IsSetType() {
-			*diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				fmt.Sprintf(`Expected type to be %s, got: %s`, "a set type", val.Type().FriendlyName()),
-				attrPath,
-			))
-			return
-		}
-		if val.IsNull() {
-			return
-		}
-		for _, validator := range v.Validators {
-			validator(val, attrPath, diags)
-		}
+func (v validateSet) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
+	for _, validator := range v.Validators {
+		validator(val, attrPath, diags)
 	}
 }
 
 type schemaAttribute interface {
 	SchemaAttribute() *configschema.Attribute
+	Validator() validateSchema
 }
 
 type stringAttribute struct {
@@ -784,6 +766,10 @@ func (a stringAttribute) SchemaAttribute() *configschema.Attribute {
 	return &a.Attribute
 }
 
+func (a stringAttribute) Validator() validateSchema {
+	return a.validateString
+}
+
 type setAttribute struct {
 	configschema.Attribute
 	validateSet
@@ -793,6 +779,10 @@ func (a setAttribute) SchemaAttribute() *configschema.Attribute {
 	return &a.Attribute
 }
 
+func (a setAttribute) Validator() validateSchema {
+	return a.validateSet
+}
+
 type mapAttribute struct {
 	configschema.Attribute
 	validateMap
@@ -800,6 +790,10 @@ type mapAttribute struct {
 
 func (a mapAttribute) SchemaAttribute() *configschema.Attribute {
 	return &a.Attribute
+}
+
+func (a mapAttribute) Validator() validateSchema {
+	return a.validateMap
 }
 
 type objectSchema map[string]schemaAttribute
@@ -937,68 +931,4 @@ func assumeRoleFullSchema() objectSchema {
 			validateSet{},
 		},
 	}
-}
-
-func assumeRoleConfigValidators() map[string]validateSchema {
-	return map[string]validateSchema{
-		"role_arn": validateString{
-			Validators: []stringValidator{
-				validateARN(
-					validateIAMRoleARN,
-				),
-			},
-		},
-		"duration": validateString{
-			Validators: []stringValidator{
-				validateDuration(
-					validateDurationBetween(15*time.Minute, 12*time.Hour),
-				),
-			},
-		},
-		"external_id": validateString{
-			Validators: []stringValidator{
-				validateStringLenBetween(2, 1224),
-				validateStringMatches(
-					regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
-					`Value can only contain letters, numbers, or the following characters: =,.@/-`,
-				),
-			},
-		},
-		"policy": validateString{
-			Validators: []stringValidator{
-				validateStringNotEmpty,
-				validateIAMPolicyDocument,
-			},
-		},
-		"policy_arns": validateSet{
-			Validators: []setValidator{
-				validateSetStringElements(
-					validateARN(
-						validateIAMPolicyARN,
-					),
-				),
-			},
-		},
-		"session_name": validateString{
-			Validators: []stringValidator{
-				validateStringLenBetween(2, 64),
-				validateStringMatches(
-					regexp.MustCompile(`^[\w+=,.@\-]*$`),
-					`Value can only contain letters, numbers, or the following characters: =,.@-`,
-				),
-			},
-		},
-	}
-}
-
-// splitPath splits the path into the remainder of the path and the final step
-func splitPath(path cty.Path) (cty.Path, cty.PathStep) {
-	if len(path) == 0 {
-		return cty.Path{}, nil
-	}
-	if len(path) == 1 {
-		return cty.Path{}, path[0]
-	}
-	idx := len(path) - 1
-	return path[0:idx], path[idx]
 }
