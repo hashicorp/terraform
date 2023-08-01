@@ -16,4 +16,8 @@ resource "test_resource" "primary" {
 resource "test_resource" "secondary" {
   provider = test.secondary
   value = "bar"
+
+  depends_on = [
+    test_resource.primary,
+  ]
 }
