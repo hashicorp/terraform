@@ -223,64 +223,8 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 
 			"assume_role": {
 				NestedType: &configschema.Object{
-					Nesting: configschema.NestingSingle,
-					Attributes: map[string]*configschema.Attribute{
-						"role_arn": {
-							Type:        cty.String,
-							Required:    true,
-							Description: "The role to be assumed.",
-						},
-
-						"duration": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
-						},
-
-						"external_id": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "The external ID to use when assuming the role",
-						},
-
-						"policy": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
-						},
-
-						"policy_arns": {
-							Type:        cty.Set(cty.String),
-							Optional:    true,
-							Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
-						},
-
-						"session_name": {
-							Type:        cty.String,
-							Optional:    true,
-							Description: "The session name to use when assuming the role.",
-						},
-
-						// NOT SUPPORTED by `aws-sdk-go-base/v1`
-						// "source_identity": {
-						// 	Type:         schema.TypeString,
-						// 	Optional:     true,
-						// 	Description:  "Source identity specified by the principal assuming the role.",
-						// 	ValidateFunc: validAssumeRoleSourceIdentity,
-						// },
-
-						"tags": {
-							Type:        cty.Map(cty.String),
-							Optional:    true,
-							Description: "Assume role session tags.",
-						},
-
-						"transitive_tag_keys": {
-							Type:        cty.Set(cty.String),
-							Optional:    true,
-							Description: "Assume role session tag keys to pass to any subsequent sessions.",
-						},
-					},
+					Nesting:    configschema.NestingSingle,
+					Attributes: assumeRoleFullSchema().SchemaAttributes(),
 				},
 			},
 		},
@@ -789,6 +733,10 @@ func (v validateString) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tf
 	}
 }
 
+type validateMap struct{}
+
+func (v validateMap) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {}
+
 type validateSet struct {
 	Validators []setValidator
 }
@@ -820,6 +768,174 @@ func (v validateSet) ValidateAttr(obj cty.Value, attrPath cty.Path, diags *tfdia
 		for _, validator := range v.Validators {
 			validator(val, attrPath, diags)
 		}
+	}
+}
+
+type schemaAttribute interface {
+	SchemaAttribute() *configschema.Attribute
+}
+
+type stringAttribute struct {
+	configschema.Attribute
+	validateString
+}
+
+func (a stringAttribute) SchemaAttribute() *configschema.Attribute {
+	return &a.Attribute
+}
+
+type setAttribute struct {
+	configschema.Attribute
+	validateSet
+}
+
+func (a setAttribute) SchemaAttribute() *configschema.Attribute {
+	return &a.Attribute
+}
+
+type mapAttribute struct {
+	configschema.Attribute
+	validateMap
+}
+
+func (a mapAttribute) SchemaAttribute() *configschema.Attribute {
+	return &a.Attribute
+}
+
+type objectSchema map[string]schemaAttribute
+
+func (s objectSchema) SchemaAttributes() map[string]*configschema.Attribute {
+	m := make(map[string]*configschema.Attribute, len(s))
+	for k, v := range s {
+		m[k] = v.SchemaAttribute()
+	}
+	return m
+}
+
+func assumeRoleFullSchema() objectSchema {
+	return map[string]schemaAttribute{
+		"role_arn": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Required:    true,
+				Description: "The role to be assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateARN(
+						validateIAMRoleARN,
+					),
+				},
+			},
+		},
+
+		"duration": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateDuration(
+						validateDurationBetween(15*time.Minute, 12*time.Hour),
+					),
+				},
+			},
+		},
+
+		"external_id": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The external ID to use when assuming the role",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 1224),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@:\/\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@/-`,
+					),
+				},
+			},
+		},
+
+		"policy": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringNotEmpty,
+					validateIAMPolicyDocument,
+				},
+			},
+		},
+
+		"policy_arns": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateSet{
+				Validators: []setValidator{
+					validateSetStringElements(
+						validateARN(
+							validateIAMPolicyARN,
+						),
+					),
+				},
+			},
+		},
+
+		"session_name": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 64),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@-`,
+					),
+				},
+			},
+		},
+
+		// NOT SUPPORTED by `aws-sdk-go-base/v1`
+		// "source_identity": stringAttribute{
+		// 	configschema.Attribute{
+		// 		Type:         cty.String,
+		// 		Optional:     true,
+		// 		Description:  "Source identity specified by the principal assuming the role.",
+		// 		ValidateFunc: validAssumeRoleSourceIdentity,
+		// 	},
+		// },
+
+		"tags": mapAttribute{
+			configschema.Attribute{
+				Type:        cty.Map(cty.String),
+				Optional:    true,
+				Description: "Assume role session tags.",
+			},
+			validateMap{},
+		},
+
+		"transitive_tag_keys": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Assume role session tag keys to pass to any subsequent sessions.",
+			},
+			validateSet{},
+		},
 	}
 }
 
