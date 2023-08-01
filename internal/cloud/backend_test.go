@@ -1398,8 +1398,9 @@ func TestCloud_ServiceDiscoveryAliases(t *testing.T) {
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal("prod"),
-			"tags": cty.NullVal(cty.Set(cty.String)),
+			"name":    cty.StringVal("prod"),
+			"tags":    cty.NullVal(cty.Set(cty.String)),
+			"project": cty.NullVal(cty.String),
 		}),
 	}))
 	if diag.HasErrors() {
