@@ -200,7 +200,7 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
 			if err != nil {
-				log.Panicf("An unxpected error occurred: %s", err)
+				log.Panicf("An unexpected error occurred: %s", err)
 			}
 		}
 	}
@@ -643,7 +643,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 
 	if err == tfe.ErrResourceNotFound {
 
-		// Worksapce Create Options
+		// Workspace Create Options
 		workspaceCreateOptions := tfe.WorkspaceCreateOptions{
 			Name: tfe.String(name),
 			Tags: b.WorkspaceMapping.tfeTags(),
