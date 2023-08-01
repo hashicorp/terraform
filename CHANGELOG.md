@@ -13,6 +13,7 @@ ENHANCEMENTS:
 BUG FIXES:
 * The upstream dependency that Terraform uses for service discovery of Terraform-native services such as Terraform Cloud/Enterprise state storage was previously not concurrency-safe, but Terraform was treating it as if it was in situations like when a configuration has multiple `terraform_remote_state` blocks all using the "remote" backend. Terraform is now using a newer version of that library which updates its internal caches in a concurrency-safe way. [GH-33364]
 * Transitive dependencies were lost during apply when the referenced resource expanded into zero instances [GH-33403]
+* Terraform will no longer override SSH settings in local git configuration when installing modules. [GH-33592]
 
 ## Previous Releases
 

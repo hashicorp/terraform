@@ -130,6 +130,7 @@ func (t *TestHuman) Conclusion(suite *moduletest.Suite) {
 
 func (t *TestHuman) File(file *moduletest.File) {
 	t.view.streams.Printf("%s... %s\n", file.Name, colorizeTestStatus(file.Status, t.view.colorize))
+	t.Diagnostics(nil, file, file.Diagnostics)
 }
 
 func (t *TestHuman) Run(run *moduletest.Run, file *moduletest.File) {
@@ -388,6 +389,7 @@ func (t *TestJSON) File(file *moduletest.File) {
 		"type", json.MessageTestFile,
 		json.MessageTestFile, json.TestFileStatus{file.Name, json.ToTestStatus(file.Status)},
 		"@testfile", file.Name)
+	t.Diagnostics(nil, file, file.Diagnostics)
 }
 
 func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
