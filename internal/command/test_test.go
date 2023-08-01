@@ -120,6 +120,10 @@ func TestTest(t *testing.T) {
 			expected: "0 passed, 1 failed.",
 			code:     1,
 		},
+		"no_providers_in_main": {
+			expected: "1 passed, 0 failed",
+			code:     0,
+		},
 		"default_variables": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
@@ -508,31 +512,17 @@ Success! 2 passed, 0 failed.
 }
 
 func TestTest_ValidatesBeforeExecution(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "invalid")), td)
-	defer testChdir(t, td)()
+	tcs := map[string]struct {
+		expectedOut string
+		expectedErr string
+	}{
+		"invalid": {
+			expectedOut: `main.tftest.hcl... fail
+  run "invalid"... fail
 
-	provider := testing_command.NewProvider(nil)
-	view, done := testView(t)
-
-	c := &TestCommand{
-		Meta: Meta{
-			testingOverrides: metaOverridesForProvider(provider.Provider),
-			View:             view,
-		},
-	}
-
-	code := c.Run([]string{"-verbose", "-no-color"})
-	output := done(t)
-
-	if code != 1 {
-		t.Errorf("expected status code 1 but got %d", code)
-	}
-
-	expectedOut := `
-Executed 0 tests.
-`
-	expectedErr := `
+Failure! 0 passed, 1 failed.
+`,
+			expectedErr: `
 Error: Invalid ` + "`expect_failures`" + ` reference
 
   on main.tftest.hcl line 5, in run "invalid":
@@ -541,71 +531,16 @@ Error: Invalid ` + "`expect_failures`" + ` reference
 You cannot expect failures from local.my_value. You can only expect failures
 from checkable objects such as input variables, output values, check blocks,
 managed resources and data sources.
-`
+`,
+		},
+		"invalid-module": {
+			expectedOut: `main.tftest.hcl... fail
+  run "invalid"... fail
+  run "test"... skip
 
-	actualOut := output.Stdout()
-	actualErr := output.Stderr()
-
-	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
-	}
-
-	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
-		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
-	}
-
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
-	}
-}
-
-func TestTest_ValidatesLocalModulesBeforeExecution(t *testing.T) {
-	td := t.TempDir()
-	testCopyDir(t, testFixturePath(path.Join("test", "invalid-module")), td)
-	defer testChdir(t, td)()
-
-	provider := testing_command.NewProvider(nil)
-
-	providerSource, close := newMockProviderSource(t, map[string][]string{
-		"test": {"1.0.0"},
-	})
-	defer close()
-
-	streams, done := terminal.StreamsForTesting(t)
-	view := views.NewView(streams)
-	ui := new(cli.MockUi)
-
-	meta := Meta{
-		testingOverrides: metaOverridesForProvider(provider.Provider),
-		Ui:               ui,
-		View:             view,
-		Streams:          streams,
-		ProviderSource:   providerSource,
-	}
-
-	init := &InitCommand{
-		Meta: meta,
-	}
-
-	if code := init.Run(nil); code != 0 {
-		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
-	}
-
-	command := &TestCommand{
-		Meta: meta,
-	}
-
-	code := command.Run([]string{"-no-color"})
-	output := done(t)
-
-	if code != 1 {
-		t.Errorf("expected status code 1 but got %d", code)
-	}
-
-	expectedOut := `
-Executed 0 tests.
-`
-	expectedErr := `
+Failure! 0 passed, 1 failed, 1 skipped.
+`,
+			expectedErr: `
 Error: Reference to undeclared input variable
 
   on setup/main.tf line 3, in resource "test_resource" "setup":
@@ -613,25 +548,122 @@ Error: Reference to undeclared input variable
 
 An input variable with the name "not_real" has not been declared. This
 variable can be declared with a variable "not_real" {} block.
-`
+`,
+		},
+		"missing-provider": {
+			expectedOut: `main.tftest.hcl... fail
+  run "passes_validation"... skip
 
-	actualOut := output.Stdout()
-	actualErr := output.Stderr()
+Failure! 0 passed, 0 failed, 1 skipped.
+`,
+			expectedErr: `
+Error: Provider configuration not present
 
-	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
-		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+To work with test_resource.secondary its original provider configuration at
+provider["registry.terraform.io/hashicorp/test"].secondary is required, but
+it has been removed. This occurs when a provider configuration is removed
+while objects created by that provider still exist in the state. Re-add the
+provider configuration to destroy test_resource.secondary, after which you
+can remove the provider configuration again.
+`,
+		},
+		"missing-provider-in-run-block": {
+			expectedOut: `main.tftest.hcl... fail
+  run "passes_validation"... fail
+
+Failure! 0 passed, 1 failed.
+`,
+			expectedErr: `
+Error: Provider configuration not present
+
+To work with test_resource.secondary its original provider configuration at
+provider["registry.terraform.io/hashicorp/test"].secondary is required, but
+it has been removed. This occurs when a provider configuration is removed
+while objects created by that provider still exist in the state. Re-add the
+provider configuration to destroy test_resource.secondary, after which you
+can remove the provider configuration again.
+`,
+		},
+		"missing-provider-in-test-module": {
+			expectedOut: `main.tftest.hcl... fail
+  run "passes_validation_primary"... pass
+  run "passes_validation_secondary"... fail
+
+Failure! 1 passed, 1 failed.
+`,
+			expectedErr: `
+Error: Provider configuration not present
+
+To work with test_resource.secondary its original provider configuration at
+provider["registry.terraform.io/hashicorp/test"].secondary is required, but
+it has been removed. This occurs when a provider configuration is removed
+while objects created by that provider still exist in the state. Re-add the
+provider configuration to destroy test_resource.secondary, after which you
+can remove the provider configuration again.
+`,
+		},
 	}
 
-	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
-		t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
-	}
+	for file, tc := range tcs {
+		t.Run(file, func(t *testing.T) {
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
-	}
+			td := t.TempDir()
+			testCopyDir(t, testFixturePath(path.Join("test", file)), td)
+			defer testChdir(t, td)()
 
-	if provider.ResourceCount() > 0 {
-		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			provider := testing_command.NewProvider(nil)
+
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			}
+
+			c := &TestCommand{
+				Meta: meta,
+			}
+
+			code := c.Run([]string{"-no-color"})
+			output := done(t)
+
+			if code != 1 {
+				t.Errorf("expected status code 1 but got %d", code)
+			}
+
+			actualOut, expectedOut := output.Stdout(), tc.expectedOut
+			actualErr, expectedErr := output.Stderr(), tc.expectedErr
+
+			if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+				t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+			}
+
+			if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+				t.Errorf("error didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
+			}
+
+			if provider.ResourceCount() > 0 {
+				t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+			}
+		})
 	}
 }
 
