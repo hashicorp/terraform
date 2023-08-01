@@ -22,6 +22,7 @@ func TestImportBlock_decode(t *testing.T) {
 	}
 
 	foo_str_expr := hcltest.MockExprLiteral(cty.StringVal("foo"))
+	blank_str_expr := hcltest.MockExprLiteral(cty.StringVal(""))
 	bar_expr := hcltest.MockExprTraversalSrc("test_instance.bar")
 
 	bar_index_expr := hcltest.MockExprTraversalSrc("test_instance.bar[\"one\"]")
@@ -142,6 +143,29 @@ func TestImportBlock_decode(t *testing.T) {
 				DeclRange: blockRange,
 			},
 			"Missing required argument",
+		},
+		"error: blank id argument": {
+			&hcl.Block{
+				Type: "import",
+				Body: hcltest.MockBody(&hcl.BodyContent{
+					Attributes: hcl.Attributes{
+						"to": {
+							Name: "to",
+							Expr: bar_expr,
+						},
+						"id": {
+							Name: "id",
+							Expr: blank_str_expr,
+						},
+					},
+				}),
+				DefRange: blockRange,
+			},
+			&Import{
+				To:        mustAbsResourceInstanceAddr("test_instance.bar"),
+				DeclRange: blockRange,
+			},
+			"Import ID cannot be blank",
 		},
 	}
 
