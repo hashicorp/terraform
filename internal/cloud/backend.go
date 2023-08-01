@@ -183,19 +183,12 @@ func (b *Cloud) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) {
 	}
 
 	WorkspaceMapping := WorkspaceMapping{}
-
-	// Initially set the project via env var
-	WorkspaceMapping.Project = os.Getenv("TF_CLOUD_PROJECT")
-
 	// Initially set the workspace name via env var
 	WorkspaceMapping.Name = os.Getenv("TF_WORKSPACE")
 
 	if workspaces := obj.GetAttr("workspaces"); !workspaces.IsNull() {
 		if val := workspaces.GetAttr("name"); !val.IsNull() {
 			WorkspaceMapping.Name = val.AsString()
-		}
-		if val := workspaces.GetAttr("project"); !val.IsNull() {
-			WorkspaceMapping.Project = val.AsString()
 		}
 		if val := workspaces.GetAttr("tags"); !val.IsNull() {
 			err := gocty.FromCtyValue(val, &WorkspaceMapping.Tags)
@@ -641,30 +634,46 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		remoteTFVersion = workspace.TerraformVersion
 	}
 
+	var configuredProject *tfe.Project
+
+	// Attempt to find project if configured
+	if b.WorkspaceMapping.Project != "" {
+		listOpts := &tfe.ProjectListOptions{
+			Name: b.WorkspaceMapping.Project,
+		}
+		projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
+		if err != nil && err != tfe.ErrResourceNotFound {
+			// This is a failure to make an API request, fail to initialize
+			return nil, fmt.Errorf("Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
+		}
+		for _, p := range projects.Items {
+			if p.Name == b.WorkspaceMapping.Project {
+				configuredProject = p
+				break
+			}
+		}
+
+		if configuredProject == nil {
+			// We were able to read project, but were unable to find the configured project
+			// This is not fatal as we may attempt to create the project if we need to create
+			// the workspace
+			log.Printf("[TRACE] cloud: Attempted to find configured project %s but was unable to.", b.WorkspaceMapping.Project)
+		}
+	}
+
 	if err == tfe.ErrResourceNotFound {
+		// Create workspace if it was not found
 
 		// Workspace Create Options
 		workspaceCreateOptions := tfe.WorkspaceCreateOptions{
-			Name: tfe.String(name),
-			Tags: b.WorkspaceMapping.tfeTags(),
+			Name:    tfe.String(name),
+			Tags:    b.WorkspaceMapping.tfeTags(),
+			Project: configuredProject,
 		}
 
 		// Create project if not exists, otherwise use it
-		if b.WorkspaceMapping.Project != "" {
-			listOpts := &tfe.ProjectListOptions{
-				Name: b.WorkspaceMapping.Project,
-			}
-			projects, err := b.client.Projects.List(context.Background(), b.organization, listOpts)
-			if err != nil && err != tfe.ErrResourceNotFound {
-				return nil, fmt.Errorf("failed to retrieve project %s: %v", name, err)
-			}
-			for _, p := range projects.Items {
-				if p.Name == b.WorkspaceMapping.Project {
-					workspaceCreateOptions.Project = p
-					break
-				}
-			}
-
+		if workspaceCreateOptions.Project == nil && b.WorkspaceMapping.Project != "" {
+			// If we didn't find the project, try to create it
 			if workspaceCreateOptions.Project == nil {
 				createOpts := tfe.ProjectCreateOptions{
 					Name: b.WorkspaceMapping.Project,
@@ -675,7 +684,8 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 				if err != nil && err != tfe.ErrResourceNotFound {
 					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
 				}
-				workspaceCreateOptions.Project = project
+				configuredProject = project
+				workspaceCreateOptions.Project = configuredProject
 			}
 		}
 
