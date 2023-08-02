@@ -5,12 +5,11 @@ package configs
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/gohcl"
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
 type Import struct {
-	ID string
+	ID hcl.Expression
 	To addrs.AbsResourceInstance
 
 	ProviderConfigRef *ProviderConfigRef
@@ -30,9 +29,7 @@ func decodeImportBlock(block *hcl.Block) (*Import, hcl.Diagnostics) {
 	diags = append(diags, moreDiags...)
 
 	if attr, exists := content.Attributes["id"]; exists {
-		attrDiags := gohcl.DecodeExpression(attr.Expr, nil, &imp.ID)
-		diags = append(diags, attrDiags...)
-
+		imp.ID = attr.Expr
 	}
 
 	if attr, exists := content.Attributes["to"]; exists {
