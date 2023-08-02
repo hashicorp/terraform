@@ -686,26 +686,9 @@ func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostic
 		return diags
 	}
 
-	schema := assumeRoleFullSchema()
-
-	iter := obj.ElementIterator()
-	for iter.Next() {
-		name, attrVal := iter.Element()
-		if attrVal.IsNull() {
-			continue
-		}
-
-		attrPath := objPath.GetAttr(name.AsString())
-
-		attrSchema, ok := schema[name.AsString()]
-		if !ok {
-			diags = diags.Append(attributeErrDiag(
-				"Internal Error",
-				"Attribute not found in schema",
-				attrPath,
-			))
-			continue
-		}
+	for name, attrSchema := range assumeRoleFullSchema() {
+		attrPath := objPath.GetAttr(name)
+		attrVal := obj.GetAttr(name)
 
 		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
 			diags = diags.Append(attributeErrDiag(
@@ -716,11 +699,60 @@ func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostic
 			continue
 		}
 
+		if attrVal.IsNull() {
+			if attrSchema.SchemaAttribute().Required {
+				diags = diags.Append(requiredAttributeErrDiag(attrPath))
+			}
+			continue
+		}
+
 		validator := attrSchema.Validator()
 		validator.ValidateAttr(attrVal, attrPath, &diags)
 	}
 
 	return diags
+}
+
+func requiredAttributeErrDiag(path cty.Path) tfdiags.Diagnostic {
+	return attributeErrDiag(
+		"Missing Required Value",
+		fmt.Sprintf("The attribute %q is required by the backend.\n\n", pathString(path))+
+			"Refer to the backend documentation for additional information which attributes are required.",
+		path,
+	)
+}
+
+func pathString(path cty.Path) string {
+	var buf strings.Builder
+	for i, step := range path {
+		switch x := step.(type) {
+		case cty.GetAttrStep:
+			if i != 0 {
+				buf.WriteString(".")
+			}
+			buf.WriteString(x.Name)
+		case cty.IndexStep:
+			val := x.Key
+			typ := val.Type()
+			var s string
+			switch {
+			case typ == cty.String:
+				s = val.AsString()
+			case typ == cty.Number:
+				num := val.AsBigFloat()
+				s = num.String()
+			default:
+				s = fmt.Sprintf("<unexpected index: %s>", typ.FriendlyName())
+			}
+			buf.WriteString(fmt.Sprintf("[%s]", s))
+		default:
+			if i != 0 {
+				buf.WriteString(".")
+			}
+			buf.WriteString(fmt.Sprintf("<unexpected step: %[1]T %[1]v>", x))
+		}
+	}
+	return buf.String()
 }
 
 type validateSchema interface {
@@ -735,6 +767,9 @@ func (v validateString) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tf
 	s := val.AsString()
 	for _, validator := range v.Validators {
 		validator(s, attrPath, diags)
+		if diags.HasErrors() {
+			return
+		}
 	}
 }
 
@@ -749,6 +784,9 @@ type validateSet struct {
 func (v validateSet) ValidateAttr(val cty.Value, attrPath cty.Path, diags *tfdiags.Diagnostics) {
 	for _, validator := range v.Validators {
 		validator(val, attrPath, diags)
+		if diags.HasErrors() {
+			return
+		}
 	}
 }
 

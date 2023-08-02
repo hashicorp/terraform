@@ -332,7 +332,7 @@ func TestValidateIAMPolicyDocument(t *testing.T) {
 		val      string
 		expected tfdiags.Diagnostics
 	}{
-		"empty": {
+		"empty object": {
 			val: `{}`,
 			// Valid JSON, not valid IAM policy (but passes provider's test)
 		},
