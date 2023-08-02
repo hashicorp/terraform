@@ -87,11 +87,11 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 	if cp, ok := op.PlanFile.Cloud(); ok {
 		log.Printf("[TRACE] Loading saved cloud plan for apply")
 		// Check hostname first, for a more actionable error than a generic 404 later
-		if cp.Hostname != b.hostname {
+		if cp.Hostname != b.Hostname {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Saved plan is for a different hostname",
-				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.hostname),
+				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.Hostname),
 			))
 			return r, diags.Err()
 		}
@@ -108,13 +108,13 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Saved plan is for a different workspace",
-				fmt.Sprintf("The given saved plan does not refer to a run in the current workspace (%s/%s), so it cannot currently be applied. For more details, view this run in a browser at:\n%s", w.Organization.Name, w.Name, runURL(b.hostname, r.Workspace.Organization.Name, r.Workspace.Name, r.ID)),
+				fmt.Sprintf("The given saved plan does not refer to a run in the current workspace (%s/%s), so it cannot currently be applied. For more details, view this run in a browser at:\n%s", w.Organization.Name, w.Name, runURL(b.Hostname, r.Workspace.Organization.Name, r.Workspace.Name, r.ID)),
 			))
 			return r, diags.Err()
 		}
 
 		if !r.Actions.IsConfirmable {
-			url := runURL(b.hostname, b.organization, op.Workspace, r.ID)
+			url := runURL(b.Hostname, b.organization, op.Workspace, r.ID)
 			return r, unusableSavedPlanError(r.Status, url)
 		}
 
@@ -122,7 +122,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		if b.CLI != nil {
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(applySavedHeader) + "\n"))
 			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-				runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID)) + "\n"))
+				runHeader, b.Hostname, b.organization, r.Workspace.Name, r.ID)) + "\n"))
 		}
 	} else {
 		log.Printf("[TRACE] Running new cloud plan for apply")

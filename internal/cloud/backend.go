@@ -66,8 +66,8 @@ type Cloud struct {
 	// lastRetry is set to the last time a request was retried.
 	lastRetry time.Time
 
-	// hostname of Terraform Cloud or Terraform Enterprise
-	hostname string
+	// Hostname of Terraform Cloud or Terraform Enterprise
+	Hostname string
 
 	// token for Terraform Cloud or Terraform Enterprise
 	token string
@@ -217,11 +217,11 @@ func (b *Cloud) ServiceDiscoveryAliases() ([]backend.HostAlias, error) {
 		return nil, fmt.Errorf("failed to create backend alias from alias %q. The hostname is not in the correct format. This is a bug in the backend", genericHostname)
 	}
 
-	targetHostname, err := svchost.ForComparison(b.hostname)
+	targetHostname, err := svchost.ForComparison(b.Hostname)
 	if err != nil {
 		// This should never happen because the 'to' alias is the backend host, which has
 		// already been ev
-		return nil, fmt.Errorf("failed to create backend alias to target %q. The hostname is not in the correct format.", b.hostname)
+		return nil, fmt.Errorf("failed to create backend alias to target %q. The hostname is not in the correct format.", b.Hostname)
 	}
 
 	return []backend.HostAlias{
@@ -282,15 +282,15 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
 		loginCommand := "terraform login"
-		if b.hostname != defaultHostname {
-			loginCommand = loginCommand + " " + b.hostname
+		if b.Hostname != defaultHostname {
+			loginCommand = loginCommand + " " + b.Hostname
 		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Required token could not be found",
 			fmt.Sprintf(
 				"Run the following command to generate a token for %s:\n    %s",
-				b.hostname,
+				b.Hostname,
 				loginCommand,
 			),
 		))
@@ -334,11 +334,11 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 			err = fmt.Errorf("organization %q at host %s not found.\n\n"+
 				"Please ensure that the organization and hostname are correct "+
 				"and that your API token for %s is valid.",
-				b.organization, b.hostname, b.hostname)
+				b.organization, b.Hostname, b.Hostname)
 		}
 		diags = diags.Append(tfdiags.AttributeValue(
 			tfdiags.Error,
-			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.hostname),
+			fmt.Sprintf("Failed to read organization %q at host %s", b.organization, b.Hostname),
 			fmt.Sprintf("Encountered an unexpected error while reading the "+
 				"organization settings: %s", err),
 			cty.Path{cty.GetAttrStep{Name: "organization"}},
@@ -401,11 +401,11 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	// Get the hostname.
-	b.hostname = os.Getenv("TF_CLOUD_HOSTNAME")
+	b.Hostname = os.Getenv("TF_CLOUD_HOSTNAME")
 	if val := obj.GetAttr("hostname"); !val.IsNull() && val.AsString() != "" {
-		b.hostname = val.AsString()
-	} else if b.hostname == "" {
-		b.hostname = defaultHostname
+		b.Hostname = val.AsString()
+	} else if b.Hostname == "" {
+		b.Hostname = defaultHostname
 	}
 
 	// We can have two options, setting the organization via the config
@@ -457,7 +457,7 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 
 // discover the TFC/E API service URL and version constraints.
 func (b *Cloud) discover() (*url.URL, error) {
-	hostname, err := svchost.ForComparison(b.hostname)
+	hostname, err := svchost.ForComparison(b.Hostname)
 	if err != nil {
 		return nil, err
 	}
@@ -488,13 +488,13 @@ func (b *Cloud) discover() (*url.URL, error) {
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
 func (b *Cloud) cliConfigToken() (string, error) {
-	hostname, err := svchost.ForComparison(b.hostname)
+	hostname, err := svchost.ForComparison(b.Hostname)
 	if err != nil {
 		return "", err
 	}
 	creds, err := b.services.CredentialsForHost(hostname)
 	if err != nil {
-		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.hostname, err)
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.Hostname, err)
 		return "", nil
 	}
 	if creds != nil {

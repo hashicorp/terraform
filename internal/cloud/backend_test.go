@@ -564,8 +564,8 @@ func WithEnvVars(t *testing.T) {
 				t.Fatalf("%s: organization not valid: %s, expected: %s", name, b.organization, tc.expectedOrganization)
 			}
 
-			if tc.expectedHostname != "" && tc.expectedHostname != b.hostname {
-				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.hostname, tc.expectedHostname)
+			if tc.expectedHostname != "" && tc.expectedHostname != b.Hostname {
+				t.Fatalf("%s: hostname not valid: %s, expected: %s", name, b.Hostname, tc.expectedHostname)
 			}
 
 			if tc.expectedWorkspaceName != "" && tc.expectedWorkspaceName != b.WorkspaceMapping.Name {
@@ -953,8 +953,8 @@ func TestCloud_setConfigurationFields(t *testing.T) {
 			}
 		}
 
-		if tc.expectedHostname != "" && b.hostname != tc.expectedHostname {
-			t.Fatalf("%s: expected hostname %s to match configured hostname %s", name, b.hostname, tc.expectedHostname)
+		if tc.expectedHostname != "" && b.Hostname != tc.expectedHostname {
+			t.Fatalf("%s: expected hostname %s to match configured hostname %s", name, b.Hostname, tc.expectedHostname)
 		}
 		if tc.expectedOrganziation != "" && b.organization != tc.expectedOrganziation {
 			t.Fatalf("%s: expected organization (%s) to match configured organization (%s)", name, b.organization, tc.expectedOrganziation)
