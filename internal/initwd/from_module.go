@@ -49,6 +49,7 @@ const initFromModuleRootKeyPrefix = initFromModuleRootCallName + "."
 // are produced in that case, to prompt the user to rewrite the source strings
 // to be absolute references to the original remote module.
 func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modulesDir, sourceAddrStr string, reg *registry.Client, hooks ModuleInstallHooks) tfdiags.Diagnostics {
+
 	var diags tfdiags.Diagnostics
 
 	// The way this function works is pretty ugly, but we accept it because
@@ -157,12 +158,42 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 	wrapHooks := installHooksInitDir{
 		Wrapped: hooks,
 	}
-	fetcher := getmodules.NewPackageFetcher()
-	_, instDiags := inst.installDescendentModules(ctx, fakeRootModule, rootDir, instManifest, true, wrapHooks, fetcher)
-	diags = append(diags, instDiags...)
-	if instDiags.HasErrors() {
-		return diags
+	// Create a manifest record for the root module. This will be used if
+	// there are any relative-pathed modules in the root.
+	instManifest[""] = modsdir.Record{
+		Key: "",
+		Dir: rootDir,
 	}
+	fetcher := getmodules.NewPackageFetcher()
+
+	// When attempting to initialize the current directory with a module
+	// source, some use cases may want to ignore configuration errors from the
+	// building of the entire configuration structure, but we still need to
+	// capture installation errors. Because the actual module installation
+	// happens in the ModuleWalkFunc callback while building the config, we
+	// need to create a closure to capture the installation diagnostics
+	// separately.
+	var instDiags hcl.Diagnostics
+	w := inst.moduleInstallWalker(ctx, instManifest, true, wrapHooks, fetcher)
+	walker := configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+		mod, version, diags := w.LoadModule(req)
+		instDiags = instDiags.Extend(diags)
+		return mod, version, diags
+	})
+
+	_, cDiags := inst.installDescendentModules(fakeRootModule, instManifest, walker)
+	// We can't continue if there was an error during installation, but return
+	// all diagnostics in case there happens to be anything else useful when
+	// debugging the problem.
+	if instDiags.HasErrors() {
+		return diags.Append(cDiags)
+	}
+
+	// if there are errors here, they must be only from building the config
+	// structures. We don't want to block initialization at this point, so
+	// convert these into warnings. Any actual errors in the configuration will
+	// be raised as soon as the config is loaded again.
+	diags = append(diags, tfdiags.OverrideAll(cDiags, tfdiags.Warning, nil)...)
 
 	// If all of that succeeded then we'll now migrate what was installed
 	// into the final directory structure.

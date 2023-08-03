@@ -115,14 +115,6 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 
 	fetcher := getmodules.NewPackageFetcher()
-	cfg, instDiags := i.installDescendentModules(ctx, rootMod, rootDir, manifest, upgrade, hooks, fetcher)
-	diags = append(diags, instDiags...)
-
-	return cfg, diags
-}
-
-func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod *configs.Module, rootDir string, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) (*configs.Config, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
 
 	if hooks == nil {
 		// Use our no-op implementation as a placeholder
@@ -135,8 +127,16 @@ func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod 
 		Key: "",
 		Dir: rootDir,
 	}
+	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, cDiags := configs.BuildConfig(rootMod, configs.ModuleWalkerFunc(
+	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker)
+	diags = append(diags, instDiags...)
+
+	return cfg, diags
+}
+
+func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest modsdir.Manifest, upgrade bool, hooks ModuleInstallHooks, fetcher *getmodules.PackageFetcher) configs.ModuleWalker {
+	return configs.ModuleWalkerFunc(
 		func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
 			var diags hcl.Diagnostics
 
@@ -273,9 +273,15 @@ func (i *ModuleInstaller) installDescendentModules(ctx context.Context, rootMod 
 				// of addrs.ModuleSource.
 				panic(fmt.Sprintf("unsupported module source address %#v", addr))
 			}
-
 		},
-	))
+	)
+}
+
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	cfg, cDiags := configs.BuildConfig(rootMod, installWalker)
+
 	diags = diags.Append(cDiags)
 
 	err := manifest.WriteSnapshotToDir(i.modsDir)
