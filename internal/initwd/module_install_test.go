@@ -944,7 +944,7 @@ func assertNoDiagnostics(t *testing.T, diags tfdiags.Diagnostics) bool {
 
 func assertDiagnosticCount(t *testing.T, diags tfdiags.Diagnostics, want int) bool {
 	t.Helper()
-	if len(diags) != 0 {
+	if len(diags) != want {
 		t.Errorf("wrong number of diagnostics %d; want %d", len(diags), want)
 		for _, diag := range diags {
 			t.Logf("- %#v", diag)

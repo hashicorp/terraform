@@ -212,6 +212,38 @@ func TestDirFromModule_submodules(t *testing.T) {
 	assertResultDeepEqual(t, gotTraces, wantTraces)
 }
 
+// submodulesWithProvider is identical to above, except that the configuration
+// would fail to load for some reason. We still want the module to be installed
+// for use cases like testing or CDKTF, and will only emit warnings for config
+// errors.
+func TestDirFromModule_submodulesWithProvider(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/empty")
+	fromModuleDir, err := filepath.Abs("./testdata/local-module-missing-provider")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpDir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+	dir, err := filepath.EvalSymlinks(tmpDir)
+	if err != nil {
+		t.Error(err)
+	}
+	modInstallDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, cleanup := configload.NewLoaderForTests(t)
+	defer cleanup()
+	diags := DirFromModule(context.Background(), loader, dir, modInstallDir, fromModuleDir, nil, hooks)
+
+	for _, d := range diags {
+		if d.Severity() != tfdiags.Warning {
+			t.Errorf("expected warning, got %v", diags.Err())
+		}
+	}
+}
+
 // TestDirFromModule_rel_submodules is similar to the test above, but the
 // from-module is relative to the install dir ("../"):
 // https://github.com/hashicorp/terraform/issues/23010
