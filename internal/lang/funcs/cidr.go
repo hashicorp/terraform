@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-	"net"
 	"sort"
 
 	"github.com/apparentlymart/go-cidr/cidr"
@@ -34,9 +33,9 @@ var CidrCollapseFunc = function.New(&function.Spec{
 		}
 
 		// confirm proper cidr notation
-		cidrs := make(map[string]*net.IPNet)
+		cidrs := make(map[string]*ipaddr.IPNet)
 		for _, c := range cidrsInput {
-			parsedIP, parsedNet, err := net.ParseCIDR(c)
+			parsedIP, parsedNet, err := ipaddr.ParseCIDR(c)
 			if err != nil {
 				return cty.UnknownVal(cty.String), err
 			}
