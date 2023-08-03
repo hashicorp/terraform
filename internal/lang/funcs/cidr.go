@@ -4,8 +4,11 @@
 package funcs
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"net"
+	"sort"
 
 	"github.com/apparentlymart/go-cidr/cidr"
 	"github.com/hashicorp/terraform/internal/ipaddr"
@@ -13,6 +16,60 @@ import (
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
+
+// CidrCollapseFunc contructs a function that collapses input CIDRs
+var CidrCollapseFunc = function.New(&function.Spec{
+	Params: []function.Parameter{
+		{
+			Name: "cidrs",
+			Type: cty.List(cty.String),
+		},
+	},
+	Type:         function.StaticReturnType(cty.String),
+	RefineResult: refineNotNull,
+	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
+		var cidrsInput []string
+		if err := gocty.FromCtyValue(args[0], &cidrsInput); err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+
+		// confirm proper cidr notation
+		cidrs := make(map[string]*net.IPNet)
+		for _, c := range cidrsInput {
+			parsedIP, parsedNet, err := net.ParseCIDR(c)
+			if err != nil {
+				return cty.UnknownVal(cty.String), err
+			}
+			cidrs[parsedIP.String()] = parsedNet
+		}
+
+		// collapse the cidr ranges
+		for iIP, iNet := range cidrs {
+			for jIP, jNet := range cidrs {
+				if iIP == jIP {
+					continue
+				}
+				if iNet.Contains(jNet.IP) {
+					delete(cidrs, jIP)
+					continue
+				}
+			}
+		}
+
+		var collapsedCidrs []string
+		for _, net := range cidrs {
+			collapsedCidrs = append(collapsedCidrs, net.String())
+		}
+		sort.Strings(collapsedCidrs)
+
+		val, err := json.Marshal(collapsedCidrs)
+		if err != nil {
+			return cty.UnknownVal(cty.String), err
+		}
+
+		return cty.StringVal(string(val)), nil
+	},
+})
 
 // CidrHostFunc contructs a function that calculates a full host IP address
 // within a given IP network address prefix.
@@ -196,6 +253,11 @@ var CidrSubnetsFunc = function.New(&function.Spec{
 		return cty.ListVal(retVals), nil
 	},
 })
+
+// CidrCollapse collapses input CIDRs
+func CidrCollapse(cidrs cty.Value) (cty.Value, error) {
+	return CidrCollapseFunc.Call([]cty.Value{cidrs})
+}
 
 // CidrHost calculates a full host IP address within a given IP network address prefix.
 func CidrHost(prefix, hostnum cty.Value) (cty.Value, error) {
