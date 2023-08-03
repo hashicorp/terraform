@@ -247,24 +247,22 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// If we pass the core version check, we want to show any errors from initializing the backend next,
-	// which will include syntax errors from loading the configuration. However, there's a special case
-	// where we are unable to load the backend from configuration or state _and_ the configuration has
-	// errors. In that case, we want to show a slightly friendlier error message for newcomers.
-	showBackendDiags := back != nil || rootModEarly.Backend != nil || rootModEarly.CloudConfig != nil
-	if showBackendDiags {
-		diags = diags.Append(backDiags)
-		if backDiags.HasErrors() {
-			c.showDiagnostics(diags)
-			return 1
-		}
-	} else {
-		diags = diags.Append(earlyConfDiags)
-		if earlyConfDiags.HasErrors() {
-			c.Ui.Error(strings.TrimSpace(errInitConfigError))
-			c.showDiagnostics(diags)
-			return 1
-		}
+	// We've passed the core version check, now we can show errors from the
+	// configuration and backend initialisation.
+
+	// Now, we can check the diagnostics from the early configuration.
+	diags = diags.Append(earlyConfDiags)
+	if earlyConfDiags.HasErrors() {
+		c.Ui.Error(strings.TrimSpace(errInitConfigError))
+		c.showDiagnostics(diags)
+		return 1
+	}
+
+	// Now, we can show any errors from initializing the backend.
+	diags = diags.Append(backDiags)
+	if backDiags.HasErrors() {
+		c.showDiagnostics(diags)
+		return 1
 	}
 
 	// If everything is ok with the core version check and backend initialization,

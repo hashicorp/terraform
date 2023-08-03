@@ -2700,14 +2700,46 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if subStr := "There are some problems with the configuration, described below"; strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should not include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
-	if subStr := "Error: Unsupported block type"; strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should not mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
-	if subStr := "Error: Unsupported backend type"; !strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	if subStr := "Error: Unsupported backend type"; strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should not mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+}
+
+func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath("init-syntax-invalid-backend-attribute-invalid"), td)
+	defer testChdir(t, td)()
+
+	ui := cli.NewMockUi()
+	view, _ := testView(t)
+	m := Meta{
+		Ui:   ui,
+		View: view,
+	}
+
+	c := &InitCommand{
+		Meta: m,
+	}
+
+	if code := c.Run(nil); code == 0 {
+		t.Fatalf("succeeded, but was expecting error\nstdout:\n%s\nstderr:\n%s", ui.OutputWriter, ui.ErrorWriter)
+	}
+
+	errStr := ui.ErrorWriter.String()
+	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Invalid character"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the invalid character\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	}
+	if subStr := "Error: Invalid expression"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the invalid expression\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 }
 
