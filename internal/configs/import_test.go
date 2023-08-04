@@ -14,6 +14,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
+var (
+	typeComparer  = cmp.Comparer(cty.Type.Equals)
+	valueComparer = cmp.Comparer(cty.Value.RawEquals)
+)
+
 func TestImportBlock_decode(t *testing.T) {
 	blockRange := hcl.Range{
 		Filename: "mock.tf",
@@ -52,7 +57,7 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			&Import{
 				To:        mustAbsResourceInstanceAddr("test_instance.bar"),
-				ID:        "foo",
+				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
 			``,
@@ -76,7 +81,7 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			&Import{
 				To:        mustAbsResourceInstanceAddr("test_instance.bar[\"one\"]"),
-				ID:        "foo",
+				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
 			``,
@@ -100,7 +105,7 @@ func TestImportBlock_decode(t *testing.T) {
 			},
 			&Import{
 				To:        mustAbsResourceInstanceAddr("module.bar.test_instance.bar"),
-				ID:        "foo",
+				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
 			``,
@@ -138,7 +143,7 @@ func TestImportBlock_decode(t *testing.T) {
 				DefRange: blockRange,
 			},
 			&Import{
-				ID:        "foo",
+				ID:        foo_str_expr,
 				DeclRange: blockRange,
 			},
 			"Missing required argument",
@@ -160,7 +165,7 @@ func TestImportBlock_decode(t *testing.T) {
 				t.Fatal("expected error")
 			}
 
-			if !cmp.Equal(got, test.want, cmp.AllowUnexported(addrs.MoveEndpoint{})) {
+			if !cmp.Equal(got, test.want, typeComparer, valueComparer) {
 				t.Fatalf("wrong result: %s", cmp.Diff(got, test.want))
 			}
 		})

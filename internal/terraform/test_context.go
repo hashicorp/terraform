@@ -100,22 +100,25 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 
 	// Now validate all the assertions within this run block.
 	for _, rule := range run.Config.CheckRules {
+		var diags tfdiags.Diagnostics
+
 		refs, moreDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.Condition)
-		run.Diagnostics = run.Diagnostics.Append(moreDiags)
+		diags = diags.Append(moreDiags)
 		moreRefs, moreDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, rule.ErrorMessage)
-		run.Diagnostics = run.Diagnostics.Append(moreDiags)
+		diags = diags.Append(moreDiags)
 		refs = append(refs, moreRefs...)
 
 		hclCtx, moreDiags := scope.EvalContext(refs)
-		run.Diagnostics = run.Diagnostics.Append(moreDiags)
+		diags = diags.Append(moreDiags)
 
 		errorMessage, moreDiags := evalCheckErrorMessage(rule.ErrorMessage, hclCtx)
-		run.Diagnostics = run.Diagnostics.Append(moreDiags)
+		diags = diags.Append(moreDiags)
 
 		runVal, hclDiags := rule.Condition.Value(hclCtx)
-		run.Diagnostics = run.Diagnostics.Append(hclDiags)
+		diags = diags.Append(hclDiags)
 
-		if run.Diagnostics.HasErrors() {
+		run.Diagnostics = run.Diagnostics.Append(diags)
+		if diags.HasErrors() {
 			run.Status = run.Status.Merge(moduletest.Error)
 			continue
 		}

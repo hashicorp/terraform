@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/zclconf/go-cty/cty"
+
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -233,23 +235,6 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		// Validate the main config first.
-		validateDiags := runner.Validate()
-
-		// Print out any warnings or errors from the validation.
-		view.Diagnostics(nil, nil, validateDiags)
-		if validateDiags.HasErrors() {
-			// Don't try and run the tests if the validation actually failed.
-			// We'll also leave the test status as pending as we actually made
-			// no effort to run the tests.
-			return
-		}
-
-		if runner.Stopped || runner.Cancelled {
-			suite.Status = moduletest.Error
-			return
-		}
-
 		runner.Start(variables)
 	}()
 
@@ -328,64 +313,6 @@ type TestRunner struct {
 	Verbose bool
 }
 
-func (runner *TestRunner) Validate() tfdiags.Diagnostics {
-	log.Printf("[TRACE] TestRunner: Validating configuration.")
-
-	var diags tfdiags.Diagnostics
-
-	diags = diags.Append(runner.validateConfig(runner.Config))
-	if runner.Cancelled || runner.Stopped {
-		return diags
-	}
-
-	// We've validated the main configuration under test. We now need to
-	// validate any other modules that are being executed by the test files.
-	//
-	// We only validate modules that are sourced locally, we're making an
-	// assumption that any remote modules were properly vetted and tested before
-	// being used in our tests.
-	validatedModules := make(map[string]bool)
-
-	for _, file := range runner.Suite.Files {
-		for _, run := range file.Runs {
-
-			if runner.Cancelled || runner.Stopped {
-				return diags
-			}
-
-			// While we're here, also do a quick validation of the config of the
-			// actual run block.
-			diags = diags.Append(run.Config.Validate())
-
-			// If the run block is executing another local module, we should
-			// validate that before we try and run it.
-			if run.Config.ConfigUnderTest != nil {
-
-				if _, ok := run.Config.Module.Source.(addrs.ModuleSourceLocal); !ok {
-					// If it's not a local module, we're not going to validate
-					// it. The idea here is that if we're retrieving this module
-					// from the registry it's not the job of this run of the
-					// testing framework to test it. We should assume it's
-					// working correctly.
-					continue
-				}
-
-				if validated := validatedModules[run.Config.Module.Source.String()]; validated {
-					// We've validated this local module before, so don't do
-					// it again.
-					continue
-				}
-
-				validatedModules[run.Config.Module.Source.String()] = true
-				diags = diags.Append(runner.validateConfig(run.Config.ConfigUnderTest))
-			}
-
-		}
-	}
-
-	return diags
-}
-
 func (runner *TestRunner) Start(globals map[string]backend.UnparsedVariableValue) {
 	var files []string
 	for name := range runner.Suite.Files {
@@ -408,21 +335,32 @@ func (runner *TestRunner) Start(globals map[string]backend.UnparsedVariableValue
 func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
 	log.Printf("[TRACE] TestRunner: executing test file %s", file.Name)
 
+	printAll := func() {
+		runner.View.File(file)
+		for _, run := range file.Runs {
+			runner.View.Run(run, file)
+		}
+	}
+
 	mgr := new(TestStateManager)
 	mgr.runner = runner
 	mgr.State = states.NewState()
 
 	// We're going to check if the cleanupStates function call will actually
 	// work before we start the test.
-	diags := mgr.prepare(file, globals)
-	if diags.HasErrors() || runner.Cancelled || runner.Stopped {
-		file.Status = moduletest.Error
-		runner.View.File(file)
-		runner.View.Diagnostics(nil, file, diags)
+	mgr.prepare(file, globals)
+	if runner.Cancelled {
+		return // Don't print anything just stop.
+	}
+
+	if file.Diagnostics.HasErrors() || runner.Stopped {
+		// We can't run this file, but we still want to do nice printing.
 		for _, run := range file.Runs {
+			// The prepare function doesn't touch the run blocks, so we'll
+			// update those so they make sense.
 			run.Status = moduletest.Skip
-			runner.View.Run(run, file)
 		}
+		printAll()
 		return
 	}
 
@@ -468,11 +406,7 @@ func (runner *TestRunner) ExecuteTestFile(file *moduletest.File, globals map[str
 		file.Status = file.Status.Merge(run.Status)
 	}
 
-	runner.View.File(file)
-	runner.View.Diagnostics(nil, file, diags) // Print out any warnings from the preparation.
-	for _, run := range file.Runs {
-		runner.View.Run(run, file)
-	}
+	printAll()
 }
 
 func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.Run, file *moduletest.File, state *states.State, config *configs.Config, globals map[string]backend.UnparsedVariableValue) *states.State {
@@ -519,7 +453,12 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 		SkipRefresh:        !run.Config.Options.Refresh,
 		ExternalReferences: references,
 	}, run.Config.Command, globals)
-	diags = run.ValidateExpectedFailures(diags)
+	if plan != nil {
+		// If the returned plan is nil, then the something went wrong before
+		// we could even attempt to plan or apply the expected failures, so we
+		// won't validate them if the plan is nil.
+		diags = run.ValidateExpectedFailures(diags)
+	}
 	run.Diagnostics = run.Diagnostics.Append(diags)
 
 	if runner.Cancelled {
@@ -570,7 +509,9 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	variables, diags := buildInputVariablesForAssertions(run, file, globals)
+	variables, reset, diags := prepareInputVariablesForAssertions(config, run, file, globals)
+	defer reset()
+
 	run.Diagnostics = run.Diagnostics.Append(diags)
 	if diags.HasErrors() {
 		run.Status = moduletest.Error
@@ -586,21 +527,32 @@ func (runner *TestRunner) ExecuteTestRun(mgr *TestStateManager, run *moduletest.
 	return state
 }
 
-func (runner *TestRunner) validateConfig(config *configs.Config) tfdiags.Diagnostics {
-	log.Printf("[TRACE] TestRunner: validating specific config %s", config.Path)
+func (runner *TestRunner) validateFile(file *moduletest.File) {
+	log.Printf("[TRACE] TestRunner: validating config for %s", file.Name)
 
-	var diags tfdiags.Diagnostics
+	config := runner.Config
+
+	reset, transformDiags := config.TransformForTest(nil, file.Config)
+	defer reset()
+	file.Diagnostics = file.Diagnostics.Append(transformDiags)
+
+	if transformDiags.HasErrors() {
+		file.Status = moduletest.Error
+		return
+	}
 
 	tfCtxOpts, err := runner.command.contextOpts()
-	diags = diags.Append(err)
+	file.Diagnostics = file.Diagnostics.Append(err)
 	if err != nil {
-		return diags
+		file.Status = moduletest.Error
+		return
 	}
 
 	tfCtx, ctxDiags := terraform.NewContext(tfCtxOpts)
-	diags = diags.Append(ctxDiags)
+	file.Diagnostics = file.Diagnostics.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
-		return diags
+		file.Status = moduletest.Error
+		return
 	}
 
 	runningCtx, done := context.WithCancel(context.Background())
@@ -609,17 +561,22 @@ func (runner *TestRunner) validateConfig(config *configs.Config) tfdiags.Diagnos
 	go func() {
 		defer logging.PanicHandler()
 		defer done()
-		validateDiags = tfCtx.Validate(config)
-	}()
-	// We don't need to pass in any metadata here, as we're only validating
-	// so if something is cancelled it doesn't matter. We only pass in the
-	// metadata so we can print context around the cancellation which we don't
-	// need to do in this case.
-	waitDiags, _ := runner.wait(tfCtx, runningCtx, nil, nil, nil, nil)
 
-	diags = diags.Append(validateDiags)
-	diags = diags.Append(waitDiags)
-	return diags
+		log.Printf("[DEBUG] TestRunner: starting validate for %s", file.Name)
+		validateDiags = tfCtx.Validate(config)
+		log.Printf("[DEBUG] TestRunner: completed validate for %s", file.Name)
+	}()
+	// We don't pass in a manager or any created resources here since we are
+	// only validating. If something goes wrong, there will be no state we need
+	// to worry about cleaning up manually. So the manager and created resources
+	// can be empty.
+	waitDiags, _ := runner.wait(tfCtx, runningCtx, nil, nil, file, nil)
+
+	file.Diagnostics = file.Diagnostics.Append(validateDiags)
+	file.Diagnostics = file.Diagnostics.Append(waitDiags)
+	if validateDiags.HasErrors() || waitDiags.HasErrors() {
+		file.Status = moduletest.Error
+	}
 }
 
 // execute executes Terraform plan and apply operations for the given arguments.
@@ -639,9 +596,19 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 		return nil, nil, state, nil
 	}
 
-	// First, transform the config for the given test run and test file.
-
 	var diags tfdiags.Diagnostics
+
+	// First, do a quick validation of the run blocks config.
+
+	if run != nil {
+		diags = diags.Append(run.Config.Validate())
+		if diags.HasErrors() {
+			return nil, nil, state, diags
+		}
+	}
+
+	// Second, transform the config for the given test run and test file.
+
 	if run == nil {
 		reset, cfgDiags := config.TransformForTest(nil, file.Config)
 		defer reset()
@@ -655,16 +622,7 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 		return nil, nil, state, diags
 	}
 
-	// Second, gather any variables and give them to the plan options.
-
-	variables, variableDiags := buildInputVariablesForTest(run, file, config, globals)
-	diags = diags.Append(variableDiags)
-	if variableDiags.HasErrors() {
-		return nil, nil, state, diags
-	}
-	opts.SetVariables = variables
-
-	// Third, execute planning stage.
+	// Third, do a full validation of the now transformed config.
 
 	tfCtxOpts, err := runner.command.contextOpts()
 	diags = diags.Append(err)
@@ -680,6 +638,52 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 
 	runningCtx, done := context.WithCancel(context.Background())
 
+	var validateDiags tfdiags.Diagnostics
+	go func() {
+		defer logging.PanicHandler()
+		defer done()
+
+		log.Printf("[DEBUG] TestRunner: starting validate for %s", identifier)
+		validateDiags = tfCtx.Validate(config)
+		log.Printf("[DEBUG] TestRunner: completed validate for %s", identifier)
+	}()
+	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
+	validateDiags = validateDiags.Append(waitDiags)
+
+	diags = diags.Append(validateDiags)
+	if validateDiags.HasErrors() {
+		// Either the plan errored, or we only wanted to see the plan. Either
+		// way, just return what we have: The plan and diagnostics from making
+		// it and the unchanged state.
+		return tfCtx, nil, state, diags
+	}
+
+	if cancelled {
+		log.Printf("[DEBUG] TestRunner: skipping plan and apply stage for %s due to cancellation", identifier)
+		// If the execution was cancelled during the plan, we'll exit here to
+		// stop the plan being applied and using more time.
+		return tfCtx, nil, state, diags
+	}
+
+	// Fourth, gather any variables and give them to the plan options.
+
+	variables, variableDiags := buildInputVariablesForTest(run, file, config, globals)
+	diags = diags.Append(variableDiags)
+	if variableDiags.HasErrors() {
+		return nil, nil, state, diags
+	}
+	opts.SetVariables = variables
+
+	// Fifth, execute planning stage.
+
+	tfCtx, ctxDiags = terraform.NewContext(tfCtxOpts)
+	diags = diags.Append(ctxDiags)
+	if ctxDiags.HasErrors() {
+		return nil, nil, state, diags
+	}
+
+	runningCtx, done = context.WithCancel(context.Background())
+
 	var plan *plans.Plan
 	var planDiags tfdiags.Diagnostics
 	go func() {
@@ -690,7 +694,7 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 		plan, planDiags = tfCtx.Plan(config, state, opts)
 		log.Printf("[DEBUG] TestRunner: completed plan for %s", identifier)
 	}()
-	waitDiags, cancelled := runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
+	waitDiags, cancelled = runner.wait(tfCtx, runningCtx, mgr, run, file, nil)
 	planDiags = planDiags.Append(waitDiags)
 
 	diags = diags.Append(planDiags)
@@ -721,7 +725,7 @@ func (runner *TestRunner) execute(mgr *TestStateManager, run *moduletest.Run, fi
 	}
 	diags = filteredDiags
 
-	// Fourth, execute apply stage.
+	// Sixth, execute apply stage.
 	tfCtx, ctxDiags = terraform.NewContext(tfCtxOpts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
@@ -879,15 +883,22 @@ type TestModuleState struct {
 // successfully execute all our run blocks and then find we cannot perform any
 // cleanup. We want to use this function to check that our cleanup can happen
 // using only the information available within the file.
-func (manager *TestStateManager) prepare(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+func (manager *TestStateManager) prepare(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
 
-	// For now, the only thing we care about is making sure all the required
-	// variables have values.
+	// First, we're going to check we have definitions for variables at the
+	// file level.
+
 	_, diags := buildInputVariablesForTest(nil, file, manager.runner.Config, globals)
 
-	// Return the sum of diagnostics that might indicate a problem for any
-	// future attempted cleanup.
-	return diags
+	file.Diagnostics = file.Diagnostics.Append(diags)
+	if diags.HasErrors() {
+		file.Status = moduletest.Error
+	}
+
+	// Second, we'll validate that the default provider configurations actually
+	// pass a validate operation.
+
+	manager.runner.validateFile(file)
 }
 
 func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals map[string]backend.UnparsedVariableValue) {
@@ -936,7 +947,7 @@ func (manager *TestStateManager) cleanupStates(file *moduletest.File, globals ma
 // buildInputVariablesForTest creates a terraform.InputValues mapping for
 // variable values that are relevant to the config being tested.
 //
-// Crucially, it differs from buildInputVariablesForAssertions in that it only
+// Crucially, it differs from prepareInputVariablesForAssertions in that it only
 // includes variables that are reference by the config and not everything that
 // is defined within the test run block and test file.
 func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
@@ -979,15 +990,19 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 	return backend.ParseVariableValues(variables, config.Module.Variables)
 }
 
-// buildInputVariablesForAssertions creates a terraform.InputValues mapping that
-// contains all the variables defined for a given run and file, alongside any
-// unset variables that have defaults within the provided config.
+// prepareInputVariablesForAssertions creates a terraform.InputValues mapping
+// that contains all the variables defined for a given run and file, alongside
+// any unset variables that have defaults within the provided config.
 //
 // Crucially, it differs from buildInputVariablesForTest in that the returned
 // input values include all variables available even if they are not defined
 // within the config. This allows the assertions to refer to variables defined
 // solely within the test file, and not only those within the configuration.
-func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
+//
+// In addition, it modifies the provided config so that any variables that are
+// available are also defined in the config. It returns a function that resets
+// the config which must be called so the config can be reused going forward.
+func prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, func(), tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
@@ -1023,6 +1038,9 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		variables[name] = variable
 	}
 
+	// We've gathered all the values we have, let's convert them into
+	// terraform.InputValues so they can be passed into the Terraform graph.
+
 	inputs := make(terraform.InputValues, len(variables))
 	var diags tfdiags.Diagnostics
 	for name, variable := range variables {
@@ -1030,5 +1048,59 @@ func buildInputVariablesForAssertions(run *moduletest.Run, file *moduletest.File
 		diags = diags.Append(valueDiags)
 		inputs[name] = value
 	}
-	return inputs, diags
+
+	// Next, we're going to apply any default values from the configuration.
+	// We do this after the conversion into terraform.InputValues, as the
+	// defaults have already been converted into cty.Value objects.
+
+	for name, variable := range config.Module.Variables {
+		if _, exists := variables[name]; exists {
+			// Then we don't want to apply the default for this variable as we
+			// already have a value.
+			continue
+		}
+
+		if variable.Default != cty.NilVal {
+			inputs[name] = &terraform.InputValue{
+				Value:       variable.Default,
+				SourceType:  terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+			}
+		}
+	}
+
+	// Finally, we're going to do a some modifications to the config.
+	// If we have got variable values from the test file we need to make sure
+	// they have an equivalent entry in the configuration. We're going to do
+	// that dynamically here.
+
+	// First, take a backup of the existing configuration so we can easily
+	// restore it later.
+	currentVars := make(map[string]*configs.Variable)
+	for name, variable := range config.Module.Variables {
+		currentVars[name] = variable
+	}
+
+	// Next, let's go through our entire inputs and add any that aren't already
+	// defined into the config.
+	for name, value := range inputs {
+		if _, exists := config.Module.Variables[name]; exists {
+			continue
+		}
+
+		config.Module.Variables[name] = &configs.Variable{
+			Name:           name,
+			Type:           value.Value.Type(),
+			ConstraintType: value.Value.Type(),
+			DeclRange:      value.SourceRange.ToHCL(),
+		}
+	}
+
+	// We return our input values, a function that will reset the variables
+	// within the config so it can be used again, and any diagnostics reporting
+	// variables that we couldn't parse.
+
+	return inputs, func() {
+		config.Module.Variables = currentVars
+	}, diags
 }

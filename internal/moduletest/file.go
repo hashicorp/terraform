@@ -1,6 +1,9 @@
 package moduletest
 
-import "github.com/hashicorp/terraform/internal/configs"
+import (
+	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+)
 
 type File struct {
 	Config *configs.TestFile
@@ -9,4 +12,6 @@ type File struct {
 	Status Status
 
 	Runs []*Run
+
+	Diagnostics tfdiags.Diagnostics
 }

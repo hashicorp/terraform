@@ -6,6 +6,7 @@ package terraform
 import (
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/states"
@@ -22,7 +23,8 @@ type ImportOpts struct {
 	SetVariables InputValues
 }
 
-// ImportTarget is a single resource to import.
+// ImportTarget is a single resource to import,
+// in legacy (CLI) import mode.
 type ImportTarget struct {
 	// Config is the original import block for this import. This might be null
 	// if the import did not originate in config.
@@ -33,7 +35,7 @@ type ImportTarget struct {
 	Addr addrs.AbsResourceInstance
 
 	// ID is the ID of the resource to import. This is resource-specific.
-	ID string
+	ID hcl.Expression
 }
 
 // Import takes already-created external resources and brings them

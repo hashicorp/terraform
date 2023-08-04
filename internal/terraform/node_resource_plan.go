@@ -318,9 +318,20 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		if n.legacyImportMode {
 			for _, importTarget := range n.importTargets {
 				if importTarget.Addr.Equal(a.Addr) {
+
+					// The import ID was supplied as a string on the command
+					// line and made into a synthetic HCL expression.
+					importId, diags := evaluateImportIdExpression(importTarget.ID, ctx)
+					if diags.HasErrors() {
+						// This should be impossible, because the import command
+						// arg parsing builds the synth expression from a
+						// non-null string.
+						panic(fmt.Sprintf("Invalid import id: %s. This is a bug in Terraform; please report it!", diags.Err()))
+					}
+
 					return &graphNodeImportState{
 						Addr:             importTarget.Addr,
-						ID:               importTarget.ID,
+						ID:               importId,
 						ResolvedProvider: n.ResolvedProvider,
 					}
 				}

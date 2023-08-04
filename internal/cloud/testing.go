@@ -93,8 +93,9 @@ func testBackendAndMocksWithName(t *testing.T) (*Cloud, *MockClient, func()) {
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal(testBackendSingleWorkspaceName),
-			"tags": cty.NullVal(cty.Set(cty.String)),
+			"name":    cty.StringVal(testBackendSingleWorkspaceName),
+			"tags":    cty.NullVal(cty.Set(cty.String)),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 	return testBackend(t, obj, defaultTFCPing)
@@ -112,6 +113,7 @@ func testBackendWithTags(t *testing.T) (*Cloud, func()) {
 					cty.StringVal("billing"),
 				},
 			),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 	b, _, c := testBackend(t, obj, nil)
@@ -124,8 +126,9 @@ func testBackendNoOperations(t *testing.T) (*Cloud, func()) {
 		"organization": cty.StringVal("no-operations"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal(testBackendSingleWorkspaceName),
-			"tags": cty.NullVal(cty.Set(cty.String)),
+			"name":    cty.StringVal(testBackendSingleWorkspaceName),
+			"tags":    cty.NullVal(cty.Set(cty.String)),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 	b, _, c := testBackend(t, obj, nil)
@@ -138,8 +141,9 @@ func testBackendWithHandlers(t *testing.T, handlers map[string]func(http.Respons
 		"organization": cty.StringVal("hashicorp"),
 		"token":        cty.NullVal(cty.String),
 		"workspaces": cty.ObjectVal(map[string]cty.Value{
-			"name": cty.StringVal(testBackendSingleWorkspaceName),
-			"tags": cty.NullVal(cty.Set(cty.String)),
+			"name":    cty.StringVal(testBackendSingleWorkspaceName),
+			"tags":    cty.NullVal(cty.Set(cty.String)),
+			"project": cty.NullVal(cty.String),
 		}),
 	})
 	b, _, c := testBackend(t, obj, handlers)
