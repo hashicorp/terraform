@@ -669,8 +669,8 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			oldEnv := stashEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.StashEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			b := New()
 
@@ -734,8 +734,8 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			oldEnv := stashEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.StashEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			b := New()
 

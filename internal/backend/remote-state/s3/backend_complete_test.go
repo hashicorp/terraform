@@ -590,8 +590,8 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := initSessionTestEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.InitSessionTestEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			ctx := context.TODO()
 
@@ -605,16 +605,16 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 			}
 
 			if tc.EnableEc2MetadataServer {
-				closeEc2Metadata := awsMetadataApiMock(append(
-					ec2metadata_securityCredentialsEndpoints,
-					ec2metadata_instanceIdEndpoint,
-					ec2metadata_iamInfoEndpoint,
+				closeEc2Metadata := servicemocks.AwsMetadataApiMock(append(
+					servicemocks.Ec2metadata_securityCredentialsEndpoints,
+					servicemocks.Ec2metadata_instanceIdEndpoint,
+					servicemocks.Ec2metadata_iamInfoEndpoint,
 				))
 				defer closeEc2Metadata()
 			}
 
 			if tc.EnableEcsCredentialsServer {
-				closeEcsCredentials := ecsCredentialsApiMock()
+				closeEcsCredentials := servicemocks.EcsCredentialsApiMock()
 				defer closeEcsCredentials()
 			}
 
@@ -1091,8 +1091,8 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := initSessionTestEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.InitSessionTestEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			ctx := context.TODO()
 
@@ -1106,16 +1106,16 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 
 			if tc.EnableEc2MetadataServer {
-				closeEc2Metadata := awsMetadataApiMock(append(
-					ec2metadata_securityCredentialsEndpoints,
-					ec2metadata_instanceIdEndpoint,
-					ec2metadata_iamInfoEndpoint,
+				closeEc2Metadata := servicemocks.AwsMetadataApiMock(append(
+					servicemocks.Ec2metadata_securityCredentialsEndpoints,
+					servicemocks.Ec2metadata_instanceIdEndpoint,
+					servicemocks.Ec2metadata_iamInfoEndpoint,
 				))
 				defer closeEc2Metadata()
 			}
 
 			if tc.EnableEcsCredentialsServer {
-				closeEcsCredentials := ecsCredentialsApiMock()
+				closeEcsCredentials := servicemocks.EcsCredentialsApiMock()
 				defer closeEcsCredentials()
 			}
 
@@ -1531,8 +1531,8 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := initSessionTestEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.InitSessionTestEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			ctx := context.TODO()
 
@@ -1546,16 +1546,16 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			}
 
 			if tc.EnableEc2MetadataServer {
-				closeEc2Metadata := awsMetadataApiMock(append(
-					ec2metadata_securityCredentialsEndpoints,
-					ec2metadata_instanceIdEndpoint,
-					ec2metadata_iamInfoEndpoint,
+				closeEc2Metadata := servicemocks.AwsMetadataApiMock(append(
+					servicemocks.Ec2metadata_securityCredentialsEndpoints,
+					servicemocks.Ec2metadata_instanceIdEndpoint,
+					servicemocks.Ec2metadata_iamInfoEndpoint,
 				))
 				defer closeEc2Metadata()
 			}
 
 			if tc.EnableEcsCredentialsServer {
-				closeEcsCredentials := ecsCredentialsApiMock()
+				closeEcsCredentials := servicemocks.EcsCredentialsApiMock()
 				defer closeEcsCredentials()
 			}
 
@@ -1784,8 +1784,8 @@ region = us-west-2
 		tc := tc
 
 		t.Run(name, func(t *testing.T) {
-			oldEnv := initSessionTestEnv()
-			defer popEnv(oldEnv)
+			oldEnv := servicemocks.InitSessionTestEnv()
+			defer servicemocks.PopEnv(oldEnv)
 
 			// Populate required fields
 			tc.config["bucket"] = "bucket"
@@ -1796,11 +1796,11 @@ region = us-west-2
 			}
 
 			if tc.IMDSRegion != "" {
-				closeEc2Metadata := awsMetadataApiMock(append(
-					ec2metadata_securityCredentialsEndpoints,
-					ec2metadata_instanceIdEndpoint,
-					ec2metadata_iamInfoEndpoint,
-					ec2metadata_instanceIdentityEndpoint(tc.IMDSRegion),
+				closeEc2Metadata := servicemocks.AwsMetadataApiMock(append(
+					servicemocks.Ec2metadata_securityCredentialsEndpoints,
+					servicemocks.Ec2metadata_instanceIdEndpoint,
+					servicemocks.Ec2metadata_iamInfoEndpoint,
+					servicemocks.Ec2metadata_instanceIdentityEndpoint(tc.IMDSRegion),
 				))
 				defer closeEc2Metadata()
 			}
