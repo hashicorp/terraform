@@ -309,93 +309,6 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	}
 }
 
-func TestBackendConfig_STSEndpoint(t *testing.T) {
-	testACC(t)
-
-	stsMocks := []*awsbase.MockEndpoint{
-		{
-			Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
-				"Action":          []string{"AssumeRole"},
-				"DurationSeconds": []string{"900"},
-				"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-				"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
-				"Version":         []string{"2011-06-15"},
-			}.Encode()},
-			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
-		},
-		{
-			Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
-		},
-	}
-
-	cases := map[string]struct {
-		setConfig     bool
-		setEnvVars    bool
-		expectedDiags tfdiags.Diagnostics
-	}{
-		"none": {
-			expectedDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to configure AWS client",
-					``,
-				),
-			},
-		},
-		"config": {
-			setConfig: true,
-		},
-		"envvar": {
-			setEnvVars: true,
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			config := map[string]interface{}{
-				"region":       "us-west-1",
-				"bucket":       "tf-test",
-				"key":          "state",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
-			}
-
-			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", stsMocks)
-			if err != nil {
-				t.Fatalf("unexpected error creating mock STS server: %s", err)
-			}
-			defer closeSts()
-
-			if tc.setEnvVars {
-				os.Setenv("AWS_STS_ENDPOINT", aws.StringValue(mockStsSession.Config.Endpoint))
-				t.Cleanup(func() {
-					os.Unsetenv("AWS_STS_ENDPOINT")
-				})
-			}
-
-			if tc.setConfig {
-				config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
-			}
-
-			b := New()
-			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
-
-			configSchema, diags := b.PrepareConfig(configSchema)
-			if len(diags) > 0 {
-				t.Fatal(diags.ErrWithWarnings())
-			}
-
-			confDiags := b.Configure(configSchema)
-			diags = diags.Append(confDiags)
-
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticSummaryComparer)); diff != "" {
-				t.Errorf("unexpected diagnostics difference: %s", diff)
-			}
-		})
-	}
-}
-
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
 
@@ -1231,6 +1144,178 @@ func TestKeyEnv(t *testing.T) {
 	backend.TestBackendStates(t, b0)
 	backend.TestBackendStates(t, b1)
 	backend.TestBackendStates(t, b2)
+}
+
+func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
+	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+
+	cases := map[string]struct {
+		config        map[string]cty.Value
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"basic": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+			},
+		},
+
+		"invalid ARN": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("not an arn"),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid ARN",
+					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
+					path.GetAttr("role_arn"),
+				),
+			},
+		},
+
+		"no role_arn": {
+			config: map[string]cty.Value{},
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(path.GetAttr("role_arn")),
+			},
+		},
+
+		"with duration": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"duration": cty.StringVal("2h"),
+			},
+		},
+
+		"invalid duration": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"duration": cty.StringVal("two hours"),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Duration",
+					`The value "two hours" cannot be parsed as a duration: time: invalid duration "two hours"`,
+					path.GetAttr("duration"),
+				),
+			},
+		},
+
+		"with external_id": {
+			config: map[string]cty.Value{
+				"role_arn":    cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"external_id": cty.StringVal("external-id"),
+			},
+		},
+
+		"empty external_id": {
+			config: map[string]cty.Value{
+				"role_arn":    cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"external_id": cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value Length",
+					`Length must be between 2 and 1224, had 0`,
+					path.GetAttr("external_id"),
+				),
+			},
+		},
+
+		"with policy": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy":   cty.StringVal("{}"),
+			},
+		},
+
+		"invalid policy": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy":   cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value cannot be empty or all whitespace`,
+					path.GetAttr("policy"),
+				),
+			},
+		},
+
+		"with policy_arns": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy_arns": cty.SetVal([]cty.Value{
+					cty.StringVal("arn:aws:iam::123456789012:policy/testpolicy"),
+				}),
+			},
+		},
+
+		"invalid policy_arns": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy_arns": cty.SetVal([]cty.Value{
+					cty.StringVal("not an arn"),
+				}),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid ARN",
+					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
+					path.GetAttr("policy_arns").IndexString("not an arn"),
+				),
+			},
+		},
+
+		"with session_name": {
+			config: map[string]cty.Value{
+				"role_arn":     cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"session_name": cty.StringVal("session-name"),
+			},
+		},
+
+		// NOT SUPPORTED by `aws-sdk-go-base/v1`
+		// "source_identity"
+
+		"with tags": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"tag-key": cty.StringVal("tag-value"),
+				}),
+			},
+		},
+
+		"with transitive_tag_keys": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"transitive_tag_keys": cty.SetVal([]cty.Value{
+					cty.StringVal("tag-key"),
+				}),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			schema := assumeRoleFullSchema()
+			vals := make(map[string]cty.Value, len(schema))
+			for name, attrSchema := range schema {
+				if val, ok := tc.config[name]; ok {
+					vals[name] = val
+				} else {
+					vals[name] = cty.NullVal(attrSchema.SchemaAttribute().Type)
+				}
+			}
+			config := cty.ObjectVal(vals)
+
+			diags := prepareAssumeRoleConfig(config, path)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
 }
 
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
