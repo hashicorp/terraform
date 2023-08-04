@@ -67,9 +67,6 @@ func TestBackendConfig_original(t *testing.T) {
 		"dynamodb_table": "dynamoTable",
 	}
 
-	// var buf bytes.Buffer
-	// configureLogger(&buf)
-
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
 
 	if b.awsConfig.Region != "us-west-1" {
@@ -99,22 +96,6 @@ func TestBackendConfig_original(t *testing.T) {
 	if credentials.SecretAccessKey == "" {
 		t.Fatalf("No Secret Access Key was populated")
 	}
-	// expectedCreds := aws.Credentials{}
-	// if diff := cmp.Diff(credentials, expectedCreds, cmpopts.IgnoreFields(aws.Credentials{}, "Expires")); diff != "" {
-	// 	t.Fatalf("unexpected credentials: (- got, + expected)\n%s", diff)
-	// }
-
-	// logs := buf.String()
-	// strRead := strings.NewReader(logs)
-
-	// entries, err := multilineJSONDecode(strRead)
-	// if err != nil {
-	// 	t.Fatalf("Decoding log entries: %s", err.Error())
-	// }
-
-	// t.Logf("entries: %d", len(entries))
-
-	// t.Errorf("log:\n%s", logs)
 }
 
 // func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
