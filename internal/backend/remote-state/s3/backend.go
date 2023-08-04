@@ -538,7 +538,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRole = ar
 	}
 
-	_ /* ctx */, sess, err := awsbase.GetAwsConfig(ctx, cfg)
+	_ /* ctx */, awsConfig, err := awsbase.GetAwsConfig(ctx, cfg)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -547,15 +547,15 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		))
 		return diags
 	}
-	b.awsConfig = sess
+	b.awsConfig = awsConfig
 
-	b.dynClient = dynamodb.NewFromConfig(sess, func(opts *dynamodb.Options) {
+	b.dynClient = dynamodb.NewFromConfig(awsConfig, func(opts *dynamodb.Options) {
 		if val, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
 			opts.EndpointResolver = dynamodb.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
 	})
 
-	b.s3Client = s3.NewFromConfig(sess, func(opts *s3.Options) {
+	b.s3Client = s3.NewFromConfig(awsConfig, func(opts *s3.Options) {
 		if val, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
 			opts.EndpointResolver = s3.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
