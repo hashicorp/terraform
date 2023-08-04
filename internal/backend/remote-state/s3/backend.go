@@ -4,6 +4,7 @@
 package s3
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -12,13 +13,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/s3"
-	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -30,8 +31,9 @@ func New() backend.Backend {
 }
 
 type Backend struct {
-	s3Client  *s3.S3
-	dynClient *dynamodb.DynamoDB
+	awsConfig aws.Config
+	s3Client  *s3.Client
+	dynClient *dynamodb.Client
 
 	bucketName            string
 	keyName               string
@@ -385,6 +387,8 @@ func formatDeprecations(attrs map[string]string) string {
 // against the schema returned by ConfigSchema and passed validation
 // via PrepareConfig.
 func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
+	ctx := context.TODO()
+
 	var diags tfdiags.Diagnostics
 	if obj.IsNull() {
 		return diags
@@ -454,75 +458,87 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	cfg := &awsbase.Config{
-		AccessKey:              stringAttr(obj, "access_key"),
+		AccessKey: stringAttr(obj, "access_key"),
+		APNInfo:   stdUserAgentProducts(),
+		// AssumeRoleWithWebIdentity
 		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:             "S3 Backend",
-		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
-		DebugLogging:           logging.IsDebugOrHigher(),
 		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
-		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
 		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
 		Token:                  stringAttr(obj, "token"),
-		UserAgentProducts: []*awsbase.UserAgentProduct{
-			{Name: "APN", Version: "1.0"},
-			{Name: "HashiCorp", Version: "1.0"},
-			{Name: "Terraform", Version: version.String()},
-		},
+	}
+
+	if val, ok := boolAttrOk(obj, "skip_metadata_api_check"); ok {
+		if val {
+			cfg.EC2MetadataServiceEnableState = imds.ClientDisabled
+		} else {
+			cfg.EC2MetadataServiceEnableState = imds.ClientEnabled
+		}
+	}
+
+	if val, ok := stringAttrOk(obj, "shared_credentials_file"); ok {
+		cfg.SharedCredentialsFiles = []string{
+			val,
+		}
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
+		ar := &awsbase.AssumeRole{}
 		if val, ok := stringAttrOk(assumeRole, "role_arn"); ok {
-			cfg.AssumeRoleARN = val
+			ar.RoleARN = val
 		}
 		if val, ok := stringAttrOk(assumeRole, "duration"); ok {
 			duration, _ := time.ParseDuration(val)
-			cfg.AssumeRoleDurationSeconds = int(duration.Seconds())
+			ar.Duration = duration
 		}
 		if val, ok := stringAttrOk(assumeRole, "external_id"); ok {
-			cfg.AssumeRoleExternalID = val
+			ar.ExternalID = val
 		}
 		if val, ok := stringAttrOk(assumeRole, "policy"); ok {
-			cfg.AssumeRolePolicy = strings.TrimSpace(val)
+			ar.Policy = strings.TrimSpace(val)
 		}
 		if val, ok := stringSetAttrOk(assumeRole, "policy_arns"); ok {
-			cfg.AssumeRolePolicyARNs = val
+			ar.PolicyARNs = val
 		}
 		if val, ok := stringAttrOk(assumeRole, "session_name"); ok {
-			cfg.AssumeRoleSessionName = val
+			ar.SessionName = val
 		}
 		if val, ok := stringMapAttrOk(assumeRole, "tags"); ok {
-			cfg.AssumeRoleTags = val
+			ar.Tags = val
 		}
 		if val, ok := stringSetAttrOk(assumeRole, "transitive_tag_keys"); ok {
-			cfg.AssumeRoleTransitiveTagKeys = val
+			ar.TransitiveTagKeys = val
 		}
-	} else {
-		cfg.AssumeRoleARN = stringAttr(obj, "role_arn")
-		cfg.AssumeRoleSessionName = stringAttr(obj, "session_name")
-		cfg.AssumeRoleDurationSeconds = intAttr(obj, "assume_role_duration_seconds")
-		cfg.AssumeRoleExternalID = stringAttr(obj, "external_id")
+		cfg.AssumeRole = ar
+	} else if arn, ok := stringAttrOk(obj, "role_arn"); ok {
+		ar := &awsbase.AssumeRole{}
+		ar.RoleARN = arn
+		ar.SessionName = stringAttr(obj, "session_name")
+		ar.Duration = time.Duration(intAttr(obj, "assume_role_duration_seconds")) * time.Second
+		ar.ExternalID = stringAttr(obj, "external_id")
 		if val, ok := stringAttrOk(obj, "assume_role_policy"); ok {
-			cfg.AssumeRolePolicy = strings.TrimSpace(val)
+			ar.Policy = strings.TrimSpace(val)
 		}
 		if val, ok := stringSetAttrOk(obj, "assume_role_policy_arns"); ok {
-			cfg.AssumeRolePolicyARNs = val
+			ar.PolicyARNs = val
 		}
 
 		if val, ok := stringMapAttrOk(obj, "assume_role_tags"); ok {
-			cfg.AssumeRoleTags = val
+			ar.Tags = val
 		}
 
 		if val, ok := stringSetAttrOk(obj, "assume_role_transitive_tag_keys"); ok {
-			cfg.AssumeRoleTransitiveTagKeys = val
+			ar.TransitiveTagKeys = val
 		}
+		cfg.AssumeRole = ar
 	}
 
-	sess, err := awsbase.GetSession(cfg)
+	_ /* ctx */, sess, err := awsbase.GetAwsConfig(ctx, cfg)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -531,23 +547,33 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		))
 		return diags
 	}
+	b.awsConfig = sess
 
-	var dynamoConfig aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
-		dynamoConfig.Endpoint = aws.String(v)
-	}
-	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
+	b.dynClient = dynamodb.NewFromConfig(sess, func(opts *dynamodb.Options) {
+		if val, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
+			opts.EndpointResolver = dynamodb.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
+		}
+	})
 
-	var s3Config aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
-		s3Config.Endpoint = aws.String(v)
-	}
-	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
-		s3Config.S3ForcePathStyle = aws.Bool(v)
-	}
-	b.s3Client = s3.New(sess.Copy(&s3Config))
+	b.s3Client = s3.NewFromConfig(sess, func(opts *s3.Options) {
+		if val, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
+			opts.EndpointResolver = s3.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
+		}
+		if val, ok := boolAttrOk(obj, "force_path_style"); ok {
+			opts.UsePathStyle = val
+		}
+	})
 
 	return diags
+}
+
+func stdUserAgentProducts() *awsbase.APNInfo {
+	return &awsbase.APNInfo{
+		PartnerName: "HashiCorp",
+		Products: []awsbase.UserAgentProduct{
+			{Name: "Terraform", Version: version.String(), Comment: "+https://www.terraform.io"},
+		},
+	}
 }
 
 func stringValue(val cty.Value) string {

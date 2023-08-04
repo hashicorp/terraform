@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	servicemocks "github.com/hashicorp/aws-sdk-go-base"
+	"github.com/hashicorp/aws-sdk-go-base/v2/servicemocks"
 )
 
 // TODO: replace with `aws-sdk-go-base/v2/servicemocks.InitSessionTestEnv`
