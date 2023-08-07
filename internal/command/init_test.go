@@ -2642,7 +2642,7 @@ func TestInit_invalidSyntaxNoBackend(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
@@ -2671,7 +2671,7 @@ func TestInit_invalidSyntaxWithBackend(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
@@ -2700,14 +2700,14 @@ func TestInit_invalidSyntaxInvalidBackend(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 	if subStr := "Error: Unsupported block type"; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should mention syntax errors\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
-	if subStr := "Error: Unsupported backend type"; strings.Contains(errStr, subStr) {
-		t.Errorf("Error output should not mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
+	if subStr := "Error: Unsupported backend type"; !strings.Contains(errStr, subStr) {
+		t.Errorf("Error output should mention the invalid backend\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 }
 
@@ -2732,7 +2732,7 @@ func TestInit_invalidSyntaxBackendAttribute(t *testing.T) {
 	}
 
 	errStr := ui.ErrorWriter.String()
-	if subStr := "There are some problems with the configuration, described below"; !strings.Contains(errStr, subStr) {
+	if subStr := "Terraform encountered problems during initialisation, including problems\nwith the configuration, described below."; !strings.Contains(errStr, subStr) {
 		t.Errorf("Error output should include preamble\nwant substr: %s\ngot:\n%s", subStr, errStr)
 	}
 	if subStr := "Error: Invalid character"; !strings.Contains(errStr, subStr) {
