@@ -265,16 +265,19 @@ func (c *InitCommand) Run(args []string) int {
 	// We've passed the core version check, now we can show errors from the
 	// configuration and backend initialisation.
 
-	// Now, we can check the diagnostics from the early configuration.
+	// Now, we can check the diagnostics from the early configuration and the
+	// backend.
 	diags = diags.Append(earlyConfDiags)
+	diags = diags.Append(backDiags)
 	if earlyConfDiags.HasErrors() {
 		c.Ui.Error(strings.TrimSpace(errInitConfigError))
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	// Now, we can show any errors from initializing the backend.
-	diags = diags.Append(backDiags)
+	// Now, we can show any errors from initializing the backend, but we won't
+	// show the errInitConfigError preamble as we didn't detect problems with
+	// the early configuration.
 	if backDiags.HasErrors() {
 		c.showDiagnostics(diags)
 		return 1
@@ -1185,7 +1188,8 @@ func (c *InitCommand) Synopsis() string {
 }
 
 const errInitConfigError = `
-[reset]There are some problems with the configuration, described below.
+[reset]Terraform encountered problems during initialisation, including problems
+with the configuration, described below.
 
 The Terraform configuration must be valid before initialization so that
 Terraform can determine which modules and providers need to be installed.
