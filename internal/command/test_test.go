@@ -420,9 +420,9 @@ func TestTest_CatchesErrorsBeforeDestroy(t *testing.T) {
 	}
 
 	expectedOut := `main.tftest.hcl... fail
-  run "test"... skip
+  run "test"... fail
 
-Failure! 0 passed, 0 failed, 1 skipped.
+Failure! 0 passed, 1 failed.
 `
 
 	expectedErr := `
@@ -552,9 +552,9 @@ variable can be declared with a variable "not_real" {} block.
 		},
 		"missing-provider": {
 			expectedOut: `main.tftest.hcl... fail
-  run "passes_validation"... skip
+  run "passes_validation"... fail
 
-Failure! 0 passed, 0 failed, 1 skipped.
+Failure! 0 passed, 1 failed.
 `,
 			expectedErr: `
 Error: Provider configuration not present
@@ -719,5 +719,245 @@ func TestTest_NestedSetupModules(t *testing.T) {
 		} else {
 			t.Errorf("should have deleted all resources on completion but left %s", provider.ResourceString())
 		}
+	}
+}
+
+func TestTest_StatePropagation(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "state_propagation")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-verbose", "-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... pass
+  run "initial_apply_example"... pass
+# test_resource.module_resource:
+resource "test_resource" "module_resource" {
+    id    = "df6h8as9"
+    value = "start"
+}
+  run "initial_apply"... pass
+# test_resource.resource:
+resource "test_resource" "resource" {
+    id    = "598318e0"
+    value = "start"
+}
+  run "plan_second_example"... pass
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+
+Terraform will perform the following actions:
+
+  # test_resource.second_module_resource will be created
+  + resource "test_resource" "second_module_resource" {
+      + id    = "b6a1d8cb"
+      + value = "start"
+    }
+
+Plan: 1 to add, 0 to change, 0 to destroy.
+  run "plan_update"... pass
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.resource will be updated in-place
+  ~ resource "test_resource" "resource" {
+        id    = "598318e0"
+      ~ value = "start" -> "update"
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+  run "plan_update_example"... pass
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # test_resource.module_resource will be updated in-place
+  ~ resource "test_resource" "module_resource" {
+        id    = "df6h8as9"
+      ~ value = "start" -> "update"
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+Success! 5 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_OnlyExternalModules(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "only_modules")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+
+	providerSource, close := newMockProviderSource(t, map[string][]string{
+		"test": {"1.0.0"},
+	})
+	defer close()
+
+	streams, done := terminal.StreamsForTesting(t)
+	view := views.NewView(streams)
+	ui := new(cli.MockUi)
+
+	meta := Meta{
+		testingOverrides: metaOverridesForProvider(provider.Provider),
+		Ui:               ui,
+		View:             view,
+		Streams:          streams,
+		ProviderSource:   providerSource,
+	}
+
+	init := &InitCommand{
+		Meta: meta,
+	}
+
+	if code := init.Run(nil); code != 0 {
+		t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+	}
+
+	c := &TestCommand{
+		Meta: meta,
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... pass
+  run "first"... pass
+  run "second"... pass
+
+Success! 2 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_PartialUpdates(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "partial_updates")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code != 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expected := `main.tftest.hcl... pass
+  run "first"... pass
+
+Warning: Resource targeting is in effect
+
+You are creating a plan with the -target option, which means that the result
+of this plan may not represent all of the changes requested by the current
+configuration.
+
+The -target option is not for routine use, and is provided only for
+exceptional situations such as recovering from errors or mistakes, or when
+Terraform specifically suggests to use it as part of an error message.
+
+Warning: Applied changes may be incomplete
+
+The plan was created with the -target option in effect, so some changes
+requested in the configuration may have been ignored and the output values
+may not be fully updated. Run the following command to verify that no other
+changes are pending:
+    terraform plan
+	
+Note that the -target option is not suitable for routine use, and is provided
+only for exceptional situations such as recovering from errors or mistakes,
+or when Terraform specifically suggests to use it as part of an error
+message.
+  run "second"... pass
+
+Success! 2 passed, 0 failed.
+`
+
+	actual := output.All()
+
+	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
 	}
 }
