@@ -77,6 +77,12 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // needs to replace a directory that is already present with a newly-extracted
 // package.
 //
+// installErrsOnly installs modules but converts validation errors from
+// building the configuration after installation to warnings. This is used by
+// commands like `get` or `init -from-module` where the established behavior
+// was only to install the requested module, and extra validation can break
+// compatibility.
+//
 // If the returned diagnostics contains errors then the module installation
 // may have wholly or partially completed. Modules must be loaded in order
 // to find their dependencies, so this function does many of the same checks
@@ -85,7 +91,7 @@ func NewModuleInstaller(modsDir string, loader *configload.Loader, reg *registry
 // If successful (the returned diagnostics contains no errors) then the
 // first return value is the early configuration tree that was constructed by
 // the installation process.
-func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir string, upgrade, installErrsOnly bool, hooks ModuleInstallHooks) (*configs.Config, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] ModuleInstaller: installing child modules for %s into %s", rootDir, i.modsDir)
 	var diags tfdiags.Diagnostics
 
@@ -129,7 +135,7 @@ func (i *ModuleInstaller) InstallModules(ctx context.Context, rootDir, testsDir 
 	}
 	walker := i.moduleInstallWalker(ctx, manifest, upgrade, hooks, fetcher)
 
-	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker)
+	cfg, instDiags := i.installDescendentModules(rootMod, manifest, walker, installErrsOnly)
 	diags = append(diags, instDiags...)
 
 	return cfg, diags
@@ -277,12 +283,45 @@ func (i *ModuleInstaller) moduleInstallWalker(ctx context.Context, manifest mods
 	)
 }
 
-func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker) (*configs.Config, tfdiags.Diagnostics) {
+func (i *ModuleInstaller) installDescendentModules(rootMod *configs.Module, manifest modsdir.Manifest, installWalker configs.ModuleWalker, installErrsOnly bool) (*configs.Config, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	cfg, cDiags := configs.BuildConfig(rootMod, installWalker)
+	// When attempting to initialize the current directory with a module
+	// source, some use cases may want to ignore configuration errors from the
+	// building of the entire configuration structure, but we still need to
+	// capture installation errors. Because the actual module installation
+	// happens in the ModuleWalkFunc callback while building the config, we
+	// need to create a closure to capture the installation diagnostics
+	// separately.
+	var instDiags hcl.Diagnostics
+	walker := installWalker
+	if installErrsOnly {
+		walker = configs.ModuleWalkerFunc(func(req *configs.ModuleRequest) (*configs.Module, *version.Version, hcl.Diagnostics) {
+			mod, version, diags := installWalker.LoadModule(req)
+			instDiags = instDiags.Extend(diags)
+			return mod, version, diags
+		})
+	}
 
+	cfg, cDiags := configs.BuildConfig(rootMod, walker)
 	diags = diags.Append(cDiags)
+	if installErrsOnly {
+		// We can't continue if there was an error during installation, but
+		// return all diagnostics in case there happens to be anything else
+		// useful when debugging the problem. Any instDiags will be included in
+		// diags already.
+		if instDiags.HasErrors() {
+			return cfg, diags
+		}
+
+		// If there are any errors here, they must be only from building the
+		// config structures. We don't want to block initialization at this
+		// point, so convert these into warnings. Any actual errors in the
+		// configuration will be raised as soon as the config is loaded again.
+		// We continue below because writing the manifest is required to finish
+		// module installation.
+		diags = tfdiags.OverrideAll(diags, tfdiags.Warning, nil)
+	}
 
 	err := manifest.WriteSnapshotToDir(i.modsDir)
 	if err != nil {
