@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: MPL-2.0
+
 package tfdiags
 
 // overriddenDiagnostic implements the Diagnostic interface by wrapping another
