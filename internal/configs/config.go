@@ -430,8 +430,10 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 		reqs[fqn] = nil
 	}
 	for _, i := range c.Module.Import {
-		implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
+		implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
 		if err == nil {
+			// FIXME: this will not resolve correctly if the target module uses
+			// a different local name from the root module.
 			provider := c.Module.ImpliedProviderForUnqualifiedType(implied)
 			if _, exists := reqs[provider]; exists {
 				// Explicit dependency already present
@@ -452,14 +454,14 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 	// this will be because the user has written explicit provider arguments
 	// that don't agree and we'll get them to fix it.
 	for _, i := range c.Module.Import {
-		if len(i.To.Module) > 0 {
+		if len(i.ToResource.Module) > 0 {
 			// All provider information for imports into modules should come
 			// from the module block, so we don't need to load anything for
 			// import targets within modules.
 			continue
 		}
 
-		if target, exists := c.Module.ManagedResources[i.To.String()]; exists {
+		if target, exists := c.Module.ManagedResources[i.ToResource.Resource.String()]; exists {
 			// This means the information about the provider for this import
 			// should come from the resource block itself and not the import
 			// block.

@@ -236,7 +236,7 @@ func (c *ImportCommand) Run(args []string) int {
 	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
 		Targets: []*terraform.ImportTarget{
 			{
-				Addr: addr,
+				LegacyAddr: addr,
 
 				// In the import block, the ID can be an arbitrary hcl.Expression,
 				// but here it's always interpreted as a literal string.

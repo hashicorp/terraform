@@ -32,10 +32,13 @@ type ImportTarget struct {
 
 	// Addr is the address for the resource instance that the new object should
 	// be imported into.
-	Addr addrs.AbsResourceInstance
+	// TODO: remove
+	LegacyAddr addrs.AbsResourceInstance
 
 	// ID is the ID of the resource to import. This is resource-specific.
-	ID hcl.Expression
+	// TODO: the expression is evaluated from Config.
+	ID       hcl.Expression
+	idString string
 }
 
 // Import takes already-created external resources and brings them

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/dag"
@@ -102,8 +103,16 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	// Only include import targets that are targeting the current module.
 	var importTargets []*ImportTarget
 	for _, target := range t.importTargets {
-		if targetModule := target.Addr.Module.Module(); targetModule.Equal(config.Path) {
-			importTargets = append(importTargets, target)
+		// FIXME legacy mode handling is ugly
+		switch {
+		case target.Config == nil:
+			if target.LegacyAddr.Module.Module().Equal(config.Path) {
+				importTargets = append(importTargets, target)
+			}
+		default:
+			if target.Config.ToResource.Module.Equal(config.Path) {
+				importTargets = append(importTargets, target)
+			}
 		}
 	}
 
@@ -122,7 +131,13 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 
 		var matchedIndices []int
 		for ix, i := range importTargets {
-			if target := i.Addr.ContainingResource().Config(); target.Equal(configAddr) {
+			// FIXME
+			if i.LegacyAddr.ConfigResource().Equal(configAddr) {
+				matchedIndices = append(matchedIndices, ix)
+				imports = append(imports, i)
+
+			}
+			if i.Config != nil && i.Config.ToResource.Equal(configAddr) {
 				// This import target has been claimed by an actual resource,
 				// let's make a note of this to remove it from the targets.
 				matchedIndices = append(matchedIndices, ix)
@@ -171,14 +186,18 @@ func (t *ConfigTransformer) transformSingle(g *Graph, config *configs.Config, ge
 	// TODO: We could actually catch and process these kind of problems earlier,
 	//   this is something that could be done during the Validate process.
 	for _, i := range importTargets {
+		// we already parsed this loading the config, so don't bother with diagnostics again
+		// FIXME: legacy?
+		traversal, _ := hcl.AbsTraversalForExpr(i.Config.To)
+		to, _ := addrs.ParseAbsResourceInstance(traversal)
 		// The case in which an unmatched import block targets an expanded
 		// resource instance can error here. Others can error later.
-		if i.Addr.Resource.Key != addrs.NoKey {
-			return fmt.Errorf("Config generation for count and for_each resources not supported.\n\nYour configuration contains an import block with a \"to\" address of %s. This resource instance does not exist in configuration.\n\nIf you intended to target a resource that exists in configuration, please double-check the address. Otherwise, please remove this import block or re-run the plan without the -generate-config-out flag to ignore the import block.", i.Addr)
+		if to.Resource.Key != addrs.NoKey {
+			return fmt.Errorf("Config generation for count and for_each resources not supported.\n\nYour configuration contains an import block with a \"to\" address of %s. This resource instance does not exist in configuration.\n\nIf you intended to target a resource that exists in configuration, please double-check the address. Otherwise, please remove this import block or re-run the plan without the -generate-config-out flag to ignore the import block.", to)
 		}
 
 		abstract := &NodeAbstractResource{
-			Addr:               i.Addr.ConfigResource(),
+			Addr:               to.ConfigResource(),
 			importTargets:      []*ImportTarget{i},
 			generateConfigPath: generateConfigPath,
 		}

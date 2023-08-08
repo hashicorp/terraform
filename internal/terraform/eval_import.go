@@ -8,12 +8,13 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
 
-func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext) (string, tfdiags.Diagnostics) {
+func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext, keyData instances.RepetitionData) (string, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// import blocks only exist in the root module, and must be evaluated in
@@ -29,7 +30,8 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext) (string, t
 		})
 	}
 
-	importIdVal, evalDiags := ctx.EvaluateExpr(expr, cty.String, nil)
+	scope := ctx.EvaluationScope(nil, nil, keyData)
+	importIdVal, evalDiags := scope.EvalExpr(expr, cty.String)
 	diags = diags.Append(evalDiags)
 
 	if importIdVal.IsNull() {

@@ -159,18 +159,8 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		}
 	}
 
-	importing := n.importTarget.ID != nil
-	var importId string
-
-	if importing {
-		var evalDiags tfdiags.Diagnostics
-
-		importId, evalDiags = evaluateImportIdExpression(n.importTarget.ID, ctx)
-		if evalDiags.HasErrors() {
-			diags = diags.Append(evalDiags)
-			return diags
-		}
-	}
+	importing := n.importTarget.idString != ""
+	importId := n.importTarget.idString
 
 	if importing && n.Config == nil && len(n.generateConfigPath) == 0 {
 		// Then the user wrote an import target to a target that didn't exist.
@@ -505,7 +495,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 	}))
 
 	if imported[0].TypeName == "" {
-		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.importTarget.Addr.String()))
+		diags = diags.Append(fmt.Errorf("import of %s didn't set type", n.Addr.String()))
 		return nil, diags
 	}
 
@@ -524,7 +514,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 
 	// refresh
 	riNode := &NodeAbstractResourceInstance{
-		Addr: n.importTarget.Addr,
+		Addr: n.Addr,
 		NodeAbstractResource: NodeAbstractResource{
 			ResolvedProvider: n.ResolvedProvider,
 		},
@@ -548,7 +538,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					"is correct and that it is associated with the provider's "+
 					"configured region or endpoint, or use \"terraform apply\" to "+
 					"create a new remote object for this resource.",
-				n.importTarget.Addr,
+				n.Addr,
 			),
 		))
 		return instanceRefreshState, diags

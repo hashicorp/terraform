@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/states"
 	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // nodeExpandPlannableResource represents an addrs.ConfigResource and implements
@@ -302,8 +305,83 @@ func (n *nodeExpandPlannableResource) expandResourceInstances(globalCtx EvalCont
 	return diags.ErrWithWarnings()
 }
 
+// Import blocks are expanded in conjunction with their associated resource block.
+func (n nodeExpandPlannableResource) expandResourceImports(ctx EvalContext, addr addrs.AbsResource) (addrs.Map[addrs.AbsResourceInstance, string], tfdiags.Diagnostics) {
+	imports := addrs.MakeMap[addrs.AbsResourceInstance, string]()
+	var diags tfdiags.Diagnostics
+
+	for _, imp := range n.importTargets {
+		if imp.Config == nil {
+			continue
+		}
+
+		if !imp.Config.ToResource.Equal(addr.Config()) {
+			continue
+		}
+
+		if imp.Config.ForEach == nil {
+			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, EvalDataForNoInstanceKey)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return imports, diags
+			}
+
+			// we already parsed this loading the config, so don't bother with diagnostics again
+			traversal, _ := hcl.AbsTraversalForExpr(imp.Config.To)
+			to, _ := addrs.ParseAbsResourceInstance(traversal)
+			imports.Put(to, importID)
+		}
+
+		// FIXME: This won't work for lists like a dynamic block, but we still
+		// want the same errors because the values must be known for import.
+		forEach, forEachDiags := evaluateForEachExpression(imp.Config.ForEach, ctx)
+		diags = diags.Append(forEachDiags)
+		if forEachDiags.HasErrors() {
+			return imports, diags
+		}
+
+		for k, v := range forEach {
+			keyData := instances.RepetitionData{
+				EachKey:   cty.StringVal(k),
+				EachValue: v,
+			}
+
+			importID, evalDiags := evaluateImportIdExpression(imp.ID, ctx, keyData)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return imports, diags
+			}
+
+			// FIXME: evalReplaceTriggeredByExpr works within a module scope
+			ref, evalDiags := evalReplaceTriggeredByExpr(imp.Config.To, keyData)
+			diags = diags.Append(evalDiags)
+			if diags.HasErrors() {
+				return imports, diags
+			}
+			// The reference is either a resource or resource instance
+			switch sub := ref.Subject.(type) {
+			case addrs.Resource:
+				imports.Put(sub.Absolute(ctx.Path()).Instance(addrs.NoKey), importID)
+			case addrs.ResourceInstance:
+				imports.Put(sub.Absolute(ctx.Path()), importID)
+			default:
+				// FIXME:
+				panic(fmt.Sprintf("invalid import address: %#v", sub))
+			}
+		}
+	}
+
+	return imports, diags
+}
+
+// TODO: incorporate diagnostics
 func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, addr addrs.AbsResource, instanceAddrs []addrs.AbsResourceInstance) (*Graph, error) {
 	var diags tfdiags.Diagnostics
+
+	// Now that the resources are all expanded, we can expand the imports for
+	// this resource.
+	imports, importDiags := n.expandResourceImports(ctx, addr)
+	diags = diags.Append(importDiags)
 
 	// Our graph transformers require access to the full state, so we'll
 	// temporarily lock it while we work on this.
@@ -318,21 +396,10 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		// to return the import node, not a plannable resource node.
 		if n.legacyImportMode {
 			for _, importTarget := range n.importTargets {
-				if importTarget.Addr.Equal(a.Addr) {
-
-					// The import ID was supplied as a string on the command
-					// line and made into a synthetic HCL expression.
-					importId, diags := evaluateImportIdExpression(importTarget.ID, ctx)
-					if diags.HasErrors() {
-						// This should be impossible, because the import command
-						// arg parsing builds the synth expression from a
-						// non-null string.
-						panic(fmt.Sprintf("Invalid import id: %s. This is a bug in Terraform; please report it!", diags.Err()))
-					}
-
+				if importTarget.LegacyAddr.Equal(a.Addr) {
 					return &graphNodeImportState{
-						Addr:             importTarget.Addr,
-						ID:               importId,
+						Addr:             importTarget.LegacyAddr,
+						ID:               importTarget.idString,
 						ResolvedProvider: n.ResolvedProvider,
 					}
 				}
@@ -362,15 +429,10 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 			forceReplace:             n.forceReplace,
 		}
 
-		for _, importTarget := range n.importTargets {
-			if importTarget.Addr.Equal(a.Addr) {
-				// If we get here, we're definitely not in legacy import mode,
-				// so go ahead and plan the resource changes including import.
-				m.importTarget = ImportTarget{
-					ID:     importTarget.ID,
-					Addr:   importTarget.Addr,
-					Config: importTarget.Config,
-				}
+		importID, ok := imports.GetOk(a.Addr)
+		if ok {
+			m.importTarget = ImportTarget{
+				idString: importID,
 			}
 		}
 
@@ -429,6 +491,9 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 		Steps: steps,
 		Name:  "nodeExpandPlannableResource",
 	}
-	graph, diags := b.Build(addr.Module)
+	graph, graphDiags := b.Build(addr.Module)
+	diags = diags.Append(graphDiags)
+
+	// FIXME: diagnostics!
 	return graph, diags.ErrWithWarnings()
 }

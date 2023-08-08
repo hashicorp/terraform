@@ -422,7 +422,8 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 
 	for _, i := range file.Import {
 		for _, mi := range m.Import {
-			if i.To.Equal(mi.To) {
+			// FIXME: this doesn't allow multiple blocks for individual instances
+			if i.ToResource.Equal(mi.ToResource) {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  fmt.Sprintf("Duplicate import configuration for %q", i.To),
@@ -439,7 +440,7 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 				Alias:     i.ProviderConfigRef.Alias,
 			})
 		} else {
-			implied, err := addrs.ParseProviderPart(i.To.Resource.Resource.ImpliedProvider())
+			implied, err := addrs.ParseProviderPart(i.ToResource.Resource.ImpliedProvider())
 			if err == nil {
 				i.Provider = m.ImpliedProviderForUnqualifiedType(implied)
 			}
@@ -450,10 +451,10 @@ func (m *Module) appendFile(file *File) hcl.Diagnostics {
 		// It is invalid for any import block to have a "to" argument matching
 		// any moved block's "from" argument.
 		for _, mb := range m.Moved {
-			// Comparing string serialisations is good enough here, because we
-			// only care about equality in the case that both addresses are
-			// AbsResourceInstances.
-			if mb.From.String() == i.To.String() {
+			// FIXME: This is not correct for moved modules, and won't catch
+			// all combinations of expanded imports (though preventing
+			// collisions based on ConfigResource alone may be sufficient)
+			if mb.From.String() == i.ToResource.String() {
 				diags = append(diags, &hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Cannot import to a move source",
