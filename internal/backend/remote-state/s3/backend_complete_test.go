@@ -151,8 +151,8 @@ func TestBackendConfig_Authentication(t *testing.T) {
 			config: map[string]any{},
 			ValidateDiags: ExpectDiagMatching(
 				tfdiags.Error,
-				equalsMatcher("Failed to configure AWS client"),
-				newRegexpMatcher("no valid credential sources for S3 Backend found"),
+				equalsMatcher("No valid credential sources found"),
+				ignoreMatcher{},
 			),
 		},
 
@@ -502,8 +502,8 @@ region = us-east-1
 			},
 			ValidateDiags: ExpectDiagMatching(
 				tfdiags.Error,
-				equalsMatcher("Failed to configure AWS client"),
-				newRegexpMatcher("no valid credential sources for S3 Backend found"),
+				equalsMatcher("No valid credential sources found"),
+				ignoreMatcher{},
 			),
 		},
 
@@ -1080,7 +1080,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 				),
 				diagMatching(
 					tfdiags.Error,
-					equalsMatcher("Failed to configure AWS client"),
+					equalsMatcher("Cannot assume IAM Role"),
 					newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
 				),
 			),
@@ -1520,7 +1520,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ValidateDiags: ExpectDiags(
 				diagMatching(
 					tfdiags.Error,
-					equalsMatcher("Failed to configure AWS client"),
+					equalsMatcher("Cannot assume IAM Role"),
 					newRegexpMatcher(`IAM Role \(.+\) cannot be assumed.`),
 				),
 			),

@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base/v2"
+	basediag "github.com/hashicorp/aws-sdk-go-base/v2/diag"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -538,13 +539,22 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRole = ar
 	}
 
-	_ /* ctx */, awsConfig, err := awsbase.GetAwsConfig(ctx, cfg)
-	if err != nil {
+	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)
+	for _, diag := range cfgDiags {
+		var severity tfdiags.Severity
+		switch diag.Severity() {
+		case basediag.SeverityError:
+			severity = tfdiags.Error
+		case basediag.SeverityWarning:
+			severity = tfdiags.Warning
+		}
 		diags = diags.Append(tfdiags.Sourceless(
-			tfdiags.Error,
-			"Failed to configure AWS client",
-			fmt.Sprintf(`The "S3" backend encountered an unexpected error while creating the AWS client: %s`, err),
+			severity,
+			diag.Summary(),
+			diag.Detail(),
 		))
+	}
+	if diags.HasErrors() {
 		return diags
 	}
 	b.awsConfig = awsConfig
