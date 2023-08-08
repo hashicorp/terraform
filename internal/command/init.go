@@ -374,7 +374,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 		ShowLocalPaths: true,
 	}
 
-	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, hooks)
+	installAbort, installDiags := c.installModules(ctx, path, testsDir, upgrade, false, hooks)
 	diags = diags.Append(installDiags)
 
 	// At this point, installModules may have generated error diags or been
