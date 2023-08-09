@@ -1,3 +1,5 @@
+## 1.5.6 (Unreleased)
+
 ## 1.5.5 (August 9, 2023)
 
 * `terraform init`: Fix crash when using invalid configuration in backend blocks. ([#33628](https://github.com/hashicorp/terraform/issues/33628))
