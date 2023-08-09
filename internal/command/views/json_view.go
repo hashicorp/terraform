@@ -17,7 +17,7 @@ import (
 // This version describes the schema of JSON UI messages. This version must be
 // updated after making any changes to this view, the jsonHook, or any of the
 // command/views/json package.
-const JSON_UI_VERSION = "1.1"
+const JSON_UI_VERSION = "1.2"
 
 func NewJSONView(view *View) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
