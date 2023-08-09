@@ -1,6 +1,6 @@
 ## 1.5.5 (Unreleased)
 
-* `terraform init`: Fix crash when using invalid configuration in backend blocks. ([#33628]((https://github.com/hashicorp/terraform/issues/33628)))
+* `terraform init`: Fix crash when using invalid configuration in backend blocks. ([#33628](https://github.com/hashicorp/terraform/issues/33628))
 
 ## 1.5.4 (July 26, 2023)
 
