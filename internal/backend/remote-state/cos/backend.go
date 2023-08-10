@@ -28,6 +28,7 @@ const (
 	PROVIDER_SECRET_KEY                   = "TENCENTCLOUD_SECRET_KEY"
 	PROVIDER_SECURITY_TOKEN               = "TENCENTCLOUD_SECURITY_TOKEN"
 	PROVIDER_REGION                       = "TENCENTCLOUD_REGION"
+	PROVIDER_ENDPOINT                     = "TENCENTCLOUD_ENDPOINT"
 	PROVIDER_ASSUME_ROLE_ARN              = "TENCENTCLOUD_ASSUME_ROLE_ARN"
 	PROVIDER_ASSUME_ROLE_SESSION_NAME     = "TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME"
 	PROVIDER_ASSUME_ROLE_SESSION_DURATION = "TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION"
@@ -86,6 +87,12 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "The name of the COS bucket",
+			},
+			"endpoint": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The custom endpoint for the COS API. eg: http://{Bucket}.cos-internal.{Region}.tencentcos.cn",
+				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ENDPOINT, nil),
 			},
 			"prefix": {
 				Type:        schema.TypeString,
@@ -226,6 +233,15 @@ func (b *Backend) configure(ctx context.Context) error {
 		u, err = url.Parse(fmt.Sprintf("https://%s.cos.accelerate.myqcloud.com", b.bucket))
 	} else {
 		u, err = url.Parse(fmt.Sprintf("https://%s.cos.%s.myqcloud.com", b.bucket, b.region))
+	}
+	if err != nil {
+		return err
+	}
+
+	// set url as endpoint when it provided
+	if v, ok := data.GetOk("endpoint"); ok {
+		endpoint := v.(string)
+		u, err = url.Parse(endpoint)
 	}
 	if err != nil {
 		return err
