@@ -402,6 +402,22 @@ func TestCloud_planWithPath(t *testing.T) {
 	if !strings.Contains(plan.RunID, "run-") || plan.Hostname != "app.terraform.io" {
 		t.Fatalf("unexpected contents in saved cloud plan: %v", plan)
 	}
+
+	// We should find a run inside the mock client that has a provisional, non-speculative
+	// configuration version
+	configVersionsAPI := b.client.ConfigurationVersions.(*MockConfigurationVersions)
+	if got, want := len(configVersionsAPI.configVersions), 1; got != want {
+		t.Fatalf("wrong number of configuration versions in the mock client %d; want %d", got, want)
+	}
+	for _, configVersion := range configVersionsAPI.configVersions {
+		if configVersion.Provisional != true {
+			t.Errorf("wrong Provisional setting in the created configuration version\ngot %v, expected %v", configVersion.Provisional, true)
+		}
+
+		if configVersion.Speculative != false {
+			t.Errorf("wrong Speculative setting in the created configuration version\ngot %v, expected %v", configVersion.Speculative, false)
+		}
+	}
 }
 
 func TestCloud_planWithoutRefresh(t *testing.T) {

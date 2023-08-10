@@ -118,11 +118,13 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 	}
 
 	// Plan-only means they ran terraform plan without -out.
-	planOnly := op.Type == backend.OperationTypePlan && op.PlanOutPath == ""
+	provisional := op.PlanOutPath != ""
+	planOnly := op.Type == backend.OperationTypePlan && !provisional
 
 	configOptions := tfe.ConfigurationVersionCreateOptions{
 		AutoQueueRuns: tfe.Bool(false),
 		Speculative:   tfe.Bool(planOnly),
+		Provisional:   tfe.Bool(provisional),
 	}
 
 	cv, err := b.client.ConfigurationVersions.Create(stopCtx, w.ID, configOptions)
