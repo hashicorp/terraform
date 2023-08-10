@@ -116,6 +116,20 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 	}
 }
 
+// S3 will strip leading slashes from an object, so while this will
+// technically be accepted by S3, it will break our workspace hierarchy.
+// S3 will recognize objects with a trailing slash as a directory
+// so they should not be valid keys
+func validateStringS3Path(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	if strings.HasPrefix(val, "/") || strings.HasSuffix(val, "/") {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			`The value must not start or end with "/"`,
+			path,
+		))
+	}
+}
+
 func validateARN(validators ...arnValidator) stringValidator {
 	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		parsedARN, err := arn.Parse(val)
@@ -289,4 +303,8 @@ func validateDurationBetween(min, max time.Duration) durationValidator {
 
 func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
 	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath.Copy())
+}
+
+func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
+	return tfdiags.WholeContainingBody(tfdiags.Error, summary, detail)
 }

@@ -241,33 +241,31 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		return obj, diags
 	}
 
-	if val := obj.GetAttr("bucket"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid bucket value",
-			`The "bucket" attribute value must not be empty.`,
-			cty.Path{cty.GetAttrStep{Name: "bucket"}},
-		))
+	var attrPath cty.Path
+
+	attrPath = cty.Path{cty.GetAttrStep{Name: "bucket"}}
+	if val := obj.GetAttr("bucket"); val.IsNull() {
+		diags = diags.Append(requiredAttributeErrDiag(attrPath))
+	} else {
+		bucketValidators := validateString{
+			Validators: []stringValidator{
+				validateStringNotEmpty,
+			},
+		}
+		bucketValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	if val := obj.GetAttr("key"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid key value",
-			`The "key" attribute value must not be empty.`,
-			cty.Path{cty.GetAttrStep{Name: "key"}},
-		))
-	} else if strings.HasPrefix(val.AsString(), "/") || strings.HasSuffix(val.AsString(), "/") {
-		// S3 will strip leading slashes from an object, so while this will
-		// technically be accepted by S3, it will break our workspace hierarchy.
-		// S3 will recognize objects with a trailing slash as a directory
-		// so they should not be valid keys
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid key value",
-			`The "key" attribute value must not start or end with with "/".`,
-			cty.Path{cty.GetAttrStep{Name: "key"}},
-		))
+	attrPath = cty.Path{cty.GetAttrStep{Name: "key"}}
+	if val := obj.GetAttr("key"); val.IsNull() {
+		diags = diags.Append(requiredAttributeErrDiag(attrPath))
+	} else {
+		keyValidators := validateString{
+			Validators: []stringValidator{
+				validateStringNotEmpty,
+				validateStringS3Path,
+			},
+		}
+		keyValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	if val := obj.GetAttr("region"); val.IsNull() || val.AsString() == "" {
@@ -283,33 +281,28 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
 		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
+			diags = diags.Append(wholeBodyErrDiag(
 				"Invalid encryption configuration",
 				encryptionKeyConflictError,
-				cty.Path{},
 			))
 		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
+			diags = diags.Append(wholeBodyErrDiag(
 				"Invalid encryption configuration",
 				encryptionKeyConflictEnvVarError,
-				cty.Path{},
 			))
 		}
 
 		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
 	}
 
+	attrPath = cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}}
 	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
-		if v := val.AsString(); strings.HasPrefix(v, "/") || strings.HasSuffix(v, "/") {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid workspace_key_prefix value",
-				`The "workspace_key_prefix" attribute value must not start with "/".`,
-				cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
-			))
+		keyPrefixValidators := validateString{
+			Validators: []stringValidator{
+				validateStringS3Path,
+			},
 		}
+		keyPrefixValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	var assumeRoleDeprecatedFields = map[string]string{
