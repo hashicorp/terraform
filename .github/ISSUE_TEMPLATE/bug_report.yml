@@ -1,5 +1,5 @@
 # Copyright (c) HashiCorp, Inc.
-# SPDX-License-Identifier: MPL-2.0
+# SPDX-License-Identifier: BUSL-1.1
 
 name: Bug Report
 description: Let us know about an unexpected error, a crash, or an incorrect behavior.
