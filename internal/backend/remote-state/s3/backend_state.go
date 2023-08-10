@@ -4,15 +4,16 @@
 package s3
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path"
 	"sort"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/states"
@@ -23,31 +24,38 @@ import (
 func (b *Backend) Workspaces() ([]string, error) {
 	const maxKeys = 1000
 
+	ctx := context.TODO()
+
 	prefix := ""
 
 	if b.workspaceKeyPrefix != "" {
 		prefix = b.workspaceKeyPrefix + "/"
 	}
 
-	params := &s3.ListObjectsInput{
-		Bucket:  &b.bucketName,
+	params := &s3.ListObjectsV2Input{
+		Bucket:  aws.String(b.bucketName),
 		Prefix:  aws.String(prefix),
-		MaxKeys: aws.Int64(maxKeys),
+		MaxKeys: maxKeys,
 	}
 
 	wss := []string{backend.DefaultStateName}
-	err := b.s3Client.ListObjectsPages(params, func(page *s3.ListObjectsOutput, lastPage bool) bool {
+
+	pages := s3.NewListObjectsV2Paginator(b.s3Client, params)
+	for pages.HasMorePages() {
+		page, err := pages.NextPage(ctx)
+		if err != nil {
+			if IsA[*s3types.NoSuchBucket](err) {
+				return nil, fmt.Errorf(errS3NoSuchBucket, err)
+			}
+			return nil, err
+		}
+
 		for _, obj := range page.Contents {
-			ws := b.keyEnv(*obj.Key)
+			ws := b.keyEnv(aws.ToString(obj.Key))
 			if ws != "" {
 				wss = append(wss, ws)
 			}
 		}
-		return !lastPage
-	})
-
-	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == s3.ErrCodeNoSuchBucket {
-		return nil, fmt.Errorf(errS3NoSuchBucket, err)
 	}
 
 	sort.Strings(wss[1:])
