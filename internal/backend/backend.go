@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 // Package backend provides interfaces that the CLI uses to interact with
 // Terraform. A backend provides the abstraction that allows the same CLI
