@@ -301,6 +301,42 @@ func validateDurationBetween(min, max time.Duration) durationValidator {
 	}
 }
 
+type objectValidator func(obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics)
+
+func validateAttributesConflict(paths ...cty.Path) objectValidator {
+	return func(obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
+		found := false
+		for _, path := range paths {
+			val, err := path.Apply(obj)
+			if err != nil {
+				*diags = diags.Append(attributeErrDiag(
+					"Invalid Path for Schema",
+					"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+						"Please report this to the developers.\n\n"+
+						"Path: "+pathString(path),
+					objPath,
+				))
+				continue
+			}
+			if !val.IsNull() {
+				if found {
+					pathStrs := make([]string, len(paths))
+					for i, path := range paths {
+						pathStrs[i] = pathString(path)
+					}
+					*diags = diags.Append(attributeErrDiag(
+						"Invalid Attribute Combination",
+						fmt.Sprintf(`Only one of %s can be set.`, strings.Join(pathStrs, ", ")),
+						objPath,
+					))
+				} else {
+					found = true
+				}
+			}
+		}
+	}
+}
+
 func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
 	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath.Copy())
 }

@@ -700,9 +700,10 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab"),
 			}),
 			expectedDiags: tfdiags.Diagnostics{
-				wholeBodyErrDiag(
-					"Invalid encryption configuration",
-					encryptionKeyConflictError,
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of kms_key_id, sse_customer_key can be set.`,
+					cty.Path{},
 				),
 			},
 		},

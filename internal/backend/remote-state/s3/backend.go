@@ -279,13 +279,13 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	validateAttributesConflict(
+		cty.GetAttrPath("kms_key_id"),
+		cty.GetAttrPath("sse_customer_key"),
+	)(obj, cty.Path{}, &diags)
+
 	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
-		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
-			diags = diags.Append(wholeBodyErrDiag(
-				"Invalid encryption configuration",
-				encryptionKeyConflictError,
-			))
-		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
 			diags = diags.Append(wholeBodyErrDiag(
 				"Invalid encryption configuration",
 				encryptionKeyConflictEnvVarError,
@@ -660,12 +660,6 @@ func intAttrDefault(obj cty.Value, name string, def int) int {
 		return v
 	}
 }
-
-const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
-
-The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
-while "sse_customer_key" is used for encryption with customer-managed keys (SSE-C).
-Please choose one or the other.`
 
 const encryptionKeyConflictEnvVarError = `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set.
 
