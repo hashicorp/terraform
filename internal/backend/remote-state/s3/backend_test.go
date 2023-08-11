@@ -117,7 +117,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 					tfdiags.Error,
 					"Invalid region value",
 					`Invalid AWS Region: nonesuch`,
-					cty.Path{cty.GetAttrStep{Name: "region"}},
+					cty.GetAttrPath("region"),
 				),
 			},
 		},
@@ -560,7 +560,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region": cty.StringVal("us-west-2"),
 			}),
 			expectedDiags: tfdiags.Diagnostics{
-				requiredAttributeErrDiag(cty.Path{cty.GetAttrStep{Name: "bucket"}}),
+				requiredAttributeErrDiag(cty.GetAttrPath("bucket")),
 			},
 		},
 		"empty bucket": {
@@ -573,7 +573,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					"The value cannot be empty or all whitespace",
-					cty.Path{cty.GetAttrStep{Name: "bucket"}},
+					cty.GetAttrPath("bucket"),
 				),
 			},
 		},
@@ -585,7 +585,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region": cty.StringVal("us-west-2"),
 			}),
 			expectedDiags: tfdiags.Diagnostics{
-				requiredAttributeErrDiag(cty.Path{cty.GetAttrStep{Name: "key"}}),
+				requiredAttributeErrDiag(cty.GetAttrPath("key")),
 			},
 		},
 		"empty key": {
@@ -598,7 +598,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					"The value cannot be empty or all whitespace",
-					cty.Path{cty.GetAttrStep{Name: "key"}},
+					cty.GetAttrPath("key"),
 				),
 			},
 		},
@@ -612,7 +612,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					`The value must not start or end with "/"`,
-					cty.Path{cty.GetAttrStep{Name: "key"}},
+					cty.GetAttrPath("key"),
 				),
 			},
 		},
@@ -626,7 +626,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					`The value must not start or end with "/"`,
-					cty.Path{cty.GetAttrStep{Name: "key"}},
+					cty.GetAttrPath("key"),
 				),
 			},
 		},
@@ -641,7 +641,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Missing region value",
 					`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
-					cty.Path{cty.GetAttrStep{Name: "region"}},
+					cty.GetAttrPath("region"),
 				),
 			},
 		},
@@ -655,7 +655,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Missing region value",
 					`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
-					cty.Path{cty.GetAttrStep{Name: "region"}},
+					cty.GetAttrPath("region"),
 				),
 			},
 		},
@@ -671,7 +671,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					`The value must not start or end with "/"`,
-					cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
+					cty.GetAttrPath("workspace_key_prefix"),
 				),
 			},
 		},
@@ -686,7 +686,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				attributeErrDiag(
 					"Invalid Value",
 					`The value must not start or end with "/"`,
-					cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
+					cty.GetAttrPath("workspace_key_prefix"),
 				),
 			},
 		},
@@ -1252,7 +1252,7 @@ func TestKeyEnv(t *testing.T) {
 }
 
 func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	cases := map[string]struct {
 		config        map[string]cty.Value

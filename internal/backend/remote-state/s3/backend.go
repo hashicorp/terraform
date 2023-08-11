@@ -243,7 +243,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	var attrPath cty.Path
 
-	attrPath = cty.Path{cty.GetAttrStep{Name: "bucket"}}
+	attrPath = cty.GetAttrPath("bucket")
 	if val := obj.GetAttr("bucket"); val.IsNull() {
 		diags = diags.Append(requiredAttributeErrDiag(attrPath))
 	} else {
@@ -255,7 +255,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		bucketValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	attrPath = cty.Path{cty.GetAttrStep{Name: "key"}}
+	attrPath = cty.GetAttrPath("key")
 	if val := obj.GetAttr("key"); val.IsNull() {
 		diags = diags.Append(requiredAttributeErrDiag(attrPath))
 	} else {
@@ -275,7 +275,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				tfdiags.Error,
 				"Missing region value",
 				`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
-				cty.Path{cty.GetAttrStep{Name: "region"}},
+				cty.GetAttrPath("region"),
 			))
 		}
 	}
@@ -285,7 +285,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		cty.GetAttrPath("sse_customer_key"),
 	)(obj, cty.Path{}, &diags)
 
-	attrPath = cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}
+	attrPath = cty.GetAttrPath("kms_key_id")
 	if val := obj.GetAttr("kms_key_id"); !val.IsNull() {
 		kmsKeyIDValidators := validateString{
 			Validators: []stringValidator{
@@ -295,7 +295,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		kmsKeyIDValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	attrPath = cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}}
+	attrPath = cty.GetAttrPath("workspace_key_prefix")
 	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
 		keyPrefixValidators := validateString{
 			Validators: []stringValidator{
@@ -317,7 +317,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
-		diags = diags.Append(prepareAssumeRoleConfig(val, cty.Path{cty.GetAttrStep{Name: "assume_role"}}))
+		diags = diags.Append(prepareAssumeRoleConfig(val, cty.GetAttrPath("assume_role")))
 
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
 			diags = diags.Append(tfdiags.WholeContainingBody(
@@ -394,7 +394,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 				tfdiags.Error,
 				"Invalid region value",
 				err.Error(),
-				cty.Path{cty.GetAttrStep{Name: "region"}},
+				cty.GetAttrPath("region"),
 			))
 			return diags
 		}
@@ -423,7 +423,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 				tfdiags.Error,
 				"Invalid sse_customer_key value",
 				"sse_customer_key must be 44 characters in length",
-				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+				cty.GetAttrPath("sse_customer_key"),
 			))
 		} else {
 			var err error
@@ -432,7 +432,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 					tfdiags.Error,
 					"Invalid sse_customer_key value",
 					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
-					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+					cty.GetAttrPath("sse_customer_key"),
 				))
 			}
 		}
