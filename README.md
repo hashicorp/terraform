@@ -1,4 +1,6 @@
-# Terraform
+# Layerfork
+
+An MPL licensed fork of Terraform following their [license change](https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license).
 
 - Website: https://www.terraform.io
 - Forums: [HashiCorp Discuss](https://discuss.hashicorp.com/c/terraform-core)
