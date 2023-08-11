@@ -845,6 +845,69 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
+func TestBackendKmsKeyId(t *testing.T) {
+	testACC(t)
+
+	testCases := map[string]struct {
+		config        map[string]any
+		expectedKeyId string
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"valid": {
+			config: map[string]any{
+				"kms_key_id": "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+			},
+			expectedKeyId: "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+		},
+
+		"invalid": {
+			config: map[string]any{
+				"kms_key_id": "not-an-arn",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid KMS Key ID",
+					`Value must be a valid KMS Key ID, got "not-an-arn"`,
+					cty.GetAttrPath("kms_key_id"),
+				),
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+			config := map[string]any{
+				"bucket":  bucketName,
+				"encrypt": true,
+				"key":     "test-SSE-KMS",
+				"region":  "us-west-1",
+			}
+			maps.Copy(config, tc.config)
+
+			b := New().(*Backend)
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
+
+			configSchema, diags := b.PrepareConfig(configSchema)
+
+			if !diags.HasErrors() {
+				confDiags := b.Configure(configSchema)
+				diags = diags.Append(confDiags)
+			}
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if tc.expectedKeyId != "" {
+				if string(b.kmsKeyID) != tc.expectedKeyId {
+					t.Fatal("unexpected value for KMS key Id")
+				}
+			}
+		})
+	}
+}
+
 func TestBackendSSECustomerKey(t *testing.T) {
 	testACC(t)
 
@@ -968,7 +1031,6 @@ func TestBackendSSECustomerKey(t *testing.T) {
 				if string(b.customerEncryptionKey) != tc.expectedKey {
 					t.Fatal("unexpected value for customer encryption key")
 				}
-
 			}
 		})
 	}
