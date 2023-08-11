@@ -752,19 +752,6 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 				"AWS_DEFAULT_REGION": "us-west-1",
 			},
 		},
-		"encyrption key conflict": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"bucket":               cty.StringVal("test"),
-				"key":                  cty.StringVal("test"),
-				"region":               cty.StringVal("us-west-2"),
-				"workspace_key_prefix": cty.StringVal("env"),
-				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab"),
-			}),
-			vars: map[string]string{
-				"AWS_SSE_CUSTOMER_KEY": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
-			},
-			expectedErr: `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set`,
-		},
 	}
 
 	for name, tc := range cases {

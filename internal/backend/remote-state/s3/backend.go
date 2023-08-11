@@ -268,6 +268,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		keyValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	// Not updating region handling, because validation will be handled by `aws-sdk-go-base` once it is updated
 	if val := obj.GetAttr("region"); val.IsNull() || val.AsString() == "" {
 		if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
 			diags = diags.Append(tfdiags.AttributeValue(
@@ -285,13 +286,6 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	)(obj, cty.Path{}, &diags)
 
 	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
-		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
-			diags = diags.Append(wholeBodyErrDiag(
-				"Invalid encryption configuration",
-				encryptionKeyConflictEnvVarError,
-			))
-		}
-
 		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
 	}
 
@@ -407,6 +401,15 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.serverSideEncryption = boolAttr(obj, "encrypt")
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
+
+	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
+		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+			diags = diags.Append(wholeBodyErrDiag(
+				"Invalid encryption configuration",
+				encryptionKeyConflictEnvVarError,
+			))
+		}
+	}
 
 	if customerKey, ok := stringAttrOk(obj, "sse_customer_key"); ok {
 		if len(customerKey) != 44 {
