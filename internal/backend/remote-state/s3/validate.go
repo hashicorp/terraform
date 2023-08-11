@@ -215,6 +215,11 @@ The string content was valid JSON, your policy document may have been double-enc
 	}
 }
 
+func validateStringKMSKey(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	ds := validateKMSKey(path, val)
+	*diags = diags.Append(ds)
+}
+
 // Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet
 type setValidator func(val cty.Value, path cty.Path, diags *tfdiags.Diagnostics)
 

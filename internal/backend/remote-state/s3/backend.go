@@ -285,8 +285,14 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		cty.GetAttrPath("sse_customer_key"),
 	)(obj, cty.Path{}, &diags)
 
-	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
-		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
+	attrPath = cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}
+	if val := obj.GetAttr("kms_key_id"); !val.IsNull() {
+		kmsKeyIDValidators := validateString{
+			Validators: []stringValidator{
+				validateStringKMSKey,
+			},
+		}
+		kmsKeyIDValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	attrPath = cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}}
