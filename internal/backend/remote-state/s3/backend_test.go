@@ -25,6 +25,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -844,129 +845,130 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-func TestBackendSSECustomerKeyConfig(t *testing.T) {
+func TestBackendSSECustomerKey(t *testing.T) {
 	testACC(t)
 
 	testCases := map[string]struct {
-		customerKey string
-		expectedErr string
+		config               map[string]any
+		environmentVariables map[string]string
+		expectedKey          string
+		expectedDiags        tfdiags.Diagnostics
 	}{
-		"invalid length": {
-			customerKey: "test",
-			expectedErr: `sse_customer_key must be 44 characters in length`,
+		// config
+		"config valid": {
+			config: map[string]any{
+				"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedKey: string(must(base64.StdEncoding.DecodeString("4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk="))),
 		},
-		"invalid encoding": {
-			customerKey: "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-			expectedErr: `sse_customer_key must be base64 encoded`,
+		"config invalid length": {
+			config: map[string]any{
+				"sse_customer_key": "test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid sse_customer_key value",
+					"sse_customer_key must be 44 characters in length",
+					cty.GetAttrPath("sse_customer_key"),
+				),
+			},
 		},
-		"valid": {
-			customerKey: "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+		"config invalid encoding": {
+			config: map[string]any{
+				"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid sse_customer_key value",
+					"sse_customer_key must be base64 encoded: illegal base64 data at input byte 0",
+					cty.GetAttrPath("sse_customer_key"),
+				),
+			},
+		},
+
+		// env var
+		"envvar valid": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedKey: string(must(base64.StdEncoding.DecodeString("4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk="))),
+		},
+		"envvar invalid length": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					`The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
+				),
+			},
+		},
+		"envvar invalid encoding": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					`The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded: illegal base64 data at input byte 0`,
+				),
+			},
+		},
+
+		// conflict
+		"config kms_key_id and envvar AWS_SSE_CUSTOMER_KEY": {
+			config: map[string]any{
+				"kms_key_id": "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+			},
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid encryption configuration",
+					encryptionKeyConflictEnvVarError,
+				),
+			},
 		},
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-
+	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-			config := map[string]interface{}{
-				"bucket":           bucketName,
-				"encrypt":          true,
-				"key":              "test-SSE-C",
-				"sse_customer_key": testCase.customerKey,
-				"region":           "us-west-1",
-			}
-
-			b := New().(*Backend)
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config)))
-
-			if testCase.expectedErr != "" {
-				if diags.Err() != nil {
-					actualErr := diags.Err().Error()
-					if !strings.Contains(actualErr, testCase.expectedErr) {
-						t.Fatalf("unexpected validation result: %v", diags.Err())
-					}
-				} else {
-					t.Fatal("expected an error, got none")
-				}
-			} else {
-				if diags.Err() != nil {
-					t.Fatalf("expected no error, got %s", diags.Err())
-				}
-				if string(b.customerEncryptionKey) != string(must(base64.StdEncoding.DecodeString(testCase.customerKey))) {
-					t.Fatal("unexpected value for customer encryption key")
-				}
-
-				createS3Bucket(t, b.s3Client, bucketName)
-				defer deleteS3Bucket(t, b.s3Client, bucketName)
-
-				backend.TestBackendStates(t, b)
-			}
-		})
-	}
-}
-
-func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
-	testACC(t)
-
-	testCases := map[string]struct {
-		customerKey string
-		expectedErr string
-	}{
-		"invalid length": {
-			customerKey: "test",
-			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
-		},
-		"invalid encoding": {
-			customerKey: "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded`,
-		},
-		"valid": {
-			customerKey: "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
-		},
-	}
-
-	for name, testCase := range testCases {
-		testCase := testCase
-
-		t.Run(name, func(t *testing.T) {
-			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-			config := map[string]interface{}{
+			config := map[string]any{
 				"bucket":  bucketName,
 				"encrypt": true,
 				"key":     "test-SSE-C",
 				"region":  "us-west-1",
 			}
+			maps.Copy(config, tc.config)
 
-			os.Setenv("AWS_SSE_CUSTOMER_KEY", testCase.customerKey)
-			t.Cleanup(func() {
-				os.Unsetenv("AWS_SSE_CUSTOMER_KEY")
-			})
+			oldEnv := os.Environ() // For now, save without clearing
+			defer popEnv(oldEnv)
+			for k, v := range tc.environmentVariables {
+				os.Setenv(k, v)
+			}
 
 			b := New().(*Backend)
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config)))
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
 
-			if testCase.expectedErr != "" {
-				if diags.Err() != nil {
-					actualErr := diags.Err().Error()
-					if !strings.Contains(actualErr, testCase.expectedErr) {
-						t.Fatalf("unexpected validation result: %v", diags.Err())
-					}
-				} else {
-					t.Fatal("expected an error, got none")
-				}
-			} else {
-				if diags.Err() != nil {
-					t.Fatalf("expected no error, got %s", diags.Err())
-				}
-				if string(b.customerEncryptionKey) != string(must(base64.StdEncoding.DecodeString(testCase.customerKey))) {
+			configSchema, diags := b.PrepareConfig(configSchema)
+
+			if !diags.HasErrors() {
+				confDiags := b.Configure(configSchema)
+				diags = diags.Append(confDiags)
+			}
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if tc.expectedKey != "" {
+				if string(b.customerEncryptionKey) != tc.expectedKey {
 					t.Fatal("unexpected value for customer encryption key")
 				}
 
-				createS3Bucket(t, b.s3Client, bucketName)
-				defer deleteS3Bucket(t, b.s3Client, bucketName)
-
-				backend.TestBackendStates(t, b)
 			}
 		})
 	}
