@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/zclconf/go-cty/cty"
 
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/backend"
@@ -236,7 +237,10 @@ func (c *ImportCommand) Run(args []string) int {
 		Targets: []*terraform.ImportTarget{
 			{
 				Addr: addr,
-				ID:   args[1],
+
+				// In the import block, the ID can be an arbitrary hcl.Expression,
+				// but here it's always interpreted as a literal string.
+				ID: hcl.StaticExpr(cty.StringVal(args[1]), configs.SynthBody("import", nil).MissingItemRange()),
 			},
 		},
 

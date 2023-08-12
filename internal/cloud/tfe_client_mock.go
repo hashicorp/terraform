@@ -34,6 +34,7 @@ type MockClient struct {
 	TaskStages            *MockTaskStages
 	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
+	Projects              *MockProjects
 	Runs                  *MockRuns
 	RunEvents             *MockRunEvents
 	StateVersions         *MockStateVersions
@@ -52,6 +53,7 @@ func NewMockClient() *MockClient {
 	c.TaskStages = newMockTaskStages(c)
 	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
+	c.Projects = newMockProjects(c)
 	c.Runs = newMockRuns(c)
 	c.RunEvents = newMockRunEvents(c)
 	c.StateVersions = newMockStateVersions(c)
@@ -939,6 +941,102 @@ func (m *MockPolicyChecks) Logs(ctx context.Context, policyCheckID string) (io.R
 	return bytes.NewBuffer(logs), nil
 }
 
+type MockProjects struct {
+	client   *MockClient
+	projects map[string]*tfe.Project
+}
+
+func newMockProjects(client *MockClient) *MockProjects {
+	return &MockProjects{
+		client:   client,
+		projects: make(map[string]*tfe.Project),
+	}
+}
+
+func (m *MockProjects) Create(ctx context.Context, organization string, options tfe.ProjectCreateOptions) (*tfe.Project, error) {
+	id := GenerateID("prj-")
+
+	p := &tfe.Project{
+		ID:   id,
+		Name: options.Name,
+	}
+
+	m.projects[p.ID] = p
+
+	return p, nil
+}
+
+func (m *MockProjects) List(ctx context.Context, organization string, options *tfe.ProjectListOptions) (*tfe.ProjectList, error) {
+	pl := &tfe.ProjectList{}
+
+	for _, project := range m.projects {
+		pc, err := copystructure.Copy(project)
+		if err != nil {
+			panic(err)
+		}
+		pl.Items = append(pl.Items, pc.(*tfe.Project))
+	}
+
+	pl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		NextPage:     1,
+		PreviousPage: 1,
+		TotalPages:   1,
+		TotalCount:   len(pl.Items),
+	}
+
+	return pl, nil
+}
+
+func (m *MockProjects) Read(ctx context.Context, projectID string) (*tfe.Project, error) {
+	p, ok := m.projects[projectID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	// we must return a copy for the client
+	pc, err := copystructure.Copy(p)
+	if err != nil {
+		panic(err)
+	}
+
+	return pc.(*tfe.Project), nil
+}
+
+func (m *MockProjects) Update(ctx context.Context, projectID string, options tfe.ProjectUpdateOptions) (*tfe.Project, error) {
+	p, ok := m.projects[projectID]
+	if !ok {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	p.Name = *options.Name
+
+	// we must return a copy for the client
+	pc, err := copystructure.Copy(p)
+	if err != nil {
+		panic(err)
+	}
+
+	return pc.(*tfe.Project), nil
+}
+
+func (m *MockProjects) Delete(ctx context.Context, projectID string) error {
+	var p *tfe.Project = nil
+	for _, p := range m.projects {
+		if p.ID == projectID {
+
+			break
+		}
+	}
+	if p == nil {
+		return tfe.ErrResourceNotFound
+	}
+
+	delete(m.projects, p.Name)
+
+	return nil
+}
+
 type MockRuns struct {
 	sync.Mutex
 
@@ -1555,6 +1653,9 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		Organization: &tfe.Organization{
 			Name: organization,
 		},
+	}
+	if options.Project != nil {
+		w.Project = options.Project
 	}
 	if options.AutoApply != nil {
 		w.AutoApply = *options.AutoApply

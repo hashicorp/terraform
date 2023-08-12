@@ -202,6 +202,73 @@ run "test_case" {
 				},
 			},
 		},
+		"two_failing_assertions": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_resource" "a" {
+	value = "Hello, world!"
+}
+`,
+				"main.tftest.hcl": `
+run "test_case" {
+	assert {
+		condition = test_resource.a.value == "incorrect!"
+		error_message = "invalid value"
+	}
+
+    assert {
+        condition = test_resource.a.value == "also incorrect!"
+        error_message = "still invalid"
+    }
+}
+`,
+			},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: encodeCtyValue(t, cty.ObjectVal(map[string]cty.Value{
+							"value": cty.StringVal("Hello, world!"),
+						})),
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			provider: &MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"test_resource": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"value": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedStatus: moduletest.Fail,
+			expectedDiags: []tfdiags.Description{
+				{
+					Summary: "Test assertion failed",
+					Detail:  "invalid value",
+				},
+				{
+					Summary: "Test assertion failed",
+					Detail:  "still invalid",
+				},
+			},
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
