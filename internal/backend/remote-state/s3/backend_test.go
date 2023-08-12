@@ -883,7 +883,7 @@ func TestBackendKmsKeyId(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
-				t.Errorf("unexpected diagnostics difference: %s", diff)
+				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
 			if tc.expectedKeyId != "" {
@@ -1011,13 +1011,20 @@ func TestBackendSSECustomerKey(t *testing.T) {
 			}
 
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
-				t.Errorf("unexpected diagnostics difference: %s", diff)
+				t.Fatalf("unexpected diagnostics difference: %s", diff)
 			}
 
 			if tc.expectedKey != "" {
 				if string(b.customerEncryptionKey) != tc.expectedKey {
 					t.Fatal("unexpected value for customer encryption key")
 				}
+			}
+
+			if !diags.HasErrors() {
+				createS3Bucket(t, b.s3Client, bucketName)
+				defer deleteS3Bucket(t, b.s3Client, bucketName)
+
+				backend.TestBackendStates(t, b)
 			}
 		})
 	}
