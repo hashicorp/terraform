@@ -282,7 +282,94 @@ run "test_case" {
 				},
 			},
 		},
+		"sensitive_variables": {
+			configs: map[string]string{
+				"main.tf": `
+variable "input" {
+  type = string
+  sensitive = true
+}
+`,
+				"main.tftest.hcl": `
+run "test" {
+  variables {
+    input = "Hello, world!"
+  }
 
+  assert {
+    condition = var.input == "Hello, world!"
+    error_message = "bad"
+  }
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.NewState(),
+			variables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("Hello, world!"),
+					SourceType: ValueFromConfig,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "main.tftest.hcl",
+						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
+						End:      tfdiags.SourcePos{Line: 3, Column: 28, Byte: 27},
+					},
+				},
+			},
+			provider:       &MockProvider{},
+			expectedStatus: moduletest.Pass,
+			expectedDiags:  []tfdiags.Description{},
+		},
+		"sensitive_variables_fail": {
+			configs: map[string]string{
+				"main.tf": `
+variable "input" {
+  type = string
+  sensitive = true
+}
+`,
+				"main.tftest.hcl": `
+run "test" {
+  variables {
+    input = "Hello, world!"
+  }
+
+  assert {
+    condition = var.input == "Hello, universe!"
+    error_message = "bad ${var.input}"
+  }
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.NewState(),
+			variables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("Hello, world!"),
+					SourceType: ValueFromConfig,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "main.tftest.hcl",
+						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
+						End:      tfdiags.SourcePos{Line: 3, Column: 28, Byte: 27},
+					},
+				},
+			},
+			provider:       &MockProvider{},
+			expectedStatus: moduletest.Fail,
+			expectedDiags: []tfdiags.Description{
+				{
+					Summary: "Error message refers to sensitive values",
+					Detail:  "The error expression used to explain this condition refers to sensitive values, so Terraform will not display the resulting message.\n\nYou can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.",
+				},
+				{
+					Summary: "Test assertion failed",
+				},
+			},
+		},
 		"basic_passing_with_plan": {
 			configs: map[string]string{
 				"main.tf": `
