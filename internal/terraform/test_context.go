@@ -159,6 +159,10 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 			continue
 		}
 
+		// If the runVal refers to any sensitive values, then we'll have a
+		// sensitive mark on the resulting value.
+		runVal, _ = runVal.Unmark()
+
 		if runVal.False() {
 			run.Status = run.Status.Merge(moduletest.Fail)
 			run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
