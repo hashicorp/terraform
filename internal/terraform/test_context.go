@@ -140,8 +140,8 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 			run.Status = run.Status.Merge(moduletest.Error)
 			run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
-				Summary:     "Unknown condition run",
-				Detail:      "Condition expression could not be evaluated at this time.",
+				Summary:     "Unknown condition value",
+				Detail:      "Condition expression could not be evaluated at this time. This means you have executed a `run` block with `command = plan` and one of the values your condition depended on is not known until after the plan has been applied. Either remove this value from your condition, or execute an `apply` command from this `run` block.",
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
