@@ -43,22 +43,18 @@ func (c *Context) TestContext(config *configs.Config, state *states.State, plan 
 	}
 }
 
-// EvaluateAgainstState processes the assertions inside the provided
-// configs.TestRun against the embedded state.
-//
-// The provided plan is import as it is needed to evaluate the `plantimestamp`
-// function, but no data or changes from the embedded plan is referenced in
-// this function.
-func (ctx *TestContext) EvaluateAgainstState(run *moduletest.Run) {
+// Evaluate processes the assertions inside the provided configs.TestRun against
+// the embedded state.
+func (ctx *TestContext) Evaluate(run *moduletest.Run) {
 	defer ctx.acquireRun("evaluate")()
-	ctx.evaluate(ctx.State.SyncWrapper(), plans.NewChanges().SyncWrapper(), run, walkApply)
-}
-
-// EvaluateAgainstPlan processes the assertions inside the provided
-// configs.TestRun against the embedded plan and state.
-func (ctx *TestContext) EvaluateAgainstPlan(run *moduletest.Run) {
-	defer ctx.acquireRun("evaluate")()
-	ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkPlan)
+	switch run.Config.Command {
+	case configs.PlanTestCommand:
+		ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkPlan)
+	case configs.ApplyTestCommand:
+		ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkApply)
+	default:
+		panic(fmt.Errorf("unrecognized TestCommand: %q", run.Config.Command))
+	}
 }
 
 func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.ChangesSync, run *moduletest.Run, operation walkOperation) {
