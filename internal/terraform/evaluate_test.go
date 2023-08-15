@@ -716,7 +716,7 @@ func TestGetRunBlocks(t *testing.T) {
 		t.Errorf("\ngot: %#v\nwant: %#v", got, want)
 	}
 
-	got, diags = scope.Data.GetRunBlock(addrs.Run{Name: "two"}, tfdiags.SourceRange{})
+	_, diags = scope.Data.GetRunBlock(addrs.Run{Name: "two"}, tfdiags.SourceRange{})
 
 	if !diags.HasErrors() {
 		t.Fatalf("expected some diags but got none")
