@@ -111,6 +111,10 @@ func (d *evaluationStateData) staticValidateReference(ref *addrs.Reference, self
 		}
 		return d.staticValidateModuleCallReference(modCfg, addr.Call.Call, remain, ref.SourceRange)
 
+	// We can also validate any run blocks that are referenced actually exist.
+	case addrs.Run:
+		return d.staticValidateRunBlockReference(addr, ref.Remaining, ref.SourceRange)
+
 	default:
 		// Anything else we'll just permit through without any static validation
 		// and let it be caught during dynamic evaluation, in evaluate.go .
@@ -307,6 +311,33 @@ func (d *evaluationStateData) staticValidateModuleCallReference(modCfg *configs.
 			Severity: hcl.DiagError,
 			Summary:  `Reference to undeclared module`,
 			Detail:   fmt.Sprintf(`No module call named %q is declared in %s.%s`, addr.Name, moduleConfigDisplayAddr(modCfg.Path), suggestion),
+			Subject:  rng.ToHCL().Ptr(),
+		})
+		return diags
+	}
+
+	return diags
+}
+
+func (d *evaluationStateData) staticValidateRunBlockReference(addr addrs.Run, remain hcl.Traversal, rng tfdiags.SourceRange) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+
+	_, exists := d.Evaluator.AlternateStates[addr.Name]
+	if !exists {
+		var suggestions []string
+		for name := range d.Evaluator.AlternateStates {
+			suggestions = append(suggestions, name)
+		}
+		sort.Strings(suggestions)
+		suggestion := didyoumean.NameSuggestion(addr.Name, suggestions)
+		if suggestion != "" {
+			suggestion = fmt.Sprintf(" Did you mean %q?", suggestion)
+		}
+
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  `Reference to unavailable run block`,
+			Detail:   fmt.Sprintf(`The run block named %q is not available, either it does not exist or has not yet been executed.%s`, addr.Name, suggestion),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return diags

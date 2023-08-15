@@ -132,6 +132,14 @@ func TestTest(t *testing.T) {
 			expected: "1 passed, 0 failed.",
 			code:     0,
 		},
+		"shared_state": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
+		"shared_state_object": {
+			expected: "2 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -149,13 +157,33 @@ func TestTest(t *testing.T) {
 			defer testChdir(t, td)()
 
 			provider := testing_command.NewProvider(nil)
-			view, done := testView(t)
+			providerSource, close := newMockProviderSource(t, map[string][]string{
+				"test": {"1.0.0"},
+			})
+			defer close()
+
+			streams, done := terminal.StreamsForTesting(t)
+			view := views.NewView(streams)
+			ui := new(cli.MockUi)
+
+			meta := Meta{
+				testingOverrides: metaOverridesForProvider(provider.Provider),
+				Ui:               ui,
+				View:             view,
+				Streams:          streams,
+				ProviderSource:   providerSource,
+			}
+
+			init := &InitCommand{
+				Meta: meta,
+			}
+
+			if code := init.Run(nil); code != 0 {
+				t.Fatalf("expected status code 0 but got %d: %s", code, ui.ErrorWriter)
+			}
 
 			c := &TestCommand{
-				Meta: Meta{
-					testingOverrides: metaOverridesForProvider(provider.Provider),
-					View:             view,
-				},
+				Meta: meta,
 			}
 
 			code := c.Run(tc.args)

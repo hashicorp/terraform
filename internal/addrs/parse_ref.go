@@ -111,6 +111,14 @@ func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diag
 			Remaining:   remain,
 		}
 		diags = checkDiags
+	case "run":
+		name, rng, remain, runDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     Run{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = runDiags
 	}
 
 	if reference != nil {

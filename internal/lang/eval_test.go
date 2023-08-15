@@ -6,6 +6,7 @@ package lang
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -73,51 +74,70 @@ func TestScopeEvalContext(t *testing.T) {
 		InputVariables: map[string]cty.Value{
 			"baz": cty.StringVal("boop"),
 		},
+		OutputValues: map[string]cty.Value{
+			"rootoutput0": cty.StringVal("rootbar0"),
+			"rootoutput1": cty.StringVal("rootbar1"),
+		},
+		CheckBlocks: map[string]cty.Value{
+			"check0": cty.ObjectVal(map[string]cty.Value{
+				"status": cty.StringVal("pass"),
+			}),
+			"check1": cty.ObjectVal(map[string]cty.Value{
+				"status": cty.StringVal("fail"),
+			}),
+		},
+		RunBlocks: map[string]cty.Value{
+			"zero": cty.ObjectVal(map[string]cty.Value{
+				"run0output0": cty.StringVal("run0bar0"),
+				"run0output1": cty.StringVal("run0bar1"),
+			}),
+		},
 	}
 
 	tests := []struct {
-		Expr string
-		Want map[string]cty.Value
+		Expr        string
+		Want        map[string]cty.Value
+		TestingOnly bool
 	}{
 		{
-			`12`,
-			map[string]cty.Value{},
+			Expr: `12`,
+			Want: map[string]cty.Value{},
 		},
 		{
-			`count.index`,
-			map[string]cty.Value{
+			Expr: `count.index`,
+			Want: map[string]cty.Value{
 				"count": cty.ObjectVal(map[string]cty.Value{
 					"index": cty.NumberIntVal(0),
 				}),
 			},
 		},
 		{
-			`each.key`,
-			map[string]cty.Value{
+			Expr: `each.key`,
+			Want: map[string]cty.Value{
 				"each": cty.ObjectVal(map[string]cty.Value{
 					"key": cty.StringVal("a"),
 				}),
 			},
 		},
 		{
-			`each.value`,
-			map[string]cty.Value{
+			Expr: `each.value`,
+			Want: map[string]cty.Value{
 				"each": cty.ObjectVal(map[string]cty.Value{
 					"value": cty.NumberIntVal(1),
 				}),
 			},
 		},
 		{
-			`local.foo`,
-			map[string]cty.Value{
+			Expr: `local.foo`,
+			Want: map[string]cty.Value{
 				"local": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.StringVal("bar"),
 				}),
 			},
 		},
 		{
-			`null_resource.foo`,
-			map[string]cty.Value{
+			Expr: `null_resource.foo`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("bar"),
@@ -133,8 +153,8 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`null_resource.foo.attr`,
-			map[string]cty.Value{
+			Expr: `null_resource.foo.attr`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
 						"attr": cty.StringVal("bar"),
@@ -150,8 +170,8 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`null_resource.multi`,
-			map[string]cty.Value{
+			Expr: `null_resource.multi`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"multi": cty.TupleVal([]cty.Value{
 						cty.ObjectVal(map[string]cty.Value{
@@ -178,8 +198,8 @@ func TestScopeEvalContext(t *testing.T) {
 		},
 		{
 			// at this level, all instance references return the entire resource
-			`null_resource.multi[1]`,
-			map[string]cty.Value{
+			Expr: `null_resource.multi[1]`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"multi": cty.TupleVal([]cty.Value{
 						cty.ObjectVal(map[string]cty.Value{
@@ -206,8 +226,8 @@ func TestScopeEvalContext(t *testing.T) {
 		},
 		{
 			// at this level, all instance references return the entire resource
-			`null_resource.each["each1"]`,
-			map[string]cty.Value{
+			Expr: `null_resource.each["each1"]`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"each": cty.ObjectVal(map[string]cty.Value{
 						"each0": cty.ObjectVal(map[string]cty.Value{
@@ -234,8 +254,8 @@ func TestScopeEvalContext(t *testing.T) {
 		},
 		{
 			// at this level, all instance references return the entire resource
-			`null_resource.each["each1"].attr`,
-			map[string]cty.Value{
+			Expr: `null_resource.each["each1"].attr`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"each": cty.ObjectVal(map[string]cty.Value{
 						"each0": cty.ObjectVal(map[string]cty.Value{
@@ -261,8 +281,8 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`foo(null_resource.multi, null_resource.multi[1])`,
-			map[string]cty.Value{
+			Expr: `foo(null_resource.multi, null_resource.multi[1])`,
+			Want: map[string]cty.Value{
 				"null_resource": cty.ObjectVal(map[string]cty.Value{
 					"multi": cty.TupleVal([]cty.Value{
 						cty.ObjectVal(map[string]cty.Value{
@@ -288,8 +308,8 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`data.null_data_source.foo`,
-			map[string]cty.Value{
+			Expr: `data.null_data_source.foo`,
+			Want: map[string]cty.Value{
 				"data": cty.ObjectVal(map[string]cty.Value{
 					"null_data_source": cty.ObjectVal(map[string]cty.Value{
 						"foo": cty.ObjectVal(map[string]cty.Value{
@@ -300,8 +320,8 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`module.foo`,
-			map[string]cty.Value{
+			Expr: `module.foo`,
+			Want: map[string]cty.Value{
 				"module": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
 						"output0": cty.StringVal("bar0"),
@@ -312,8 +332,8 @@ func TestScopeEvalContext(t *testing.T) {
 		},
 		// any module reference returns the entire module
 		{
-			`module.foo.output1`,
-			map[string]cty.Value{
+			Expr: `module.foo.output1`,
+			Want: map[string]cty.Value{
 				"module": cty.ObjectVal(map[string]cty.Value{
 					"foo": cty.ObjectVal(map[string]cty.Value{
 						"output0": cty.StringVal("bar0"),
@@ -323,98 +343,158 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			`path.module`,
-			map[string]cty.Value{
+			Expr: `path.module`,
+			Want: map[string]cty.Value{
 				"path": cty.ObjectVal(map[string]cty.Value{
 					"module": cty.StringVal("foo/bar"),
 				}),
 			},
 		},
 		{
-			`self.baz`,
-			map[string]cty.Value{
+			Expr: `self.baz`,
+			Want: map[string]cty.Value{
 				"self": cty.ObjectVal(map[string]cty.Value{
 					"attr": cty.StringVal("multi1"),
 				}),
 			},
 		},
 		{
-			`terraform.workspace`,
-			map[string]cty.Value{
+			Expr: `terraform.workspace`,
+			Want: map[string]cty.Value{
 				"terraform": cty.ObjectVal(map[string]cty.Value{
 					"workspace": cty.StringVal("default"),
 				}),
 			},
 		},
 		{
-			`var.baz`,
-			map[string]cty.Value{
+			Expr: `var.baz`,
+			Want: map[string]cty.Value{
 				"var": cty.ObjectVal(map[string]cty.Value{
 					"baz": cty.StringVal("boop"),
 				}),
 			},
 		},
+		{
+			Expr: "run.zero",
+			Want: map[string]cty.Value{
+				"run": cty.ObjectVal(map[string]cty.Value{
+					"zero": cty.ObjectVal(map[string]cty.Value{
+						"run0output0": cty.StringVal("run0bar0"),
+						"run0output1": cty.StringVal("run0bar1"),
+					}),
+				}),
+			},
+			TestingOnly: true,
+		},
+		{
+			Expr: "run.zero.run0output0",
+			Want: map[string]cty.Value{
+				"run": cty.ObjectVal(map[string]cty.Value{
+					"zero": cty.ObjectVal(map[string]cty.Value{
+						"run0output0": cty.StringVal("run0bar0"),
+						"run0output1": cty.StringVal("run0bar1"),
+					}),
+				}),
+			},
+			TestingOnly: true,
+		},
+		{
+			Expr: "output.rootoutput0",
+			Want: map[string]cty.Value{
+				"output": cty.ObjectVal(map[string]cty.Value{
+					"rootoutput0": cty.StringVal("rootbar0"),
+				}),
+			},
+			TestingOnly: true,
+		},
+		{
+			Expr: "check.check0",
+			Want: map[string]cty.Value{
+				"check": cty.ObjectVal(map[string]cty.Value{
+					"check0": cty.ObjectVal(map[string]cty.Value{
+						"status": cty.StringVal("pass"),
+					}),
+				}),
+			},
+			TestingOnly: true,
+		},
+	}
+
+	exec := func(t *testing.T, parseRef ParseRef, test struct {
+		Expr        string
+		Want        map[string]cty.Value
+		TestingOnly bool
+	}) {
+		expr, parseDiags := hclsyntax.ParseExpression([]byte(test.Expr), "", hcl.Pos{Line: 1, Column: 1})
+		if len(parseDiags) != 0 {
+			t.Errorf("unexpected diagnostics during parse")
+			for _, diag := range parseDiags {
+				t.Errorf("- %s", diag)
+			}
+			return
+		}
+
+		refs, refsDiags := ReferencesInExpr(parseRef, expr)
+		if refsDiags.HasErrors() {
+			t.Fatal(refsDiags.Err())
+		}
+
+		scope := &Scope{
+			Data:     data,
+			ParseRef: parseRef,
+
+			// "self" will just be an arbitrary one of the several resource
+			// instances we have in our test dataset.
+			SelfAddr: addrs.ResourceInstance{
+				Resource: addrs.Resource{
+					Mode: addrs.ManagedResourceMode,
+					Type: "null_resource",
+					Name: "multi",
+				},
+				Key: addrs.IntKey(1),
+			},
+		}
+		ctx, ctxDiags := scope.EvalContext(refs)
+		if ctxDiags.HasErrors() {
+			t.Fatal(ctxDiags.Err())
+		}
+
+		// For easier test assertions we'll just remove any top-level
+		// empty objects from our variables map.
+		for k, v := range ctx.Variables {
+			if v.RawEquals(cty.EmptyObjectVal) {
+				delete(ctx.Variables, k)
+			}
+		}
+
+		gotVal := cty.ObjectVal(ctx.Variables)
+		wantVal := cty.ObjectVal(test.Want)
+
+		if !gotVal.RawEquals(wantVal) {
+			// We'll JSON-ize our values here just so it's easier to
+			// read them in the assertion output.
+			gotJSON := formattedJSONValue(gotVal)
+			wantJSON := formattedJSONValue(wantVal)
+
+			t.Errorf(
+				"wrong result\nexpr: %s\ngot:  %s\nwant: %s",
+				test.Expr, gotJSON, wantJSON,
+			)
+		}
 	}
 
 	for _, test := range tests {
-		t.Run(test.Expr, func(t *testing.T) {
-			expr, parseDiags := hclsyntax.ParseExpression([]byte(test.Expr), "", hcl.Pos{Line: 1, Column: 1})
-			if len(parseDiags) != 0 {
-				t.Errorf("unexpected diagnostics during parse")
-				for _, diag := range parseDiags {
-					t.Errorf("- %s", diag)
-				}
-				return
-			}
 
-			refs, refsDiags := ReferencesInExpr(addrs.ParseRef, expr)
-			if refsDiags.HasErrors() {
-				t.Fatal(refsDiags.Err())
-			}
+		if !test.TestingOnly {
+			t.Run(test.Expr, func(t *testing.T) {
+				exec(t, addrs.ParseRef, test)
+			})
+		}
 
-			scope := &Scope{
-				Data:     data,
-				ParseRef: addrs.ParseRef,
-
-				// "self" will just be an arbitrary one of the several resource
-				// instances we have in our test dataset.
-				SelfAddr: addrs.ResourceInstance{
-					Resource: addrs.Resource{
-						Mode: addrs.ManagedResourceMode,
-						Type: "null_resource",
-						Name: "multi",
-					},
-					Key: addrs.IntKey(1),
-				},
-			}
-			ctx, ctxDiags := scope.EvalContext(refs)
-			if ctxDiags.HasErrors() {
-				t.Fatal(ctxDiags.Err())
-			}
-
-			// For easier test assertions we'll just remove any top-level
-			// empty objects from our variables map.
-			for k, v := range ctx.Variables {
-				if v.RawEquals(cty.EmptyObjectVal) {
-					delete(ctx.Variables, k)
-				}
-			}
-
-			gotVal := cty.ObjectVal(ctx.Variables)
-			wantVal := cty.ObjectVal(test.Want)
-
-			if !gotVal.RawEquals(wantVal) {
-				// We'll JSON-ize our values here just so it's easier to
-				// read them in the assertion output.
-				gotJSON := formattedJSONValue(gotVal)
-				wantJSON := formattedJSONValue(wantVal)
-
-				t.Errorf(
-					"wrong result\nexpr: %s\ngot:  %s\nwant: %s",
-					test.Expr, gotJSON, wantJSON,
-				)
-			}
+		t.Run(fmt.Sprintf("%s-testing", test.Expr), func(t *testing.T) {
+			exec(t, addrs.ParseRefFromTestingScope, test)
 		})
+
 	}
 }
 

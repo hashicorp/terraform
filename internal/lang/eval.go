@@ -288,6 +288,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
 	checkBlocks := map[string]cty.Value{}
+	runBlocks := map[string]cty.Value{}
 	var self cty.Value
 
 	for _, ref := range refs {
@@ -416,7 +417,12 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 		case addrs.Check:
 			val, valDiags := normalizeRefValue(s.Data.GetCheckBlock(subj, rng))
 			diags = diags.Append(valDiags)
-			outputValues[subj.Name] = val
+			checkBlocks[subj.Name] = val
+
+		case addrs.Run:
+			val, valDiags := normalizeRefValue(s.Data.GetRunBlock(subj, rng))
+			diags = diags.Append(valDiags)
+			runBlocks[subj.Name] = val
 
 		default:
 			// Should never happen
@@ -443,14 +449,19 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
 
-	// Checks and outputs are conditionally included in the available scope, so
-	// we'll only write out their values if we actually have something for them.
+	// Checks, outputs, and run blocks are conditionally included in the
+	// available scope, so we'll only write out their values if we actually have
+	// something for them.
 	if len(checkBlocks) > 0 {
 		vals["check"] = cty.ObjectVal(checkBlocks)
 	}
 
 	if len(outputValues) > 0 {
 		vals["output"] = cty.ObjectVal(outputValues)
+	}
+
+	if len(runBlocks) > 0 {
+		vals["run"] = cty.ObjectVal(runBlocks)
 	}
 
 	if self != cty.NilVal {

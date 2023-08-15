@@ -67,6 +67,51 @@ func TestParseRefInTestingScope(t *testing.T) {
 			nil,
 			`The "check" object does not support this operation.`,
 		},
+		{
+			`run.zero`,
+			&Reference{
+				Subject: Run{
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+			},
+			``,
+		},
+		{
+			`run.zero.value`,
+			&Reference{
+				Subject: Run{
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
+				},
+				Remaining: hcl.Traversal{
+					hcl.TraverseAttr{
+						Name: "value",
+						SrcRange: hcl.Range{
+							Start: hcl.Pos{Line: 1, Column: 9, Byte: 8},
+							End:   hcl.Pos{Line: 1, Column: 15, Byte: 14},
+						},
+					},
+				},
+			},
+			``,
+		},
+		{
+			`run`,
+			nil,
+			`The "run" object cannot be accessed directly. Instead, access one of its attributes.`,
+		},
+		{
+			`run["foo"]`,
+			nil,
+			`The "run" object does not support this operation.`,
+		},
 
 		// Sanity check at least one of the others works to verify it does
 		// fall through to the core function.
@@ -827,7 +872,7 @@ func TestParseRef(t *testing.T) {
 			`A reference to a resource type must be followed by at least one attribute access, specifying the resource name.`,
 		},
 
-		// Should interpret checks and outputs as resource types.
+		// Should interpret checks, outputs, and runs as resource types.
 		{
 			`output.value`,
 			&Reference{
@@ -854,6 +899,21 @@ func TestParseRef(t *testing.T) {
 				SourceRange: tfdiags.SourceRange{
 					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
 					End:   tfdiags.SourcePos{Line: 1, Column: 13, Byte: 12},
+				},
+			},
+			``,
+		},
+		{
+			`run.zero`,
+			&Reference{
+				Subject: Resource{
+					Mode: ManagedResourceMode,
+					Type: "run",
+					Name: "zero",
+				},
+				SourceRange: tfdiags.SourceRange{
+					Start: tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
+					End:   tfdiags.SourcePos{Line: 1, Column: 9, Byte: 8},
 				},
 			},
 			``,
