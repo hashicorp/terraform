@@ -116,6 +116,20 @@ func validateStringMatches(re *regexp.Regexp, description string) stringValidato
 	}
 }
 
+// S3 will strip leading slashes from an object, so while this will
+// technically be accepted by S3, it will break our workspace hierarchy.
+// S3 will recognize objects with a trailing slash as a directory
+// so they should not be valid keys
+func validateStringS3Path(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	if strings.HasPrefix(val, "/") || strings.HasSuffix(val, "/") {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Value",
+			`The value must not start or end with "/"`,
+			path,
+		))
+	}
+}
+
 func validateARN(validators ...arnValidator) stringValidator {
 	return func(val string, path cty.Path, diags *tfdiags.Diagnostics) {
 		parsedARN, err := arn.Parse(val)
@@ -199,6 +213,11 @@ The string content was valid JSON, your policy document may have been double-enc
 			))
 		}
 	}
+}
+
+func validateStringKMSKey(val string, path cty.Path, diags *tfdiags.Diagnostics) {
+	ds := validateKMSKey(path, val)
+	*diags = diags.Append(ds)
 }
 
 // Using a val of `cty.ValueSet` would be better here, but we can't get an ElementIterator from a ValueSet
@@ -287,6 +306,46 @@ func validateDurationBetween(min, max time.Duration) durationValidator {
 	}
 }
 
+type objectValidator func(obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics)
+
+func validateAttributesConflict(paths ...cty.Path) objectValidator {
+	return func(obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
+		found := false
+		for _, path := range paths {
+			val, err := path.Apply(obj)
+			if err != nil {
+				*diags = diags.Append(attributeErrDiag(
+					"Invalid Path for Schema",
+					"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+						"Please report this to the developers.\n\n"+
+						"Path: "+pathString(path),
+					objPath,
+				))
+				continue
+			}
+			if !val.IsNull() {
+				if found {
+					pathStrs := make([]string, len(paths))
+					for i, path := range paths {
+						pathStrs[i] = pathString(path)
+					}
+					*diags = diags.Append(attributeErrDiag(
+						"Invalid Attribute Combination",
+						fmt.Sprintf(`Only one of %s can be set.`, strings.Join(pathStrs, ", ")),
+						objPath,
+					))
+				} else {
+					found = true
+				}
+			}
+		}
+	}
+}
+
 func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
 	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath.Copy())
+}
+
+func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
+	return tfdiags.WholeContainingBody(tfdiags.Error, summary, detail)
 }
