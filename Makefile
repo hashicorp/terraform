@@ -26,6 +26,10 @@ staticcheck:
 exhaustive:
 	"$(CURDIR)/scripts/exhaustive.sh"
 
+copyright:
+	"$(CURDIR)/scripts/copyright.sh"
+
+
 # Run this if working on the website locally to run in watch mode.
 website:
 	$(MAKE) -C website website
