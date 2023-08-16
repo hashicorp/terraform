@@ -14,6 +14,7 @@ import (
 	"log"
 	"os"
 
+	svchost "github.com/hashicorp/terraform-svchost"
 	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/command/clistate"
 	"github.com/hashicorp/terraform/internal/command/views"
@@ -119,6 +120,13 @@ type Backend interface {
 	Workspaces() ([]string, error)
 }
 
+// HostAlias describes a list of aliases that should be used when initializing an
+// Enhanced Backend
+type HostAlias struct {
+	From svchost.Hostname
+	To   svchost.Hostname
+}
+
 // Enhanced implements additional behavior on top of a normal backend.
 //
 // 'Enhanced' backends are an implementation detail only, and are no longer reflected as an external
@@ -136,6 +144,10 @@ type Enhanced interface {
 	// responsibility of the Backend to lock the state for the duration of the
 	// running operation.
 	Operation(context.Context, *Operation) (*RunningOperation, error)
+
+	// ServiceDiscoveryAliases returns a mapping of Alias -> Target hosts to
+	// configure.
+	ServiceDiscoveryAliases() ([]HostAlias, error)
 }
 
 // Local implements additional behavior on a Backend that allows local
