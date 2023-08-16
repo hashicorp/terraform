@@ -1,4 +1,4 @@
-## 1.6.0 (Unreleased)
+## 1.6.0-alpha20230816 (Unreleased)
 
 NEW FEATURES:
 * `terraform test`: The previously experimental `terraform test` command has been moved out of experimental. This comes with a significant change in how Terraform tests are written and executed.
