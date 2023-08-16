@@ -78,7 +78,7 @@ jobs:
           version: ${{ inputs.product-version }}
           maintainer: "HashiCorp"
           homepage: "https://terraform.io/"
-          license: "MPL-2.0"
+          license: "BUSL-1.1"
           binary: "dist/terraform"
           deb_depends: "git"
           rpm_depends: "git"
