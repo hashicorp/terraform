@@ -44,7 +44,7 @@ func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraf
 
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
-		// will initialize all of the other services so the client can being
+		// will initialize all of the other services so the client can begin
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
 		dependencies.ActivateRPCServer(newDependenciesServer(handles))
