@@ -1,7 +1,7 @@
 schema_version = 1
 
 project {
-  license        = "BUS-1.1"
+  license        = "BUSL-1.1"
   copyright_year = 2023
 
   # (OPTIONAL) A list of globs that should not have copyright/license headers.
@@ -13,5 +13,8 @@ project {
     "**/*.pb.go",
     "**/*_string.go",
     "**/mock*.go",
+    # these directories have their own copywrite config
+    "docs/plugin-protocol/**",
+    "internal/tfplugin*/**"
   ]
 }
