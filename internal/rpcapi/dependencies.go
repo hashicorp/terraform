@@ -8,6 +8,7 @@ import (
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -44,6 +45,46 @@ func (s *dependenciesServer) CloseSourceBundle(ctx context.Context, req *terrafo
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 	return &terraform1.CloseSourceBundle_Response{}, nil
+}
+
+func (s *dependenciesServer) OpenDependencyLockFile(ctx context.Context, req *terraform1.OpenDependencyLockFile_Request) (*terraform1.OpenDependencyLockFile_Response, error) {
+	sourcesHnd := handle[*sourcebundle.Bundle](req.SourceBundleHandle)
+	sources := s.handles.SourceBundle(sourcesHnd)
+	if sources == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid source bundle handle")
+	}
+
+	lockFileSource, err := resolveFinalSourceAddr(req.SourceAddress, sources)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "invalid source address: %s", err)
+	}
+
+	lockFilePath, err := sources.LocalPathForSource(lockFileSource)
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "specified lock file is not available: %s", err)
+	}
+
+	locks, diags := depsfile.LoadLocksFromFile(lockFilePath)
+	if diags.HasErrors() {
+		return &terraform1.OpenDependencyLockFile_Response{
+			Diagnostics: diagnosticsToProto(diags),
+		}, nil
+	}
+
+	locksHnd := s.handles.NewDependencyLocks(locks)
+	return &terraform1.OpenDependencyLockFile_Response{
+		DependencyLocksHandle: locksHnd.ForProtobuf(),
+		Diagnostics:           diagnosticsToProto(diags),
+	}, nil
+}
+
+func (s *dependenciesServer) CloseDependencyLocks(ctx context.Context, req *terraform1.CloseDependencyLocks_Request) (*terraform1.CloseDependencyLocks_Response, error) {
+	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	err := s.handles.CloseDependencyLocks(hnd)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid dependency locks handle")
+	}
+	return &terraform1.CloseDependencyLocks_Response{}, nil
 }
 
 func resolveFinalSourceAddr(protoSourceAddr *terraform1.SourceAddress, sources *sourcebundle.Bundle) (sourceaddrs.FinalSource, error) {

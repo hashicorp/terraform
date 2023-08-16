@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 )
 
@@ -95,6 +96,28 @@ func (t *handleTable) StackConfig(hnd handle[*stackconfig.Config]) *stackconfig.
 }
 
 func (t *handleTable) CloseStackConfig(hnd handle[*stackconfig.Config]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewDependencyLocks(locks *depsfile.Locks) handle[*depsfile.Locks] {
+	// NOTE: We intentionally don't track a dependency on a source bundle
+	// here for two reasons:
+	// - Not all lock objects necessarily original from lock files. For example,
+	//   we could be creating a new empty locks that will be mutated and then
+	//   saved to disk for the first time afterwards.
+	// - The locks object in memory is not dependent on the lock file it was
+	//   loaded from once the load is complete. Closing the source bundle and
+	//   deleting its directory would not affect the validity of the locks
+	//   object.
+	return newHandle(t, locks)
+}
+
+func (t *handleTable) DependencyLocks(hnd handle[*depsfile.Locks]) *depsfile.Locks {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseDependencyLocks(hnd handle[*depsfile.Locks]) error {
 	return closeHandle(t, hnd)
 }
 
