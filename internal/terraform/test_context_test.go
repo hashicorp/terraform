@@ -9,6 +9,7 @@ import (
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -19,11 +20,12 @@ import (
 
 func TestTestContext_Evaluate(t *testing.T) {
 	tcs := map[string]struct {
-		configs   map[string]string
-		state     *states.State
-		plan      *plans.Plan
-		variables InputValues
-		provider  *MockProvider
+		configs     map[string]string
+		state       *states.State
+		plan        *plans.Plan
+		variables   InputValues
+		provider    *MockProvider
+		priorStates map[string]func(config *configs.Config) *TestContext
 
 		expectedDiags  []tfdiags.Description
 		expectedStatus moduletest.Status
@@ -532,6 +534,94 @@ run "test_case" {
 				},
 			},
 		},
+		"with_prior_state": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_resource" "a" {
+	value = "Hello, world!"
+}
+`,
+				"main.tftest.hcl": `
+run "setup" {}
+
+run "test_case" {
+	assert {
+		condition = test_resource.a.value == run.setup.value
+		error_message = "invalid value"
+	}
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: encodeCtyValue(t, cty.ObjectVal(map[string]cty.Value{
+							"value": cty.StringVal("Hello, world!"),
+						})),
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			priorStates: map[string]func(config *configs.Config) *TestContext{
+				"setup": func(config *configs.Config) *TestContext {
+					return &TestContext{
+						Context: &Context{},
+						Run: &moduletest.Run{
+							Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
+							Name:   "setup",
+						},
+						Config: &configs.Config{
+							Module: &configs.Module{
+								Outputs: map[string]*configs.Output{
+									"value": {
+										Name: "value",
+									},
+								},
+							},
+						},
+						Plan: &plans.Plan{
+							Changes: plans.NewChanges(),
+						},
+						State: states.BuildState(func(state *states.SyncState) {
+							state.SetOutputValue(addrs.AbsOutputValue{
+								Module: addrs.RootModuleInstance,
+								OutputValue: addrs.OutputValue{
+									Name: "value",
+								},
+							}, cty.StringVal("Hello, world!"), false)
+						}),
+					}
+				},
+			},
+			provider: &MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"test_resource": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"value": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedStatus: moduletest.Pass,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -542,13 +632,19 @@ run "test_case" {
 				},
 			})
 
-			run := moduletest.Run{
-				Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
-				Name:   "test_case",
+			priorStates := make(map[string]*TestContext)
+			for run, ps := range tc.priorStates {
+				priorStates[run] = ps(config)
 			}
 
-			tctx := ctx.TestContext(config, tc.state, tc.plan, tc.variables)
-			tctx.Evaluate(&run)
+			file := config.Module.Tests["main.tftest.hcl"]
+			run := moduletest.Run{
+				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
+				Name:   "test_case",                 // and it should be named test_case
+			}
+
+			tctx := ctx.TestContext(&run, config, tc.state, tc.plan, tc.variables)
+			tctx.Evaluate(priorStates)
 
 			if expected, actual := tc.expectedStatus, run.Status; expected != actual {
 				t.Errorf("expected status \"%s\" but got \"%s\"", expected, actual)

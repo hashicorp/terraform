@@ -25,6 +25,7 @@ import (
 type TestContext struct {
 	*Context
 
+	Run       *moduletest.Run
 	Config    *configs.Config
 	State     *states.State
 	Plan      *plans.Plan
@@ -33,9 +34,10 @@ type TestContext struct {
 
 // TestContext creates a TestContext structure that can evaluate test assertions
 // against the provided state and plan.
-func (c *Context) TestContext(config *configs.Config, state *states.State, plan *plans.Plan, variables InputValues) *TestContext {
+func (c *Context) TestContext(run *moduletest.Run, config *configs.Config, state *states.State, plan *plans.Plan, variables InputValues) *TestContext {
 	return &TestContext{
 		Context:   c,
+		Run:       run,
 		Config:    config,
 		State:     state,
 		Plan:      plan,
@@ -43,29 +45,27 @@ func (c *Context) TestContext(config *configs.Config, state *states.State, plan 
 	}
 }
 
-// Evaluate processes the assertions inside the provided configs.TestRun against
-// the embedded state.
-func (ctx *TestContext) Evaluate(run *moduletest.Run) {
-	defer ctx.acquireRun("evaluate")()
-	switch run.Config.Command {
-	case configs.PlanTestCommand:
-		ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkPlan)
-	case configs.ApplyTestCommand:
-		ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkApply)
-	default:
-		panic(fmt.Errorf("unrecognized TestCommand: %q", run.Config.Command))
-	}
-}
+func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluationStateData) *evaluationStateData {
 
-func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.ChangesSync, run *moduletest.Run, operation walkOperation) {
-	data := &evaluationStateData{
+	var operation walkOperation
+	switch ctx.Run.Config.Command {
+	case configs.PlanTestCommand:
+		operation = walkPlan
+	case configs.ApplyTestCommand:
+		operation = walkApply
+	default:
+		panic(fmt.Errorf("unrecognized TestCommand: %q", ctx.Run.Config.Command))
+	}
+
+	return &evaluationStateData{
 		Evaluator: &Evaluator{
-			Operation: operation,
-			Meta:      ctx.meta,
-			Config:    ctx.Config,
-			Plugins:   ctx.plugins,
-			State:     state,
-			Changes:   changes,
+			Operation:       operation,
+			Meta:            ctx.meta,
+			Config:          ctx.Config,
+			Plugins:         ctx.plugins,
+			State:           ctx.State.SyncWrapper(),
+			Changes:         ctx.Plan.Changes.SyncWrapper(),
+			AlternateStates: alternateStates,
 			VariableValues: func() map[string]map[string]cty.Value {
 				variables := map[string]map[string]cty.Value{
 					addrs.RootModule.String(): make(map[string]cty.Value),
@@ -82,16 +82,28 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 		InstanceKeyData: EvalDataForNoInstanceKey,
 		Operation:       operation,
 	}
+}
 
+// Evaluate processes the assertions inside the provided configs.TestRun against
+// the embedded state.
+func (ctx *TestContext) Evaluate(priorContexts map[string]*TestContext) {
+
+	alternateStates := make(map[string]*evaluationStateData)
+	for name, priorContext := range priorContexts {
+		alternateStates[name] = priorContext.evaluationStateData(nil)
+	}
+
+	data := ctx.evaluationStateData(alternateStates)
 	scope := &lang.Scope{
 		Data:          data,
 		BaseDir:       ".",
-		PureOnly:      operation != walkApply,
+		PureOnly:      data.Operation != walkApply,
 		PlanTimestamp: ctx.Plan.Timestamp,
 	}
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
+	run := ctx.Run
 	run.Status = run.Status.Merge(moduletest.Pass)
 
 	// Now validate all the assertions within this run block.

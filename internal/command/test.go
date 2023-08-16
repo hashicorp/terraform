@@ -18,6 +18,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -251,7 +252,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 		defer stop()
 		defer cancel()
 
-		runner.Start(variables)
+		runner.Start()
 	}()
 
 	// Wait for the operation to complete, or for an interrupt to occur.
@@ -299,8 +300,10 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-// test runner
-
+// TestSuiteRunner executes an entire set of Terraform test files.
+//
+// It contains all shared information needed by all the test files, like the
+// main configuration and the global variable values.
 type TestSuiteRunner struct {
 	command *TestCommand
 
@@ -332,7 +335,7 @@ type TestSuiteRunner struct {
 	Verbose bool
 }
 
-func (runner *TestSuiteRunner) Start(globals map[string]backend.UnparsedVariableValue) {
+func (runner *TestSuiteRunner) Start() {
 	var files []string
 	for name := range runner.Suite.Files {
 		files = append(files, name)
@@ -349,12 +352,13 @@ func (runner *TestSuiteRunner) Start(globals map[string]backend.UnparsedVariable
 
 		fileRunner := &TestFileRunner{
 			Suite: runner,
-			States: map[string]*TestFileState{
+			RelevantStates: map[string]*TestFileState{
 				MainStateIdentifier: {
 					Run:   nil,
 					State: states.NewState(),
 				},
 			},
+			PriorStates: make(map[string]*terraform.TestContext),
 		}
 
 		fileRunner.ExecuteTestFile(file)
@@ -364,11 +368,29 @@ func (runner *TestSuiteRunner) Start(globals map[string]backend.UnparsedVariable
 }
 
 type TestFileRunner struct {
+	// Suite contains all the helpful metadata about the test that we need
+	// during the execution of a file.
 	Suite *TestSuiteRunner
 
-	States map[string]*TestFileState
+	// RelevantStates is a mapping of module keys to it's last applied state
+	// file.
+	//
+	// This is used to clean up the infrastructure created during the test after
+	// the test has finished.
+	RelevantStates map[string]*TestFileState
+
+	// PriorStates is mapping from run block names to the TestContexts that were
+	// created when that run block executed.
+	//
+	// This is used to allow run blocks to refer back to the output values of
+	// previous run blocks. It is passed into the Evaluate functions that
+	// validate the test assertions, and used when calculating values for
+	// variables within run blocks.
+	PriorStates map[string]*terraform.TestContext
 }
 
+// TestFileState is a helper struct that just maps a run block to the state that
+// was produced by the execution of that run block.
 type TestFileState struct {
 	Run   *moduletest.Run
 	State *states.State
@@ -424,22 +446,22 @@ func (runner *TestFileRunner) ExecuteTestFile(file *moduletest.File) {
 				continue // Abort!
 			}
 
-			if _, exists := runner.States[key]; !exists {
-				runner.States[key] = &TestFileState{
+			if _, exists := runner.RelevantStates[key]; !exists {
+				runner.RelevantStates[key] = &TestFileState{
 					Run:   nil,
 					State: states.NewState(),
 				}
 			}
 		}
 
-		state, updatedState := runner.ExecuteTestRun(run, file, runner.States[key].State, config)
+		state, updatedState := runner.ExecuteTestRun(run, file, runner.RelevantStates[key].State, config)
 		if updatedState {
 			// Only update the most recent run and state if the state was
 			// actually updated by this change. We want to use the run that
 			// most recently updated the tracked state as the cleanup
 			// configuration.
-			runner.States[key].State = state
-			runner.States[key].Run = run
+			runner.RelevantStates[key].State = state
+			runner.RelevantStates[key].Run = run
 		}
 
 		file.Status = file.Status.Merge(run.Status)
@@ -499,7 +521,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 			return state, false
 		}
 
-		variables, resetVariables, variableDiags := prepareInputVariablesForAssertions(config, run, file, runner.Suite.GlobalVariables)
+		variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file)
 		defer resetVariables()
 
 		run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -533,7 +555,19 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 			run.Diagnostics = run.Diagnostics.Append(diags)
 		}
 
-		planCtx.TestContext(config, plan.PlannedState, plan, variables).Evaluate(run)
+		// First, make the test context we can use to validate the assertions
+		// of the
+		ctx := planCtx.TestContext(run, config, plan.PlannedState, plan, variables)
+
+		// Second, evaluate the run block directly. We also pass in all the
+		// previous contexts so this run block can refer to outputs from
+		// previous run blocks.
+		ctx.Evaluate(runner.PriorStates)
+
+		// Now we've successfully validated this run block, lets add it into
+		// our prior states so future run blocks can access it.
+		runner.PriorStates[run.Name] = ctx
+
 		return state, false
 	}
 
@@ -572,7 +606,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 		return updated, true
 	}
 
-	variables, resetVariables, variableDiags := prepareInputVariablesForAssertions(config, run, file, runner.Suite.GlobalVariables)
+	variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file)
 	defer resetVariables()
 
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -606,7 +640,19 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 		run.Diagnostics = run.Diagnostics.Append(diags)
 	}
 
-	applyCtx.TestContext(config, updated, plan, variables).Evaluate(run)
+	// First, make the test context we can use to validate the assertions
+	// of the
+	ctx := applyCtx.TestContext(run, config, updated, plan, variables)
+
+	// Second, evaluate the run block directly. We also pass in all the
+	// previous contexts so this run block can refer to outputs from
+	// previous run blocks.
+	ctx.Evaluate(runner.PriorStates)
+
+	// Now we've successfully validated this run block, lets add it into
+	// our prior states so future run blocks can access it.
+	runner.PriorStates[run.Name] = ctx
+
 	return updated, true
 }
 
@@ -655,7 +701,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 
 	var diags tfdiags.Diagnostics
 
-	variables, variableDiags := buildInputVariablesForTest(run, file, config, runner.Suite.GlobalVariables)
+	variables, variableDiags := runner.buildInputVariablesForTest(run, file, config)
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
@@ -717,7 +763,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 	references, referenceDiags := run.GetReferences()
 	diags = diags.Append(referenceDiags)
 
-	variables, variableDiags := buildInputVariablesForTest(run, file, config, runner.Suite.GlobalVariables)
+	variables, variableDiags := runner.buildInputVariablesForTest(run, file, config)
 	diags = diags.Append(variableDiags)
 
 	if diags.HasErrors() {
@@ -844,8 +890,8 @@ func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Co
 		log.Printf("[DEBUG] TestFileRunner: test execution cancelled during %s", identifier)
 
 		states := make(map[*moduletest.Run]*states.State)
-		states[nil] = runner.States[MainStateIdentifier].State
-		for key, module := range runner.States {
+		states[nil] = runner.RelevantStates[MainStateIdentifier].State
+		for key, module := range runner.RelevantStates {
 			if key == MainStateIdentifier {
 				continue
 			}
@@ -902,7 +948,7 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 	}
 
 	// First, we'll clean up the main state.
-	main := runner.States[MainStateIdentifier]
+	main := runner.RelevantStates[MainStateIdentifier]
 
 	var diags tfdiags.Diagnostics
 	updated := main.State
@@ -931,7 +977,7 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 	}
 
 	var states []*TestFileState
-	for key, state := range runner.States {
+	for key, state := range runner.RelevantStates {
 		if key == MainStateIdentifier {
 			// We processed the main state above.
 			continue
@@ -995,23 +1041,21 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 	}
 }
 
-// helper functions
-
 // buildInputVariablesForTest creates a terraform.InputValues mapping for
 // variable values that are relevant to the config being tested.
 //
 // Crucially, it differs from prepareInputVariablesForAssertions in that it only
 // includes variables that are reference by the config and not everything that
 // is defined within the test run block and test file.
-func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 	for name := range config.Module.Variables {
 		if run != nil {
 			if expr, exists := run.Config.Variables[name]; exists {
 				// Local variables take precedence.
-				variables[name] = unparsedVariableValueExpression{
-					expr:       expr,
-					sourceType: terraform.ValueFromConfig,
+				variables[name] = unparsedTestVariableValue{
+					expr: expr,
+					ctx:  runner.EvalCtx(),
 				}
 				continue
 			}
@@ -1028,10 +1072,10 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 			}
 		}
 
-		if globals != nil {
+		if runner.Suite.GlobalVariables != nil {
 			// If it's not set locally or at the file level, maybe it was
 			// defined globally.
-			if variable, exists := globals[name]; exists {
+			if variable, exists := runner.Suite.GlobalVariables[name]; exists {
 				variables[name] = variable
 			}
 		}
@@ -1055,14 +1099,14 @@ func buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, conf
 // In addition, it modifies the provided config so that any variables that are
 // available are also defined in the config. It returns a function that resets
 // the config which must be called so the config can be reused going forward.
-func prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File, globals map[string]backend.UnparsedVariableValue) (terraform.InputValues, func(), tfdiags.Diagnostics) {
+func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File) (terraform.InputValues, func(), tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
 		for name, expr := range run.Config.Variables {
-			variables[name] = unparsedVariableValueExpression{
-				expr:       expr,
-				sourceType: terraform.ValueFromConfig,
+			variables[name] = unparsedTestVariableValue{
+				expr: expr,
+				ctx:  runner.EvalCtx(),
 			}
 		}
 	}
@@ -1081,7 +1125,7 @@ func prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.
 		}
 	}
 
-	for name, variable := range globals {
+	for name, variable := range runner.Suite.GlobalVariables {
 		if _, exists := variables[name]; exists {
 			// Then this value was already defined at either the run level
 			// or the file level, and we want those values to take
@@ -1156,4 +1200,39 @@ func prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.
 	return inputs, func() {
 		config.Module.Variables = currentVars
 	}, diags
+}
+
+// EvalCtx returns an hcl.EvalContext that allows the variables blocks within
+// run blocks to evaluate references to the outputs from other run blocks.
+func (runner *TestFileRunner) EvalCtx() *hcl.EvalContext {
+	return &hcl.EvalContext{
+		Variables: func() map[string]cty.Value {
+			blocks := make(map[string]cty.Value)
+			for run, ctx := range runner.PriorStates {
+
+				outputs := make(map[string]cty.Value)
+				for _, output := range ctx.Config.Module.Outputs {
+					value := ctx.State.OutputValue(addrs.AbsOutputValue{
+						Module: addrs.RootModuleInstance,
+						OutputValue: addrs.OutputValue{
+							Name: output.Name,
+						},
+					})
+
+					if value.Sensitive {
+						outputs[output.Name] = value.Value.Mark(marks.Sensitive)
+						continue
+					}
+
+					outputs[output.Name] = value.Value
+				}
+
+				blocks[run] = cty.ObjectVal(outputs)
+			}
+
+			return map[string]cty.Value{
+				"run": cty.ObjectVal(blocks),
+			}
+		}(),
+	}
 }

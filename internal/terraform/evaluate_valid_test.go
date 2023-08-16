@@ -18,9 +18,10 @@ import (
 
 func TestStaticValidateReferences(t *testing.T) {
 	tests := []struct {
-		Ref     string
-		Src     addrs.Referenceable
-		WantErr string
+		Ref      string
+		Src      addrs.Referenceable
+		ParseRef lang.ParseRef
+		WantErr  string
 	}{
 		{
 			Ref:     "aws_instance.no_count",
@@ -79,6 +80,15 @@ For example, to correlate with indices of a referring resource, use:
 			WantErr: ``,
 			Src:     addrs.Check{Name: "foo"},
 		},
+		{
+			Ref:     "run.zero",
+			WantErr: `Reference to undeclared resource: A managed resource "run" "zero" has not been declared in the root module.`,
+		},
+		{
+			Ref:      "run.zero",
+			ParseRef: addrs.ParseRefFromTestingScope,
+			WantErr:  `Reference to unavailable run block: The run block named "zero" is not available, either it does not exist or has not yet been executed.`,
+		},
 	}
 
 	cfg := testModule(t, "static-validate-refs")
@@ -122,7 +132,12 @@ For example, to correlate with indices of a referring resource, use:
 				t.Fatal(hclDiags.Error())
 			}
 
-			refs, diags := lang.References(addrs.ParseRef, []hcl.Traversal{traversal})
+			parseRef := addrs.ParseRef
+			if test.ParseRef != nil {
+				parseRef = test.ParseRef
+			}
+
+			refs, diags := lang.References(parseRef, []hcl.Traversal{traversal})
 			if diags.HasErrors() {
 				t.Fatal(diags.Err())
 			}
