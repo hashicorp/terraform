@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package moduletest
 
 // Status represents the status of a test case, and is defined as an iota within
