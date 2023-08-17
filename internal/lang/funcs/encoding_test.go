@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -236,7 +236,7 @@ func TestBase64TextEncode(t *testing.T) {
 			cty.StringVal("abc123!?$*&()'-=@~"),
 			cty.StringVal("NOT-EXISTS"),
 			cty.UnknownVal(cty.String).RefineNotNull(),
-			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this mnptu version`,
 		},
 		{
 			cty.StringVal("🤔"),
@@ -310,7 +310,7 @@ func TestBase64TextDecode(t *testing.T) {
 			cty.StringVal("doesn't matter"),
 			cty.StringVal("NOT-EXISTS"),
 			cty.UnknownVal(cty.String).RefineNotNull(),
-			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this Terraform version`,
+			`"NOT-EXISTS" is not a supported IANA encoding name or alias in this mnptu version`,
 		},
 		{
 			cty.StringVal("<invalid base64>"),

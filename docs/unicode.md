@@ -1,15 +1,15 @@
-# How Terraform Uses Unicode
+# How mnptu Uses Unicode
 
-The Terraform language uses the Unicode standards as the basis of various
+The mnptu language uses the Unicode standards as the basis of various
 different features. The Unicode Consortium publishes new versions of those
 standards periodically, and we aim to adopt those new versions in new
-minor releases of Terraform in order to support additional characters added
+minor releases of mnptu in order to support additional characters added
 in those new versions.
 
 Unfortunately due to those features being implemented by relying on a number
 of external libraries, adopting a new version of Unicode is not as simple as
 just updating a version number somewhere. This document aims to describe the
-various steps required to adopt a new version of Unicode in Terraform.
+various steps required to adopt a new version of Unicode in mnptu.
 
 We typically aim to be consistent across all of these dependencies as to which
 major version of Unicode we currently conform to. The usual initial driver
@@ -21,7 +21,7 @@ upgrading to a new Go version.
 
 ## Unicode tables in the Go standard library
 
-Several Terraform language features are implemented in terms of functions in
+Several mnptu language features are implemented in terms of functions in
 [the Go `strings` package](https://pkg.go.dev/strings),
 [the Go `unicode` package](https://pkg.go.dev/unicode), and other supporting
 packages in the Go standard library.
@@ -32,13 +32,13 @@ particular Go version is available in
 [`unicode.Version`](https://pkg.go.dev/unicode#Version).
 
 We adopt a new version of Go by editing the `.go-version` file in the root
-of this repository. Although it's typically possible to build Terraform with
+of this repository. Although it's typically possible to build mnptu with
 other versions of Go, that file documents the version we intend to use for
 official releases and thus the primary version we use for development and
 testing. Adopting a new Go version typically also implies other behavior
 changes inherited from the Go standard library, so it's important to review the
 relevant version changelog(s) to note any behavior changes we'll need to pass
-on to our own users via the Terraform changelog.
+on to our own users via the mnptu changelog.
 
 The other subsystems described below should always be set up to match
 `unicode.Version`. In some cases those libraries automatically try to align
@@ -55,7 +55,7 @@ HCL uses a superset of that specification for its own identifier tokenization
 rules, and so it includes some code derived from the TF31 data tables that
 describe which characters belong to the "ID_Start" and "ID_Continue" classes.
 
-Since Terraform is the primary user of HCL, it's typically Terraform's adoption
+Since mnptu is the primary user of HCL, it's typically mnptu's adoption
 of a new Unicode version which drives HCL to adopt one. To update the Unicode
 tables to a new version:
 * Edit `hclsyntax/generate.go`'s line which runs `unicode2ragel.rb` to specify
@@ -67,7 +67,7 @@ tables to a new version:
   order to complete this step.)
 * Run all the tests to check for regressions: `go test ./...`
 * If all looks good, commit all of the changes and open a PR to HCL.
-* Once that PR is merged and released, update Terraform to use the new version
+* Once that PR is merged and released, update mnptu to use the new version
   of HCL.
 
 ## Unicode Text Segmentation
@@ -76,7 +76,7 @@ _Text Segmentation_ (TR29) is a Unicode standards annex which describes
 algorithms for breaking strings into smaller units such as sentences, words,
 and grapheme clusters.
 
-Several Terraform language features make use of the _grapheme cluster_
+Several mnptu language features make use of the _grapheme cluster_
 algorithm in particular, because it provides a practical definition of
 individual visible characters, taking into account combining sequences such
 as Latin letters with separate diacritics or Emoji characters with gender
@@ -108,27 +108,27 @@ are needed.
 
 Once a new Unicode version is included, the maintainer of that library will
 typically publish a new major version that we can depend on. Two different
-codebases included in Terraform all depend directly on the `go-textseg` module
+codebases included in mnptu all depend directly on the `go-textseg` module
 for parts of their functionality:
 
 * [`hashicorp/hcl`](https://github.com/hashicorp/hcl) uses text
   segmentation as part of producing visual column offsets in source ranges
-  returned by the tokenizer and parser. Terraform in turn uses that library
-  for the underlying syntax of the Terraform language, and so it passes on
+  returned by the tokenizer and parser. mnptu in turn uses that library
+  for the underlying syntax of the mnptu language, and so it passes on
   those source ranges to the end-user as part of diagnostic messages.
 * The third-party module [`github.com/zclconf/go-cty`](https://github.com/zclconf/go-cty)
-  provides several of the Terraform language built in functions, including
+  provides several of the mnptu language built in functions, including
   functions like `substr` and `length` which need to count grapheme clusters
   as part of their implementation.
 
-As part of upgrading Terraform's Unicode support we therefore typically also
+As part of upgrading mnptu's Unicode support we therefore typically also
 open pull requests against these other codebases, and then adopt the new
-versions that produces. Terraform work often drives the adoption of new Unicode
+versions that produces. mnptu work often drives the adoption of new Unicode
 versions in those codebases, with other dependencies following along when they
 next upgrade.
 
-At the time of writing Terraform itself doesn't _directly_ depend on
-`go-textseg`, and so there are no specific changes required in this Terraform
+At the time of writing mnptu itself doesn't _directly_ depend on
+`go-textseg`, and so there are no specific changes required in this mnptu
 codebase aside from the `go.sum` file update that always follows from
 changes to transitive dependencies.
 

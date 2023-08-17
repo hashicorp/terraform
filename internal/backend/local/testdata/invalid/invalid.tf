@@ -1,5 +1,5 @@
 # This configuration is intended to be loadable (valid syntax, etc) but to
-# fail terraform.Context.Validate.
+# fail mnptu.Context.Validate.
 
 locals {
   a = local.nonexist

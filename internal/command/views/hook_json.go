@@ -12,12 +12,12 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/format"
+	"github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 // How long to wait between sending heartbeat/progress messages
@@ -33,7 +33,7 @@ func newJSONHook(view *JSONView) *jsonHook {
 }
 
 type jsonHook struct {
-	terraform.NilHook
+	mnptu.NilHook
 
 	view *JSONView
 
@@ -47,7 +47,7 @@ type jsonHook struct {
 	timeAfter func(time.Duration) <-chan time.Time
 }
 
-var _ terraform.Hook = (*jsonHook)(nil)
+var _ mnptu.Hook = (*jsonHook)(nil)
 
 type applyProgress struct {
 	addr   addrs.AbsResourceInstance
@@ -62,7 +62,7 @@ type applyProgress struct {
 	heartbeatDone chan struct{}
 }
 
-func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generation, action plans.Action, priorState, plannedNewState cty.Value) (mnptu.HookAction, error) {
 	if action != plans.NoOp {
 		idKey, idValue := format.ObjectValueIDOrName(priorState)
 		h.view.Hook(json.NewApplyStart(addr, action, idKey, idValue))
@@ -82,7 +82,7 @@ func (h *jsonHook) PreApply(addr addrs.AbsResourceInstance, gen states.Generatio
 	if action != plans.NoOp {
 		go h.applyingHeartbeat(progress)
 	}
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }
 
 func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
@@ -99,7 +99,7 @@ func (h *jsonHook) applyingHeartbeat(progress applyProgress) {
 	}
 }
 
-func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (terraform.HookAction, error) {
+func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generation, newState cty.Value, err error) (mnptu.HookAction, error) {
 	key := addr.String()
 	h.applyingLock.Lock()
 	progress := h.applying[key]
@@ -110,7 +110,7 @@ func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generati
 	h.applyingLock.Unlock()
 
 	if progress.action == plans.NoOp {
-		return terraform.HookActionContinue, nil
+		return mnptu.HookActionContinue, nil
 	}
 
 	elapsed := h.timeNow().Round(time.Second).Sub(progress.start)
@@ -124,15 +124,15 @@ func (h *jsonHook) PostApply(addr addrs.AbsResourceInstance, gen states.Generati
 		idKey, idValue := format.ObjectValueID(newState)
 		h.view.Hook(json.NewApplyComplete(addr, progress.action, idKey, idValue, elapsed))
 	}
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }
 
-func (h *jsonHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (terraform.HookAction, error) {
+func (h *jsonHook) PreProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string) (mnptu.HookAction, error) {
 	h.view.Hook(json.NewProvisionStart(addr, typeName))
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (terraform.HookAction, error) {
+func (h *jsonHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typeName string, err error) (mnptu.HookAction, error) {
 	if err != nil {
 		// Errors are collected and displayed post-apply, so no need to
 		// re-render them here. Instead just signal that this provisioner step
@@ -141,7 +141,7 @@ func (h *jsonHook) PostProvisionInstanceStep(addr addrs.AbsResourceInstance, typ
 	} else {
 		h.view.Hook(json.NewProvisionComplete(addr, typeName))
 	}
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }
 
 func (h *jsonHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName string, msg string) {
@@ -155,14 +155,14 @@ func (h *jsonHook) ProvisionOutput(addr addrs.AbsResourceInstance, typeName stri
 	}
 }
 
-func (h *jsonHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PreRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value) (mnptu.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(priorState)
 	h.view.Hook(json.NewRefreshStart(addr, idKey, idValue))
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }
 
-func (h *jsonHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (terraform.HookAction, error) {
+func (h *jsonHook) PostRefresh(addr addrs.AbsResourceInstance, gen states.Generation, priorState cty.Value, newState cty.Value) (mnptu.HookAction, error) {
 	idKey, idValue := format.ObjectValueID(newState)
 	h.view.Hook(json.NewRefreshComplete(addr, idKey, idValue))
-	return terraform.HookActionContinue, nil
+	return mnptu.HookActionContinue, nil
 }

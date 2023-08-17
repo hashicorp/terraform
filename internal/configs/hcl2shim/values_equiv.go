@@ -19,10 +19,10 @@ import (
 //
 // This must be used _only_ for comparing values for equivalence within the
 // SDK planning code. It is only meaningful to compare the "prior state"
-// provided by Terraform Core with the "planned new state" produced by the
+// provided by mnptu Core with the "planned new state" produced by the
 // legacy SDK code via shims. In particular it is not valid to use this
 // function with their the config value or the "proposed new state" value
-// because they contain only the subset of data that Terraform Core itself is
+// because they contain only the subset of data that mnptu Core itself is
 // able to determine.
 func ValuesSDKEquivalent(a, b cty.Value) bool {
 	if a == cty.NilVal || b == cty.NilVal {
@@ -183,7 +183,7 @@ func valuesSDKEquivalentMappings(a, b cty.Value) bool {
 
 // valuesSDKEquivalentNumbers decides equivalence for two number values based
 // on the fact that the SDK uses int and float64 representations while
-// cty (and thus Terraform Core) uses big.Float, and so we expect to lose
+// cty (and thus mnptu Core) uses big.Float, and so we expect to lose
 // precision in the round-trip.
 //
 // This does _not_ attempt to allow for an epsilon difference that may be

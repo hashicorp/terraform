@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 func TestSearchLocalDirectory(t *testing.T) {
@@ -26,7 +26,7 @@ func TestSearchLocalDirectory(t *testing.T) {
 						Provider:       addrs.MustParseProviderSourceString("example.com/foo/bar"),
 						Version:        MustParseVersion("1.0.0"),
 						TargetPlatform: Platform{OS: "linux", Arch: "amd64"},
-						Filename:       "terraform-provider-bar_1.0.0_linux_amd64.zip",
+						Filename:       "mnptu-provider-bar_1.0.0_linux_amd64.zip",
 						Location:       PackageLocalDir("testdata/search-local-directory/symlinks/real/example.com/foo/bar/1.0.0/linux_amd64"),
 					},
 				},

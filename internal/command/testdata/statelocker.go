@@ -11,8 +11,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 )
 
 func main() {

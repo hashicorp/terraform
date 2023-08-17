@@ -9,13 +9,13 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 // TestLocal returns a configured Local struct with temporary paths and
@@ -35,16 +35,16 @@ func TestLocal(t *testing.T) *Local {
 	local.StateOutPath = filepath.Join(tempDir, "state.tfstate")
 	local.StateBackupPath = filepath.Join(tempDir, "state.tfstate.bak")
 	local.StateWorkspaceDir = filepath.Join(tempDir, "state.tfstate.d")
-	local.ContextOpts = &terraform.ContextOpts{}
+	local.ContextOpts = &mnptu.ContextOpts{}
 
 	return local
 }
 
 // TestLocalProvider modifies the ContextOpts of the *Local parameter to
 // have a provider with the given name.
-func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.ProviderSchema) *terraform.MockProvider {
+func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.ProviderSchema) *mnptu.MockProvider {
 	// Build a mock resource provider for in-memory operations
-	p := new(terraform.MockProvider)
+	p := new(mnptu.MockProvider)
 
 	p.GetProviderSchemaResponse = &schema
 
@@ -89,7 +89,7 @@ func TestLocalProvider(t *testing.T, b *Local, name string, schema providers.Pro
 
 	// Initialize the opts
 	if b.ContextOpts == nil {
-		b.ContextOpts = &terraform.ContextOpts{}
+		b.ContextOpts = &mnptu.ContextOpts{}
 	}
 
 	// Set up our provider

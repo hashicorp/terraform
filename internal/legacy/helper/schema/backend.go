@@ -7,12 +7,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 )
 
@@ -181,16 +181,16 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 }
 
 // shimConfig turns a new-style cty.Value configuration (which must be of
-// an object type) into a minimal old-style *terraform.ResourceConfig object
+// an object type) into a minimal old-style *mnptu.ResourceConfig object
 // that should be populated enough to appease the not-yet-updated functionality
 // in this package. This should be removed once everything is updated.
-func (b *Backend) shimConfig(obj cty.Value) *terraform.ResourceConfig {
+func (b *Backend) shimConfig(obj cty.Value) *mnptu.ResourceConfig {
 	shimMap, ok := hcl2shim.ConfigValueFromHCL2(obj).(map[string]interface{})
 	if !ok {
 		// If the configVal was nil, we still want a non-nil map here.
 		shimMap = map[string]interface{}{}
 	}
-	return &terraform.ResourceConfig{
+	return &mnptu.ResourceConfig{
 		Config: shimMap,
 		Raw:    shimMap,
 	}

@@ -14,16 +14,16 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/getmodules"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/getmodules"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/modsdir"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/modsdir"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 const initFromModuleRootCallName = "root"
@@ -78,7 +78,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		}
 		haveEntries := false
 		for _, entry := range entries {
-			if entry.Name() == "." || entry.Name() == ".." || entry.Name() == ".terraform" {
+			if entry.Name() == "." || entry.Name() == ".." || entry.Name() == ".mnptu" {
 				continue
 			}
 			haveEntries = true
@@ -93,7 +93,7 @@ func DirFromModule(ctx context.Context, loader *configload.Loader, rootDir, modu
 		}
 	}
 
-	instDir := filepath.Join(rootDir, ".terraform/init-from-module")
+	instDir := filepath.Join(rootDir, ".mnptu/init-from-module")
 	inst := NewModuleInstaller(instDir, loader, reg)
 	log.Printf("[DEBUG] installing modules in %s to initialize working directory from %q", instDir, sourceAddrStr)
 	os.RemoveAll(instDir) // if this fails then we'll fail on MkdirAll below too

@@ -20,14 +20,14 @@ import (
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
 	uuid "github.com/hashicorp/go-uuid"
 	"golang.org/x/oauth2"
@@ -63,13 +63,13 @@ func (c *LoginCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Login is an interactive command",
-			"The \"terraform login\" command uses interactive prompts to obtain and record credentials, so it can't be run with input disabled.\n\nTo configure credentials in a non-interactive context, write existing credentials directly to a CLI configuration file.",
+			"The \"mnptu login\" command uses interactive prompts to obtain and record credentials, so it can't be run with input disabled.\n\nTo configure credentials in a non-interactive context, write existing credentials directly to a CLI configuration file.",
 		))
 		c.showDiagnostics(diags)
 		return 1
 	}
 
-	givenHostname := "app.terraform.io"
+	givenHostname := "app.mnptu.io"
 	if len(args) != 0 {
 		givenHostname = args[0]
 	}
@@ -125,14 +125,14 @@ func (c *LoginCommand) Run(args []string) int {
 	case *disco.ErrVersionNotSupported:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
+			"Host does not support mnptu login",
+			fmt.Sprintf("The given hostname %q allows creating mnptu authorization tokens, but requires a newer version of mnptu CLI to do so.", dispHostname),
 		))
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Warning,
-			"Host does not support Terraform login",
-			fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
+			"Host does not support mnptu login",
+			fmt.Sprintf("The given hostname %q cannot support \"mnptu login\": %s.", dispHostname, err),
 		))
 	}
 
@@ -146,20 +146,20 @@ func (c *LoginCommand) Run(args []string) int {
 		case *disco.ErrServiceNotProvided:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Host does not support Terraform tokens API",
-				fmt.Sprintf("The given hostname %q does not support creating Terraform authorization tokens.", dispHostname),
+				"Host does not support mnptu tokens API",
+				fmt.Sprintf("The given hostname %q does not support creating mnptu authorization tokens.", dispHostname),
 			))
 		case *disco.ErrVersionNotSupported:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Host does not support Terraform tokens API",
-				fmt.Sprintf("The given hostname %q allows creating Terraform authorization tokens, but requires a newer version of Terraform CLI to do so.", dispHostname),
+				"Host does not support mnptu tokens API",
+				fmt.Sprintf("The given hostname %q allows creating mnptu authorization tokens, but requires a newer version of mnptu CLI to do so.", dispHostname),
 			))
 		default:
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Host does not support Terraform tokens API",
-				fmt.Sprintf("The given hostname %q cannot support \"terraform login\": %s.", dispHostname, err),
+				"Host does not support mnptu tokens API",
+				fmt.Sprintf("The given hostname %q cannot support \"mnptu login\": %s.", dispHostname, err),
 			))
 		}
 	}
@@ -168,7 +168,7 @@ func (c *LoginCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("Credentials for %s are manually configured", dispHostname),
-			"The \"terraform login\" command cannot log in because credentials for this host are already configured in a CLI configuration file.\n\nTo log in, first revoke the existing credentials and remove that block from the CLI configuration.",
+			"The \"mnptu login\" command cannot log in because credentials for this host are already configured in a CLI configuration file.\n\nTo log in, first revoke the existing credentials and remove that block from the CLI configuration.",
 		))
 	}
 
@@ -180,7 +180,7 @@ func (c *LoginCommand) Run(args []string) int {
 	var token svcauth.HostCredentialsToken
 	var tokenDiags tfdiags.Diagnostics
 
-	// Prefer Terraform login if available
+	// Prefer mnptu login if available
 	if clientConfig != nil {
 		var oauthToken *oauth2.Token
 
@@ -188,16 +188,16 @@ func (c *LoginCommand) Run(args []string) int {
 		case clientConfig.SupportedGrantTypes.Has(disco.OAuthAuthzCodeGrant):
 			// We prefer an OAuth code grant if the server supports it.
 			oauthToken, tokenDiags = c.interactiveGetTokenByCode(hostname, credsCtx, clientConfig)
-		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.terraform.io"):
-			// The password grant type is allowed only for Terraform Cloud SaaS.
+		case clientConfig.SupportedGrantTypes.Has(disco.OAuthOwnerPasswordGrant) && hostname == svchost.Hostname("app.mnptu.io"):
+			// The password grant type is allowed only for mnptu Cloud SaaS.
 			// Note this case is purely theoretical at this point, as TFC currently uses
 			// its own bespoke login protocol (tfe)
 			oauthToken, tokenDiags = c.interactiveGetTokenByPassword(hostname, credsCtx, clientConfig)
 		default:
 			tokenDiags = tokenDiags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Host does not support Terraform login",
-				fmt.Sprintf("The given hostname %q does not allow any OAuth grant types that are supported by this version of Terraform.", dispHostname),
+				"Host does not support mnptu login",
+				fmt.Sprintf("The given hostname %q does not allow any OAuth grant types that are supported by this version of mnptu.", dispHostname),
 			))
 		}
 		if oauthToken != nil {
@@ -218,7 +218,7 @@ func (c *LoginCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to save API token",
-			fmt.Sprintf("The given host returned an API token, but Terraform failed to save it: %s.", err),
+			fmt.Sprintf("The given host returned an API token, but mnptu failed to save it: %s.", err),
 		))
 	}
 
@@ -228,7 +228,7 @@ func (c *LoginCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	if hostname == "app.terraform.io" { // Terraform Cloud
+	if hostname == "app.mnptu.io" { // mnptu Cloud
 		var motd struct {
 			Message string        `json:"msg"`
 			Errors  []interface{} `json:"errors"`
@@ -284,15 +284,15 @@ func (c *LoginCommand) Run(args []string) int {
 		}
 	}
 
-	if tfeservice != nil { // Terraform Enterprise
+	if tfeservice != nil { // mnptu Enterprise
 		c.outputDefaultTFELoginSuccess(dispHostname)
 	} else {
 		c.Ui.Output(
 			fmt.Sprintf(
 				c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has obtained and saved an API token.[reset]
+[green][bold]Success![reset] [bold]mnptu has obtained and saved an API token.[reset]
 
-The new API token will be used for any future Terraform command that must make
+The new API token will be used for any future mnptu command that must make
 authenticated requests to %s.
 `)),
 				dispHostname,
@@ -307,7 +307,7 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 	c.Ui.Output(
 		fmt.Sprintf(
 			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to Terraform Enterprise (%s)[reset]
+[green][bold]Success![reset] [bold]Logged in to mnptu Enterprise (%s)[reset]
 `)),
 			dispHostname,
 		) + "\n",
@@ -316,12 +316,12 @@ func (c *LoginCommand) outputDefaultTFELoginSuccess(dispHostname string) {
 
 func (c *LoginCommand) outputDefaultTFCLoginSuccess() {
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Logged in to Terraform Cloud[reset]
+[green][bold]Success![reset] [bold]Logged in to mnptu Cloud[reset]
 ` + "\n")))
 }
 
 func (c *LoginCommand) logMOTDError(err error) {
-	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for Terraform Cloud: %s", err)
+	log.Printf("[TRACE] login: An error occurred attempting to fetch a message of the day for mnptu Cloud: %s", err)
 }
 
 // Help implements cli.Command.
@@ -334,17 +334,17 @@ func (c *LoginCommand) Help() string {
 		// more complex behavior for this case. This result is not correct
 		// on all platforms, but given how unlikely we are to hit this case
 		// that seems okay.
-		defaultFile = "~/.terraform/credentials.tfrc.json"
+		defaultFile = "~/.mnptu/credentials.tfrc.json"
 	}
 
 	helpText := fmt.Sprintf(`
-Usage: terraform [global options] login [hostname]
+Usage: mnptu [global options] login [hostname]
 
   Retrieves an authentication token for the given hostname, if it supports
   automatic login, and saves it in a credentials file in your home directory.
 
-  If no hostname is provided, the default hostname is app.terraform.io, to
-  log in to Terraform Cloud.
+  If no hostname is provided, the default hostname is app.mnptu.io, to
+  log in to mnptu Cloud.
 
   If not overridden by credentials helper settings in the CLI configuration,
   the credentials will be written to the following local file:
@@ -486,7 +486,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 	if c.BrowserLauncher != nil {
 		err = c.BrowserLauncher.OpenURL(authCodeURL)
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
+			c.Ui.Output(fmt.Sprintf("mnptu must now open a web browser to the login page for %s.\n", hostname.ForDisplay()))
 			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", authCodeURL))
 		} else {
 			// Assume we're on a platform where opening a browser isn't possible.
@@ -500,7 +500,7 @@ func (c *LoginCommand) interactiveGetTokenByCode(hostname svchost.Hostname, cred
 		c.Ui.Output(fmt.Sprintf("Open the following URL to access the login page for %s:\n    %s\n", hostname.ForDisplay(), authCodeURL))
 	}
 
-	c.Ui.Output("Terraform will now wait for the host to signal that login was successful.\n")
+	c.Ui.Output("mnptu will now wait for the host to signal that login was successful.\n")
 
 	code, ok := <-codeCh
 	if !ok {
@@ -543,9 +543,9 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	}
 
 	c.Ui.Output("\n---------------------------------------------------------------------------------\n")
-	c.Ui.Output("Terraform must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
+	c.Ui.Output("mnptu must temporarily use your password to request an API token.\nThis password will NOT be saved locally.\n")
 
-	username, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+	username, err := c.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:    "username",
 		Query: fmt.Sprintf("Username for %s:", hostname.ForDisplay()),
 	})
@@ -553,7 +553,7 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 		diags = diags.Append(fmt.Errorf("Failed to request username: %s", err))
 		return nil, diags
 	}
-	password, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+	password, err := c.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:     "password",
 		Query:  fmt.Sprintf("Password for %s:", hostname.ForDisplay()),
 		Secret: true,
@@ -571,7 +571,7 @@ func (c *LoginCommand) interactiveGetTokenByPassword(hostname svchost.Hostname, 
 	token, err := oauthConfig.PasswordCredentialsToken(context.Background(), username, password)
 	if err != nil {
 		// FIXME: The OAuth2 library generates errors that are not appropriate
-		// for a Terraform end-user audience, so once we have more experience
+		// for a mnptu end-user audience, so once we have more experience
 		// with which errors are most common we should try to recognize them
 		// here and produce better error messages for them.
 		diags = diags.Append(tfdiags.Sourceless(
@@ -600,14 +600,14 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 		Scheme:   "https",
 		Host:     service.Hostname(),
 		Path:     "/app/settings/tokens",
-		RawQuery: "source=terraform-login",
+		RawQuery: "source=mnptu-login",
 	}
 
 	launchBrowserManually := false
 	if c.BrowserLauncher != nil {
 		err := c.BrowserLauncher.OpenURL(tokensURL.String())
 		if err == nil {
-			c.Ui.Output(fmt.Sprintf("Terraform must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
+			c.Ui.Output(fmt.Sprintf("mnptu must now open a web browser to the tokens page for %s.\n", hostname.ForDisplay()))
 			c.Ui.Output(fmt.Sprintf("If a browser does not open this automatically, open the following URL to proceed:\n    %s\n", tokensURL.String()))
 		} else {
 			log.Printf("[DEBUG] error opening web browser: %s", err)
@@ -630,13 +630,13 @@ func (c *LoginCommand) interactiveGetTokenByUI(hostname svchost.Hostname, credsC
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in the configured %q credentials helper\nfor use by subsequent commands.\n", credsCtx.HelperType))
+			c.Ui.Output(fmt.Sprintf("mnptu will store the token in the configured %q credentials helper\nfor use by subsequent commands.\n", credsCtx.HelperType))
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("Terraform will store the token in plain text in the following file\nfor use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			c.Ui.Output(fmt.Sprintf("mnptu will store the token in plain text in the following file\nfor use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
 		}
 	}
 
-	token, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+	token, err := c.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:     "token",
 		Query:  fmt.Sprintf("Token for %s:", hostname.ForDisplay()),
 		Secret: true,
@@ -678,7 +678,7 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 		mechanism = "your browser"
 	}
 
-	c.Ui.Output(fmt.Sprintf("Terraform will request an API token for %s using %s.\n", hostname.ForDisplay(), mechanism))
+	c.Ui.Output(fmt.Sprintf("mnptu will request an API token for %s using %s.\n", hostname.ForDisplay(), mechanism))
 
 	if grantType.UsesAuthorizationEndpoint() {
 		c.Ui.Output(
@@ -691,13 +691,13 @@ func (c *LoginCommand) interactiveContextConsent(hostname svchost.Hostname, gran
 	if credsCtx != nil {
 		switch credsCtx.Location {
 		case cliconfig.CredentialsViaHelper:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in the configured\n%q credentials helper for use by subsequent commands.\n", credsCtx.HelperType))
+			c.Ui.Output(fmt.Sprintf("If login is successful, mnptu will store the token in the configured\n%q credentials helper for use by subsequent commands.\n", credsCtx.HelperType))
 		case cliconfig.CredentialsInPrimaryFile, cliconfig.CredentialsNotAvailable:
-			c.Ui.Output(fmt.Sprintf("If login is successful, Terraform will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
+			c.Ui.Output(fmt.Sprintf("If login is successful, mnptu will store the token in plain text in\nthe following file for use by subsequent commands:\n    %s\n", credsCtx.LocalFilename))
 		}
 	}
 
-	v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+	v, err := c.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:          "approve",
 		Query:       "Do you want to proceed?",
 		Description: `Only 'yes' will be accepted to confirm.`,
@@ -783,7 +783,7 @@ type loginCredentialsContext struct {
 const callbackSuccessMessage = `
 <html>
 <head>
-<title>Terraform Login</title>
+<title>mnptu Login</title>
 <style type="text/css">
 body {
 	font-family: monospace;
@@ -794,8 +794,8 @@ body {
 </head>
 <body>
 
-<p>The login server has returned an authentication code to Terraform.</p>
-<p>Now close this page and return to the terminal where <tt>terraform login</tt>
+<p>The login server has returned an authentication code to mnptu.</p>
+<p>Now close this page and return to the terminal where <tt>mnptu login</tt>
 is running to see the result of the login process.</p>
 
 </body>

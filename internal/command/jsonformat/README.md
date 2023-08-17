@@ -1,16 +1,16 @@
 # jsonformat
 
 This package contains functionality around formatting and displaying the JSON
-structured output produced by adding the `-json` flag to various Terraform
+structured output produced by adding the `-json` flag to various mnptu
 commands.
 
-## Terraform Structured Plan Renderer
+## mnptu Structured Plan Renderer
 
 As of January 2023, this package contains only a single structure: the 
 `Renderer`.
 
 The renderer accepts the JSON structured output produced by the 
-`terraform show <plan-file> -json` command and writes it in a human-readable
+`mnptu show <plan-file> -json` command and writes it in a human-readable
 format.
 
 Implementation details and decisions for the `Renderer` are discussed in the
@@ -30,9 +30,9 @@ concerned with the complex diff calculations.
 #### The `differ` package
 
 The `differ` package operates on `Change` objects. These are produced from
-`jsonplan.Change` objects (which are produced by the `terraform show` command).
+`jsonplan.Change` objects (which are produced by the `mnptu show` command).
 Each `jsonplan.Change` object represents a single resource within the overall
-Terraform configuration.
+mnptu configuration.
 
 The `differ` package will iterate through the `Change` objects and produce a 
 single `Diff` that represents a processed summary of the changes described by 
@@ -113,7 +113,7 @@ value was set to null in a collection.
 
 *Quick note on the go-cty Value and Type objects:* The `Before` and `After` 
 fields are actually go-cty values, but we cannot convert them directly because 
-of the  Terraform Cloud redacted endpoint. The redacted endpoint turns sensitive
+of the  mnptu Cloud redacted endpoint. The redacted endpoint turns sensitive
 values into strings regardless of their types. Because of this, we cannot just 
 do a direct conversion using the ctyjson package. We would have to iterate 
 through the schema first, find the sensitive values and their mapped types, 

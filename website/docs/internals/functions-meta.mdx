@@ -1,19 +1,19 @@
 ---
 page_title: Functions Metadata
 description: >-
-  The `terraform metadata functions` command prints signatures for all the
-  functions available in the current Terraform version.
+  The `mnptu metadata functions` command prints signatures for all the
+  functions available in the current mnptu version.
 ---
 
 # Functions Metadata
 
-The `terraform metadata functions` command is used to print signatures for the functions available in the current Terraform version.
+The `mnptu metadata functions` command is used to print signatures for the functions available in the current mnptu version.
 
--> `terraform metadata functions` requires **Terraform v1.4 or later**.
+-> `mnptu metadata functions` requires **mnptu v1.4 or later**.
 
 ## Usage
 
-Usage: `terraform metadata functions [options]`
+Usage: `mnptu metadata functions [options]`
 
 The following flags are available:
 
@@ -21,7 +21,7 @@ The following flags are available:
 
 Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
 
-The output includes a `format_version` key, which as of Terraform 1.4.0 has
+The output includes a `format_version` key, which as of mnptu 1.4.0 has
 value `"1.0"`. The semantics of this version are:
 
 - We will increment the minor version, e.g. `"1.1"`, for backward-compatible
@@ -32,7 +32,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+[the mnptu 1.0 Compatibility Promises](/mnptu/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -42,7 +42,7 @@ To avoid excessive repetition, we've split the complete format into several disc
 
 The JSON output format consists of the following objects and sub-objects:
 
-- [Function Signature Representation](#function-signature-representation) - the top-level object returned by `terraform metadata functions -json`
+- [Function Signature Representation](#function-signature-representation) - the top-level object returned by `mnptu metadata functions -json`
 - [Parameter Representation](#parameter-representation) - a sub-object of signatures that describes their parameters
 
 ## Function Signature Representation

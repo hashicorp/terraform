@@ -7,8 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 func TestLocksEqual(t *testing.T) {

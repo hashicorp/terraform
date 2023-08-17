@@ -10,9 +10,9 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty/function"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/experiments"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/experiments"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 type ParseRef func(traversal hcl.Traversal) (*addrs.Reference, tfdiags.Diagnostics)
@@ -27,7 +27,7 @@ type Scope struct {
 	// ParseRef is a function that the scope uses to extract references from
 	// a hcl.Traversal. This controls the type of references the scope currently
 	// supports. As an example, the testing scope can reference outputs directly
-	// while the main Terraform context scope can not. This means that this
+	// while the main mnptu context scope can not. This means that this
 	// function for the testing scope will happily return outputs, while the
 	// main context scope would fail if a user attempts to reference an output.
 	ParseRef ParseRef

@@ -2,7 +2,7 @@
   "configuration": {
     "provider_config": {
       "null": {
-        "full_name": "registry.terraform.io/hashicorp/null",
+        "full_name": "registry.mnptu.io/hashicorp/null",
         "name": "null",
         "version_constraint": "3.1.1"
       }
@@ -28,7 +28,7 @@
           "address": "null_resource.null_resource",
           "mode": "managed",
           "name": "null_resource",
-          "provider_name": "registry.terraform.io/hashicorp/null",
+          "provider_name": "registry.mnptu.io/hashicorp/null",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "null_resource",
@@ -58,7 +58,7 @@
       },
       "mode": "managed",
       "name": "null_resource",
-      "provider_name": "registry.terraform.io/hashicorp/null",
+      "provider_name": "registry.mnptu.io/hashicorp/null",
       "type": "null_resource"
     }
   ]

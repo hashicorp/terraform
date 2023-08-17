@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/cloud/cloudplan"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 // ShowPlanForRun downloads the JSON plan output for the specified cloud run
 // (either the redacted or unredacted format, per the caller's request), and
 // returns it in a cloudplan.RemotePlanJSON wrapper struct (along with various
-// metadata required by terraform show). It's intended for use by the terraform
+// metadata required by mnptu show). It's intended for use by the mnptu
 // show command, in order to format and display a saved cloud plan.
 func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, redacted bool) (*cloudplan.RemotePlanJSON, error) {
 	var jsonBytes []byte
@@ -31,7 +31,7 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	// Get run and plan
 	r, err := b.client.Runs.ReadWithOptions(ctx, runID, &tfe.RunReadOptions{Include: []tfe.RunIncludeOpt{tfe.RunPlan, tfe.RunWorkspace}})
 	if err == tfe.ErrResourceNotFound {
-		return nil, fmt.Errorf("couldn't read information for cloud run %s; make sure you've run `terraform login` and that you have permission to view the run", runID)
+		return nil, fmt.Errorf("couldn't read information for cloud run %s; make sure you've run `mnptu login` and that you have permission to view the run", runID)
 	} else if err != nil {
 		return nil, fmt.Errorf("couldn't read information for cloud run %s: %w", runID, err)
 	}
@@ -67,9 +67,9 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	}
 	if err == tfe.ErrResourceNotFound {
 		if redacted {
-			return nil, fmt.Errorf("couldn't read plan data for cloud run %s; make sure you've run `terraform login` and that you have permission to view the run", runID)
+			return nil, fmt.Errorf("couldn't read plan data for cloud run %s; make sure you've run `mnptu login` and that you have permission to view the run", runID)
 		} else {
-			return nil, fmt.Errorf("couldn't read unredacted JSON plan data for cloud run %s; make sure you've run `terraform login` and that you have admin permissions on the workspace", runID)
+			return nil, fmt.Errorf("couldn't read unredacted JSON plan data for cloud run %s; make sure you've run `mnptu login` and that you have admin permissions on the workspace", runID)
 		}
 	} else if err != nil {
 		return nil, fmt.Errorf("couldn't read plan data for cloud run %s: %w", runID, err)

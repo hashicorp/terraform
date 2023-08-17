@@ -1,11 +1,11 @@
 
-terraform {
+mnptu {
   required_providers {
     foo-test = {
       source = "foo/test"
     }
-    terraform = {
-      source = "not-builtin/not-terraform"
+    mnptu = {
+      source = "not-builtin/not-mnptu"
     }
   }
 }

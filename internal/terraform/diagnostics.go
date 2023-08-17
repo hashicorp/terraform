@@ -1,10 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // This file contains some package-local helpers for working with diagnostics.

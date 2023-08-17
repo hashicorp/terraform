@@ -1,24 +1,24 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-// loggraphdiff is a tool for interpreting changes to the Terraform graph
+// loggraphdiff is a tool for interpreting changes to the mnptu graph
 // based on the simple graph printing format used in the TF_LOG=trace log
-// output from Terraform, which looks like this:
+// output from mnptu, which looks like this:
 //
-//     aws_instance.b (destroy) - *terraform.NodeDestroyResourceInstance
-//     aws_instance.b (prepare state) - *terraform.NodeApplyableResource
-//       provider.aws - *terraform.NodeApplyableProvider
-//     aws_instance.b (prepare state) - *terraform.NodeApplyableResource
-//       provider.aws - *terraform.NodeApplyableProvider
-//     module.child.aws_instance.a (destroy) - *terraform.NodeDestroyResourceInstance
-//       module.child.aws_instance.a (prepare state) - *terraform.NodeApplyableResource
-//       module.child.output.a_output - *terraform.NodeApplyableOutput
-//       provider.aws - *terraform.NodeApplyableProvider
-//     module.child.aws_instance.a (prepare state) - *terraform.NodeApplyableResource
-//       provider.aws - *terraform.NodeApplyableProvider
-//     module.child.output.a_output - *terraform.NodeApplyableOutput
-//       module.child.aws_instance.a (prepare state) - *terraform.NodeApplyableResource
-//     provider.aws - *terraform.NodeApplyableProvider
+//     aws_instance.b (destroy) - *mnptu.NodeDestroyResourceInstance
+//     aws_instance.b (prepare state) - *mnptu.NodeApplyableResource
+//       provider.aws - *mnptu.NodeApplyableProvider
+//     aws_instance.b (prepare state) - *mnptu.NodeApplyableResource
+//       provider.aws - *mnptu.NodeApplyableProvider
+//     module.child.aws_instance.a (destroy) - *mnptu.NodeDestroyResourceInstance
+//       module.child.aws_instance.a (prepare state) - *mnptu.NodeApplyableResource
+//       module.child.output.a_output - *mnptu.NodeApplyableOutput
+//       provider.aws - *mnptu.NodeApplyableProvider
+//     module.child.aws_instance.a (prepare state) - *mnptu.NodeApplyableResource
+//       provider.aws - *mnptu.NodeApplyableProvider
+//     module.child.output.a_output - *mnptu.NodeApplyableOutput
+//       module.child.aws_instance.a (prepare state) - *mnptu.NodeApplyableResource
+//     provider.aws - *mnptu.NodeApplyableProvider
 //
 // It takes the names of two files containing this style of output and
 // produces a single graph description in graphviz format that shows the

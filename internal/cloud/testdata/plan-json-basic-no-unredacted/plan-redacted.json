@@ -7,7 +7,7 @@
       "mode": "managed",
       "type": "null_resource",
       "name": "foo",
-      "provider_name": "registry.terraform.io/hashicorp/null",
+      "provider_name": "registry.mnptu.io/hashicorp/null",
       "change": {
         "actions": [
           "create"
@@ -27,7 +27,7 @@
   "relevant_attributes": [],
   "output_changes": {},
   "provider_schemas": {
-    "registry.terraform.io/hashicorp/null": {
+    "registry.mnptu.io/hashicorp/null": {
       "provider": {
         "version": 0,
         "block": {
@@ -99,12 +99,12 @@
               },
               "random": {
                 "type": "string",
-                "description": "A random value. This is primarily for testing and has little practical use; prefer the [hashicorp/random provider](https://registry.terraform.io/providers/hashicorp/random) for more practical random number use-cases.",
+                "description": "A random value. This is primarily for testing and has little practical use; prefer the [hashicorp/random provider](https://registry.mnptu.io/providers/hashicorp/random) for more practical random number use-cases.",
                 "description_kind": "plain",
                 "computed": true
               }
             },
-            "description": "The `null_data_source` data source implements the standard data source lifecycle but does not\ninteract with any external APIs.\n\nHistorically, the `null_data_source` was typically used to construct intermediate values to re-use elsewhere in configuration. The\nsame can now be achieved using [locals](https://www.terraform.io/docs/language/values/locals.html).\n",
+            "description": "The `null_data_source` data source implements the standard data source lifecycle but does not\ninteract with any external APIs.\n\nHistorically, the `null_data_source` was typically used to construct intermediate values to re-use elsewhere in configuration. The\nsame can now be achieved using [locals](https://www.mnptu.io/docs/language/values/locals.html).\n",
             "description_kind": "plain",
             "deprecated": true
           }

@@ -17,7 +17,7 @@
                             "mode": "managed",
                             "type": "test_instance",
                             "name": "test",
-                            "provider_name": "registry.terraform.io/hashicorp/test",
+                            "provider_name": "registry.mnptu.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
                                 "ami": "bar-var"
@@ -35,7 +35,7 @@
                             "type": "test_instance",
                             "name": "test",
                             "index": 0,
-                            "provider_name": "registry.terraform.io/hashicorp/test",
+                            "provider_name": "registry.mnptu.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
@@ -48,7 +48,7 @@
                             "type": "test_instance",
                             "name": "test",
                             "index": 1,
-                            "provider_name": "registry.terraform.io/hashicorp/test",
+                            "provider_name": "registry.mnptu.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
@@ -61,7 +61,7 @@
                             "type": "test_instance",
                             "name": "test",
                             "index": 2,
-                            "provider_name": "registry.terraform.io/hashicorp/test",
+                            "provider_name": "registry.mnptu.io/hashicorp/test",
                             "schema_version": 0,
                             "values": {
                                 "ami": "baz"
@@ -94,7 +94,7 @@
             "mode": "managed",
             "type": "test_instance",
             "name": "test",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "change": {
                 "actions": [
                     "create"
@@ -115,7 +115,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "name": "test",
             "index": 0,
             "change": {
@@ -138,7 +138,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "name": "test",
             "index": 1,
             "change": {
@@ -161,7 +161,7 @@
             "module_address": "module.module_test_foo",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "name": "test",
             "index": 2,
             "change": {
@@ -294,12 +294,12 @@
             "module.module_test_foo:test": {
                 "module_address": "module.module_test_foo",
                 "name": "test",
-                "full_name": "registry.terraform.io/hashicorp/test"
+                "full_name": "registry.mnptu.io/hashicorp/test"
             },
             "module.module_test_bar:test": {
                 "module_address": "module.module_test_bar",
                 "name": "test",
-                "full_name": "registry.terraform.io/hashicorp/test"
+                "full_name": "registry.mnptu.io/hashicorp/test"
             }
         }
     }

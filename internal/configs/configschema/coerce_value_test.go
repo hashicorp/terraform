@@ -8,7 +8,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestCoerceValue(t *testing.T) {

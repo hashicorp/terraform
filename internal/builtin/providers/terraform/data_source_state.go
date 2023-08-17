@@ -1,20 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/remote"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend/remote"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
 )
 
 func dataSourceRemoteStateGetSchema() providers.Schema {
@@ -33,7 +33,7 @@ func dataSourceRemoteStateGetSchema() providers.Schema {
 						"Although this is optional, most backends require " +
 						"some configuration.\n\n" +
 						"The object can use any arguments that would be valid " +
-						"in the equivalent `terraform { backend \"<TYPE>\" { ... } }` " +
+						"in the equivalent `mnptu { backend \"<TYPE>\" { ... } }` " +
 						"block.",
 					DescriptionKind: configschema.StringMarkdown,
 					Optional:        true,
@@ -54,7 +54,7 @@ func dataSourceRemoteStateGetSchema() providers.Schema {
 				},
 				"workspace": {
 					Type: cty.String,
-					Description: "The Terraform workspace to use, if " +
+					Description: "The mnptu workspace to use, if " +
 						"the backend supports workspaces.",
 					DescriptionKind: configschema.StringMarkdown,
 					Optional:        true,

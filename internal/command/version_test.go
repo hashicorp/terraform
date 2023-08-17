@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 	"github.com/mitchellh/cli"
 )
 
@@ -56,7 +56,7 @@ func TestVersion(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6-foo\non aros_riscv64\n+ provider registry.terraform.io/hashicorp/test1 v7.8.9-beta.2\n+ provider registry.terraform.io/hashicorp/test2 v1.2.3"
+	expected := "mnptu v4.5.6-foo\non aros_riscv64\n+ provider registry.mnptu.io/hashicorp/test1 v7.8.9-beta.2\n+ provider registry.mnptu.io/hashicorp/test2 v1.2.3"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot:\n%s\nwant:\n%s", actual, expected)
 	}
@@ -69,7 +69,7 @@ func TestVersion_flags(t *testing.T) {
 		Ui: ui,
 	}
 
-	// `terraform version`
+	// `mnptu version`
 	c := &VersionCommand{
 		Meta:              m,
 		Version:           "4.5.6",
@@ -82,7 +82,7 @@ func TestVersion_flags(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6-foo\non aros_riscv64"
+	expected := "mnptu v4.5.6-foo\non aros_riscv64"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
@@ -106,7 +106,7 @@ func TestVersion_outdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "Terraform v4.5.6\non aros_riscv64\n\nYour version of Terraform is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.terraform.io/downloads.html"
+	expected := "mnptu v4.5.6\non aros_riscv64\n\nYour version of mnptu is out of date! The latest version\nis 4.5.7. You can update by downloading from https://www.mnptu.io/downloads.html"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}
@@ -121,7 +121,7 @@ func TestVersion_json(t *testing.T) {
 		Ui: ui,
 	}
 
-	// `terraform version -json` without prerelease
+	// `mnptu version -json` without prerelease
 	c := &VersionCommand{
 		Meta:     meta,
 		Version:  "4.5.6",
@@ -134,10 +134,10 @@ func TestVersion_json(t *testing.T) {
 	actual := strings.TrimSpace(ui.OutputWriter.String())
 	expected := strings.TrimSpace(`
 {
-  "terraform_version": "4.5.6",
+  "mnptu_version": "4.5.6",
   "platform": "aros_riscv64",
   "provider_selections": {},
-  "terraform_outdated": false
+  "mnptu_outdated": false
 }
 `)
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -164,7 +164,7 @@ func TestVersion_json(t *testing.T) {
 		nil,
 	)
 
-	// `terraform version -json` with prerelease and provider dependencies
+	// `mnptu version -json` with prerelease and provider dependencies
 	c = &VersionCommand{
 		Meta:              meta,
 		Version:           "4.5.6",
@@ -181,13 +181,13 @@ func TestVersion_json(t *testing.T) {
 	actual = strings.TrimSpace(ui.OutputWriter.String())
 	expected = strings.TrimSpace(`
 {
-  "terraform_version": "4.5.6-foo",
+  "mnptu_version": "4.5.6-foo",
   "platform": "aros_riscv64",
   "provider_selections": {
-    "registry.terraform.io/hashicorp/test1": "7.8.9-beta.2",
-    "registry.terraform.io/hashicorp/test2": "1.2.3"
+    "registry.mnptu.io/hashicorp/test1": "7.8.9-beta.2",
+    "registry.mnptu.io/hashicorp/test2": "1.2.3"
   },
-  "terraform_outdated": false
+  "mnptu_outdated": false
 }
 `)
 	if diff := cmp.Diff(expected, actual); diff != "" {
@@ -214,7 +214,7 @@ func TestVersion_jsonoutdated(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(ui.OutputWriter.String())
-	expected := "{\n  \"terraform_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"terraform_outdated\": true\n}"
+	expected := "{\n  \"mnptu_version\": \"4.5.6\",\n  \"platform\": \"aros_riscv64\",\n  \"provider_selections\": {},\n  \"mnptu_outdated\": true\n}"
 	if actual != expected {
 		t.Fatalf("wrong output\ngot: %#v\nwant: %#v", actual, expected)
 	}

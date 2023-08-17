@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 // testSetFunc is a very simple function we use to test a foo/bar complex set.
@@ -28,13 +28,13 @@ func testSetFunc(v interface{}) int {
 type resourceDiffTestCase struct {
 	Name          string
 	Schema        map[string]*Schema
-	State         *terraform.InstanceState
-	Config        *terraform.ResourceConfig
-	Diff          *terraform.InstanceDiff
+	State         *mnptu.InstanceState
+	Config        *mnptu.ResourceConfig
+	Diff          *mnptu.InstanceDiff
 	Key           string
 	OldValue      interface{}
 	NewValue      interface{}
-	Expected      *terraform.InstanceDiff
+	Expected      *mnptu.InstanceDiff
 	ExpectedKeys  []string
 	ExpectedError bool
 }
@@ -51,7 +51,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -59,9 +59,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -69,9 +69,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "foo",
 			NewValue: "qux",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: func() string {
 							if computed {
@@ -95,7 +95,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Set:      HashString,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.#":          "1",
 					"foo.1996459178": "bar",
@@ -104,14 +104,14 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": []interface{}{"baz"},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.1996459178": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.1996459178": &mnptu.ResourceAttrDiff{
 						Old:        "bar",
 						New:        "",
 						NewRemoved: true,
 					},
-					"foo.2015626392": &terraform.ResourceAttrDiff{
+					"foo.2015626392": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "baz",
 					},
@@ -119,21 +119,21 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "foo",
 			NewValue: []interface{}{"qux"},
-			Expected: &terraform.InstanceDiff{
-				Attributes: func() map[string]*terraform.ResourceAttrDiff {
-					result := map[string]*terraform.ResourceAttrDiff{}
+			Expected: &mnptu.InstanceDiff{
+				Attributes: func() map[string]*mnptu.ResourceAttrDiff {
+					result := map[string]*mnptu.ResourceAttrDiff{}
 					if computed {
-						result["foo.#"] = &terraform.ResourceAttrDiff{
+						result["foo.#"] = &mnptu.ResourceAttrDiff{
 							Old:         "1",
 							New:         "",
 							NewComputed: true,
 						}
 					} else {
-						result["foo.2800005064"] = &terraform.ResourceAttrDiff{
+						result["foo.2800005064"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "qux",
 						}
-						result["foo.1996459178"] = &terraform.ResourceAttrDiff{
+						result["foo.1996459178"] = &mnptu.ResourceAttrDiff{
 							Old:        "bar",
 							New:        "",
 							NewRemoved: true,
@@ -153,7 +153,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Elem:     &Schema{Type: TypeString},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.#": "1",
 					"foo.0": "bar",
@@ -162,9 +162,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": []interface{}{"baz"},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -172,17 +172,17 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "foo",
 			NewValue: []interface{}{"qux"},
-			Expected: &terraform.InstanceDiff{
-				Attributes: func() map[string]*terraform.ResourceAttrDiff {
-					result := make(map[string]*terraform.ResourceAttrDiff)
+			Expected: &mnptu.InstanceDiff{
+				Attributes: func() map[string]*mnptu.ResourceAttrDiff {
+					result := make(map[string]*mnptu.ResourceAttrDiff)
 					if computed {
-						result["foo.#"] = &terraform.ResourceAttrDiff{
+						result["foo.#"] = &mnptu.ResourceAttrDiff{
 							Old:         "1",
 							New:         "",
 							NewComputed: true,
 						}
 					} else {
-						result["foo.0"] = &terraform.ResourceAttrDiff{
+						result["foo.0"] = &mnptu.ResourceAttrDiff{
 							Old: "bar",
 							New: "qux",
 						}
@@ -200,7 +200,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.%":   "1",
 					"foo.bar": "baz",
@@ -209,9 +209,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": map[string]interface{}{"bar": "qux"},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.bar": &mnptu.ResourceAttrDiff{
 						Old: "baz",
 						New: "qux",
 					},
@@ -219,22 +219,22 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "foo",
 			NewValue: map[string]interface{}{"bar": "quux"},
-			Expected: &terraform.InstanceDiff{
-				Attributes: func() map[string]*terraform.ResourceAttrDiff {
-					result := make(map[string]*terraform.ResourceAttrDiff)
+			Expected: &mnptu.InstanceDiff{
+				Attributes: func() map[string]*mnptu.ResourceAttrDiff {
+					result := make(map[string]*mnptu.ResourceAttrDiff)
 					if computed {
-						result["foo.%"] = &terraform.ResourceAttrDiff{
+						result["foo.%"] = &mnptu.ResourceAttrDiff{
 							Old:         "",
 							New:         "",
 							NewComputed: true,
 						}
-						result["foo.bar"] = &terraform.ResourceAttrDiff{
+						result["foo.bar"] = &mnptu.ResourceAttrDiff{
 							Old:        "baz",
 							New:        "",
 							NewRemoved: true,
 						}
 					} else {
-						result["foo.bar"] = &terraform.ResourceAttrDiff{
+						result["foo.bar"] = &mnptu.ResourceAttrDiff{
 							Old: "baz",
 							New: "quux",
 						}
@@ -256,7 +256,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 					"one": "two",
@@ -265,9 +265,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -275,13 +275,13 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "one",
 			NewValue: "four",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
-					"one": &terraform.ResourceAttrDiff{
+					"one": &mnptu.ResourceAttrDiff{
 						Old: "two",
 						New: func() string {
 							if computed {
@@ -306,7 +306,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 					"one": "two",
@@ -315,9 +315,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -325,13 +325,13 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "one",
 			NewValue: "three",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
-					"one": &terraform.ResourceAttrDiff{
+					"one": &mnptu.ResourceAttrDiff{
 						Old: "two",
 						New: func() string {
 							if computed {
@@ -368,7 +368,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Set: testSetFunc,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"top.#":      "2",
 					"top.3.foo":  "1",
@@ -389,21 +389,21 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"top.4.foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"top.4.foo": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"top.4.bar": &terraform.ResourceAttrDiff{
+					"top.4.bar": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "3",
 					},
-					"top.24.foo": &terraform.ResourceAttrDiff{
+					"top.24.foo": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "12",
 					},
-					"top.24.bar": &terraform.ResourceAttrDiff{
+					"top.24.bar": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "12",
 					},
@@ -424,41 +424,41 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					"bar": 22,
 				},
 			}),
-			Expected: &terraform.InstanceDiff{
-				Attributes: func() map[string]*terraform.ResourceAttrDiff {
-					result := make(map[string]*terraform.ResourceAttrDiff)
+			Expected: &mnptu.InstanceDiff{
+				Attributes: func() map[string]*mnptu.ResourceAttrDiff {
+					result := make(map[string]*mnptu.ResourceAttrDiff)
 					if computed {
-						result["top.#"] = &terraform.ResourceAttrDiff{
+						result["top.#"] = &mnptu.ResourceAttrDiff{
 							Old:         "2",
 							New:         "",
 							NewComputed: true,
 						}
 					} else {
-						result["top.#"] = &terraform.ResourceAttrDiff{
+						result["top.#"] = &mnptu.ResourceAttrDiff{
 							Old: "2",
 							New: "3",
 						}
-						result["top.5.foo"] = &terraform.ResourceAttrDiff{
+						result["top.5.foo"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "1",
 						}
-						result["top.5.bar"] = &terraform.ResourceAttrDiff{
+						result["top.5.bar"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "4",
 						}
-						result["top.25.foo"] = &terraform.ResourceAttrDiff{
+						result["top.25.foo"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "13",
 						}
-						result["top.25.bar"] = &terraform.ResourceAttrDiff{
+						result["top.25.bar"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "12",
 						}
-						result["top.43.foo"] = &terraform.ResourceAttrDiff{
+						result["top.43.foo"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "21",
 						}
-						result["top.43.bar"] = &terraform.ResourceAttrDiff{
+						result["top.43.bar"] = &mnptu.ResourceAttrDiff{
 							Old: "",
 							New: "22",
 						}
@@ -475,18 +475,18 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
 			},
 			Config:   testConfig(t, map[string]interface{}{}),
-			Diff:     &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+			Diff:     &mnptu.InstanceDiff{Attributes: map[string]*mnptu.ResourceAttrDiff{}},
 			Key:      "foo",
 			NewValue: "baz",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: func() string {
 							if computed {
@@ -507,7 +507,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Required: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -515,9 +515,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -535,7 +535,7 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Required: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -543,9 +543,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -569,15 +569,15 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old:        "bar",
 						New:        "",
 						NewRemoved: true,
@@ -586,9 +586,9 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 			},
 			Key:      "foo",
 			NewValue: "qux",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: func() string {
 							if computed {
@@ -609,26 +609,26 @@ func testDiffCases(t *testing.T, oldPrefix string, oldOffset int, computed bool)
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "",
 				},
 				ID: "pre-existing",
 			},
 			Config:   testConfig(t, map[string]interface{}{}),
-			Diff:     &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+			Diff:     &mnptu.InstanceDiff{Attributes: map[string]*mnptu.ResourceAttrDiff{}},
 			Key:      "foo",
 			NewValue: "",
-			Expected: &terraform.InstanceDiff{
-				Attributes: func() map[string]*terraform.ResourceAttrDiff {
+			Expected: &mnptu.InstanceDiff{
+				Attributes: func() map[string]*mnptu.ResourceAttrDiff {
 					if computed {
-						return map[string]*terraform.ResourceAttrDiff{
-							"foo": &terraform.ResourceAttrDiff{
+						return map[string]*mnptu.ResourceAttrDiff{
+							"foo": &mnptu.ResourceAttrDiff{
 								NewComputed: computed,
 							},
 						}
 					}
-					return map[string]*terraform.ResourceAttrDiff{}
+					return map[string]*mnptu.ResourceAttrDiff{}
 				}(),
 			},
 		},
@@ -700,7 +700,7 @@ func TestForceNew(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -708,18 +708,18 @@ func TestForceNew(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
 				},
 			},
 			Key: "foo",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old:         "bar",
 						New:         "baz",
 						RequiresNew: true,
@@ -736,7 +736,7 @@ func TestForceNew(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -754,7 +754,7 @@ func TestForceNew(t *testing.T) {
 					Required: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -762,18 +762,18 @@ func TestForceNew(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
 				},
 			},
 			Key: "foo",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old:         "bar",
 						New:         "baz",
 						RequiresNew: true,
@@ -802,7 +802,7 @@ func TestForceNew(t *testing.T) {
 					},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.#":     "1",
 					"foo.0.bar": "abc",
@@ -817,26 +817,26 @@ func TestForceNew(t *testing.T) {
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "abc",
 						New: "abcdefg",
 					},
-					"foo.0.baz": &terraform.ResourceAttrDiff{
+					"foo.0.baz": &mnptu.ResourceAttrDiff{
 						Old: "xyz",
 						New: "changed",
 					},
 				},
 			},
 			Key: "foo.0.baz",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "abc",
 						New: "abcdefg",
 					},
-					"foo.0.baz": &terraform.ResourceAttrDiff{
+					"foo.0.baz": &mnptu.ResourceAttrDiff{
 						Old:         "xyz",
 						New:         "changed",
 						RequiresNew: true,
@@ -852,15 +852,15 @@ func TestForceNew(t *testing.T) {
 					Optional: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old:        "bar",
 						New:        "",
 						NewRemoved: true,
@@ -868,9 +868,9 @@ func TestForceNew(t *testing.T) {
 				},
 			},
 			Key: "foo",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old:         "bar",
 						New:         "",
 						RequiresNew: true,
@@ -900,7 +900,7 @@ func TestForceNew(t *testing.T) {
 					},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.#":     "1",
 					"foo.0.bar": "abc",
@@ -913,18 +913,18 @@ func TestForceNew(t *testing.T) {
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "abc",
 						New: "abcdefg",
 					},
 				},
 			},
 			Key: "foo.0.bar",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old:         "abc",
 						New:         "abcdefg",
 						RequiresNew: true,
@@ -969,7 +969,7 @@ func TestClear(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -977,16 +977,16 @@ func TestClear(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
 				},
 			},
 			Key:      "foo",
-			Expected: &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+			Expected: &mnptu.InstanceDiff{Attributes: map[string]*mnptu.ResourceAttrDiff{}},
 		},
 		resourceDiffTestCase{
 			Name: "non-computed key, should error",
@@ -996,7 +996,7 @@ func TestClear(t *testing.T) {
 					Required: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -1004,9 +1004,9 @@ func TestClear(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -1029,7 +1029,7 @@ func TestClear(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 					"one": "two",
@@ -1039,22 +1039,22 @@ func TestClear(t *testing.T) {
 				"foo": "baz",
 				"one": "three",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
-					"one": &terraform.ResourceAttrDiff{
+					"one": &mnptu.ResourceAttrDiff{
 						Old: "two",
 						New: "three",
 					},
 				},
 			},
 			Key: "one",
-			Expected: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -1084,7 +1084,7 @@ func TestClear(t *testing.T) {
 					},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.0.bar": "bar1",
 					"foo.0.baz": "baz1",
@@ -1098,16 +1098,16 @@ func TestClear(t *testing.T) {
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "bar1",
 						New: "bar2",
 					},
 				},
 			},
 			Key:      "foo.0.bar",
-			Expected: &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{}},
+			Expected: &mnptu.InstanceDiff{Attributes: map[string]*mnptu.ResourceAttrDiff{}},
 		},
 		resourceDiffTestCase{
 			Name: "sub-block diff only partial clear",
@@ -1132,7 +1132,7 @@ func TestClear(t *testing.T) {
 					},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo.0.bar": "bar1",
 					"foo.0.baz": "baz1",
@@ -1146,21 +1146,21 @@ func TestClear(t *testing.T) {
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "bar1",
 						New: "bar2",
 					},
-					"foo.0.baz": &terraform.ResourceAttrDiff{
+					"foo.0.baz": &mnptu.ResourceAttrDiff{
 						Old: "baz1",
 						New: "baz2",
 					},
 				},
 			},
 			Key: "foo.0.bar",
-			Expected: &terraform.InstanceDiff{Attributes: map[string]*terraform.ResourceAttrDiff{
-				"foo.0.baz": &terraform.ResourceAttrDiff{
+			Expected: &mnptu.InstanceDiff{Attributes: map[string]*mnptu.ResourceAttrDiff{
+				"foo.0.baz": &mnptu.ResourceAttrDiff{
 					Old: "baz1",
 					New: "baz2",
 				},
@@ -1203,7 +1203,7 @@ func TestGetChangedKeysPrefix(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -1211,9 +1211,9 @@ func TestGetChangedKeysPrefix(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"foo": "baz",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						Old: "bar",
 						New: "baz",
 					},
@@ -1249,7 +1249,7 @@ func TestGetChangedKeysPrefix(t *testing.T) {
 					},
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"testfield": "blablah",
 					"foo.#":     "1",
@@ -1266,17 +1266,17 @@ func TestGetChangedKeysPrefix(t *testing.T) {
 					},
 				},
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"testfield": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"testfield": &mnptu.ResourceAttrDiff{
 						Old: "blablah",
 						New: "modified",
 					},
-					"foo.0.bar": &terraform.ResourceAttrDiff{
+					"foo.0.bar": &mnptu.ResourceAttrDiff{
 						Old: "abc",
 						New: "abcdefg",
 					},
-					"foo.0.baz": &terraform.ResourceAttrDiff{
+					"foo.0.baz": &mnptu.ResourceAttrDiff{
 						Old: "xyz",
 						New: "changed",
 					},
@@ -1314,9 +1314,9 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 	cases := []struct {
 		Name   string
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Config *terraform.ResourceConfig
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Config *mnptu.ResourceConfig
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -1338,8 +1338,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 			State:  nil,
 			Config: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "",
@@ -1366,8 +1366,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 			State:  nil,
 			Config: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old:         "",
 						New:         "",
@@ -1508,8 +1508,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 
 			State:  nil,
 			Config: nil,
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "",
@@ -1536,8 +1536,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 			State:  nil,
 			Config: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						New: "true",
 					},
@@ -1557,7 +1557,7 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1566,8 +1566,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				"availability_zone": "foo",
 			}),
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 
 			Key:   "availability_zone",
@@ -1588,8 +1588,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				"availability_zone": "foo",
 			}),
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "foo",
@@ -1611,7 +1611,7 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1620,8 +1620,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				"availability_zone": "bar",
 			}),
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "foo",
 						New: "bar",
@@ -1642,15 +1642,15 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{}),
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old:        "foo",
 						New:        "",
@@ -1687,8 +1687,8 @@ func TestResourceDiffGetOkExists(t *testing.T) {
 func TestResourceDiffGetOkExistsSetNew(t *testing.T) {
 	tc := struct {
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -1703,8 +1703,8 @@ func TestResourceDiffGetOkExistsSetNew(t *testing.T) {
 
 		State: nil,
 
-		Diff: &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{},
+		Diff: &mnptu.InstanceDiff{
+			Attributes: map[string]*mnptu.ResourceAttrDiff{},
 		},
 
 		Key:   "availability_zone",
@@ -1731,8 +1731,8 @@ func TestResourceDiffGetOkExistsSetNew(t *testing.T) {
 func TestResourceDiffGetOkExistsSetNewComputed(t *testing.T) {
 	tc := struct {
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -1745,14 +1745,14 @@ func TestResourceDiffGetOkExistsSetNewComputed(t *testing.T) {
 			},
 		},
 
-		State: &terraform.InstanceState{
+		State: &mnptu.InstanceState{
 			Attributes: map[string]string{
 				"availability_zone": "foo",
 			},
 		},
 
-		Diff: &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{},
+		Diff: &mnptu.InstanceDiff{
+			Attributes: map[string]*mnptu.ResourceAttrDiff{},
 		},
 
 		Key:   "availability_zone",
@@ -1774,9 +1774,9 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 	cases := []struct {
 		Name     string
 		Schema   map[string]*Schema
-		State    *terraform.InstanceState
-		Config   *terraform.ResourceConfig
-		Diff     *terraform.InstanceDiff
+		State    *mnptu.InstanceState
+		Config   *mnptu.ResourceConfig
+		Diff     *mnptu.InstanceDiff
 		Key      string
 		Expected bool
 	}{
@@ -1792,8 +1792,8 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"availability_zone": "foo",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "foo",
@@ -1811,7 +1811,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Optional: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1819,8 +1819,8 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"availability_zone": "foo",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
 			Expected: true,
@@ -1833,14 +1833,14 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
 			Expected: true,
@@ -1854,14 +1854,14 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 			Config: testConfig(t, map[string]interface{}{}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
 			Expected: true,
@@ -1875,7 +1875,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Computed: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1883,8 +1883,8 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 			Config: testConfig(t, map[string]interface{}{
 				"availability_zone": "foo",
 			}),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
 			Expected: true,
@@ -1897,7 +1897,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Optional: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1908,8 +1908,8 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					"availability_zone": hcl2shim.UnknownVariableValue,
 				},
 			),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{},
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{},
 			},
 			Key:      "availability_zone",
 			Expected: false,
@@ -1922,7 +1922,7 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					Optional: true,
 				},
 			},
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -1933,8 +1933,8 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 					"availability_zone": hcl2shim.UnknownVariableValue,
 				},
 			),
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old:         "foo",
 						New:         "",
@@ -1962,9 +1962,9 @@ func TestResourceDiffNewValueKnown(t *testing.T) {
 func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 	tc := struct {
 		Schema   map[string]*Schema
-		State    *terraform.InstanceState
-		Config   *terraform.ResourceConfig
-		Diff     *terraform.InstanceDiff
+		State    *mnptu.InstanceState
+		Config   *mnptu.ResourceConfig
+		Diff     *mnptu.InstanceDiff
 		Key      string
 		Value    interface{}
 		Expected bool
@@ -1976,7 +1976,7 @@ func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 				Computed: true,
 			},
 		},
-		State: &terraform.InstanceState{
+		State: &mnptu.InstanceState{
 			Attributes: map[string]string{
 				"availability_zone": "foo",
 			},
@@ -1987,8 +1987,8 @@ func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 				"availability_zone": hcl2shim.UnknownVariableValue,
 			},
 		),
-		Diff: &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{
+		Diff: &mnptu.InstanceDiff{
+			Attributes: map[string]*mnptu.ResourceAttrDiff{
 				"availability_zone": {
 					Old:         "foo",
 					New:         "",
@@ -2013,9 +2013,9 @@ func TestResourceDiffNewValueKnownSetNew(t *testing.T) {
 func TestResourceDiffNewValueKnownSetNewComputed(t *testing.T) {
 	tc := struct {
 		Schema   map[string]*Schema
-		State    *terraform.InstanceState
-		Config   *terraform.ResourceConfig
-		Diff     *terraform.InstanceDiff
+		State    *mnptu.InstanceState
+		Config   *mnptu.ResourceConfig
+		Diff     *mnptu.InstanceDiff
 		Key      string
 		Expected bool
 	}{
@@ -2025,14 +2025,14 @@ func TestResourceDiffNewValueKnownSetNewComputed(t *testing.T) {
 				Computed: true,
 			},
 		},
-		State: &terraform.InstanceState{
+		State: &mnptu.InstanceState{
 			Attributes: map[string]string{
 				"availability_zone": "foo",
 			},
 		},
 		Config: testConfig(t, map[string]interface{}{}),
-		Diff: &terraform.InstanceDiff{
-			Attributes: map[string]*terraform.ResourceAttrDiff{},
+		Diff: &mnptu.InstanceDiff{
+			Attributes: map[string]*mnptu.ResourceAttrDiff{},
 		},
 		Key:      "availability_zone",
 		Expected: false,

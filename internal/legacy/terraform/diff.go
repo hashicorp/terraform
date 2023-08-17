@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bufio"
@@ -15,9 +15,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
 	"github.com/zclconf/go-cty/cty"
 
 	"github.com/mitchellh/copystructure"
@@ -87,7 +87,7 @@ func (d *Diff) AddModule(path addrs.ModuleInstance) *ModuleDiff {
 	legacyPath := make([]string, len(path))
 	for i, step := range path {
 		if step.InstanceKey != addrs.NoKey {
-			// FIXME: Once the rest of Terraform is ready to use count and
+			// FIXME: Once the rest of mnptu is ready to use count and
 			// for_each, remove all of this and just write the addrs.ModuleInstance
 			// value itself into the ModuleState.
 			panic("diff cannot represent modules with count or for_each keys")
@@ -403,7 +403,7 @@ type InstanceDiff struct {
 	DestroyTainted bool
 
 	// Meta is a simple K/V map that is stored in a diff and persisted to
-	// plans but otherwise is completely ignored by Terraform core. It is
+	// plans but otherwise is completely ignored by mnptu core. It is
 	// meant to be used for additional data a resource may want to pass through.
 	// The value here must only contain Go primitives and collections.
 	Meta map[string]interface{}
@@ -1132,7 +1132,7 @@ func (d *InstanceDiff) SetDestroyDeposed(b bool) {
 }
 
 // These methods are properly locked, for use outside other InstanceDiff
-// methods but everywhere else within the terraform package.
+// methods but everywhere else within the mnptu package.
 // TODO refactor the locking scheme
 func (d *InstanceDiff) SetTainted(b bool) {
 	d.mu.Lock()

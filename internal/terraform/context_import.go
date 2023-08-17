@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ImportOpts are used as the configuration for Import.
@@ -39,7 +39,7 @@ type ImportTarget struct {
 }
 
 // Import takes already-created external resources and brings them
-// under Terraform management. Import requires the exact type, name, and ID
+// under mnptu management. Import requires the exact type, name, and ID
 // of the resources to import.
 //
 // This operation is idempotent. If the requested resource is already

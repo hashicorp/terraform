@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // nodeExpandOutput is the placeholder for a non-root module output that has
@@ -362,7 +362,7 @@ func (n *NodeApplyableOutput) Execute(ctx EvalContext, op walkOperation) (diags 
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Output refers to sensitive values",
-					Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, Terraform requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
+					Detail: `To reduce the risk of accidentally exporting sensitive data that was intended to be only internal, mnptu requires that any root module output containing sensitive data be explicitly marked as sensitive, to confirm your intent.
 
 If you do intend to export this data, annotate the output value as sensitive by adding the following argument:
     sensitive = true`,

@@ -30,12 +30,12 @@ It's not valid to mix both named and unnamed capture groups in the same pattern.
 
 If the given pattern does not match at all, the `regex` raises an error. To
 _test_ whether a given pattern matches a string, use
-[`regexall`](/terraform/language/functions/regexall) and test that the result has length greater than
+[`regexall`](/mnptu/language/functions/regexall) and test that the result has length greater than
 zero.
 
 The pattern is a string containing a mixture of literal characters and special
 matching operators as described in the following table. Note that when giving a
-regular expression pattern as a literal quoted string in the Terraform
+regular expression pattern as a literal quoted string in the mnptu
 language, the quoted string itself already uses backslash `\` as an escape
 character for the string, so any backslashes intended to be recognized as part
 of the pattern must be escaped as `\\`.
@@ -102,7 +102,7 @@ no characters. These are "zero-width" matching operators:
 | `\b`     | At an ASCII word boundary (transition between `\w` and either `\W`, `\A` or `\z`, or vice-versa) |
 | `\B`     | Not at an ASCII word boundary                                                                    |
 
-Terraform uses the
+mnptu uses the
 [RE2](https://github.com/google/re2/wiki/Syntax) regular expression language.
 This engine does not support all of the features found in some other regular
 expression engines; in particular, it does not support backreferences.
@@ -136,9 +136,9 @@ aaabbbccc
   "01",
 ]
 
-> regex("^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?", "https://terraform.io/docs/")
+> regex("^(?:(?P<scheme>[^:/?#]+):)?(?://(?P<authority>[^/?#]*))?", "https://mnptu.io/docs/")
 {
-  "authority" = "terraform.io"
+  "authority" = "mnptu.io"
   "scheme" = "https"
 }
 
@@ -152,10 +152,10 @@ string.
 
 ## Related Functions
 
-- [`regexall`](/terraform/language/functions/regexall) searches for potentially multiple matches of a given pattern in a string.
-- [`replace`](/terraform/language/functions/replace) replaces a substring of a string with another string, optionally matching using the same regular expression syntax as `regex`.
+- [`regexall`](/mnptu/language/functions/regexall) searches for potentially multiple matches of a given pattern in a string.
+- [`replace`](/mnptu/language/functions/replace) replaces a substring of a string with another string, optionally matching using the same regular expression syntax as `regex`.
 
-If Terraform already has a more specialized function to parse the syntax you
+If mnptu already has a more specialized function to parse the syntax you
 are trying to match, prefer to use that function instead. Regular expressions
 can be hard to read and can obscure your intent, making a configuration harder
 to read and understand.

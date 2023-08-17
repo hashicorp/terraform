@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-// Cloud represents a "cloud" block inside a "terraform" block in a module
+// Cloud represents a "cloud" block inside a "mnptu" block in a module
 // or file.
 type CloudConfig struct {
 	Config hcl.Body

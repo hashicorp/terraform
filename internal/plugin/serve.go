@@ -5,7 +5,7 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
-	proto "github.com/hashicorp/terraform/internal/tfplugin5"
+	proto "github.com/hashicorp/mnptu/internal/tfplugin5"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 	ProvisionerPluginName = "provisioner"
 
 	// DefaultProtocolVersion is the protocol version assumed for legacy clients that don't specify
-	// a particular version during their handshake. This is the version used when Terraform 0.10
+	// a particular version during their handshake. This is the version used when mnptu 0.10
 	// and 0.11 launch plugins that were built with support for both versions 4 and 5, and must
 	// stay unchanged at 4 until we intentionally build plugins that are not compatible with 0.10 and
 	// 0.11.

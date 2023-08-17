@@ -12,11 +12,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 
 	plugin "github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/plugin6/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	proto6 "github.com/hashicorp/terraform/internal/tfplugin6"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/plugin6/convert"
+	"github.com/hashicorp/mnptu/internal/providers"
+	proto6 "github.com/hashicorp/mnptu/internal/tfplugin6"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
 	"google.golang.org/grpc"
@@ -44,7 +44,7 @@ func (p *GRPCProviderPlugin) GRPCServer(broker *plugin.GRPCBroker, s *grpc.Serve
 
 // GRPCProvider handles the client, or core side of the plugin rpc connection.
 // The GRPCProvider methods are mostly a translation layer between the
-// terraform providers types and the grpc proto types, directly converting
+// mnptu providers types and the grpc proto types, directly converting
 // between the two.
 type GRPCProvider struct {
 	// PluginClient provides a reference to the plugin.Client which controls the plugin process.
@@ -316,7 +316,7 @@ func (p *GRPCProvider) ConfigureProvider(r providers.ConfigureProviderRequest) (
 	}
 
 	protoReq := &proto6.ConfigureProvider_Request{
-		TerraformVersion: r.TerraformVersion,
+		mnptuVersion: r.mnptuVersion,
 		Config: &proto6.DynamicValue{
 			Msgpack: mp,
 		},
@@ -658,7 +658,7 @@ func (p *GRPCProvider) ReadDataSource(r providers.ReadDataSourceRequest) (resp p
 	return resp
 }
 
-// closing the grpc connection is final, and terraform will call it at the end of every phase.
+// closing the grpc connection is final, and mnptu will call it at the end of every phase.
 func (p *GRPCProvider) Close() error {
 	logger.Trace("GRPCProvider.v6: Close")
 

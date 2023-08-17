@@ -7,16 +7,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
-// GraphCommand is a Command implementation that takes a Terraform
+// GraphCommand is a Command implementation that takes a mnptu
 // configuration and outputs the dependency tree in graphical form.
 type GraphCommand struct {
 	Meta
@@ -123,7 +123,7 @@ func (c *GraphCommand) Run(args []string) int {
 		}
 	}
 
-	var g *terraform.Graph
+	var g *mnptu.Graph
 	var graphDiags tfdiags.Diagnostics
 	switch graphTypeStr {
 	case "plan":
@@ -135,7 +135,7 @@ func (c *GraphCommand) Run(args []string) int {
 	case "apply":
 		plan := lr.Plan
 
-		// Historically "terraform graph" would allow the nonsensical request to
+		// Historically "mnptu graph" would allow the nonsensical request to
 		// render an apply graph without a plan, so we continue to support that
 		// here, though perhaps one day this should be an error.
 		if lr.Plan == nil {
@@ -149,7 +149,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 		g, graphDiags = lr.Core.ApplyGraphForUI(plan, lr.Config)
 	case "eval", "validate":
-		// Terraform v0.12 through v1.0 supported both of these, but the
+		// mnptu v0.12 through v1.0 supported both of these, but the
 		// graph variants for "eval" and "validate" are purely implementation
 		// details and don't reveal anything (user-model-wise) that you can't
 		// see in the plan graph.
@@ -171,7 +171,7 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	graphStr, err := terraform.GraphDot(g, &dag.DotOpts{
+	graphStr, err := mnptu.GraphDot(g, &dag.DotOpts{
 		DrawCycles: drawCycles,
 		MaxDepth:   moduleDepth,
 		Verbose:    verbose,
@@ -196,7 +196,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 func (c *GraphCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] graph [options]
+Usage: mnptu [global options] graph [options]
 
   Produces a representation of the dependency graph between different
   objects in the current configuration and state.
@@ -214,10 +214,10 @@ Options:
                    This helps when diagnosing cycle errors.
 
   -type=plan       Type of graph to output. Can be: plan, plan-refresh-only,
-                   plan-destroy, or apply. By default Terraform chooses
+                   plan-destroy, or apply. By default mnptu chooses
 				   "plan", or "apply" if you also set the -plan=... option.
 
-  -module-depth=n  (deprecated) In prior versions of Terraform, specified the
+  -module-depth=n  (deprecated) In prior versions of mnptu, specified the
 				   depth of modules to show in the output.
 `
 	return strings.TrimSpace(helpText)

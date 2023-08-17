@@ -6,8 +6,8 @@ package funcs
 import (
 	"strconv"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/lang/types"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/lang/types"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 	"github.com/zclconf/go-cty/cty/function"

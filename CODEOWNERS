@@ -3,25 +3,25 @@
 
 # Remote-state backend                  # Maintainer
 /internal/backend/remote-state/artifactory       Unmaintained
-/internal/backend/remote-state/azure             @hashicorp/terraform-azure
+/internal/backend/remote-state/azure             @hashicorp/mnptu-azure
 /internal/backend/remote-state/consul            @hashicorp/consul @remilapeyre
 /internal/backend/remote-state/cos               @likexian
 /internal/backend/remote-state/etcdv2            Unmaintained
 /internal/backend/remote-state/etcdv3            Unmaintained
-/internal/backend/remote-state/gcs               @hashicorp/terraform-google @hashicorp/terraform-ecosystem-strategic
-/internal/backend/remote-state/http              @hashicorp/terraform-core
+/internal/backend/remote-state/gcs               @hashicorp/mnptu-google @hashicorp/mnptu-ecosystem-strategic
+/internal/backend/remote-state/http              @hashicorp/mnptu-core
 /internal/backend/remote-state/manta             Unmaintained
 /internal/backend/remote-state/oss               @xiaozhu36
 /internal/backend/remote-state/pg                @remilapeyre
-/internal/backend/remote-state/s3                @hashicorp/terraform-aws
+/internal/backend/remote-state/s3                @hashicorp/mnptu-aws
 /internal/backend/remote-state/swift             Unmaintained
 /internal/backend/remote-state/kubernetes        @jrhouston @alexsomesan
 
 # Provisioners
 builtin/provisioners/chef               Deprecated
-builtin/provisioners/file               @hashicorp/terraform-core
+builtin/provisioners/file               @hashicorp/mnptu-core
 builtin/provisioners/habitat            Deprecated
-builtin/provisioners/local-exec         @hashicorp/terraform-core
+builtin/provisioners/local-exec         @hashicorp/mnptu-core
 builtin/provisioners/puppet             Deprecated
-builtin/provisioners/remote-exec        @hashicorp/terraform-core
+builtin/provisioners/remote-exec        @hashicorp/mnptu-core
 builtin/provisioners/salt-masterless    Deprecated

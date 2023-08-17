@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bytes"
@@ -13,17 +13,17 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/refactoring"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/lang/globalref"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/refactoring"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
-// PlanOpts are the various options that affect the details of how Terraform
+// PlanOpts are the various options that affect the details of how mnptu
 // will build a plan.
 type PlanOpts struct {
 	// Mode defines what variety of plan the caller wishes to create.
@@ -54,12 +54,12 @@ type PlanOpts struct {
 	SetVariables InputValues
 
 	// If Targets has a non-zero length then it activates targeted planning
-	// mode, where Terraform will take actions only for resource instances
+	// mode, where mnptu will take actions only for resource instances
 	// mentioned in this set and any other objects those resource instances
 	// depend on.
 	//
 	// Targeted planning mode is intended for exceptional use only,
-	// and so populating this field will cause Terraform to generate extra
+	// and so populating this field will cause mnptu to generate extra
 	// warnings as part of the planning result.
 	Targets []addrs.Targetable
 
@@ -68,9 +68,9 @@ type PlanOpts struct {
 	// plan would otherwise have been to either update the object in-place or
 	// to take no action on it at all.
 	//
-	// A typical use of this argument is to ask Terraform to replace an object
+	// A typical use of this argument is to ask mnptu to replace an object
 	// which the user has determined is somehow degraded (via information from
-	// outside of Terraform), thereby hopefully replacing it with a
+	// outside of mnptu), thereby hopefully replacing it with a
 	// fully-functional new object.
 	ForceReplace []addrs.AbsResourceInstance
 
@@ -83,7 +83,7 @@ type PlanOpts struct {
 	// will be added to the plan graph.
 	ImportTargets []*ImportTarget
 
-	// GenerateConfig tells Terraform where to write any generated configuration
+	// GenerateConfig tells mnptu where to write any generated configuration
 	// for any ImportTargets that do not have configuration already.
 	//
 	// If empty, then no config will be generated.
@@ -95,11 +95,11 @@ type PlanOpts struct {
 //
 // The given planning options allow control of various other details of the
 // planning process that are not represented directly in the configuration.
-// You can use terraform.DefaultPlanOpts to generate a normal plan with no
+// You can use mnptu.DefaultPlanOpts to generate a normal plan with no
 // special options.
 //
 // If the returned diagnostics contains no errors then the returned plan is
-// applyable, although Terraform cannot guarantee that applying it will fully
+// applyable, although mnptu cannot guarantee that applying it will fully
 // succeed. If the returned diagnostics contains errors but this method
 // still returns a non-nil Plan then the plan describes the subset of actions
 // planned so far, which is not safe to apply but could potentially be used
@@ -143,17 +143,17 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Incompatible plan options",
-				"Cannot skip refreshing in refresh-only mode. This is a bug in Terraform.",
+				"Cannot skip refreshing in refresh-only mode. This is a bug in mnptu.",
 			))
 			return nil, diags
 		}
 	default:
 		// The CLI layer (and other similar callers) should not try to
-		// create a context for a mode that Terraform Core doesn't support.
+		// create a context for a mode that mnptu Core doesn't support.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unsupported plan mode",
-			fmt.Sprintf("Terraform Core doesn't know how to handle plan mode %s. This is a bug in Terraform.", opts.Mode),
+			fmt.Sprintf("mnptu Core doesn't know how to handle plan mode %s. This is a bug in mnptu.", opts.Mode),
 		))
 		return nil, diags
 	}
@@ -184,7 +184,7 @@ func (c *Context) Plan(config *configs.Config, prevRunState *states.State, opts 
 			"Resource targeting is in effect",
 			`You are creating a plan with the -target option, which means that the result of this plan may not represent all of the changes requested by the current configuration.
 
-The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+The -target option is not for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when mnptu specifically suggests to use it as part of an error message.`,
 		))
 	}
 
@@ -261,7 +261,7 @@ The -target option is not for routine use, and is provided only for exceptional 
 
 // checkApplyGraph builds the apply graph out of the current plan to
 // check for any errors that may arise once the planned changes are added to
-// the graph. This allows terraform to report errors (mostly cycles) during
+// the graph. This allows mnptu to report errors (mostly cycles) during
 // plan that would otherwise only crop up during apply
 func (c *Context) checkApplyGraph(plan *plans.Plan, config *configs.Config) tfdiags.Diagnostics {
 	if plan.Changes.Empty() {
@@ -282,7 +282,7 @@ var DefaultPlanOpts = &PlanOpts{
 //
 // This helper function is primarily intended for use in straightforward
 // tests that don't need any of the more "esoteric" planning options. For
-// handling real user requests to run Terraform, it'd probably be better
+// handling real user requests to run mnptu, it'd probably be better
 // to construct a *PlanOpts value directly and provide a way for the user
 // to set values for all of its fields.
 //
@@ -343,7 +343,7 @@ func (c *Context) refreshOnlyPlan(config *configs.Config, prevRunState *states.S
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid refresh-only plan",
-			"Terraform generated planned resource changes in a refresh-only plan. This is a bug in Terraform.",
+			"mnptu generated planned resource changes in a refresh-only plan. This is a bug in mnptu.",
 		))
 	}
 
@@ -407,7 +407,7 @@ func (c *Context) destroyPlan(config *configs.Config, prevRunState *states.State
 		// the perspective of this "destroy plan" -- as the starting state
 		// for our destroy-plan walk, so it can take into account if we
 		// detected during refreshing that anything was already deleted outside
-		// of Terraform.
+		// of mnptu.
 		priorState = refreshPlan.PriorState.DeepCopy()
 
 		// The refresh plan may have upgraded state for some resources, make
@@ -511,7 +511,7 @@ func (c *Context) prePlanVerifyTargetedMoves(moveResults refactoring.MoveResults
 			tfdiags.Error,
 			"Moved resource instances excluded by targeting",
 			fmt.Sprintf(
-				"Resource instances in your current state have moved to new addresses in the latest configuration. Terraform must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
+				"Resource instances in your current state have moved to new addresses in the latest configuration. mnptu must include those resource instances while planning in order to ensure a correct result, but your -target=... options do not fully cover all of those resource instances.\n\nTo create a valid plan, either remove your -target=... options altogether or add the following additional target options:%s\n\nNote that adding these options may include further additional resource instances in your plan, in order to respect object dependencies.",
 				listBuf.String(),
 			),
 		))
@@ -814,9 +814,9 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 				// We can detect three types of changes after refreshing state,
 				// only two of which are easily understood as "drift":
 				//
-				// - Resources which were deleted outside of Terraform;
+				// - Resources which were deleted outside of mnptu;
 				// - Resources where the object value has changed outside of
-				//   Terraform;
+				//   mnptu;
 				// - Resources which have been moved without other changes.
 				//
 				// All of these are returned as drift, to allow refresh-only plans
@@ -858,11 +858,11 @@ func (c *Context) driftedResources(config *configs.Config, oldState, newState *s
 
 // PlanGraphForUI is a last vestage of graphs in the public interface of Context
 // (as opposed to graphs as an implementation detail) intended only for use
-// by the "terraform graph" command when asked to render a plan-time graph.
+// by the "mnptu graph" command when asked to render a plan-time graph.
 //
 // The result of this is intended only for rendering to the user as a dot
 // graph, and so may change in future in order to make the result more useful
-// in that context, even if drifts away from the physical graph that Terraform
+// in that context, even if drifts away from the physical graph that mnptu
 // Core currently uses as an implementation detail of planning.
 func (c *Context) PlanGraphForUI(config *configs.Config, prevRunState *states.State, mode plans.Mode) (*Graph, tfdiags.Diagnostics) {
 	// For now though, this really is just the internal graph, confusing
@@ -892,7 +892,7 @@ func blockedMovesWarningDiag(results refactoring.MoveResults) tfdiags.Diagnostic
 		tfdiags.Warning,
 		"Unresolved resource instance address changes",
 		fmt.Sprintf(
-			"Terraform tried to adjust resource instance addresses in the prior state based on change information recorded in the configuration, but some adjustments did not succeed due to existing objects already at the intended addresses:%s\n\nTerraform has planned to destroy these objects. If Terraform's proposed changes aren't appropriate, you must first resolve the conflicts using the \"terraform state\" subcommands and then create a new plan.",
+			"mnptu tried to adjust resource instance addresses in the prior state based on change information recorded in the configuration, but some adjustments did not succeed due to existing objects already at the intended addresses:%s\n\nmnptu has planned to destroy these objects. If mnptu's proposed changes aren't appropriate, you must first resolve the conflicts using the \"mnptu state\" subcommands and then create a new plan.",
 			itemsBuf.String(),
 		),
 	)

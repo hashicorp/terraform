@@ -10,8 +10,8 @@ import (
 	"sort"
 	"strings"
 
-	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	viewsjson "github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
 	"github.com/mitchellh/colorstring"
 	wordwrap "github.com/mitchellh/go-wordwrap"
@@ -67,7 +67,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 		leftRuleEnd = color.Color("[yellow]╵[reset]")
 		leftRuleWidth = 2
 	default:
-		// Clear out any coloring that might be applied by Terraform's UI helper,
+		// Clear out any coloring that might be applied by mnptu's UI helper,
 		// so our result is not context-sensitive.
 		buf.WriteString(color.Color("\n[reset]"))
 	}
@@ -124,7 +124,7 @@ func DiagnosticFromJSON(diag *viewsjson.Diagnostic, color *colorstring.Colorize,
 // virtual terminal formatting sequences.
 //
 // It is intended for use in automation and other contexts in which diagnostic
-// messages are parsed from the Terraform output.
+// messages are parsed from the mnptu output.
 func DiagnosticPlain(diag tfdiags.Diagnostic, sources map[string][]byte, width int) string {
 	return DiagnosticPlainFromJSON(viewsjson.NewDiagnostic(diag, sources), width)
 }

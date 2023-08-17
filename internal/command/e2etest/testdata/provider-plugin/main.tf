@@ -1,12 +1,12 @@
-// the provider-plugin tests uses the -plugin-cache flag so terraform pulls the
+// the provider-plugin tests uses the -plugin-cache flag so mnptu pulls the
 // test binaries instead of reaching out to the registry.
-terraform {
+mnptu {
   required_providers {
     simple5 = {
-      source = "registry.terraform.io/hashicorp/simple"
+      source = "registry.mnptu.io/hashicorp/simple"
     }
     simple6 = {
-      source = "registry.terraform.io/hashicorp/simple6"
+      source = "registry.mnptu.io/hashicorp/simple6"
     }
   }
 }

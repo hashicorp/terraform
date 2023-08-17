@@ -1,44 +1,44 @@
 ---
 page_title: 'Command: console'
 description: >-
-  The terraform console command provides an interactive console for evaluating
+  The mnptu console command provides an interactive console for evaluating
   expressions.
 ---
 
 # Command: console
 
-The `terraform console` command provides an interactive console for
-evaluating [expressions](/terraform/language/expressions).
+The `mnptu console` command provides an interactive console for
+evaluating [expressions](/mnptu/language/expressions).
 
 ## Usage
 
-Usage: `terraform console [options]`
+Usage: `mnptu console [options]`
 
 This command provides an interactive command-line console for evaluating and
-experimenting with [expressions](/terraform/language/expressions).
+experimenting with [expressions](/mnptu/language/expressions).
 You can use it to test interpolations before using them in configurations
 and to interact with any values currently saved in
-[state](/terraform/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
-[built-in functions](/terraform/language/functions). The console holds a [lock on the state](/terraform/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
+[state](/mnptu/language/state). If the current state is empty or has not yet been created, you can use the console to experiment with the expression syntax and
+[built-in functions](/mnptu/language/functions). The console holds a [lock on the state](/mnptu/language/state/locking), and you will not be able to use the console while performing other actions that modify state.
 
 To close the console, enter the `exit` command or press Control-C
 or Control-D.
 
 For configurations using
-[the `local` backend](/terraform/language/settings/backends/local) only,
-`terraform console` accepts the legacy command line option
-[`-state`](/terraform/language/settings/backends/local#command-line-arguments).
+[the `local` backend](/mnptu/language/settings/backends/local) only,
+`mnptu console` accepts the legacy command line option
+[`-state`](/mnptu/language/settings/backends/local#command-line-arguments).
 
 ## Scripting
 
-The `terraform console` command can be used in non-interactive scripts
+The `mnptu console` command can be used in non-interactive scripts
 by piping newline-separated commands to it. Only the output from the
 final command is printed unless an error occurs earlier.
 
 For example:
 
 ```shell
-$ echo 'split(",", "foo,bar,baz")' | terraform console
+$ echo 'split(",", "foo,bar,baz")' | mnptu console
 tolist([
   "foo",
   "bar",
@@ -48,14 +48,14 @@ tolist([
 
 ## Remote State
 
-If [remote state](/terraform/language/state/remote) is used by the current backend,
-Terraform will read the state for the current workspace from the backend
+If [remote state](/mnptu/language/state/remote) is used by the current backend,
+mnptu will read the state for the current workspace from the backend
 before evaluating any expressions.
 
 ## Examples
 
-The `terraform console` command will read the Terraform configuration in the
-current working directory and the Terraform state file from the configured
+The `mnptu console` command will read the mnptu configuration in the
+current working directory and the mnptu state file from the configured
 backend so that interpolations can be tested against both the values in the
 configuration and the state file.
 
@@ -82,7 +82,7 @@ resource "random_pet" "example" {
 }
 ```
 
-Executing `terraform console` will drop you into an interactive shell where you
+Executing `mnptu console` will drop you into an interactive shell where you
 can test interpolations to:
 
 Print a value from a map:

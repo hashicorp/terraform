@@ -21,7 +21,7 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/mitchellh/copystructure"
 
-	tfversion "github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 type MockClient struct {
@@ -91,7 +91,7 @@ func (m *MockApplies) create(cvID, workspaceID string) (*tfe.Apply, error) {
 	}
 
 	id := GenerateID("apply-")
-	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+	url := fmt.Sprintf("https://app.mnptu.io/_archivist/%s", id)
 
 	a := &tfe.Apply{
 		ID:         id,
@@ -202,7 +202,7 @@ func (m *MockConfigurationVersions) List(ctx context.Context, workspaceID string
 
 func (m *MockConfigurationVersions) Create(ctx context.Context, workspaceID string, options tfe.ConfigurationVersionCreateOptions) (*tfe.ConfigurationVersion, error) {
 	id := GenerateID("cv-")
-	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+	url := fmt.Sprintf("https://app.mnptu.io/_archivist/%s", id)
 
 	cv := &tfe.ConfigurationVersion{
 		ID:        id,
@@ -540,7 +540,7 @@ func newMockPlans(client *MockClient) *MockPlans {
 // working directory to find the logfile.
 func (m *MockPlans) create(cvID, workspaceID string) (*tfe.Plan, error) {
 	id := GenerateID("plan-")
-	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+	url := fmt.Sprintf("https://app.mnptu.io/_archivist/%s", id)
 
 	p := &tfe.Plan{
 		ID:         id,
@@ -1168,7 +1168,7 @@ func (m *MockRuns) Create(ctx context.Context, options tfe.RunCreateOptions) (*t
 	r.Workspace = &tfe.Workspace{
 		ID:                         w.ID,
 		StructuredRunOutputEnabled: w.StructuredRunOutputEnabled,
-		TerraformVersion:           w.TerraformVersion,
+		mnptuVersion:           w.mnptuVersion,
 	}
 
 	if w.StructuredRunOutputEnabled {
@@ -1369,7 +1369,7 @@ func (m *MockStateVersions) List(ctx context.Context, options *tfe.StateVersionL
 func (m *MockStateVersions) Create(ctx context.Context, workspaceID string, options tfe.StateVersionCreateOptions) (*tfe.StateVersion, error) {
 	id := GenerateID("sv-")
 	runID := os.Getenv("TFE_RUN_ID")
-	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+	url := fmt.Sprintf("https://app.mnptu.io/_archivist/%s", id)
 
 	if runID != "" && (options.Run == nil || runID != options.Run.ID) {
 		return nil, fmt.Errorf("option.Run.ID does not contain the ID exported by TFE_RUN_ID")
@@ -1636,9 +1636,9 @@ func (m *MockWorkspaces) List(ctx context.Context, organization string, options 
 }
 
 func (m *MockWorkspaces) Create(ctx context.Context, organization string, options tfe.WorkspaceCreateOptions) (*tfe.Workspace, error) {
-	// for TestCloud_setUnavailableTerraformVersion
-	if *options.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return nil, fmt.Errorf("requested Terraform version not available in this TFC instance")
+	// for TestCloud_setUnavailablemnptuVersion
+	if *options.Name == "unavailable-mnptu-version" && options.mnptuVersion != nil {
+		return nil, fmt.Errorf("requested mnptu version not available in this TFC instance")
 	}
 	if strings.HasSuffix(*options.Name, "no-operations") {
 		options.Operations = tfe.Bool(false)
@@ -1672,10 +1672,10 @@ func (m *MockWorkspaces) Create(ctx context.Context, organization string, option
 		w.VCSRepo = &tfe.VCSRepo{}
 	}
 
-	if options.TerraformVersion != nil {
-		w.TerraformVersion = *options.TerraformVersion
+	if options.mnptuVersion != nil {
+		w.mnptuVersion = *options.mnptuVersion
 	} else {
-		w.TerraformVersion = tfversion.String()
+		w.mnptuVersion = tfversion.String()
 	}
 
 	var tags []*tfe.Tag
@@ -1758,9 +1758,9 @@ func (m *MockWorkspaces) UpdateByID(ctx context.Context, workspaceID string, opt
 }
 
 func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdateOptions) error {
-	// for TestCloud_setUnavailableTerraformVersion
-	if w.Name == "unavailable-terraform-version" && options.TerraformVersion != nil {
-		return fmt.Errorf("requested Terraform version not available in this TFC instance")
+	// for TestCloud_setUnavailablemnptuVersion
+	if w.Name == "unavailable-mnptu-version" && options.mnptuVersion != nil {
+		return fmt.Errorf("requested mnptu version not available in this TFC instance")
 	}
 
 	if options.Operations != nil {
@@ -1772,8 +1772,8 @@ func updateMockWorkspaceAttributes(w *tfe.Workspace, options tfe.WorkspaceUpdate
 	if options.Name != nil {
 		w.Name = *options.Name
 	}
-	if options.TerraformVersion != nil {
-		w.TerraformVersion = *options.TerraformVersion
+	if options.mnptuVersion != nil {
+		w.mnptuVersion = *options.mnptuVersion
 	}
 	if options.WorkingDirectory != nil {
 		w.WorkingDirectory = *options.WorkingDirectory

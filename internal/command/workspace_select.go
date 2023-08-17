@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/cli"
 	"github.com/posener/complete"
 )
@@ -149,13 +149,13 @@ func (c *WorkspaceSelectCommand) AutocompleteFlags() complete.Flags {
 
 func (c *WorkspaceSelectCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] workspace select NAME
+Usage: mnptu [global options] workspace select NAME
 
-  Select a different Terraform workspace.
+  Select a different mnptu workspace.
 
 Options:
 
-    -or-create=false    Create the Terraform workspace if it doesn't exist.
+    -or-create=false    Create the mnptu workspace if it doesn't exist.
 
 `
 	return strings.TrimSpace(helpText)

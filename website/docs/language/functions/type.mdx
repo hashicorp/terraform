@@ -5,15 +5,15 @@ description: 'The type function returns the type of a given value. '
 
 # `type` Function
 
--> **Note:** This function is available only in Terraform 1.0 and later.
+-> **Note:** This function is available only in mnptu 1.0 and later.
 
 `type` returns the type of a given value.
 
-Sometimes a Terraform configuration can result in confusing errors regarding
-inconsistent types. This function displays terraform's evaluation of a given
+Sometimes a mnptu configuration can result in confusing errors regarding
+inconsistent types. This function displays mnptu's evaluation of a given
 value's type, which is useful in understanding this error message.
 
-This is a special function which is only available in the `terraform console`
+This is a special function which is only available in the `mnptu console`
 command. It can only be used to examine the type of a given value, and should
 not be used in more complex expressions.
 
@@ -59,7 +59,7 @@ expressions are tuple and tuple, respectively.
 ```
 
 While this error message does include some type information, it can be helpful
-to inspect the exact type that Terraform has determined for each given input.
+to inspect the exact type that mnptu has determined for each given input.
 Examining both `var.list` and `local.default_list` using the `type` function
 provides more context for the error message:
 

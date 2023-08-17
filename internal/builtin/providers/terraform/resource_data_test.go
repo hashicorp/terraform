@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/mnptu/internal/providers"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -22,7 +22,7 @@ func TestManagedDataValidate(t *testing.T) {
 
 	// empty
 	req := providers.ValidateResourceConfigRequest{
-		TypeName: "terraform_data",
+		TypeName: "mnptu_data",
 		Config:   cty.ObjectVal(cfg),
 	}
 
@@ -66,7 +66,7 @@ func TestManagedDataUpgradeState(t *testing.T) {
 
 	// empty
 	req := providers.UpgradeResourceStateRequest{
-		TypeName:     "terraform_data",
+		TypeName:     "mnptu_data",
 		RawStateJSON: jsState,
 	}
 
@@ -82,7 +82,7 @@ func TestManagedDataUpgradeState(t *testing.T) {
 
 func TestManagedDataRead(t *testing.T) {
 	req := providers.ReadResourceRequest{
-		TypeName: "terraform_data",
+		TypeName: "mnptu_data",
 		PriorState: cty.ObjectVal(map[string]cty.Value{
 			"input":  cty.StringVal("input"),
 			"output": cty.StringVal("input"),
@@ -231,7 +231,7 @@ func TestManagedDataPlan(t *testing.T) {
 	} {
 		t.Run("plan-"+name, func(t *testing.T) {
 			req := providers.PlanResourceChangeRequest{
-				TypeName:         "terraform_data",
+				TypeName:         "mnptu_data",
 				PriorState:       tc.prior,
 				ProposedNewState: tc.proposed,
 			}
@@ -367,7 +367,7 @@ func TestManagedDataApply(t *testing.T) {
 	} {
 		t.Run("apply-"+name, func(t *testing.T) {
 			req := providers.ApplyResourceChangeRequest{
-				TypeName:     "terraform_data",
+				TypeName:     "mnptu_data",
 				PriorState:   tc.prior,
 				PlannedState: tc.planned,
 			}

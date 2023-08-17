@@ -1,6 +1,6 @@
 {
   "format_version": "1.0",
-  "terraform_version": "1.1.0-dev",
+  "mnptu_version": "1.1.0-dev",
   "planned_values": {
     "root_module": {
       "resources": [
@@ -9,7 +9,7 @@
           "mode": "managed",
           "type": "test_instance",
           "name": "test",
-          "provider_name": "registry.terraform.io/hashicorp/test",
+          "provider_name": "registry.mnptu.io/hashicorp/test",
           "schema_version": 0,
           "values": {
             "ami": "foo"
@@ -25,7 +25,7 @@
               "mode": "managed",
               "type": "test_instance",
               "name": "test",
-              "provider_name": "registry.terraform.io/hashicorp2/test",
+              "provider_name": "registry.mnptu.io/hashicorp2/test",
               "schema_version": 0,
               "values": {
                 "ami": "bar"
@@ -44,7 +44,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "test",
-      "provider_name": "registry.terraform.io/hashicorp/test",
+      "provider_name": "registry.mnptu.io/hashicorp/test",
       "change": {
         "actions": [
           "create"
@@ -66,7 +66,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "test",
-      "provider_name": "registry.terraform.io/hashicorp2/test",
+      "provider_name": "registry.mnptu.io/hashicorp2/test",
       "change": {
         "actions": [
           "create"
@@ -87,7 +87,7 @@
     "provider_config": {
       "test": {
         "name": "test",
-        "full_name": "registry.terraform.io/hashicorp/test",
+        "full_name": "registry.mnptu.io/hashicorp/test",
         "expressions": {
           "region": {
             "constant_value": "somewhere"
@@ -97,7 +97,7 @@
       "module.child:test": {
         "module_address": "module.child",
         "name": "test",
-        "full_name": "registry.terraform.io/hashicorp2/test"
+        "full_name": "registry.mnptu.io/hashicorp2/test"
       }
     },
     "root_module": {

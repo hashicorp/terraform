@@ -9,7 +9,7 @@ module "mod" {
 # FIXME: This test is for an awkward interaction that we've preserved for
 # compatibility with what was arguably a bug in earlier versions: if a
 # child module tries to use an inherited provider configuration explicitly by
-# name then Terraform would historically use the wrong provider configuration.
+# name then mnptu would historically use the wrong provider configuration.
 #
 # Since we weren't able to address that bug without breaking backward
 # compatibility, instead we emit a warning to prompt the author to be explicit,

@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 // ResourceProvider is a legacy interface for providers.
 //
@@ -25,7 +25,7 @@ type ResourceProvider interface {
 	// Input was used prior to v0.12 to ask the provider to prompt the user
 	// for input to complete the configuration.
 	//
-	// From v0.12 onwards this method is never called because Terraform Core
+	// From v0.12 onwards this method is never called because mnptu Core
 	// is able to handle the necessary input logic itself based on the
 	// schema returned from GetSchema.
 	Input(UIInput, *ResourceConfig) (*ResourceConfig, error)
@@ -56,15 +56,15 @@ type ResourceProvider interface {
 
 	// Stop is called when the provider should halt any in-flight actions.
 	//
-	// This can be used to make a nicer Ctrl-C experience for Terraform.
+	// This can be used to make a nicer Ctrl-C experience for mnptu.
 	// Even if this isn't implemented to do anything (just returns nil),
-	// Terraform will still cleanly stop after the currently executing
+	// mnptu will still cleanly stop after the currently executing
 	// graph node is complete. However, this API can be used to make more
 	// efficient halts.
 	//
 	// Stop doesn't have to and shouldn't block waiting for in-flight actions
 	// to complete. It should take any action it wants and return immediately
-	// acknowledging it has received the stop request. Terraform core will
+	// acknowledging it has received the stop request. mnptu core will
 	// automatically not make any further API calls to the provider soon
 	// after Stop is called (technically exactly once the currently executing
 	// graph nodes are complete).
@@ -127,7 +127,7 @@ type ResourceProvider interface {
 	// This function can return multiple states. Normally, an import
 	// will map 1:1 to a physical resource. However, some resources map
 	// to multiple. For example, an AWS security group may contain many rules.
-	// Each rule is represented by a separate resource in Terraform,
+	// Each rule is represented by a separate resource in mnptu,
 	// therefore multiple states are returned.
 	ImportState(*InstanceInfo, string) ([]*InstanceState, error)
 
@@ -225,15 +225,15 @@ func ProviderHasDataSource(p ResourceProvider, n string) bool {
 }
 
 const errPluginInit = `
-Plugin reinitialization required. Please run "terraform init".
+Plugin reinitialization required. Please run "mnptu init".
 
-Plugins are external binaries that Terraform uses to access and manipulate
+Plugins are external binaries that mnptu uses to access and manipulate
 resources. The configuration provided requires plugins which can't be located,
 don't satisfy the version constraints, or are otherwise incompatible.
 
-Terraform automatically discovers provider requirements from your
+mnptu automatically discovers provider requirements from your
 configuration, including providers used in child modules. To see the
-requirements and constraints, run "terraform providers".
+requirements and constraints, run "mnptu providers".
 
 %s
 `

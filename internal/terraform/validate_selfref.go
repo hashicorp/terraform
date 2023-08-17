@@ -1,18 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // validateSelfRef checks to ensure that expressions within a particular
@@ -37,7 +37,7 @@ func validateSelfRef(addr addrs.Referenceable, config hcl.Body, providerSchema p
 	}
 
 	if schema == nil {
-		diags = diags.Append(fmt.Errorf("no schema available for %s to validate for self-references; this is a bug in Terraform and should be reported", addr))
+		diags = diags.Append(fmt.Errorf("no schema available for %s to validate for self-references; this is a bug in mnptu and should be reported", addr))
 		return diags
 	}
 

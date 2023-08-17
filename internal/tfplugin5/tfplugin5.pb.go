@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 5.4
+// mnptu Plugin RPC protocol version 5.4
 //
 // This file defines version 5.4 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
@@ -12,11 +12,11 @@
 // compatibility. Breaking changes, if any are required, will come
 // in a subsequent major version with its own separate proto definition.
 //
-// Note that only the proto files included in a release tag of Terraform are
+// Note that only the proto files included in a release tag of mnptu are
 // official protocol releases. Proto files taken from other commits may include
 // incomplete changes or features that did not make it into a final release.
 // In all reasonable cases, plugin developers should take the proto file from
-// the tag of the most recent release of Terraform, and not from the main
+// the tag of the most recent release of mnptu, and not from the main
 // branch or any other development branch.
 //
 
@@ -199,7 +199,7 @@ func (Schema_NestedBlock_NestingMode) EnumDescriptor() ([]byte, []int) {
 	return file_tfplugin5_proto_rawDescGZIP(), []int{5, 2, 0}
 }
 
-// DynamicValue is an opaque encoding of terraform data, with the field name
+// DynamicValue is an opaque encoding of mnptu data, with the field name
 // indicating the encoding scheme used.
 type DynamicValue struct {
 	state         protoimpl.MessageState
@@ -2163,7 +2163,7 @@ type Configure_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	TerraformVersion string        `protobuf:"bytes,1,opt,name=terraform_version,json=terraformVersion,proto3" json:"terraform_version,omitempty"`
+	mnptuVersion string        `protobuf:"bytes,1,opt,name=mnptu_version,json=mnptuVersion,proto3" json:"mnptu_version,omitempty"`
 	Config           *DynamicValue `protobuf:"bytes,2,opt,name=config,proto3" json:"config,omitempty"`
 }
 
@@ -2199,9 +2199,9 @@ func (*Configure_Request) Descriptor() ([]byte, []int) {
 	return file_tfplugin5_proto_rawDescGZIP(), []int{11, 0}
 }
 
-func (x *Configure_Request) GetTerraformVersion() string {
+func (x *Configure_Request) GetmnptuVersion() string {
 	if x != nil {
-		return x.TerraformVersion
+		return x.mnptuVersion
 	}
 	return ""
 }
@@ -2498,8 +2498,8 @@ type PlanResourceChange_Response struct {
 	RequiresReplace []*AttributePath `protobuf:"bytes,2,rep,name=requires_replace,json=requiresReplace,proto3" json:"requires_replace,omitempty"`
 	PlannedPrivate  []byte           `protobuf:"bytes,3,opt,name=planned_private,json=plannedPrivate,proto3" json:"planned_private,omitempty"`
 	Diagnostics     []*Diagnostic    `protobuf:"bytes,4,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
-	// This may be set only by the helper/schema "SDK" in the main Terraform
-	// repository, to request that Terraform Core >=0.12 permit additional
+	// This may be set only by the helper/schema "SDK" in the main mnptu
+	// repository, to request that mnptu Core >=0.12 permit additional
 	// inconsistencies that can result from the legacy SDK type system
 	// and its imprecise mapping to the >=0.12 type system.
 	// The change in behavior implied by this flag makes sense only for the
@@ -2674,8 +2674,8 @@ type ApplyResourceChange_Response struct {
 	NewState    *DynamicValue `protobuf:"bytes,1,opt,name=new_state,json=newState,proto3" json:"new_state,omitempty"`
 	Private     []byte        `protobuf:"bytes,2,opt,name=private,proto3" json:"private,omitempty"`
 	Diagnostics []*Diagnostic `protobuf:"bytes,3,rep,name=diagnostics,proto3" json:"diagnostics,omitempty"`
-	// This may be set only by the helper/schema "SDK" in the main Terraform
-	// repository, to request that Terraform Core >=0.12 permit additional
+	// This may be set only by the helper/schema "SDK" in the main mnptu
+	// repository, to request that mnptu Core >=0.12 permit additional
 	// inconsistencies that can result from the legacy SDK type system
 	// and its imprecise mapping to the >=0.12 type system.
 	// The change in behavior implied by this flag makes sense only for the

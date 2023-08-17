@@ -8,7 +8,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "baz",
-                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "provider_name": "registry.mnptu.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "baz",
@@ -25,7 +25,7 @@
             "mode": "managed",
             "type": "test_instance",
             "previous_address": "test_instance.foo",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "name": "baz",
             "change": {
                 "actions": [
@@ -56,7 +56,7 @@
                         "type": "test_instance",
                         "name": "baz",
                         "schema_version": 0,
-                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "provider_name": "registry.mnptu.io/hashicorp/test",
                         "values": {
                             "ami": "foo",
                             "id": "placeholder"
@@ -71,7 +71,7 @@
         "provider_config": {
             "test": {
                 "name": "test",
-                "full_name": "registry.terraform.io/hashicorp/test"
+                "full_name": "registry.mnptu.io/hashicorp/test"
             }
         },
         "root_module": {

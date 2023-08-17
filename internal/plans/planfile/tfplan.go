@@ -12,14 +12,14 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/proto"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/lang/globalref"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/internal/planproto"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/lang/globalref"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/internal/planproto"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/version"
 )
 
 const tfplanFormatVersion = 3
@@ -52,8 +52,8 @@ func readTfplan(r io.Reader) (*plans.Plan, error) {
 		return nil, fmt.Errorf("unsupported plan file format version %d; only version %d is supported", rawPlan.Version, tfplanFormatVersion)
 	}
 
-	if rawPlan.TerraformVersion != version.String() {
-		return nil, fmt.Errorf("plan file was created by Terraform %s, but this is %s; plan files cannot be transferred between different Terraform versions", rawPlan.TerraformVersion, version.String())
+	if rawPlan.mnptuVersion != version.String() {
+		return nil, fmt.Errorf("plan file was created by mnptu %s, but this is %s; plan files cannot be transferred between different mnptu versions", rawPlan.mnptuVersion, version.String())
 	}
 
 	plan := &plans.Plan{
@@ -270,10 +270,10 @@ func resourceChangeFromTfplan(rawChange *planproto.ResourceInstanceChange) (*pla
 
 	if rawChange.Addr == "" {
 		// If "Addr" isn't populated then seems likely that this is a plan
-		// file created by an earlier version of Terraform, which had the
+		// file created by an earlier version of mnptu, which had the
 		// same information spread over various other fields:
 		// ModulePath, Mode, Name, Type, and InstanceKey.
-		return nil, fmt.Errorf("no instance address for resource instance change; perhaps this plan was created by a different version of Terraform?")
+		return nil, fmt.Errorf("no instance address for resource instance change; perhaps this plan was created by a different version of mnptu?")
 	}
 
 	instAddr, diags := addrs.ParseAbsResourceInstanceStr(rawChange.Addr)
@@ -475,7 +475,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 
 	rawPlan := &planproto.Plan{
 		Version:          tfplanFormatVersion,
-		TerraformVersion: version.String(),
+		mnptuVersion: version.String(),
 
 		Variables:       map[string]*planproto.DynamicValue{},
 		OutputChanges:   []*planproto.OutputChange{},
@@ -500,7 +500,7 @@ func writeTfplan(plan *plans.Plan, w io.Writer) error {
 	for _, oc := range plan.Changes.Outputs {
 		// When serializing a plan we only retain the root outputs, since
 		// changes to these are externally-visible side effects (e.g. via
-		// terraform_remote_state).
+		// mnptu_remote_state).
 		if !oc.Addr.Module.IsRoot() {
 			continue
 		}

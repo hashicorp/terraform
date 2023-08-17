@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/experiments"
+	"github.com/hashicorp/mnptu/internal/experiments"
 )
 
 func TestExperimentsConfig(t *testing.T) {
@@ -34,7 +34,7 @@ func TestExperimentsConfig(t *testing.T) {
 		want := &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  `Experimental feature "current" is active`,
-			Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+			Detail:   "Experimental features are available only in alpha releases of mnptu and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 			Subject: &hcl.Range{
 				Filename: "testdata/experiments/current/current_experiment.tf",
 				Start:    hcl.Pos{Line: 2, Column: 18, Byte: 29},
@@ -128,7 +128,7 @@ func TestExperimentsConfig(t *testing.T) {
 		want := &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Module uses experimental features`,
-			Detail:   `Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.`,
+			Detail:   `Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of mnptu.`,
 			Subject: &hcl.Range{
 				Filename: "testdata/experiments/current/current_experiment.tf",
 				Start:    hcl.Pos{Line: 2, Column: 3, Byte: 14},

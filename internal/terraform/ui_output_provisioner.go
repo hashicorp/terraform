@@ -1,10 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // ProvisionerUIOutput is an implementation of UIOutput that calls a hook

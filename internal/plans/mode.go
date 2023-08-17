@@ -19,8 +19,8 @@ const (
 	// prior state, even if the configuration for those instances is still
 	// present.
 	//
-	// This mode corresponds with the "-destroy" option to "terraform plan",
-	// and with the plan created by the "terraform destroy" command.
+	// This mode corresponds with the "-destroy" option to "mnptu plan",
+	// and with the plan created by the "mnptu destroy" command.
 	DestroyMode Mode = 'D'
 
 	// RefreshOnlyMode is a special planning mode which only performs the
@@ -29,6 +29,6 @@ const (
 	// the configuration has changed relative to the state.
 	//
 	// This mode corresponds with the "-refresh-only" option to
-	// "terraform plan".
+	// "mnptu plan".
 	RefreshOnlyMode Mode = 'R'
 )

@@ -1,102 +1,102 @@
 ---
-page_title: Dependency Lock File (.terraform.lock.hcl) - Configuration Language
+page_title: Dependency Lock File (.mnptu.lock.hcl) - Configuration Language
 description: >-
-  Terraform uses the dependency lock file .teraform.lock.hcl to track and select
+  mnptu uses the dependency lock file .teraform.lock.hcl to track and select
   provider versions. Learn about dependency installation and lock file changes.
 ---
 
 # Dependency Lock File
 
--> **Note:** This page is about a feature of Terraform 0.14 and later. Prior
-versions of Terraform did not track dependency selections at all, so the
+-> **Note:** This page is about a feature of mnptu 0.14 and later. Prior
+versions of mnptu did not track dependency selections at all, so the
 information here is not relevant to those versions.
 
-> **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](/mnptu/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-A Terraform configuration may refer to two different kinds of external
+A mnptu configuration may refer to two different kinds of external
 dependency that come from outside of its own codebase:
 
-- [Providers](/terraform/language/providers/requirements), which are plugins for Terraform
+- [Providers](/mnptu/language/providers/requirements), which are plugins for mnptu
   that extend it with support for interacting with various external systems.
-- [Modules](/terraform/language/modules), which allow
-  splitting out groups of Terraform configuration constructs (written in the
-  Terraform language) into reusable abstractions.
+- [Modules](/mnptu/language/modules), which allow
+  splitting out groups of mnptu configuration constructs (written in the
+  mnptu language) into reusable abstractions.
 
 Both of these dependency types can be published and updated independently from
-Terraform itself and from the configurations that depend on them. For that
-reason, Terraform must determine which versions of those dependencies are
+mnptu itself and from the configurations that depend on them. For that
+reason, mnptu must determine which versions of those dependencies are
 potentially compatible with the current configuration and which versions are
 currently selected for use.
 
-[Version constraints](/terraform/language/expressions/version-constraints) within the configuration
+[Version constraints](/mnptu/language/expressions/version-constraints) within the configuration
 itself determine which versions of dependencies are _potentially_ compatible,
-but after selecting a specific version of each dependency Terraform remembers
+but after selecting a specific version of each dependency mnptu remembers
 the decisions it made in a _dependency lock file_ so that it can (by default)
 make the same decisions again in future.
 
 At present, the dependency lock file tracks only _provider_ dependencies.
-Terraform does not remember version selections for remote modules, and so
-Terraform will always select the newest available module version that meets
+mnptu does not remember version selections for remote modules, and so
+mnptu will always select the newest available module version that meets
 the specified version constraints. You can use an _exact_ version constraint
-to ensure that Terraform will always select the same module version.
+to ensure that mnptu will always select the same module version.
 
 ## Lock File Location
 
 The dependency lock file is a file that belongs to the configuration as a
 whole, rather than to each separate module in the configuration. For that reason
-Terraform creates it and expects to find it in your current working directory
-when you run Terraform, which is also the directory containing the `.tf` files
+mnptu creates it and expects to find it in your current working directory
+when you run mnptu, which is also the directory containing the `.tf` files
 for the root module of your configuration.
 
-The lock file is always named `.terraform.lock.hcl`, and this name is intended
-to signify that it is a lock file for various items that Terraform caches in
-the `.terraform` subdirectory of your working directory.
+The lock file is always named `.mnptu.lock.hcl`, and this name is intended
+to signify that it is a lock file for various items that mnptu caches in
+the `.mnptu` subdirectory of your working directory.
 
-Terraform automatically creates or updates the dependency lock file each time
-you run [the `terraform init` command](/terraform/cli/commands/init). You should
+mnptu automatically creates or updates the dependency lock file each time
+you run [the `mnptu init` command](/mnptu/cli/commands/init). You should
 include this file in your version control repository so that you can discuss
 potential changes to your external dependencies via code review, just as you
 would discuss potential changes to your configuration itself.
 
-The dependency lock file uses the same low-level syntax as the main Terraform
-language, but the dependency lock file is not itself a Terraform language
+The dependency lock file uses the same low-level syntax as the main mnptu
+language, but the dependency lock file is not itself a mnptu language
 configuration file. It is named with the suffix `.hcl` instead of `.tf` in
 order to signify that difference.
 
 ## Dependency Installation Behavior
 
-When `terraform init` is working on installing all of the providers needed for
-a configuration, Terraform considers both the version constraints in the
+When `mnptu init` is working on installing all of the providers needed for
+a configuration, mnptu considers both the version constraints in the
 configuration _and_ the version selections recorded in the lock file.
 
-If a particular provider has no existing recorded selection, Terraform will
+If a particular provider has no existing recorded selection, mnptu will
 select the newest available version that matches the given version constraint,
 and then update the lock file to include that selection.
 
 If a particular provider already has a selection recorded in the lock file,
-Terraform will always re-select that version for installation, even if a
+mnptu will always re-select that version for installation, even if a
 newer version has become available. You can override that behavior by adding
-the `-upgrade` option when you run `terraform init`, in which case Terraform
+the `-upgrade` option when you run `mnptu init`, in which case mnptu
 will disregard the existing selections and once again select the newest
 available version matching the version constraint.
 
-If a particular `terraform init` call makes changes to the lock file, Terraform
+If a particular `mnptu init` call makes changes to the lock file, mnptu
 will mention that as part of its output:
 
 ```
-Terraform has made some changes to the provider dependency selections recorded
-in the .terraform.lock.hcl file. Review those changes and commit them to your
+mnptu has made some changes to the provider dependency selections recorded
+in the .mnptu.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.
 ```
 
 When you see this message, you can use your version control system to
-[review the changes Terraform has proposed in the file](#understanding-lock-file-changes),
+[review the changes mnptu has proposed in the file](#understanding-lock-file-changes),
 and if they represent changes you made intentionally you can send the change
 through your team's usual code review process.
 
 ### Checksum verification
 
-Terraform will also verify that each package it installs matches at least one
+mnptu will also verify that each package it installs matches at least one
 of the checksums it previously recorded in the lock file, if any, returning an
 error if none of the checksums match:
 
@@ -104,7 +104,7 @@ error if none of the checksums match:
 Error: Failed to install provider
 
 Error while installing hashicorp/azurerm v2.1.0: the current package for
-registry.terraform.io/hashicorp/azurerm 2.1.0 doesn't match any of the
+registry.mnptu.io/hashicorp/azurerm 2.1.0 doesn't match any of the
 checksums previously recorded in the dependency lock file.
 ```
 
@@ -112,20 +112,20 @@ This checksum verification is intended to represent a
 _[trust on first use](https://en.wikipedia.org/wiki/Trust_on_first_use)_
 approach. When you add a new provider for the first time you can verify it
 in whatever way you choose or any way you are required to by relevant
-regulations, and then trust that Terraform will raise an error if a future
-run of `terraform init` encounters a non-matching package for the same
+regulations, and then trust that mnptu will raise an error if a future
+run of `mnptu init` encounters a non-matching package for the same
 provider version.
 
 There are two special considerations with the "trust on first use" model:
 
 - If you install a provider from an origin registry which provides checksums
-  that are signed with a cryptographic signature, Terraform will treat all
+  that are signed with a cryptographic signature, mnptu will treat all
   of the signed checksums as valid as long as one checksum matches. The lock
   file will therefore include checksums for both the package you installed for
   your current platform _and_ any other packages that might be available for
   other platforms.
 
-  In this case, the `terraform init` output will include the fingerprint of
+  In this case, the `mnptu init` output will include the fingerprint of
   the key that signed the checksums, with a message like
   `(signed by a HashiCorp partner, key ID DC9FC6B1FCE47986)`. You may wish to
   confirm that you trust the holder of the given key before committing the
@@ -133,47 +133,47 @@ There are two special considerations with the "trust on first use" model:
   full set of available packages for the given provider version.
 
 - If you install a provider for the first time using an alternative
-  installation method, such as a filesystem or network mirror, Terraform will
+  installation method, such as a filesystem or network mirror, mnptu will
   not be able to verify the checksums for any platform other than the one
-  where you ran `terraform init`, and so it will not record the checksums
+  where you ran `mnptu init`, and so it will not record the checksums
   for other platforms and so the configuration will not be usable on any other
   platform.
 
   To avoid this problem you can pre-populate checksums for a variety of
   different platforms in your lock file using
-  [the `terraform providers lock` command](/terraform/cli/commands/providers/lock),
-  which will then allow future calls to `terraform init` to verify that the
+  [the `mnptu providers lock` command](/mnptu/cli/commands/providers/lock),
+  which will then allow future calls to `mnptu init` to verify that the
   packages available in your chosen mirror match the official packages from
   the provider's origin registry.
 
 ## Understanding Lock File Changes
 
 Because the dependency lock file is primarily maintained automatically by
-Terraform itself, rather than being updated manually by you or your team,
+mnptu itself, rather than being updated manually by you or your team,
 your version control system may show you that the file has changed.
 
-There are a few different types of changes that Terraform can potentially make
+There are a few different types of changes that mnptu can potentially make
 to your lock file, which you may need to understand in order to review the
 proposed changes. The following sections will describe these common situations.
 
 ### Dependency on a new provider
 
 If you add a new entry to the
-[provider requirements](/terraform/language/providers/requirements) for any module in your
+[provider requirements](/mnptu/language/providers/requirements) for any module in your
 configuration, or if you add an external module that includes a new provider
-dependency itself, `terraform init` will respond to that by selecting the
+dependency itself, `mnptu init` will respond to that by selecting the
 newest version of that provider which meets all of the version constraints
 in the configuration, and it will record its decision as a new `provider`
 block in the dependency lock file.
 
 ```diff
---- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
-+++ .terraform.lock.hcl	2020-10-07 16:12:15.267487237 -0700
+--- .mnptu.lock.hcl	2020-10-07 16:12:07.539570634 -0700
++++ .mnptu.lock.hcl	2020-10-07 16:12:15.267487237 -0700
 @@ -6,6 +6,26 @@
    ]
  }
 
-+provider "registry.terraform.io/hashicorp/azurerm" {
++provider "registry.mnptu.io/hashicorp/azurerm" {
 +  version     = "2.30.0"
 +  constraints = "~> 2.12"
 +  hashes = [
@@ -193,17 +193,17 @@ block in the dependency lock file.
 +  ]
 +}
 +
- provider "registry.terraform.io/newrelic/newrelic" {
+ provider "registry.mnptu.io/newrelic/newrelic" {
    version     = "2.1.2"
    constraints = "~> 2.1.1"
 ```
 
 The new lock file entry records several pieces of information:
 
-- `version`: the exact version that Terraform selected based on the version
+- `version`: the exact version that mnptu selected based on the version
   constraints in the configuration.
-- `constraints`: all of the version constraints that Terraform considered when
-  making this selection. (Terraform doesn't actually use this information to
+- `constraints`: all of the version constraints that mnptu considered when
+  making this selection. (mnptu doesn't actually use this information to
   make installation decisions, but includes it to help explain to human readers
   how the previous decision was made.)
 - `hashes`: a number of checksums that are all considered to be valid for
@@ -213,18 +213,18 @@ The new lock file entry records several pieces of information:
 
 ### New version of an existing provider
 
-If you run `terraform init -upgrade` to ask Terraform to consider newer provider
-versions that still match the configured version constraints, Terraform may
+If you run `mnptu init -upgrade` to ask mnptu to consider newer provider
+versions that still match the configured version constraints, mnptu may
 then select a newer version for a provider and update its existing `provider`
 block to reflect that change.
 
 ```diff
---- .terraform.lock.hcl	2020-10-07 16:44:25.819579509 -0700
-+++ .terraform.lock.hcl	2020-10-07 16:43:42.785665945 -0700
+--- .mnptu.lock.hcl	2020-10-07 16:44:25.819579509 -0700
++++ .mnptu.lock.hcl	2020-10-07 16:43:42.785665945 -0700
 @@ -7,22 +7,22 @@
  }
 
- provider "registry.terraform.io/hashicorp/azurerm" {
+ provider "registry.mnptu.io/hashicorp/azurerm" {
 -  version     = "2.1.0"
 -  constraints = "~> 2.1.0"
 +  version     = "2.0.0"
@@ -262,7 +262,7 @@ block to reflect that change.
 
 The primary effect of selecting a new provider version is to change the
 value of `version` in the `provider` block. If the upgrade came along with
-a change to the configured version constraints, Terraform will also record
+a change to the configured version constraints, mnptu will also record
 that change in the `constraints` value.
 
 Because each version has its own set of distribution packages, switching to
@@ -276,8 +276,8 @@ new checksums that were not previously recorded, even though nothing else
 in the `provider` block has changed:
 
 ```diff
---- .terraform.lock.hcl	2020-10-07 17:24:23.397892140 -0700
-+++ .terraform.lock.hcl	2020-10-07 17:24:57.423130253 -0700
+--- .mnptu.lock.hcl	2020-10-07 17:24:23.397892140 -0700
++++ .mnptu.lock.hcl	2020-10-07 17:24:57.423130253 -0700
 @@ -10,6 +10,7 @@
    version     = "2.1.0"
    constraints = "~> 2.1.0"
@@ -288,7 +288,7 @@ in the `provider` block has changed:
      "zh:4c5682ba1e0fc7e2e602d3f103af1638f868c31fe80cc1a884a97f6dad6e1c11",
 ```
 
-The addition of a new checksum into the `hashes` value represents Terraform
+The addition of a new checksum into the `hashes` value represents mnptu
 gradually transitioning between different _hashing schemes_. The `h1:` and
 `zh:` prefixes on these values represent different hashing schemes, each
 of which represents calculating a checksum using a different algorithm.
@@ -299,14 +299,14 @@ additional benefit.
 The two hashing schemes currently supported are:
 
 - `zh:`: a mnemonic for "zip hash", this is a legacy hash format which is
-  part of the Terraform provider registry protocol and is therefore used for
+  part of the mnptu provider registry protocol and is therefore used for
   providers that you install directly from an origin registry.
 
   This hashing scheme captures a SHA256 hash of each of the official `.zip`
   packages indexed in the origin registry. This is an effective scheme for
   verifying the official release packages when installed from a registry, but
   it's not suitable for verifying packages that come from other
-  [provider installation methods](/terraform/cli/config/config-file#provider-installation),
+  [provider installation methods](/mnptu/cli/config/config-file#provider-installation),
   such as filesystem mirrors using the unpacked directory layout.
 
 - `h1:`: a mnemonic for "hash scheme 1", which is the current preferred hashing
@@ -319,38 +319,38 @@ The two hashing schemes currently supported are:
   same contents, or a recompressed `.zip` file which contains the same files
   but potentially different metadata or compression schemes.
 
-  Due to the limited scope of the `zh:` scheme, Terraform will
+  Due to the limited scope of the `zh:` scheme, mnptu will
   opportunistically add in the corresponding `h1:` checksums as it learns
   of them, which is what caused the addition of a second `h1:` checksum
   in the example change shown above.
 
-Terraform will add a new hash to an existing provider only if the hash is
+mnptu will add a new hash to an existing provider only if the hash is
 calculated from a package that _also_ matches one of the existing hashes. In
-the above example, Terraform installed a `hashicorp/azurerm` package for a
+the above example, mnptu installed a `hashicorp/azurerm` package for a
 different platform than that which produced the original `h1:` checksum, but was
 able to match it against one of the `zh:` checksums recorded previously.
-After confirming the `zh:` checksum match, Terraform then recorded the
+After confirming the `zh:` checksum match, mnptu then recorded the
 corresponding `h1:` checksum in order to gradually migrate from the old scheme
 to the new scheme.
 
 When installing a particular provider for the first time (where there is no
-existing `provider` block for it), Terraform will pre-populate the `hashes`
+existing `provider` block for it), mnptu will pre-populate the `hashes`
 value with any checksums that are covered by the provider developer's
 cryptographic signature, which usually covers all of the available packages
 for that provider version across all supported platforms. However, because
 the provider registry protocol still uses the `zh:` scheme, the initial set
-will consist primarily of hashes using that scheme, which Terraform will then
+will consist primarily of hashes using that scheme, which mnptu will then
 upgrade opportunistically as you install the packages on different platforms.
 
 If you wish to avoid ongoing additions of new `h1:` hashes as you work with
 your configuration on new target platforms, or if you are installing providers
 from a mirror that therefore can't provide official signed checksums, you
-can ask Terraform to pre-populate hashes for a chosen set of platforms
+can ask mnptu to pre-populate hashes for a chosen set of platforms
 using
-[the `terraform providers lock` command](/terraform/cli/commands/providers/lock):
+[the `mnptu providers lock` command](/mnptu/cli/commands/providers/lock):
 
 ```
-terraform providers lock \
+mnptu providers lock \
   -platform=linux_arm64 \
   -platform=linux_amd64 \
   -platform=darwin_amd64 \
@@ -360,26 +360,26 @@ terraform providers lock \
 The above command will download and verify the official packages for all of
 the required providers across all four of the given platforms, and then record
 both `zh:` and `h1:` checksums for each of them in the lock file, thus avoiding
-the case where Terraform will learn about a `h1:` equivalent only at a later
-time. See the `terraform providers lock` documentation for more information on
+the case where mnptu will learn about a `h1:` equivalent only at a later
+time. See the `mnptu providers lock` documentation for more information on
 this command.
 
 ### Providers that are no longer required
 
 To determine whether there still exists a dependency on a given provider,
-Terraform uses two sources of truth: the configuration itself, and the state.
+mnptu uses two sources of truth: the configuration itself, and the state.
 If you remove the last dependency on a particular provider from both your
-configuration and state, then `terraform init` will remove any existing lock
+configuration and state, then `mnptu init` will remove any existing lock
 file entry for that provider.
 
 ```diff
---- .terraform.lock.hcl	2020-10-07 16:12:07.539570634 -0700
-+++ .terraform.lock.hcl	2020-10-07 16:12:15.267487237 -0700
+--- .mnptu.lock.hcl	2020-10-07 16:12:07.539570634 -0700
++++ .mnptu.lock.hcl	2020-10-07 16:12:15.267487237 -0700
 @@ -6,26 +6,6 @@
    ]
  }
 
--provider "registry.terraform.io/hashicorp/azurerm" {
+-provider "registry.mnptu.io/hashicorp/azurerm" {
 -  version     = "2.30.0"
 -  constraints = "~> 2.12"
 -  hashes = [
@@ -399,21 +399,21 @@ file entry for that provider.
 -  ]
 -}
 -
- provider "registry.terraform.io/newrelic/newrelic" {
+ provider "registry.mnptu.io/newrelic/newrelic" {
    version     = "2.1.2"
    constraints = "~> 2.1.1"
 ```
 
 If you add a new requirement for the same provider at a later date and run
-`terraform init` again, Terraform will treat it as if it were
+`mnptu init` again, mnptu will treat it as if it were
 [an entirely new provider](#dependency-on-a-new-provider)
 and so will not necessarily select the same version that was previously
 selected and will not be able to verify that the checksums remained unchanged.
 
--> **Note:** In Terraform v1.0 and earlier, `terraform init` does not
+-> **Note:** In mnptu v1.0 and earlier, `mnptu init` does not
 automatically remove now-unneeded providers from the lock file, and instead
 just ignores them. If you removed a provider dependency while using an
-earlier version of Terraform and then upgraded to Terraform v1.1 or later
+earlier version of mnptu and then upgraded to mnptu v1.1 or later
 then you may see the error "missing or corrupted provider plugins", referring to
-the stale lock file entries. If so, run `terraform init` with the new Terraform
+the stale lock file entries. If so, run `mnptu init` with the new mnptu
 version to tidy those unneeded entries and then retry the previous operation.

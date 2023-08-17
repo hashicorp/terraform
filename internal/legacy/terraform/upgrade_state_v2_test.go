@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bytes"
@@ -116,7 +116,7 @@ func TestReadUpgradeStateV2toV3(t *testing.T) {
 
 const testV2State = `{
     "version": 2,
-    "terraform_version": "0.7.0",
+    "mnptu_version": "0.7.0",
     "serial": 2,
     "modules": [
         {

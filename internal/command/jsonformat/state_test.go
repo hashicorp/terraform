@@ -10,18 +10,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/colorstring"
 
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/command/jsonprovider"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/terminal"
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 func TestState(t *testing.T) {
@@ -29,12 +29,12 @@ func TestState(t *testing.T) {
 
 	tests := []struct {
 		State   *states.State
-		Schemas *terraform.Schemas
+		Schemas *mnptu.Schemas
 		Want    string
 	}{
 		{
 			State:   &states.State{},
-			Schemas: &terraform.Schemas{},
+			Schemas: &mnptu.Schemas{},
 			Want:    "The state file is empty. No resources are represented.\n",
 		},
 		{
@@ -98,8 +98,8 @@ func TestState(t *testing.T) {
 	}
 }
 
-func testProvider() *terraform.MockProvider {
-	p := new(terraform.MockProvider)
+func testProvider() *mnptu.MockProvider {
+	p := new(mnptu.MockProvider)
 	p.ReadResourceFn = func(req providers.ReadResourceRequest) providers.ReadResourceResponse {
 		return providers.ReadResourceResponse{NewState: req.PriorState}
 	}
@@ -153,9 +153,9 @@ func testProviderSchema() *providers.GetProviderSchemaResponse {
 	}
 }
 
-func testSchemas() *terraform.Schemas {
+func testSchemas() *mnptu.Schemas {
 	provider := testProvider()
-	return &terraform.Schemas{
+	return &mnptu.Schemas{
 		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): provider.GetProviderSchema(),
 		},

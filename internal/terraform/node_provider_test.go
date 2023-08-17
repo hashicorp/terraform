@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -9,12 +9,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -104,7 +104,7 @@ func TestNodeApplyableProviderExecute_unknownImport(t *testing.T) {
 		t.Fatal("expected error, got success")
 	}
 
-	detail := `Invalid provider configuration: The configuration for provider["registry.terraform.io/hashicorp/foo"] depends on values that cannot be determined until apply.`
+	detail := `Invalid provider configuration: The configuration for provider["registry.mnptu.io/hashicorp/foo"] depends on values that cannot be determined until apply.`
 	if got, want := diags.Err().Error(), detail; got != want {
 		t.Errorf("wrong diagnostic detail\n got: %q\nwant: %q", got, want)
 	}
@@ -280,7 +280,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -301,7 +301,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -315,7 +315,7 @@ func TestNodeApplyableProvider_Validate(t *testing.T) {
 	t.Run("empty config", func(t *testing.T) {
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 		}
 
@@ -362,7 +362,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -376,7 +376,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 	t.Run("missing required config (no config at all)", func(t *testing.T) {
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 		}
 
@@ -396,7 +396,7 @@ func TestNodeApplyableProvider_ConfigProvider(t *testing.T) {
 		}
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -428,7 +428,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	// ctx.ConfigureProviderFn will return an error if a value is not found.
 	//
 	// This is an unlikely but real situation that occurs:
-	// https://github.com/hashicorp/terraform/issues/23087
+	// https://github.com/hashicorp/mnptu/issues/23087
 	ctx.ConfigureProviderFn = func(addr addrs.AbsProviderConfig, cfg cty.Value) (diags tfdiags.Diagnostics) {
 		if cfg.IsNull() {
 			diags = diags.Append(fmt.Errorf("no config provided"))
@@ -451,7 +451,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -465,7 +465,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 	t.Run("missing required config (no config at all)", func(t *testing.T) {
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 		}
 
@@ -485,7 +485,7 @@ func TestNodeApplyableProvider_ConfigProvider_config_fn_err(t *testing.T) {
 		}
 		node := NodeApplyableProvider{
 			NodeAbstractProvider: &NodeAbstractProvider{
-				Addr:   mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				Addr:   mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 				Config: config,
 			},
 		}
@@ -507,7 +507,7 @@ func TestGetSchemaError(t *testing.T) {
 		},
 	}
 
-	providerAddr := mustProviderConfig(`provider["terraform.io/some/provider"]`)
+	providerAddr := mustProviderConfig(`provider["mnptu.io/some/provider"]`)
 	ctx := &MockEvalContext{ProviderProvider: provider}
 	ctx.installSimpleEval()
 	node := NodeApplyableProvider{

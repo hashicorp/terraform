@@ -14,17 +14,17 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ImportCommand is a cli.Command implementation that imports resources
-// into the Terraform state.
+// into the mnptu state.
 type ImportCommand struct {
 	Meta
 }
@@ -41,7 +41,7 @@ func (c *ImportCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.extendedFlagSet("import")
-	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
+	cmdFlags.BoolVar(&c.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local mnptu versions are incompatible")
 	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", DefaultParallelism, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", "", "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
@@ -91,9 +91,9 @@ func (c *ImportCommand) Run(args []string) int {
 	if !c.dirIsConfigPath(configPath) {
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  "No Terraform configuration files",
+			Summary:  "No mnptu configuration files",
 			Detail: fmt.Sprintf(
-				"The directory %s does not contain any Terraform configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
+				"The directory %s does not contain any mnptu configuration files (.tf or .tf.json). To specify a different configuration directory, use the -config=\"...\" command line option.",
 				configPath,
 			),
 		})
@@ -112,7 +112,7 @@ func (c *ImportCommand) Run(args []string) int {
 
 	// Verify that the given address points to something that exists in config.
 	// This is to reduce the risk that a typo in the resource address will
-	// import something that Terraform will want to immediately destroy on
+	// import something that mnptu will want to immediately destroy on
 	// the next plan, and generally acts as a reassurance of user intent.
 	targetConfig := config.DescendentForInstance(addr.Module)
 	if targetConfig == nil {
@@ -194,7 +194,7 @@ func (c *ImportCommand) Run(args []string) int {
 		c.showDiagnostics(diags)
 		return 1
 	}
-	opReq.Hooks = []terraform.Hook{c.uiHook()}
+	opReq.Hooks = []mnptu.Hook{c.uiHook()}
 	{
 		var moreDiags tfdiags.Diagnostics
 		opReq.Variables, moreDiags = c.collectVariableValues()
@@ -206,7 +206,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 	opReq.View = views.NewOperation(arguments.ViewHuman, c.RunningInAutomation, c.View)
 
-	// Check remote Terraform version is compatible
+	// Check remote mnptu version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, opReq.Workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
@@ -233,8 +233,8 @@ func (c *ImportCommand) Run(args []string) int {
 	// Perform the import. Note that as you can see it is possible for this
 	// API to import more than one resource at once. For now, we only allow
 	// one while we stabilize this feature.
-	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &terraform.ImportOpts{
-		Targets: []*terraform.ImportTarget{
+	newState, importDiags := lr.Core.Import(lr.Config, lr.InputState, &mnptu.ImportOpts{
+		Targets: []*mnptu.ImportTarget{
 			{
 				Addr: addr,
 
@@ -256,7 +256,7 @@ func (c *ImportCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	var schemas *terraform.Schemas
+	var schemas *mnptu.Schemas
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(newState, nil)
@@ -286,13 +286,13 @@ func (c *ImportCommand) Run(args []string) int {
 
 func (c *ImportCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] import [options] ADDR ID
+Usage: mnptu [global options] import [options] ADDR ID
 
-  Import existing infrastructure into your Terraform state.
+  Import existing infrastructure into your mnptu state.
 
-  This will find and import the specified resource into your Terraform
-  state, allowing existing infrastructure to come under Terraform
-  management without having to be initially created by Terraform.
+  This will find and import the specified resource into your mnptu
+  state, allowing existing infrastructure to come under mnptu
+  management without having to be initially created by mnptu.
 
   The ADDR specified is the address to import the resource to. Please
   see the documentation online for resource addresses. The ID is a
@@ -307,7 +307,7 @@ Usage: terraform [global options] import [options] ADDR ID
 
 Options:
 
-  -config=path            Path to a directory of Terraform configuration files
+  -config=path            Path to a directory of mnptu configuration files
                           to use to configure the provider. Defaults to pwd.
                           If no config files are present, they must be provided
                           via the input prompts or env vars.
@@ -322,12 +322,12 @@ Options:
 
   -no-color               If specified, output won't contain any color.
 
-  -var 'foo=bar'          Set a variable in the Terraform configuration. This
+  -var 'foo=bar'          Set a variable in the mnptu configuration. This
                           flag can be set multiple times. This is only useful
                           with the "-config" flag.
 
-  -var-file=foo           Set variables in the Terraform configuration from
-                          a file. If "terraform.tfvars" or any ".auto.tfvars"
+  -var-file=foo           Set variables in the mnptu configuration from
+                          a file. If "mnptu.tfvars" or any ".auto.tfvars"
                           files are present, they will be automatically loaded.
 
   -ignore-remote-version  A rare option used for the remote backend only. See
@@ -341,11 +341,11 @@ Options:
 }
 
 func (c *ImportCommand) Synopsis() string {
-	return "Associate existing infrastructure with a Terraform resource"
+	return "Associate existing infrastructure with a mnptu resource"
 }
 
 const importCommandInvalidAddressReference = `For information on valid syntax, see:
-https://www.terraform.io/docs/cli/state/resource-addressing.html`
+https://www.mnptu.io/docs/cli/state/resource-addressing.html`
 
 const importCommandMissingResourceFmt = `[reset][bold][red]Error:[reset][bold] resource address %q does not exist in the configuration.[reset]
 
@@ -359,5 +359,5 @@ resource %q %q {
 const importCommandSuccessMsg = `Import successful!
 
 The resources that were imported are shown above. These resources are now in
-your Terraform state and will henceforth be managed by Terraform.
+your mnptu state and will henceforth be managed by mnptu.
 `

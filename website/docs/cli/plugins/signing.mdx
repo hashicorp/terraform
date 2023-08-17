@@ -1,7 +1,7 @@
 ---
 page_title: Plugin Signing
 description: >-
-  Learn about the types of signatures providers can have on the Terraform
+  Learn about the types of signatures providers can have on the mnptu
   Registry.
 ---
 
@@ -9,9 +9,9 @@ description: >-
 
 # Plugin Signing
 
-~> **Note** Terraform only authenticates provider plugins fetched from a registry.
+~> **Note** mnptu only authenticates provider plugins fetched from a registry.
 
-Terraform providers installed from the Registry are cryptographically signed, and the signature is verified at time of installation. There are three types of provider signatures, each with different trust implications:
+mnptu providers installed from the Registry are cryptographically signed, and the signature is verified at time of installation. There are three types of provider signatures, each with different trust implications:
 
 * **Signed by HashiCorp** - are built, signed, and supported by HashiCorp.
 * **Signed by Trusted Partners** - are built, signed, and supported by a third party. HashiCorp has
@@ -21,7 +21,7 @@ Terraform providers installed from the Registry are cryptographically signed, an
   verification or chain of trust for the signature. You may obtain and validate fingerprints manually
   if you want to ensure you are using a binary you can trust.
 
-Terraform does **NOT** support fetching and using unsigned binaries, but you can manually install
+mnptu does **NOT** support fetching and using unsigned binaries, but you can manually install
 unsigned binaries. You should take extreme care when doing so as no programatic authentication is performed.
 
-Usage of plugins from the registry is subject to the Registry's [Terms of Use](https://registry.terraform.io/terms).
+Usage of plugins from the registry is subject to the Registry's [Terms of Use](https://registry.mnptu.io/terms).

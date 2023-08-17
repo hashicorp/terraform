@@ -12,7 +12,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ModuleInstance is an address for a particular module instance within the
@@ -198,7 +198,7 @@ LOOP:
 // equivalent ModuleInstance address that assumes that no modules have
 // keyed instances.
 //
-// This is a temporary allowance for the fact that Terraform does not presently
+// This is a temporary allowance for the fact that mnptu does not presently
 // support "count" and "for_each" on modules, and thus graph building code that
 // derives graph nodes from configuration must just assume unkeyed modules
 // in order to construct the graph. At a later time when "count" and "for_each"

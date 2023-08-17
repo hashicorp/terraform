@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 // GraphNodeAttachResourceState is an interface that can be implemented

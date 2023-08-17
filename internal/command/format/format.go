@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-// Package format contains helpers for formatting various Terraform
+// Package format contains helpers for formatting various mnptu
 // structures for human-readabout output.
 //
-// This package is used by the official Terraform CLI in formatting any
+// This package is used by the official mnptu CLI in formatting any
 // output and is exported to encourage non-official frontends to mimic the
-// output formatting as much as possible so that text formats of Terraform
+// output formatting as much as possible so that text formats of mnptu
 // structures have a consistent look and feel.
 package format
 
-import "github.com/hashicorp/terraform/internal/plans"
+import "github.com/hashicorp/mnptu/internal/plans"
 
 // DiffActionSymbol returns a string that, once passed through a
 // colorstring.Colorize, will produce a result that can be written

@@ -1,26 +1,26 @@
 ---
 page_title: Import
 description: >-
-  Terraform can import and manage existing infrastructure. This can help you
-  transition your infrastructure to Terraform.
+  mnptu can import and manage existing infrastructure. This can help you
+  transition your infrastructure to mnptu.
 ---
 
 # Import
 
-> **Hands-on:** Try the [Import Terraform Configuration](/terraform/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Import mnptu Configuration](/mnptu/tutorials/state/state-import?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Terraform can import existing infrastructure resources. This functionality lets you bring existing resources under Terraform management.
+mnptu can import existing infrastructure resources. This functionality lets you bring existing resources under mnptu management.
 
--> **Note:** Terraform v1.5.0 and later supports `import` blocks. Unlike the `terraform import` command, you can use `import` blocks to import more than one resource at a time, and you can review imports as part of your normal plan and apply workflow. [Learn more about `import` blocks](/terraform/language/import).
+-> **Note:** mnptu v1.5.0 and later supports `import` blocks. Unlike the `mnptu import` command, you can use `import` blocks to import more than one resource at a time, and you can review imports as part of your normal plan and apply workflow. [Learn more about `import` blocks](/mnptu/language/import).
 
 ## State Only
 
-~> **Warning:** Terraform expects that each remote object is bound to a _single_ resource address. You should import each remote object to _one_ Terraform resource address. If you import the same object multiple times, Terraform may exhibit unwanted behavior. See [State](/terraform/language/state) for more details.
+~> **Warning:** mnptu expects that each remote object is bound to a _single_ resource address. You should import each remote object to _one_ mnptu resource address. If you import the same object multiple times, mnptu may exhibit unwanted behavior. See [State](/mnptu/language/state) for more details.
 
-The `terraform import` CLI command can only import resources into the [state](/terraform/language/state). Importing via the CLI does _not_ generate configuration. If you want to generate the accompanying configuration for imported resources, [use the `import` block instead](/terraform/language/import).
+The `mnptu import` CLI command can only import resources into the [state](/mnptu/language/state). Importing via the CLI does _not_ generate configuration. If you want to generate the accompanying configuration for imported resources, [use the `import` block instead](/mnptu/language/import).
 
-Before you run `terraform import` you must manually write a `resource` configuration block for the resource. The resource block describes where Terraform should map the imported object.
+Before you run `mnptu import` you must manually write a `resource` configuration block for the resource. The resource block describes where mnptu should map the imported object.
 
-## Terraform Cloud
+## mnptu Cloud
 
-When you use Terraform on the command line with Terraform Cloud, many commands like `apply` run inside your Terraform Cloud environment. However, the `import` command runs locally, so it does not have access to information from Terraform Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in Terraform Cloud.
+When you use mnptu on the command line with mnptu Cloud, many commands like `apply` run inside your mnptu Cloud environment. However, the `import` command runs locally, so it does not have access to information from mnptu Cloud. To successfully perform an import, you may need to set local variables equivalent to any remote workspace variables in mnptu Cloud.

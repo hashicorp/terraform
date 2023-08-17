@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -9,10 +9,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/didyoumean"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/didyoumean"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // StaticValidateReferences checks the given references against schemas and
@@ -267,7 +267,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 	}
 
 	// As a special case we'll detect attempts to access an attribute called
-	// "count" and produce a special error for it, since versions of Terraform
+	// "count" and produce a special error for it, since versions of mnptu
 	// prior to v0.12 offered this as a weird special case that we can no
 	// longer support.
 	if len(remain) > 0 {
@@ -275,7 +275,7 @@ func (d *evaluationStateData) staticValidateResourceReference(modCfg *configs.Co
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  `Invalid resource count attribute`,
-				Detail:   fmt.Sprintf(`The special "count" attribute is no longer supported after Terraform v0.12. Instead, use length(%s) to count resource instances.`, addr),
+				Detail:   fmt.Sprintf(`The special "count" attribute is no longer supported after mnptu v0.12. Instead, use length(%s) to count resource instances.`, addr),
 				Subject:  rng.ToHCL().Ptr(),
 			})
 			return diags

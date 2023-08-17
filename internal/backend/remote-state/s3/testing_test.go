@@ -4,7 +4,7 @@
 package s3
 
 import (
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // diagnosticComparer is a Comparer function for use with cmp.Diff to compare two tfdiags.Diagnostic values

@@ -1,3 +1,3 @@
 output "output" {
-    value = "${terraform.workspace}"
+    value = "${mnptu.workspace}"
 }

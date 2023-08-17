@@ -13,11 +13,11 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/s3"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	"github.com/hashicorp/mnptu/version"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -379,7 +379,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		AssumeRoleExternalID:      stringAttr(obj, "external_id"),
 		AssumeRolePolicy:          stringAttr(obj, "assume_role_policy"),
 		AssumeRoleSessionName:     stringAttr(obj, "session_name"),
-		CallerDocumentationURL:    "https://www.terraform.io/docs/language/settings/backends/s3.html",
+		CallerDocumentationURL:    "https://www.mnptu.io/docs/language/settings/backends/s3.html",
 		CallerName:                "S3 Backend",
 		CredsFilename:             stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:              logging.IsDebugOrHigher(),
@@ -395,7 +395,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
-			{Name: "Terraform", Version: version.String()},
+			{Name: "mnptu", Version: version.String()},
 		},
 	}
 

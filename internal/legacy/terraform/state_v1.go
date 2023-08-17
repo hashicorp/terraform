@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
-// stateV1 keeps track of a snapshot state-of-the-world that Terraform
+// stateV1 keeps track of a snapshot state-of-the-world that mnptu
 // can use to keep track of what real world resources it is actually
 // managing.
 //
 // stateV1 is _only used for the purposes of backwards compatibility
-// and is no longer used in Terraform.
+// and is no longer used in mnptu.
 //
 // For the upgrade process, see state_upgrade_v1_to_v2.go
 type stateV1 struct {
@@ -57,19 +57,19 @@ type moduleStateV1 struct {
 	// existing to remain intact. For example: an module may depend
 	// on a VPC ID given by an aws_vpc resource.
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a module that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on,omitempty"`
 }
 
 type resourceStateV1 struct {
-	// This is filled in and managed by Terraform, and is the resource
+	// This is filled in and managed by mnptu, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
 	Type string `json:"type"`
@@ -79,12 +79,12 @@ type resourceStateV1 struct {
 	// depend on a subnet (which itself might depend on a VPC, and so
 	// on).
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a resource that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on,omitempty"`
@@ -108,7 +108,7 @@ type resourceStateV1 struct {
 	// Deposed instance is cleaned up. If there were problems creating the
 	// replacement, the instance remains in the Deposed list so it can be
 	// destroyed in a future run. Functionally, Deposed instances are very
-	// similar to Tainted instances in that Terraform is only tracking them in
+	// similar to Tainted instances in that mnptu is only tracking them in
 	// order to remember to destroy them.
 	Deposed []*instanceStateV1 `json:"deposed,omitempty"`
 
@@ -120,22 +120,22 @@ type resourceStateV1 struct {
 }
 
 type instanceStateV1 struct {
-	// A unique ID for this resource. This is opaque to Terraform
+	// A unique ID for this resource. This is opaque to mnptu
 	// and is only meant as a lookup mechanism for the providers.
 	ID string `json:"id"`
 
 	// Attributes are basic information about the resource. Any keys here
-	// are accessible in variable format within Terraform configurations:
+	// are accessible in variable format within mnptu configurations:
 	// ${resourcetype.name.attribute}.
 	Attributes map[string]string `json:"attributes,omitempty"`
 
 	// Ephemeral is used to store any state associated with this instance
-	// that is necessary for the Terraform run to complete, but is not
+	// that is necessary for the mnptu run to complete, but is not
 	// persisted to a state file.
 	Ephemeral ephemeralStateV1 `json:"-"`
 
 	// Meta is a simple K/V map that is persisted to the State but otherwise
-	// ignored by Terraform core. It's meant to be used for accounting by
+	// ignored by mnptu core. It's meant to be used for accounting by
 	// external client code.
 	Meta map[string]string `json:"meta,omitempty"`
 }

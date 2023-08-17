@@ -9,20 +9,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/e2e"
+	"github.com/hashicorp/mnptu/version"
 )
 
 func TestVersion(t *testing.T) {
 	// Along with testing the "version" command in particular, this serves
-	// as a good smoke test for whether the Terraform binary can even be
+	// as a good smoke test for whether the mnptu binary can even be
 	// compiled and run, since it doesn't require any external network access
 	// to do its job.
 
 	t.Parallel()
 
 	fixturePath := filepath.Join("testdata", "empty")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	stdout, stderr, err := tf.Run("version")
 	if err != nil {
@@ -33,7 +33,7 @@ func TestVersion(t *testing.T) {
 		t.Errorf("unexpected stderr output:\n%s", stderr)
 	}
 
-	wantVersion := fmt.Sprintf("Terraform v%s", version.String())
+	wantVersion := fmt.Sprintf("mnptu v%s", version.String())
 	if !strings.Contains(stdout, wantVersion) {
 		t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
 	}
@@ -50,7 +50,7 @@ func TestVersionWithProvider(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "template-provider")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	// Initial run (before "init") should work without error but will not
 	// include the provider version, since we've not "locked" one yet.
@@ -64,7 +64,7 @@ func TestVersionWithProvider(t *testing.T) {
 			t.Errorf("unexpected stderr output:\n%s", stderr)
 		}
 
-		wantVersion := fmt.Sprintf("Terraform v%s", version.String())
+		wantVersion := fmt.Sprintf("mnptu v%s", version.String())
 		if !strings.Contains(stdout, wantVersion) {
 			t.Errorf("output does not contain our current version %q:\n%s", wantVersion, stdout)
 		}
@@ -89,7 +89,7 @@ func TestVersionWithProvider(t *testing.T) {
 			t.Errorf("unexpected stderr output:\n%s", stderr)
 		}
 
-		wantMsg := "+ provider registry.terraform.io/hashicorp/template v" // we don't know which version we'll get here
+		wantMsg := "+ provider registry.mnptu.io/hashicorp/template v" // we don't know which version we'll get here
 		if !strings.Contains(stdout, wantMsg) {
 			t.Errorf("output does not contain provider information %q:\n%s", wantMsg, stdout)
 		}

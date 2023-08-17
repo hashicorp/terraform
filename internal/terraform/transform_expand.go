@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 // GraphNodeDynamicExpandable is an interface that nodes can implement
 // to signal that they can be expanded at eval-time (hence dynamic).

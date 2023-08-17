@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 func TestUIInput_impl(t *testing.T) {
-	var _ terraform.UIInput = new(UIInput)
+	var _ mnptu.UIInput = new(UIInput)
 }
 
 func TestUIInputInput(t *testing.T) {
@@ -25,7 +25,7 @@ func TestUIInputInput(t *testing.T) {
 		Writer: bytes.NewBuffer(nil),
 	}
 
-	v, err := i.Input(context.Background(), &terraform.InputOpts{})
+	v, err := i.Input(context.Background(), &mnptu.InputOpts{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +52,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 	}()
 
 	// Get input until the context is canceled.
-	v, err := i.Input(ctx, &terraform.InputOpts{})
+	v, err := i.Input(ctx, &mnptu.InputOpts{})
 	if err != context.Canceled {
 		t.Fatalf("expected a context.Canceled error, got: %v", err)
 	}
@@ -75,7 +75,7 @@ func TestUIInputInput_canceled(t *testing.T) {
 		w.Close()
 	}()
 
-	v, err = i.Input(context.Background(), &terraform.InputOpts{})
+	v, err = i.Input(context.Background(), &mnptu.InputOpts{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -91,7 +91,7 @@ func TestUIInputInput_spaces(t *testing.T) {
 		Writer: bytes.NewBuffer(nil),
 	}
 
-	v, err := i.Input(context.Background(), &terraform.InputOpts{})
+	v, err := i.Input(context.Background(), &mnptu.InputOpts{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -107,7 +107,7 @@ func TestUIInputInput_Error(t *testing.T) {
 		Writer: bytes.NewBuffer(nil),
 	}
 
-	v, err := i.Input(context.Background(), &terraform.InputOpts{})
+	v, err := i.Input(context.Background(), &mnptu.InputOpts{})
 	if err == nil {
 		t.Fatalf("Error is not 'nil'")
 	}

@@ -14,23 +14,23 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/hashicorp/terraform/version"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/cloud"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	"github.com/hashicorp/mnptu/version"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
 )
 
 const (
@@ -44,12 +44,12 @@ var (
 	})
 )
 
-// mockInput is a mock implementation of terraform.UIInput.
+// mockInput is a mock implementation of mnptu.UIInput.
 type mockInput struct {
 	answers map[string]string
 }
 
-func (m *mockInput) Input(ctx context.Context, opts *terraform.InputOpts) (string, error) {
+func (m *mockInput) Input(ctx context.Context, opts *mnptu.InputOpts) (string, error) {
 	v, ok := m.answers[opts.Id]
 	if !ok {
 		return "", fmt.Errorf("unexpected input request in test: %s", opts.Id)
@@ -205,7 +205,7 @@ func testServer(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 
 	// Respond to service discovery calls.
-	mux.HandleFunc("/well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/well-known/mnptu.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{
   "state.v2": "/api/v2/",
@@ -219,7 +219,7 @@ func testServer(t *testing.T) *httptest.Server {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, fmt.Sprintf(`{
   "service": "%s",
-  "product": "terraform",
+  "product": "mnptu",
   "minimum": "0.1.0",
   "maximum": "10.0.0"
 }`, path.Base(r.URL.Path)))
@@ -286,7 +286,7 @@ func testServer(t *testing.T) *httptest.Server {
 	return httptest.NewServer(mux)
 }
 
-// testDisco returns a *disco.Disco mapping app.terraform.io and
+// testDisco returns a *disco.Disco mapping app.mnptu.io and
 // localhost to a local test server.
 func testDisco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
@@ -295,7 +295,7 @@ func testDisco(s *httptest.Server) *disco.Disco {
 		"versions.v1": fmt.Sprintf("%s/v1/versions/", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
-	d.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+	d.SetUserAgent(httpclient.mnptuUserAgent(version.String()))
 
 	d.ForceHostServices(svchost.Hostname(defaultHostname), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
@@ -304,18 +304,18 @@ func testDisco(s *httptest.Server) *disco.Disco {
 
 type unparsedVariableValue struct {
 	value  string
-	source terraform.ValueSourceType
+	source mnptu.ValueSourceType
 }
 
-func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
-	return &terraform.InputValue{
+func (v *unparsedVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
+	return &mnptu.InputValue{
 		Value:      cty.StringVal(v.value),
 		SourceType: v.source,
 	}, tfdiags.Diagnostics{}
 }
 
 // testVariable returns a backend.UnparsedVariableValue used for testing.
-func testVariables(s terraform.ValueSourceType, vs ...string) map[string]backend.UnparsedVariableValue {
+func testVariables(s mnptu.ValueSourceType, vs ...string) map[string]backend.UnparsedVariableValue {
 	vars := make(map[string]backend.UnparsedVariableValue, len(vs))
 	for _, v := range vs {
 		vars[v] = &unparsedVariableValue{

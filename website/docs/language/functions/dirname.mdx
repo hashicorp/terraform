@@ -23,7 +23,7 @@ any slashes in the given path will be replaced by backslashes before returning.
 Referring directly to filesystem paths in resource arguments may cause
 spurious diffs if the same configuration is applied from multiple systems or on
 different host operating systems. We recommend using filesystem paths only
-for transient values, such as the argument to [`file`](/terraform/language/functions/file) (where
+for transient values, such as the argument to [`file`](/mnptu/language/functions/file) (where
 only the contents are then stored) or in `connection` and `provisioner` blocks.
 
 ## Examples
@@ -35,5 +35,5 @@ foo/bar
 
 ## Related Functions
 
-* [`basename`](/terraform/language/functions/basename) returns _only_ the last portion of a filesystem
+* [`basename`](/mnptu/language/functions/basename) returns _only_ the last portion of a filesystem
   path, discarding the portion that would be returned by `dirname`.

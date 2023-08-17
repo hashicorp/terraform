@@ -6,10 +6,10 @@ package refactoring
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 type MoveStatement struct {
@@ -67,10 +67,10 @@ func findMoveStatements(cfg *configs.Config, into []MoveStatement) []MoveStateme
 // objects representing moves we infer automatically, even though they aren't
 // explicitly recorded in the configuration.
 //
-// We do this primarily for backward compatibility with behaviors of Terraform
+// We do this primarily for backward compatibility with behaviors of mnptu
 // versions prior to introducing explicit "moved" blocks. Specifically, this
 // function aims to achieve the same result as the "NodeCountBoundary"
-// heuristic from Terraform v1.0 and earlier, where adding or removing the
+// heuristic from mnptu v1.0 and earlier, where adding or removing the
 // "count" meta-argument from an already-created resource can automatically
 // preserve the zeroth or the NoKey instance, depending on the direction of
 // the change. We do this only for resources that aren't mentioned already
@@ -174,7 +174,7 @@ func haveMoveStatementForResource(addr addrs.AbsResource, stmts []MoveStatement)
 	// This is not a particularly optimal way to answer this question,
 	// particularly since our caller calls this function in a loop already,
 	// but we expect the total number of explicit statements to be small
-	// in any reasonable Terraform configuration and so a more complicated
+	// in any reasonable mnptu configuration and so a more complicated
 	// approach wouldn't be justified here.
 
 	for _, stmt := range stmts {

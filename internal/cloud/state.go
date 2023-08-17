@@ -25,13 +25,13 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -61,7 +61,7 @@ type State struct {
 	forcePush            bool
 	lockInfo             *statemgr.LockInfo
 
-	// The server can optionally return an X-Terraform-Snapshot-Interval header
+	// The server can optionally return an X-mnptu-Snapshot-Interval header
 	// in its response to the "Create State Version" operation, which specifies
 	// a number of seconds the server would prefer us to wait before trying
 	// to write a new snapshot. If this is non-zero then we'll wait at least
@@ -69,14 +69,14 @@ type State struct {
 	// not effect final snapshots after an operation, which will always
 	// be written to the remote API.
 	stateSnapshotInterval time.Duration
-	// If the header X-Terraform-Snapshot-Interval is present then
+	// If the header X-mnptu-Snapshot-Interval is present then
 	// we will enable snapshots
 	enableIntermediateSnapshots bool
 }
 
 var ErrStateVersionUnauthorizedUpgradeState = errors.New(strings.TrimSpace(`
 You are not authorized to read the full state version containing outputs.
-State versions created by terraform v1.3.0 and newer do not require this level
+State versions created by mnptu v1.3.0 and newer do not require this level
 of authorization and therefore this error can usually be fixed by upgrading the
 remote state version.
 `))
@@ -156,8 +156,8 @@ func (s *State) WriteState(state *states.State) error {
 	return nil
 }
 
-// PersistState uploads a snapshot of the latest state as a StateVersion to Terraform Cloud
-func (s *State) PersistState(schemas *terraform.Schemas) error {
+// PersistState uploads a snapshot of the latest state as a StateVersion to mnptu Cloud
+func (s *State) PersistState(schemas *mnptu.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -316,7 +316,7 @@ func (s *State) uploadState(lineage string, serial uint64, isForcePush bool, sta
 	// Create the new state.
 	_, err := s.tfeClient.StateVersions.Upload(ctx, s.workspace.ID, options)
 	if errors.Is(err, tfe.ErrStateVersionUploadNotSupported) {
-		// Create the new state with content included in the request (Terraform Enterprise v202306-1 and below)
+		// Create the new state with content included in the request (mnptu Enterprise v202306-1 and below)
 		log.Println("[INFO] Detected that state version upload is not supported. Retrying using compatibility state upload.")
 		return s.uploadStateFallback(ctx, lineage, serial, isForcePush, state, jsonState, jsonStateOutputs)
 	}
@@ -338,7 +338,7 @@ func (s *State) Lock(info *statemgr.LockInfo) (string, error) {
 
 	// Lock the workspace.
 	_, err := s.tfeClient.Workspaces.Lock(ctx, s.workspace.ID, tfe.WorkspaceLockOptions{
-		Reason: tfe.String("Locked by Terraform"),
+		Reason: tfe.String("Locked by mnptu"),
 	})
 	if err != nil {
 		if err == tfe.ErrWorkspaceLocked {
@@ -398,7 +398,7 @@ func (s *State) refreshState() error {
 func (s *State) getStatePayload() (*remote.Payload, error) {
 	ctx := context.Background()
 
-	// Check the x-terraform-snapshot-interval header to see if it has a non-empty
+	// Check the x-mnptu-snapshot-interval header to see if it has a non-empty
 	// value which would indicate snapshots are enabled
 	ctx = tfe.ContextWithResponseHeaderHook(ctx, s.readSnapshotIntervalHeader)
 
@@ -508,7 +508,7 @@ func (s *State) Delete(force bool) error {
 	return nil
 }
 
-// GetRootOutputValues fetches output values from Terraform Cloud
+// GetRootOutputValues fetches output values from mnptu Cloud
 func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	ctx := context.Background()
 
@@ -523,7 +523,7 @@ func (s *State) GetRootOutputValues() (map[string]*states.OutputValue, error) {
 	for _, output := range so.Items {
 		if output.DetailedType == nil {
 			// If there is no detailed type information available, this state was probably created
-			// with a version of terraform < 1.3.0. In this case, we'll eject completely from this
+			// with a version of mnptu < 1.3.0. In this case, we'll eject completely from this
 			// function and fall back to the old behavior of reading the entire state file, which
 			// requires a higher level of authorization.
 			log.Printf("[DEBUG] falling back to reading full state")
@@ -577,7 +577,7 @@ func clamp(val, min, max int64) int64 {
 }
 
 func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
-	intervalStr := header.Get("x-terraform-snapshot-interval")
+	intervalStr := header.Get("x-mnptu-snapshot-interval")
 
 	if intervalSecs, err := strconv.ParseInt(intervalStr, 10, 64); err == nil {
 		// More than an hour is an unreasonable delay, so we'll just
@@ -597,7 +597,7 @@ func (s *State) readSnapshotIntervalHeader(status int, header http.Header) {
 }
 
 // tfeOutputToCtyValue decodes a combination of TFE output value and detailed-type to create a
-// cty value that is suitable for use in terraform.
+// cty value that is suitable for use in mnptu.
 func tfeOutputToCtyValue(output tfe.StateVersionOutput) (cty.Value, error) {
 	var result cty.Value
 	bufType, err := json.Marshal(output.DetailedType)

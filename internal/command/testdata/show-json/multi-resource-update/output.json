@@ -1,6 +1,6 @@
 {
     "format_version": "1.0",
-    "terraform_version": "0.13.0",
+    "mnptu_version": "0.13.0",
     "variables": {
         "test_var": {
             "value": "bar"
@@ -22,7 +22,7 @@
                     "type": "test_instance",
                     "name": "test",
                     "index": 0,
-                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "provider_name": "registry.mnptu.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar",
@@ -36,7 +36,7 @@
                     "type": "test_instance",
                     "name": "test",
                     "index": 1,
-                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "provider_name": "registry.mnptu.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "bar"
@@ -54,7 +54,7 @@
             "name": "test",
             "index": 0,
             "previous_address": "test_instance.test",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "change": {
                 "actions": [
                     "no-op"
@@ -78,7 +78,7 @@
             "type": "test_instance",
             "name": "test",
             "index": 1,
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "change": {
                 "actions": [
                     "create"
@@ -109,7 +109,7 @@
     },
     "prior_state": {
         "format_version": "1.0",
-        "terraform_version": "0.13.0",
+        "mnptu_version": "0.13.0",
         "values": {
             "outputs": {
                 "test": {
@@ -126,7 +126,7 @@
                         "type": "test_instance",
                         "name": "test",
                         "index": 0,
-                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "provider_name": "registry.mnptu.io/hashicorp/test",
                         "schema_version": 0,
                         "values": {
                             "ami": "bar",
@@ -142,7 +142,7 @@
         "provider_config": {
             "test": {
                 "name": "test",
-                "full_name": "registry.terraform.io/hashicorp/test"
+                "full_name": "registry.mnptu.io/hashicorp/test"
             }
         },
         "root_module": {

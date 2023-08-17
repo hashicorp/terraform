@@ -1,5 +1,5 @@
 // Package oauthserver is a very simplistic OAuth server used only for
-// the testing of the "terraform login" and "terraform logout" commands.
+// the testing of the "mnptu login" and "mnptu logout" commands.
 package oauthserver
 
 import (

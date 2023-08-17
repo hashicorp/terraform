@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 func TestLoadConfig_providerInstallation(t *testing.T) {
@@ -30,8 +30,8 @@ func TestLoadConfig_providerInstallation(t *testing.T) {
 							},
 							{
 								Location: ProviderInstallationNetworkMirror("https://tf-Mirror.example.com/"),
-								Include:  []string{"registry.terraform.io/*/*"},
-								Exclude:  []string{"registry.Terraform.io/foobar/*"},
+								Include:  []string{"registry.mnptu.io/*/*"},
+								Exclude:  []string{"registry.mnptu.io/foobar/*"},
 							},
 							{
 								Location: ProviderInstallationFilesystemMirror("/tmp/example2"),

@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/dylanmei/winrmtest"
-	"github.com/hashicorp/terraform/internal/communicator/remote"
-	"github.com/hashicorp/terraform/internal/communicator/shared"
+	"github.com/hashicorp/mnptu/internal/communicator/remote"
+	"github.com/hashicorp/mnptu/internal/communicator/shared"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -104,7 +104,7 @@ func TestUpload(t *testing.T) {
 	}
 	defer c.Disconnect()
 
-	err = c.Upload("C:/Temp/terraform.cmd", bytes.NewReader([]byte("something")))
+	err = c.Upload("C:/Temp/mnptu.cmd", bytes.NewReader([]byte("something")))
 	if err != nil {
 		t.Fatalf("error uploading file: %s", err)
 	}
@@ -209,7 +209,7 @@ func TestTransportDecorator(t *testing.T) {
 func TestScriptPath_randSeed(t *testing.T) {
 	// Pre GH-4186 fix, this value was the deterministic start the pseudorandom
 	// chain of unseeded math/rand values for Int31().
-	staticSeedPath := "C:/Temp/terraform_1298498081.cmd"
+	staticSeedPath := "C:/Temp/mnptu_1298498081.cmd"
 	c, err := New(cty.NullVal(shared.ConnectionBlockSupersetSchema.ImpliedType()))
 	if err != nil {
 		t.Fatalf("err: %s", err)

@@ -12,14 +12,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 func TestMain(m *testing.M) {
@@ -261,7 +261,7 @@ func TestSession_stateless(t *testing.T) {
 func testSession(t *testing.T, test testSessionTest) {
 	t.Helper()
 
-	p := &terraform.MockProvider{}
+	p := &mnptu.MockProvider{}
 	p.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 		ResourceTypes: map[string]providers.Schema{
 			"test_instance": {
@@ -281,7 +281,7 @@ func testSession(t *testing.T, test testSessionTest) {
 	}
 
 	// Build the TF context
-	ctx, diags := terraform.NewContext(&terraform.ContextOpts{
+	ctx, diags := mnptu.NewContext(&mnptu.ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
 			addrs.NewDefaultProvider("test"): providers.FactoryFixed(p),
 		},
@@ -294,7 +294,7 @@ func testSession(t *testing.T, test testSessionTest) {
 	if state == nil {
 		state = states.NewState()
 	}
-	scope, diags := ctx.Eval(config, state, addrs.RootModuleInstance, &terraform.EvalOpts{})
+	scope, diags := ctx.Eval(config, state, addrs.RootModuleInstance, &mnptu.EvalOpts{})
 	if diags.HasErrors() {
 		t.Fatalf("failed to create scope: %s", diags.Err())
 	}

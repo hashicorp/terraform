@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/schema"
 )
 
 // New creates a new backend for Azure remote state.
@@ -174,7 +174,7 @@ func New() backend.Backend {
 			"use_azuread_auth": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "Should Terraform use AzureAD Authentication to access the Blob?",
+				Description: "Should mnptu use AzureAD Authentication to access the Blob?",
 				DefaultFunc: schema.EnvDefaultFunc("ARM_USE_AZUREAD", false),
 			},
 		},

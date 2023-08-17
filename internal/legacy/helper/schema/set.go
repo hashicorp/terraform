@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/legacy/helper/hashcode"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/hashcode"
 )
 
 // HashString hashes strings. If you want a Set of strings, this is the

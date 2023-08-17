@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
-// PlanCommand is a Command implementation that compares a Terraform
+// PlanCommand is a Command implementation that compares a mnptu
 // configuration to an actual infrastructure and shows the differences.
 type PlanCommand struct {
 	Meta
@@ -57,7 +57,7 @@ func (c *PlanCommand) Run(rawArgs []string) int {
 	c.Meta.input = args.InputEnabled
 
 	// FIXME: the -parallelism flag is used to control the concurrency of
-	// Terraform operations. At the moment, this value is used both to
+	// mnptu operations. At the moment, this value is used both to
 	// initialize the backend via the ContextOpts field inside CLIOpts, and to
 	// set a largely unused field on the Operation request. Again, there is no
 	// clear path to pass this value down, so we continue to mutate the Meta
@@ -195,9 +195,9 @@ func (c *PlanCommand) GatherVariables(opReq *backend.Operation, args *arguments.
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] plan [options]
+Usage: mnptu [global options] plan [options]
 
-  Generates a speculative execution plan, showing what actions Terraform
+  Generates a speculative execution plan, showing what actions mnptu
   would take to apply the current configuration. This command will not
   actually perform the planned actions.
 
@@ -206,18 +206,18 @@ Usage: terraform [global options] plan [options]
 
 Plan Customization Options:
 
-  The following options customize how Terraform will produce its plan. You
-  can also use these options when you run "terraform apply" without passing
+  The following options customize how mnptu will produce its plan. You
+  can also use these options when you run "mnptu apply" without passing
   it a saved plan, in order to plan and apply in a single command.
 
   -destroy            Select the "destroy" planning mode, which creates a plan
                       to destroy all objects currently managed by this
-                      Terraform configuration instead of the usual behavior.
+                      mnptu configuration instead of the usual behavior.
 
   -refresh-only       Select the "refresh only" planning mode, which checks
                       whether remote objects still match the outcome of the
-                      most recent Terraform apply but does not propose any
-                      actions to undo any changes made outside of Terraform.
+                      most recent mnptu apply but does not propose any
+                      actions to undo any changes made outside of mnptu.
 
   -refresh=false      Skip checking for external changes to remote objects
                       while creating the plan. This can potentially make
@@ -227,7 +227,7 @@ Plan Customization Options:
   -replace=resource   Force replacement of a particular resource instance using
                       its resource address. If the plan would've normally
                       produced an update or no-op action for this instance,
-                      Terraform will plan to replace it instead. You can use
+                      mnptu will plan to replace it instead. You can use
                       this option multiple times to replace more than one object.
 
   -target=resource    Limit the planning operation to only the given module,
@@ -241,13 +241,13 @@ Plan Customization Options:
                       once to set more than one variable.
 
   -var-file=filename  Load variable values from the given file, in addition
-                      to the default files terraform.tfvars and *.auto.tfvars.
+                      to the default files mnptu.tfvars and *.auto.tfvars.
                       Use this option more than once to include more than one
                       variables file.
 
 Other Options:
 
-  -compact-warnings          If Terraform produces any warnings that are not
+  -compact-warnings          If mnptu produces any warnings that are not
                              accompanied by errors, shows them in a more compact
                              form that includes only the summary messages.
 
@@ -258,10 +258,10 @@ Other Options:
                              2 - Succeeded, there is a diff
 
   -generate-config-out=path  (Experimental) If import blocks are present in
-                             configuration, instructs Terraform to generate HCL
+                             configuration, instructs mnptu to generate HCL
                              for any imported resources not already present. The
                              configuration is written to a new file at PATH,
-                             which must not already exist. Terraform may still
+                             which must not already exist. mnptu may still
                              attempt to write configuration if the plan errors.
 
   -input=true                Ask for input for variables if not directly set.

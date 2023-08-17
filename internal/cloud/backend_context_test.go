@@ -11,16 +11,16 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestRemoteStoredVariableValue(t *testing.T) {
@@ -90,7 +90,7 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 		"HCL computation": {
 			// This (stored expressions containing computation) is not a case
 			// we intentionally supported, but it became possible for remote
-			// operations in Terraform 0.12 (due to Terraform Cloud/Enterprise
+			// operations in mnptu 0.12 (due to mnptu Cloud/Enterprise
 			// just writing the HCL verbatim into generated `.tfvars` files).
 			// We support it here for consistency, and we continue to support
 			// it in both places for backward-compatibility. In practice,
@@ -158,16 +158,16 @@ func TestRemoteStoredVariableValue(t *testing.T) {
 }
 
 func TestRemoteContextWithVars(t *testing.T) {
-	catTerraform := tfe.CategoryTerraform
+	catmnptu := tfe.Categorymnptu
 	catEnv := tfe.CategoryEnv
 
 	tests := map[string]struct {
 		Opts      *tfe.VariableCreateOptions
 		WantError string
 	}{
-		"Terraform variable": {
+		"mnptu variable": {
 			&tfe.VariableCreateOptions{
-				Category: &catTerraform,
+				Category: &catmnptu,
 			},
 			`Value for undeclared variable: A variable named "key" was assigned a value, but the root module does not declare a variable of that name. To use this value, add a "variable" block to the configuration.`,
 		},
@@ -242,7 +242,7 @@ func TestRemoteContextWithVars(t *testing.T) {
 }
 
 func TestRemoteVariablesDoNotOverride(t *testing.T) {
-	catTerraform := tfe.CategoryTerraform
+	catmnptu := tfe.Categorymnptu
 
 	varName1 := "key1"
 	varName2 := "key2"
@@ -255,7 +255,7 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 	tests := map[string]struct {
 		localVariables    map[string]backend.UnparsedVariableValue
 		remoteVariables   []*tfe.VariableCreateOptions
-		expectedVariables terraform.InputValues
+		expectedVariables mnptu.InputValues
 	}{
 		"no local variables": {
 			map[string]backend.UnparsedVariableValue{},
@@ -263,41 +263,41 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 				{
 					Key:      &varName1,
 					Value:    &varValue1,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				},
 				{
 					Key:      &varName2,
 					Value:    &varValue2,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				},
 				{
 					Key:      &varName3,
 					Value:    &varValue3,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				},
 			},
-			terraform.InputValues{
-				varName1: &terraform.InputValue{
+			mnptu.InputValues{
+				varName1: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName2: &terraform.InputValue{
+				varName2: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName3: &terraform.InputValue{
+				varName3: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue3),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
@@ -308,45 +308,45 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 		},
 		"single conflicting local variable": {
 			map[string]backend.UnparsedVariableValue{
-				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
+				varName3: testUnparsedVariableValue{source: mnptu.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{
 				{
 					Key:      &varName1,
 					Value:    &varValue1,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				}, {
 					Key:      &varName2,
 					Value:    &varValue2,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				}, {
 					Key:      &varName3,
 					Value:    &varValue3,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				},
 			},
-			terraform.InputValues{
-				varName1: &terraform.InputValue{
+			mnptu.InputValues{
+				varName1: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName2: &terraform.InputValue{
+				varName2: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName3: &terraform.InputValue{
+				varName3: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue3),
-					SourceType: terraform.ValueFromNamedFile,
+					SourceType: mnptu.ValueFromNamedFile,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "fake.tfvars",
 						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},
@@ -357,41 +357,41 @@ func TestRemoteVariablesDoNotOverride(t *testing.T) {
 		},
 		"no conflicting local variable": {
 			map[string]backend.UnparsedVariableValue{
-				varName3: testUnparsedVariableValue{source: terraform.ValueFromNamedFile, value: cty.StringVal(varValue3)},
+				varName3: testUnparsedVariableValue{source: mnptu.ValueFromNamedFile, value: cty.StringVal(varValue3)},
 			},
 			[]*tfe.VariableCreateOptions{
 				{
 					Key:      &varName1,
 					Value:    &varValue1,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				}, {
 					Key:      &varName2,
 					Value:    &varValue2,
-					Category: &catTerraform,
+					Category: &catmnptu,
 				},
 			},
-			terraform.InputValues{
-				varName1: &terraform.InputValue{
+			mnptu.InputValues{
+				varName1: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue1),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName2: &terraform.InputValue{
+				varName2: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue2),
-					SourceType: terraform.ValueFromInput,
+					SourceType: mnptu.ValueFromInput,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "",
 						Start:    tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 						End:      tfdiags.SourcePos{Line: 0, Column: 0, Byte: 0},
 					},
 				},
-				varName3: &terraform.InputValue{
+				varName3: &mnptu.InputValue{
 					Value:      cty.StringVal(varValue3),
-					SourceType: terraform.ValueFromNamedFile,
+					SourceType: mnptu.ValueFromNamedFile,
 					SourceRange: tfdiags.SourceRange{
 						Filename: "fake.tfvars",
 						Start:    tfdiags.SourcePos{Line: 1, Column: 1, Byte: 0},

@@ -77,7 +77,7 @@ For example, the resulting value might be as follows:
 ```
 
 A `for` expression alone can only produce either an object value or a tuple
-value, but Terraform's automatic type conversion rules mean that you can
+value, but mnptu's automatic type conversion rules mean that you can
 typically use the results in locations where lists, maps, and sets are expected.
 
 ## Filtering Elements
@@ -118,16 +118,16 @@ locals {
 ## Element Ordering
 
 Because `for` expressions can convert from unordered types (maps, objects, sets)
-to ordered types (lists, tuples), Terraform must choose an implied ordering
+to ordered types (lists, tuples), mnptu must choose an implied ordering
 for the elements of an unordered collection.
 
-For maps and objects, Terraform sorts the elements by key or attribute name,
+For maps and objects, mnptu sorts the elements by key or attribute name,
 using lexical sorting.
 
-For sets of strings, Terraform sorts the elements by their value, using
+For sets of strings, mnptu sorts the elements by their value, using
 lexical sorting.
 
-For sets of other types, Terraform uses an arbitrary ordering that may change in future versions. We recommend converting the expression result into a set to make it clear elsewhere in the configuration that the result is unordered. You can use [the `toset` function](/terraform/language/functions/toset)
+For sets of other types, mnptu uses an arbitrary ordering that may change in future versions. We recommend converting the expression result into a set to make it clear elsewhere in the configuration that the result is unordered. You can use [the `toset` function](/mnptu/language/functions/toset)
 to concisely convert a `for` expression result to be of a set type.
 
 ```hcl
@@ -138,10 +138,10 @@ toset([for e in var.set : e.example])
 
 If the result type is an object (using `{` and `}` delimiters) then normally
 the given key expression must be unique across all elements in the result,
-or Terraform will return an error.
+or mnptu will return an error.
 
 Sometimes the resulting keys are _not_ unique, and so to support that situation
-Terraform supports a special _grouping mode_ which changes the result to support
+mnptu supports a special _grouping mode_ which changes the result to support
 multiple elements per key.
 
 To activate grouping mode, add the symbol `...` after the value expression.
@@ -189,7 +189,7 @@ map of lists of strings, such as the following:
 }
 ```
 
-Due to [the element ordering rules](#element-ordering), Terraform will sort
+Due to [the element ordering rules](#element-ordering), mnptu will sort
 the users lexically by username as part of evaluating the `for` expression,
 and so the usernames associated with each role will be lexically sorted
 after grouping.
@@ -204,4 +204,4 @@ Some resource types also define _nested block types_, which typically represent
 separate objects that belong to the containing resource in some way. You can't
 dynamically generate nested blocks using `for` expressions, but you _can_
 generate nested blocks for a resource dynamically using
-[`dynamic` blocks](/terraform/language/expressions/dynamic-blocks).
+[`dynamic` blocks](/mnptu/language/expressions/dynamic-blocks).

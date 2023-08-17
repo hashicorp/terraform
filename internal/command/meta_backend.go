@@ -22,20 +22,20 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/cloud"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 // BackendOpts are the options used to initialize a backend.Backend.
@@ -63,18 +63,18 @@ type BackendOpts struct {
 	ViewType arguments.ViewType
 }
 
-// BackendWithRemoteTerraformVersion is a shared interface between the 'remote' and 'cloud' backends
+// BackendWithRemotemnptuVersion is a shared interface between the 'remote' and 'cloud' backends
 // for simplified type checking when calling functions common to those particular backends.
-type BackendWithRemoteTerraformVersion interface {
+type BackendWithRemotemnptuVersion interface {
 	IgnoreVersionConflict()
-	VerifyWorkspaceTerraformVersion(workspace string) tfdiags.Diagnostics
+	VerifyWorkspacemnptuVersion(workspace string) tfdiags.Diagnostics
 	IsLocalOperations() bool
 }
 
 // Backend initializes and returns the backend for this CLI session.
 //
-// The backend is used to perform the actual Terraform operations. This
-// abstraction enables easily sliding in new Terraform behavior such as
+// The backend is used to perform the actual mnptu operations. This
+// abstraction enables easily sliding in new mnptu behavior such as
 // remote state storage, remote operations, etc. while allowing the CLI
 // to remain mostly identical.
 //
@@ -88,7 +88,7 @@ type BackendWithRemoteTerraformVersion interface {
 //
 // A side-effect of this method is the population of m.backendState, recording
 // the final resolved backend configuration after dealing with overrides from
-// the "terraform init" command line, etc.
+// the "mnptu init" command line, etc.
 func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -128,16 +128,16 @@ func (m *Meta) Backend(opts *BackendOpts) (backend.Enhanced, tfdiags.Diagnostics
 				for addr, err := range errs {
 					fmt.Fprintf(&buf, "\n  - %s: %s", addr, err)
 				}
-				suggestion := "To download the plugins required for this configuration, run:\n  terraform init"
+				suggestion := "To download the plugins required for this configuration, run:\n  mnptu init"
 				if m.RunningInAutomation {
-					// Don't mention "terraform init" specifically if we're running in an automation wrapper
-					suggestion = "You must install the required plugins before running Terraform operations."
+					// Don't mention "mnptu init" specifically if we're running in an automation wrapper
+					suggestion = "You must install the required plugins before running mnptu operations."
 				}
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Required plugins are not installed",
 					fmt.Sprintf(
-						"The installed provider plugins are not consistent with the packages selected in the dependency lock file:%s\n\nTerraform uses external plugins to integrate with a variety of different infrastructure services. %s",
+						"The installed provider plugins are not consistent with the packages selected in the dependency lock file:%s\n\nmnptu uses external plugins to integrate with a variety of different infrastructure services. %s",
 						buf.String(), suggestion,
 					),
 				))
@@ -227,7 +227,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 			// len is always 1 if using Name; 0 means we're using Tags and there
 			// aren't any matching workspaces. Which might be normal and fine, so
 			// let's just ask:
-			name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+			name, err := m.UIInput().Input(context.Background(), &mnptu.InputOpts{
 				Id:          "create-workspace",
 				Query:       "\n[reset][bold][yellow]No workspaces found.[reset]",
 				Description: fmt.Sprintf(inputCloudInitCreateWorkspace, strings.Join(c.WorkspaceMapping.Tags, ", ")),
@@ -274,7 +274,7 @@ func (m *Meta) selectWorkspace(b backend.Backend) error {
 	}
 
 	// Otherwise, ask the user to select a workspace from the list of existing workspaces.
-	v, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+	v, err := m.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id: "select-workspace",
 		Query: fmt.Sprintf(
 			"\n[reset][bold][yellow]The currently selected workspace (%s) does not exist.[reset]",
@@ -534,7 +534,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// ------------------------------------------------------------------------
 	// For historical reasons, current backend configuration for a working
 	// directory is kept in a *state-like* file, using the legacy state
-	// structures in the Terraform package. It is not actually a Terraform
+	// structures in the mnptu package. It is not actually a mnptu
 	// state, and so only the "backend" portion of it is actually used.
 	//
 	// The remainder of this code often confusingly refers to this as a "state",
@@ -545,7 +545,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 	// Since the "real" state has since moved on to be represented by
 	// states.State, we can recognize the special meaning of state that applies
 	// to this function and its callees by their continued use of the
-	// otherwise-obsolete terraform.State.
+	// otherwise-obsolete mnptu.State.
 	// ------------------------------------------------------------------------
 
 	// Get the path to where we store a local cache of backend configuration
@@ -587,11 +587,11 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 
 	if !s.Remote.Empty() {
 		// Legacy remote state is no longer supported. User must first
-		// migrate with Terraform 0.11 or earlier.
+		// migrate with mnptu 0.11 or earlier.
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Legacy remote state not supported",
-			"This working directory is configured for legacy remote state, which is no longer supported from Terraform v0.12 onwards. To migrate this environment, first run \"terraform init\" under a Terraform 0.11 release, and then upgrade Terraform again.",
+			"This working directory is configured for legacy remote state, which is no longer supported from mnptu v0.12 onwards. To migrate this environment, first run \"mnptu init\" under a mnptu 0.11 release, and then upgrade mnptu again.",
 		))
 		return nil, diags
 	}
@@ -612,7 +612,7 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		if !opts.Init {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Backend initialization required, please run \"terraform init\"",
+				"Backend initialization required, please run \"mnptu init\"",
 				fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
 			))
 			return nil, diags
@@ -630,17 +630,17 @@ func (m *Meta) backendFromConfig(opts *BackendOpts) (backend.Backend, tfdiags.Di
 		log.Printf("[TRACE] Meta.Backend: moving from default local state only to %q backend", c.Type)
 		if !opts.Init {
 			if c.Type == "cloud" {
-				initReason := "Initial configuration of Terraform Cloud"
+				initReason := "Initial configuration of mnptu Cloud"
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud initialization required: please run \"terraform init\"",
+					"mnptu Cloud initialization required: please run \"mnptu init\"",
 					fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 				))
 			} else {
 				initReason := fmt.Sprintf("Initial configuration of the requested backend %q", c.Type)
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
-					"Backend initialization required, please run \"terraform init\"",
+					"Backend initialization required, please run \"mnptu init\"",
 					fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
 				))
 			}
@@ -731,11 +731,11 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	initReason := ""
 	switch cloudMode {
 	case cloud.ConfigMigrationIn:
-		initReason = fmt.Sprintf("Changed from backend %q to Terraform Cloud", previousBackendType)
+		initReason = fmt.Sprintf("Changed from backend %q to mnptu Cloud", previousBackendType)
 	case cloud.ConfigMigrationOut:
-		initReason = fmt.Sprintf("Changed from Terraform Cloud to backend %q", previousBackendType)
+		initReason = fmt.Sprintf("Changed from mnptu Cloud to backend %q", previousBackendType)
 	case cloud.ConfigChangeInPlace:
-		initReason = "Terraform Cloud configuration block has changed"
+		initReason = "mnptu Cloud configuration block has changed"
 	default:
 		switch {
 		case previousBackendType != currentBackendType:
@@ -750,19 +750,19 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 	case cloud.ConfigChangeInPlace:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"mnptu Cloud initialization required: please run \"mnptu init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	case cloud.ConfigMigrationIn:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud initialization required: please run \"terraform init\"",
+			"mnptu Cloud initialization required: please run \"mnptu init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInitCloud), initReason),
 		))
 	default:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Backend initialization required: please run \"terraform init\"",
+			"Backend initialization required: please run \"mnptu init\"",
 			fmt.Sprintf(strings.TrimSpace(errBackendInit), initReason),
 		))
 	}
@@ -772,7 +772,7 @@ func (m *Meta) determineInitReason(previousBackendType string, currentBackendTyp
 
 // backendFromState returns the initialized (not configured) backend directly
 // from the backend state. This should be used only when a user runs
-// `terraform init -backend=false`. This function returns a local backend if
+// `mnptu init -backend=false`. This function returns a local backend if
 // there is no backend state or no backend configured.
 func (m *Meta) backendFromState(ctx context.Context) (backend.Backend, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
@@ -811,14 +811,14 @@ func (m *Meta) backendFromState(ctx context.Context) (backend.Backend, tfdiags.D
 
 	// The configuration saved in the working directory state file is used
 	// in this case, since it will contain any additional values that
-	// were provided via -backend-config arguments on terraform init.
+	// were provided via -backend-config arguments on mnptu init.
 	schema := b.ConfigSchema()
 	configVal, err := s.Backend.Config(schema)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to decode current backend config",
-			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+			fmt.Sprintf("The backend configuration created by the most recent run of \"mnptu init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"mnptu init -reconfigure\" to force re-initialization of the backend.", err),
 		))
 		return nil, diags
 	}
@@ -892,7 +892,7 @@ func (m *Meta) backend_c_r_S(
 	backendType := s.Backend.Type
 
 	if cloudMode == cloud.ConfigMigrationOut {
-		m.Ui.Output("Migrating from Terraform Cloud to local state.")
+		m.Ui.Output("Migrating from mnptu Cloud to local state.")
 	} else {
 		m.Ui.Output(fmt.Sprintf(strings.TrimSpace(outputBackendMigrateLocal), s.Backend.Type))
 	}
@@ -1104,7 +1104,7 @@ func (m *Meta) backend_C_r_s(c *configs.Backend, cHash int, sMgr *clistate.Local
 		return nil, diags
 	}
 
-	// By now the backend is successfully configured.  If using Terraform Cloud, the success
+	// By now the backend is successfully configured.  If using mnptu Cloud, the success
 	// message is handled as part of the final init message
 	if _, ok := b.(*cloud.Cloud); !ok {
 		m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1138,11 +1138,11 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		// Notify the user
 		switch cloudMode {
 		case cloud.ConfigChangeInPlace:
-			m.Ui.Output("Terraform Cloud configuration has changed.")
+			m.Ui.Output("mnptu Cloud configuration has changed.")
 		case cloud.ConfigMigrationIn:
-			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to Terraform Cloud.", s.Backend.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from backend %q to mnptu Cloud.", s.Backend.Type))
 		case cloud.ConfigMigrationOut:
-			m.Ui.Output(fmt.Sprintf("Migrating from Terraform Cloud to backend %q.", c.Type))
+			m.Ui.Output(fmt.Sprintf("Migrating from mnptu Cloud to backend %q.", c.Type))
 		default:
 			if s.Backend.Type != c.Type {
 				output := fmt.Sprintf(outputBackendMigrateChange, s.Backend.Type, c.Type)
@@ -1164,9 +1164,9 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 		return nil, diags
 	}
 
-	// If this is a migration into, out of, or irrelevant to Terraform Cloud
+	// If this is a migration into, out of, or irrelevant to mnptu Cloud
 	// mode then we will do state migration here. Otherwise, we just update
-	// the working directory initialization directly, because Terraform Cloud
+	// the working directory initialization directly, because mnptu Cloud
 	// doesn't have configurable state storage anyway -- we're only changing
 	// which workspaces are relevant to this configuration, not where their
 	// state lives.
@@ -1237,7 +1237,7 @@ func (m *Meta) backend_C_r_S_changed(c *configs.Backend, cHash int, sMgr *clista
 	}
 
 	if output {
-		// By now the backend is successfully configured.  If using Terraform Cloud, the success
+		// By now the backend is successfully configured.  If using mnptu Cloud, the success
 		// message is handled as part of the final init message
 		if _, ok := b.(*cloud.Cloud); !ok {
 			m.Ui.Output(m.Colorize().Color(fmt.Sprintf(
@@ -1268,14 +1268,14 @@ func (m *Meta) savedBackend(sMgr *clistate.LocalState) (backend.Backend, tfdiags
 
 	// The configuration saved in the working directory state file is used
 	// in this case, since it will contain any additional values that
-	// were provided via -backend-config arguments on terraform init.
+	// were provided via -backend-config arguments on mnptu init.
 	schema := b.ConfigSchema()
 	configVal, err := s.Backend.Config(schema)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to decode current backend config",
-			fmt.Sprintf("The backend configuration created by the most recent run of \"terraform init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"terraform init -reconfigure\" to force re-initialization of the backend.", err),
+			fmt.Sprintf("The backend configuration created by the most recent run of \"mnptu init\" could not be decoded: %s. The configuration may have been initialized by an earlier version that used an incompatible configuration structure. Run \"mnptu init -reconfigure\" to force re-initialization of the backend.", err),
 		))
 		return nil, diags
 	}
@@ -1403,7 +1403,7 @@ func (m *Meta) backendInitFromConfig(c *configs.Backend) (backend.Backend, cty.V
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Unknown values within backend definition",
-			"The `terraform` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
+			"The `mnptu` configuration block should contain only concrete and static values. Another diagnostic should contain more information about which part of the configuration is problematic."))
 		return nil, cty.NilVal, diags
 	}
 
@@ -1465,24 +1465,24 @@ func (m *Meta) setupEnhancedBackendAliases(b backend.Enhanced) error {
 // Helper method to ignore remote/cloud backend version conflicts. Only call this
 // for commands which cannot accidentally upgrade remote state files.
 func (m *Meta) ignoreRemoteVersionConflict(b backend.Backend) {
-	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
+	if back, ok := b.(BackendWithRemotemnptuVersion); ok {
 		back.IgnoreVersionConflict()
 	}
 }
 
-// Helper method to check the local Terraform version against the configured
+// Helper method to check the local mnptu version against the configured
 // version in the remote workspace, returning diagnostics if they conflict.
 func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	if back, ok := b.(BackendWithRemoteTerraformVersion); ok {
+	if back, ok := b.(BackendWithRemotemnptuVersion); ok {
 		// Allow user override based on command-line flag
 		if m.ignoreRemoteVersion {
 			back.IgnoreVersionConflict()
 		}
 		// If the override is set, this check will return a warning instead of
 		// an error
-		versionDiags := back.VerifyWorkspaceTerraformVersion(workspace)
+		versionDiags := back.VerifyWorkspacemnptuVersion(workspace)
 		diags = diags.Append(versionDiags)
 		// If there are no errors resulting from this check, we do not need to
 		// check again
@@ -1500,26 +1500,26 @@ func (m *Meta) remoteVersionCheck(b backend.Backend, workspace string) tfdiags.D
 func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	if mode.InvolvesCloud() {
-		log.Printf("[TRACE] Meta.Backend: Terraform Cloud mode initialization type: %s", mode)
+		log.Printf("[TRACE] Meta.Backend: mnptu Cloud mode initialization type: %s", mode)
 		if m.reconfigure {
 			if mode.IsCloudMigration() {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is unsupported when migrating to Terraform Cloud, because activating Terraform Cloud involves some additional steps.",
+					"The -reconfigure option is unsupported when migrating to mnptu Cloud, because activating mnptu Cloud involves some additional steps.",
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing Terraform Cloud settings.\n\nWhen using Terraform Cloud, initialization automatically activates any new Cloud configuration settings.",
+					"The -reconfigure option is for in-place reconfiguration of state backends only, and is not needed when changing mnptu Cloud settings.\n\nWhen using mnptu Cloud, initialization automatically activates any new Cloud configuration settings.",
 				))
 			}
 		}
 		if m.migrateState {
 			name := "-migrate-state"
 			if m.forceInitCopy {
-				// -force copy implies -migrate-state in "terraform init",
+				// -force copy implies -migrate-state in "mnptu init",
 				// so m.migrateState is forced to true in this case even if
 				// the user didn't actually specify it. We'll use the other
 				// name here to avoid being confusing, then.
@@ -1529,13 +1529,13 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nTerraform Cloud migration has additional steps, configured by interactive prompts.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using mnptu Cloud.\n\nmnptu Cloud migration has additional steps, configured by interactive prompts.", name),
 				))
 			} else {
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Invalid command-line option",
-					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using Terraform Cloud.\n\nState storage is handled automatically by Terraform Cloud and so the state storage location is not configurable.", name),
+					fmt.Sprintf("The %s option is for migration between state backends only, and is not applicable when using mnptu Cloud.\n\nState storage is handled automatically by mnptu Cloud and so the state storage location is not configurable.", name),
 				))
 			}
 		}
@@ -1550,8 +1550,8 @@ func (m *Meta) assertSupportedCloudInitOptions(mode cloud.ConfigChangeMode) tfdi
 const errBackendLocalRead = `
 Error reading local state: %s
 
-Terraform is trying to read your local state to determine if there is
-state to migrate to your newly configured backend. Terraform can't continue
+mnptu is trying to read your local state to determine if there is
+state to migrate to your newly configured backend. mnptu can't continue
 without this check because that would risk losing state. Please resolve the
 error above and try again.
 `
@@ -1569,19 +1569,19 @@ issue above and retry the command.
 const errBackendNewUnknown = `
 The backend %q could not be found.
 
-This is the backend specified in your Terraform configuration file.
+This is the backend specified in your mnptu configuration file.
 This error could be a simple typo in your configuration, but it can also
-be caused by using a Terraform version that doesn't support the specified
-backend type. Please check your configuration and your Terraform version.
+be caused by using a mnptu version that doesn't support the specified
+backend type. Please check your configuration and your mnptu version.
 
-If you'd like to run Terraform and store state locally, you can fix this
+If you'd like to run mnptu and store state locally, you can fix this
 error by removing the backend configuration from your configuration.
 `
 
 const errBackendNoExistingWorkspaces = `
 No existing workspaces.
 
-Use the "terraform workspace" command to create and select a new workspace.
+Use the "mnptu workspace" command to create and select a new workspace.
 If the backend already contains existing workspaces, you may need to update
 the backend configuration.
 `
@@ -1589,21 +1589,21 @@ the backend configuration.
 const errBackendSavedUnknown = `
 The backend %q could not be found.
 
-This is the backend that this Terraform environment is configured to use
+This is the backend that this mnptu environment is configured to use
 both in your configuration and saved locally as your last-used backend.
-If it isn't found, it could mean an alternate version of Terraform was
-used with this configuration. Please use the proper version of Terraform that
+If it isn't found, it could mean an alternate version of mnptu was
+used with this configuration. Please use the proper version of mnptu that
 contains support for this backend.
 
 If you'd like to force remove this backend, you must update your configuration
-to not use the backend and run "terraform init" (or any other command) again.
+to not use the backend and run "mnptu init" (or any other command) again.
 `
 
 const errBackendClearSaved = `
 Error clearing the backend configuration: %s
 
-Terraform removes the saved backend configuration when you're removing a
-configured backend. This must be done so future Terraform runs know to not
+mnptu removes the saved backend configuration when you're removing a
+configured backend. This must be done so future mnptu runs know to not
 use the backend configuration. Please look at the error above, resolve it,
 and try again.
 `
@@ -1611,14 +1611,14 @@ and try again.
 const errBackendInit = `
 Reason: %s
 
-The "backend" is the interface that Terraform uses to store state,
+The "backend" is the interface that mnptu uses to store state,
 perform operations, etc. If this message is showing up, it means that the
-Terraform configuration you're using is using a custom configuration for
-the Terraform backend.
+mnptu configuration you're using is using a custom configuration for
+the mnptu backend.
 
 Changes to backend configurations require reinitialization. This allows
-Terraform to set up the new configuration, copy existing state, etc. Please run
-"terraform init" with either the "-reconfigure" or "-migrate-state" flags to
+mnptu to set up the new configuration, copy existing state, etc. Please run
+"mnptu init" with either the "-reconfigure" or "-migrate-state" flags to
 use the current configuration.
 
 If the change reason above is incorrect, please verify your configuration
@@ -1629,53 +1629,53 @@ configuration or state have been made.
 const errBackendInitCloud = `
 Reason: %s.
 
-Changes to the Terraform Cloud configuration block require reinitialization, to discover any changes to the available workspaces.
+Changes to the mnptu Cloud configuration block require reinitialization, to discover any changes to the available workspaces.
 
 To re-initialize, run:
-  terraform init
+  mnptu init
 
-Terraform has not yet made changes to your existing configuration or state.
+mnptu has not yet made changes to your existing configuration or state.
 `
 
 const errBackendWriteSaved = `
 Error saving the backend configuration: %s
 
-Terraform saves the complete backend configuration in a local file for
+mnptu saves the complete backend configuration in a local file for
 configuring the backend on future operations. This cannot be disabled. Errors
 are usually due to simple file permission errors. Please look at the error
 above, resolve it, and try again.
 `
 
 const outputBackendMigrateChange = `
-Terraform detected that the backend type changed from %q to %q.
+mnptu detected that the backend type changed from %q to %q.
 `
 
 const outputBackendMigrateLocal = `
-Terraform has detected you're unconfiguring your previously set %q backend.
+mnptu has detected you're unconfiguring your previously set %q backend.
 `
 
 const outputBackendReconfigure = `
 [reset][bold]Backend configuration changed![reset]
 
-Terraform has detected that the configuration specified for the backend
-has changed. Terraform will now check for existing state in the backends.
+mnptu has detected that the configuration specified for the backend
+has changed. mnptu will now check for existing state in the backends.
 `
 
 const inputCloudInitCreateWorkspace = `
 There are no workspaces with the configured tags (%s)
-in your Terraform Cloud organization. To finish initializing, Terraform needs at
+in your mnptu Cloud organization. To finish initializing, mnptu needs at
 least one workspace available.
 
-Terraform can create a properly tagged workspace for you now. Please enter a
-name to create a new Terraform Cloud workspace.
+mnptu can create a properly tagged workspace for you now. Please enter a
+name to create a new mnptu Cloud workspace.
 `
 
 const successBackendUnset = `
-Successfully unset the backend %q. Terraform will now operate locally.
+Successfully unset the backend %q. mnptu will now operate locally.
 `
 
 const successBackendSet = `
-Successfully configured the backend %q! Terraform will automatically
+Successfully configured the backend %q! mnptu will automatically
 use this backend unless the backend configuration changes.
 `
 
@@ -1683,5 +1683,5 @@ var migrateOrReconfigDiag = tfdiags.Sourceless(
 	tfdiags.Error,
 	"Backend configuration changed",
 	"A change in the backend configuration has been detected, which may require migrating existing state.\n\n"+
-		"If you wish to attempt automatic migration of the state, use \"terraform init -migrate-state\".\n"+
-		`If you wish to store the current configuration with no changes to the state, use "terraform init -reconfigure".`)
+		"If you wish to attempt automatic migration of the state, use \"mnptu init -migrate-state\".\n"+
+		`If you wish to store the current configuration with no changes to the state, use "mnptu init -reconfigure".`)

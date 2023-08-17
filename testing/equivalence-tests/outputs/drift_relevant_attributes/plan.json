@@ -2,7 +2,7 @@
   "configuration": {
     "provider_config": {
       "tfcoremock": {
-        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "full_name": "registry.mnptu.io/hashicorp/tfcoremock",
         "name": "tfcoremock",
         "version_constraint": "0.1.1"
       }
@@ -52,7 +52,7 @@
           "address": "tfcoremock_simple_resource.base",
           "mode": "managed",
           "name": "base",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "tfcoremock_simple_resource",
@@ -69,7 +69,7 @@
           "address": "tfcoremock_simple_resource.dependent",
           "mode": "managed",
           "name": "dependent",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "tfcoremock_simple_resource",
@@ -94,7 +94,7 @@
             "address": "tfcoremock_simple_resource.base",
             "mode": "managed",
             "name": "base",
-            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
             "schema_version": 0,
             "sensitive_values": {},
             "type": "tfcoremock_simple_resource",
@@ -114,7 +114,7 @@
             ],
             "mode": "managed",
             "name": "dependent",
-            "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+            "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
             "schema_version": 0,
             "sensitive_values": {},
             "type": "tfcoremock_simple_resource",
@@ -168,7 +168,7 @@
       },
       "mode": "managed",
       "name": "base",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     },
     {
@@ -199,7 +199,7 @@
       },
       "mode": "managed",
       "name": "dependent",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     }
   ],
@@ -232,7 +232,7 @@
       },
       "mode": "managed",
       "name": "base",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     }
   ]

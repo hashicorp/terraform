@@ -1,7 +1,7 @@
-# This file is maintained automatically by "terraform init".
+# This file is maintained automatically by "mnptu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/hashicorp/test" {
+provider "registry.mnptu.io/hashicorp/test" {
   version = "1.0.0"
   hashes = [
     "h1:invalid",

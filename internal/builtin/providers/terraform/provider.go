@@ -1,19 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/mnptu/internal/providers"
 )
 
 // Provider is an implementation of providers.Interface
 type Provider struct{}
 
-// NewProvider returns a new terraform provider
+// NewProvider returns a new mnptu provider
 func NewProvider() providers.Interface {
 	return &Provider{}
 }
@@ -22,17 +22,17 @@ func NewProvider() providers.Interface {
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
 		DataSources: map[string]providers.Schema{
-			"terraform_remote_state": dataSourceRemoteStateGetSchema(),
+			"mnptu_remote_state": dataSourceRemoteStateGetSchema(),
 		},
 		ResourceTypes: map[string]providers.Schema{
-			"terraform_data": dataStoreResourceSchema(),
+			"mnptu_data": dataStoreResourceSchema(),
 		},
 	}
 }
 
 // ValidateProviderConfig is used to validate the configuration values.
 func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRequest) providers.ValidateProviderConfigResponse {
-	// At this moment there is nothing to configure for the terraform provider,
+	// At this moment there is nothing to configure for the mnptu provider,
 	// so we will happily return without taking any action
 	var res providers.ValidateProviderConfigResponse
 	res.PreparedConfig = req.Config
@@ -43,11 +43,11 @@ func (p *Provider) ValidateProviderConfig(req providers.ValidateProviderConfigRe
 func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResourceConfigRequest) providers.ValidateDataResourceConfigResponse {
 	// FIXME: move the backend configuration validate call that's currently
 	// inside the read method  into here so that we can catch provider configuration
-	// errors in terraform validate as well as during terraform plan.
+	// errors in mnptu validate as well as during mnptu plan.
 	var res providers.ValidateDataResourceConfigResponse
 
 	// This should not happen
-	if req.TypeName != "terraform_remote_state" {
+	if req.TypeName != "mnptu_remote_state" {
 		res.Diagnostics.Append(fmt.Errorf("Error: unsupported data source %s", req.TypeName))
 		return res
 	}
@@ -60,7 +60,7 @@ func (p *Provider) ValidateDataResourceConfig(req providers.ValidateDataResource
 
 // Configure configures and initializes the provider.
 func (p *Provider) ConfigureProvider(providers.ConfigureProviderRequest) providers.ConfigureProviderResponse {
-	// At this moment there is nothing to configure for the terraform provider,
+	// At this moment there is nothing to configure for the mnptu provider,
 	// so we will happily return without taking any action
 	var res providers.ConfigureProviderResponse
 	return res
@@ -72,7 +72,7 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 	var res providers.ReadDataSourceResponse
 
 	// This should not happen
-	if req.TypeName != "terraform_remote_state" {
+	if req.TypeName != "mnptu_remote_state" {
 		res.Diagnostics.Append(fmt.Errorf("Error: unsupported data source %s", req.TypeName))
 		return res
 	}
@@ -87,12 +87,12 @@ func (p *Provider) ReadDataSource(req providers.ReadDataSourceRequest) providers
 
 // Stop is called when the provider should halt any in-flight actions.
 func (p *Provider) Stop() error {
-	log.Println("[DEBUG] terraform provider cannot Stop")
+	log.Println("[DEBUG] mnptu provider cannot Stop")
 	return nil
 }
 
 // All the Resource-specific functions are below.
-// The terraform provider supplies a single data source, `terraform_remote_state`
+// The mnptu provider supplies a single data source, `mnptu_remote_state`
 // and no resources.
 
 // UpgradeResourceState is called when the state loader encounters an
@@ -123,11 +123,11 @@ func (p *Provider) ApplyResourceChange(req providers.ApplyResourceChangeRequest)
 
 // ImportResourceState requests that the given resource be imported.
 func (p *Provider) ImportResourceState(req providers.ImportResourceStateRequest) providers.ImportResourceStateResponse {
-	if req.TypeName == "terraform_data" {
+	if req.TypeName == "mnptu_data" {
 		return importDataStore(req)
 	}
 
-	panic("unimplemented - terraform_remote_state has no resources")
+	panic("unimplemented - mnptu_remote_state has no resources")
 }
 
 // ValidateResourceConfig is used to to validate the resource configuration values.

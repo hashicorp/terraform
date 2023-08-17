@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bytes"
@@ -16,14 +16,14 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Test that the PreApply hook is called with the correct deposed key
@@ -43,7 +43,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceDeposed(
 		mustResourceInstanceAddr("aws_instance.bar").Resource,
@@ -52,7 +52,7 @@ func TestContext2Apply_createBeforeDestroy_deposedKeyPreApply(t *testing.T) {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	hook := new(MockHook)
@@ -227,7 +227,7 @@ resource "test_instance" "a" {
 		s.SetResourceInstanceCurrent(addrA, &states.ResourceInstanceObjectSrc{
 			AttrsJSON: []byte(`{"id":"a","value":"old","type":"test"}`),
 			Status:    states.ObjectReady,
-		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		}, mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`))
 
 		// test_instance.b depended on test_instance.a, and therefor should be
 		// destroyed before any changes to test_instance.a
@@ -235,7 +235,7 @@ resource "test_instance" "a" {
 			AttrsJSON:    []byte(`{"id":"b"}`),
 			Status:       states.ObjectReady,
 			Dependencies: []addrs.ConfigResource{addrA.ContainingResource().Config()},
-		}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`))
+		}, mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`))
 	})
 
 	ctx := testContext2(t, &ContextOpts{
@@ -276,7 +276,7 @@ func TestApply_updateDependencies(t *testing.T) {
 				bazAddr.ContainingResource().Config(),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		binAddr.Resource,
@@ -287,7 +287,7 @@ func TestApply_updateDependencies(t *testing.T) {
 				bazAddr.ContainingResource().Config(),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		bazAddr.Resource,
@@ -299,7 +299,7 @@ func TestApply_updateDependencies(t *testing.T) {
 				bamAddr.ContainingResource().Config(),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		barAddr.Resource,
@@ -307,7 +307,7 @@ func TestApply_updateDependencies(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar","foo":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	m := testModuleInline(t, map[string]string{
@@ -426,7 +426,7 @@ resource "test_resource" "b" {
 					},
 				},
 				Status: states.ObjectReady,
-			}, mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			}, mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 		)
 	})
 
@@ -584,7 +584,7 @@ resource "test_object" "x" {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"test_string":"deposed"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -712,7 +712,7 @@ resource "test_object" "b" {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"test_string":"ok"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
@@ -720,7 +720,7 @@ resource "test_object" "b" {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"test_string":"ok"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1040,7 +1040,7 @@ func TestContext2Apply_resourceConditionApplyTimeFail(t *testing.T) {
 	// a change in a resource other than the one the condition is attached to,
 	// and the condition result is unknown during planning.
 	//
-	// This edge case is a tricky one because it relies on Terraform still
+	// This edge case is a tricky one because it relies on mnptu still
 	// visiting test_resource.b (in the configuration below) to evaluate
 	// its conditions even though there aren't any changes directly planned
 	// for it, so that we can consider whether changes to test_resource.a
@@ -1422,7 +1422,7 @@ resource "test_object" "x" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"test_string":"ok"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1472,7 +1472,7 @@ resource "test_object" "y" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"test_string":"x"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1628,7 +1628,7 @@ output "from_resource" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"test_string":"wrong_val"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -1683,7 +1683,7 @@ output "from_resource" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"test_string":"wrong val"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	mod.SetOutputValue("from_resource", cty.StringVal("wrong val"), false)
 
@@ -1753,7 +1753,7 @@ resource "test_object" "y" {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"test_string":"y"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{

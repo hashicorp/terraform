@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -47,12 +47,12 @@ type ContextOpts struct {
 
 // ContextMeta is metadata about the running context. This is information
 // that this package or structure cannot determine on its own but exposes
-// into Terraform in various ways. This must be provided by the Context
+// into mnptu in various ways. This must be provided by the Context
 // initializer.
 type ContextMeta struct {
 	Env string // Env is the state environment
 
-	// OriginalWorkingDir is the working directory where the Terraform CLI
+	// OriginalWorkingDir is the working directory where the mnptu CLI
 	// was run from, which may no longer actually be the current working
 	// directory if the user included the -chdir=... option.
 	//
@@ -66,7 +66,7 @@ type ContextMeta struct {
 	OriginalWorkingDir string
 }
 
-// Context represents all the context that Terraform needs in order to
+// Context represents all the context that mnptu needs in order to
 // perform operations on infrastructure. This structure is built using
 // NewContext.
 type Context struct {
@@ -101,7 +101,7 @@ type Context struct {
 func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	log.Printf("[TRACE] terraform.NewContext: starting")
+	log.Printf("[TRACE] mnptu.NewContext: starting")
 
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
@@ -130,7 +130,7 @@ func NewContext(opts *ContextOpts) (*Context, tfdiags.Diagnostics) {
 
 	plugins := newContextPlugins(opts.Providers, opts.Provisioners)
 
-	log.Printf("[TRACE] terraform.NewContext: complete")
+	log.Printf("[TRACE] mnptu.NewContext: complete")
 
 	return &Context{
 		hooks:   hooks,
@@ -172,14 +172,14 @@ type ContextGraphOpts struct {
 //
 // Stop will block until the task completes.
 func (c *Context) Stop() {
-	log.Printf("[WARN] terraform: Stop called, initiating interrupt sequence")
+	log.Printf("[WARN] mnptu: Stop called, initiating interrupt sequence")
 
 	c.l.Lock()
 	defer c.l.Unlock()
 
 	// If we're running, then stop
 	if c.runContextCancel != nil {
-		log.Printf("[WARN] terraform: run context exists, stopping")
+		log.Printf("[WARN] mnptu: run context exists, stopping")
 
 		// Tell the hook we want to stop
 		c.sh.Stop()
@@ -197,11 +197,11 @@ func (c *Context) Stop() {
 
 	// Grab the condition var before we exit
 	if cond := c.runCond; cond != nil {
-		log.Printf("[INFO] terraform: waiting for graceful stop to complete")
+		log.Printf("[INFO] mnptu: waiting for graceful stop to complete")
 		cond.Wait()
 	}
 
-	log.Printf("[WARN] terraform: stop complete")
+	log.Printf("[WARN] mnptu: stop complete")
 }
 
 func (c *Context) acquireRun(phase string) func() {
@@ -283,7 +283,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 
 		{
 			// Copy the providers so that a misbehaved blocking Stop doesn't
-			// completely hang Terraform.
+			// completely hang mnptu.
 			walker.providerLock.Lock()
 			ps := make([]providers.Interface, 0, len(walker.providerCache))
 			for _, p := range walker.providerCache {
@@ -294,7 +294,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 			for _, p := range ps {
 				// We ignore the error for now since there isn't any reasonable
 				// action to take if there is an error here, since the stop is still
-				// advisory: Terraform will exit once the graph node completes.
+				// advisory: mnptu will exit once the graph node completes.
 				p.Stop()
 			}
 		}
@@ -311,7 +311,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 			for _, p := range ps {
 				// We ignore the error for now since there isn't any reasonable
 				// action to take if there is an error here, since the stop is still
-				// advisory: Terraform will exit once the graph node completes.
+				// advisory: mnptu will exit once the graph node completes.
 				p.Stop()
 			}
 		}
@@ -323,7 +323,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 // checkConfigDependencies checks whether the recieving context is able to
 // support the given configuration, returning error diagnostics if not.
 //
-// Currently this function checks whether the current Terraform CLI version
+// Currently this function checks whether the current mnptu CLI version
 // matches the version requirements of all of the modules, and whether our
 // plugin library contains all of the plugin names/addresses needed.
 //
@@ -340,7 +340,7 @@ func (c *Context) watchStop(walker *ContextGraphWalker) (chan struct{}, <-chan s
 func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
-	// This checks the Terraform CLI version constraints specified in all of
+	// This checks the mnptu CLI version constraints specified in all of
 	// the modules.
 	diags = diags.Append(CheckCoreVersionRequirements(config))
 
@@ -359,18 +359,18 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 					tfdiags.Error,
 					"Missing required provider",
 					fmt.Sprintf(
-						"This configuration requires provider %s, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+						"This configuration requires provider %s, but that provider isn't available. You may be able to install it automatically by running:\n  mnptu init",
 						providerAddr,
 					),
 				))
 			} else {
-				// Built-in providers can never be installed by "terraform init",
+				// Built-in providers can never be installed by "mnptu init",
 				// so no point in confusing the user by suggesting that.
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
 					fmt.Sprintf(
-						"This configuration requires built-in provider %s, but that provider isn't available in this Terraform version.",
+						"This configuration requires built-in provider %s, but that provider isn't available in this mnptu version.",
 						providerAddr,
 					),
 				))
@@ -392,7 +392,7 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 			for _, pc := range rc.Managed.Provisioners {
 				if !c.plugins.HasProvisioner(pc.Type) {
 					// This is not a very high-quality error, because really
-					// the caller of terraform.NewContext should've already
+					// the caller of mnptu.NewContext should've already
 					// done equivalent checks when doing plugin discovery.
 					// This is just to make sure we return a predictable
 					// error in a central place, rather than failing somewhere
@@ -401,7 +401,7 @@ func (c *Context) checkConfigDependencies(config *configs.Config) tfdiags.Diagno
 						tfdiags.Error,
 						"Missing required provisioner plugin",
 						fmt.Sprintf(
-							"This configuration requires provisioner plugin %q, which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running Terraform.",
+							"This configuration requires provisioner plugin %q, which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running mnptu.",
 							pc.Type,
 						),
 					))

@@ -9,25 +9,25 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 func TestStateHook_impl(t *testing.T) {
-	var _ terraform.Hook = new(StateHook)
+	var _ mnptu.Hook = new(StateHook)
 }
 
 func TestStateHook(t *testing.T) {
 	is := statemgr.NewTransientInMemory(nil)
-	var hook terraform.Hook = &StateHook{StateMgr: is}
+	var hook mnptu.Hook = &StateHook{StateMgr: is}
 
 	s := statemgr.TestFullInitialState()
 	action, err := hook.PostStateUpdate(s)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if action != terraform.HookActionContinue {
+	if action != mnptu.HookActionContinue {
 		t.Fatalf("bad: %v", action)
 	}
 	if !is.State().Equal(s) {
@@ -39,7 +39,7 @@ func TestStateHookStopping(t *testing.T) {
 	is := &testPersistentState{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &mnptu.Schemas{},
 		PersistInterval: 4 * time.Hour,
 		intermediatePersist: IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
@@ -51,7 +51,7 @@ func TestStateHookStopping(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from PostStateUpdate: %s", err)
 	}
-	if got, want := action, terraform.HookActionContinue; got != want {
+	if got, want := action, mnptu.HookActionContinue; got != want {
 		t.Fatalf("wrong hookaction %#v; want %#v", got, want)
 	}
 	if is.Written == nil || !is.Written.Equal(s) {
@@ -138,7 +138,7 @@ func TestStateHookCustomPersistRule(t *testing.T) {
 	is := &testPersistentStateThatRefusesToPersist{}
 	hook := &StateHook{
 		StateMgr:        is,
-		Schemas:         &terraform.Schemas{},
+		Schemas:         &mnptu.Schemas{},
 		PersistInterval: 4 * time.Hour,
 		intermediatePersist: IntermediateStatePersistInfo{
 			LastPersist: time.Now(),
@@ -150,7 +150,7 @@ func TestStateHookCustomPersistRule(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error from PostStateUpdate: %s", err)
 	}
-	if got, want := action, terraform.HookActionContinue; got != want {
+	if got, want := action, mnptu.HookActionContinue; got != want {
 		t.Fatalf("wrong hookaction %#v; want %#v", got, want)
 	}
 	if is.Written == nil || !is.Written.Equal(s) {
@@ -255,7 +255,7 @@ func (sm *testPersistentState) WriteState(state *states.State) error {
 	return nil
 }
 
-func (sm *testPersistentState) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentState) PersistState(schemas *mnptu.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}
@@ -281,7 +281,7 @@ func (sm *testPersistentStateThatRefusesToPersist) WriteState(state *states.Stat
 	return nil
 }
 
-func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *terraform.Schemas) error {
+func (sm *testPersistentStateThatRefusesToPersist) PersistState(schemas *mnptu.Schemas) error {
 	if schemas == nil {
 		return fmt.Errorf("no schemas")
 	}

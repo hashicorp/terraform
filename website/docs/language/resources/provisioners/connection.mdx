@@ -11,7 +11,7 @@ Most provisioners require access to the remote resource via SSH or WinRM and
 expect a nested `connection` block with details about how to connect.
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
-[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+[Declaring Provisioners](/mnptu/language/resources/provisioners/syntax) for more details.
 
 ## Connection Block
 
@@ -29,9 +29,9 @@ Since the SSH connection type is most often used with
 newly-created remote resources, validation of SSH host keys is disabled by
 default. If this is not acceptable, you can establish a separate mechanism for key distribution and explicitly set the `host_key` argument (details below) to verify against a specific key or signing CA.
 
--> **Note:** In Terraform 0.11 and earlier, providers could set default values
+-> **Note:** In mnptu 0.11 and earlier, providers could set default values
 for some connection settings, so that `connection` blocks could sometimes be
-omitted. This feature was removed in 0.12 in order to make Terraform's behavior
+omitted. This feature was removed in 0.12 in order to make mnptu's behavior
 more predictable.
 
 
@@ -84,12 +84,12 @@ The `connection` block supports the following arguments. Some arguments are only
 | `port` | Both| The port to connect to. | `22` for type `"ssh"`<br />`5985` for type `"winrm"` |
 | `timeout` | Both | The timeout to wait for the connection to become available. Should be provided as a string (e.g., `"30s"` or `"5m"`.) | `"5m"` |
 | `script_path` | Both | The path used to copy scripts meant for remote execution. Refer to [How Provisioners Execute Remote Scripts](#how-provisioners-execute-remote-scripts) below for more details. | (details below) |
-| `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). This takes preference over `password` if provided. | |
-| `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). | |
+| `private_key` | SSH | The contents of an SSH key to use for the connection. These can be loaded from a file on disk using [the `file` function](/mnptu/language/functions/file). This takes preference over `password` if provided. | |
+| `certificate` | SSH | The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `private_key`. These can be loaded from a file on disk using the [the `file` function](/mnptu/language/functions/file). | |
 | `agent` | SSH | Set to `false` to disable using `ssh-agent` to authenticate. On Windows the only supported SSH authentication agent is [Pageant](http://the.earth.li/\~sgtatham/putty/0.66/htmldoc/Chapter9.html#pageant). |   |
 | `agent_identity` | SSH | The preferred identity from the ssh agent for authentication. | |
 | `host_key` | SSH | The public key from the remote host or the signing CA, used to verify the connection. | |
-| `target_platform` | SSH | The target platform to connect to. Valid values are `"windows"` and `"unix"`. If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\terraform_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/terraform_%RAND%.ps1"` | `"unix"` |
+| `target_platform` | SSH | The target platform to connect to. Valid values are `"windows"` and `"unix"`. If the platform is set to `windows`, the default `script_path` is `c:\windows\temp\mnptu_%RAND%.cmd`, assuming [the SSH default shell](https://docs.microsoft.com/en-us/windows-server/administration/openssh/openssh_server_configuration#configuring-the-default-shell-for-openssh-in-windows) is `cmd.exe`. If the SSH default shell is PowerShell, set `script_path` to `"c:/windows/temp/mnptu_%RAND%.ps1"` | `"unix"` |
 | `https` | WinRM | Set to `true` to connect using HTTPS instead of HTTP. | |
 | `insecure` | WinRM | Set to `true` to skip validating the HTTPS certificate chain. | |
 | `use_ntlm` | WinRM | Set to `true` to use NTLM authentication rather than default (basic authentication), removing the requirement for basic authentication to be enabled within the target guest. Refer to [Authentication for Remote Connections](https://docs.microsoft.com/en-us/windows/win32/winrm/authentication-for-remote-connections) in the Windows App Development documentation for more details. | |
@@ -110,8 +110,8 @@ indirectly with a [bastion host](https://en.wikipedia.org/wiki/Bastion_host).
 | `bastion_port` | The port to use connect to the bastion host. | The value of the `port` field.|
 | `bastion_user`| The user for the connection to the bastion host. | The value of the `user` field. |
 | `bastion_password` | The password to use for the bastion host. | The value of the `password` field. |
-| `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/terraform/language/functions/file). | The value of the `private_key` field. |
-| `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/terraform/language/functions/file). |
+| `bastion_private_key` | The contents of an SSH key file to use for the bastion host. These can be loaded from a file on disk using [the `file` function](/mnptu/language/functions/file). | The value of the `private_key` field. |
+| `bastion_certificate` |  The contents of a signed CA Certificate. The certificate argument must be used in conjunction with a `bastion_private_key`. These can be loaded from a file on disk using the [the `file` function](/mnptu/language/functions/file). |
 
 ## Connection through a HTTP Proxy with SSH
 
@@ -139,19 +139,19 @@ some unusual situations, even though this is just an implementation detail
 in typical use.
 
 Most importantly, there must be a suitable location in the remote filesystem
-where the provisioner can create the script file. By default, Terraform
+where the provisioner can create the script file. By default, mnptu
 chooses a path containing a random number using the following patterns
 depending on how `target_platform` is set:
 
-* `"unix"`: `/tmp/terraform_%RAND%.sh`
-* `"windows"`: `C:/windows/temp/terraform_%RAND%.cmd`
+* `"unix"`: `/tmp/mnptu_%RAND%.sh`
+* `"windows"`: `C:/windows/temp/mnptu_%RAND%.cmd`
 
 In both cases above, the provisioner replaces the sequence `%RAND%` with
 some randomly-chosen decimal digits.
 
 Provisioners cannot react directly to remote environment variables such as
 `TMPDIR` or use functions like `mktemp` because they run on the system where
-Terraform is running, not on the remote system. Therefore if your remote
+mnptu is running, not on the remote system. Therefore if your remote
 system doesn't use the filesystem layout expected by these default paths
 then you can override it using the `script_path` option in your `connection`
 block:
@@ -159,7 +159,7 @@ block:
 ```hcl
 connection {
   # ...
-  script_path = "H:/terraform-temp/script_%RAND%.sh"
+  script_path = "H:/mnptu-temp/script_%RAND%.sh"
 }
 ```
 
@@ -169,7 +169,7 @@ between multiple provisioners running concurrently.
 
 If your target system is running Windows, we recommend using forward slashes
 instead of backslashes, despite the typical convention on Windows, because
-the Terraform language uses backslash as the quoted string escape character.
+the mnptu language uses backslash as the quoted string escape character.
 
 ### Executing Scripts using SSH/SCP
 
@@ -187,15 +187,15 @@ user by specifying a relative path:
 connection {
   type = "ssh"
   # ...
-  script_path = "terraform_provisioner_%RAND%.sh"
+  script_path = "mnptu_provisioner_%RAND%.sh"
 }
 ```
 
-!> **Warning:** In Terraform v1.0 and earlier, the built-in provisioners
+!> **Warning:** In mnptu v1.0 and earlier, the built-in provisioners
 incorrectly passed the `script_path` value to `scp` through a remote shell and
 thus allowed it to be subject to arbitrary shell expansion, and thus created an
-unintended opportunity for remote code execution. Terraform v1.1 and later
+unintended opportunity for remote code execution. mnptu v1.1 and later
 will now correctly quote and escape the script path to ensure that the
 remote `scp` process can always interpret it literally. For modules that will
-be used with Terraform v1.0 and earlier, avoid using untrusted external
+be used with mnptu v1.0 and earlier, avoid using untrusted external
 values as part of the `script_path` argument.

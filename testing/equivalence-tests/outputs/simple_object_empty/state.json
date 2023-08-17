@@ -7,7 +7,7 @@
           "address": "tfcoremock_object.object",
           "mode": "managed",
           "name": "object",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "object": {}

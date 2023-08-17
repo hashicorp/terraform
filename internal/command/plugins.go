@@ -13,13 +13,13 @@ import (
 	plugin "github.com/hashicorp/go-plugin"
 	"github.com/kardianos/osext"
 
-	fileprovisioner "github.com/hashicorp/terraform/internal/builtin/provisioners/file"
-	localexec "github.com/hashicorp/terraform/internal/builtin/provisioners/local-exec"
-	remoteexec "github.com/hashicorp/terraform/internal/builtin/provisioners/remote-exec"
-	"github.com/hashicorp/terraform/internal/logging"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin"
-	"github.com/hashicorp/terraform/internal/plugin/discovery"
-	"github.com/hashicorp/terraform/internal/provisioners"
+	fileprovisioner "github.com/hashicorp/mnptu/internal/builtin/provisioners/file"
+	localexec "github.com/hashicorp/mnptu/internal/builtin/provisioners/local-exec"
+	remoteexec "github.com/hashicorp/mnptu/internal/builtin/provisioners/remote-exec"
+	"github.com/hashicorp/mnptu/internal/logging"
+	tfplugin "github.com/hashicorp/mnptu/internal/plugin"
+	"github.com/hashicorp/mnptu/internal/plugin/discovery"
+	"github.com/hashicorp/mnptu/internal/provisioners"
 )
 
 // NOTE WELL: The logic in this file is primarily about plugin types OTHER THAN
@@ -76,7 +76,7 @@ func (m *Meta) pluginDirs(includeAutoInstalled bool) []string {
 	// vendor dir(s).
 	dirs := []string{"."}
 
-	// Look in the same directory as the Terraform executable.
+	// Look in the same directory as the mnptu executable.
 	// If found, this replaces what we found in the config path.
 	exePath, err := osext.Executable()
 	if err != nil {

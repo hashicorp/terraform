@@ -6,7 +6,7 @@ package schema
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 // TestResourceDataRaw creates a ResourceData from a raw configuration map.
@@ -14,7 +14,7 @@ func TestResourceDataRaw(
 	t *testing.T, schema map[string]*Schema, raw map[string]interface{}) *ResourceData {
 	t.Helper()
 
-	c := terraform.NewResourceConfigRaw(raw)
+	c := mnptu.NewResourceConfigRaw(raw)
 
 	sm := schemaMap(schema)
 	diff, err := sm.Diff(nil, c, nil, nil, true)

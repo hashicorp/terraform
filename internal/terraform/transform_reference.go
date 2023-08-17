@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/lang"
 )
 
 // GraphNodeReferenceable must be implemented by any node that represents
-// a Terraform thing that can be referenced (resource, module, etc.).
+// a mnptu thing that can be referenced (resource, module, etc.).
 //
 // Even if the thing has no name, this should return an empty list. By
 // implementing this and returning a non-nil result, you say that this CAN
@@ -32,7 +32,7 @@ type GraphNodeReferenceable interface {
 }
 
 // GraphNodeReferencer must be implemented by nodes that reference other
-// Terraform items and therefore depend on them.
+// mnptu items and therefore depend on them.
 type GraphNodeReferencer interface {
 	GraphNodeModulePath
 

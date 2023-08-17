@@ -1,7 +1,7 @@
-Terraform v0.11.7
+mnptu v0.11.7
 
 Configuring remote state backend...
-Initializing Terraform configuration...
+Initializing mnptu configuration...
 
 Error: null_resource.foo: 1 error(s) occurred:
 

@@ -5,7 +5,7 @@ provider alpha {
 resource beta_resource b {}
 resource gamma_resource g {}
 
-terraform {
+mnptu {
   required_providers {
     alpha = {
       source = "acme/alpha"

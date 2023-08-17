@@ -1,9 +1,9 @@
-terraform {
+mnptu {
   required_providers {
     nonexist = {
-      source = "terraform.io/builtin/nonexist"
+      source = "mnptu.io/builtin/nonexist"
     }
-    terraform = {
+    mnptu = {
       version = "1.2.0"
     }
   }

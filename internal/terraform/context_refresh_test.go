@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"reflect"
@@ -13,12 +13,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestContext2Refresh(t *testing.T) {
@@ -33,7 +33,7 @@ func TestContext2Refresh(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo","foo":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -256,10 +256,10 @@ func TestContext2Refresh_targeted(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me", `{"id":"i-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	m := testModule(t, "refresh-targeted")
 	ctx := testContext2(t, &ContextOpts{
@@ -336,12 +336,12 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
@@ -426,12 +426,12 @@ func TestContext2Refresh_targetedCountIndex(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_vpc.metoo", `{"id":"vpc-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.notme", `{"id":"i-bcd345"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[0]", `{"id":"i-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[1]", `{"id":"i-cde567"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.me[2]", `{"id":"i-cde789"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_elb.meneither", `{"id":"lb-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	m := testModule(t, "refresh-targeted-count")
 	ctx := testContext2(t, &ContextOpts{
@@ -506,7 +506,7 @@ func TestContext2Refresh_delete(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -560,7 +560,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Hooks: []Hook{h},
@@ -586,9 +586,9 @@ func TestContext2Refresh_modules(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
-	testSetResourceInstanceCurrent(child, "aws_instance.web", `{"id":"baz"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(child, "aws_instance.web", `{"id":"baz"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -720,7 +720,7 @@ func TestContext2Refresh_output(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo","foo":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo","foo":"bar"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 	root.SetOutputValue("foo", cty.StringVal("foo"), false)
 
 	ctx := testContext2(t, &ContextOpts{
@@ -769,7 +769,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -795,7 +795,7 @@ func TestContext2Refresh_stateBasic(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -988,7 +988,7 @@ func TestContext2Refresh_dataStateRefData(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(s.String())
-	expected := strings.TrimSpace(testTerraformRefreshDataRefDataStr)
+	expected := strings.TrimSpace(testmnptuRefreshDataRefDataStr)
 	if actual != expected {
 		t.Fatalf("wrong result\n\ngot:\n%s\n\nwant:\n%s", actual, expected)
 	}
@@ -1000,7 +1000,7 @@ func TestContext2Refresh_tainted(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceTainted(root, "aws_instance.web", `{"id":"bar"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1041,7 +1041,7 @@ func TestContext2Refresh_unknownProvider(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	c, diags := NewContext(&ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{},
@@ -1082,7 +1082,7 @@ func TestContext2Refresh_vars(t *testing.T) {
 	m := testModule(t, "refresh-vars")
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.web", `{"id":"foo"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1163,7 +1163,7 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 				{Module: addrs.Module{"module.child"}},
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	child := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey))
 	child.SetResourceInstanceCurrent(
@@ -1173,10 +1173,10 @@ func TestContext2Refresh_orphanModule(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"i-bcd23"}`),
 			Dependencies: []addrs.ConfigResource{{Module: addrs.Module{"module.grandchild"}}},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	grandchild := state.EnsureModule(addrs.RootModuleInstance.Child("child", addrs.NoKey).Child("grandchild", addrs.NoKey))
-	testSetResourceInstanceCurrent(grandchild, "aws_instance.baz", `{"id":"i-cde345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(grandchild, "aws_instance.baz", `{"id":"i-cde345"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1237,7 +1237,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"foo"}`, `provider["registry.terraform.io/hashicorp/aws"].baz`)
+	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"foo"}`, `provider["registry.mnptu.io/hashicorp/aws"].baz`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1248,7 +1248,7 @@ func TestContext2Refresh_updateProviderInState(t *testing.T) {
 	expected := strings.TrimSpace(`
 aws_instance.bar:
   ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"].foo`)
+  provider = provider["registry.mnptu.io/hashicorp/aws"].foo`)
 
 	s, diags := ctx.Refresh(m, state, &PlanOpts{Mode: plans.NormalMode})
 	if diags.HasErrors() {
@@ -1336,7 +1336,7 @@ func TestContext2Refresh_schemaUpgradeFlatmap(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   name = foo
 `)
 		if got != want {
@@ -1416,7 +1416,7 @@ func TestContext2Refresh_schemaUpgradeJSON(t *testing.T) {
 		want := strings.TrimSpace(`
 test_thing.bar:
   ID = 
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   name = foo
 `)
 		if got != want {
@@ -1490,7 +1490,7 @@ func TestContext2Refresh_dataResourceDependsOn(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "test_resource.a", `{"id":"a"}`, `provider["registry.terraform.io/hashicorp/test"]`)
+	testSetResourceInstanceCurrent(root, "test_resource.a", `{"id":"a"}`, `provider["registry.mnptu.io/hashicorp/test"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{

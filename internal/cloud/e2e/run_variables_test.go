@@ -8,12 +8,12 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
-	tfversion "github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
-func terraformConfigRequiredVariable(org, name string) string {
+func mnptuConfigRequiredVariable(org, name string) string {
 	return fmt.Sprintf(`
-terraform {
+mnptu {
   cloud {
     hostname = "%s"
     organization = "%s"
@@ -46,7 +46,7 @@ output "test_env" {
 func Test_cloud_run_variables(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	cases := testCases{
 		"run variables from CLI arg": {
@@ -56,15 +56,15 @@ func Test_cloud_run_variables(t *testing.T) {
 						wsName := "new-workspace"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String(wsName),
-							TerraformVersion: tfe.String(tfversion.String()),
+							mnptuVersion: tfe.String(tfversion.String()),
 						})
-						tfBlock := terraformConfigRequiredVariable(orgName, wsName)
+						tfBlock := mnptuConfigRequiredVariable(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"plan", "-var", "foo=bar"},

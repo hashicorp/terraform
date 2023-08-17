@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // MockSource is an in-memory-only, statically-configured source intended for
@@ -135,8 +135,8 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 
 		// Some fake but somewhat-realistic-looking other metadata. This
 		// points nowhere, so will fail if attempting to actually use it.
-		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
-		Location: PackageHTTPURL(fmt.Sprintf("https://fake.invalid/terraform-provider-%s_%s.zip", provider.Type, version.String())),
+		Filename: fmt.Sprintf("mnptu-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+		Location: PackageHTTPURL(fmt.Sprintf("https://fake.invalid/mnptu-provider-%s_%s.zip", provider.Type, version.String())),
 	}
 }
 
@@ -145,7 +145,7 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 //
 // Installing it will not produce a working provider though: just a fake file
 // posing as an executable. The filename for the executable defaults to the
-// standard terraform-provider-NAME_X.Y.Z format, but can be overridden with
+// standard mnptu-provider-NAME_X.Y.Z format, but can be overridden with
 // the execFilename argument.
 //
 // It's the caller's responsibility to call the close callback returned
@@ -153,7 +153,7 @@ func FakePackageMeta(provider addrs.Provider, version Version, protocols Version
 // should call the callback even if this function returns an error, because
 // some error conditions leave a partially-created file on disk.
 func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protocols VersionList, target Platform, execFilename string) (PackageMeta, func(), error) {
-	f, err := ioutil.TempFile("", "terraform-getproviders-fake-package-")
+	f, err := ioutil.TempFile("", "mnptu-getproviders-fake-package-")
 	if err != nil {
 		return PackageMeta{}, func() {}, err
 	}
@@ -166,7 +166,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 	}
 
 	if execFilename == "" {
-		execFilename = fmt.Sprintf("terraform-provider-%s_%s", provider.Type, version.String())
+		execFilename = fmt.Sprintf("mnptu-provider-%s_%s", provider.Type, version.String())
 		if target.OS == "windows" {
 			// For a little more (technically unnecessary) realism...
 			execFilename += ".exe"
@@ -205,7 +205,7 @@ func FakeInstallablePackageMeta(provider addrs.Provider, version Version, protoc
 		// intends to use it to name a local copy of the temporary file.
 		// (At the time of writing, no caller actually does that, but who
 		// knows what the future holds?)
-		Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
+		Filename: fmt.Sprintf("mnptu-provider-%s_%s_%s.zip", provider.Type, version.String(), target.String()),
 
 		Authentication: NewArchiveChecksumAuthentication(target, checksum),
 	}

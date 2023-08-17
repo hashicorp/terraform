@@ -13,16 +13,16 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/jsonchecks"
-	"github.com/hashicorp/terraform/internal/command/jsonconfig"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/jsonchecks"
+	"github.com/hashicorp/mnptu/internal/command/jsonconfig"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // FormatVersion represents the version of the json format and will be
@@ -50,7 +50,7 @@ const (
 // the complete config and current state.
 type Plan struct {
 	FormatVersion    string      `json:"format_version,omitempty"`
-	TerraformVersion string      `json:"terraform_version,omitempty"`
+	mnptuVersion string      `json:"mnptu_version,omitempty"`
 	Variables        Variables   `json:"variables,omitempty"`
 	PlannedValues    StateValues `json:"planned_values,omitempty"`
 	// ResourceDrift and ResourceChanges are sorted in a user-friendly order
@@ -171,7 +171,7 @@ type Variable struct {
 // the part of the plan required by the jsonformat.Plan renderer.
 func MarshalForRenderer(
 	p *plans.Plan,
-	schemas *terraform.Schemas,
+	schemas *mnptu.Schemas,
 ) (map[string]Change, []ResourceChange, []ResourceChange, []ResourceAttr, error) {
 	output := newPlan()
 
@@ -218,10 +218,10 @@ func MarshalForLog(
 	config *configs.Config,
 	p *plans.Plan,
 	sf *statefile.File,
-	schemas *terraform.Schemas,
+	schemas *mnptu.Schemas,
 ) (*Plan, error) {
 	output := newPlan()
-	output.TerraformVersion = version.String()
+	output.mnptuVersion = version.String()
 	output.Timestamp = p.Timestamp.Format(time.RFC3339)
 	output.Errored = p.Errored
 
@@ -297,12 +297,12 @@ func MarshalForLog(
 	return output, nil
 }
 
-// Marshal returns the json encoding of a terraform plan.
+// Marshal returns the json encoding of a mnptu plan.
 func Marshal(
 	config *configs.Config,
 	p *plans.Plan,
 	sf *statefile.File,
-	schemas *terraform.Schemas,
+	schemas *mnptu.Schemas,
 ) ([]byte, error) {
 	output, err := MarshalForLog(config, p, sf, schemas)
 	if err != nil {
@@ -329,13 +329,13 @@ func (p *Plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 		}
 	}
 
-	// In Terraform v1.1 and earlier we had some confusion about which subsystem
-	// of Terraform was the one responsible for substituting in default values
+	// In mnptu v1.1 and earlier we had some confusion about which subsystem
+	// of mnptu was the one responsible for substituting in default values
 	// for unset module variables, with root module variables being handled in
 	// three different places while child module variables were only handled
-	// during the Terraform Core graph walk.
+	// during the mnptu Core graph walk.
 	//
-	// For Terraform v1.2 and later we rationalized that by having the Terraform
+	// For mnptu v1.2 and later we rationalized that by having the mnptu
 	// Core graph walk always be responsible for selecting defaults regardless
 	// of root vs. child module, but unfortunately our earlier accidental
 	// misbehavior bled out into the public interface by making the defaults
@@ -372,7 +372,7 @@ func (p *Plan) marshalPlanVariables(vars map[string]plans.DynamicValue, decls ma
 // This function is referenced directly from the structured renderer tests, to
 // ensure parity between the renderers. It probably shouldn't be used anywhere
 // else.
-func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *terraform.Schemas) ([]ResourceChange, error) {
+func MarshalResourceChanges(resources []*plans.ResourceInstanceChangeSrc, schemas *mnptu.Schemas) ([]ResourceChange, error) {
 	var ret []ResourceChange
 
 	var sortedResources []*plans.ResourceInstanceChangeSrc
@@ -654,7 +654,7 @@ func MarshalOutputChanges(changes *plans.Changes) (map[string]Change, error) {
 	return outputChanges, nil
 }
 
-func (p *Plan) marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) error {
+func (p *Plan) marshalPlannedValues(changes *plans.Changes, schemas *mnptu.Schemas) error {
 	// marshal the planned changes into a module
 	plan, err := marshalPlannedValues(changes, schemas)
 	if err != nil {

@@ -1,7 +1,7 @@
-# Terraform Resource Instance Change Lifecycle
+# mnptu Resource Instance Change Lifecycle
 
 This document describes the relationships between the different operations
-called on a Terraform Provider to handle a change to a resource instance.
+called on a mnptu Provider to handle a change to a resource instance.
 
 ![](https://user-images.githubusercontent.com/20180/172506401-777597dc-3e6e-411d-9580-b192fd34adba.png)
 
@@ -28,18 +28,18 @@ The various object values used in different parts of this process are:
 * **Prior State**: The provider's representation of the current state of the
   remote object at the time of the most recent read.
 
-* **Proposed New State**: Terraform Core uses some built-in logic to perform
+* **Proposed New State**: mnptu Core uses some built-in logic to perform
   an initial basic merger of the **Configuration** and the **Prior State**
   which a provider may use as a starting point for its planning operation.
 
     The built-in logic primarily deals with the expected behavior for attributes
     marked in the schema as "computed". If an attribute is only "computed",
-    Terraform expects the value to only be chosen by the provider and it will
+    mnptu expects the value to only be chosen by the provider and it will
     preserve any Prior State. If an attribute is marked as "computed" and
     "optional", this means that the user may either set it or may leave it
     unset to allow the provider to choose a value.
 
-    Terraform Core therefore constructs the proposed new state by taking the
+    mnptu Core therefore constructs the proposed new state by taking the
     attribute value from Configuration if it is non-null, and then using the
     Prior State as a fallback otherwise, thereby helping a provider to
     preserve its previously-chosen value for the attribute where appropriate.
@@ -55,7 +55,7 @@ The various object values used in different parts of this process are:
     must mark these by including unknown values in the state objects.
 
     The distinction between the _Initial_ and _Final_ planned states is that
-    the initial one is created during Terraform Core's planning phase based
+    the initial one is created during mnptu Core's planning phase based
     on a possibly-incomplete configuration, whereas the final one is created
     during the apply step once all of the dependencies have already been
     updated and so the configuration should then be wholly known.
@@ -67,9 +67,9 @@ The various object values used in different parts of this process are:
     actual state of the system, rather than a hypothetical future state.
 
 * **Previous Run State** is the same object as the **New State** from
-  the previous run of Terraform. This is exactly what the provider most
+  the previous run of mnptu. This is exactly what the provider most
   recently returned, and so it will not take into account any changes that
-  may have been made outside of Terraform in the meantime, and it may conform
+  may have been made outside of mnptu in the meantime, and it may conform
   to an earlier version of the resource type schema and therefore be
   incompatible with the _current_ schema.
 
@@ -77,22 +77,22 @@ The various object values used in different parts of this process are:
   provider-specified logic to upgrade the existing data to the latest schema.
   However, it still represents the remote system as it was at the end of the
   last run, and so still doesn't take into account any changes that may have
-  been made outside of Terraform.
+  been made outside of mnptu.
 
 * The **Import ID** and **Import Stub State** are both details of the special
-  process of importing pre-existing objects into a Terraform state, and so
+  process of importing pre-existing objects into a mnptu state, and so
   we'll wait to discuss those in a later section on importing.
 
 
 ## Provider Protocol API Functions
 
 The following sections describe the three provider API functions that are
-called to plan and apply a change, including the expectations Terraform Core
+called to plan and apply a change, including the expectations mnptu Core
 enforces for each.
 
-For historical reasons, the original Terraform SDK is exempt from error
+For historical reasons, the original mnptu SDK is exempt from error
 messages produced when certain assumptions are violated, but violating them
-will often cause downstream errors nonetheless, because Terraform's workflow
+will often cause downstream errors nonetheless, because mnptu's workflow
 depends on these contracts being met.
 
 The following section uses the word "attribute" to refer to the named
@@ -116,7 +116,7 @@ expressed via schema alone.
 
 In principle a provider can make any rule it wants here, although in practice
 providers should typically avoid reporting errors for values that are unknown.
-Terraform Core will call this function multiple times at different phases
+mnptu Core will call this function multiple times at different phases
 of evaluation, and guarantees to _eventually_ call with a wholly-known
 configuration so that the provider will have an opportunity to belatedly catch
 problems related to values that are initially unknown during planning.
@@ -133,7 +133,7 @@ modify the user's supplied configuration.
 ### PlanResourceChange
 
 The purpose of `PlanResourceChange` is to predict the approximate effect of
-a subsequent apply operation, allowing Terraform to render the plan for the
+a subsequent apply operation, allowing mnptu to render the plan for the
 user and to propagate the predictable subset of results downstream through
 expressions in the configuration.
 
@@ -159,20 +159,20 @@ following constraints:
 
 `PlanResourceChange` is actually called twice per run for each resource type.
 
-The first call is during the planning phase, before Terraform prints out a
+The first call is during the planning phase, before mnptu prints out a
 diff to the user for confirmation. Because no changes at all have been applied
 at that point, the given **Configuration** may contain unknown values as
 placeholders for the results of expressions that derive from unknown values
 of other resource instances. The result of this initial call is the
 **Initial Planned State**.
 
-If the user accepts the plan, Terraform will call `PlanResourceChange` a
+If the user accepts the plan, mnptu will call `PlanResourceChange` a
 second time during the apply step, and that call is guaranteed to have a
 wholly-known **Configuration** with any values from upstream dependencies
 taken into account already. The result of this second call is the
 **Final Planned State**.
 
-Terraform Core compares the final with the initial planned state, enforcing
+mnptu Core compares the final with the initial planned state, enforcing
 the following additional constraints along with those listed above:
 
 * Any attribute that had a known value in the **Initial Planned State** must
@@ -213,49 +213,49 @@ constraints:
 
 After calling `ApplyResourceChange` for each resource instance in the plan,
 and dealing with any other bookkeeping to return the results to the user,
-a single Terraform run is complete. Terraform Core saves the **New State**
+a single mnptu run is complete. mnptu Core saves the **New State**
 in a state snapshot for the entire configuration, so it'll be preserved for
 use on the next run.
 
-When the user subsequently runs Terraform again, the **New State** becomes
+When the user subsequently runs mnptu again, the **New State** becomes
 the **Previous Run State** verbatim, and passes into `UpgradeResourceState`.
 
 ### UpgradeResourceState
 
 Because the state values for a particular resource instance persist in a
-saved state snapshot from one run to the next, Terraform Core must deal with
+saved state snapshot from one run to the next, mnptu Core must deal with
 the possibility that the user has upgraded to a newer version of the provider
 since the last run, and that the new provider version has an incompatible
 schema for the relevant resource type.
 
-Terraform Core therefore begins by calling `UpgradeResourceState` and passing
+mnptu Core therefore begins by calling `UpgradeResourceState` and passing
 the **Previous Run State** in a _raw_ form, which in current protocol versions
-is the raw JSON data structure as was stored in the state snapshot. Terraform
+is the raw JSON data structure as was stored in the state snapshot. mnptu
 Core doesn't have access to the previous schema versions for a provider's
 resource types, so the provider itself must handle the data decoding in this
 upgrade function.
 
 The provider can then use whatever logic is appropriate to update the shape
 of the data to conform to the current schema for the resource type. Although
-Terraform Core has no way to enforce it, a provider should only change the
+mnptu Core has no way to enforce it, a provider should only change the
 shape of the data structure and should _not_ change the meaning of the data.
 In particular, it should not try to update the state data to capture any
-changes made to the corresponding remote object outside of Terraform.
+changes made to the corresponding remote object outside of mnptu.
 
 This function then returns the **Upgraded State**, which captures the same
 information as the **Previous Run State** but does so in a way that conforms
 to the current version of the resource type schema, which therefore allows
-Terraform Core to interact with the data fully for subsequent steps.
+mnptu Core to interact with the data fully for subsequent steps.
 
 ### ReadResource
 
-Although Terraform typically expects to have exclusive control over any remote
+Although mnptu typically expects to have exclusive control over any remote
 object that is bound to a resource instance, in practice users may make changes
-to those objects outside of Terraform, causing Terraform's records of the
+to those objects outside of mnptu, causing mnptu's records of the
 object to become stale.
 
 The `ReadResource` function asks the provider to make a best effort to detect
-any such external changes and describe them so that Terraform Core can use
+any such external changes and describe them so that mnptu Core can use
 an up-to-date **Prior State** as the input to the next `PlanResourceChange`
 call.
 
@@ -266,7 +266,7 @@ a provider might not be able to detect certain changes. For example:
 * There may be new features of the underlying API which the current provider
   version doesn't know how to ask about.
 
-Terraform Core expects a provider to carefully distinguish between the
+mnptu Core expects a provider to carefully distinguish between the
 following two situations for each attribute:
 * **Normalization**: the remote API has returned some data in a different form
   than was recorded in the **Previous Run State**, but the meaning is unchanged.
@@ -282,8 +282,8 @@ following two situations for each attribute:
 
     In this case, the provider should return the value from the remote system,
     thereby discarding the value from the **Previous Run State**. When a
-    provider does this, Terraform _may_ report it to the user as a change
-    made outside of Terraform, if Terraform Core determined that the detected
+    provider does this, mnptu _may_ report it to the user as a change
+    made outside of mnptu, if mnptu Core determined that the detected
     change was a possible cause of another planned action for a downstream
     resource instance.
 
@@ -296,7 +296,7 @@ over again.
 Nested blocks are a configuration-only construct and so the number of blocks
 cannot be changed on the fly during planning or during apply: each block
 represented in the configuration must have a corresponding nested object in
-the planned new state and new state, or Terraform Core will raise an error.
+the planned new state and new state, or mnptu Core will raise an error.
 
 If a provider wishes to report about new instances of the sub-object type
 represented by nested blocks that are created implicitly during the apply
@@ -315,12 +315,12 @@ follow the same rules as for a nested block type of the same nesting mode.
 ## Import Behavior
 
 The main resource instance change lifecycle is concerned with objects whose
-entire lifecycle is driven through Terraform, including the initial creation
+entire lifecycle is driven through mnptu, including the initial creation
 of the object.
 
-As an aid to those who are adopting Terraform as a replacement for existing
-processes or software, Terraform also supports adopting pre-existing objects
-to bring them under Terraform's management without needing to recreate them
+As an aid to those who are adopting mnptu as a replacement for existing
+processes or software, mnptu also supports adopting pre-existing objects
+to bring them under mnptu's management without needing to recreate them
 first.
 
 When using this facility, the user provides the address of the resource
@@ -331,7 +331,7 @@ by the provider on a per-resource-type basis, which we'll call the
 
 The import process trades the user's **Import ID** for a special
 **Import Stub State**, which behaves as a placeholder for the
-**Previous Run State** pretending as if a previous Terraform run is what had
+**Previous Run State** pretending as if a previous mnptu run is what had
 created the object.
 
 ### ImportResourceState
@@ -340,7 +340,7 @@ The `ImportResourceState` operation takes the user's given **Import ID** and
 uses it to verify that the given object exists and, if so, to retrieve enough
 data about it to produce the **Import Stub State**.
 
-Terraform Core will always pass the returned **Import Stub State** to the
+mnptu Core will always pass the returned **Import Stub State** to the
 normal `ReadResource` operation after `ImportResourceState` returns it, so
 in practice the provider may populate only the minimal subset of attributes
 that `ReadResource` will need to do its work, letting the normal function
@@ -348,7 +348,7 @@ deal with populating the rest of the data to match what is currently set in
 the remote system.
 
 For the same reasons that `ReadResource` is only a _best effort_ at detecting
-changes outside of Terraform, a provider may not be able to fully support
+changes outside of mnptu, a provider may not be able to fully support
 importing for all resource types. In that case, the provider developer must
 choose between the following options:
 
@@ -364,9 +364,9 @@ choose between the following options:
 * Return an error explaining why importing isn't possible.
 
     This is a last resort because of course it will then leave the user unable
-    to bring the existing object under Terraform's management. However, if a
+    to bring the existing object under mnptu's management. However, if a
     particular object's design doesn't suit importing then it can be a better
     user experience to be clear and honest that the user must replace the object
-    as part of adopting Terraform, rather than to perform an import that will
-    leave the object in a situation where Terraform cannot meaningfully manage
+    as part of adopting mnptu, rather than to perform an import that will
+    leave the object in a situation where mnptu cannot meaningfully manage
     it.

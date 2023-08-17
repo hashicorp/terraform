@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 	"github.com/mitchellh/cli"
 )
 
@@ -40,10 +40,10 @@ func TestProvidersLock(t *testing.T) {
 	// This test depends on the -fs-mirror argument, so we always know what results to expect
 	t.Run("basic", func(t *testing.T) {
 		testDirectory := "providers-lock/basic"
-		expected := `# This file is maintained automatically by "terraform init".
+		expected := `# This file is maintained automatically by "mnptu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/hashicorp/test" {
+provider "registry.mnptu.io/hashicorp/test" {
   version = "1.0.0"
   hashes = [
     "h1:7MjN4eFisdTv4tlhXH5hL4QQd39Jy4baPhFxwAd/EFE=",
@@ -56,10 +56,10 @@ provider "registry.terraform.io/hashicorp/test" {
 	// This test depends on the -fs-mirror argument, so we always know what results to expect
 	t.Run("append", func(t *testing.T) {
 		testDirectory := "providers-lock/append"
-		expected := `# This file is maintained automatically by "terraform init".
+		expected := `# This file is maintained automatically by "mnptu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/hashicorp/test" {
+provider "registry.mnptu.io/hashicorp/test" {
   version = "1.0.0"
   hashes = [
     "h1:7MjN4eFisdTv4tlhXH5hL4QQd39Jy4baPhFxwAd/EFE=",
@@ -79,8 +79,8 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 	// Our fixture dir has a generic os_arch dir, which we need to customize
 	// to the actual OS/arch where this test is running in order to get the
 	// desired result.
-	fixtMachineDir := filepath.Join(td, "fs-mirror/registry.terraform.io/hashicorp/test/1.0.0/os_arch")
-	wantMachineDir := filepath.Join(td, "fs-mirror/registry.terraform.io/hashicorp/test/1.0.0/", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
+	fixtMachineDir := filepath.Join(td, "fs-mirror/registry.mnptu.io/hashicorp/test/1.0.0/os_arch")
+	wantMachineDir := filepath.Join(td, "fs-mirror/registry.mnptu.io/hashicorp/test/1.0.0/", fmt.Sprintf("%s_%s", runtime.GOOS, runtime.GOARCH))
 	err := os.Rename(fixtMachineDir, wantMachineDir)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
@@ -101,7 +101,7 @@ func runProviderLockGenericTest(t *testing.T, testDirectory, expected string) {
 		t.Fatalf("wrong exit code; expected 0, got %d", code)
 	}
 
-	lockfile, err := os.ReadFile(".terraform.lock.hcl")
+	lockfile, err := os.ReadFile(".mnptu.lock.hcl")
 	if err != nil {
 		t.Fatal("error reading lockfile")
 	}
@@ -174,7 +174,7 @@ func TestProvidersLock_args(t *testing.T) {
 			t.Fatalf("wrong exit code; expected 1, got %d", code)
 		}
 		output := ui.ErrorWriter.String()
-		if !strings.Contains(output, "The provider registry.terraform.io/hashicorp/random is not required by the\ncurrent configuration.") {
+		if !strings.Contains(output, "The provider registry.mnptu.io/hashicorp/random is not required by the\ncurrent configuration.") {
 			t.Fatalf("missing expected error message: %s", output)
 		}
 	})

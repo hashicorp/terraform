@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestProvisioner_impl(t *testing.T) {
-	var _ terraform.ResourceProvisioner = new(Provisioner)
+	var _ mnptu.ResourceProvisioner = new(Provisioner)
 }
 
 func noopApply(ctx context.Context) error {
@@ -114,7 +114,7 @@ func TestProvisionerValidate(t *testing.T) {
 			P: &Provisioner{
 				Schema:    nil,
 				ApplyFunc: noopApply,
-				ValidateFunc: func(*terraform.ResourceConfig) (ws []string, errors []error) {
+				ValidateFunc: func(*mnptu.ResourceConfig) (ws []string, errors []error) {
 					ws = append(ws, "Simple warning from provisioner ValidateFunc")
 					return
 				},
@@ -127,7 +127,7 @@ func TestProvisionerValidate(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c := terraform.NewResourceConfigRaw(tc.Config)
+			c := mnptu.NewResourceConfigRaw(tc.Config)
 			ws, es := tc.P.Validate(c)
 			if len(es) > 0 != tc.Err {
 				t.Fatalf("%d: %#v %s", i, es, es)
@@ -189,10 +189,10 @@ func TestProvisionerApply(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(fmt.Sprintf("%d-%s", i, tc.Name), func(t *testing.T) {
-			c := terraform.NewResourceConfigRaw(tc.Config)
+			c := mnptu.NewResourceConfigRaw(tc.Config)
 
-			state := &terraform.InstanceState{
-				Ephemeral: terraform.EphemeralState{
+			state := &mnptu.InstanceState{
+				Ephemeral: mnptu.EphemeralState{
 					ConnInfo: tc.Conn,
 				},
 			}
@@ -230,7 +230,7 @@ func TestProvisionerApply_nilState(t *testing.T) {
 		"foo": 42,
 	}
 
-	c := terraform.NewResourceConfigRaw(conf)
+	c := mnptu.NewResourceConfigRaw(conf)
 	err := p.Apply(nil, nil, c)
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -290,9 +290,9 @@ func TestProvisionerStop_apply(t *testing.T) {
 		"foo": 42,
 	}
 
-	c := terraform.NewResourceConfigRaw(conf)
-	state := &terraform.InstanceState{
-		Ephemeral: terraform.EphemeralState{
+	c := mnptu.NewResourceConfigRaw(conf)
+	state := &mnptu.InstanceState{
+		Ephemeral: mnptu.EphemeralState{
 			ConnInfo: conn,
 		},
 	}

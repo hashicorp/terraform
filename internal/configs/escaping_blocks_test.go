@@ -22,7 +22,7 @@ import (
 // out as something special and rare.
 //
 // This is not something we expect to see used a lot, but it's an important
-// part of our strategy to evolve the Terraform language in future using
+// part of our strategy to evolve the mnptu language in future using
 // editions, so that later editions can define new meta-arguments without
 // blocking access to externally-defined arguments of the same name.
 //

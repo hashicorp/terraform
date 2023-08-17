@@ -7,7 +7,7 @@
           "address": "null_resource.null_resource",
           "mode": "managed",
           "name": "null_resource",
-          "provider_name": "registry.terraform.io/hashicorp/null",
+          "provider_name": "registry.mnptu.io/hashicorp/null",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "null_resource",

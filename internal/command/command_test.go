@@ -24,34 +24,34 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/disco"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/command/workdir"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/initwd"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
-	_ "github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/command/workdir"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
+	_ "github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // These are the directories for our test data and fixtures.
@@ -210,13 +210,13 @@ func testPlanFileMatchState(t *testing.T, configSnap *configload.Snapshot, state
 		Lineage:          stateMeta.Lineage,
 		Serial:           stateMeta.Serial,
 		State:            state,
-		TerraformVersion: version.SemVer,
+		mnptuVersion: version.SemVer,
 	}
 	prevStateFile := &statefile.File{
 		Lineage:          stateMeta.Lineage,
 		Serial:           stateMeta.Serial,
 		State:            state, // we just assume no changes detected during refresh
-		TerraformVersion: version.SemVer,
+		mnptuVersion: version.SemVer,
 	}
 
 	path := testTempFile(t)
@@ -523,8 +523,8 @@ func testStateOutput(t *testing.T, path string, expected string) {
 	}
 }
 
-func testProvider() *terraform.MockProvider {
-	p := new(terraform.MockProvider)
+func testProvider() *mnptu.MockProvider {
+	p := new(mnptu.MockProvider)
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) (resp providers.PlanResourceChangeResponse) {
 		resp.PlannedState = req.ProposedNewState
 		return resp
@@ -727,14 +727,14 @@ func testInputMap(t *testing.T, answers map[string]string) func() {
 // When using this function, the configuration fixture for the test must
 // include an empty configuration block for the HTTP backend, like this:
 //
-//	terraform {
+//	mnptu {
 //	  backend "http" {
 //	  }
 //	}
 //
 // If such a block isn't present, or if it isn't empty, then an error will
 // be returned about the backend configuration having changed and that
-// "terraform init" must be run, since the test backend config cache created
+// "mnptu init" must be run, since the test backend config cache created
 // by this function contains the hash for an empty configuration.
 func testBackendState(t *testing.T, s *states.State, c int) (*legacy.State, *httptest.Server) {
 	t.Helper()
@@ -979,7 +979,7 @@ func mustResourceAddr(s string) addrs.ConfigResource {
 var legacyProviderNamespaces = map[string]string{
 	"foo": "hashicorp",
 	"bar": "hashicorp",
-	"baz": "terraform-providers",
+	"baz": "mnptu-providers",
 	"qux": "hashicorp",
 }
 
@@ -999,7 +999,7 @@ func testServices(t *testing.T) (services *disco.Disco, cleanup func()) {
 	server := httptest.NewServer(http.HandlerFunc(fakeRegistryHandler))
 
 	services = disco.New()
-	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+	services.ForceHostServices(svchost.Hostname("registry.mnptu.io"), map[string]interface{}{
 		"providers.v1": server.URL + "/providers/v1/",
 	})
 
@@ -1081,8 +1081,8 @@ func testView(t *testing.T) (*views.View, func(*testing.T) *terminal.TestOutput)
 // checkGoldenReference compares the given test output with a known "golden" output log
 // located under the specified fixture path.
 //
-// If any of these tests fail, please communicate with Terraform Cloud folks before resolving,
-// as changes to UI output may also affect the behavior of Terraform Cloud's structured run output.
+// If any of these tests fail, please communicate with mnptu Cloud folks before resolving,
+// as changes to UI output may also affect the behavior of mnptu Cloud's structured run output.
 func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePathName string) {
 	t.Helper()
 
@@ -1111,7 +1111,7 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if len(gotLines) != len(wantLines) {
 		t.Errorf("unexpected number of log lines: got %d, want %d\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", len(gotLines), len(wantLines))
+			"Please communicate with mnptu Cloud team before resolving", len(gotLines), len(wantLines))
 	}
 
 	// Verify that the log starts with a version message
@@ -1119,7 +1119,7 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 		Level     string `json:"@level"`
 		Message   string `json:"@message"`
 		Type      string `json:"type"`
-		Terraform string `json:"terraform"`
+		mnptu string `json:"mnptu"`
 		UI        string `json:"ui"`
 	}
 	var gotVersion versionMessage
@@ -1128,7 +1128,7 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	}
 	wantVersion := versionMessage{
 		"info",
-		fmt.Sprintf("Terraform %s", version.String()),
+		fmt.Sprintf("mnptu %s", version.String()),
 		"version",
 		version.String(),
 		views.JSON_UI_VERSION,
@@ -1163,6 +1163,6 @@ func checkGoldenReference(t *testing.T, output *terminal.TestOutput, fixturePath
 	if diff := cmp.Diff(wantLineMaps, gotLineMaps); diff != "" {
 		t.Errorf("wrong output lines\n%s\n"+
 			"NOTE: This failure may indicate a UI change affecting the behavior of structured run output on TFC.\n"+
-			"Please communicate with Terraform Cloud team before resolving", diff)
+			"Please communicate with mnptu Cloud team before resolving", diff)
 	}
 }

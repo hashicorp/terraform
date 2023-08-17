@@ -2,7 +2,7 @@
   {
     "@level": "info",
     "@message": "null_resource.null_resource: Plan to create",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "create",
       "resource": {
@@ -20,7 +20,7 @@
   {
     "@level": "info",
     "@message": "null_resource.null_resource: Creating...",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "create",
       "resource": {
@@ -37,7 +37,7 @@
   },
   {
     "@level": "info",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "create",
       "elapsed_seconds": 0,
@@ -57,7 +57,7 @@
   {
     "@level": "info",
     "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "changes": {
       "add": 1,
       "change": 0,
@@ -69,7 +69,7 @@
   {
     "@level": "info",
     "@message": "Outputs: 0",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "outputs": {},
     "type": "outputs"
   }

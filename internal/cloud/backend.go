@@ -18,36 +18,36 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/disco"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
 )
 
 const (
-	defaultHostname    = "app.terraform.io"
+	defaultHostname    = "app.mnptu.io"
 	defaultParallelism = 10
 	tfeServiceID       = "tfe.v2"
-	headerSourceKey    = "X-Terraform-Integration"
+	headerSourceKey    = "X-mnptu-Integration"
 	headerSourceValue  = "cloud"
-	genericHostname    = "localterraform.com"
+	genericHostname    = "localmnptu.com"
 )
 
-// Cloud is an implementation of EnhancedBackend in service of the Terraform Cloud/Enterprise
-// integration for Terraform CLI. This backend is not intended to be surfaced at the user level and
+// Cloud is an implementation of EnhancedBackend in service of the mnptu Cloud/Enterprise
+// integration for mnptu CLI. This backend is not intended to be surfaced at the user level and
 // is instead an implementation detail of cloud.Cloud.
 type Cloud struct {
 	// CLI and Colorize control the CLI output. If CLI is nil then no CLI
@@ -56,27 +56,27 @@ type Cloud struct {
 	CLIColor *colorstring.Colorize
 
 	// ContextOpts are the base context options to set when initializing a
-	// new Terraform context. Many of these will be overridden or merged by
+	// new mnptu context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
-	ContextOpts *terraform.ContextOpts
+	ContextOpts *mnptu.ContextOpts
 
-	// client is the Terraform Cloud/Enterprise API client.
+	// client is the mnptu Cloud/Enterprise API client.
 	client *tfe.Client
 
 	// lastRetry is set to the last time a request was retried.
 	lastRetry time.Time
 
-	// hostname of Terraform Cloud or Terraform Enterprise
+	// hostname of mnptu Cloud or mnptu Enterprise
 	hostname string
 
-	// token for Terraform Cloud or Terraform Enterprise
+	// token for mnptu Cloud or mnptu Enterprise
 	token string
 
 	// organization is the organization that contains the target workspaces.
 	organization string
 
 	// WorkspaceMapping contains strategies for mapping CLI workspaces in the working directory
-	// to remote Terraform Cloud workspaces.
+	// to remote mnptu Cloud workspaces.
 	WorkspaceMapping WorkspaceMapping
 
 	// services is used for service discovery
@@ -85,7 +85,7 @@ type Cloud struct {
 	// renderer is used for rendering JSON plan output and streamed logs.
 	renderer *jsonformat.Renderer
 
-	// local allows local operations, where Terraform Cloud serves as a state storage backend.
+	// local allows local operations, where mnptu Cloud serves as a state storage backend.
 	local backend.Enhanced
 
 	// forceLocal, if true, will force the use of the local backend.
@@ -95,8 +95,8 @@ type Cloud struct {
 	opLock sync.Mutex
 
 	// ignoreVersionConflict, if true, will disable the requirement that the
-	// local Terraform version matches the remote workspace's configured
-	// version. This will also cause VerifyWorkspaceTerraformVersion to return
+	// local mnptu version matches the remote workspace's configured
+	// version. This will also cause VerifyWorkspacemnptuVersion to return
 	// a warning diagnostic instead of an error.
 	ignoreVersionConflict bool
 
@@ -244,7 +244,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		return diagErr
 	}
 
-	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
+	// Discover the service URL to confirm that it provides the mnptu Cloud/Enterprise API
 	service, err := b.discover()
 
 	// Check for errors before we continue.
@@ -281,7 +281,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
-		loginCommand := "terraform login"
+		loginCommand := "mnptu login"
 		if b.hostname != defaultHostname {
 			loginCommand = loginCommand + " " + b.hostname
 		}
@@ -317,10 +317,10 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Failed to create the Terraform Cloud/Enterprise client",
+				"Failed to create the mnptu Cloud/Enterprise client",
 				fmt.Sprintf(
 					`Encountered an unexpected error while creating the `+
-						`Terraform Cloud/Enterprise client: %s.`, err,
+						`mnptu Cloud/Enterprise client: %s.`, err,
 				),
 			))
 			return diags
@@ -356,7 +356,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
-	// Check for the minimum version of Terraform Enterprise required.
+	// Check for the minimum version of mnptu Enterprise required.
 	//
 	// For API versions prior to 2.3, RemoteAPIVersion will return an empty string,
 	// so if there's an error when parsing the RemoteAPIVersion, it's handled as
@@ -367,21 +367,21 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if parseErr != nil || currentAPIVersion.LessThan(desiredAPIVersion) {
 		log.Printf("[TRACE] API version check failed; want: >= %s, got: %s", desiredAPIVersion.Original(), currentAPIVersion)
 		if b.runningInAutomation {
-			// It should never be possible for this Terraform process to be mistakenly
-			// used internally within an unsupported Terraform Enterprise install - but
+			// It should never be possible for this mnptu process to be mistakenly
+			// used internally within an unsupported mnptu Enterprise install - but
 			// just in case it happens, give an actionable error.
 			diags = diags.Append(
 				tfdiags.Sourceless(
 					tfdiags.Error,
-					"Unsupported Terraform Enterprise version",
+					"Unsupported mnptu Enterprise version",
 					cloudIntegrationUsedInUnsupportedTFE,
 				),
 			)
 		} else {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Unsupported Terraform Enterprise version",
-				`The 'cloud' option is not supported with this version of Terraform Enterprise.`,
+				"Unsupported mnptu Enterprise version",
+				`The 'cloud' option is not supported with this version of mnptu Enterprise.`,
 			),
 			)
 		}
@@ -541,7 +541,7 @@ func (b *Cloud) Workspaces() ([]string, error) {
 		return names, nil
 	}
 
-	// Otherwise, multiple workspaces are being mapped. Query Terraform Cloud for all the remote
+	// Otherwise, multiple workspaces are being mapped. Query mnptu Cloud for all the remote
 	// workspaces by the provided mapping strategy.
 	options := &tfe.WorkspaceListOptions{}
 	if b.WorkspaceMapping.Strategy() == WorkspaceTagsStrategy {
@@ -631,7 +631,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		return nil, fmt.Errorf("Failed to retrieve workspace %s: %v", name, err)
 	}
 	if workspace != nil {
-		remoteTFVersion = workspace.TerraformVersion
+		remoteTFVersion = workspace.mnptuVersion
 	}
 
 	var configuredProject *tfe.Project
@@ -679,7 +679,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 					Name: b.WorkspaceMapping.Project,
 				}
 				// didn't find project, create it instead
-				log.Printf("[TRACE] cloud: Creating Terraform Cloud project %s/%s", b.organization, b.WorkspaceMapping.Project)
+				log.Printf("[TRACE] cloud: Creating mnptu Cloud project %s/%s", b.organization, b.WorkspaceMapping.Project)
 				project, err := b.client.Projects.Create(context.Background(), b.organization, createOpts)
 				if err != nil && err != tfe.ErrResourceNotFound {
 					return nil, fmt.Errorf("failed to create project %s: %v", b.WorkspaceMapping.Project, err)
@@ -690,19 +690,19 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		}
 
 		// Create a workspace
-		log.Printf("[TRACE] cloud: Creating Terraform Cloud workspace %s/%s", b.organization, name)
+		log.Printf("[TRACE] cloud: Creating mnptu Cloud workspace %s/%s", b.organization, name)
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, workspaceCreateOptions)
 		if err != nil {
 			return nil, fmt.Errorf("error creating workspace %s: %v", name, err)
 		}
 
-		remoteTFVersion = workspace.TerraformVersion
+		remoteTFVersion = workspace.mnptuVersion
 
-		// Attempt to set the new workspace to use this version of Terraform. This
+		// Attempt to set the new workspace to use this version of mnptu. This
 		// can fail if there's no enabled tool_version whose name matches our
 		// version string, but that's expected sometimes -- just warn and continue.
 		versionOptions := tfe.WorkspaceUpdateOptions{
-			TerraformVersion: tfe.String(tfversion.String()),
+			mnptuVersion: tfe.String(tfversion.String()),
 		}
 		_, err := b.client.Workspaces.UpdateByID(context.Background(), workspace.ID, versionOptions)
 		if err == nil {
@@ -713,9 +713,9 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 			// object to do a nicely formatted message, so we're just assuming the
 			// issue was that the version wasn't available since that's probably what
 			// happened.
-			log.Printf("[TRACE] cloud: Attempted to select version %s for TFC workspace; unavailable, so %s will be used instead.", tfversion.String(), workspace.TerraformVersion)
+			log.Printf("[TRACE] cloud: Attempted to select version %s for TFC workspace; unavailable, so %s will be used instead.", tfversion.String(), workspace.mnptuVersion)
 			if b.CLI != nil {
-				versionUnavailable := fmt.Sprintf(unavailableTerraformVersion, tfversion.String(), workspace.TerraformVersion)
+				versionUnavailable := fmt.Sprintf(unavailablemnptuVersion, tfversion.String(), workspace.mnptuVersion)
 				b.CLI.Output(b.Colorize().Color(versionUnavailable))
 			}
 		}
@@ -725,7 +725,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		options := tfe.WorkspaceAddTagsOptions{
 			Tags: b.WorkspaceMapping.tfeTags(),
 		}
-		log.Printf("[TRACE] cloud: Adding tags for Terraform Cloud workspace %s/%s", b.organization, name)
+		log.Printf("[TRACE] cloud: Adding tags for mnptu Cloud workspace %s/%s", b.organization, name)
 		err = b.client.Workspaces.AddTags(context.Background(), workspace.ID, options)
 		if err != nil {
 			return nil, fmt.Errorf("Error updating workspace %s: %v", name, err)
@@ -741,7 +741,7 @@ func (b *Cloud) StateMgr(name string) (statemgr.Full, error) {
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
 		if remoteTFVersion != tfversion.String() && remoteTFVersion != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", remoteTFVersion, tfversion.String())
+			return nil, fmt.Errorf("Remote workspace mnptu version %q does not match local mnptu version %q", remoteTFVersion, tfversion.String())
 		}
 	}
 
@@ -756,14 +756,14 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		return nil, err
 	}
 
-	// Terraform remote version conflicts are not a concern for operations. We
+	// mnptu remote version conflicts are not a concern for operations. We
 	// are in one of three states:
 	//
 	// - Running remotely, in which case the local version is irrelevant;
 	// - Workspace configured for local operations, in which case the remote
 	//   version is meaningless;
-	// - Forcing local operations, which should only happen in the Terraform Cloud worker, in
-	//   which case the Terraform versions by definition match.
+	// - Forcing local operations, which should only happen in the mnptu Cloud worker, in
+	//   which case the mnptu versions by definition match.
 	b.IgnoreVersionConflict()
 
 	// Check if we need to use the local backend to run the operation.
@@ -785,7 +785,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	case backend.OperationTypeApply:
 		f = b.opApply
 	case backend.OperationTypeRefresh:
-		// The `terraform refresh` command has been deprecated in favor of `terraform apply -refresh-state`.
+		// The `mnptu refresh` command has been deprecated in favor of `mnptu apply -refresh-state`.
 		// Rather than respond with an error telling the user to run the other command we can just run
 		// that command instead. We will tell the user what we are doing, and then do it.
 		if b.CLI != nil {
@@ -797,7 +797,7 @@ func (b *Cloud) Operation(ctx context.Context, op *backend.Operation) (*backend.
 		f = b.opApply
 	default:
 		return nil, fmt.Errorf(
-			"\n\nTerraform Cloud does not support the %q operation.", op.Type)
+			"\n\nmnptu Cloud does not support the %q operation.", op.Type)
 	}
 
 	// Lock
@@ -878,7 +878,7 @@ func (b *Cloud) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
 		if !op.AutoApprove {
-			v, err := op.UIIn.Input(cancelCtx, &terraform.InputOpts{
+			v, err := op.UIIn.Input(cancelCtx, &mnptu.InputOpts{
 				Id:          "cancel",
 				Query:       "\nDo you want to cancel the remote operation?",
 				Description: "Only 'yes' will be accepted to cancel.",
@@ -913,8 +913,8 @@ func (b *Cloud) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe.
 }
 
 // IgnoreVersionConflict allows commands to disable the fall-back check that
-// the local Terraform version matches the remote workspace's configured
-// Terraform version. This should be called by commands where this check is
+// the local mnptu version matches the remote workspace's configured
+// mnptu version. This should be called by commands where this check is
 // unnecessary, such as those performing remote operations, or read-only
 // operations. It will also be called if the user uses a command-line flag to
 // override this check.
@@ -922,14 +922,14 @@ func (b *Cloud) IgnoreVersionConflict() {
 	b.ignoreVersionConflict = true
 }
 
-// VerifyWorkspaceTerraformVersion compares the local Terraform version against
-// the workspace's configured Terraform version. If they are compatible, this
+// VerifyWorkspacemnptuVersion compares the local mnptu version against
+// the workspace's configured mnptu version. If they are compatible, this
 // means that there are no state compatibility concerns, so it returns no
 // diagnostics.
 //
 // If the versions aren't compatible, it returns an error (or, if
 // b.ignoreVersionConflict is set, a warning).
-func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Diagnostics {
+func (b *Cloud) VerifyWorkspacemnptuVersion(workspaceName string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	workspace, err := b.getRemoteWorkspace(context.Background(), workspaceName)
@@ -950,34 +950,34 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	}
 
 	// If the workspace has the pseudo-version "latest", all bets are off. We
-	// cannot reasonably determine what the intended Terraform version is, so
+	// cannot reasonably determine what the intended mnptu version is, so
 	// we'll skip version verification.
-	if workspace.TerraformVersion == "latest" {
+	if workspace.mnptuVersion == "latest" {
 		return nil
 	}
 
-	// If the workspace has execution-mode set to local, the remote Terraform
+	// If the workspace has execution-mode set to local, the remote mnptu
 	// version is effectively meaningless, so we'll skip version verification.
 	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
-	remoteConstraint, err := version.NewConstraint(workspace.TerraformVersion)
+	remoteConstraint, err := version.NewConstraint(workspace.mnptuVersion)
 	if err != nil {
 		message := fmt.Sprintf(
-			"The remote workspace specified an invalid Terraform version or constraint (%s), "+
-				"and it isn't possible to determine whether the local Terraform version (%s) is compatible.",
-			workspace.TerraformVersion,
+			"The remote workspace specified an invalid mnptu version or constraint (%s), "+
+				"and it isn't possible to determine whether the local mnptu version (%s) is compatible.",
+			workspace.mnptuVersion,
 			tfversion.String(),
 		)
-		diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
+		diags = diags.Append(incompatibleWorkspacemnptuVersion(message, b.ignoreVersionConflict))
 		return diags
 	}
 
-	remoteVersion, _ := version.NewSemver(workspace.TerraformVersion)
+	remoteVersion, _ := version.NewSemver(workspace.mnptuVersion)
 
 	// We can use a looser version constraint if the workspace specifies a
-	// literal Terraform version, and it is not a prerelease. The latter
+	// literal mnptu version, and it is not a prerelease. The latter
 	// restriction is because we cannot compare prerelease versions with any
 	// operator other than simple equality.
 	if remoteVersion != nil && remoteVersion.Prerelease() == "" {
@@ -1018,13 +1018,13 @@ func (b *Cloud) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Di
 	}
 
 	message := fmt.Sprintf(
-		"The local Terraform version (%s) does not meet the version requirements for remote workspace %s/%s (%s).",
+		"The local mnptu version (%s) does not meet the version requirements for remote workspace %s/%s (%s).",
 		tfversion.String(),
 		b.organization,
 		workspace.Name,
 		remoteConstraint,
 	)
-	diags = diags.Append(incompatibleWorkspaceTerraformVersion(message, b.ignoreVersionConflict))
+	diags = diags.Append(incompatibleWorkspacemnptuVersion(message, b.ignoreVersionConflict))
 	return diags
 }
 
@@ -1112,14 +1112,14 @@ func (b *Cloud) fetchWorkspace(ctx context.Context, organization string, workspa
 		case tfe.ErrResourceNotFound:
 			return nil, fmt.Errorf(
 				"workspace %s not found\n\n"+
-					"For security, Terraform Cloud returns '404 Not Found' responses for resources\n"+
+					"For security, mnptu Cloud returns '404 Not Found' responses for resources\n"+
 					"for resources that a user doesn't have access to, in addition to resources that\n"+
 					"do not exist. If the resource does exist, please check the permissions of the provided token.",
 				workspace,
 			)
 		default:
 			err := fmt.Errorf(
-				"Terraform Cloud returned an unexpected error:\n\n%s",
+				"mnptu Cloud returned an unexpected error:\n\n%s",
 				err,
 			)
 			return nil, err
@@ -1139,7 +1139,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 	if err != nil && err != tfe.ErrResourceNotFound {
 		return tfdiags.Sourceless(
 			tfdiags.Error,
-			"Terraform Cloud returned an unexpected error",
+			"mnptu Cloud returned an unexpected error",
 			err.Error(),
 		)
 	}
@@ -1148,7 +1148,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 		return tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid workspace selection",
-			fmt.Sprintf(`Terraform failed to find workspace %q in organization %s.`, workspace, organization),
+			fmt.Sprintf(`mnptu failed to find workspace %q in organization %s.`, workspace, organization),
 		)
 	}
 
@@ -1163,7 +1163,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 			if err != nil {
 				return tfdiags.Sourceless(
 					tfdiags.Error,
-					"Terraform Cloud returned an unexpected error",
+					"mnptu Cloud returned an unexpected error",
 					err.Error(),
 				)
 			}
@@ -1185,7 +1185,7 @@ func (b *Cloud) validWorkspaceEnvVar(ctx context.Context, organization, workspac
 			tfdiags.Error,
 			"Invalid workspace selection",
 			fmt.Sprintf(
-				"Terraform failed to find workspace %q with the tags specified in your configuration:\n[%s]",
+				"mnptu failed to find workspace %q with the tags specified in your configuration:\n[%s]",
 				workspace,
 				strings.ReplaceAll(opts.Tags, ",", ", "),
 			),
@@ -1224,7 +1224,7 @@ func generalError(msg string, err error) error {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("%s: %v", msg, err),
-			"For security, Terraform Cloud returns '404 Not Found' responses for resources\n"+
+			"For security, mnptu Cloud returns '404 Not Found' responses for resources\n"+
 				"for resources that a user doesn't have access to, in addition to resources that\n"+
 				"do not exist. If the resource does exist, please check the permissions of the provided token.",
 		))
@@ -1233,7 +1233,7 @@ func generalError(msg string, err error) error {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("%s: %v", msg, err),
-			`Terraform Cloud returned an unexpected error. Sometimes `+
+			`mnptu Cloud returned an unexpected error. Sometimes `+
 				`this is caused by network connection problems, in which case you could retry `+
 				`the command. If the issue persists please open a support ticket to get help `+
 				`resolving the problem.`,
@@ -1244,8 +1244,8 @@ func generalError(msg string, err error) error {
 
 // The newline in this error is to make it look good in the CLI!
 const initialRetryError = `
-[reset][yellow]There was an error connecting to Terraform Cloud. Please do not exit
-Terraform to prevent data loss! Trying to restore the connection...
+[reset][yellow]There was an error connecting to mnptu Cloud. Please do not exit
+mnptu to prevent data loss! Trying to restore the connection...
 [reset]
 `
 
@@ -1261,42 +1261,42 @@ const operationNotCanceled = `
 [reset][red]The remote operation was not cancelled.[reset]
 `
 
-const refreshToApplyRefresh = `[bold][yellow]Proceeding with 'terraform apply -refresh-only -auto-approve'.[reset]`
+const refreshToApplyRefresh = `[bold][yellow]Proceeding with 'mnptu apply -refresh-only -auto-approve'.[reset]`
 
-const unavailableTerraformVersion = `
-[reset][yellow]The local Terraform version (%s) is not available in Terraform Cloud, or your
+const unavailablemnptuVersion = `
+[reset][yellow]The local mnptu version (%s) is not available in mnptu Cloud, or your
 organization does not have access to it. The new workspace will use %s. You can
 change this later in the workspace settings.[reset]`
 
 const cloudIntegrationUsedInUnsupportedTFE = `
-This version of Terraform Cloud/Enterprise does not support the state mechanism
+This version of mnptu Cloud/Enterprise does not support the state mechanism
 attempting to be used by the platform. This should never happen.
 
 Please reach out to HashiCorp Support to resolve this issue.`
 
 var (
 	workspaceConfigurationHelp = fmt.Sprintf(
-		`The 'workspaces' block configures how Terraform CLI maps its workspaces for this single
-configuration to workspaces within a Terraform Cloud organization. Two strategies are available:
+		`The 'workspaces' block configures how mnptu CLI maps its workspaces for this single
+configuration to workspaces within a mnptu Cloud organization. Two strategies are available:
 
 [bold]tags[reset] - %s
 
 [bold]name[reset] - %s`, schemaDescriptionTags, schemaDescriptionName)
 
-	schemaDescriptionHostname = `The Terraform Enterprise hostname to connect to. This optional argument defaults to app.terraform.io
-for use with Terraform Cloud.`
+	schemaDescriptionHostname = `The mnptu Enterprise hostname to connect to. This optional argument defaults to app.mnptu.io
+for use with mnptu Cloud.`
 
 	schemaDescriptionOrganization = `The name of the organization containing the targeted workspace(s).`
 
-	schemaDescriptionToken = `The token used to authenticate with Terraform Cloud/Enterprise. Typically this argument should not
-be set, and 'terraform login' used instead; your credentials will then be fetched from your CLI
+	schemaDescriptionToken = `The token used to authenticate with mnptu Cloud/Enterprise. Typically this argument should not
+be set, and 'mnptu login' used instead; your credentials will then be fetched from your CLI
 configuration file or configured credential helper.`
 
-	schemaDescriptionTags = `A set of tags used to select remote Terraform Cloud workspaces to be used for this single
+	schemaDescriptionTags = `A set of tags used to select remote mnptu Cloud workspaces to be used for this single
 configuration. New workspaces will automatically be tagged with these tag values. Generally, this
 is the primary and recommended strategy to use.  This option conflicts with "name".`
 
-	schemaDescriptionName = `The name of a single Terraform Cloud workspace to be used with this configuration.
+	schemaDescriptionName = `The name of a single mnptu Cloud workspace to be used with this configuration.
 When configured, only the specified workspace can be used. This option conflicts with "tags".`
 
 	schemaDescriptionProject = `The name of a project that resulting workspace(s) will be created in.`

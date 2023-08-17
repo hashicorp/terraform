@@ -7,8 +7,8 @@ description: |-
 
 # Module Composition
 
-In a simple Terraform configuration with only one root module, we create a
-flat set of resources and use Terraform's expression syntax to describe the
+In a simple mnptu configuration with only one root module, we create a
+flat set of resources and use mnptu's expression syntax to describe the
 relationships between these resources:
 
 ```hcl
@@ -57,7 +57,7 @@ can therefore connect the same modules in different ways to produce different
 results.
 
 The rest of this page discusses some more specific composition patterns that
-may be useful when describing larger systems with Terraform.
+may be useful when describing larger systems with mnptu.
 
 ## Dependency Inversion
 
@@ -114,7 +114,7 @@ exists and create it if not, we recommend applying the dependency inversion
 approach: making the module accept the object it needs as an argument, via
 an input variable.
 
-For example, consider a situation where a Terraform module deploys compute
+For example, consider a situation where a mnptu module deploys compute
 instances based on a disk image, and in some environments there is a
 specialized disk image available while other environments share a common
 base disk image. Rather than having the module itself handle both of these
@@ -126,7 +126,7 @@ of the `aws_ami` resource type and data source schemas:
 variable "ami" {
   type = object({
     # Declare an object using only the subset of attributes the module
-    # needs. Terraform will allow any object that has at least these
+    # needs. mnptu will allow any object that has at least these
     # attributes.
     id           = string
     architecture = string
@@ -172,9 +172,9 @@ module "example" {
 }
 ```
 
-This is consistent with Terraform's declarative style: rather than creating
+This is consistent with mnptu's declarative style: rather than creating
 modules with complex conditional branches, we directly describe what
-should already exist and what we want Terraform to manage itself.
+should already exist and what we want mnptu to manage itself.
 
 By following this pattern, we can be explicit about in which situations we
 expect the AMI to already be present and which we don't. A future reader
@@ -193,7 +193,7 @@ Every module has implicit assumptions and guarantees that define what data it ex
 - **Assumption:** A condition that must be true in order for the configuration of a particular resource to be usable. For example, an `aws_instance` configuration can have the assumption that the given AMI will always be configured for the `x86_64` CPU architecture.
 - **Guarantee:** A characteristic or behavior of an object that the rest of the configuration should be able to rely on. For example, an `aws_instance` configuration can have the guarantee that an EC2 instance will be running in a network that assigns it a private DNS record.
 
-We recommend using [custom conditions](/terraform/language/expressions/custom-conditions) to help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
+We recommend using [custom conditions](/mnptu/language/expressions/custom-conditions) to help capture and test for assumptions and guarantees. This helps future maintainers understand the configuration design and intent. Custom conditions also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
 The following examples creates a precondition that checks whether the EC2 instance has an encrypted root volume.
 
@@ -211,12 +211,12 @@ output "api_base_url" {
 
 ## Multi-cloud Abstractions
 
-Terraform itself intentionally does not attempt to abstract over similar
+mnptu itself intentionally does not attempt to abstract over similar
 services offered by different vendors, because we want to expose the full
 functionality in each offering and yet unifying multiple offerings behind a
 single interface will tend to require a "lowest common denominator" approach.
 
-However, through composition of Terraform modules it is possible to create
+However, through composition of mnptu modules it is possible to create
 your own lightweight multi-cloud abstractions by making your own tradeoffs
 about which platform features are important to you.
 
@@ -275,7 +275,7 @@ replace the `dns_records` module with a new implementation targeting that
 provider, and all of the configuration that _produces_ the recordset
 definitions can remain unchanged.
 
-We can create lightweight abstractions like these by defining Terraform object
+We can create lightweight abstractions like these by defining mnptu object
 types representing the concepts involved and then using these object types
 for module input variables. In this case, all of our "DNS records"
 implementations would have the following variable declared:
@@ -331,7 +331,7 @@ Most modules contain `resource` blocks and thus describe infrastructure to be
 created and managed. It may sometimes be useful to write modules that do not
 describe any new infrastructure at all, but merely retrieve information about
 existing infrastructure that was created elsewhere using
-[data sources](/terraform/language/data-sources).
+[data sources](/mnptu/language/data-sources).
 
 As with conventional modules, we suggest using this technique only when the
 module raises the level of abstraction in some way, in this case by
@@ -360,14 +360,14 @@ module "k8s_cluster" {
 
 The `network` module itself could retrieve this data in a number of different
 ways: it could query the AWS API directly using
-[`aws_vpc`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/vpc)
+[`aws_vpc`](https://registry.mnptu.io/providers/hashicorp/aws/latest/docs/data-sources/vpc)
 and
-[`aws_subnet_ids`](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/subnet_ids)
+[`aws_subnet_ids`](https://registry.mnptu.io/providers/hashicorp/aws/latest/docs/data-sources/subnet_ids)
 data sources, or it could read saved information from a Consul cluster using
-[`consul_keys`](https://registry.terraform.io/providers/hashicorp/consul/latest/docs/data-sources/keys),
+[`consul_keys`](https://registry.mnptu.io/providers/hashicorp/consul/latest/docs/data-sources/keys),
 or it might read the outputs directly from the state of the configuration that
 manages the network using
-[`terraform_remote_state`](/terraform/language/state/remote-state-data).
+[`mnptu_remote_state`](/mnptu/language/state/remote-state-data).
 
 The key benefit of this approach is that the source of this information can
 change over time without updating every configuration that depends on it.

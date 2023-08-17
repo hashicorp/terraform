@@ -9,18 +9,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 
 	"github.com/zclconf/go-cty/cty"
 )
@@ -53,7 +53,7 @@ func TestLocal_refresh(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`)
 
 	// the backend should be unlocked after a run
@@ -102,7 +102,7 @@ func TestLocal_refreshInput(t *testing.T) {
 
 	// Enable input asking since it is normally disabled by default
 	b.OpInput = true
-	b.ContextOpts.UIInput = &terraform.MockUIInput{InputReturnString: "bar"}
+	b.ContextOpts.UIInput = &mnptu.MockUIInput{InputReturnString: "bar"}
 
 	op, configCleanup, done := testOperationRefresh(t, "./testdata/refresh-var-unset")
 	defer configCleanup()
@@ -122,7 +122,7 @@ func TestLocal_refreshInput(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`)
 }
 
@@ -151,7 +151,7 @@ func TestLocal_refreshValidate(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`)
 }
 
@@ -205,7 +205,7 @@ func TestLocal_refreshValidateProviderConfigured(t *testing.T) {
 	checkState(t, b.StateOutPath, `
 test_instance.foo:
   ID = yes
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`)
 }
 
@@ -275,7 +275,7 @@ func testOperationRefresh(t *testing.T, configDir string) (*backend.Operation, f
 	// Many of our tests use an overridden "test" provider that's just in-memory
 	// inside the test process, not a separate plugin on disk.
 	depLocks := depsfile.NewLocks()
-	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/test"))
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.mnptu.io/hashicorp/test"))
 
 	return &backend.Operation{
 		Type:            backend.OperationTypeRefresh,
@@ -297,7 +297,7 @@ func testRefreshState() *states.State {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	return state
 }

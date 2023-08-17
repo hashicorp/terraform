@@ -6,7 +6,7 @@ package statefile
 // looksLikeVersion0 sniffs for the signature indicating a version 0 state
 // file.
 //
-// Version 0 was the number retroactively assigned to Terraform's initial
+// Version 0 was the number retroactively assigned to mnptu's initial
 // (unversioned) binary state file format, which was later superseded by the
 // version 1 format in JSON.
 //

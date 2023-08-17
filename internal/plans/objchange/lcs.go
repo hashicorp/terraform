@@ -28,7 +28,7 @@ func ValueEqual(x, y cty.Value) bool {
 // elements in a sequence.
 //
 // The approached used here is a "naive" one, assuming that both xs and ys will
-// generally be small in most reasonable Terraform configurations. For larger
+// generally be small in most reasonable mnptu configurations. For larger
 // lists the time/space usage may be sub-optimal.
 //
 // A pair of lists may have multiple longest common subsequences. In that

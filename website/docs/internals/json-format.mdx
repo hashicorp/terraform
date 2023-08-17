@@ -1,21 +1,21 @@
 ---
 page_title: 'Internals: JSON Output Format'
 description: >-
-  Terraform provides a machine-readable JSON representation of state,
+  mnptu provides a machine-readable JSON representation of state,
   configuration and plan.
 ---
 
 # JSON Output Format
 
--> **Note:** This format is available in Terraform 0.12 and later.
+-> **Note:** This format is available in mnptu 0.12 and later.
 
-When Terraform plans to make changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
+When mnptu plans to make changes, it prints a human-readable summary to the terminal. It can also, when run with `-out=<PATH>`, write a much more detailed binary plan file, which can later be used to apply those changes.
 
-Since the format of plan files isn't suited for use with external tools (and likely never will be), Terraform can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
+Since the format of plan files isn't suited for use with external tools (and likely never will be), mnptu can output a machine-readable JSON representation of a plan file's changes. It can also convert state files to the same format, to simplify data loading and provide better long-term compatibility.
 
-Use `terraform show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `terraform show` documentation](/terraform/cli/commands/show) for more details.
+Use `mnptu show -json <FILE>` to generate a JSON representation of a plan or state file. See [the `mnptu show` documentation](/mnptu/cli/commands/show) for more details.
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
+The output includes a `format_version` key, which as of mnptu 1.1.0 has
 value `"1.0"`. The semantics of this version are:
 
 - We will increment the minor version, e.g. `"1.1"`, for backward-compatible
@@ -26,7 +26,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+[the mnptu 1.0 Compatibility Promises](/mnptu/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -38,10 +38,10 @@ To avoid excessive repetition, we've split the complete format into several disc
 
 The JSON output format consists of the following objects and sub-objects:
 
-- [State Representation](#state-representation) — The complete top-level object returned by `terraform show -json <STATE FILE>`.
-- [Plan Representation](#plan-representation) — The complete top-level object returned by `terraform show -json <PLAN FILE>`.
+- [State Representation](#state-representation) — The complete top-level object returned by `mnptu show -json <STATE FILE>`.
+- [Plan Representation](#plan-representation) — The complete top-level object returned by `mnptu show -json <PLAN FILE>`.
 - [Values Representation](#values-representation) — A sub-object of both plan and state output that describes current state or planned state.
-- [Configuration Representation](#configuration-representation) — A sub-object of plan output that describes a parsed Terraform configuration.
+- [Configuration Representation](#configuration-representation) — A sub-object of plan output that describes a parsed mnptu configuration.
   - [Expression Representation](#expression-representation) — A sub-object of a configuration representation that describes an unevaluated expression.
   - [Block Expressions Representation](#block-expressions-representation) — A sub-object of a configuration representation that describes the expressions nested inside a block.
 - [Change Representation](#change-representation) — A sub-object of plan output that describes changes to an object.
@@ -57,13 +57,13 @@ State does not have any significant metadata not included in the common [values 
   // state. Because the state is always fully known, this is always complete.
   "values": <values-representation>
 
-  "terraform_version": "version.string"
+  "mnptu_version": "version.string"
 }
 ```
 
 ## Plan Representation
 
-A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes Terraform plans to make to achieve that.
+A plan consists of a prior state, the configuration that is being applied to that state, and the set of changes mnptu plans to make to achieve that.
 
 For ease of consumption by callers, the plan representation includes a partial representation of the values in the final state (using a [value representation](#values-representation)), allowing callers to easily analyze the planned outcome using similar code as for analyzing the prior state.
 
@@ -98,7 +98,7 @@ For ease of consumption by callers, the plan representation includes a partial r
   },
 
   // "resource_changes" is a description of the individual change actions that
-  // Terraform plans to use to move from the prior state to a new state
+  // mnptu plans to use to move from the prior state to a new state
   // matching the configuration.
   "resource_changes": [
     // Each element of this array describes the action to take
@@ -111,7 +111,7 @@ For ease of consumption by callers, the plan representation includes a partial r
       "address": "module.child.aws_instance.foo[0]",
 
       // "previous_address" is the full absolute address of this resource
-      // instance as it was known after the previous Terraform run.
+      // instance as it was known after the previous mnptu run.
       // Included only if the address has changed, e.g. by handling
       // a "moved" block in the configuration.
       "previous_address": "module.instances.aws_instance.foo[0]",
@@ -151,14 +151,14 @@ For ease of consumption by callers, the plan representation includes a partial r
       //
       // The current set of possible values is:
       // - "replace_because_tainted": the object in question is marked as
-      //   "tainted" in the prior state, so Terraform planned to replace it.
+      //   "tainted" in the prior state, so mnptu planned to replace it.
       // - "replace_because_cannot_update": the provider indicated that one
       //   of the requested changes isn't possible without replacing the
       //   existing object with a new object.
       // - "replace_by_request": the user explicitly called for this object
       //   to be replaced as an option when creating the plan, which therefore
       //   overrode what would have been a "no-op" or "update" action otherwise.
-      // - "delete_because_no_resource_config": Terraform found no resource
+      // - "delete_because_no_resource_config": mnptu found no resource
       //   configuration corresponding to this instance.
       // - "delete_because_no_module": The resource instance belongs to a
       //   module instance that's no longer declared, perhaps due to changing
@@ -172,21 +172,21 @@ For ease of consumption by callers, the plan representation includes a partial r
       // - "delete_because_each_key": The corresponding resource uses for_each,
       //   but the instance key doesn't match any of the keys in the
       //   currently-configured for_each value.
-      // - "read_because_config_unknown": For a data resource, Terraform cannot
+      // - "read_because_config_unknown": For a data resource, mnptu cannot
       //   read the data during the plan phase because of values in the
       //   configuration that won't be known until the apply phase.
-      // - "read_because_dependency_pending": For a data resource, Terraform
+      // - "read_because_dependency_pending": For a data resource, mnptu
       //   cannot read the data during the plan phase because the data
       //   resource depends on at least one managed resource that also has
       //   a pending change in the same plan.
       //
-      // If there is no special reason to note, Terraform will omit this
+      // If there is no special reason to note, mnptu will omit this
       // property altogether.
       action_reason: "replace_because_tainted"
     }
   ],
 
-  // "resource_drift" is a description of the changes Terraform detected
+  // "resource_drift" is a description of the changes mnptu detected
   // when it compared the most recent state to the prior saved state.
   "resource_drift": [
     {
@@ -218,7 +218,7 @@ For ease of consumption by callers, the plan representation includes a partial r
       //   ["create"]
       //   ["update"]
       //   ["delete"]
-      // In the Terraform CLI 0.12.0 release, Terraform is not yet fully able to
+      // In the mnptu CLI 0.12.0 release, mnptu is not yet fully able to
       // track changes to output values, so the actions indicated may not be
       // fully accurate, but the "after" value will always be correct.
       "change": <change-representation>,
@@ -226,7 +226,7 @@ For ease of consumption by callers, the plan representation includes a partial r
   },
 
   // "checks" describes the partial results for any checkable objects, such as
-  // resources with postconditions, with as much information as Terraform can
+  // resources with postconditions, with as much information as mnptu can
   // recognize at plan time. Some objects will have status "unknown" to
   // indicate that their status will only be determined after applying the plan.
   "checks" <checks-representation>,
@@ -237,7 +237,7 @@ For ease of consumption by callers, the plan representation includes a partial r
 }
 ```
 
-This overall plan structure, fully expanded, is what will be printed by the `terraform show -json <planfile>` command.
+This overall plan structure, fully expanded, is what will be printed by the `mnptu show -json <planfile>` command.
 
 ## Values Representation
 
@@ -264,7 +264,7 @@ The following example illustrates the structure of a `<values-representation>`:
       {
         // "address" is the absolute resource address, which callers must consider
         // opaque but may do full string comparisons with other address strings or
-        // pass this verbatim to other Terraform commands that are documented to
+        // pass this verbatim to other mnptu commands that are documented to
         // accept absolute resource addresses. The module-local portions of this
         // address are extracted in other properties below.
         "address": "aws_instance.example[1]",
@@ -320,7 +320,7 @@ The following example illustrates the structure of a `<values-representation>`:
       {
         // "address" is the absolute module address, which callers must treat as
         // opaque but may do full string comparisons with other module address
-        // strings and may pass verbatim to other Terraform commands that are
+        // strings and may pass verbatim to other mnptu commands that are
         // documented as accepting absolute module addresses.
         "address": "module.child",
 
@@ -342,7 +342,7 @@ The following example illustrates the structure of a `<values-representation>`:
 }
 ```
 
-The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by Terraform's [`jsonencode`](/terraform/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
+The translation of attribute and output values is the same intuitive mapping from HCL types to JSON types used by mnptu's [`jsonencode`](/mnptu/language/functions/jsonencode) function. This mapping does lose some information: lists, sets, and tuples all lower to JSON arrays while maps and objects both lower to JSON objects. Unknown values and null values are both treated as absent or null.
 
 Output values include a `"type"` field, which is a [serialization of the value's type](https://pkg.go.dev/github.com/zclconf/go-cty/cty#Type.MarshalJSON). For primitive types this is a string value, such as `"number"` or `"bool"`. Complex types are represented as a nested JSON array, such as `["map","string"]` or `["object",{"a":"number"}]`. This can be used to reconstruct the output value with the correct type.
 
@@ -352,7 +352,7 @@ The intent of this structure is to give a caller access to a similar level of de
 
 ## Configuration Representation
 
-Configuration is the most complicated structure in Terraform, since it includes unevaluated expression nodes and other complexities.
+Configuration is the most complicated structure in mnptu, since it includes unevaluated expression nodes and other complexities.
 
 Because the configuration models are produced at a stage prior to expression evaluation, it is not possible to produce a values representation for configuration. Instead, we describe the physical structure of the configuration, giving access to constant values where possible and allowing callers to analyze any references to other objects that are present:
 
@@ -360,7 +360,7 @@ Because the configuration models are produced at a stage prior to expression eva
 {
   // "provider_configs" describes all of the provider configurations throughout
   // the configuration tree, flattened into a single map for convenience since
-  // provider configurations are the one concept in Terraform that can span
+  // provider configurations are the one concept in mnptu that can span
   // across module boundaries.
   "provider_config": {
 
@@ -373,7 +373,7 @@ Because the configuration models are produced at a stage prior to expression eva
       "name": "aws",
 
       // "full_name" is the fully-qualified provider name
-      "full_name": "registry.terraform.io/hashicorp/aws",
+      "full_name": "registry.mnptu.io/hashicorp/aws",
 
       // "alias" is the alias set for a non-default configuration, or unset for
       // a default configuration.
@@ -519,7 +519,7 @@ Each unevaluated expression in the configuration is represented with an `<expres
     "var.example", // implied by the previous
 
     // Partial references like "data" and "module" are not included, because
-    // Terraform considers "module.foo" to be an atomic reference, not an
+    // mnptu considers "module.foo" to be an atomic reference, not an
     // attribute access.
   ]
 }
@@ -617,8 +617,8 @@ A `<change-representation>` describes the change to the indicated object.
 ## Checks Representation
 
 ~> **Warning:** The JSON representation of checks is experimental
-and some details may change in future Terraform versions based on feedback,
-even in minor releases of Terraform CLI.
+and some details may change in future mnptu versions based on feedback,
+even in minor releases of mnptu CLI.
 
 A `<checks-representation>` describes the current state of a checkable object in the configuration. For example, a resource with one or more preconditions or postconditions is an example of a checkable object, and its check state represents the results of those conditions.
 
@@ -711,7 +711,7 @@ A `<checks-representation>` describes the current state of a checkable object in
         // "problems" might be included for statuses "fail" or "error", in
         // which case it describes the individual conditions that failed for
         // this instance, if any.
-        // When a condition expression is invalid, Terraform returns that as
+        // When a condition expression is invalid, mnptu returns that as
         // a normal error message rather than as a problem in this list.
         "problems": [
           {
@@ -731,7 +731,7 @@ those objects to ensure that the set of checkable objects will be consistent
 even if an error prevents full evaluation of the configuration. Any object
 in the configuration which has associated checks, such as a resource with
 preconditions or postconditions, will always be included as a checkable object
-even if a runtime error prevents Terraform from evaluating its "count" or
+even if a runtime error prevents mnptu from evaluating its "count" or
 "for_each" argument and therefore determining which instances of that object
 exist dynamically.
 
@@ -739,5 +739,5 @@ When summarizing checks in a UI, we recommend preferring to list only the
 individual instances and typically ignoring the top-level objects altogether.
 However, in any case where an object has _zero_ instances, the UI should show
 the top-level object instead to serve as a placeholder so that the user can
-see that Terraform recognized the existence of the checks, even if it wasn't
+see that mnptu recognized the existence of the checks, even if it wasn't
 able to evaluate them on the most recent run.

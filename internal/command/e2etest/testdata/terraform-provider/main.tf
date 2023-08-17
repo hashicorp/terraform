@@ -1,8 +1,8 @@
-provider "terraform" {
+provider "mnptu" {
 
 }
 
-data "terraform_remote_state" "test" {
+data "mnptu_remote_state" "test" {
   backend = "local"
   config = {
     path = "test.tfstate"

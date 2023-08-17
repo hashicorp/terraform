@@ -96,11 +96,11 @@ jobs:
       # it for select packages.
       - name: "Race detector"
         run: |
-          go test -race ./internal/terraform ./internal/command ./internal/states
+          go test -race ./internal/mnptu ./internal/command ./internal/states
 
   e2e-tests:
     # This is an intentionally-limited form of our E2E test run which only
-    # covers Terraform running on Linux. The build.yml workflow runs these
+    # covers mnptu running on Linux. The build.yml workflow runs these
     # tests across various other platforms in order to catch the rare exception
     # that might leak through this.
     name: "End-to-end Tests"

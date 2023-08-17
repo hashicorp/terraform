@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
-import "github.com/hashicorp/terraform/internal/addrs"
+import "github.com/hashicorp/mnptu/internal/addrs"
 
 // ExternalReferenceTransformer will add a GraphNodeReferencer into the graph
 // that makes no changes to the graph itself but, by referencing the addresses
 // within ExternalReferences, ensures that any temporary nodes that are required
-// by an external caller, such as the terraform testing framework, are not
+// by an external caller, such as the mnptu testing framework, are not
 // skipped because they are not referenced from within the module.
 type ExternalReferenceTransformer struct {
 	ExternalReferences []*addrs.Reference

@@ -154,7 +154,7 @@ type PackageAuthenticationHashes interface {
 	// hashes with different schemes, which means that all of them are equally
 	// acceptable. Implementors may also return hashes that use schemes the
 	// current version of the authenticator would not allow but that could be
-	// accepted by other versions of Terraform, e.g. if a particular hash
+	// accepted by other versions of mnptu, e.g. if a particular hash
 	// scheme has been deprecated.
 	//
 	// Authenticators that don't use hashes as their authentication procedure
@@ -222,11 +222,11 @@ type packageHashAuthentication struct {
 
 // NewPackageHashAuthentication returns a PackageAuthentication implementation
 // that checks whether the contents of the package match whatever subset of the
-// given hashes are considered acceptable by the current version of Terraform.
+// given hashes are considered acceptable by the current version of mnptu.
 //
 // This uses the hash algorithms implemented by functions PackageHash and
 // MatchesHash. The PreferredHashes function will select which of the given
-// hashes are considered by Terraform to be the strongest verification, and
+// hashes are considered by mnptu to be the strongest verification, and
 // authentication succeeds as long as one of those matches.
 func NewPackageHashAuthentication(platform Platform, validHashes []Hash) PackageAuthentication {
 	requiredHashes := PreferredHashes(validHashes)
@@ -241,8 +241,8 @@ func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 	if len(a.RequiredHashes) == 0 {
 		// Indicates that none of the hashes given to
 		// NewPackageHashAuthentication were considered to be usable by this
-		// version of Terraform.
-		return nil, fmt.Errorf("this version of Terraform does not support any of the checksum formats given for this provider")
+		// version of mnptu.
+		return nil, fmt.Errorf("this version of mnptu does not support any of the checksum formats given for this provider")
 	}
 
 	matches, err := PackageMatchesAnyHash(localLocation, a.RequiredHashes)
@@ -267,9 +267,9 @@ func (a packageHashAuthentication) AuthenticatePackage(localLocation PackageLoca
 }
 
 func (a packageHashAuthentication) AcceptableHashes() []Hash {
-	// In this case we include even hashes the current version of Terraform
+	// In this case we include even hashes the current version of mnptu
 	// doesn't prefer, because this result is used for building a lock file
-	// and so it's helpful to include older hash formats that other Terraform
+	// and so it's helpful to include older hash formats that other mnptu
 	// versions might need in order to do authentication successfully.
 	return a.AllHashes
 }

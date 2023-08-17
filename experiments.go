@@ -5,14 +5,14 @@ package main
 
 // experimentsAllowed can be set to any non-empty string using Go linker
 // arguments in order to enable the use of experimental features for a
-// particular Terraform build:
+// particular mnptu build:
 //
 //	go install -ldflags="-X 'main.experimentsAllowed=yes'"
 //
 // By default this variable is initialized as empty, in which case
 // experimental features are not available.
 //
-// The Terraform release process should arrange for this variable to be
+// The mnptu release process should arrange for this variable to be
 // set for alpha releases and development snapshots, but _not_ for
 // betas, release candidates, or final releases.
 //

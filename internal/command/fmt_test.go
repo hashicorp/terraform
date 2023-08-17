@@ -201,7 +201,7 @@ a = 1 +
 func TestFmt_snippetInError(t *testing.T) {
 	tempDir := testTempDir(t)
 
-	backendSrc := `terraform {backend "s3" {}}`
+	backendSrc := `mnptu {backend "s3" {}}`
 
 	err := ioutil.WriteFile(filepath.Join(tempDir, "backend.tf"), []byte(backendSrc), 0644)
 	if err != nil {
@@ -223,8 +223,8 @@ func TestFmt_snippetInError(t *testing.T) {
 
 	substrings := []string{
 		"Argument definition required",
-		"line 1, in terraform",
-		`1: terraform {backend "s3" {}}`,
+		"line 1, in mnptu",
+		`1: mnptu {backend "s3" {}}`,
 	}
 	for _, substring := range substrings {
 		if actual := ui.ErrorWriter.String(); !strings.Contains(actual, substring) {

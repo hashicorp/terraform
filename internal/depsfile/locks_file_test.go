@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestLoadLocksFromFile(t *testing.T) {
@@ -112,7 +112,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 				}
 
 				t.Run("version-only", func(t *testing.T) {
-					if lock := locks.Provider(addrs.MustParseProviderSourceString("terraform.io/test/version-only")); lock != nil {
+					if lock := locks.Provider(addrs.MustParseProviderSourceString("mnptu.io/test/version-only")); lock != nil {
 						if got, want := lock.Version().String(), "1.0.0"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
@@ -126,7 +126,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 				})
 
 				t.Run("version-and-constraints", func(t *testing.T) {
-					if lock := locks.Provider(addrs.MustParseProviderSourceString("terraform.io/test/version-and-constraints")); lock != nil {
+					if lock := locks.Provider(addrs.MustParseProviderSourceString("mnptu.io/test/version-and-constraints")); lock != nil {
 						if got, want := lock.Version().String(), "1.2.0"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
@@ -140,7 +140,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 				})
 
 				t.Run("all-the-things", func(t *testing.T) {
-					if lock := locks.Provider(addrs.MustParseProviderSourceString("terraform.io/test/all-the-things")); lock != nil {
+					if lock := locks.Provider(addrs.MustParseProviderSourceString("mnptu.io/test/all-the-things")); lock != nil {
 						if got, want := lock.Version().String(), "3.0.10"; got != want {
 							t.Errorf("wrong version\ngot:  %s\nwant: %s", got, want)
 						}
@@ -164,7 +164,7 @@ func TestLoadLocksFromFile(t *testing.T) {
 
 func TestLoadLocksFromFileAbsent(t *testing.T) {
 	t.Run("lock file is a directory", func(t *testing.T) {
-		// This can never happen when Terraform is the one generating the
+		// This can never happen when mnptu is the one generating the
 		// lock file, but might arise if the user makes a directory with the
 		// lock file's name for some reason. (There is no actual reason to do
 		// so, so that would always be a mistake.)
@@ -244,24 +244,24 @@ func TestSaveLocksToFile(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 	gotContent := string(gotContentBytes)
-	wantContent := `# This file is maintained automatically by "terraform init".
+	wantContent := `# This file is maintained automatically by "mnptu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/test/bar" {
+provider "registry.mnptu.io/test/bar" {
   version     = "1.2.0"
   constraints = "~> 1.0"
 }
 
-provider "registry.terraform.io/test/baz" {
+provider "registry.mnptu.io/test/baz" {
   version = "1.2.0"
 }
 
-provider "registry.terraform.io/test/boo" {
+provider "registry.mnptu.io/test/boo" {
   version     = "1.2.0"
   constraints = "1.2.0"
 }
 
-provider "registry.terraform.io/test/foo" {
+provider "registry.mnptu.io/test/foo" {
   version     = "1.0.0"
   constraints = ">= 1.0.0"
   hashes = [

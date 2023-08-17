@@ -1,12 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
 )
 
 var _ GraphTransformer = (*checkStartTransformer)(nil)
@@ -98,7 +98,7 @@ func (s *checkStartTransformer) Transform(graph *Graph) error {
 			}
 
 			// Otherwise, it's just a normal data source. From a check block we
-			// don't really care when Terraform is loading non-nested data
+			// don't really care when mnptu is loading non-nested data
 			// sources so we'll just forget about it and move on.
 		}
 	}

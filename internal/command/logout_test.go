@@ -9,10 +9,10 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
 )
 
 func TestLogout(t *testing.T) {
@@ -36,11 +36,11 @@ func TestLogout(t *testing.T) {
 		// true iff the token at hostname should be removed by the command
 		shouldRemove bool
 	}{
-		// If no command-line arguments given, should remove app.terraform.io token
-		{"app.terraform.io", []string{}, true},
+		// If no command-line arguments given, should remove app.mnptu.io token
+		{"app.mnptu.io", []string{}, true},
 
-		// Can still specify app.terraform.io explicitly
-		{"app.terraform.io", []string{"app.terraform.io"}, true},
+		// Can still specify app.mnptu.io explicitly
+		{"app.mnptu.io", []string{"app.mnptu.io"}, true},
 
 		// Can remove tokens for other hostnames
 		{"tfe.example.com", []string{"tfe.example.com"}, true},

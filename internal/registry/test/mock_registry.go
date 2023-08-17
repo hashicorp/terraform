@@ -10,16 +10,16 @@ import (
 	"regexp"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/registry/regsrc"
-	"github.com/hashicorp/terraform/internal/registry/response"
-	tfversion "github.com/hashicorp/terraform/version"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/registry/regsrc"
+	"github.com/hashicorp/mnptu/internal/registry/response"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
-// Disco return a *disco.Disco mapping registry.terraform.io, localhost,
+// Disco return a *disco.Disco mapping registry.mnptu.io, localhost,
 // localhost.localdomain, and example.com to the test server.
 func Disco(s *httptest.Server) *disco.Disco {
 	services := map[string]interface{}{
@@ -29,9 +29,9 @@ func Disco(s *httptest.Server) *disco.Disco {
 		"providers.v1": fmt.Sprintf("%s/v1/providers", s.URL),
 	}
 	d := disco.NewWithCredentialsSource(credsSrc)
-	d.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
+	d.SetUserAgent(httpclient.mnptuUserAgent(tfversion.String()))
 
-	d.ForceHostServices(svchost.Hostname("registry.terraform.io"), services)
+	d.ForceHostServices(svchost.Hostname("registry.mnptu.io"), services)
 	d.ForceHostServices(svchost.Hostname("localhost"), services)
 	d.ForceHostServices(svchost.Hostname("localhost.localdomain"), services)
 	d.ForceHostServices(svchost.Hostname("example.com"), services)
@@ -102,14 +102,14 @@ var testProviders = map[string][]testProvider{
 	"-/foo": {
 		{
 			version: "0.2.3",
-			url:     "https://releases.hashicorp.com/terraform-provider-foo/0.2.3/terraform-provider-foo.zip",
+			url:     "https://releases.hashicorp.com/mnptu-provider-foo/0.2.3/mnptu-provider-foo.zip",
 		},
 		{version: "0.3.0"},
 	},
 	"-/bar": {
 		{
 			version: "0.1.1",
-			url:     "https://releases.hashicorp.com/terraform-provider-bar/0.1.1/terraform-provider-bar.zip",
+			url:     "https://releases.hashicorp.com/mnptu-provider-bar/0.1.1/mnptu-provider-bar.zip",
 		},
 		{version: "0.1.2"},
 	},
@@ -118,7 +118,7 @@ var testProviders = map[string][]testProvider{
 func providerAlias(provider string) string {
 	re := regexp.MustCompile("^-/")
 	if re.MatchString(provider) {
-		return re.ReplaceAllString(provider, "terraform-providers/")
+		return re.ReplaceAllString(provider, "mnptu-providers/")
 	}
 	return provider
 }
@@ -167,7 +167,7 @@ func mockRegHandler() http.Handler {
 			location = fmt.Sprintf("file://%s/%s", wd, location)
 		}
 
-		w.Header().Set("X-Terraform-Get", location)
+		w.Header().Set("X-mnptu-Get", location)
 		w.WriteHeader(http.StatusNoContent)
 		// no body
 	}
@@ -237,7 +237,7 @@ func mockRegHandler() http.Handler {
 		})),
 	)
 
-	mux.HandleFunc("/.well-known/terraform.json", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/.well-known/mnptu.json", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		io.WriteString(w, `{"modules.v1":"http://localhost/v1/modules/", "providers.v1":"http://localhost/v1/providers/"}`)
 	})

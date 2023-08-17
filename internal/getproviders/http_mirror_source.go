@@ -16,14 +16,14 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-retryablehttp"
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
 	"golang.org/x/net/idna"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // HTTPMirrorSource is a source that reads provider metadata from a provider
@@ -252,7 +252,7 @@ func (s *HTTPMirrorSource) ForDisplay(provider addrs.Provider) string {
 //
 // If the returned error is non-nil then the given hostname doesn't comply
 // with the IETF RFC 5891 section 5.3 and 5.4 validation rules, and thus cannot
-// be interpreted as a valid Terraform service host. The IDNA validation errors
+// be interpreted as a valid mnptu service host. The IDNA validation errors
 // are unfortunately usually not very user-friendly, but they are also
 // relatively rare because the IDNA normalization rules are quite tolerant.
 func (s *HTTPMirrorSource) mirrorHost() (svchost.Hostname, error) {
@@ -301,7 +301,7 @@ func (s *HTTPMirrorSource) get(ctx context.Context, relativePath string) (status
 		return 0, nil, endpointURL, err
 	}
 	req = req.WithContext(ctx)
-	req.Request.Header.Set(terraformVersionHeader, version.String())
+	req.Request.Header.Set(mnptuVersionHeader, version.String())
 	creds, err := s.mirrorHostCredentials()
 	if err != nil {
 		return 0, nil, endpointURL, fmt.Errorf("failed to determine request credentials: %s", err)
@@ -311,7 +311,7 @@ func (s *HTTPMirrorSource) get(ctx context.Context, relativePath string) (status
 		// then the credentials will still be included in the new request,
 		// even if they are on a different hostname. This is intentional
 		// and consistent with how we handle credentials for other
-		// Terraform-native services, because the user model is to configure
+		// mnptu-native services, because the user model is to configure
 		// credentials for the "friendly hostname" they configured, not for
 		// whatever hostname ends up ultimately serving the request as an
 		// implementation detail.
@@ -397,7 +397,7 @@ func (s *HTTPMirrorSource) errUnauthorized(finalURL *url.URL) error {
 func svchostFromURL(u *url.URL) (svchost.Hostname, error) {
 	raw := u.Host
 
-	// When "friendly hostnames" appear in Terraform-specific identifiers we
+	// When "friendly hostnames" appear in mnptu-specific identifiers we
 	// typically constrain their syntax more strictly than the
 	// Internationalized Domain Name specifications call for, such as
 	// forbidding direct use of punycode, but in this case we're just

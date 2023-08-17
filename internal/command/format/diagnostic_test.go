@@ -15,10 +15,10 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 
-	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	viewsjson "github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestDiagnostic(t *testing.T) {
@@ -655,7 +655,7 @@ func TestDiagnosticWarningsCompact(t *testing.T) {
 	}
 }
 
-// Test case via https://github.com/hashicorp/terraform/issues/21359
+// Test case via https://github.com/hashicorp/mnptu/issues/21359
 func TestDiagnostic_nonOverlappingHighlightContext(t *testing.T) {
 	var diags tfdiags.Diagnostics
 
@@ -802,7 +802,7 @@ func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Everything went wrong",
-		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
+		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  mnptu read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
 	})
 	color := &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
@@ -816,7 +816,7 @@ func TestDiagnostic_wrapDetailIncludingCommand(t *testing.T) {
 │ to wrap onto multiple lines. Thank-you very much for listening.
 │
 │ To fix this, run this very long command:
-│   terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
+│   mnptu read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
 │
 │ Here is a coda which is also long enough to wrap and so it should
 │ eventually make it onto multiple lines. THE END
@@ -835,7 +835,7 @@ func TestDiagnosticPlain_wrapDetailIncludingCommand(t *testing.T) {
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Everything went wrong",
-		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
+		Detail:   "This is a very long sentence about whatever went wrong which is supposed to wrap onto multiple lines. Thank-you very much for listening.\n\nTo fix this, run this very long command:\n  mnptu read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces\n\nHere is a coda which is also long enough to wrap and so it should eventually make it onto multiple lines. THE END",
 	})
 
 	expected := `
@@ -845,7 +845,7 @@ This is a very long sentence about whatever went wrong which is supposed to
 wrap onto multiple lines. Thank-you very much for listening.
 
 To fix this, run this very long command:
-  terraform read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
+  mnptu read-my-mind -please -thanks -but-do-not-wrap-this-line-because-it-is-prefixed-with-spaces
 
 Here is a coda which is also long enough to wrap and so it should
 eventually make it onto multiple lines. THE END

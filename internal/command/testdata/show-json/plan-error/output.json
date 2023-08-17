@@ -7,7 +7,7 @@
     "configuration": {
         "provider_config": {
             "test": {
-                "full_name": "registry.terraform.io/hashicorp/test",
+                "full_name": "registry.mnptu.io/hashicorp/test",
                 "name": "test"
             }
         },

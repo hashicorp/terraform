@@ -1,7 +1,7 @@
 # This test verifies that the provider local name, local config and fqn map
 # together properly when the local name does not match the type.
 
-terraform {
+mnptu {
   required_providers {
     arbitrary = {
       source = "hashicorp/aws"

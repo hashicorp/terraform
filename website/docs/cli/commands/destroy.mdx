@@ -1,33 +1,33 @@
 ---
 page_title: 'Command: destroy'
 description: >-
-  The terraform destroy command destroys all objects managed by a Terraform
+  The mnptu destroy command destroys all objects managed by a mnptu
   configuration.
 ---
 
 # Command: destroy
 
-The `terraform destroy` command is a convenient way to destroy all remote
-objects managed by a particular Terraform configuration.
+The `mnptu destroy` command is a convenient way to destroy all remote
+objects managed by a particular mnptu configuration.
 
 While you will typically not want to destroy long-lived objects in a production
-environment, Terraform is sometimes used to manage ephemeral infrastructure
-for development purposes, in which case you can use `terraform destroy` to
+environment, mnptu is sometimes used to manage ephemeral infrastructure
+for development purposes, in which case you can use `mnptu destroy` to
 conveniently clean up all of those temporary objects once you are finished
 with your work.
 
 ## Usage
 
-Usage: `terraform destroy [options]`
+Usage: `mnptu destroy [options]`
 
 This command is just a convenience alias for the following command:
 
 ```
-terraform apply -destroy
+mnptu apply -destroy
 ```
 
 For that reason, this command accepts most of the options that
-[`terraform apply`](/terraform/cli/commands/apply) accepts, although it does
+[`mnptu apply`](/mnptu/cli/commands/apply) accepts, although it does
 not accept a plan file argument and forces the selection of the "destroy"
 planning mode.
 
@@ -35,12 +35,12 @@ You can also create a speculative destroy plan, to see what the effect of
 destroying would be, by running the following command:
 
 ```
-terraform plan -destroy
+mnptu plan -destroy
 ```
 
-This will run [`terraform plan`](/terraform/cli/commands/plan) in _destroy_ mode, showing
+This will run [`mnptu plan`](/mnptu/cli/commands/plan) in _destroy_ mode, showing
 you the proposed destroy changes without executing them.
 
--> **Note:** The `-destroy` option to `terraform apply` exists only in
-Terraform v0.15.2 and later. For earlier versions, you _must_ use
-`terraform destroy` to get the effect of `terraform apply -destroy`.
+-> **Note:** The `-destroy` option to `mnptu apply` exists only in
+mnptu v0.15.2 and later. For earlier versions, you _must_ use
+`mnptu destroy` to get the effect of `mnptu apply -destroy`.

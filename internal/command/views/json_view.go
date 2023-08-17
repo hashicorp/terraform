@@ -9,9 +9,9 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 
-	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 // This version describes the schema of JSON UI messages. This version must be
@@ -21,7 +21,7 @@ const JSON_UI_VERSION = "1.2"
 
 func NewJSONView(view *View) *JSONView {
 	log := hclog.New(&hclog.LoggerOptions{
-		Name:       "terraform.ui",
+		Name:       "mnptu.ui",
 		Output:     view.streams.Stdout.File,
 		JSONFormat: true,
 	})
@@ -51,9 +51,9 @@ type JSONView struct {
 func (v *JSONView) Version() {
 	version := tfversion.String()
 	v.log.Info(
-		fmt.Sprintf("Terraform %s", version),
+		fmt.Sprintf("mnptu %s", version),
 		"type", json.MessageVersion,
-		"terraform", version,
+		"mnptu", version,
 		"ui", JSON_UI_VERSION,
 	)
 }

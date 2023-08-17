@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bufio"
@@ -16,18 +16,18 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -119,7 +119,7 @@ module "child" {
 }
 `,
 		"child/main.tf": `
-terraform {}
+mnptu {}
 `,
 	})
 
@@ -175,13 +175,13 @@ func TestContext_missingPlugins(t *testing.T) {
 	assertNoDiagnostics(t, diags)
 
 	configSrc := `
-terraform {
+mnptu {
 	required_providers {
 		explicit = {
 			source = "example.com/foo/beep"
 		}
 		builtin = {
-			source = "terraform.io/builtin/nonexist"
+			source = "mnptu.io/builtin/nonexist"
 		}
 	}
 }
@@ -202,7 +202,7 @@ resource "implicit_thing" "b" {
 
 	// Validate and Plan are the two entry points where we explicitly verify
 	// the available plugins match what the configuration needs. For other
-	// operations we typically fail more deeply in Terraform Core, with
+	// operations we typically fail more deeply in mnptu Core, with
 	// potentially-less-helpful error messages, because getting there would
 	// require doing some pretty weird things that aren't common enough to
 	// be worth the complexity to check for them.
@@ -222,27 +222,27 @@ resource "implicit_thing" "b" {
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires built-in provider terraform.io/builtin/nonexist, but that provider isn't available in this Terraform version.",
+					"This configuration requires built-in provider mnptu.io/builtin/nonexist, but that provider isn't available in this mnptu version.",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires provider example.com/foo/beep, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					"This configuration requires provider example.com/foo/beep, but that provider isn't available. You may be able to install it automatically by running:\n  mnptu init",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires provider registry.terraform.io/hashicorp/implicit, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					"This configuration requires provider registry.mnptu.io/hashicorp/implicit, but that provider isn't available. You may be able to install it automatically by running:\n  mnptu init",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provider",
-					"This configuration requires provider registry.terraform.io/hashicorp/implicit2, but that provider isn't available. You may be able to install it automatically by running:\n  terraform init",
+					"This configuration requires provider registry.mnptu.io/hashicorp/implicit2, but that provider isn't available. You may be able to install it automatically by running:\n  mnptu init",
 				),
 				tfdiags.Sourceless(
 					tfdiags.Error,
 					"Missing required provisioner plugin",
-					`This configuration requires provisioner plugin "nonexist", which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running Terraform.`,
+					`This configuration requires provisioner plugin "nonexist", which isn't available. If you're intending to use an external provisioner plugin, you must install it manually into one of the plugin search directories before running mnptu.`,
 				),
 			)
 			assertDiagnosticsMatch(t, gotDiags, wantDiags)
@@ -745,7 +745,7 @@ func contextOptsForPlanViaFile(t *testing.T, configSnap *configload.Snapshot, pl
 
 // legacyPlanComparisonString produces a string representation of the changes
 // from a plan and a given state togther, as was formerly produced by the
-// String method of terraform.Plan.
+// String method of mnptu.Plan.
 //
 // This is here only for compatibility with existing tests that predate our
 // new plan and state types, and should not be used in new tests. Instead, use
@@ -761,7 +761,7 @@ func legacyPlanComparisonString(state *states.State, changes *plans.Changes) str
 
 // legacyDiffComparisonString produces a string representation of the changes
 // from a planned changes object, as was formerly produced by the String method
-// of terraform.Diff.
+// of mnptu.Diff.
 //
 // This is here only for compatibility with existing tests that predate our
 // new plan types, and should not be used in new tests. Instead, use a library
@@ -1011,18 +1011,18 @@ func logDiagnostics(t *testing.T, diags tfdiags.Diagnostics) {
 const testContextRefreshModuleStr = `
 aws_instance.web: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
 
 module.child:
   aws_instance.web:
     ID = new
-    provider = provider["registry.terraform.io/hashicorp/aws"]
+    provider = provider["registry.mnptu.io/hashicorp/aws"]
 `
 
 const testContextRefreshOutputStr = `
 aws_instance.web:
   ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
   foo = bar
 
 Outputs:
@@ -1037,5 +1037,5 @@ const testContextRefreshOutputPartialStr = `
 const testContextRefreshTaintedStr = `
 aws_instance.web: (tainted)
   ID = foo
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
 `

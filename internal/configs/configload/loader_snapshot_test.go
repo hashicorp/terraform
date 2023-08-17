@@ -16,7 +16,7 @@ import (
 func TestLoadConfigWithSnapshot(t *testing.T) {
 	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -37,10 +37,10 @@ func TestLoadConfigWithSnapshot(t *testing.T) {
 		}
 		wantModuleDirs := map[string]string{
 			"":                "testdata/already-installed",
-			"child_a":         "testdata/already-installed/.terraform/modules/child_a",
-			"child_a.child_c": "testdata/already-installed/.terraform/modules/child_a/child_c",
-			"child_b":         "testdata/already-installed/.terraform/modules/child_b",
-			"child_b.child_d": "testdata/already-installed/.terraform/modules/child_b.child_d",
+			"child_a":         "testdata/already-installed/.mnptu/modules/child_a",
+			"child_a.child_c": "testdata/already-installed/.mnptu/modules/child_a/child_c",
+			"child_b":         "testdata/already-installed/.mnptu/modules/child_b",
+			"child_b.child_d": "testdata/already-installed/.mnptu/modules/child_b.child_d",
 		}
 
 		problems := deep.Equal(wantModuleDirs, gotModuleDirs)
@@ -83,7 +83,7 @@ func TestLoadConfigWithSnapshot_invalidSource(t *testing.T) {
 	defer os.Chdir(old)
 
 	loader, err := NewLoader(&Config{
-		ModulesDir: ".terraform/modules",
+		ModulesDir: ".mnptu/modules",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -98,7 +98,7 @@ func TestLoadConfigWithSnapshot_invalidSource(t *testing.T) {
 func TestSnapshotRoundtrip(t *testing.T) {
 	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -136,7 +136,7 @@ func TestSnapshotRoundtrip(t *testing.T) {
 	if childA.Module == nil {
 		t.Fatalf("child_a config has no module")
 	}
-	if got, want := childA.Module.SourceDir, "testdata/already-installed/.terraform/modules/child_a"; got != want {
+	if got, want := childA.Module.SourceDir, "testdata/already-installed/.mnptu/modules/child_a"; got != want {
 		t.Errorf("wrong child_a sourcedir %q; want %q", got, want)
 	}
 	if got, want := len(childA.Module.ModuleCalls), 1; got != want {

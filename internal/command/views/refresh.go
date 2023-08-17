@@ -6,11 +6,11 @@ package views
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // The Refresh view is used for the refresh command.
@@ -18,7 +18,7 @@ type Refresh interface {
 	Outputs(outputValues map[string]*states.OutputValue)
 
 	Operation() Operation
-	Hooks() []terraform.Hook
+	Hooks() []mnptu.Hook
 
 	Diagnostics(diags tfdiags.Diagnostics)
 	HelpPrompt()
@@ -65,8 +65,8 @@ func (v *RefreshHuman) Operation() Operation {
 	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
-func (v *RefreshHuman) Hooks() []terraform.Hook {
-	return []terraform.Hook{
+func (v *RefreshHuman) Hooks() []mnptu.Hook {
+	return []mnptu.Hook{
 		v.countHook,
 		NewUiHook(v.view),
 	}
@@ -101,8 +101,8 @@ func (v *RefreshJSON) Operation() Operation {
 	return &OperationJSON{view: v.view}
 }
 
-func (v *RefreshJSON) Hooks() []terraform.Hook {
-	return []terraform.Hook{
+func (v *RefreshJSON) Hooks() []mnptu.Hook {
+	return []mnptu.Hook{
 		newJSONHook(v.view),
 	}
 }

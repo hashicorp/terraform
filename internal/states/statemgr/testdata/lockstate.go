@@ -5,10 +5,10 @@ import (
 	"log"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 )
 
-// Attempt to open and lock a terraform state file.
+// Attempt to open and lock a mnptu state file.
 // Lock failure exits with 0 and writes "lock failed" to stderr.
 func main() {
 	if len(os.Args) != 2 {

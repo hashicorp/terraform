@@ -6,7 +6,7 @@ package s3
 import (
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func diagnosticString(diag tfdiags.Diagnostic) string {

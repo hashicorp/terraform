@@ -2,29 +2,29 @@
 page_title: Version Constraints - Configuration Language
 description: >-
   Version constraint strings specify a range of acceptable versions for modules,
-  providers, and Terraform itself. Learn version constraint syntax and behavior.
+  providers, and mnptu itself. Learn version constraint syntax and behavior.
 ---
 
 # Version Constraints
 
-Anywhere that Terraform lets you specify a range of acceptable versions for
+Anywhere that mnptu lets you specify a range of acceptable versions for
 something, it expects a specially formatted string known as a version
 constraint. Version constraints are used when configuring:
 
-- [Modules](/terraform/language/modules)
-- [Provider requirements](/terraform/language/providers/requirements)
-- [The `required_version` setting](/terraform/language/settings#specifying-a-required-terraform-version) in the `terraform` block.
+- [Modules](/mnptu/language/modules)
+- [Provider requirements](/mnptu/language/providers/requirements)
+- [The `required_version` setting](/mnptu/language/settings#specifying-a-required-mnptu-version) in the `mnptu` block.
 
 ## Version Constraint Syntax
 
-Terraform's syntax for version constraints is very similar to the syntax used by
+mnptu's syntax for version constraints is very similar to the syntax used by
 other dependency management systems like Bundler and NPM.
 
 ```hcl
 version = ">= 1.2.0, < 2.0.0"
 ```
 
-A version constraint is a [string literal](/terraform/language/expressions/strings)
+A version constraint is a [string literal](/mnptu/language/expressions/strings)
 containing one or more conditions, which are separated by commas.
 
 Each condition consists of an operator and a version number.
@@ -52,21 +52,21 @@ The following operators are valid:
 
 A version number that meets every applicable constraint is considered acceptable.
 
-Terraform consults version constraints to determine whether it has acceptable
+mnptu consults version constraints to determine whether it has acceptable
 versions of itself, any required provider plugins, and any required modules. For
 plugins and modules, it will use the newest installed version that meets the
 applicable constraints.
 
-If Terraform doesn't have an acceptable version of a required plugin or module,
+If mnptu doesn't have an acceptable version of a required plugin or module,
 it will attempt to download the newest version that meets the applicable
 constraints.
 
-If Terraform isn't able to obtain acceptable versions of external dependencies,
+If mnptu isn't able to obtain acceptable versions of external dependencies,
 or if it doesn't have an acceptable version of itself, it won't proceed with any
 plans, applies, or state manipulation actions.
 
 Both the root module and any child module can constrain the acceptable versions
-of Terraform and any providers they use. Terraform considers these constraints
+of mnptu and any providers they use. mnptu considers these constraints
 equal, and will only proceed if all of them can be met.
 
 A prerelease version is a version number that contains a suffix introduced by
@@ -85,12 +85,12 @@ versions do not match inexact operators such as `>=`, `~>`, etc.
   may be appropriate if semantic versioning is used consistently or if there is
   a well-defined release process that avoids unwanted updates.
 
-### Terraform Core and Provider Versions
+### mnptu Core and Provider Versions
 
 - Reusable modules should constrain only their minimum allowed versions of
-  Terraform and providers, such as `>= 0.12.0`. This helps avoid known
+  mnptu and providers, such as `>= 0.12.0`. This helps avoid known
   incompatibilities, while allowing the user of the module flexibility to
-  upgrade to newer versions of Terraform without altering the module.
+  upgrade to newer versions of mnptu without altering the module.
 
 - Root modules should use a `~>` constraint to set both a lower and upper bound
   on versions for each provider they depend on.

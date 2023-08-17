@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bytes"
@@ -14,8 +14,8 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
 )
 
 func TestStateValidate(t *testing.T) {
@@ -1327,7 +1327,7 @@ func TestStateHasResources(t *testing.T) {
 	}
 }
 
-func TestStateFromFutureTerraform(t *testing.T) {
+func TestStateFromFuturemnptu(t *testing.T) {
 	cases := []struct {
 		In     string
 		Result bool
@@ -1348,7 +1348,7 @@ func TestStateFromFutureTerraform(t *testing.T) {
 
 	for _, tc := range cases {
 		state := &State{TFVersion: tc.In}
-		actual := state.FromFutureTerraform()
+		actual := state.FromFuturemnptu()
 		if actual != tc.Result {
 			t.Fatalf("%s: bad: %v", tc.In, actual)
 		}
@@ -1604,7 +1604,7 @@ func TestReadStateEmptyOrNilFile(t *testing.T) {
 func TestReadStateTFVersion(t *testing.T) {
 	type tfVersion struct {
 		Version   int    `json:"version"`
-		TFVersion string `json:"terraform_version"`
+		TFVersion string `json:"mnptu_version"`
 	}
 
 	cases := []struct {

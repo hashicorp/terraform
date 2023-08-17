@@ -10,8 +10,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/schema"
 	"github.com/lib/pq"
 )
 
@@ -45,27 +45,27 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "Name of the automatically managed Postgres schema to store state",
-				DefaultFunc: schema.EnvDefaultFunc("PG_SCHEMA_NAME", "terraform_remote_state"),
+				DefaultFunc: schema.EnvDefaultFunc("PG_SCHEMA_NAME", "mnptu_remote_state"),
 			},
 
 			"skip_schema_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres schema",
+				Description: "If set to `true`, mnptu won't try to create the Postgres schema",
 				DefaultFunc: defaultBoolFunc("PG_SKIP_SCHEMA_CREATION", false),
 			},
 
 			"skip_table_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres table",
+				Description: "If set to `true`, mnptu won't try to create the Postgres table",
 				DefaultFunc: defaultBoolFunc("PG_SKIP_TABLE_CREATION", false),
 			},
 
 			"skip_index_creation": {
 				Type:        schema.TypeBool,
 				Optional:    true,
-				Description: "If set to `true`, Terraform won't try to create the Postgres index",
+				Description: "If set to `true`, mnptu won't try to create the Postgres index",
 				DefaultFunc: defaultBoolFunc("PG_SKIP_INDEX_CREATION", false),
 			},
 		},

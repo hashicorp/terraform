@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/schema"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	sts "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sts/v20180813"
@@ -103,7 +103,7 @@ func New() backend.Backend {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Description: "The path for saving the state file in bucket",
-				Default:     "terraform.tfstate",
+				Default:     "mnptu.tfstate",
 				ValidateFunc: func(v interface{}, s string) ([]string, []error) {
 					if strings.HasPrefix(v.(string), "/") || strings.HasSuffix(v.(string), "/") {
 						return nil, []error{fmt.Errorf("key can not start and end with '/'")}
@@ -142,7 +142,7 @@ func New() backend.Backend {
 				Type:        schema.TypeSet,
 				Optional:    true,
 				MaxItems:    1,
-				Description: "The `assume_role` block. If provided, terraform will attempt to assume this role using the supplied credentials.",
+				Description: "The `assume_role` block. If provided, mnptu will attempt to assume this role using the supplied credentials.",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"role_arn": {

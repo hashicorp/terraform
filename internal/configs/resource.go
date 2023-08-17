@@ -11,9 +11,9 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Resource represents a "resource" or "data" block in a module or file.
@@ -339,7 +339,7 @@ func decodeResourceBlock(block *hcl.Block, override bool) (*Resource, hcl.Diagno
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in resource block",
-				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by mnptu in a future version.", block.Type),
 				Subject:  &block.TypeRange,
 			})
 		}
@@ -526,7 +526,7 @@ func decodeDataBlock(block *hcl.Block, override, nested bool) (*Resource, hcl.Di
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Reserved block type name in data block",
-				Detail:   fmt.Sprintf("The block type name %q is reserved for use by Terraform in a future version.", block.Type),
+				Detail:   fmt.Sprintf("The block type name %q is reserved for use by mnptu in a future version.", block.Type),
 				Subject:  block.TypeRange.Ptr(),
 			})
 		}
@@ -769,7 +769,7 @@ var commonResourceAttributes = []hcl.AttributeSchema{
 }
 
 // ResourceBlockSchema is the schema for a resource or data resource type within
-// Terraform.
+// mnptu.
 //
 // This schema is public as it is required elsewhere in order to validate and
 // use generated config.

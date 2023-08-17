@@ -2,7 +2,7 @@
   {
     "@level": "info",
     "@message": "local_file.local_file: Plan to delete",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "delete",
       "reason": "delete_because_no_resource_config",
@@ -21,7 +21,7 @@
   {
     "@level": "info",
     "@message": "local_file.local_file: Destroying... [id=2248ee2fa0aaaad99178531f924bf00b4b0a8f4e]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "delete",
       "id_key": "id",
@@ -41,7 +41,7 @@
   {
     "@level": "info",
     "@message": "local_file.local_file: Destruction complete after 0s",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "delete",
       "elapsed_seconds": 0,
@@ -60,7 +60,7 @@
   {
     "@level": "info",
     "@message": "Apply complete! Resources: 0 added, 0 changed, 1 destroyed.",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "changes": {
       "add": 0,
       "change": 0,
@@ -72,7 +72,7 @@
   {
     "@level": "info",
     "@message": "Outputs: 0",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "outputs": {},
     "type": "outputs"
   }

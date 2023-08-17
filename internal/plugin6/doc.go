@@ -4,7 +4,7 @@
 package plugin6
 
 // plugin6 builds on types in package plugin to include support for plugin
-// protocol v6. The main gRPC functions use by terraform (and initialized in
+// protocol v6. The main gRPC functions use by mnptu (and initialized in
 // init.go), such as Serve, are in the plugin package. The version of those
 // functions in this package are used by various mocks and in tests.
 

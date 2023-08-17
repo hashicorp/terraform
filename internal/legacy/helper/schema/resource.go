@@ -9,7 +9,7 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -32,14 +32,14 @@ var ReservedResourceFields = []string{
 	"provisioner",
 }
 
-// Resource represents a thing in Terraform that has a set of configurable
+// Resource represents a thing in mnptu that has a set of configurable
 // attributes and a lifecycle (create, read, update, delete).
 //
 // The Resource schema is an abstraction that allows provider writers to
 // worry only about CRUD operations while off-loading validation, diff
 // generation, etc. to this higher level library.
 //
-// In spite of the name, this struct is not used only for terraform resources,
+// In spite of the name, this struct is not used only for mnptu resources,
 // but also for data sources. In the case of data sources, the Create,
 // Update and Delete functions must not be provided.
 type Resource struct {
@@ -86,7 +86,7 @@ type Resource struct {
 
 	// StateUpgraders contains the functions responsible for upgrading an
 	// existing state with an old schema version to a newer schema. It is
-	// called specifically by Terraform when the stored schema version is less
+	// called specifically by mnptu when the stored schema version is less
 	// than the current SchemaVersion of the Resource.
 	//
 	// StateUpgraders map specific schema versions to a StateUpgrader
@@ -127,14 +127,14 @@ type Resource struct {
 	Exists ExistsFunc
 
 	// CustomizeDiff is a custom function for working with the diff that
-	// Terraform has created for this resource - it can be used to customize the
+	// mnptu has created for this resource - it can be used to customize the
 	// diff that has been created, diff values not controlled by configuration,
 	// or even veto the diff altogether and abort the plan. It is passed a
 	// *ResourceDiff, a structure similar to ResourceData but lacking most write
 	// functions like Set, while introducing new functions that work with the
 	// diff such as SetNew, SetNewComputed, and ForceNew.
 	//
-	// The phases Terraform runs this in, and the state available via functions
+	// The phases mnptu runs this in, and the state available via functions
 	// like Get and GetChange, are as follows:
 	//
 	//  * New resource: One run with no state
@@ -178,11 +178,11 @@ type Resource struct {
 }
 
 // ShimInstanceStateFromValue converts a cty.Value to a
-// terraform.InstanceState.
-func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*terraform.InstanceState, error) {
+// mnptu.InstanceState.
+func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*mnptu.InstanceState, error) {
 	// Get the raw shimmed value. While this is correct, the set hashes don't
 	// match those from the Schema.
-	s := terraform.NewInstanceStateShimmedFromValue(state, r.SchemaVersion)
+	s := mnptu.NewInstanceStateShimmedFromValue(state, r.SchemaVersion)
 
 	// We now rebuild the state through the ResourceData, so that the set indexes
 	// match what helper/schema expects.
@@ -193,7 +193,7 @@ func (r *Resource) ShimInstanceStateFromValue(state cty.Value) (*terraform.Insta
 
 	s = data.State()
 	if s == nil {
-		s = &terraform.InstanceState{}
+		s = &mnptu.InstanceState{}
 	}
 	return s, nil
 }
@@ -215,7 +215,7 @@ type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 
 // See Resource documentation.
 type StateMigrateFunc func(
-	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
+	int, *mnptu.InstanceState, interface{}) (*mnptu.InstanceState, error)
 
 type StateUpgrader struct {
 	// Version is the version schema that this Upgrader will handle, converting
@@ -243,9 +243,9 @@ type CustomizeDiffFunc func(*ResourceDiff, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+	s *mnptu.InstanceState,
+	d *mnptu.InstanceDiff,
+	meta interface{}) (*mnptu.InstanceState, error) {
 	data, err := schemaMap(r.Schema).Data(s, d)
 	if err != nil {
 		return s, err
@@ -273,9 +273,9 @@ func (r *Resource) Apply(
 	data.timeouts = &rt
 
 	if s == nil {
-		// The Terraform API dictates that this should never happen, but
+		// The mnptu API dictates that this should never happen, but
 		// it doesn't hurt to be safe in this case.
-		s = new(terraform.InstanceState)
+		s = new(mnptu.InstanceState)
 	}
 
 	if d.Destroy || d.RequiresNew() {
@@ -322,9 +322,9 @@ func (r *Resource) Apply(
 
 // Diff returns a diff of this resource.
 func (r *Resource) Diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig,
+	meta interface{}) (*mnptu.InstanceDiff, error) {
 
 	t := &ResourceTimeout{}
 	err := t.ConfigDecode(r, c)
@@ -350,9 +350,9 @@ func (r *Resource) Diff(
 }
 
 func (r *Resource) simpleDiff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig,
+	meta interface{}) (*mnptu.InstanceDiff, error) {
 
 	instanceDiff, err := schemaMap(r.Schema).Diff(s, c, r.CustomizeDiff, meta, false)
 	if err != nil {
@@ -360,7 +360,7 @@ func (r *Resource) simpleDiff(
 	}
 
 	if instanceDiff == nil {
-		instanceDiff = terraform.NewInstanceDiff()
+		instanceDiff = mnptu.NewInstanceDiff()
 	}
 
 	// Make sure the old value is set in each of the instance diffs.
@@ -378,7 +378,7 @@ func (r *Resource) simpleDiff(
 }
 
 // Validate validates the resource configuration against the schema.
-func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func (r *Resource) Validate(c *mnptu.ResourceConfig) ([]string, []error) {
 	warns, errs := schemaMap(r.Schema).Validate(c)
 
 	if r.DeprecationMessage != "" {
@@ -391,9 +391,9 @@ func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 // ReadDataApply loads the data for a data source, given a diff that
 // describes the configuration arguments and desired computed attributes.
 func (r *Resource) ReadDataApply(
-	d *terraform.InstanceDiff,
+	d *mnptu.InstanceDiff,
 	meta interface{},
-) (*terraform.InstanceState, error) {
+) (*mnptu.InstanceState, error) {
 	// Data sources are always built completely from scratch
 	// on each read, so the source state is always nil.
 	data, err := schemaMap(r.Schema).Data(nil, d)
@@ -419,8 +419,8 @@ func (r *Resource) ReadDataApply(
 // separate API call.
 // RefreshWithoutUpgrade is part of the new plugin shims.
 func (r *Resource) RefreshWithoutUpgrade(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+	s *mnptu.InstanceState,
+	meta interface{}) (*mnptu.InstanceState, error) {
 	// If the ID is already somehow blank, it doesn't exist
 	if s.ID == "" {
 		return nil, nil
@@ -477,8 +477,8 @@ func (r *Resource) RefreshWithoutUpgrade(
 
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+	s *mnptu.InstanceState,
+	meta interface{}) (*mnptu.InstanceState, error) {
 	// If the ID is already somehow blank, it doesn't exist
 	if s.ID == "" {
 		return nil, nil
@@ -531,7 +531,7 @@ func (r *Resource) Refresh(
 	return r.recordCurrentSchemaVersion(state), err
 }
 
-func (r *Resource) upgradeState(s *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+func (r *Resource) upgradeState(s *mnptu.InstanceState, meta interface{}) (*mnptu.InstanceState, error) {
 	var err error
 
 	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
@@ -724,7 +724,7 @@ func isReservedDataSourceFieldName(name string) bool {
 
 func isReservedResourceFieldName(name string, s *Schema) bool {
 	// Allow phasing out "id"
-	// See https://github.com/terraform-providers/terraform-provider-aws/pull/1626#issuecomment-328881415
+	// See https://github.com/mnptu-providers/mnptu-provider-aws/pull/1626#issuecomment-328881415
 	if name == "id" && (s.Deprecated != "" || s.Removed != "") {
 		return false
 	}
@@ -744,7 +744,7 @@ func isReservedResourceFieldName(name string, s *Schema) bool {
 // itself (including the state given to this function).
 //
 // This function is useful for unit tests and ResourceImporter functions.
-func (r *Resource) Data(s *terraform.InstanceState) *ResourceData {
+func (r *Resource) Data(s *mnptu.InstanceState) *ResourceData {
 	result, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
 		// At the time of writing, this isn't possible (Data never returns
@@ -791,7 +791,7 @@ func (r *Resource) isTopLevel() bool {
 
 // Determines if a given InstanceState needs to be migrated by checking the
 // stored version number with the current SchemaVersion
-func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
+func (r *Resource) checkSchemaVersion(is *mnptu.InstanceState) (bool, int) {
 	// Get the raw interface{} value for the schema version. If it doesn't
 	// exist or is nil then set it to zero.
 	raw := is.Meta["schema_version"]
@@ -820,7 +820,7 @@ func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
 }
 
 func (r *Resource) recordCurrentSchemaVersion(
-	state *terraform.InstanceState) *terraform.InstanceState {
+	state *mnptu.InstanceState) *mnptu.InstanceState {
 	if state != nil && r.SchemaVersion > 0 {
 		if state.Meta == nil {
 			state.Meta = make(map[string]interface{})

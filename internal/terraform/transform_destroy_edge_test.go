@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -11,10 +11,10 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestDestroyEdgeTransformer_basic(t *testing.T) {
@@ -30,7 +30,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -39,7 +39,7 @@ func TestDestroyEdgeTransformer_basic(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
 		t.Fatal(err)
@@ -71,7 +71,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -80,7 +80,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.C").Resource,
@@ -92,7 +92,7 @@ func TestDestroyEdgeTransformer_multi(t *testing.T) {
 				mustConfigResourceAddr("test_object.B"),
 			},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -140,7 +140,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"a"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("module.child.test_object.b")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	child.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.b").Resource,
@@ -148,7 +148,7 @@ func TestDestroyEdgeTransformer_module(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"b","test_string":"x"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -183,7 +183,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 				Status:    states.ObjectReady,
 				AttrsJSON: []byte(`{"id":"a"}`),
 			},
-			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 		)
 		child.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("test_object.b").Resource,
@@ -194,7 +194,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 					mustConfigResourceAddr("module.child.test_object.a"),
 				},
 			},
-			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 		)
 		child.SetResourceInstanceCurrent(
 			mustResourceInstanceAddr("test_object.c").Resource,
@@ -206,7 +206,7 @@ func TestDestroyEdgeTransformer_moduleOnly(t *testing.T) {
 					mustConfigResourceAddr("module.child.test_object.b"),
 				},
 			},
-			mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+			mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 		)
 	}
 
@@ -266,7 +266,7 @@ func TestDestroyEdgeTransformer_destroyThenUpdate(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A","test_string":"old"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -275,7 +275,7 @@ func TestDestroyEdgeTransformer_destroyThenUpdate(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -458,7 +458,7 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.B").Resource,
@@ -467,7 +467,7 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 			AttrsJSON:    []byte(`{"id":"B","test_string":"x"}`),
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("test_object.C").Resource,
@@ -477,7 +477,7 @@ func TestDestroyEdgeTransformer_noOp(t *testing.T) {
 			Dependencies: []addrs.ConfigResource{mustConfigResourceAddr("test_object.A"),
 				mustConfigResourceAddr("test_object.B")},
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {
@@ -537,7 +537,7 @@ func TestDestroyEdgeTransformer_dataDependsOn(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"A"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	if err := (&AttachStateTransformer{State: state}).Transform(&g); err != nil {

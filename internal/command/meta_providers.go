@@ -14,15 +14,15 @@ import (
 
 	plugin "github.com/hashicorp/go-plugin"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/logging"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin"
-	tfplugin6 "github.com/hashicorp/terraform/internal/plugin6"
-	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	mnptuProvider "github.com/hashicorp/mnptu/internal/builtin/providers/mnptu"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/logging"
+	tfplugin "github.com/hashicorp/mnptu/internal/plugin"
+	tfplugin6 "github.com/hashicorp/mnptu/internal/plugin6"
+	"github.com/hashicorp/mnptu/internal/providercache"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // The TF_DISABLE_PLUGIN_TLS environment variable is intended only for use by
@@ -57,7 +57,7 @@ func (m *Meta) providerInstaller() *providercache.Installer {
 // The result of providerInstallerCustomSource differs from
 // providerInstaller only in how it determines package installation locations
 // during EnsureProviderVersions. A caller that doesn't call
-// EnsureProviderVersions (anything other than "terraform init") can safely
+// EnsureProviderVersions (anything other than "mnptu init") can safely
 // just use the providerInstaller method unconditionally.
 func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *providercache.Installer {
 	targetDir := m.providerLocalCacheDir()
@@ -83,7 +83,7 @@ func (m *Meta) providerInstallerCustomSource(source getproviders.Source) *provid
 // providerCustomLocalDirectorySource produces a provider source that consults
 // only the given local filesystem directories for plugins to install.
 //
-// This is used to implement the -plugin-dir option for "terraform init", where
+// This is used to implement the -plugin-dir option for "mnptu init", where
 // the result of this method is used instead of what would've been returned
 // from m.providerInstallSource.
 //
@@ -101,10 +101,10 @@ func (m *Meta) providerCustomLocalDirectorySource(dirs []string) getproviders.So
 
 // providerLocalCacheDir returns an object representing the
 // configuration-specific local cache directory. This is the
-// only location consulted for provider plugin packages for Terraform
+// only location consulted for provider plugin packages for mnptu
 // operations other than provider installation.
 //
-// Only the provider installer (in "terraform init") is permitted to make
+// Only the provider installer (in "mnptu init") is permitted to make
 // modifications to this cache directory. All other commands must treat it
 // as read-only.
 //
@@ -136,12 +136,12 @@ func (m *Meta) providerGlobalCacheDir() *providercache.Dir {
 
 // providerInstallSource returns an object that knows how to consult one or
 // more external sources to determine the availability of and package
-// locations for versions of Terraform providers that are available for
+// locations for versions of mnptu providers that are available for
 // automatic installation.
 //
 // This returns the standard provider install source that consults a number
 // of directories selected either automatically or via the CLI configuration.
-// Users may choose to override this during a "terraform init" command by
+// Users may choose to override this during a "mnptu init" command by
 // specifying one or more -plugin-dir options, in which case the installation
 // process will construct its own source consulting only those directories
 // and use that instead.
@@ -175,7 +175,7 @@ func (m *Meta) providerDevOverrideInitWarnings() tfdiags.Diagnostics {
 	for addr, path := range m.ProviderDevOverrides {
 		detailMsg.WriteString(fmt.Sprintf(" - %s in %s\n", addr.ForDisplay(), path))
 	}
-	detailMsg.WriteString("\nSkip terraform init when using provider development overrides. It is not necessary and may error unexpectedly.")
+	detailMsg.WriteString("\nSkip mnptu init when using provider development overrides. It is not necessary and may error unexpectedly.")
 	return tfdiags.Diagnostics{
 		tfdiags.Sourceless(
 			tfdiags.Warning,
@@ -242,7 +242,7 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	errs := make(map[addrs.Provider]error)
 
 	// For the providers from the lock file, we expect them to be already
-	// available in the provider cache because "terraform init" should already
+	// available in the provider cache because "mnptu init" should already
 	// have put them there.
 	providerLocks := locks.AllProviders()
 	cacheDir := m.providerLocalCacheDir()
@@ -258,12 +258,12 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 	// use a plugin from a particular local directory, ignoring anything the
 	// lock file or cache directory might have to say about it. This is useful
 	// for manual testing of local development builds.
-	// - The Terraform SDK test harness (and possibly other callers in future)
+	// - The mnptu SDK test harness (and possibly other callers in future)
 	// can ask that we use its own already-started provider servers, which we
-	// call "unmanaged" because Terraform isn't responsible for starting
+	// call "unmanaged" because mnptu isn't responsible for starting
 	// and stopping them. This is intended for automated testing where a
 	// calling harness is responsible both for starting the provider server
-	// and orchestrating one or more non-interactive Terraform runs that then
+	// and orchestrating one or more non-interactive mnptu runs that then
 	// exercise it.
 	// Unmanaged providers take precedence over overridden providers because
 	// overrides are typically a "session-level" setting while unmanaged
@@ -337,8 +337,8 @@ func (m *Meta) providerFactories() (map[addrs.Provider]providers.Factory, error)
 
 func (m *Meta) internalProviders() map[string]providers.Factory {
 	return map[string]providers.Factory{
-		"terraform": func() (providers.Interface, error) {
-			return terraformProvider.NewProvider(), nil
+		"mnptu": func() (providers.Interface, error) {
+			return mnptuProvider.NewProvider(), nil
 		},
 	}
 }

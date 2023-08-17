@@ -30,7 +30,7 @@ func init() {
 	registerConcludedExperiment(SuppressProviderSensitiveAttrs, "Provider-defined sensitive attributes are now redacted by default, without enabling an experiment.")
 	registerConcludedExperiment(ConfigDrivenMove, "Declarations of moved resource instances using \"moved\" blocks can now be used by default, without enabling an experiment.")
 	registerConcludedExperiment(PreconditionsPostconditions, "Condition blocks can now be used by default, without enabling an experiment.")
-	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the Terraform language from Terraform v1.3.0 onwards.")
+	registerConcludedExperiment(ModuleVariableOptionalAttrs, "The final feature corresponding to this experiment differs from the experimental form and is available in the mnptu language from mnptu v1.3.0 onwards.")
 }
 
 // GetCurrent takes an experiment name and returns the experiment value
@@ -75,13 +75,13 @@ func (e Experiment) IsConcluded() bool {
 }
 
 // currentExperiments are those which are available to activate in the current
-// version of Terraform.
+// version of mnptu.
 //
 // Members of this set are registered in the init function above.
 var currentExperiments = make(Set)
 
 // concludedExperiments are those which were available to activate in an earlier
-// version of Terraform but are no longer available, either because the feature
+// version of mnptu but are no longer available, either because the feature
 // in question has been implemented or because the experiment failed and the
 // feature was abandoned. Each experiment maps to a message describing the
 // outcome, so we can give users feedback about what they might do in modules

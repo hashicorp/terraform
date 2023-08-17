@@ -14,25 +14,25 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
 const (
-	DefaultWorkspaceDir    = "terraform.tfstate.d"
+	DefaultWorkspaceDir    = "mnptu.tfstate.d"
 	DefaultWorkspaceFile   = "environment"
-	DefaultStateFilename   = "terraform.tfstate"
+	DefaultStateFilename   = "mnptu.tfstate"
 	DefaultBackupExtension = ".backup"
 )
 
 // Local is an implementation of EnhancedBackend that performs all operations
-// locally. This is the "default" backend and implements normal Terraform
+// locally. This is the "default" backend and implements normal mnptu
 // behavior as it is well known.
 type Local struct {
 	// The State* paths are set from the backend config, and may be left blank
@@ -66,9 +66,9 @@ type Local struct {
 	// here as they're loaded.
 	states map[string]statemgr.Full
 
-	// Terraform context. Many of these will be overridden or merged by
+	// mnptu context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
-	ContextOpts *terraform.ContextOpts
+	ContextOpts *mnptu.ContextOpts
 
 	// OpInput will ask for necessary input prior to performing any operations.
 	//
@@ -270,7 +270,7 @@ func (b *Local) StateMgr(name string) (statemgr.Full, error) {
 
 // Operation implements backend.Enhanced
 //
-// This will initialize an in-memory terraform.Context to perform the
+// This will initialize an in-memory mnptu.Context to perform the
 // operation within this process.
 //
 // The given operation parameter will be merged with the ContextOpts on
@@ -293,8 +293,8 @@ func (b *Local) Operation(ctx context.Context, op *backend.Operation) (*backend.
 	default:
 		return nil, fmt.Errorf(
 			"unsupported operation type: %s\n\n"+
-				"This is a bug in Terraform and should be reported. The local backend\n"+
-				"is built-in to Terraform and should always support all operations.",
+				"This is a bug in mnptu and should be reported. The local backend\n"+
+				"is built-in to mnptu and should always support all operations.",
 			op.Type)
 	}
 
@@ -340,7 +340,7 @@ func (b *Local) opWait(
 	doneCh <-chan struct{},
 	stopCtx context.Context,
 	cancelCtx context.Context,
-	tfCtx *terraform.Context,
+	tfCtx *mnptu.Context,
 	opStateMgr statemgr.Persister,
 	view views.Operation) (canceled bool) {
 	// Wait for the operation to finish or for us to be interrupted so
@@ -493,4 +493,4 @@ func (b *Local) stateWorkspaceDir() string {
 
 const earlyStateWriteErrorFmt = `Error: %s
 
-Terraform encountered an error attempting to save the state before cancelling the current operation. Once the operation is complete another attempt will be made to save the final state.`
+mnptu encountered an error attempting to save the state before cancelling the current operation. Once the operation is complete another attempt will be made to save the final state.`

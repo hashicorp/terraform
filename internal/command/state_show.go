@@ -8,14 +8,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat"
+	"github.com/hashicorp/mnptu/internal/command/jsonprovider"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
 	"github.com/mitchellh/cli"
 )
 
@@ -169,19 +169,19 @@ func (c *StateShowCommand) Run(args []string) int {
 
 func (c *StateShowCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] state show [options] ADDRESS
+Usage: mnptu [global options] state show [options] ADDRESS
 
-  Shows the attributes of a resource in the Terraform state.
+  Shows the attributes of a resource in the mnptu state.
 
-  This command shows the attributes of a single resource in the Terraform
+  This command shows the attributes of a single resource in the mnptu
   state. The address argument must be used to specify a single resource.
-  You can view the list of available resources with "terraform state list".
+  You can view the list of available resources with "mnptu state list".
 
 Options:
 
-  -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources. By default it will
-                      use the state "terraform.tfstate" if it exists.
+  -state=statefile    Path to a mnptu state file to use to look
+                      up mnptu-managed resources. By default it will
+                      use the state "mnptu.tfstate" if it exists.
 
 `
 	return strings.TrimSpace(helpText)
@@ -194,11 +194,11 @@ func (c *StateShowCommand) Synopsis() string {
 const errNoInstanceFound = `No instance found for the given address!
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "mnptu state list". Please modify 
 the address to reference a specific instance.`
 
 const errParsingAddress = `Error parsing instance address: %s
 
 This command requires that the address references one specific instance.
-To view the available instances, use "terraform state list". Please modify 
+To view the available instances, use "mnptu state list". Please modify 
 the address to reference a specific instance.`

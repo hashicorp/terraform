@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestImpliedMoveStatements(t *testing.T) {
@@ -88,7 +88,7 @@ func TestImpliedMoveStatements(t *testing.T) {
 		// this state would be to remove "count = 1" and then have the
 		// provider fail to destroy the zero-key instance even though we
 		// already created the no-key instance. Users can also get here
-		// by using "terraform state mv" in weird ways.
+		// by using "mnptu state mv" in weird ways.
 		s.SetResourceInstanceCurrent(
 			resourceAddr("ambiguous").Instance(addrs.NoKey),
 			instObjState(),

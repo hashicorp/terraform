@@ -2,7 +2,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_object.object: Plan to replace",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "replace",
       "reason": "cannot_update",
@@ -21,7 +21,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_object.object: Destroying... [id=F40F2AB4-100C-4AE8-BFD0-BF332A158415]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "delete",
       "id_key": "id",
@@ -41,7 +41,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_object.object: Destruction complete after 0s",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "delete",
       "elapsed_seconds": 0,
@@ -60,7 +60,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_object.object: Creating...",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "create",
       "resource": {
@@ -78,7 +78,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_object.object: Creation complete after 0s [id=F40F2AB4-100C-4AE8-BFD0-BF332A158415]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "create",
       "elapsed_seconds": 0,
@@ -99,7 +99,7 @@
   {
     "@level": "info",
     "@message": "Apply complete! Resources: 1 added, 0 changed, 1 destroyed.",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "changes": {
       "add": 1,
       "change": 0,
@@ -111,7 +111,7 @@
   {
     "@level": "info",
     "@message": "Outputs: 0",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "outputs": {},
     "type": "outputs"
   }

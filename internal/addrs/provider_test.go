@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 )
 
 func TestProviderString(t *testing.T) {
@@ -34,10 +34,10 @@ func TestProviderString(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  "registry.terraform.com",
+				Hostname:  "registry.mnptu.com",
 				Namespace: "hashicorp",
 			},
-			"registry.terraform.com/hashicorp/test",
+			"registry.mnptu.com/hashicorp/test",
 		},
 		{
 			Provider{
@@ -72,11 +72,11 @@ func TestProviderLegacyString(t *testing.T) {
 		},
 		{
 			Provider{
-				Type:      "terraform",
+				Type:      "mnptu",
 				Hostname:  BuiltInProviderHost,
 				Namespace: BuiltInProviderNamespace,
 			},
-			"terraform",
+			"mnptu",
 		},
 	}
 
@@ -104,10 +104,10 @@ func TestProviderDisplay(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  "registry.terraform.com",
+				Hostname:  "registry.mnptu.com",
 				Namespace: "hashicorp",
 			},
-			"registry.terraform.com/hashicorp/test",
+			"registry.mnptu.com/hashicorp/test",
 		},
 		{
 			Provider{
@@ -143,7 +143,7 @@ func TestProviderIsDefaultProvider(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  "registry.terraform.com",
+				Hostname:  "registry.mnptu.com",
 				Namespace: "hashicorp",
 			},
 			false,
@@ -181,7 +181,7 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		},
 		{
 			Provider{
-				Type:      "terraform",
+				Type:      "mnptu",
 				Hostname:  BuiltInProviderHost,
 				Namespace: BuiltInProviderNamespace,
 			},
@@ -214,7 +214,7 @@ func TestProviderIsBuiltIn(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  "registry.terraform.com",
+				Hostname:  "registry.mnptu.com",
 				Namespace: "hashicorp",
 			},
 			false,
@@ -253,7 +253,7 @@ func TestProviderIsLegacy(t *testing.T) {
 		{
 			Provider{
 				Type:      "test",
-				Hostname:  "registry.terraform.com",
+				Hostname:  "registry.mnptu.com",
 				Namespace: LegacyProviderNamespace,
 			},
 			false,
@@ -281,7 +281,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 		Want Provider
 		Err  bool
 	}{
-		"registry.terraform.io/hashicorp/aws": {
+		"registry.mnptu.io/hashicorp/aws": {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
@@ -289,7 +289,7 @@ func TestParseProviderSourceStr(t *testing.T) {
 			},
 			false,
 		},
-		"registry.Terraform.io/HashiCorp/AWS": {
+		"registry.mnptu.io/HashiCorp/AWS": {
 			Provider{
 				Type:      "aws",
 				Namespace: "hashicorp",
@@ -414,16 +414,16 @@ func TestParseProviderSourceStr(t *testing.T) {
 			true,
 		},
 
-		// We forbid the terraform- prefix both because it's redundant to
-		// include "terraform" in a Terraform provider name and because we use
-		// the longer prefix terraform-provider- to hint for users who might be
+		// We forbid the mnptu- prefix both because it's redundant to
+		// include "mnptu" in a mnptu provider name and because we use
+		// the longer prefix mnptu-provider- to hint for users who might be
 		// accidentally using the git repository name or executable file name
 		// instead of the provider type.
-		"example.com/hashicorp/terraform-provider-bad": {
+		"example.com/hashicorp/mnptu-provider-bad": {
 			Provider{},
 			true,
 		},
-		"example.com/hashicorp/terraform-bad": {
+		"example.com/hashicorp/mnptu-bad": {
 			Provider{},
 			true,
 		},

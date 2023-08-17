@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
@@ -103,9 +103,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 						}),
 					},
 
-					Diff: &terraform.InstanceDiff{
-						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"availability_zone": &terraform.ResourceAttrDiff{
+					Diff: &mnptu.InstanceDiff{
+						Attributes: map[string]*mnptu.ResourceAttrDiff{
+							"availability_zone": &mnptu.ResourceAttrDiff{
 								Old:         "foo",
 								New:         "bar",
 								RequiresNew: true,
@@ -150,9 +150,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 						}),
 					},
 
-					Diff: &terraform.InstanceDiff{
-						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"availability_zone": &terraform.ResourceAttrDiff{
+					Diff: &mnptu.InstanceDiff{
+						Attributes: map[string]*mnptu.ResourceAttrDiff{
+							"availability_zone": &mnptu.ResourceAttrDiff{
 								Old:         "foo",
 								New:         "bar",
 								NewComputed: true,
@@ -197,9 +197,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 						}),
 					},
 
-					Diff: &terraform.InstanceDiff{
-						Attributes: map[string]*terraform.ResourceAttrDiff{
-							"config_vars.0.bar": &terraform.ResourceAttrDiff{
+					Diff: &mnptu.InstanceDiff{
+						Attributes: map[string]*mnptu.ResourceAttrDiff{
+							"config_vars.0.bar": &mnptu.ResourceAttrDiff{
 								NewRemoved: true,
 							},
 						},

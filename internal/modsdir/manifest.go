@@ -16,7 +16,7 @@ import (
 
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // Record represents some metadata about an installed module, as part
@@ -99,7 +99,7 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 		// Historically we didn't normalize the module source addresses when
 		// writing them into the manifest, and so we'll make a best effort
 		// to normalize them back in on read so that we can just gracefully
-		// upgrade on the next "terraform init".
+		// upgrade on the next "mnptu init".
 		if record.SourceAddr != "" {
 			if addr, err := addrs.ParseModuleSource(record.SourceAddr); err == nil {
 				// This is a best effort sort of thing. If the source
@@ -117,7 +117,7 @@ func ReadManifestSnapshot(r io.Reader) (Manifest, error) {
 		if _, exists := new[record.Key]; exists {
 			// This should never happen in any valid file, so we'll catch it
 			// and report it to avoid confusing/undefined behavior if the
-			// snapshot file was edited incorrectly outside of Terraform.
+			// snapshot file was edited incorrectly outside of mnptu.
 			return nil, fmt.Errorf("snapshot file contains two records for path %s", record.Key)
 		}
 		new[record.Key] = record

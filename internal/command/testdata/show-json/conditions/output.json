@@ -1,6 +1,6 @@
 {
   "format_version": "1.1",
-  "terraform_version": "1.2.0-dev",
+  "mnptu_version": "1.2.0-dev",
   "variables": {
     "ami": {
       "value": "ami-test"
@@ -22,7 +22,7 @@
           "mode": "managed",
           "type": "test_instance",
           "name": "bar",
-          "provider_name": "registry.terraform.io/hashicorp/test",
+          "provider_name": "registry.mnptu.io/hashicorp/test",
           "schema_version": 0,
           "values": {
             "ami": "ami-boop"
@@ -34,7 +34,7 @@
           "mode": "managed",
           "type": "test_instance",
           "name": "foo",
-          "provider_name": "registry.terraform.io/hashicorp/test",
+          "provider_name": "registry.mnptu.io/hashicorp/test",
           "schema_version": 0,
           "values": {
             "ami": "ami-test"
@@ -50,7 +50,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "bar",
-      "provider_name": "registry.terraform.io/hashicorp/test",
+      "provider_name": "registry.mnptu.io/hashicorp/test",
       "change": {
         "actions": [
           "create"
@@ -71,7 +71,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "foo",
-      "provider_name": "registry.terraform.io/hashicorp/test",
+      "provider_name": "registry.mnptu.io/hashicorp/test",
       "change": {
         "actions": [
           "create"
@@ -103,7 +103,7 @@
     "provider_config": {
       "test": {
         "name": "test",
-        "full_name": "registry.terraform.io/hashicorp/test"
+        "full_name": "registry.mnptu.io/hashicorp/test"
       }
     },
     "root_module": {

@@ -1,7 +1,7 @@
-# This file is maintained automatically by "terraform init".
+# This file is maintained automatically by "mnptu init".
 # Manual edits may be lost in future updates.
 
-provider "registry.terraform.io/hashicorp/null" {
+provider "registry.mnptu.io/hashicorp/null" {
   version     = "2.1.0"
   constraints = "2.1.0"
   hashes = [
@@ -22,7 +22,7 @@ provider "registry.terraform.io/hashicorp/null" {
   ]
 }
 
-provider "registry.terraform.io/hashicorp/template" {
+provider "registry.mnptu.io/hashicorp/template" {
   version     = "2.1.1"
   constraints = "2.1.1"
   hashes = [

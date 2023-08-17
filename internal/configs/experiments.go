@@ -7,22 +7,22 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/experiments"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/experiments"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // When developing UI for experimental features, you can temporarily disable
 // the experiment warning by setting this package-level variable to a non-empty
 // value using a link-time flag:
 //
-// go install -ldflags="-X 'github.com/hashicorp/terraform/internal/configs.disableExperimentWarnings=yes'"
+// go install -ldflags="-X 'github.com/hashicorp/mnptu/internal/configs.disableExperimentWarnings=yes'"
 //
 // This functionality is for development purposes only and is not a feature we
 // are committing to supporting for end users.
 var disableExperimentWarnings = ""
 
 // sniffActiveExperiments does minimal parsing of the given body for
-// "terraform" blocks with "experiments" attributes, returning the
+// "mnptu" blocks with "experiments" attributes, returning the
 // experiments found.
 //
 // This is separate from other processing so that we can be sure that all of
@@ -30,7 +30,7 @@ var disableExperimentWarnings = ""
 // and thus we can take into account which experiments are active when deciding
 // how to decode.
 func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.Diagnostics) {
-	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
+	rootContent, _, diags := body.PartialContent(configFilemnptuBlockSniffRootSchema)
 
 	ret := experiments.NewSet()
 
@@ -41,7 +41,7 @@ func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.D
 		if attr, exists := content.Attributes["language"]; exists {
 			// We don't yet have a sense of selecting an edition of the
 			// language, but we're reserving this syntax for now so that
-			// if and when we do this later older versions of Terraform
+			// if and when we do this later older versions of mnptu
 			// will emit a more helpful error message than just saying
 			// this attribute doesn't exist. Handling this as part of
 			// experiments is a bit odd for now but justified by the
@@ -59,7 +59,7 @@ func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.D
 					Severity: hcl.DiagError,
 					Summary:  "Invalid language edition",
 					Detail: fmt.Sprintf(
-						"The language argument expects a bare language edition keyword. Terraform %s supports only language edition %s, which is the default.",
+						"The language argument expects a bare language edition keyword. mnptu %s supports only language edition %s, which is the default.",
 						currentVersion, firstEdition,
 					),
 					Subject: attr.Expr.Range().Ptr(),
@@ -73,7 +73,7 @@ func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.D
 					Severity: hcl.DiagError,
 					Summary:  "Unsupported language edition",
 					Detail: fmt.Sprintf(
-						"Terraform v%s only supports language edition %s. This module requires a %s version of Terraform CLI.",
+						"mnptu v%s only supports language edition %s. This module requires a %s version of mnptu CLI.",
 						currentVersion, firstEdition, rel,
 					),
 					Subject: attr.Expr.Range().Ptr(),
@@ -115,7 +115,7 @@ func sniffActiveExperiments(body hcl.Body, allowed bool) (experiments.Set, hcl.D
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Module uses experimental features",
-				Detail:   "Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of Terraform.",
+				Detail:   "Experimental features are intended only for gathering early feedback on new language designs, and so are available only in alpha releases of mnptu.",
 				Subject:  attr.NameRange.Ptr(),
 			})
 		}
@@ -184,7 +184,7 @@ func decodeExperimentsAttr(attr *hcl.Attribute) (experiments.Set, hcl.Diagnostic
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagWarning,
 					Summary:  fmt.Sprintf("Experimental feature %q is active", exp.Keyword()),
-					Detail:   "Experimental features are available only in alpha releases of Terraform and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
+					Detail:   "Experimental features are available only in alpha releases of mnptu and are subject to breaking changes or total removal in later versions, based on feedback. We recommend against using experimental features in production.\n\nIf you have feedback on the design of this feature, please open a GitHub issue to discuss it.",
 					Subject:  expr.Range().Ptr(),
 				})
 			}

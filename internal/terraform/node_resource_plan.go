@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // nodeExpandPlannableResource represents an addrs.ConfigResource and implements
@@ -47,7 +47,7 @@ type nodeExpandPlannableResource struct {
 	dependencies []addrs.ConfigResource
 
 	// legacyImportMode is set if the graph is being constructed following an
-	// invocation of the legacy "terraform import" CLI command.
+	// invocation of the legacy "mnptu import" CLI command.
 	legacyImportMode bool
 }
 
@@ -326,7 +326,7 @@ func (n *nodeExpandPlannableResource) resourceInstanceSubgraph(ctx EvalContext, 
 						// This should be impossible, because the import command
 						// arg parsing builds the synth expression from a
 						// non-null string.
-						panic(fmt.Sprintf("Invalid import id: %s. This is a bug in Terraform; please report it!", diags.Err()))
+						panic(fmt.Sprintf("Invalid import id: %s. This is a bug in mnptu; please report it!", diags.Err()))
 					}
 
 					return &graphNodeImportState{

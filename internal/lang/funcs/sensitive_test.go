@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -87,7 +87,7 @@ func TestSensitive(t *testing.T) {
 				// above. Any others are an error, even if they happen to
 				// appear alongside "sensitive". (We might change this rule
 				// if someday we decide to use marks for some additional
-				// unrelated thing in Terraform, but currently we assume that
+				// unrelated thing in mnptu, but currently we assume that
 				// _all_ marks imply sensitive, and so returning any other
 				// marks would be confusing.)
 				t.Errorf("extraneous marks %#v", gotMarks)

@@ -1,10 +1,10 @@
-terraform {
+mnptu {
   cloud {
     organization = "foo"
   }
 }
 
-terraform {
+mnptu {
   cloud {
     organization = "bar"
   }

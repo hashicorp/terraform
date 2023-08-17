@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"testing"
@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/providers"
 )
 
 func TestStaticValidateReferences(t *testing.T) {
@@ -69,7 +69,7 @@ For example, to correlate with indices of a referring resource, use:
 		},
 		{
 			Ref:     "boop_whatever.nope",
-			WantErr: `Invalid resource type: A managed resource type "boop_whatever" is not supported by provider "registry.terraform.io/foobar/beep".`,
+			WantErr: `Invalid resource type: A managed resource type "boop_whatever" is not supported by provider "registry.mnptu.io/foobar/beep".`,
 		},
 		{
 			Ref:     "data.boop_data.boop_nested",

@@ -66,7 +66,7 @@ func configureOutputHandle(f *os.File) (*OutputStream, error) {
 	} else if isatty.IsCygwinTerminal(fd) {
 		// Cygwin terminals -- and other VT100 "fakers" for older versions of
 		// Windows -- are not really terminals in the usual sense, but rather
-		// are pipes between the child process (Terraform) and the terminal
+		// are pipes between the child process (mnptu) and the terminal
 		// emulator. isatty.IsCygwinTerminal uses some heuristics to
 		// distinguish those pipes from other pipes we might see if the user
 		// were, for example, using the | operator on the command line.

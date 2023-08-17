@@ -2,18 +2,18 @@
 page_title: 'Provisioner: file'
 description: >-
   The `file` provisioner is used to copy files or directories from the machine
-  executing Terraform to the newly created resource. The `file` provisioner
+  executing mnptu to the newly created resource. The `file` provisioner
   supports both `ssh` and `winrm` type connections.
 ---
 
 # File Provisioner
 
 The `file` provisioner copies files or directories from the machine
-running Terraform to the newly created resource. The `file` provisioner
-supports both `ssh` and `winrm` type [connections](/terraform/language/resources/provisioners/connection).
+running mnptu to the newly created resource. The `file` provisioner
+supports both `ssh` and `winrm` type [connections](/mnptu/language/resources/provisioners/connection).
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
-[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+[Declaring Provisioners](/mnptu/language/resources/provisioners/syntax) for more details.
 
 ## Example usage
 
@@ -70,7 +70,7 @@ The following arguments are supported:
 ## Destination Paths
 
 The path you provide in the `destination` argument will be evaluated by the
-remote system, rather than by Terraform itself. Therefore the valid values
+remote system, rather than by mnptu itself. Therefore the valid values
 for that argument can vary depending on the operating system and remote access
 software running on the target.
 
@@ -122,7 +122,7 @@ destination will be created. For example:
 * If the source is `/foo` (no trailing slash), and the destination is `/tmp`,
   then the contents of `/foo` on the local machine will be uploaded to
   `/tmp/foo` on the remote machine. The `foo` directory on the remote machine
-  will be created by Terraform.
+  will be created by mnptu.
 
 * If the source, however, is `/foo/` (a trailing slash is present), and the
   destination is `/tmp`, then the contents of `/foo` will be uploaded directly

@@ -1,5 +1,5 @@
 [
-  { "heading": "Terraform Internals" },
+  { "heading": "mnptu Internals" },
   {
     "title": "Overview", 
     "path": ""
@@ -9,7 +9,7 @@
     "path": "credentials-helpers"
   },
   {
-    "title": "Debugging Terraform",
+    "title": "Debugging mnptu",
     "path": "debugging"
   },
   {
@@ -59,7 +59,7 @@
     "hidden": true
   },
   { "divider": true },
-  { "title": "Terraform CLI", "href": "/cli" },
+  { "title": "mnptu CLI", "href": "/cli" },
   { "divider": true },
   { "title": "Configuration Language", "href": "/language" }
 ]

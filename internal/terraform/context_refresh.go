@@ -1,22 +1,22 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Refresh is a vestigial operation that is equivalent to call to Plan and
 // then taking the prior state of the resulting plan.
 //
 // We retain this only as a measure of semi-backward-compatibility for
-// automation relying on the "terraform refresh" subcommand. The modern way
+// automation relying on the "mnptu refresh" subcommand. The modern way
 // to get this effect is to create and then apply a plan in the refresh-only
 // mode.
 func (c *Context) Refresh(config *configs.Config, prevRunState *states.State, opts *PlanOpts) (*states.State, tfdiags.Diagnostics) {

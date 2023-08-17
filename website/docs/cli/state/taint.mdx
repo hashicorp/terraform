@@ -1,28 +1,28 @@
 ---
-page_title: Forcing Re-creation of Resources - Terraform CLI
+page_title: Forcing Re-creation of Resources - mnptu CLI
 description: Commands that allow you to destroy and re-create resources manually.
 ---
 
 # Forcing Re-creation of Resources
 
-During planning, by default Terraform retrieves the latest state of each
+During planning, by default mnptu retrieves the latest state of each
 existing object and compares it with the current configuration, planning
 actions only against objects whose current state does not match the
 configuration.
 
 However, in some cases a remote object may become damaged or degraded in a
-way that Terraform cannot automatically detect. For example, if software
+way that mnptu cannot automatically detect. For example, if software
 running inside a virtual machine crashes but the virtual machine itself is
-still running then Terraform will typically have no way to detect and respond
-to the problem, because Terraform only directly manages the machine as a whole.
+still running then mnptu will typically have no way to detect and respond
+to the problem, because mnptu only directly manages the machine as a whole.
 
-If you know that an object is damaged, or if you want to force Terraform to
-replace it for any other reason, you can override Terraform's default behavior
-using [the `-replace=...` planning option](/terraform/cli/commands/plan#replace-address)
-when you run either `terraform plan` or `terraform apply`:
+If you know that an object is damaged, or if you want to force mnptu to
+replace it for any other reason, you can override mnptu's default behavior
+using [the `-replace=...` planning option](/mnptu/cli/commands/plan#replace-address)
+when you run either `mnptu plan` or `mnptu apply`:
 
 ```shellsession
-$ terraform apply -replace="aws_instance.example"
+$ mnptu apply -replace="aws_instance.example"
 # ...
 
   # aws_instance.example will be replaced, as requested
@@ -33,13 +33,13 @@ $ terraform apply -replace="aws_instance.example"
 
 ## The "tainted" status
 
-Sometimes Terraform is able to infer automatically that an object is in an
+Sometimes mnptu is able to infer automatically that an object is in an
 incomplete or degraded state. For example, if creation of a complex object
 fails in such a way that parts of it already exist in the remote system, or
 if object creation succeeded but a provisioner step subsequently failed,
-Terraform must remember that the object exists but may not be fully-functional.
+mnptu must remember that the object exists but may not be fully-functional.
 
-Terraform represents this situation by marking an object in the state as
+mnptu represents this situation by marking an object in the state as
 "tainted". When an object is marked with this status, the next plan will force
 replacing that object in a similar way to if you had specified that object's
 address using `-replace=...` as described above.
@@ -51,13 +51,13 @@ address using `-replace=...` as described above.
     }
 ```
 
-If Terraform has marked an object as tainted but you consider it to be working
-correctly and do not want to replace it, you can override Terraform's
-determination using [the `terraform untaint` command](/terraform/cli/commands/untaint),
-after which Terraform will consider the object to be ready for use by any
+If mnptu has marked an object as tainted but you consider it to be working
+correctly and do not want to replace it, you can override mnptu's
+determination using [the `mnptu untaint` command](/mnptu/cli/commands/untaint),
+after which mnptu will consider the object to be ready for use by any
 downstream resource declarations.
 
-You can also _force_ Terraform to mark a particular object as tainted using
-[the `terraform taint` command](/terraform/cli/commands/taint), but that approach is
+You can also _force_ mnptu to mark a particular object as tainted using
+[the `mnptu taint` command](/mnptu/cli/commands/taint), but that approach is
 deprecated in favor of the `-replace=...` option, which avoids the need to
 create an interim state snapshot with a tainted object.

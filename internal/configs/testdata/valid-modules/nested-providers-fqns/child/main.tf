@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     bar-test = {
       source = "bar/test"

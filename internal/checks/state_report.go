@@ -6,13 +6,13 @@ package checks
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
-// These are the "Report"-prefixed methods of Checks used by Terraform Core
+// These are the "Report"-prefixed methods of Checks used by mnptu Core
 // to gradually signal the results of checks during a plan or apply operation.
 
-// ReportCheckableObjects is the interface by which Terraform Core should
+// ReportCheckableObjects is the interface by which mnptu Core should
 // tell the State object which specific checkable objects were declared
 // by the given configuration object.
 //
@@ -33,7 +33,7 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 	}
 
 	// At this point we pre-populate all of the check results as StatusUnknown,
-	// so that even if we never hear from Terraform Core again we'll still
+	// so that even if we never hear from mnptu Core again we'll still
 	// remember that these results were all pending.
 	st.objects = addrs.MakeMap[addrs.Checkable, map[addrs.CheckRuleType][]Status]()
 	for _, objectAddr := range objectAddrs {
@@ -54,7 +54,7 @@ func (c *State) ReportCheckableObjects(configAddr addrs.ConfigCheckable, objectA
 	}
 }
 
-// ReportCheckResult is the interface by which Terraform Core should tell the
+// ReportCheckResult is the interface by which mnptu Core should tell the
 // State object the result of a specific check for an object that was
 // previously registered with ReportCheckableObjects.
 //

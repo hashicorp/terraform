@@ -6,7 +6,7 @@ package states
 import (
 	"reflect"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // Equal returns true if the receiver is functionally equivalent to other,

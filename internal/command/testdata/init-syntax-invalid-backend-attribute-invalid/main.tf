@@ -1,5 +1,5 @@
 
-terraform {
+mnptu {
   backend "local" {
     path = $invalid
   }

@@ -4,7 +4,7 @@
 package instances
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // Set is a set of instances, intended mainly for the return value of

@@ -10,13 +10,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/command/format"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/computed"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/mnptu/internal/command/jsonplan"
+	"github.com/hashicorp/mnptu/internal/command/jsonprovider"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 const (
@@ -103,7 +103,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 				renderer.Streams.Println()
 			}
 			renderer.Streams.Print(
-				renderer.Colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] Terraform encountered an error while generating this plan.[reset]\n\n"),
+				renderer.Colorize.Color("\n[reset][bold][red]Planning failed.[reset][bold] mnptu encountered an error while generating this plan.[reset]\n\n"),
 			)
 		} else {
 			switch mode {
@@ -117,7 +117,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 
 				renderer.Streams.Print(renderer.Colorize.Color("\n[reset][bold][green]No changes.[reset][bold] Your infrastructure still matches the configuration.[reset]\n\n"))
 				renderer.Streams.Println(format.WordWrap(
-					"Terraform has checked that the real remote objects still match the result of your most recent changes, and found no differences.",
+					"mnptu has checked that the real remote objects still match the result of your most recent changes, and found no differences.",
 					renderer.Streams.Stdout.Columns()))
 			case plans.DestroyMode:
 				if haveRefreshChanges {
@@ -126,7 +126,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 				}
 				renderer.Streams.Print(renderer.Colorize.Color("\n[reset][bold][green]No changes.[reset][bold] No objects need to be destroyed.[reset]\n\n"))
 				renderer.Streams.Println(format.WordWrap(
-					"Either you have not created any objects yet or the existing objects were already deleted outside of Terraform.",
+					"Either you have not created any objects yet or the existing objects were already deleted outside of mnptu.",
 					renderer.Streams.Stdout.Columns()))
 			default:
 				if haveRefreshChanges {
@@ -155,10 +155,10 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 						suggestion := "."
 						if !renderer.RunningInAutomation {
 							// The normal message includes a specific command line to run.
-							suggestion = ":\n  terraform apply -refresh-only"
+							suggestion = ":\n  mnptu apply -refresh-only"
 						}
 						renderer.Streams.Println(format.WordWrap(
-							"Your configuration already matches the changes detected above. If you'd like to update the Terraform state to match, create and apply a refresh-only plan"+suggestion,
+							"Your configuration already matches the changes detected above. If you'd like to update the mnptu state to match, create and apply a refresh-only plan"+suggestion,
 							renderer.Streams.Stdout.Columns(),
 						))
 					}
@@ -168,7 +168,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 				// If we get down here then we're just in the simple situation where
 				// the plan isn't applyable at all.
 				renderer.Streams.Println(format.WordWrap(
-					"Terraform has compared your real infrastructure against your configuration and found no differences, so no changes are needed.",
+					"mnptu has compared your real infrastructure against your configuration and found no differences, so no changes are needed.",
 					renderer.Streams.Stdout.Columns(),
 				))
 			}
@@ -182,7 +182,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 
 	if willPrintResourceChanges {
 		renderer.Streams.Println(format.WordWrap(
-			"\nTerraform used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:",
+			"\nmnptu used the selected providers to generate the following execution plan. Resource actions are indicated with the following symbols:",
 			renderer.Streams.Stdout.Columns()))
 		if counts[plans.Create] > 0 {
 			renderer.Streams.Println(renderer.Colorize.Color(actionDescription(plans.Create)))
@@ -206,9 +206,9 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 
 	if len(changes) > 0 {
 		if checkOpts(plans.Errored) {
-			renderer.Streams.Printf("\nTerraform planned the following actions, but then encountered a problem:\n")
+			renderer.Streams.Printf("\nmnptu planned the following actions, but then encountered a problem:\n")
 		} else {
-			renderer.Streams.Printf("\nTerraform will perform the following actions:\n")
+			renderer.Streams.Printf("\nmnptu will perform the following actions:\n")
 		}
 
 		for _, change := range changes {
@@ -245,7 +245,7 @@ func (plan Plan) renderHuman(renderer Renderer, mode plans.Mode, opts ...plans.Q
 			// so we need some extra context about what it would mean to
 			// apply a change that _only_ includes output changes.
 			renderer.Streams.Println(format.WordWrap(
-				"\nYou can apply this plan to save these new output values to the Terraform state, without changing any real infrastructure.",
+				"\nYou can apply this plan to save these new output values to the mnptu state, without changing any real infrastructure.",
 				renderer.Streams.Stdout.Columns()))
 		}
 	}
@@ -304,10 +304,10 @@ func renderHumanDiffDrift(renderer Renderer, diffs diffs, mode plans.Mode) bool 
 		return false
 	}
 
-	renderer.Streams.Print(renderer.Colorize.Color("\n[bold][cyan]Note:[reset][bold] Objects have changed outside of Terraform\n"))
+	renderer.Streams.Print(renderer.Colorize.Color("\n[bold][cyan]Note:[reset][bold] Objects have changed outside of mnptu\n"))
 	renderer.Streams.Println()
 	renderer.Streams.Print(format.WordWrap(
-		"Terraform detected the following changes made outside of Terraform since the last \"terraform apply\" which may have affected this plan:\n",
+		"mnptu detected the following changes made outside of mnptu since the last \"mnptu apply\" which may have affected this plan:\n",
 		renderer.Streams.Stdout.Columns()))
 
 	for _, drift := range drs {
@@ -321,7 +321,7 @@ func renderHumanDiffDrift(renderer Renderer, diffs diffs, mode plans.Mode) bool 
 	switch mode {
 	case plans.RefreshOnlyMode:
 		renderer.Streams.Println(format.WordWrap(
-			"\n\nThis is a refresh-only plan, so Terraform will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the Terraform state without changing any remote objects.",
+			"\n\nThis is a refresh-only plan, so mnptu will not take any actions to undo these. If you were expecting these changes then you can apply this plan to record the updated values in the mnptu state without changing any remote objects.",
 			renderer.Streams.Stdout.Columns(),
 		))
 	default:
@@ -426,7 +426,7 @@ func resourceChangeComment(resource jsonplan.ResourceChange, action plans.Action
 			// FIXME: Ideally we'd truncate addr.Module to reflect the earliest
 			// step that doesn't exist, so it's clearer which call this refers
 			// to, but we don't have enough information out here in the UI layer
-			// to decide that; only the "expander" in Terraform Core knows
+			// to decide that; only the "expander" in mnptu Core knows
 			// which module instance keys are actually declared.
 			buf.WriteString(fmt.Sprintf("\n  # (because %s is not in configuration)", resource.ModuleAddress))
 		case jsonplan.ResourceInstanceDeleteBecauseWrongRepetition:

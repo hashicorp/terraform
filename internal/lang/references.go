@@ -6,10 +6,10 @@ package lang
 import (
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/blocktoattr"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // References finds all of the references in the given set of traversals,
@@ -66,7 +66,7 @@ func ReferencesInBlock(parseRef ParseRef, body hcl.Body, schema *configschema.Bl
 	// already know which variables are required.
 	//
 	// The set of cases we want to detect here is covered by the tests for
-	// the plan graph builder in the main 'terraform' package, since it's
+	// the plan graph builder in the main 'mnptu' package, since it's
 	// in a better position to test this due to having mock providers etc
 	// available.
 	traversals := blocktoattr.ExpandedVariables(body, schema)

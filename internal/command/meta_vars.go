@@ -13,10 +13,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // VarEnvPrefix is the prefix for environment variables that represent values
@@ -56,22 +56,22 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			ret[name] = unparsedVariableValueString{
 				str:        rawVal,
 				name:       name,
-				sourceType: terraform.ValueFromEnvVar,
+				sourceType: mnptu.ValueFromEnvVar,
 			}
 		}
 	}
 
 	// Next up we have some implicit files that are loaded automatically
-	// if they are present. There's the original terraform.tfvars
+	// if they are present. There's the original mnptu.tfvars
 	// (DefaultVarsFilename) along with the later-added search for all files
 	// ending in .auto.tfvars.
 	if _, err := os.Stat(DefaultVarsFilename); err == nil {
-		moreDiags := m.addVarsFromFile(DefaultVarsFilename, terraform.ValueFromAutoFile, ret)
+		moreDiags := m.addVarsFromFile(DefaultVarsFilename, mnptu.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
 	}
 	const defaultVarsFilenameJSON = DefaultVarsFilename + ".json"
 	if _, err := os.Stat(defaultVarsFilenameJSON); err == nil {
-		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, terraform.ValueFromAutoFile, ret)
+		moreDiags := m.addVarsFromFile(defaultVarsFilenameJSON, mnptu.ValueFromAutoFile, ret)
 		diags = diags.Append(moreDiags)
 	}
 	if infos, err := ioutil.ReadDir("."); err == nil {
@@ -81,7 +81,7 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			if !isAutoVarFile(name) {
 				continue
 			}
-			moreDiags := m.addVarsFromFile(name, terraform.ValueFromAutoFile, ret)
+			moreDiags := m.addVarsFromFile(name, mnptu.ValueFromAutoFile, ret)
 			diags = diags.Append(moreDiags)
 		}
 	}
@@ -117,24 +117,24 @@ func (m *Meta) collectVariableValues() (map[string]backend.UnparsedVariableValue
 			ret[name] = unparsedVariableValueString{
 				str:        rawVal,
 				name:       name,
-				sourceType: terraform.ValueFromCLIArg,
+				sourceType: mnptu.ValueFromCLIArg,
 			}
 
 		case "-var-file":
-			moreDiags := m.addVarsFromFile(rawFlag.Value, terraform.ValueFromNamedFile, ret)
+			moreDiags := m.addVarsFromFile(rawFlag.Value, mnptu.ValueFromNamedFile, ret)
 			diags = diags.Append(moreDiags)
 
 		default:
 			// Should never happen; always a bug in the code that built up
 			// the contents of m.variableArgs.
-			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in Terraform)", rawFlag.Name))
+			diags = diags.Append(fmt.Errorf("unsupported variable option name %q (this is a bug in mnptu)", rawFlag.Name))
 		}
 	}
 
 	return ret, diags
 }
 
-func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
+func (m *Meta) addVarsFromFile(filename string, sourceType mnptu.ValueSourceType, to map[string]backend.UnparsedVariableValue) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	src, err := ioutil.ReadFile(filename)
@@ -229,17 +229,17 @@ func (m *Meta) addVarsFromFile(filename string, sourceType terraform.ValueSource
 // intended to deal with expressions inside "tfvars" files.
 type unparsedVariableValueExpression struct {
 	expr       hcl.Expression
-	sourceType terraform.ValueSourceType
+	sourceType mnptu.ValueSourceType
 }
 
-func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val, hclDiags := v.expr.Value(nil) // nil because no function calls or variable references are allowed here
 	diags = diags.Append(hclDiags)
 
 	rng := tfdiags.SourceRangeFromHCL(v.expr.Range())
 
-	return &terraform.InputValue{
+	return &mnptu.InputValue{
 		Value:       val,
 		SourceType:  v.sourceType,
 		SourceRange: rng,
@@ -253,16 +253,16 @@ func (v unparsedVariableValueExpression) ParseVariableValue(mode configs.Variabl
 type unparsedVariableValueString struct {
 	str        string
 	name       string
-	sourceType terraform.ValueSourceType
+	sourceType mnptu.ValueSourceType
 }
 
-func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	val, hclDiags := mode.Parse(v.name, v.str)
 	diags = diags.Append(hclDiags)
 
-	return &terraform.InputValue{
+	return &mnptu.InputValue{
 		Value:      val,
 		SourceType: v.sourceType,
 	}, diags
@@ -273,16 +273,16 @@ type unparsedTestVariableValue struct {
 	ctx  *hcl.EvalContext
 }
 
-func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val, hclDiags := v.expr.Value(v.ctx) // nil because no function calls or variable references are allowed here
 	diags = diags.Append(hclDiags)
 
 	rng := tfdiags.SourceRangeFromHCL(v.expr.Range())
 
-	return &terraform.InputValue{
+	return &mnptu.InputValue{
 		Value:       val,
-		SourceType:  terraform.ValueFromConfig, // Test variables always come from config.
+		SourceType:  mnptu.ValueFromConfig, // Test variables always come from config.
 		SourceRange: rng,
 	}, diags
 }

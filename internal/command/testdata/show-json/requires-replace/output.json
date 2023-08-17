@@ -8,7 +8,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "provider_name": "registry.mnptu.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "ami": "force-replace"
@@ -23,7 +23,7 @@
             "address": "test_instance.test",
             "mode": "managed",
             "type": "test_instance",
-            "provider_name": "registry.terraform.io/hashicorp/test",
+            "provider_name": "registry.mnptu.io/hashicorp/test",
             "name": "test",
             "change": {
                 "actions": [
@@ -58,7 +58,7 @@
                         "type": "test_instance",
                         "name": "test",
                         "schema_version": 0,
-                        "provider_name": "registry.terraform.io/hashicorp/test",
+                        "provider_name": "registry.mnptu.io/hashicorp/test",
                         "values": {
                             "ami": "bar",
                             "id": "placeholder"
@@ -73,7 +73,7 @@
         "provider_config": {
             "test": {
                 "name": "test",
-                "full_name": "registry.terraform.io/hashicorp/test"
+                "full_name": "registry.mnptu.io/hashicorp/test"
             }
         },
         "root_module": {

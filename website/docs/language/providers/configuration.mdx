@@ -7,25 +7,25 @@ description: >-
 
 # Provider Configuration
 
-Providers allow Terraform to interact with cloud providers, SaaS providers, and
+Providers allow mnptu to interact with cloud providers, SaaS providers, and
 other APIs.
 
 Some providers require you to configure them with endpoint URLs, cloud regions,
-or other settings before Terraform can use them. This page documents how to
+or other settings before mnptu can use them. This page documents how to
 configure settings for providers.
 
-Additionally, all Terraform configurations must declare which providers they
-require so that Terraform can install and use them. The
-[Provider Requirements](/terraform/language/providers/requirements)
-page documents how to declare providers so Terraform can install them.
+Additionally, all mnptu configurations must declare which providers they
+require so that mnptu can install and use them. The
+[Provider Requirements](/mnptu/language/providers/requirements)
+page documents how to declare providers so mnptu can install them.
 
 ## Provider Configuration
 
-Provider configurations belong in the root module of a Terraform configuration.
+Provider configurations belong in the root module of a mnptu configuration.
 (Child modules receive their provider configurations from the root module; for
 more information, see
-[The Module `providers` Meta-Argument](/terraform/language/meta-arguments/module-providers)
-and [Module Development: Providers Within Modules](/terraform/language/modules/develop/providers).)
+[The Module `providers` Meta-Argument](/mnptu/language/meta-arguments/module-providers)
+and [Module Development: Providers Within Modules](/mnptu/language/modules/develop/providers).)
 
 A provider configuration is created using a `provider` block:
 
@@ -37,7 +37,7 @@ provider "google" {
 ```
 
 The name given in the block header (`"google"` in this example) is the
-[local name](/terraform/language/providers/requirements#local-names) of the provider to
+[local name](/mnptu/language/providers/requirements#local-names) of the provider to
 configure. This provider should already be included in a `required_providers`
 block.
 
@@ -46,7 +46,7 @@ the provider. Most arguments in this section are defined by the provider itself;
 in this example both `project` and `region` are specific to the `google`
 provider.
 
-You can use [expressions](/terraform/language/expressions) in the values of these
+You can use [expressions](/mnptu/language/expressions) in the values of these
 configuration arguments, but can only reference values that are known before the
 configuration is applied. This means you can safely reference input variables,
 but not attributes exported by resources (with an exception for resource
@@ -54,24 +54,24 @@ arguments that are specified directly in the configuration).
 
 A provider's documentation should list which configuration arguments it expects.
 For providers distributed on the
-[Terraform Registry](https://registry.terraform.io), versioned documentation is
+[mnptu Registry](https://registry.mnptu.io), versioned documentation is
 available on each provider's page, via the "Documentation" link in the
 provider's header.
 
 Some providers can use shell environment variables (or other alternate sources,
 like VM instance profiles) as values for some of their arguments; when
 available, we recommend using this as a way to keep credentials out of your
-version-controlled Terraform code.
+version-controlled mnptu code.
 
-There are also two "meta-arguments" that are defined by Terraform itself
+There are also two "meta-arguments" that are defined by mnptu itself
 and available for all `provider` blocks:
 
 - [`alias`, for using the same provider with different configurations for different resources][inpage-alias]
 - [`version`, which we no longer recommend][inpage-versions] (use
-  [provider requirements](/terraform/language/providers/requirements) instead)
+  [provider requirements](/mnptu/language/providers/requirements) instead)
 
-Unlike many other objects in the Terraform language, a `provider` block may
-be omitted if its contents would otherwise be empty. Terraform assumes an
+Unlike many other objects in the mnptu language, a `provider` block may
+be omitted if its contents would otherwise be empty. mnptu assumes an
 empty default configuration for any provider that is not explicitly configured.
 
 ## `alias`: Multiple Provider Configurations
@@ -110,7 +110,7 @@ entry. The following example declares both the `mycloud` and
 `mycloud.alternate` provider configuration names within the containing module:
 
 ```hcl
-terraform {
+mnptu {
   required_providers {
     mycloud = {
       source  = "mycorp/mycloud"
@@ -129,14 +129,14 @@ use the default provider configuration that matches the first word of the
 resource type name. (For example, an `aws_instance` resource uses the default
 `aws` provider configuration unless otherwise stated.)
 
-If every explicit configuration of a provider has an alias, Terraform uses the
+If every explicit configuration of a provider has an alias, mnptu uses the
 implied empty configuration as that provider's default configuration. (If the
-provider has any required configuration arguments, Terraform will raise an error
+provider has any required configuration arguments, mnptu will raise an error
 when resources default to the empty configuration.)
 
 ### Referring to Alternate Provider Configurations
 
-When Terraform needs the name of a provider configuration, it expects a
+When mnptu needs the name of a provider configuration, it expects a
 reference of the form `<PROVIDER NAME>.<ALIAS>`. In the example above,
 `aws.west` would refer to the provider with the `us-west-2` region.
 
@@ -175,7 +175,7 @@ module "aws_vpc" {
 ```
 
 Modules have some special requirements when passing in providers; see
-[The Module `providers` Meta-Argument](/terraform/language/meta-arguments/module-providers)
+[The Module `providers` Meta-Argument](/mnptu/language/meta-arguments/module-providers)
 for more details. In most cases, only _root modules_ should define provider
 configurations, with all child modules obtaining their provider configurations
 from their parents.
@@ -188,11 +188,11 @@ from their parents.
 
 The `version` meta-argument specifies a version constraint for a provider, and
 works the same way as the `version` argument in a
-[`required_providers` block](/terraform/language/providers/requirements). The version
+[`required_providers` block](/mnptu/language/providers/requirements). The version
 constraint in a provider configuration is only used if `required_providers`
 does not include one for that provider.
 
-~**Warning:** The `version` argument in provider configurations is deprecated, and we will remove it in a future Terraform version.
+~**Warning:** The `version` argument in provider configurations is deprecated, and we will remove it in a future mnptu version.
 
-In Terraform 0.13 and later, always declare provider version constraints in
-[the `required_providers` block](/terraform/language/providers/requirements). 
+In mnptu 0.13 and later, always declare provider version constraints in
+[the `required_providers` block](/mnptu/language/providers/requirements). 

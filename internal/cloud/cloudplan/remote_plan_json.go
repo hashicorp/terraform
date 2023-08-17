@@ -4,7 +4,7 @@
 package cloudplan
 
 import (
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 // RemotePlanJSON is a wrapper struct that associates a pre-baked JSON plan with
@@ -31,7 +31,7 @@ type RemotePlanJSON struct {
 	// Unchanged/errored. Required by (jsonformat.Renderer).RenderHumanPlan.
 	Qualities []plans.Quality
 	// A human-readable header with a link to view the associated run in the
-	// Terraform Cloud UI.
+	// mnptu Cloud UI.
 	RunHeader string
 	// A human-readable footer with information relevant to the likely next
 	// actions for this plan.

@@ -14,8 +14,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -32,7 +32,7 @@ const (
 	tfstateKey                = "tfstate"
 	tfstateSecretSuffixKey    = "tfstateSecretSuffix"
 	tfstateWorkspaceKey       = "tfstateWorkspace"
-	tfstateLockInfoAnnotation = "app.terraform.io/lock-info"
+	tfstateLockInfoAnnotation = "app.mnptu.io/lock-info"
 	managedByKey              = "app.kubernetes.io/managed-by"
 )
 
@@ -196,7 +196,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 
 		lockErr := &statemgr.LockError{
 			Info: currentLockInfo,
-			Err:  errors.New("the state is already locked by another terraform client"),
+			Err:  errors.New("the state is already locked by another mnptu client"),
 		}
 		return "", lockErr
 	}
@@ -269,7 +269,7 @@ func (c *RemoteClient) getLabels() map[string]string {
 		tfstateKey:             "true",
 		tfstateSecretSuffixKey: c.nameSuffix,
 		tfstateWorkspaceKey:    c.workspace,
-		managedByKey:           "terraform",
+		managedByKey:           "mnptu",
 	}
 
 	if len(c.labels) != 0 {

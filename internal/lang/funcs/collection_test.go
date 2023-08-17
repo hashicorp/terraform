@@ -8,7 +8,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
 	"github.com/zclconf/go-cty/cty"
 )
 

@@ -1,18 +1,18 @@
-resource "terraform_data" "a" {
+resource "mnptu_data" "a" {
 }
 
-resource "terraform_data" "b" {
-  input = terraform_data.a.id
+resource "mnptu_data" "b" {
+  input = mnptu_data.a.id
 }
 
-resource "terraform_data" "c" {
-  triggers_replace = terraform_data.b
+resource "mnptu_data" "c" {
+  triggers_replace = mnptu_data.b
 }
 
-resource "terraform_data" "d" {
-  input = [ terraform_data.b, terraform_data.c ]
+resource "mnptu_data" "d" {
+  input = [ mnptu_data.b, mnptu_data.c ]
 }
 
 output "d" {
-  value = terraform_data.d
+  value = mnptu_data.d
 }

@@ -15,30 +15,30 @@ templatefile(path, vars)
 ```
 
 The template syntax is the same as for
-[string templates](/terraform/language/expressions/strings#string-templates)
-in the main Terraform language, including interpolation sequences delimited with
+[string templates](/mnptu/language/expressions/strings#string-templates)
+in the main mnptu language, including interpolation sequences delimited with
 `${` ... `}`. This function just allows longer template sequences to be factored
 out into a separate file for readability.
 
 The "vars" argument must be an object. Within the template file, each of the
 keys in the map is available as a variable for interpolation. The template may
-also use any other function available in the Terraform language, except that
+also use any other function available in the mnptu language, except that
 recursive calls to `templatefile` are not permitted. Variable names must
 each start with a letter, followed by zero or more letters, digits, or
 underscores.
 
-Strings in the Terraform language are sequences of Unicode characters, so
+Strings in the mnptu language are sequences of Unicode characters, so
 this function will interpret the file contents as UTF-8 encoded text and
 return the resulting Unicode characters. If the file contains invalid UTF-8
 sequences then this function will produce an error.
 
 This function can be used only with files that already exist on disk at the
-beginning of a Terraform run. Functions do not participate in the dependency
+beginning of a mnptu run. Functions do not participate in the dependency
 graph, so this function cannot be used with files that are generated
-dynamically during a Terraform operation.
+dynamically during a mnptu operation.
 
 `*.tftpl` is the recommended naming pattern to use for your template files.
-Terraform will not prevent you from using other names, but following this
+mnptu will not prevent you from using other names, but following this
 convention will help your editor understand the content and likely provide
 better editing experience as a result.
 
@@ -99,9 +99,9 @@ YAML that will be interpreted correctly when using lots of individual
 interpolation sequences and directives.
 
 Instead, you can write a template that consists only of a single interpolated
-call to either [`jsonencode`](/terraform/language/functions/jsonencode) or
-[`yamlencode`](/terraform/language/functions/yamlencode), specifying the value to encode using
-[normal Terraform expression syntax](/terraform/language/expressions)
+call to either [`jsonencode`](/mnptu/language/functions/jsonencode) or
+[`yamlencode`](/mnptu/language/functions/yamlencode), specifying the value to encode using
+[normal mnptu expression syntax](/mnptu/language/expressions)
 as in the following examples:
 
 ```
@@ -121,9 +121,9 @@ this will produce a valid JSON or YAML representation of the given data
 structure, without the need to manually handle escaping or delimiters.
 In the latest examples above, the repetition based on elements of `ip_addrs` is
 achieved by using a
-[`for` expression](/terraform/language/expressions/for)
+[`for` expression](/mnptu/language/expressions/for)
 rather than by using
-[template directives](/terraform/language/expressions/strings#directives).
+[template directives](/mnptu/language/expressions/strings#directives).
 
 ```json
 {"backends":["10.0.0.1:8080","10.0.0.2:8080"]}
@@ -142,9 +142,9 @@ locals {
 ```
 
 For more information, see the main documentation for
-[`jsonencode`](/terraform/language/functions/jsonencode) and [`yamlencode`](/terraform/language/functions/yamlencode).
+[`jsonencode`](/mnptu/language/functions/jsonencode) and [`yamlencode`](/mnptu/language/functions/yamlencode).
 
 ## Related Functions
 
-* [`file`](/terraform/language/functions/file) reads a file from disk and returns its literal contents
+* [`file`](/mnptu/language/functions/file) reads a file from disk and returns its literal contents
   without any template interpretation.

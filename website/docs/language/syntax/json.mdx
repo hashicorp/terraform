@@ -7,11 +7,11 @@ description: >-
 
 # JSON Configuration Syntax
 
-Most Terraform configurations are written in
-[the native Terraform language syntax](/terraform/language/syntax/configuration), which is designed to be
+Most mnptu configurations are written in
+[the native mnptu language syntax](/mnptu/language/syntax/configuration), which is designed to be
 relatively easy for humans to read and update.
 
-Terraform also supports an alternative syntax that is JSON-compatible. This
+mnptu also supports an alternative syntax that is JSON-compatible. This
 syntax is useful when generating portions of a configuration programmatically,
 since existing JSON libraries can be used to prepare the generated
 configuration files.
@@ -21,21 +21,21 @@ be expressed in native syntax can also be expressed in JSON syntax, but some
 constructs are more complex to represent in JSON due to limitations of the
 JSON grammar.
 
-Terraform expects native syntax for files named with a `.tf` suffix, and
+mnptu expects native syntax for files named with a `.tf` suffix, and
 JSON syntax for files named with a `.tf.json` suffix.
 
 The low-level JSON syntax, just as with the native syntax, is defined in terms
 of a specification called _HCL_. It is not necessary to know all of the details
-of HCL syntax or its JSON mapping in order to use Terraform, and so this page
+of HCL syntax or its JSON mapping in order to use mnptu, and so this page
 summarizes the most important differences between native and JSON syntax.
 If you are interested, you can find a full definition of HCL's JSON syntax
 in [its specification](https://github.com/hashicorp/hcl/blob/main/json/spec.md).
 
 ## JSON File Structure
 
-At the root of any JSON-based Terraform configuration is a JSON object. The
+At the root of any JSON-based mnptu configuration is a JSON object. The
 properties of this object correspond to the top-level block types of the
-Terraform language. For example:
+mnptu language. For example:
 
 ```json
 {
@@ -92,7 +92,7 @@ different (see the [block-type-specific exceptions](#block-type-specific-excepti
   correspond either to argument names or to nested block type names.
 
 * Where a property corresponds to an argument that accepts
-  [arbitrary expressions](/terraform/language/expressions) in the native syntax, the
+  [arbitrary expressions](/mnptu/language/expressions) in the native syntax, the
   property value is mapped to an expression as described under
   [_Expression Mapping_](#expression-mapping) below. For arguments that
   do _not_ accept arbitrary expressions, the interpretation of the property
@@ -108,11 +108,11 @@ different (see the [block-type-specific exceptions](#block-type-specific-excepti
 
 ## Expression Mapping
 
-Since JSON grammar is not able to represent all of the Terraform language
-[expression syntax](/terraform/language/expressions), JSON values interpreted as expressions
+Since JSON grammar is not able to represent all of the mnptu language
+[expression syntax](/mnptu/language/expressions), JSON values interpreted as expressions
 are mapped as follows:
 
-| JSON    | Terraform Language Interpretation                                                                             |
+| JSON    | mnptu Language Interpretation                                                                             |
 | ------- | ------------------------------------------------------------------------------------------------------------- |
 | Boolean | A literal `bool` value.                                                                                       |
 | Number  | A literal `number` value.                                                                                     |
@@ -121,7 +121,7 @@ are mapped as follows:
 | Array   | Each element is mapped per this table, producing a `tuple(...)` value with suitable element types.            |
 | Null    | A literal `null`.                                                                                             |
 
-[string template]: /terraform/language/expressions/strings#string-templates
+[string template]: /mnptu/language/expressions/strings#string-templates
 
 When a JSON string is encountered in a location where arbitrary expressions are
 expected, its value is first parsed as a [string template][]
@@ -279,7 +279,7 @@ block bodies using a special property name:
 ```
 
 In any object that represents a block body, properties named `"//"` are
-ignored by Terraform entirely. This exception does _not_ apply to objects
+ignored by mnptu entirely. This exception does _not_ apply to objects
 that are being [interpreted as expressions](#expression-mapping), where this
 would be interpreted as an object type attribute named `"//"`.
 
@@ -303,7 +303,7 @@ configuration file. This can be useful to note which program created the file.
 [inpage-block]: #block-type-specific-exceptions
 
 Certain arguments within specific block types are processed in a special way
-by Terraform, and so their mapping to the JSON syntax does not follow the
+by mnptu, and so their mapping to the JSON syntax does not follow the
 general rules described above. The following sub-sections describe the special
 mapping rules that apply to each top-level block type.
 
@@ -444,24 +444,24 @@ values are not interpreted as string templates.
 }
 ```
 
-### `terraform` blocks
+### `mnptu` blocks
 
-Since no settings within `terraform` blocks accept named object references or
+Since no settings within `mnptu` blocks accept named object references or
 function calls, all setting values are taken literally. String values are not
 interpreted as string templates.
 
-Since only one `backend` block is allowed per `terraform` block, the compact
+Since only one `backend` block is allowed per `mnptu` block, the compact
 block mapping can be used to represent it, with a nested object containing
 a single property whose name represents the backend type.
 
 ```json
 {
-  "terraform": {
+  "mnptu": {
     "required_version": ">= 0.12.0",
     "backend": {
       "s3": {
         "region": "us-west-2",
-        "bucket": "acme-terraform-states"
+        "bucket": "acme-mnptu-states"
       }
     }
   }

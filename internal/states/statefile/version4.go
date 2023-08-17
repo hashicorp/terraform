@@ -13,11 +13,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func readStateV4(src []byte) (*File, tfdiags.Diagnostics) {
@@ -38,20 +38,20 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	var tfVersion *version.Version
-	if sV4.TerraformVersion != "" {
+	if sV4.mnptuVersion != "" {
 		var err error
-		tfVersion, err = version.NewVersion(sV4.TerraformVersion)
+		tfVersion, err = version.NewVersion(sV4.mnptuVersion)
 		if err != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Invalid Terraform version string",
-				fmt.Sprintf("State file claims to have been written by Terraform version %q, which is not a valid version string.", sV4.TerraformVersion),
+				"Invalid mnptu version string",
+				fmt.Sprintf("State file claims to have been written by mnptu version %q, which is not a valid version string.", sV4.mnptuVersion),
 			))
 		}
 	}
 
 	file := &File{
-		TerraformVersion: tfVersion,
+		mnptuVersion: tfVersion,
 		Serial:           sV4.Serial,
 		Lineage:          sV4.Lineage,
 	}
@@ -298,7 +298,7 @@ func prepareStateV4(sV4 *stateV4) (*File, tfdiags.Diagnostics) {
 
 	// Saved check results from the previous run, if any.
 	// We differentiate absense from an empty array here so that we can
-	// recognize if the previous run was with a version of Terraform that
+	// recognize if the previous run was with a version of mnptu that
 	// didn't support checks yet, or if there just weren't any checkable
 	// objects to record, in case that's important for certain messaging.
 	if sV4.CheckResults != nil {
@@ -325,13 +325,13 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		panic("attempt to write nil state to file")
 	}
 
-	var terraformVersion string
-	if file.TerraformVersion != nil {
-		terraformVersion = file.TerraformVersion.String()
+	var mnptuVersion string
+	if file.mnptuVersion != nil {
+		mnptuVersion = file.mnptuVersion.String()
 	}
 
 	sV4 := &stateV4{
-		TerraformVersion: terraformVersion,
+		mnptuVersion: mnptuVersion,
 		Serial:           file.Serial,
 		Lineage:          file.Lineage,
 		RootOutputs:      map[string]outputStateV4{},
@@ -427,7 +427,7 @@ func writeStateV4(file *File, w io.Writer) tfdiags.Diagnostics {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Failed to serialize state",
-			fmt.Sprintf("An error occured while serializing the state to save it. This is a bug in Terraform and should be reported: %s.", err),
+			fmt.Sprintf("An error occured while serializing the state to save it. This is a bug in mnptu and should be reported: %s.", err),
 		))
 		return diags
 	}
@@ -614,7 +614,7 @@ func decodeCheckStatusV4(in string) checks.Status {
 		return checks.StatusError
 	default:
 		// We'll treat anything else as unknown just as a concession to
-		// forward-compatible parsing, in case a later version of Terraform
+		// forward-compatible parsing, in case a later version of mnptu
 		// introduces a new status.
 		return checks.StatusUnknown
 	}
@@ -647,7 +647,7 @@ func decodeCheckableObjectKindV4(in string) addrs.CheckableKind {
 		return addrs.CheckableInputVariable
 	default:
 		// We'll treat anything else as invalid just as a concession to
-		// forward-compatible parsing, in case a later version of Terraform
+		// forward-compatible parsing, in case a later version of mnptu
 		// introduces a new status.
 		return addrs.CheckableKindInvalid
 	}
@@ -670,7 +670,7 @@ func encodeCheckableObjectKindV4(in addrs.CheckableKind) string {
 
 type stateV4 struct {
 	Version          stateVersionV4           `json:"version"`
-	TerraformVersion string                   `json:"terraform_version"`
+	mnptuVersion string                   `json:"mnptu_version"`
 	Serial           uint64                   `json:"serial"`
 	Lineage          string                   `json:"lineage"`
 	RootOutputs      map[string]outputStateV4 `json:"outputs"`

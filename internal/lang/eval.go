@@ -12,11 +12,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang/blocktoattr"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/lang/blocktoattr"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ExpandBlock expands any "dynamic" blocks present in the given body. The
@@ -61,7 +61,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 	}
 
 	// HACK: In order to remain compatible with some assumptions made in
-	// Terraform v0.11 and earlier about the approximate equivalence of
+	// mnptu v0.11 and earlier about the approximate equivalence of
 	// attribute vs. block syntax, we do a just-in-time fixup here to allow
 	// any attribute in the schema that has a list-of-objects or set-of-objects
 	// kind to potentially be populated instead by one or more nested blocks
@@ -77,7 +77,7 @@ func (s *Scope) EvalBlock(body hcl.Body, schema *configschema.Block) (cty.Value,
 // EvalSelfBlock evaluates the given body only within the scope of the provided
 // object and instance key data. References to the object must use self, and the
 // key data will only contain count.index or each.key. The static values for
-// terraform and path will also be available in this context.
+// mnptu and path will also be available in this context.
 func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschema.Block, keyData instances.RepetitionData) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
@@ -100,10 +100,10 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	refs, refDiags := References(s.ParseRef, hcldec.Variables(body, spec))
 	diags = diags.Append(refDiags)
 
-	terraformAttrs := map[string]cty.Value{}
+	mnptuAttrs := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
 
-	// We could always load the static values for Path and Terraform values,
+	// We could always load the static values for Path and mnptu values,
 	// but we want to parse the references so that we can get source ranges for
 	// user diagnostics.
 	for _, ref := range refs {
@@ -118,10 +118,10 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
 
-		case addrs.TerraformAttr:
-			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, ref.SourceRange))
+		case addrs.mnptuAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetmnptuAttr(subj, ref.SourceRange))
 			diags = diags.Append(valDiags)
-			terraformAttrs[subj.Name] = val
+			mnptuAttrs[subj.Name] = val
 
 		case addrs.CountAttr, addrs.ForEachAttr:
 			// each and count have already been handled.
@@ -139,7 +139,7 @@ func (s *Scope) EvalSelfBlock(body hcl.Body, self cty.Value, schema *configschem
 	}
 
 	vals["path"] = cty.ObjectVal(pathAttrs)
-	vals["terraform"] = cty.ObjectVal(terraformAttrs)
+	vals["mnptu"] = cty.ObjectVal(mnptuAttrs)
 
 	ctx := &hcl.EvalContext{
 		Variables: vals,
@@ -284,7 +284,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	localValues := map[string]cty.Value{}
 	outputValues := map[string]cty.Value{}
 	pathAttrs := map[string]cty.Value{}
-	terraformAttrs := map[string]cty.Value{}
+	mnptuAttrs := map[string]cty.Value{}
 	countAttrs := map[string]cty.Value{}
 	forEachAttrs := map[string]cty.Value{}
 	checkBlocks := map[string]cty.Value{}
@@ -394,10 +394,10 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 			diags = diags.Append(valDiags)
 			pathAttrs[subj.Name] = val
 
-		case addrs.TerraformAttr:
-			val, valDiags := normalizeRefValue(s.Data.GetTerraformAttr(subj, rng))
+		case addrs.mnptuAttr:
+			val, valDiags := normalizeRefValue(s.Data.GetmnptuAttr(subj, rng))
 			diags = diags.Append(valDiags)
-			terraformAttrs[subj.Name] = val
+			mnptuAttrs[subj.Name] = val
 
 		case addrs.CountAttr:
 			val, valDiags := normalizeRefValue(s.Data.GetCountAttr(subj, rng))
@@ -445,7 +445,7 @@ func (s *Scope) evalContext(refs []*addrs.Reference, selfAddr addrs.Referenceabl
 	vals["var"] = cty.ObjectVal(inputVariables)
 	vals["local"] = cty.ObjectVal(localValues)
 	vals["path"] = cty.ObjectVal(pathAttrs)
-	vals["terraform"] = cty.ObjectVal(terraformAttrs)
+	vals["mnptu"] = cty.ObjectVal(mnptuAttrs)
 	vals["count"] = cty.ObjectVal(countAttrs)
 	vals["each"] = cty.ObjectVal(forEachAttrs)
 

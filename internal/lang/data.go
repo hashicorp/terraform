@@ -6,8 +6,8 @@ package lang
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Data is an interface whose implementations can provide cty.Value
@@ -15,7 +15,7 @@ import (
 // the addrs package.
 //
 // This interface will grow each time a new type of reference is added, and so
-// implementations outside of the Terraform codebases are not advised.
+// implementations outside of the mnptu codebases are not advised.
 //
 // Each method returns a suitable value and optionally some diagnostics. If the
 // returned diagnostics contains errors then the type of the returned value is
@@ -32,7 +32,7 @@ type Data interface {
 	GetLocalValue(addrs.LocalValue, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetModule(addrs.ModuleCall, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetPathAttr(addrs.PathAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
-	GetTerraformAttr(addrs.TerraformAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
+	GetmnptuAttr(addrs.mnptuAttr, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetInputVariable(addrs.InputVariable, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetOutput(addrs.OutputValue, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)
 	GetCheckBlock(addrs.Check, tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics)

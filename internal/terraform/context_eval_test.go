@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -64,7 +64,7 @@ func TestContextEval(t *testing.T) {
 		t.Fatalf("Eval errors: %s", diags.Err())
 	}
 
-	// Since we're testing 'eval' (used by terraform console), impure functions
+	// Since we're testing 'eval' (used by mnptu console), impure functions
 	// should be allowed by the scope.
 	if scope.PureOnly == true {
 		t.Fatal("wrong result: eval should allow impure funcs")

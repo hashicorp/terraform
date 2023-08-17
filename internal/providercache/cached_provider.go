@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 // CachedProvider represents a provider package in a cache directory.
@@ -90,7 +90,7 @@ func (cp *CachedProvider) HashV1() (getproviders.Hash, error) {
 // something that looks like it's intended to be the executable file for the
 // plugin.
 //
-// This is a bit messy and heuristic-y because historically Terraform used the
+// This is a bit messy and heuristic-y because historically mnptu used the
 // filename itself for local filesystem discovery, allowing some variance in
 // the filenames to capture extra metadata, whereas now we're using the
 // directory structure leading to the executable instead but need to remain
@@ -113,23 +113,23 @@ func (cp *CachedProvider) ExecutableFile() (string, error) {
 
 	// For a provider named e.g. tf.example.com/awesomecorp/happycloud, we
 	// expect an executable file whose name starts with
-	// "terraform-provider-happycloud", followed by zero or more additional
+	// "mnptu-provider-happycloud", followed by zero or more additional
 	// characters. If there _are_ additional characters then the first one
 	// must be an underscore or a period, like in thse examples:
-	// - terraform-provider-happycloud_v1.0.0
-	// - terraform-provider-happycloud.exe
+	// - mnptu-provider-happycloud_v1.0.0
+	// - mnptu-provider-happycloud.exe
 	//
 	// We don't require the version in the filename to match because the
 	// executable's name is no longer authoritative, but packages of "official"
 	// providers may continue to use versioned executable names for backward
-	// compatibility with Terraform 0.12.
+	// compatibility with mnptu 0.12.
 	//
 	// We also presume that providers packaged for Windows will include the
 	// necessary .exe extension on their filenames but do not explicitly check
 	// for that. If there's a provider package for Windows that has a file
 	// without that suffix then it will be detected as an executable but then
 	// we'll presumably fail later trying to run it.
-	wantPrefix := "terraform-provider-" + cp.Provider.Type
+	wantPrefix := "mnptu-provider-" + cp.Provider.Type
 
 	// We'll visit all of the directory entries and take the first (in
 	// name-lexical order) that looks like a plausible provider executable

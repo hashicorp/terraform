@@ -18,8 +18,8 @@ import (
 
 	consulapi "github.com/hashicorp/consul/api"
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 )
 
 const (
@@ -364,7 +364,7 @@ func (c *RemoteClient) Lock(info *statemgr.LockInfo) (string, error) {
 	c.info = info
 
 	// These checks only are to ensure we strictly follow the specification.
-	// Terraform shouldn't ever re-lock, so provide errors for the 2 possible
+	// mnptu shouldn't ever re-lock, so provide errors for the 2 possible
 	// states if this is called.
 	select {
 	case <-c.lockCh:
@@ -402,7 +402,7 @@ func (c *RemoteClient) lock() (string, error) {
 		Key:     c.lockPath() + lockSuffix,
 		Session: lockSession,
 
-		// only wait briefly, so terraform has the choice to fail fast or
+		// only wait briefly, so mnptu has the choice to fail fast or
 		// retry as needed.
 		LockWaitTime: time.Second,
 		LockTryOnce:  true,
@@ -482,7 +482,7 @@ func (c *RemoteClient) lock() (string, error) {
 
 				if err != nil {
 					// We failed to get the lock, keep trying as long as
-					// terraform is running. There may be changes in progress,
+					// mnptu is running. There may be changes in progress,
 					// so there's no use in aborting. Either we eventually
 					// reacquire the lock, or a Put will fail on a CAS.
 					log.Printf("[ERROR] could not reacquire lock: %s", err)
@@ -559,11 +559,11 @@ func (c *RemoteClient) unlock(id string) error {
 	// This method can be called in two circumstances:
 	// - when the plan apply or destroy operation finishes and the lock needs to be released,
 	// the watchdog stopped and the session closed
-	// - when the user calls `terraform force-unlock <lock_id>` in which case
+	// - when the user calls `mnptu force-unlock <lock_id>` in which case
 	// we only need to release the lock.
 
 	if c.consulLock == nil || c.lockCh == nil {
-		// The user called `terraform force-unlock <lock_id>`, we just destroy
+		// The user called `mnptu force-unlock <lock_id>`, we just destroy
 		// the session which will release the lock, clean the KV store and quit.
 
 		_, err := c.Client.Session().Destroy(id, nil)

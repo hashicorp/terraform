@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -11,17 +11,17 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/objchange"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/objchange"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // NodeAbstractResourceInstance represents a resource instance with no
@@ -299,7 +299,7 @@ func (n *NodeAbstractResourceInstance) writeResourceInstanceStateImpl(ctx EvalCo
 		// (We can also get in here for unit tests which are using
 		// EvalContextMock but not populating PrevRunStateState with
 		// a suitable state object.)
-		return fmt.Errorf("state of type %s is not applicable to the current operation; this is a bug in Terraform", targetState)
+		return fmt.Errorf("state of type %s is not applicable to the current operation; this is a bug in mnptu", targetState)
 	}
 
 	// In spite of the name, this function also handles the non-deposed case
@@ -668,14 +668,14 @@ func (n *NodeAbstractResourceInstance) plan(
 	// If we're importing and generating config, generate it now.
 	if n.Config == nil {
 		// This shouldn't happen. A node that isn't generating config should
-		// have embedded config, and the rest of Terraform should enforce this.
+		// have embedded config, and the rest of mnptu should enforce this.
 		// If, however, we didn't do things correctly the next line will panic,
 		// so let's not do that and return an error message with more context.
 
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Resource has no configuration",
-			fmt.Sprintf("Terraform attempted to process a resource at %s that has no configuration. This is a bug in Terraform; please report it!", n.Addr.String())))
+			fmt.Sprintf("mnptu attempted to process a resource at %s that has no configuration. This is a bug in mnptu; please report it!", n.Addr.String())))
 		return nil, nil, keyData, diags
 	}
 
@@ -1695,7 +1695,7 @@ func (n *NodeAbstractResourceInstance) planDataSource(ctx EvalContext, checkRule
 	var plannedNewState *states.ResourceInstanceObject
 
 	// If we are a nested block, then we want to create a plannedChange that
-	// tells Terraform to reload the data block during the apply stage even if
+	// tells mnptu to reload the data block during the apply stage even if
 	// we managed to get the data now.
 	// Another consideration is that if we failed to load the data, we need to
 	// disguise that for a nested block. Nested blocks will report the overall
@@ -1842,7 +1842,7 @@ func (n *NodeAbstractResourceInstance) applyDataSource(ctx EvalContext, planned 
 		// If any other action gets in here then that's always a bug; this
 		// EvalNode only deals with reading.
 		diags = diags.Append(fmt.Errorf(
-			"invalid action %s for %s: only Read is supported (this is a bug in Terraform; please report it!)",
+			"invalid action %s for %s: only Read is supported (this is a bug in mnptu; please report it!)",
 			planned.Action, n.Addr,
 		))
 		return nil, keyData, diags
@@ -2250,7 +2250,7 @@ func (n *NodeAbstractResourceInstance) apply(
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Configuration contains unknown value",
-			fmt.Sprintf("configuration for %s still contains unknown values during apply (this is a bug in Terraform; please report it!)\n"+
+			fmt.Sprintf("configuration for %s still contains unknown values during apply (this is a bug in mnptu; please report it!)\n"+
 				"The following paths in the resource configuration are unknown:\n%s",
 				n.Addr,
 				strings.Join(unknownPaths, "\n"),
@@ -2351,7 +2351,7 @@ func (n *NodeAbstractResourceInstance) apply(
 			tfdiags.Error,
 			"Provider produced invalid object",
 			fmt.Sprintf(
-				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the Terraform state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
+				"Provider %q produced an invalid value after apply for %s. The result cannot not be saved in the mnptu state.\n\nThis is a bug in the provider, which should be reported in the provider's own issue tracker.",
 				n.ResolvedProvider.String(), tfdiags.FormatErrorPrefixed(err, n.Addr.String()),
 			),
 		))
@@ -2387,7 +2387,7 @@ func (n *NodeAbstractResourceInstance) apply(
 					tfdiags.Error,
 					"Provider returned invalid result object after apply",
 					fmt.Sprintf(
-						"After the apply operation, the provider still indicated an unknown value for %s%s. All values must be known after apply, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save the other known object values in the state.",
+						"After the apply operation, the provider still indicated an unknown value for %s%s. All values must be known after apply, so this is always a bug in the provider and should be reported in the provider's own repository. mnptu will still save the other known object values in the state.",
 						n.Addr, pathStr,
 					),
 				))
@@ -2452,7 +2452,7 @@ func (n *NodeAbstractResourceInstance) apply(
 
 	// If a provider returns a null or non-null object at the wrong time then
 	// we still want to save that but it often causes some confusing behaviors
-	// where it seems like Terraform is failing to take any action at all,
+	// where it seems like mnptu is failing to take any action at all,
 	// so we'll generate some errors to draw attention to it.
 	if !diags.HasErrors() {
 		if change.Action == plans.Delete && !newVal.IsNull() {
@@ -2460,7 +2460,7 @@ func (n *NodeAbstractResourceInstance) apply(
 				tfdiags.Error,
 				"Provider returned invalid result object after apply",
 				fmt.Sprintf(
-					"After applying a %s plan, the provider returned a non-null object for %s. Destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository. Terraform will still save this errant object in the state for debugging and recovery.",
+					"After applying a %s plan, the provider returned a non-null object for %s. Destroying should always produce a null value, so this is always a bug in the provider and should be reported in the provider's own repository. mnptu will still save this errant object in the state for debugging and recovery.",
 					change.Action, n.Addr,
 				),
 			))

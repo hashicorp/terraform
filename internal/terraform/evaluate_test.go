@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"sync"
@@ -10,17 +10,17 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
-func TestEvaluatorGetTerraformAttr(t *testing.T) {
+func TestEvaluatorGetmnptuAttr(t *testing.T) {
 	evaluator := &Evaluator{
 		Meta: &ContextMeta{
 			Env: "foo",
@@ -33,7 +33,7 @@ func TestEvaluatorGetTerraformAttr(t *testing.T) {
 
 	t.Run("workspace", func(t *testing.T) {
 		want := cty.StringVal("foo")
-		got, diags := scope.Data.GetTerraformAttr(addrs.TerraformAttr{
+		got, diags := scope.Data.GetmnptuAttr(addrs.mnptuAttr{
 			Name: "workspace",
 		}, tfdiags.SourceRange{})
 		if len(diags) != 0 {

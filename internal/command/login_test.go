@@ -12,14 +12,14 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
-	tfeserver "github.com/hashicorp/terraform/internal/command/testdata/login-tfe-server"
-	"github.com/hashicorp/terraform/internal/command/webbrowser"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/version"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
+	oauthserver "github.com/hashicorp/mnptu/internal/command/testdata/login-oauth-server"
+	tfeserver "github.com/hashicorp/mnptu/internal/command/testdata/login-tfe-server"
+	"github.com/hashicorp/mnptu/internal/command/webbrowser"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/version"
 )
 
 func TestLogin(t *testing.T) {
@@ -51,7 +51,7 @@ func TestLogin(t *testing.T) {
 			browserLauncher := webbrowser.NewMockLauncher(ctx)
 			creds := cliconfig.EmptyCredentialsSourceForTests(filepath.Join(workDir, "credentials.tfrc.json"))
 			svcs := disco.NewWithCredentialsSource(creds)
-			svcs.SetUserAgent(httpclient.TerraformUserAgent(version.String()))
+			svcs.SetUserAgent(httpclient.mnptuUserAgent(version.String()))
 
 			svcs.ForceHostServices(svchost.Hostname("example.com"), map[string]interface{}{
 				"login.v1": map[string]interface{}{
@@ -73,16 +73,16 @@ func TestLogin(t *testing.T) {
 					"scopes": []interface{}{"app1.full_access", "app2.read_only"},
 				},
 			})
-			svcs.ForceHostServices(svchost.Hostname("app.terraform.io"), map[string]interface{}{
-				// This represents Terraform Cloud, which does not yet support the
+			svcs.ForceHostServices(svchost.Hostname("app.mnptu.io"), map[string]interface{}{
+				// This represents mnptu Cloud, which does not yet support the
 				// login API, but does support its own bespoke tokens API.
 				"tfe.v2":   ts.URL + "/api/v2",
 				"tfe.v2.1": ts.URL + "/api/v2",
 				"tfe.v2.2": ts.URL + "/api/v2",
-				"motd.v1":  ts.URL + "/api/terraform/motd",
+				"motd.v1":  ts.URL + "/api/mnptu/motd",
 			})
 			svcs.ForceHostServices(svchost.Hostname("tfe.acme.com"), map[string]interface{}{
-				// This represents a Terraform Enterprise instance which does not
+				// This represents a mnptu Enterprise instance which does not
 				// yet support the login API, but does support its own bespoke tokens API.
 				"tfe.v2":   ts.URL + "/api/v2",
 				"tfe.v2.1": ts.URL + "/api/v2",
@@ -104,27 +104,27 @@ func TestLogin(t *testing.T) {
 		}
 	}
 
-	t.Run("app.terraform.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
+	t.Run("app.mnptu.io (no login support)", loginTestCase(func(t *testing.T, c *LoginCommand, ui *cli.MockUi) {
 		// Enter "yes" at the consent prompt, then paste a token with some
 		// accidental whitespace.
 		defer testInputMap(t, map[string]string{
 			"approve": "yes",
 			"token":   "  good-token ",
 		})()
-		status := c.Run([]string{"app.terraform.io"})
+		status := c.Run([]string{"app.mnptu.io"})
 		if status != 0 {
 			t.Fatalf("unexpected error code %d\nstderr:\n%s", status, ui.ErrorWriter.String())
 		}
 
 		credsSrc := c.Services.CredentialsSource()
-		creds, err := credsSrc.ForHost(svchost.Hostname("app.terraform.io"))
+		creds, err := credsSrc.ForHost(svchost.Hostname("app.mnptu.io"))
 		if err != nil {
 			t.Errorf("failed to retrieve credentials: %s", err)
 		}
 		if got, want := creds.Token(), "good-token"; got != want {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
-		if got, want := ui.OutputWriter.String(), "Welcome to Terraform Cloud!"; !strings.Contains(got, want) {
+		if got, want := ui.OutputWriter.String(), "Welcome to mnptu Cloud!"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
@@ -148,7 +148,7 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+		if got, want := ui.OutputWriter.String(), "mnptu has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
@@ -183,7 +183,7 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Terraform has obtained and saved an API token."; !strings.Contains(got, want) {
+		if got, want := ui.OutputWriter.String(), "mnptu has obtained and saved an API token."; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
@@ -224,7 +224,7 @@ func TestLogin(t *testing.T) {
 			t.Errorf("wrong token %q; want %q", got, want)
 		}
 
-		if got, want := ui.OutputWriter.String(), "Logged in to Terraform Enterprise"; !strings.Contains(got, want) {
+		if got, want := ui.OutputWriter.String(), "Logged in to mnptu Enterprise"; !strings.Contains(got, want) {
 			t.Errorf("expected output to contain %q, but was:\n%s", want, got)
 		}
 	}))
@@ -256,7 +256,7 @@ func TestLogin(t *testing.T) {
 			t.Fatalf("successful exit; want error")
 		}
 
-		if got, want := ui.ErrorWriter.String(), "Error: Host does not support Terraform tokens API"; !strings.Contains(got, want) {
+		if got, want := ui.ErrorWriter.String(), "Error: Host does not support mnptu tokens API"; !strings.Contains(got, want) {
 			t.Fatalf("missing expected error message\nwant: %s\nfull output:\n%s", want, got)
 		}
 	}))

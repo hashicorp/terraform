@@ -12,12 +12,12 @@ var interestingDependencies = map[string]struct{}{
 	"github.com/hashicorp/hcl/v2":            {},
 	"github.com/zclconf/go-cty":              {},
 	"github.com/hashicorp/go-tfe":            {},
-	"github.com/hashicorp/terraform-svchost": {},
+	"github.com/hashicorp/mnptu-svchost": {},
 }
 
 // InterestingDependencies returns the compiled-in module version info for
-// a small number of dependencies that Terraform uses broadly and which we
-// tend to upgrade relatively often as part of improvements to Terraform.
+// a small number of dependencies that mnptu uses broadly and which we
+// tend to upgrade relatively often as part of improvements to mnptu.
 //
 // The set of dependencies this reports might change over time if our
 // opinions change about what's "interesting". This is here only to create

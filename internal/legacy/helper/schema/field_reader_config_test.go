@@ -9,9 +9,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/legacy/helper/hashcode"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/hashcode"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestConfigFieldReader_impl(t *testing.T) {
@@ -80,7 +80,7 @@ func TestConfigFieldReader_custom(t *testing.T) {
 	cases := map[string]struct {
 		Addr   []string
 		Result FieldReadResult
-		Config *terraform.ResourceConfig
+		Config *mnptu.ResourceConfig
 		Err    bool
 	}{
 		"basic": {
@@ -146,7 +146,7 @@ func TestConfigFieldReader_DefaultHandling(t *testing.T) {
 	cases := map[string]struct {
 		Addr   []string
 		Result FieldReadResult
-		Config *terraform.ResourceConfig
+		Config *mnptu.ResourceConfig
 		Err    bool
 	}{
 		"gets default value when no config set": {
@@ -236,7 +236,7 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 		Name   string
 		Addr   []string
 		Result FieldReadResult
-		Config *terraform.ResourceConfig
+		Config *mnptu.ResourceConfig
 		Err    bool
 	}{
 		{
@@ -403,7 +403,7 @@ func TestConfigFieldReader_ComputedSet(t *testing.T) {
 	cases := map[string]struct {
 		Addr   []string
 		Result FieldReadResult
-		Config *terraform.ResourceConfig
+		Config *mnptu.ResourceConfig
 		Err    bool
 	}{
 		"set, normal": {
@@ -489,7 +489,7 @@ func TestConfigFieldReader_computedComplexSet(t *testing.T) {
 	cases := map[string]struct {
 		Addr   []string
 		Result FieldReadResult
-		Config *terraform.ResourceConfig
+		Config *mnptu.ResourceConfig
 		Err    bool
 	}{
 		"set, normal": {
@@ -538,6 +538,6 @@ func TestConfigFieldReader_computedComplexSet(t *testing.T) {
 	}
 }
 
-func testConfig(t *testing.T, raw map[string]interface{}) *terraform.ResourceConfig {
-	return terraform.NewResourceConfigRaw(raw)
+func testConfig(t *testing.T, raw map[string]interface{}) *mnptu.ResourceConfig {
+	return mnptu.NewResourceConfigRaw(raw)
 }

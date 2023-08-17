@@ -7,11 +7,11 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	viewsjson "github.com/hashicorp/terraform/internal/command/views/json"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured/attribute_path"
+	"github.com/hashicorp/mnptu/internal/command/jsonplan"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	viewsjson "github.com/hashicorp/mnptu/internal/command/views/json"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 // Change contains the unmarshalled generic interface{} types that are output by
@@ -23,7 +23,7 @@ import (
 // functions.
 //
 // The Before and After fields are actually go-cty values, but we cannot convert
-// them directly because of the Terraform Cloud redacted endpoint. The redacted
+// them directly because of the mnptu Cloud redacted endpoint. The redacted
 // endpoint turns sensitive values into strings regardless of their types.
 // Because of this, we cannot just do a direct conversion using the ctyjson
 // package. We would have to iterate through the schema first, find the

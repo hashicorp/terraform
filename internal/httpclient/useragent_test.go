@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/version"
 )
 
 func TestUserAgentString_env(t *testing.T) {
@@ -55,7 +55,7 @@ func TestUserAgentAppendViaEnvVar(t *testing.T) {
 		defer os.Unsetenv(uaEnvVar)
 	}
 
-	expectedBase := "HashiCorp Terraform/0.0.0 (+https://www.terraform.io)"
+	expectedBase := "HashiCorp mnptu/0.0.0 (+https://www.mnptu.io)"
 
 	testCases := []struct {
 		envVarValue string
@@ -72,7 +72,7 @@ func TestUserAgentAppendViaEnvVar(t *testing.T) {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
 			os.Unsetenv(uaEnvVar)
 			os.Setenv(uaEnvVar, tc.envVarValue)
-			givenUA := TerraformUserAgent("0.0.0")
+			givenUA := mnptuUserAgent("0.0.0")
 			if givenUA != tc.expected {
 				t.Fatalf("Expected User-Agent '%s' does not match '%s'", tc.expected, givenUA)
 			}

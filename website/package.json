@@ -1,5 +1,5 @@
 {
-  "name": "terraform-docs-preview",
+  "name": "mnptu-docs-preview",
   "private": "true",
   "scripts": {
     "build": "./scripts/website-build.sh",

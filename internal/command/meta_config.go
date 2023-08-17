@@ -17,13 +17,13 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // normalizePath normalizes a given path so that it is, if possible, relative
@@ -111,7 +111,7 @@ func (m *Meta) loadSingleModuleWithTests(dir string, testDir string) (*configs.M
 }
 
 // dirIsConfigPath checks if the given path is a directory that contains at
-// least one Terraform configuration file (.tf or .tf.json), returning true
+// least one mnptu configuration file (.tf or .tf.json), returning true
 // if so.
 //
 // In the unlikely event that the underlying config loader cannot be initalized,
@@ -282,7 +282,7 @@ func (m *Meta) inputForSchema(given cty.Value, schema *configschema.Block) (cty.
 		attrS := schema.Attributes[name]
 
 		for {
-			strVal, err := input.Input(context.Background(), &terraform.InputOpts{
+			strVal, err := input.Input(context.Background(), &mnptu.InputOpts{
 				Id:          name,
 				Query:       name,
 				Description: attrS.Description,
@@ -348,7 +348,7 @@ func (m *Meta) registerSynthConfigSource(filename string, src []byte) {
 // If the loader cannot be created for some reason then an error is returned
 // and no loader is created. Subsequent calls will presumably see the same
 // error. Loader initialization errors will tend to prevent any further use
-// of most Terraform features, so callers should report any error and safely
+// of most mnptu features, so callers should report any error and safely
 // terminate.
 func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 	if m.configLoader == nil {
@@ -368,7 +368,7 @@ func (m *Meta) initConfigLoader() (*configload.Loader, error) {
 	return m.configLoader, nil
 }
 
-// registryClient instantiates and returns a new Terraform Registry client.
+// registryClient instantiates and returns a new mnptu Registry client.
 func (m *Meta) registryClient() *registry.Client {
 	return registry.NewClient(m.Services, nil)
 }

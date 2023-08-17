@@ -1,6 +1,6 @@
 variable "foo" { default = "bar" }
 
-terraform {
+mnptu {
     backend "local" {
         path = "${var.foo}"
     }

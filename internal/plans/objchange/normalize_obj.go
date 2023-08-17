@@ -4,12 +4,12 @@
 package objchange
 
 import (
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // NormalizeObjectFromLegacySDK takes an object that may have been generated
-// by the legacy Terraform SDK (i.e. returned from a provider with the
+// by the legacy mnptu SDK (i.e. returned from a provider with the
 // LegacyTypeSystem opt-out set) and does its best to normalize it for the
 // assumptions we would normally enforce if the provider had not opted out.
 //

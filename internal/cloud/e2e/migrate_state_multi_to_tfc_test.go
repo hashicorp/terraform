@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	tfe "github.com/hashicorp/go-tfe"
-	tfversion "github.com/hashicorp/terraform/version"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	ctx := context.Background()
 
@@ -23,7 +23,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -52,7 +52,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -60,7 +60,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -92,7 +92,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -117,7 +117,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -125,7 +125,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -154,7 +154,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -183,7 +183,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -191,7 +191,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:     []string{"workspace", "select", "default"},
@@ -227,7 +227,7 @@ func Test_migrate_multi_to_tfc_cloud_name_strategy(t *testing.T) {
 func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	ctx := context.Background()
 
@@ -239,7 +239,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -280,18 +280,18 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
-						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						tfBlock := mnptuConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
+							expectedCmdOutput: `mnptu Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
 								"How would you like to rename your workspaces?",
-								"Terraform Cloud has been successfully initialized!"},
+								"mnptu Cloud has been successfully initialized!"},
 						},
 						{
 							command:           []string{"workspace", "select", "app-dev"},
@@ -340,7 +340,7 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -379,24 +379,24 @@ func Test_migrate_multi_to_tfc_cloud_tags_strategy(t *testing.T) {
 						tag := "app"
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("identity"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							mnptuVersion: tfe.String(tfversion.String()),
 						})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{
 							Name:             tfe.String("billing"),
-							TerraformVersion: tfe.String(tfversion.String()),
+							mnptuVersion: tfe.String(tfversion.String()),
 						})
-						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						tfBlock := mnptuConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud requires all workspaces to be given an explicit name.`,
+							expectedCmdOutput: `mnptu Cloud requires all workspaces to be given an explicit name.`,
 							userInput:         []string{"dev", "1", "app-*"},
 							postInputOutput: []string{
 								`Would you like to rename your workspaces?`,
 								"How would you like to rename your workspaces?",
-								"Terraform Cloud has been successfully initialized!"},
+								"mnptu Cloud has been successfully initialized!"},
 						},
 						{
 							command:           []string{"workspace", "select", "app-billing"},

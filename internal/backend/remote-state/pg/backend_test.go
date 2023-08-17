@@ -3,8 +3,8 @@
 
 package pg
 
-// Create the test database: createdb terraform_backend_pg_test
-// TF_ACC=1 GO111MODULE=on go test -v -mod=vendor -timeout=2m -parallel=4 github.com/hashicorp/terraform/backend/remote-state/pg
+// Create the test database: createdb mnptu_backend_pg_test
+// TF_ACC=1 GO111MODULE=on go test -v -mod=vendor -timeout=2m -parallel=4 github.com/hashicorp/mnptu/backend/remote-state/pg
 
 import (
 	"database/sql"
@@ -15,10 +15,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/hcl/v2/hcldec"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/lib/pq"
 )
 
@@ -34,7 +34,7 @@ func testACC(t *testing.T) string {
 	}
 	databaseUrl, found := os.LookupEnv("DATABASE_URL")
 	if !found {
-		databaseUrl = "postgres://localhost/terraform_backend_pg_test?sslmode=disable"
+		databaseUrl = "postgres://localhost/mnptu_backend_pg_test?sslmode=disable"
 		os.Setenv("DATABASE_URL", databaseUrl)
 	}
 	u, err := url.Parse(databaseUrl)
@@ -63,7 +63,7 @@ func TestBackendConfig(t *testing.T) {
 			Name: "valid-config",
 			Config: map[string]interface{}{
 				"conn_str":    connStr,
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 		},
 		{
@@ -73,7 +73,7 @@ func TestBackendConfig(t *testing.T) {
 				"PGDATABASE": databaseName,
 			},
 			Config: map[string]interface{}{
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 		},
 		{
@@ -82,7 +82,7 @@ func TestBackendConfig(t *testing.T) {
 				"PG_CONN_STR": connStr,
 			},
 			Config: map[string]interface{}{
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 		},
 		{
@@ -93,7 +93,7 @@ func TestBackendConfig(t *testing.T) {
 			},
 			Config: map[string]interface{}{
 				"conn_str":    connStr,
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 			ExpectConnectionError: `role "baduser" does not exist`,
 		},
@@ -103,7 +103,7 @@ func TestBackendConfig(t *testing.T) {
 				"PGHOST": "hostthatdoesnotexist",
 			},
 			Config: map[string]interface{}{
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 			ExpectConnectionError: `no such host`,
 		},
@@ -117,7 +117,7 @@ func TestBackendConfig(t *testing.T) {
 				"PGDATABASE":              databaseName,
 			},
 			Config: map[string]interface{}{
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 		},
 		{
@@ -128,7 +128,7 @@ func TestBackendConfig(t *testing.T) {
 				"PGDATABASE":              databaseName,
 			},
 			Config: map[string]interface{}{
-				"schema_name": fmt.Sprintf("terraform_%s", t.Name()),
+				"schema_name": fmt.Sprintf("mnptu_%s", t.Name()),
 			},
 			ExpectConfigurationError: `error getting default for "skip_schema_creation"`,
 		},
@@ -371,7 +371,7 @@ func TestBackendStates(t *testing.T) {
 	connStr := getDatabaseUrl()
 
 	testCases := []string{
-		fmt.Sprintf("terraform_%s", t.Name()),
+		fmt.Sprintf("mnptu_%s", t.Name()),
 		fmt.Sprintf("test with spaces: %s", t.Name()),
 	}
 	for _, schemaName := range testCases {
@@ -400,7 +400,7 @@ func TestBackendStates(t *testing.T) {
 func TestBackendStateLocks(t *testing.T) {
 	testACC(t)
 	connStr := getDatabaseUrl()
-	schemaName := fmt.Sprintf("terraform_%s", t.Name())
+	schemaName := fmt.Sprintf("mnptu_%s", t.Name())
 	dbCleaner, err := sql.Open("postgres", connStr)
 	if err != nil {
 		t.Fatal(err)
@@ -457,8 +457,8 @@ func TestBackendConcurrentLock(t *testing.T) {
 		return stateMgr, info
 	}
 
-	s1, i1 := getStateMgr(fmt.Sprintf("terraform_%s_1", t.Name()))
-	s2, i2 := getStateMgr(fmt.Sprintf("terraform_%s_2", t.Name()))
+	s1, i1 := getStateMgr(fmt.Sprintf("mnptu_%s_1", t.Name()))
+	s2, i2 := getStateMgr(fmt.Sprintf("mnptu_%s_2", t.Name()))
 
 	// First we need to create the workspace as the lock for creating them is
 	// global

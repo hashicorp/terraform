@@ -10,11 +10,11 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ValidateMoves tests whether all of the given move statements comply with
@@ -228,7 +228,7 @@ func validateMoveStatementGraph(g *dag.AcyclicGraph) tfdiags.Diagnostics {
 				tfdiags.Error,
 				"Self reference in move statements",
 				fmt.Sprintf(
-					"The move statement %s refers to itself the move dependency graph, which is invalid. This is a bug in Terraform; please report it!",
+					"The move statement %s refers to itself the move dependency graph, which is invalid. This is a bug in mnptu; please report it!",
 					src.(*MoveStatement).Name(),
 				),
 			))

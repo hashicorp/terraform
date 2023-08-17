@@ -34,7 +34,7 @@ Hello, Valentina!
 Hello, Valentina!
 ```
 
-The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/terraform/language/expressions/custom-conditions#error-messages) error messages.
+The formatting verb `%#v` accepts a value of any type and presents it using JSON encoding, similar to jsonencode. This can be useful for describing the values given to a module in [custom condition check](/mnptu/language/expressions/custom-conditions#error-messages) error messages.
 
 ```
 > format("%#v", "hello")
@@ -96,7 +96,7 @@ The specification may contain the following verbs.
 
 ### Default Format Verbs
 
-When `%v` is used, Terraform chooses the appropriate format verb based on the value type.
+When `%v` is used, mnptu chooses the appropriate format verb based on the value type.
 
 | Type      | Verb  |
 | --------- | ----- |
@@ -110,7 +110,7 @@ Null values produce the string `null` if formatted with `%v` or `%#v`, and cause
 ### Width Modifier
 
 Use a width modifier with an optional decimal number immediately
-preceding the verb letter to specify how many characters will be used to represent the value. You can specify precision after the (optional) width with a period (`.`) followed by a decimal number. If width or precision are omitted, Terraform selects default values based on the given value.
+preceding the verb letter to specify how many characters will be used to represent the value. You can specify precision after the (optional) width with a period (`.`) followed by a decimal number. If width or precision are omitted, mnptu selects default values based on the given value.
 
 The following examples demonstrate example use cases for the width modifier.
 
@@ -139,7 +139,7 @@ Use the following symbols immediately after the `%` symbol to set additional for
 
 ## Related Functions
 
-* [`formatdate`](/terraform/language/functions/formatdate) is a specialized formatting function for
+* [`formatdate`](/mnptu/language/functions/formatdate) is a specialized formatting function for
   human-readable timestamps.
-* [`formatlist`](/terraform/language/functions/formatlist) uses the same specification syntax to
+* [`formatlist`](/mnptu/language/functions/formatlist) uses the same specification syntax to
   produce a list of strings.

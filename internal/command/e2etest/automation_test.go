@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 // The tests in this file run through different scenarios recommended in our
-// "Running Terraform in Automation" guide:
-//     https://www.terraform.io/guides/running-terraform-in-automation.html
+// "Running mnptu in Automation" guide:
+//     https://www.mnptu.io/guides/running-mnptu-in-automation.html
 
 // TestPlanApplyInAutomation runs through the "main case" of init, plan, apply
 // using the specific command line options suggested in the guide.
@@ -29,7 +29,7 @@ func TestPlanApplyInAutomation(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	// We advertise that _any_ non-empty value works, so we'll test something
 	// unconventional here.
@@ -136,7 +136,7 @@ func TestAutoApplyInAutomation(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	// We advertise that _any_ non-empty value works, so we'll test something
 	// unconventional here.
@@ -202,7 +202,7 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	// We advertise that _any_ non-empty value works, so we'll test something
 	// unconventional here.
@@ -236,9 +236,9 @@ func TestPlanOnlyInAutomation(t *testing.T) {
 	}
 
 	// Because we're running with TF_IN_AUTOMATION set, we should not see
-	// any mention of the the "terraform apply" command in the output.
-	if strings.Contains(stdout, "terraform apply") {
-		t.Errorf("unwanted mention of \"terraform apply\" in plan output\n%s", stdout)
+	// any mention of the the "mnptu apply" command in the output.
+	if strings.Contains(stdout, "mnptu apply") {
+		t.Errorf("unwanted mention of \"mnptu apply\" in plan output\n%s", stdout)
 	}
 
 	if tf.FileExists("tfplan") {

@@ -10,12 +10,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend"
 	"github.com/mitchellh/cli"
 )
 
 // IntegrationOutputWriter is an interface used to to write output tailored for
-// Terraform Cloud integrations
+// mnptu Cloud integrations
 type IntegrationOutputWriter interface {
 	End()
 	OutputElapsed(message string, maxMessage int)
@@ -23,7 +23,7 @@ type IntegrationOutputWriter interface {
 	SubOutput(str string)
 }
 
-// IntegrationContext is a set of data that is useful when performing Terraform Cloud integration operations
+// IntegrationContext is a set of data that is useful when performing mnptu Cloud integration operations
 type IntegrationContext struct {
 	B             *Cloud
 	StopContext   context.Context

@@ -13,13 +13,13 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs"
 )
 
 func TestLoaderLoadConfig_okay(t *testing.T) {
 	fixtureDir := filepath.Clean("testdata/already-installed")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -67,7 +67,7 @@ func TestLoaderLoadConfig_addVersion(t *testing.T) {
 	// to a module that previously didn't have one.
 	fixtureDir := filepath.Clean("testdata/add-version-constraint")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -88,7 +88,7 @@ func TestLoaderLoadConfig_loadDiags(t *testing.T) {
 	// building a config which didn't load correctly may cause configs to panic
 	fixtureDir := filepath.Clean("testdata/invalid-names")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -112,7 +112,7 @@ func TestLoaderLoadConfig_loadDiagsFromSubmodules(t *testing.T) {
 	// building a config which didn't load correctly may cause configs to panic
 	fixtureDir := filepath.Clean("testdata/invalid-names-in-submodules")
 	loader, err := NewLoader(&Config{
-		ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+		ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 	})
 	if err != nil {
 		t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -147,7 +147,7 @@ func TestLoaderLoadConfig_childProviderGrandchildCount(t *testing.T) {
 	// provider configuration to call another module with count. We previously
 	// botched this rule and so this is a regression test to cover the
 	// solution to that mistake:
-	//     https://github.com/hashicorp/terraform/issues/31081
+	//     https://github.com/hashicorp/mnptu/issues/31081
 
 	// Since this test is based on success rather than failure and it's
 	// covering a relatively large set of code where only a small part
@@ -162,7 +162,7 @@ func TestLoaderLoadConfig_childProviderGrandchildCount(t *testing.T) {
 	t.Run("okay", func(t *testing.T) {
 		fixtureDir := filepath.Clean("testdata/child-provider-grandchild-count")
 		loader, err := NewLoader(&Config{
-			ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+			ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 		})
 		if err != nil {
 			t.Fatalf("unexpected error from NewLoader: %s", err)
@@ -192,7 +192,7 @@ func TestLoaderLoadConfig_childProviderGrandchildCount(t *testing.T) {
 	t.Run("not okay", func(t *testing.T) {
 		fixtureDir := filepath.Clean("testdata/child-provider-child-count")
 		loader, err := NewLoader(&Config{
-			ModulesDir: filepath.Join(fixtureDir, ".terraform/modules"),
+			ModulesDir: filepath.Join(fixtureDir, ".mnptu/modules"),
 		})
 		if err != nil {
 			t.Fatalf("unexpected error from NewLoader: %s", err)

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/communicator/shared"
+	"github.com/hashicorp/mnptu/internal/communicator/shared"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -27,7 +27,7 @@ const (
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "C:/Temp/terraform_%RAND%.cmd"
+	DefaultScriptPath = "C:/Temp/mnptu_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute

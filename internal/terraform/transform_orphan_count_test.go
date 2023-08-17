@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestOrphanResourceCountTransformer(t *testing.T) {
@@ -20,7 +20,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
@@ -28,7 +28,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
@@ -36,7 +36,7 @@ func TestOrphanResourceCountTransformer(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -71,7 +71,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
@@ -79,7 +79,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
@@ -87,7 +87,7 @@ func TestOrphanResourceCountTransformer_zero(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -122,7 +122,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
@@ -130,7 +130,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
@@ -138,7 +138,7 @@ func TestOrphanResourceCountTransformer_oneIndex(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -173,7 +173,7 @@ func TestOrphanResourceCountTransformer_deposed(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[0]").Resource,
@@ -181,7 +181,7 @@ func TestOrphanResourceCountTransformer_deposed(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceCurrent(
 		mustResourceInstanceAddr("aws_instance.foo[1]").Resource,
@@ -189,7 +189,7 @@ func TestOrphanResourceCountTransformer_deposed(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 	root.SetResourceInstanceDeposed(
 		mustResourceInstanceAddr("aws_instance.foo[2]").Resource,
@@ -198,7 +198,7 @@ func TestOrphanResourceCountTransformer_deposed(t *testing.T) {
 			Status:    states.ObjectReady,
 			AttrsJSON: []byte(`{"id":"foo"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 	)
 
 	g := Graph{Path: addrs.RootModuleInstance}
@@ -243,7 +243,7 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 		)
 
 		// NoKey'd resource
@@ -259,7 +259,7 @@ func TestOrphanResourceCountTransformer_ForEachEdgesAdded(t *testing.T) {
 				},
 				Status: states.ObjectReady,
 			},
-			mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+			mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 		)
 	})
 

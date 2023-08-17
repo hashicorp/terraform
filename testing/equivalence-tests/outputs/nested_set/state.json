@@ -7,7 +7,7 @@
           "address": "tfcoremock_nested_set.nested_set",
           "mode": "managed",
           "name": "nested_set",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "sets": [

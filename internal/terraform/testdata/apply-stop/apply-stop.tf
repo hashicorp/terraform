@@ -1,7 +1,7 @@
-terraform {
+mnptu {
   required_providers {
     indefinite = {
-      source = "terraform.io/test/indefinite"
+      source = "mnptu.io/test/indefinite"
     }
   }
 }

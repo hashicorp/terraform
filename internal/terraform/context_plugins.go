@@ -1,21 +1,21 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/provisioners"
 )
 
 // contextPlugins represents a library of available plugins (providers and
 // provisioners) which we assume will all be used with the same
-// terraform.Context, and thus it'll be safe to cache certain information
+// mnptu.Context, and thus it'll be safe to cache certain information
 // about the providers for performance reasons.
 type contextPlugins struct {
 	providerFactories    map[addrs.Provider]providers.Factory
@@ -64,9 +64,9 @@ func (cp *contextPlugins) NewProvisionerInstance(typ string) (provisioners.Inter
 //
 // ProviderSchema memoizes results by unique provider address, so it's fine
 // to repeatedly call this method with the same address if various different
-// parts of Terraform all need the same schema information.
+// parts of mnptu all need the same schema information.
 func (cp *contextPlugins) ProviderSchema(addr addrs.Provider) (providers.ProviderSchema, error) {
-	log.Printf("[TRACE] terraform.contextPlugins: Initializing provider %q to read its schema", addr)
+	log.Printf("[TRACE] mnptu.contextPlugins: Initializing provider %q to read its schema", addr)
 
 	// Check the global schema cache first.
 	// This cache is only written by the provider client, and transparently
@@ -156,9 +156,9 @@ func (cp *contextPlugins) ResourceTypeSchema(providerAddr addrs.Provider, resour
 //
 // ProvisionerSchema memoizes results by provisioner type name, so it's fine
 // to repeatedly call this method with the same name if various different
-// parts of Terraform all need the same schema information.
+// parts of mnptu all need the same schema information.
 func (cp *contextPlugins) ProvisionerSchema(typ string) (*configschema.Block, error) {
-	log.Printf("[TRACE] terraform.contextPlugins: Initializing provisioner %q to read its schema", typ)
+	log.Printf("[TRACE] mnptu.contextPlugins: Initializing provisioner %q to read its schema", typ)
 	provisioner, err := cp.NewProvisionerInstance(typ)
 	if err != nil {
 		return nil, fmt.Errorf("failed to instantiate provisioner %q to obtain schema: %s", typ, err)

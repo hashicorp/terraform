@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/e2e"
 )
 
 // TestProviderDevOverrides is a test for the special dev_overrides setting
@@ -31,7 +31,7 @@ func TestProviderDevOverrides(t *testing.T) {
 	}
 	t.Parallel()
 
-	tf := e2e.NewBinary(t, terraformBin, "testdata/provider-dev-override")
+	tf := e2e.NewBinary(t, mnptuBin, "testdata/provider-dev-override")
 
 	// In order to do a decent end-to-end test for this case we will need a
 	// real enough provider plugin to try to run and make sure we are able
@@ -42,8 +42,8 @@ func TestProviderDevOverrides(t *testing.T) {
 	// provider in a way that makes it less suitable for this particular test,
 	// such as if it stops being buildable into an independent executable.
 	providerExeDir := filepath.Join(tf.WorkDir(), "pkgdir")
-	providerExePrefix := filepath.Join(providerExeDir, "terraform-provider-test_")
-	providerExe := e2e.GoBuild("github.com/hashicorp/terraform/internal/provider-simple/main", providerExePrefix)
+	providerExePrefix := filepath.Join(providerExeDir, "mnptu-provider-test_")
+	providerExe := e2e.GoBuild("github.com/hashicorp/mnptu/internal/provider-simple/main", providerExePrefix)
 	t.Logf("temporary provider executable is %s", providerExe)
 
 	err := ioutil.WriteFile(filepath.Join(tf.WorkDir(), "dev.tfrc"), []byte(fmt.Sprintf(`
@@ -67,11 +67,11 @@ func TestProviderDevOverrides(t *testing.T) {
 		t.Errorf("configuration should depend on %s, but doesn't\n%s", want, got)
 	}
 
-	// NOTE: We're intentionally not running "terraform init" here, because
+	// NOTE: We're intentionally not running "mnptu init" here, because
 	// dev overrides are always ready to use and don't need any special action
 	// to "install" them. This test is mimicking the a happy path of going
 	// directly from "go build" to validate/plan/apply without interacting
-	// with any registries, mirrors, lock files, etc. To verify "terraform
+	// with any registries, mirrors, lock files, etc. To verify "mnptu
 	// init" does actually show a warning, that behavior is tested at the end.
 	stdout, stderr, err = tf.Run("validate")
 	if err != nil {

@@ -7,15 +7,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/e2e"
 )
 
-func TestTerraformProviderRead(t *testing.T) {
-	// Ensure the terraform provider can correctly read a remote state
+func TestmnptuProviderRead(t *testing.T) {
+	// Ensure the mnptu provider can correctly read a remote state
 
 	t.Parallel()
-	fixturePath := filepath.Join("testdata", "terraform-provider")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	fixturePath := filepath.Join("testdata", "mnptu-provider")
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	//// INIT
 	_, stderr, err := tf.Run("init")

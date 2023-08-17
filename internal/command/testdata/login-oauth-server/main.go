@@ -1,8 +1,8 @@
 //go:build ignore
 // +build ignore
 
-// This file is a helper for those doing _manual_ testing of "terraform login"
-// and/or "terraform logout" and want to start up a test OAuth server in a
+// This file is a helper for those doing _manual_ testing of "mnptu login"
+// and/or "mnptu logout" and want to start up a test OAuth server in a
 // separate process for convenience:
 //
 //    go run ./command/testdata/login-oauth-server/main.go :8080
@@ -10,7 +10,7 @@
 // This is _not_ the main way to use this oauthserver package. For automated
 // test code, import it as a normal Go package instead:
 //
-//     import oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
+//     import oauthserver "github.com/hashicorp/mnptu/internal/command/testdata/login-oauth-server"
 
 package main
 
@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"os"
 
-	oauthserver "github.com/hashicorp/terraform/internal/command/testdata/login-oauth-server"
+	oauthserver "github.com/hashicorp/mnptu/internal/command/testdata/login-oauth-server"
 )
 
 func main() {

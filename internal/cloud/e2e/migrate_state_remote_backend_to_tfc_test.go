@@ -13,7 +13,7 @@ import (
 func Test_migrate_remote_backend_single_org(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	ctx := context.Background()
 	cases := testCases{
@@ -22,7 +22,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						remoteWorkspace := "remote-workspace"
-						tfBlock := terraformConfigRemoteBackendName(orgName, remoteWorkspace)
+						tfBlock := mnptuConfigRemoteBackendName(orgName, remoteWorkspace)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -39,17 +39,17 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "cloud-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -74,7 +74,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						remoteWorkspace := "remote-workspace"
-						tfBlock := terraformConfigRemoteBackendName(orgName, remoteWorkspace)
+						tfBlock := mnptuConfigRemoteBackendName(orgName, remoteWorkspace)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -91,17 +91,17 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "remote-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -126,7 +126,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						remoteWorkspace := "remote-workspace"
-						tfBlock := terraformConfigRemoteBackendName(orgName, remoteWorkspace)
+						tfBlock := mnptuConfigRemoteBackendName(orgName, remoteWorkspace)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -147,18 +147,18 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
-						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						tfBlock := mnptuConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "cloud-workspace", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud requires all workspaces to be given an explicit name.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud requires all workspaces to be given an explicit name.`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -189,13 +189,13 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					prep: func(t *testing.T, orgName, dir string) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-one")})
 						prefix := "app-"
-						tfBlock := terraformConfigRemoteBackendPrefix(orgName, prefix)
+						tfBlock := mnptuConfigRemoteBackendPrefix(orgName, prefix)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform has been successfully initialized!`,
+							expectedCmdOutput: `mnptu has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -206,17 +206,17 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "cloud-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -243,7 +243,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-one")})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-two")})
 						prefix := "app-"
-						tfBlock := terraformConfigRemoteBackendPrefix(orgName, prefix)
+						tfBlock := mnptuConfigRemoteBackendPrefix(orgName, prefix)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -251,7 +251,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu has been successfully initialized!`},
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -270,7 +270,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "cloud-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -279,7 +279,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							expectedCmdOutput: `Do you want to copy only your current workspace?`,
 							userInput:         []string{"yes"},
 							postInputOutput: []string{
-								`Terraform Cloud has been successfully initialized!`},
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -324,13 +324,13 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 					prep: func(t *testing.T, orgName, dir string) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-one")})
 						prefix := "app-"
-						tfBlock := terraformConfigRemoteBackendPrefix(orgName, prefix)
+						tfBlock := mnptuConfigRemoteBackendPrefix(orgName, prefix)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform has been successfully initialized!`,
+							expectedCmdOutput: `mnptu has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -341,18 +341,18 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
-						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						tfBlock := mnptuConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "cloud-workspace", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud requires all workspaces to be given an explicit name.`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud requires all workspaces to be given an explicit name.`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "list"},
@@ -379,7 +379,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-one")})
 						_ = createWorkspace(t, orgName, tfe.WorkspaceCreateOptions{Name: tfe.String("app-two")})
 						prefix := "app-"
-						tfBlock := terraformConfigRemoteBackendPrefix(orgName, prefix)
+						tfBlock := mnptuConfigRemoteBackendPrefix(orgName, prefix)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -387,7 +387,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							command:           []string{"init"},
 							expectedCmdOutput: `The currently selected workspace (default) does not exist.`,
 							userInput:         []string{"1"},
-							postInputOutput:   []string{`Terraform has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu has been successfully initialized!`},
 						},
 						{
 							command:           []string{"apply"},
@@ -409,7 +409,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						tag := "app"
-						tfBlock := terraformConfigCloudBackendTags(orgName, tag)
+						tfBlock := mnptuConfigCloudBackendTags(orgName, tag)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -417,7 +417,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 							command:           []string{"init", "-ignore-remote-version"},
 							expectedCmdOutput: `Do you wish to proceed?`,
 							userInput:         []string{"yes"},
-							postInputOutput:   []string{`Terraform Cloud has been successfully initialized!`},
+							postInputOutput:   []string{`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -464,7 +464,7 @@ func Test_migrate_remote_backend_single_org(t *testing.T) {
 func Test_migrate_remote_backend_multi_org(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	ctx := context.Background()
 	cases := testCases{
@@ -473,7 +473,7 @@ func Test_migrate_remote_backend_multi_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						remoteWorkspace := "remote-workspace"
-						tfBlock := terraformConfigRemoteBackendName(orgName, remoteWorkspace)
+						tfBlock := mnptuConfigRemoteBackendName(orgName, remoteWorkspace)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -490,17 +490,17 @@ func Test_migrate_remote_backend_multi_org(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "remote-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-ignore-remote-version"},
-							expectedCmdOutput: `Migrating from backend "remote" to Terraform Cloud.`,
+							expectedCmdOutput: `Migrating from backend "remote" to mnptu Cloud.`,
 							userInput:         []string{"yes", "yes"},
 							postInputOutput: []string{
-								`Should Terraform migrate your existing state?`,
-								`Terraform Cloud has been successfully initialized!`},
+								`Should mnptu migrate your existing state?`,
+								`mnptu Cloud has been successfully initialized!`},
 						},
 						{
 							command:           []string{"workspace", "show"},

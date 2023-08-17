@@ -1,18 +1,18 @@
 ---
 page_title: 'Command: output'
 description: >-
-  The `terraform output` command is used to extract the value of an output
+  The `mnptu output` command is used to extract the value of an output
   variable from the state file.
 ---
 
 # Command: output
 
-The `terraform output` command is used to extract the value of
+The `mnptu output` command is used to extract the value of
 an output variable from the state file.
 
 ## Usage
 
-Usage: `terraform output [options] [NAME]`
+Usage: `mnptu output [options] [NAME]`
 
 With no additional arguments, `output` will display all the outputs for
 the root module. If an output `NAME` is specified, only the value of that
@@ -23,22 +23,22 @@ The command-line flags are all optional. The following flags are available:
 * `-json` - If specified, the outputs are formatted as a JSON object, with
   a key per output. If `NAME` is specified, only the output specified will be
   returned. This can be piped into tools such as `jq` for further processing.
-* `-raw` - If specified, Terraform will convert the specified output value to a
+* `-raw` - If specified, mnptu will convert the specified output value to a
   string and print that string directly to the output, without any special
   formatting. This can be convenient when working with shell scripts, but
   it only supports string, number, and boolean values. Use `-json` instead
   for processing complex data types.
 * `-no-color` - If specified, output won't contain any color.
-* `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
-  Ignored when [remote state](/terraform/language/state/remote) is used.
+* `-state=path` - Path to the state file. Defaults to "mnptu.tfstate".
+  Ignored when [remote state](/mnptu/language/state/remote) is used.
 
 -> **Note:** When using the `-json` or `-raw` command-line flag, any sensitive
-values in Terraform state will be displayed in plain text. For more information,
-see [Sensitive Data in State](/terraform/language/state/sensitive-data).
+values in mnptu state will be displayed in plain text. For more information,
+see [Sensitive Data in State](/mnptu/language/state/sensitive-data).
 
 ## Examples
 
-These examples assume the following Terraform output snippet.
+These examples assume the following mnptu output snippet.
 
 ```hcl
 output "instance_ips" {
@@ -58,7 +58,7 @@ output "password" {
 To list all outputs:
 
 ```shellsession
-$ terraform output
+$ mnptu output
 instance_ips = [
   "54.43.114.12",
   "52.122.13.4",
@@ -71,21 +71,21 @@ password = <sensitive>
 Note that outputs with the `sensitive` attribute will be redacted:
 
 ```shellsession
-$ terraform output password
+$ mnptu output password
 password = <sensitive>
 ```
 
 To query for the DNS address of the load balancer:
 
 ```shellsession
-$ terraform output lb_address
+$ mnptu output lb_address
 "my-app-alb-1657023003.us-east-1.elb.amazonaws.com"
 ```
 
 To query for all instance IP addresses:
 
 ```shellsession
-$ terraform output instance_ips
+$ mnptu output instance_ips
 instance_ips = [
   "54.43.114.12",
   "52.122.13.4",
@@ -95,7 +95,7 @@ instance_ips = [
 
 ## Use in automation
 
-The `terraform output` command by default displays in a human-readable format,
+The `mnptu output` command by default displays in a human-readable format,
 which can change over time to improve clarity.
 
 For scripting and automation, use `-json` to produce the stable JSON format.
@@ -103,7 +103,7 @@ You can parse the output using a JSON command-line parser such as
 [jq](https://stedolan.github.io/jq/):
 
 ```shellsession
-$ terraform output -json instance_ips | jq -r '.[0]'
+$ mnptu output -json instance_ips | jq -r '.[0]'
 54.43.114.12
 ```
 
@@ -112,15 +112,15 @@ can use `-raw` instead, which will print the string directly with no extra
 escaping or whitespace.
 
 ```shellsession
-$ terraform output -raw lb_address
+$ mnptu output -raw lb_address
 my-app-alb-1657023003.us-east-1.elb.amazonaws.com
 ```
 
-The `-raw` option works only with values that Terraform can automatically
+The `-raw` option works only with values that mnptu can automatically
 convert to strings. Use `-json` instead, possibly combined with `jq`, to
 work with complex-typed values such as objects.
 
-Terraform strings are sequences of Unicode characters rather than raw bytes,
+mnptu strings are sequences of Unicode characters rather than raw bytes,
 so the `-raw` output will be UTF-8 encoded when it contains non-ASCII
 characters. If you need a different character encoding, use a separate command
-such as `iconv` to transcode Terraform's raw output.
+such as `iconv` to transcode mnptu's raw output.

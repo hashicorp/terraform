@@ -1,9 +1,9 @@
 tfcoremock_simple_resource.second: Refreshing state... [id=70c47571-66c3-b1dc-2474-47a74b9c7886]
 
-Note: Objects have changed outside of Terraform
+Note: Objects have changed outside of mnptu
 
-Terraform detected the following changes made outside of Terraform since the
-last "terraform apply" which may have affected this plan:
+mnptu detected the following changes made outside of mnptu since the
+last "mnptu apply" which may have affected this plan:
 
   # tfcoremock_simple_resource.first has moved to tfcoremock_simple_resource.second
     resource "tfcoremock_simple_resource" "second" {
@@ -12,7 +12,7 @@ last "terraform apply" which may have affected this plan:
     }
 
 
-This is a refresh-only plan, so Terraform will not take any actions to undo
+This is a refresh-only plan, so mnptu will not take any actions to undo
 these. If you were expecting these changes then you can apply this plan to
-record the updated values in the Terraform state without changing any remote
+record the updated values in the mnptu state without changing any remote
 objects.

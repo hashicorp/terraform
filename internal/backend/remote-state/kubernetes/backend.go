@@ -11,9 +11,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/schema"
+	"github.com/hashicorp/mnptu/version"
 	"github.com/mitchellh/go-homedir"
 	k8sSchema "k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -24,7 +24,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-// Modified from github.com/terraform-providers/terraform-provider-kubernetes
+// Modified from github.com/mnptu-providers/mnptu-provider-kubernetes
 
 const (
 	noConfigError = `
@@ -242,7 +242,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	// Overriding with static configuration
-	cfg.UserAgent = fmt.Sprintf("HashiCorp/1.0 Terraform/%s", version.String())
+	cfg.UserAgent = fmt.Sprintf("HashiCorp/1.0 mnptu/%s", version.String())
 
 	if v, ok := data.GetOk("host"); ok {
 		cfg.Host = v.(string)
@@ -397,7 +397,7 @@ func tryLoadingConfigFile(d *schema.ResourceData) (*restclient.Config, error) {
 func expandStringSlice(s []interface{}) []string {
 	result := make([]string, len(s), len(s))
 	for k, v := range s {
-		// Handle the Terraform parser bug which turns empty strings in lists to nil.
+		// Handle the mnptu parser bug which turns empty strings in lists to nil.
 		if v == nil {
 			result[k] = ""
 		} else {

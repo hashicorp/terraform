@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/communicator/remote"
-	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/communicator/remote"
+	"github.com/hashicorp/mnptu/internal/provisioners"
 	"github.com/masterzen/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
 	"github.com/zclconf/go-cty/cty"

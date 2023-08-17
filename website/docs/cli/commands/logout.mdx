@@ -1,29 +1,29 @@
 ---
 page_title: 'Command: logout'
 description: >-
-  The terraform logout command is used to remove credentials stored by terraform
+  The mnptu logout command is used to remove credentials stored by mnptu
   login.
 ---
 
 # Command: logout
 
-The `terraform logout` command is used to remove credentials stored by
-`terraform login`. These credentials are API tokens for Terraform Cloud,
-Terraform Enterprise, or any other host that offers Terraform services.
+The `mnptu logout` command is used to remove credentials stored by
+`mnptu login`. These credentials are API tokens for mnptu Cloud,
+mnptu Enterprise, or any other host that offers mnptu services.
 
 ## Usage
 
-Usage: `terraform logout [hostname]`
+Usage: `mnptu logout [hostname]`
 
-If you don't provide an explicit hostname, Terraform will assume you want to
-log out of Terraform Cloud at `app.terraform.io`.
+If you don't provide an explicit hostname, mnptu will assume you want to
+log out of mnptu Cloud at `app.mnptu.io`.
 
 -> **Note:** the API token is only removed from local storage, not destroyed on
 the remote server, so it will remain valid until manually revoked.
 
 ## Credentials Storage
 
-By default, Terraform will remove the token stored in plain text in a local CLI
+By default, mnptu will remove the token stored in plain text in a local CLI
 configuration file called `credentials.tfrc.json`. If you have configured a
-[credentials helper program](/terraform/cli/config/config-file#credentials-helpers), Terraform
+[credentials helper program](/mnptu/cli/config/config-file#credentials-helpers), mnptu
 will use the helper's `forget` command to remove it.

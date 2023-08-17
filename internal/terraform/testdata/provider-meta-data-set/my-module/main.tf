@@ -2,7 +2,7 @@ data "test_file" "foo" {
   id = "bar"
 }
 
-terraform {
+mnptu {
   provider_meta "test" {
     baz = "quux-submodule"
   }

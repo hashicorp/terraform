@@ -2,7 +2,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_list.list: Plan to update",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "update",
       "resource": {
@@ -20,7 +20,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_list.list: Modifying... [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "id_key": "id",
@@ -40,7 +40,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_list.list: Modifications complete after 0s [id=985820B3-ACF9-4F00-94AD-F81C5EA33663]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "elapsed_seconds": 0,
@@ -61,7 +61,7 @@
   {
     "@level": "info",
     "@message": "Apply complete! Resources: 0 added, 1 changed, 0 destroyed.",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "changes": {
       "add": 0,
       "change": 1,
@@ -73,7 +73,7 @@
   {
     "@level": "info",
     "@message": "Outputs: 0",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "outputs": {},
     "type": "outputs"
   }

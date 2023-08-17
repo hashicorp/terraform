@@ -11,12 +11,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 func TestMarshalOutputs(t *testing.T) {
@@ -183,7 +183,7 @@ func TestMarshalResources(t *testing.T) {
 	deposedKey := states.NewDeposedKey()
 	tests := map[string]struct {
 		Resources map[string]*states.Resource
-		Schemas   *terraform.Schemas
+		Schemas   *mnptu.Schemas
 		Want      []Resource
 		Err       bool
 	}{
@@ -225,7 +225,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -267,7 +267,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`"sensuzles"`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -313,7 +313,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`"confuzles"`),
 						"woozles": json.RawMessage(`null`),
@@ -384,7 +384,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        json.RawMessage(`0`),
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -426,7 +426,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        json.RawMessage(`"rockhopper"`),
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -470,7 +470,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -519,7 +519,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
 						"woozles": json.RawMessage(`"confuzles"`),
@@ -532,7 +532,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_thing",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					DeposedKey:   deposedKey.String(),
 					AttributeValues: AttributeValues{
 						"foozles": json.RawMessage(`null`),
@@ -579,7 +579,7 @@ func TestMarshalResources(t *testing.T) {
 					Type:         "test_map_attr",
 					Name:         "bar",
 					Index:        nil,
-					ProviderName: "registry.terraform.io/hashicorp/test",
+					ProviderName: "registry.mnptu.io/hashicorp/test",
 					AttributeValues: AttributeValues{
 						"data": json.RawMessage(`{"woozles":"confuzles"}`),
 					},
@@ -806,8 +806,8 @@ func TestMarshalModules_parent_no_resources(t *testing.T) {
 	}
 }
 
-func testSchemas() *terraform.Schemas {
-	return &terraform.Schemas{
+func testSchemas() *mnptu.Schemas {
+	return &mnptu.Schemas{
 		Providers: map[addrs.Provider]providers.ProviderSchema{
 			addrs.NewDefaultProvider("test"): {
 				ResourceTypes: map[string]providers.Schema{

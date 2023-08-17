@@ -12,7 +12,7 @@ import (
 // NewLineage generates a new lineage identifier string. A lineage identifier
 // is an opaque string that is intended to be unique in space and time, chosen
 // when state is recorded at a location for the first time and then preserved
-// afterwards to allow Terraform to recognize when one state snapshot is a
+// afterwards to allow mnptu to recognize when one state snapshot is a
 // predecessor or successor of another.
 func NewLineage() string {
 	lineage, err := uuid.GenerateUUID()

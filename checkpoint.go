@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 
 	"github.com/hashicorp/go-checkpoint"
-	"github.com/hashicorp/terraform/internal/command"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/command"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
 	"go.opentelemetry.io/otel/codes"
 )
 
@@ -54,7 +54,7 @@ func runCheckpoint(ctx context.Context, c *cliconfig.Config) {
 	}
 
 	resp, err := checkpoint.Check(&checkpoint.CheckParams{
-		Product:       "terraform",
+		Product:       "mnptu",
 		Version:       version,
 		SignatureFile: signaturePath,
 		CacheFile:     filepath.Join(configDir, "checkpoint_cache"),

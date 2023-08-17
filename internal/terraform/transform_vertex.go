@@ -1,12 +1,12 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/mnptu/internal/dag"
 )
 
 // VertexTransformer is a GraphTransformer that transforms vertices

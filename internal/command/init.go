@@ -12,29 +12,29 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 	"github.com/posener/complete"
 	"github.com/zclconf/go-cty/cty"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/providercache"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
+	"github.com/hashicorp/mnptu/internal/cloud"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/providercache"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
-// InitCommand is a Command implementation that takes a Terraform
+// InitCommand is a Command implementation that takes a mnptu
 // module and clones it to the working directory.
 type InitCommand struct {
 	Meta
@@ -61,7 +61,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagUpgrade, "upgrade", false, "")
 	cmdFlags.Var(&flagPluginPath, "plugin-dir", "plugin directory")
 	cmdFlags.StringVar(&flagLockfile, "lockfile", "", "Set a dependency lockfile mode")
-	cmdFlags.BoolVar(&c.Meta.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local Terraform versions are incompatible")
+	cmdFlags.BoolVar(&c.Meta.ignoreRemoteVersion, "ignore-remote-version", false, "continue even if remote and local mnptu versions are incompatible")
 	cmdFlags.StringVar(&testsDirectory, "test-directory", "tests", "test-directory")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -249,14 +249,14 @@ func (c *InitCommand) Run(args []string) int {
 	// whole configuration tree.
 	config, confDiags := c.loadConfigWithTests(path, testsDirectory)
 	// configDiags will be handled after the version constraint check, since an
-	// incorrect version of terraform may be producing errors for configuration
+	// incorrect version of mnptu may be producing errors for configuration
 	// constructs added in later versions.
 
 	// Before we go further, we'll check to make sure none of the modules in
-	// the configuration declare that they don't support this Terraform
+	// the configuration declare that they don't support this mnptu
 	// version, so we can produce a version-related error message rather than
 	// potentially-confusing downstream errors.
-	versionDiags := terraform.CheckCoreVersionRequirements(config)
+	versionDiags := mnptu.CheckCoreVersionRequirements(config)
 	if versionDiags.HasErrors() {
 		c.showDiagnostics(versionDiags)
 		return 1
@@ -390,7 +390,7 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Failed to read module manifest",
-				fmt.Sprintf("After installing modules, Terraform could not re-read the manifest of installed modules. This is a bug in Terraform. %s.", err),
+				fmt.Sprintf("After installing modules, mnptu could not re-read the manifest of installed modules. This is a bug in mnptu. %s.", err),
 			))
 		}
 	}
@@ -399,17 +399,17 @@ func (c *InitCommand) getModules(ctx context.Context, path, testsDir string, ear
 }
 
 func (c *InitCommand) initCloud(ctx context.Context, root *configs.Module, extraConfig rawFlags) (be backend.Backend, output bool, diags tfdiags.Diagnostics) {
-	ctx, span := tracer.Start(ctx, "initialize Terraform Cloud")
+	ctx, span := tracer.Start(ctx, "initialize mnptu Cloud")
 	_ = ctx // prevent staticcheck from complaining to avoid a maintenence hazard of having the wrong ctx in scope here
 	defer span.End()
 
-	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing Terraform Cloud..."))
+	c.Ui.Output(c.Colorize().Color("\n[reset][bold]Initializing mnptu Cloud..."))
 
 	if len(extraConfig.AllItems()) != 0 {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid command-line option",
-			"The -backend-config=... command line option is only for state backends, and is not applicable to Terraform Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
+			"The -backend-config=... command line option is only for state backends, and is not applicable to mnptu Cloud-based configurations.\n\nTo change the set of workspaces associated with this configuration, edit the Cloud configuration block in the root module.",
 		))
 		return nil, true, diags
 	}
@@ -441,7 +441,7 @@ func (c *InitCommand) initBackend(ctx context.Context, root *configs.Module, ext
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Unsupported backend type",
-				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure Terraform Cloud, declare a 'cloud' block instead.", backendType),
+				Detail:   fmt.Sprintf("There is no explicit backend type named %q. To configure mnptu Cloud, declare a 'cloud' block instead.", backendType),
 				Subject:  &root.Backend.TypeRange,
 			})
 			return nil, true, diags
@@ -487,7 +487,7 @@ If you intended to override the default local backend configuration,
 no action is required, but you may add an explicit backend block to your
 configuration to clear this warning:
 
-terraform {
+mnptu {
   backend "local" {}
 }
 
@@ -515,9 +515,9 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 	ctx, span := tracer.Start(ctx, "install providers")
 	defer span.End()
 
-	// Dev overrides cause the result of "terraform init" to be irrelevant for
+	// Dev overrides cause the result of "mnptu init" to be irrelevant for
 	// any overridden providers, so we'll warn about it to avoid later
-	// confusion when Terraform ends up using a different provider than the
+	// confusion when mnptu ends up using a different provider than the
 	// lock file called for.
 	diags = diags.Append(c.providerDevOverrideInitWarnings())
 
@@ -539,7 +539,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				tfdiags.Error,
 				"Invalid legacy provider address",
 				fmt.Sprintf(
-					"This configuration or its associated state refers to the unqualified provider %q.\n\nYou must complete the Terraform 0.13 upgrade process before upgrading to later versions.",
+					"This configuration or its associated state refers to the unqualified provider %q.\n\nYou must complete the mnptu 0.13 upgrade process before upgrading to later versions.",
 					providerAddr.Type,
 				),
 			))
@@ -560,7 +560,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 		inst = c.providerInstaller()
 	} else {
 		// If the user passes at least one -plugin-dir then that circumvents
-		// the usual sources and forces Terraform to consult only the given
+		// the usual sources and forces mnptu to consult only the given
 		// directories. Anything not available in one of those directories
 		// is not available for installation.
 		source := c.providerCustomLocalDirectorySource(pluginDirs)
@@ -592,7 +592,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			c.Ui.Info(fmt.Sprintf("- Using previously-installed %s v%s", provider.ForDisplay(), selectedVersion))
 		},
 		BuiltInProviderAvailable: func(provider addrs.Provider) {
-			c.Ui.Info(fmt.Sprintf("- %s is built in to Terraform", provider.ForDisplay()))
+			c.Ui.Info(fmt.Sprintf("- %s is built in to mnptu", provider.ForDisplay()))
 		},
 		BuiltInProviderFailure: func(provider addrs.Provider, err error) {
 			diags = diags.Append(tfdiags.Sourceless(
@@ -636,11 +636,11 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			case getproviders.ErrRegistryProviderNotKnown:
 				// We might be able to suggest an alternative provider to use
 				// instead of this one.
-				suggestion := fmt.Sprintf("\n\nAll modules should specify their required_providers so that external consumers will get the correct providers when using a module. To see which modules are currently depending on %s, run the following command:\n    terraform providers", provider.ForDisplay())
+				suggestion := fmt.Sprintf("\n\nAll modules should specify their required_providers so that external consumers will get the correct providers when using a module. To see which modules are currently depending on %s, run the following command:\n    mnptu providers", provider.ForDisplay())
 				alternative := getproviders.MissingProviderSuggestion(ctx, provider, inst.ProviderSource(), reqs)
 				if alternative != provider {
 					suggestion = fmt.Sprintf(
-						"\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider. To see which modules are currently depending on %s, run the following command:\n    terraform providers",
+						"\n\nDid you intend to use %s? If so, you must specify that source address in each module which requires that provider. To see which modules are currently depending on %s, run the following command:\n    mnptu providers",
 						alternative.ForDisplay(), provider.ForDisplay(),
 					)
 				}
@@ -662,11 +662,11 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					// of that mistake. We only do this if github.com isn't a
 					// provider registry, to allow for the (admittedly currently
 					// rather unlikely) possibility that github.com starts being
-					// a real Terraform provider registry in the future.
+					// a real mnptu provider registry in the future.
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a Terraform provider. Refer to the documentation of the provider to find the correct source address to use.",
+						fmt.Sprintf("The given source address %q specifies a GitHub repository rather than a mnptu provider. Refer to the documentation of the provider to find the correct source address to use.",
 							provider.String(),
 						),
 					))
@@ -675,7 +675,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry that is compatible with this Terraform version, but it may be compatible with a different Terraform version.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a mnptu provider registry that is compatible with this mnptu version, but it may be compatible with a different mnptu version.",
 							errorTy.Hostname, provider.String(),
 						),
 					))
@@ -684,7 +684,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 					diags = diags.Append(tfdiags.Sourceless(
 						tfdiags.Error,
 						"Invalid provider registry host",
-						fmt.Sprintf("The host %q given in provider source address %q does not offer a Terraform provider registry.",
+						fmt.Sprintf("The host %q given in provider source address %q does not offer a mnptu provider registry.",
 							errorTy.Hostname, provider.String(),
 						),
 					))
@@ -769,7 +769,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(
-							"Your chosen provider mirror at %s does not have a %s v%s package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so this provider might not support your current platform. Alternatively, the mirror itself might have only a subset of the plugin packages available in the origin registry, at %s.",
+							"Your chosen provider mirror at %s does not have a %s v%s package available for your current platform, %s.\n\nProvider releases are separate from mnptu CLI releases, so this provider might not support your current platform. Alternatively, the mirror itself might have only a subset of the plugin packages available in the origin registry, at %s.",
 							err.MirrorURL, err.Provider, err.Version, err.Platform,
 							err.Provider.Hostname,
 						),
@@ -779,7 +779,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 						tfdiags.Error,
 						summaryIncompatible,
 						fmt.Sprintf(
-							"Provider %s v%s does not have a package available for your current platform, %s.\n\nProvider releases are separate from Terraform CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.",
+							"Provider %s v%s does not have a package available for your current platform, %s.\n\nProvider releases are separate from mnptu CLI releases, so not all providers are available for all platforms. Other versions of this provider may have different platforms supported.",
 							err.Provider, err.Version, err.Platform,
 						),
 					))
@@ -822,7 +822,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			// We're going to use this opportunity to track if we have any
 			// "incomplete" installs of providers. An incomplete install is
 			// when we are only going to write the local hashes into our lock
-			// file which means a `terraform init` command will fail in future
+			// file which means a `mnptu init` command will fail in future
 			// when used on machines of a different architecture.
 			//
 			// We want to print a warning about this.
@@ -864,7 +864,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			if thirdPartySigned {
 				c.Ui.Info(fmt.Sprintf("\nPartner and community providers are signed by their developers.\n" +
 					"If you'd like to know more about provider signing, you can read about it here:\n" +
-					"https://www.terraform.io/docs/cli/plugins/signing.html"))
+					"https://www.mnptu.io/docs/cli/plugins/signing.html"))
 			}
 		},
 	}
@@ -911,7 +911,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					`Provider dependency changes detected`,
-					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "terraform init" without the "-lockfile=readonly" flag.`,
+					`Changes to the required provider dependencies were detected, but the lock file is read-only. To use and record these requirements, run "mnptu init" without the "-lockfile=readonly" flag.`,
 				))
 				return true, true, diags
 			}
@@ -921,7 +921,7 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				`Provider lock file not updated`,
-				`Changes to the provider selections were detected, but not saved in the .terraform.lock.hcl file. To record these selections, run "terraform init" without the "-lockfile=readonly" flag.`,
+				`Changes to the provider selections were detected, but not saved in the .mnptu.lock.hcl file. To record these selections, run "mnptu init" without the "-lockfile=readonly" flag.`,
 			))
 			return true, false, diags
 		}
@@ -944,20 +944,20 @@ func (c *InitCommand) getProviders(ctx context.Context, config *configs.Config, 
 
 		if previousLocks.Empty() {
 			// A change from empty to non-empty is special because it suggests
-			// we're running "terraform init" for the first time against a
+			// we're running "mnptu init" for the first time against a
 			// new configuration. In that case we'll take the opportunity to
 			// say a little about what the dependency lock file is, for new
-			// users or those who are upgrading from a previous Terraform
+			// users or those who are upgrading from a previous mnptu
 			// version that didn't have dependency lock files.
 			c.Ui.Output(c.Colorize().Color(`
-Terraform has created a lock file [bold].terraform.lock.hcl[reset] to record the provider
+mnptu has created a lock file [bold].mnptu.lock.hcl[reset] to record the provider
 selections it made above. Include this file in your version control repository
-so that Terraform can guarantee to make the same selections by default when
-you run "terraform init" in the future.`))
+so that mnptu can guarantee to make the same selections by default when
+you run "mnptu init" in the future.`))
 		} else {
 			c.Ui.Output(c.Colorize().Color(`
-Terraform has made some changes to the provider dependency selections recorded
-in the .terraform.lock.hcl file. Review those changes and commit them to your
+mnptu has made some changes to the provider dependency selections recorded
+in the .mnptu.lock.hcl file. Review those changes and commit them to your
 version control system if they represent changes you intended to make.`))
 		}
 
@@ -1098,14 +1098,14 @@ func (c *InitCommand) AutocompleteFlags() complete.Flags {
 
 func (c *InitCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] init [options]
+Usage: mnptu [global options] init [options]
 
-  Initialize a new or existing Terraform working directory by creating
+  Initialize a new or existing mnptu working directory by creating
   initial files, loading any remote state, downloading modules, etc.
 
   This is the first command that should be run for any new or existing
-  Terraform configuration per machine. This sets up all the local data
-  necessary to run Terraform that is typically not committed to version
+  mnptu configuration per machine. This sets up all the local data
+  necessary to run mnptu that is typically not committed to version
   control.
 
   This command is always safe to run multiple times. Though subsequent runs
@@ -1115,7 +1115,7 @@ Usage: terraform [global options] init [options]
 
 Options:
 
-  -backend=false          Disable backend or Terraform Cloud initialization
+  -backend=false          Disable backend or mnptu Cloud initialization
                           for this configuration and use what was previously
                           initialized instead.
 
@@ -1124,7 +1124,7 @@ Options:
   -backend-config=path    Configuration to be merged with what is in the
                           configuration file's 'backend' block. This can be
                           either a path to an HCL file with key/value
-                          assignments (same format as terraform.tfvars) or a
+                          assignments (same format as mnptu.tfvars) or a
                           'key=value' format, and can be specified multiple
                           times. The backend type must be in the configuration
                           itself.
@@ -1170,14 +1170,14 @@ Options:
   -lockfile=MODE          Set a dependency lockfile mode.
                           Currently only "readonly" is valid.
 
-  -ignore-remote-version  A rare option used for Terraform Cloud and the remote backend
+  -ignore-remote-version  A rare option used for mnptu Cloud and the remote backend
                           only. Set this to ignore checking that the local and remote
-                          Terraform versions use compatible state representations, making
+                          mnptu versions use compatible state representations, making
                           an operation proceed even when there is a potential mismatch.
-                          See the documentation on configuring Terraform with
-                          Terraform Cloud for more information.
+                          See the documentation on configuring mnptu with
+                          mnptu Cloud for more information.
 
-  -test-directory=path    Set the Terraform test directory, defaults to "tests".
+  -test-directory=path    Set the mnptu test directory, defaults to "tests".
 
 `
 	return strings.TrimSpace(helpText)
@@ -1188,11 +1188,11 @@ func (c *InitCommand) Synopsis() string {
 }
 
 const errInitConfigError = `
-[reset]Terraform encountered problems during initialisation, including problems
+[reset]mnptu encountered problems during initialisation, including problems
 with the configuration, described below.
 
-The Terraform configuration must be valid before initialization so that
-Terraform can determine which modules and providers need to be installed.
+The mnptu configuration must be valid before initialization so that
+mnptu can determine which modules and providers need to be installed.
 `
 
 const errInitCopyNotEmpty = `
@@ -1204,64 +1204,64 @@ To initialize the configuration already in this working directory, omit the
 `
 
 const outputInitEmpty = `
-[reset][bold]Terraform initialized in an empty directory![reset]
+[reset][bold]mnptu initialized in an empty directory![reset]
 
-The directory has no Terraform configuration files. You may begin working
-with Terraform immediately by creating Terraform configuration files.
+The directory has no mnptu configuration files. You may begin working
+with mnptu immediately by creating mnptu configuration files.
 `
 
 const outputInitSuccess = `
-[reset][bold][green]Terraform has been successfully initialized![reset][green]
+[reset][bold][green]mnptu has been successfully initialized![reset][green]
 `
 
 const outputInitSuccessCloud = `
-[reset][bold][green]Terraform Cloud has been successfully initialized![reset][green]
+[reset][bold][green]mnptu Cloud has been successfully initialized![reset][green]
 `
 
 const outputInitSuccessCLI = `[reset][green]
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
+You may now begin working with mnptu. Try running "mnptu plan" to see
+any changes that are required for your infrastructure. All mnptu commands
 should now work.
 
-If you ever set or change modules or backend configuration for Terraform,
+If you ever set or change modules or backend configuration for mnptu,
 rerun this command to reinitialize your working directory. If you forget, other
 commands will detect it and remind you to do so if necessary.
 `
 
 const outputInitSuccessCLICloud = `[reset][green]
-You may now begin working with Terraform Cloud. Try running "terraform plan" to
+You may now begin working with mnptu Cloud. Try running "mnptu plan" to
 see any changes that are required for your infrastructure.
 
-If you ever set or change modules or Terraform Settings, run "terraform init"
+If you ever set or change modules or mnptu Settings, run "mnptu init"
 again to reinitialize your working directory.
 `
 
 // providerProtocolTooOld is a message sent to the CLI UI if the provider's
-// supported protocol versions are too old for the user's version of terraform,
+// supported protocol versions are too old for the user's version of mnptu,
 // but a newer version of the provider is compatible.
-const providerProtocolTooOld = `Provider %q v%s is not compatible with Terraform %s.
+const providerProtocolTooOld = `Provider %q v%s is not compatible with mnptu %s.
 Provider version %s is the latest compatible version. Select it with the following version constraint:
 	version = %q
 
-Terraform checked all of the plugin versions matching the given constraint:
+mnptu checked all of the plugin versions matching the given constraint:
 	%s
 
-Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
+Consult the documentation for this provider for more information on compatibility between provider and mnptu versions.
 `
 
 // providerProtocolTooNew is a message sent to the CLI UI if the provider's
-// supported protocol versions are too new for the user's version of terraform,
-// and the user could either upgrade terraform or choose an older version of the
+// supported protocol versions are too new for the user's version of mnptu,
+// and the user could either upgrade mnptu or choose an older version of the
 // provider.
-const providerProtocolTooNew = `Provider %q v%s is not compatible with Terraform %s.
+const providerProtocolTooNew = `Provider %q v%s is not compatible with mnptu %s.
 You need to downgrade to v%s or earlier. Select it with the following constraint:
 	version = %q
 
-Terraform checked all of the plugin versions matching the given constraint:
+mnptu checked all of the plugin versions matching the given constraint:
 	%s
 
-Consult the documentation for this provider for more information on compatibility between provider and Terraform versions.
-Alternatively, upgrade to the latest version of Terraform for compatibility with newer provider releases.
+Consult the documentation for this provider for more information on compatibility between provider and mnptu versions.
+Alternatively, upgrade to the latest version of mnptu for compatibility with newer provider releases.
 `
 
 // No version of the provider is compatible.
@@ -1273,11 +1273,11 @@ const incompleteLockFileInformationHeader = `Incomplete lock file information fo
 
 // incompleteLockFileInformationBody is the body of text displayed to users when
 // the lock file has only recorded local hashes.
-const incompleteLockFileInformationBody = `Due to your customized provider installation methods, Terraform was forced to calculate lock file checksums locally for the following providers:
+const incompleteLockFileInformationBody = `Due to your customized provider installation methods, mnptu was forced to calculate lock file checksums locally for the following providers:
   - %s
 
-The current .terraform.lock.hcl file only includes checksums for %s, so Terraform running on another platform will fail to install these providers.
+The current .mnptu.lock.hcl file only includes checksums for %s, so mnptu running on another platform will fail to install these providers.
 
 To calculate additional checksums for another platform, run:
-  terraform providers lock -platform=linux_amd64
+  mnptu providers lock -platform=linux_amd64
 (where linux_amd64 is the platform to generate)`

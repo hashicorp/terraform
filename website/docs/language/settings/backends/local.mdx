@@ -1,7 +1,7 @@
 ---
 page_title: 'Backend Type: local'
 description: >-
-  Terraform can store the state remotely, making it easier to version and work
+  mnptu can store the state remotely, making it easier to version and work
   with in a team.
 ---
 
@@ -15,9 +15,9 @@ state using system APIs, and performs operations locally.
 ## Example Configuration
 
 ```hcl
-terraform {
+mnptu {
   backend "local" {
-    path = "relative/path/to/terraform.tfstate"
+    path = "relative/path/to/mnptu.tfstate"
   }
 }
 ```
@@ -25,11 +25,11 @@ terraform {
 ## Data Source Configuration
 
 ```hcl
-data "terraform_remote_state" "foo" {
+data "mnptu_remote_state" "foo" {
   backend = "local"
 
   config = {
-    path = "${path.module}/../../terraform.tfstate"
+    path = "${path.module}/../../mnptu.tfstate"
   }
 }
 ```
@@ -39,7 +39,7 @@ data "terraform_remote_state" "foo" {
 The following configuration options are supported:
 
 * `path` - (Optional) The path to the `tfstate` file. This defaults to
-  "terraform.tfstate" relative to the root module by default.
+  "mnptu.tfstate" relative to the root module by default.
 * `workspace_dir` - (Optional) The path to non-default workspaces.
 
 ## Command Line Arguments
@@ -57,14 +57,14 @@ additional arguments:
 * `-state-out=FILENAME` - overrides the state filename when _writing_ new state
   snapshots.
 
-  If you use `-state` without also using `-state-out` then Terraform will
+  If you use `-state` without also using `-state-out` then mnptu will
   use the `-state` filename for both `-state` and `-state-out`, which means
-  Terraform will overwrite the input file if it creates a new state snapshot.
+  mnptu will overwrite the input file if it creates a new state snapshot.
 * `-backup=FILENAME` - overrides the default filename that the local backend
   would normally choose dynamically to create backup files when it writes new
   state.
 
-  If you use `-state` without also using `-backup` then Terraform will use
+  If you use `-state` without also using `-backup` then mnptu will use
   the `-state` filename as a filename prefix for generating a backup filename.
   You can use `-backup=-` (that is, set the filename to just the ASCII
   dash character) to disable the creation of backup files altogether.
@@ -72,15 +72,15 @@ additional arguments:
 These three options are preserved for backward-compatibility with earlier
 workflows that predated the introduction of built-in remote state, where
 users would write wrapper scripts that fetch prior state before running
-Terraform and then save the new state after Terraform exits, in which case
+mnptu and then save the new state after mnptu exits, in which case
 the three arguments would typically all be paths within a temporary
 directory used just for one operation.
 
 Because these old workflows predate the introduction of the possibility of
-[multiple workspaces](/terraform/language/state/workspaces), setting them
-overrides Terraform's usual behavior of selecting a different state filename
+[multiple workspaces](/mnptu/language/state/workspaces), setting them
+overrides mnptu's usual behavior of selecting a different state filename
 based on the selected workspace. If you use all three of these options then
-the selected workspace has no effect on which filenames Terraform will select
+the selected workspace has no effect on which filenames mnptu will select
 for state files, and so you'll need to select different filenames yourself if
 you wish to keep workspace state files distinct from one another.
 
@@ -88,8 +88,8 @@ These three options have no effect for configurations that have a different
 backend type selected.
 
 We do not recommend using these options in new systems, even if you are running
-Terraform in automation. Instead,
-[select a different backend which supports remote state](/terraform/language/settings/backends/configuration) and configure it
+mnptu in automation. Instead,
+[select a different backend which supports remote state](/mnptu/language/settings/backends/configuration) and configure it
 within your root module, which ensures that everyone working on your
 configuration will automatically retrieve and store state in the correct shared
 location without any special command line options.

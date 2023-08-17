@@ -34,14 +34,14 @@ func TestPluginPath(t *testing.T) {
 func TestInternalProviders(t *testing.T) {
 	m := Meta{}
 	internal := m.internalProviders()
-	tfProvider, err := internal["terraform"]()
+	tfProvider, err := internal["mnptu"]()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	schema := tfProvider.GetProviderSchema()
-	_, found := schema.DataSources["terraform_remote_state"]
+	_, found := schema.DataSources["mnptu_remote_state"]
 	if !found {
-		t.Errorf("didn't find terraform_remote_state in internal \"terraform\" provider")
+		t.Errorf("didn't find mnptu_remote_state in internal \"mnptu\" provider")
 	}
 }

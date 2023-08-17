@@ -6,8 +6,8 @@ package providercache
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 func TestCachedProviderHash(t *testing.T) {
@@ -18,7 +18,7 @@ func TestCachedProviderHash(t *testing.T) {
 		),
 		Version: getproviders.MustParseVersion("2.0.0"),
 
-		PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/darwin_amd64",
+		PackageDir: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/darwin_amd64",
 	}
 
 	want := getproviders.MustParseHash("h1:qjsREM4DqEWECD43FcPqddZ9oxCG+IaMTxvWPciS05g=")
@@ -48,7 +48,7 @@ func TestCachedProviderHash(t *testing.T) {
 		),
 		Version: getproviders.MustParseVersion("2.0.0"),
 
-		PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
+		PackageDir: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/windows_amd64",
 	}
 	gotMatches, err = cp2.MatchesHash(want)
 	if err != nil {
@@ -70,33 +70,33 @@ func TestExecutableFile(t *testing.T) {
 			cp: &CachedProvider{
 				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "null"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
-				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64",
+				PackageDir: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/linux_amd64",
 			},
-			file: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64/terraform-provider-null",
+			file: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/linux_amd64/mnptu-provider-null",
 		},
 		"windows": {
 			cp: &CachedProvider{
 				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "hashicorp", "null"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
-				PackageDir: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64",
+				PackageDir: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/windows_amd64",
 			},
-			file: "testdata/cachedir/registry.terraform.io/hashicorp/null/2.0.0/windows_amd64/terraform-provider-null.exe",
+			file: "testdata/cachedir/registry.mnptu.io/hashicorp/null/2.0.0/windows_amd64/mnptu-provider-null.exe",
 		},
 		"missing-executable": {
 			cp: &CachedProvider{
 				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "missing", "executable"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
-				PackageDir: "testdata/cachedir/registry.terraform.io/missing/executable/2.0.0/linux_amd64",
+				PackageDir: "testdata/cachedir/registry.mnptu.io/missing/executable/2.0.0/linux_amd64",
 			},
-			err: "could not find executable file starting with terraform-provider-executable",
+			err: "could not find executable file starting with mnptu-provider-executable",
 		},
 		"missing-dir": {
 			cp: &CachedProvider{
 				Provider:   addrs.NewProvider(addrs.DefaultProviderRegistryHost, "missing", "packagedir"),
 				Version:    getproviders.MustParseVersion("2.0.0"),
-				PackageDir: "testdata/cachedir/registry.terraform.io/missing/packagedir/2.0.0/linux_amd64",
+				PackageDir: "testdata/cachedir/registry.mnptu.io/missing/packagedir/2.0.0/linux_amd64",
 			},
-			err: "could not read package directory: open testdata/cachedir/registry.terraform.io/missing/packagedir/2.0.0/linux_amd64: no such file or directory",
+			err: "could not read package directory: open testdata/cachedir/registry.mnptu.io/missing/packagedir/2.0.0/linux_amd64: no such file or directory",
 		},
 	}
 

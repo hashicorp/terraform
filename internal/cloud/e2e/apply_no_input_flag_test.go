@@ -12,18 +12,18 @@ func Test_apply_no_input_flag(t *testing.T) {
 	skipIfMissingEnvVar(t)
 
 	cases := testCases{
-		"terraform apply with -input=false": {
+		"mnptu apply with -input=false": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-input=false"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized`,
 						},
 						{
 							command:           []string{"apply", "-input=false"},
@@ -34,18 +34,18 @@ func Test_apply_no_input_flag(t *testing.T) {
 				},
 			},
 		},
-		"terraform apply with auto approve and -input=false": {
+		"mnptu apply with auto approve and -input=false": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "cloud-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init", "-input=false"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized`,
 						},
 						{
 							command:           []string{"apply", "-auto-approve", "-input=false"},

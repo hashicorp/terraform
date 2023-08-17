@@ -15,15 +15,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/remote"
-	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend/remote"
+	"github.com/hashicorp/mnptu/internal/cloud"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 type backendMigrateOpts struct {
@@ -72,17 +72,17 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 	opts.destinationWorkspace = backend.DefaultStateName
 	opts.force = m.forceInitCopy
 
-	// Disregard remote Terraform version for the state source backend. If it's a
-	// Terraform Cloud remote backend, we don't care about the remote version,
+	// Disregard remote mnptu version for the state source backend. If it's a
+	// mnptu Cloud remote backend, we don't care about the remote version,
 	// as we are migrating away and will not break a remote workspace.
 	m.ignoreRemoteVersionConflict(opts.Source)
 
-	// Disregard remote Terraform version if instructed to do so via CLI flag.
+	// Disregard remote mnptu version if instructed to do so via CLI flag.
 	if m.ignoreRemoteVersion {
 		m.ignoreRemoteVersionConflict(opts.Destination)
 	} else {
-		// Check the remote Terraform version for the state destination backend. If
-		// it's a Terraform Cloud remote backend, we want to ensure that we don't
+		// Check the remote mnptu version for the state destination backend. If
+		// it's a mnptu Cloud remote backend, we want to ensure that we don't
 		// break the workspace by uploading an incompatible state file.
 		for _, workspace := range destinationWorkspaces {
 			diags := m.remoteVersionCheck(opts.Destination, workspace)
@@ -92,7 +92,7 @@ func (m *Meta) backendMigrateState(opts *backendMigrateOpts) error {
 		}
 		// If there are no specified destination workspaces, perform a remote
 		// backend version check with the default workspace.
-		// Ensure that we are not dealing with Terraform Cloud migrations, as it
+		// Ensure that we are not dealing with mnptu Cloud migrations, as it
 		// does not support the default name.
 		if len(destinationWorkspaces) == 0 && !destinationTFC {
 			diags := m.remoteVersionCheck(opts.Destination, backend.DefaultStateName)
@@ -168,7 +168,7 @@ func (m *Meta) backendMigrateState_S_S(opts *backendMigrateOpts) error {
 	if !migrate {
 		var err error
 		// Ask the user if they want to migrate their existing remote state
-		migrate, err = m.confirm(&terraform.InputOpts{
+		migrate, err = m.confirm(&mnptu.InputOpts{
 			Id: "backend-migrate-multistate-to-multistate",
 			Query: fmt.Sprintf(
 				"Do you want to migrate all workspaces to %q?",
@@ -228,7 +228,7 @@ func (m *Meta) backendMigrateState_S_s(opts *backendMigrateOpts) error {
 	if !migrate {
 		var err error
 		// Ask the user if they want to migrate their existing remote state
-		migrate, err = m.confirm(&terraform.InputOpts{
+		migrate, err = m.confirm(&mnptu.InputOpts{
 			Id: "backend-migrate-multistate-to-single",
 			Query: fmt.Sprintf(
 				"Destination state %q doesn't support workspaces.\n"+
@@ -461,15 +461,15 @@ func (m *Meta) backendMigrateState_s_s(opts *backendMigrateOpts) error {
 }
 
 func (m *Meta) backendMigrateEmptyConfirm(source, destination statemgr.Full, opts *backendMigrateOpts) (bool, error) {
-	var inputOpts *terraform.InputOpts
+	var inputOpts *mnptu.InputOpts
 	if opts.DestinationType == "cloud" {
-		inputOpts = &terraform.InputOpts{
+		inputOpts = &mnptu.InputOpts{
 			Id:          "backend-migrate-copy-to-empty-cloud",
-			Query:       "Do you want to copy existing state to Terraform Cloud?",
+			Query:       "Do you want to copy existing state to mnptu Cloud?",
 			Description: fmt.Sprintf(strings.TrimSpace(inputBackendMigrateEmptyCloud), opts.SourceType),
 		}
 	} else {
-		inputOpts = &terraform.InputOpts{
+		inputOpts = &mnptu.InputOpts{
 			Id:    "backend-migrate-copy-to-empty",
 			Query: "Do you want to copy existing state to the new backend?",
 			Description: fmt.Sprintf(
@@ -488,7 +488,7 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	destination := destinationState.State()
 
 	// Save both to a temporary
-	td, err := ioutil.TempDir("", "terraform")
+	td, err := ioutil.TempDir("", "mnptu")
 	if err != nil {
 		return false, fmt.Errorf("Error creating temporary directory: %s", err)
 	}
@@ -511,17 +511,17 @@ func (m *Meta) backendMigrateNonEmptyConfirm(
 	}
 
 	// Ask for confirmation
-	var inputOpts *terraform.InputOpts
+	var inputOpts *mnptu.InputOpts
 	if opts.DestinationType == "cloud" {
-		inputOpts = &terraform.InputOpts{
+		inputOpts = &mnptu.InputOpts{
 			Id:    "backend-migrate-to-tfc",
-			Query: "Do you want to copy existing state to Terraform Cloud?",
+			Query: "Do you want to copy existing state to mnptu Cloud?",
 			Description: fmt.Sprintf(
 				strings.TrimSpace(inputBackendMigrateNonEmptyCloud),
 				opts.SourceType, sourcePath, destinationPath),
 		}
 	} else {
-		inputOpts = &terraform.InputOpts{
+		inputOpts = &mnptu.InputOpts{
 			Id:    "backend-migrate-to-backend",
 			Query: "Do you want to copy existing state to the new backend?",
 			Description: fmt.Sprintf(
@@ -567,13 +567,13 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 
 	// from TFC to non-TFC backend
 	if sourceTFC && !destinationTFC {
-		// From Terraform Cloud to another backend. This is not yet implemented, and
+		// From mnptu Cloud to another backend. This is not yet implemented, and
 		// we recommend people to use the TFC API.
 		return fmt.Errorf(strings.TrimSpace(errTFCMigrateNotYetImplemented))
 	}
 
 	// Everything below, by the above two conditionals, now assumes that the
-	// destination is always Terraform Cloud (TFC).
+	// destination is always mnptu Cloud (TFC).
 
 	sourceSingle := sourceSingleState || (len(sourceWorkspaces) == 1)
 	if sourceSingle {
@@ -659,7 +659,7 @@ func (m *Meta) backendMigrateTFC(opts *backendMigrateOpts) error {
 	return nil
 }
 
-// migrates a multi-state backend to Terraform Cloud
+// migrates a multi-state backend to mnptu Cloud
 func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspaces []string) error {
 	log.Print("[TRACE] backendMigrateState: migrating all named workspaces")
 
@@ -701,7 +701,7 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 		}
 	}
 
-	// Fetch the pattern that will be used to rename the workspaces for Terraform Cloud.
+	// Fetch the pattern that will be used to rename the workspaces for mnptu Cloud.
 	//
 	// * For the general case, this will be a pattern provided by the user.
 	//
@@ -709,9 +709,9 @@ func (m *Meta) backendMigrateState_S_TFC(opts *backendMigrateOpts, sourceWorkspa
 	//   instead 'migrate' the workspaces using a pattern based on the old prefix+name,
 	//   not allowing a user to accidentally input the wrong pattern to line up with
 	//   what the the remote backend was already using before (which presumably already
-	//   meets the naming considerations for Terraform Cloud).
+	//   meets the naming considerations for mnptu Cloud).
 	//   In other words, this is a fast-track migration path from the remote backend, retaining
-	//   how things already are in Terraform Cloud with no user intervention needed.
+	//   how things already are in mnptu Cloud with no user intervention needed.
 	pattern := ""
 	if remoteBackend, ok := opts.Source.(*remote.Remote); ok {
 		if err := m.promptRemotePrefixToCloudTagsMigration(opts); err != nil {
@@ -808,7 +808,7 @@ func (m *Meta) promptSingleToCloudSingleStateMigration(opts *backendMigrateOpts)
 	migrate := opts.force
 	if !migrate {
 		var err error
-		migrate, err = m.confirm(&terraform.InputOpts{
+		migrate, err = m.confirm(&mnptu.InputOpts{
 			Id:          "backend-migrate-state-single-to-cloud-single",
 			Query:       "Do you wish to proceed?",
 			Description: strings.TrimSpace(tfcInputBackendMigrateStateSingleToCloudSingle),
@@ -829,7 +829,7 @@ func (m *Meta) promptRemotePrefixToCloudTagsMigration(opts *backendMigrateOpts) 
 	migrate := opts.force
 	if !migrate {
 		var err error
-		migrate, err = m.confirm(&terraform.InputOpts{
+		migrate, err = m.confirm(&mnptu.InputOpts{
 			Id:          "backend-migrate-remote-multistate-to-cloud",
 			Query:       "Do you wish to proceed?",
 			Description: strings.TrimSpace(tfcInputBackendMigrateRemoteMultiToCloud),
@@ -856,7 +856,7 @@ func (m *Meta) promptMultiToSingleCloudMigration(opts *backendMigrateOpts) error
 	if !migrate {
 		var err error
 		// Ask the user if they want to migrate their existing remote state
-		migrate, err = m.confirm(&terraform.InputOpts{
+		migrate, err = m.confirm(&mnptu.InputOpts{
 			Id:    "backend-migrate-multistate-to-single",
 			Query: "Do you want to copy only your current workspace?",
 			Description: fmt.Sprintf(
@@ -883,9 +883,9 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 			log.Print("[TRACE] backendMigrateState: can't prompt for input, so aborting migration")
 			return "", errors.New(strings.TrimSpace(errInteractiveInputDisabled))
 		}
-		message = `[reset][bold][yellow]Terraform Cloud requires all workspaces to be given an explicit name.[reset]`
+		message = `[reset][bold][yellow]mnptu Cloud requires all workspaces to be given an explicit name.[reset]`
 	}
-	name, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+	name, err := m.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:          "new-state-name",
 		Query:       message,
 		Description: strings.TrimSpace(inputBackendNewWorkspaceName),
@@ -900,7 +900,7 @@ func (m *Meta) promptNewWorkspaceName(destinationType string) (string, error) {
 func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, error) {
 	// This is not the first prompt a user would be presented with in the migration to TFC, so no
 	// guard on m.input is needed here.
-	renameWorkspaces, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+	renameWorkspaces, err := m.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc",
 		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "Would you like to rename your workspaces?"),
 		Description: fmt.Sprintf(strings.TrimSpace(tfcInputBackendMigrateMultiToMulti), sourceType),
@@ -918,7 +918,7 @@ func (m *Meta) promptMultiStateMigrationPattern(sourceType string) (string, erro
 		return "*", nil
 	}
 
-	pattern, err := m.UIInput().Input(context.Background(), &terraform.InputOpts{
+	pattern, err := m.UIInput().Input(context.Background(), &mnptu.InputOpts{
 		Id:          "backend-migrate-multistate-to-tfc-pattern",
 		Query:       fmt.Sprintf("[reset][bold][yellow]%s[reset]", "How would you like to rename your workspaces?"),
 		Description: strings.TrimSpace(tfcInputBackendMigrateMultiToMultiPattern),
@@ -941,9 +941,9 @@ const errMigrateLoadStates = `
 Error inspecting states in the %q backend:
     %s
 
-Prior to changing backends, Terraform inspects the source and destination
+Prior to changing backends, mnptu inspects the source and destination
 states to determine what kind of migration steps need to be taken, if any.
-Terraform failed to load the states. The data in both the source and the
+mnptu failed to load the states. The data in both the source and the
 destination remain unmodified. Please resolve the above error and try again.
 `
 
@@ -951,7 +951,7 @@ const errMigrateSingleLoadDefault = `
 Error loading state:
     %[2]s
 
-Terraform failed to load the default state from the %[1]q backend.
+mnptu failed to load the default state from the %[1]q backend.
 State migration cannot occur unless the state can be loaded. Backend
 modification and state migration has been aborted. The state in both the
 source and the destination remain unmodified. Please resolve the
@@ -963,7 +963,7 @@ Error migrating the workspace %q from the previous %q backend
 to the newly configured %q backend:
     %s
 
-Terraform copies workspaces in alphabetical order. Any workspaces
+mnptu copies workspaces in alphabetical order. Any workspaces
 alphabetically earlier than this one have been copied. Any workspaces
 later than this haven't been modified in the destination. No workspaces
 in the source state have been modified.
@@ -982,9 +982,9 @@ the error above and try again.
 `
 
 const errTFCMigrateNotYetImplemented = `
-Migrating state from Terraform Cloud to another backend is not yet implemented.
+Migrating state from mnptu Cloud to another backend is not yet implemented.
 
-Please use the API to do this: https://www.terraform.io/docs/cloud/api/state-versions.html
+Please use the API to do this: https://www.mnptu.io/docs/cloud/api/state-versions.html
 `
 
 const errInteractiveInputDisabled = `
@@ -1002,14 +1002,14 @@ For example, if a workspace is currently named 'prod', the pattern 'app-*' would
 `
 
 const tfcInputBackendMigrateMultiToMulti = `
-Unlike typical Terraform workspaces representing an environment associated with a particular
-configuration (e.g. production, staging, development), Terraform Cloud workspaces are named uniquely
+Unlike typical mnptu workspaces representing an environment associated with a particular
+configuration (e.g. production, staging, development), mnptu Cloud workspaces are named uniquely
 across all configurations used within an organization. A typical strategy to start with is
 <COMPONENT>-<ENVIRONMENT>-<REGION> (e.g. networking-prod-us-east, networking-staging-us-east).
 
-For more information on workspace naming, see https://www.terraform.io/docs/cloud/workspaces/naming.html
+For more information on workspace naming, see https://www.mnptu.io/docs/cloud/workspaces/naming.html
 
-When migrating existing workspaces from the backend %[1]q to Terraform Cloud, would you like to
+When migrating existing workspaces from the backend %[1]q to mnptu Cloud, would you like to
 rename your workspaces? Enter 1 or 2.
 
 1. Yes, I'd like to rename all workspaces according to a pattern I will provide.
@@ -1017,7 +1017,7 @@ rename your workspaces? Enter 1 or 2.
 `
 
 const tfcInputBackendMigrateMultiToSingle = `
-The previous backend %[1]q has multiple workspaces, but Terraform Cloud has
+The previous backend %[1]q has multiple workspaces, but mnptu Cloud has
 been configured to use a single workspace (%[2]q). By continuing, you will
 only migrate your current workspace. If you wish to migrate all workspaces
 from the previous backend, you may cancel this operation and use the 'tags'
@@ -1027,27 +1027,27 @@ Enter "yes" to proceed or "no" to cancel.
 `
 
 const tfcInputBackendMigrateStateSingleToCloudSingle = `
-As part of migrating to Terraform Cloud, Terraform can optionally copy your
-current workspace state to the configured Terraform Cloud workspace.
+As part of migrating to mnptu Cloud, mnptu can optionally copy your
+current workspace state to the configured mnptu Cloud workspace.
 
 Answer "yes" to copy the latest state snapshot to the configured
-Terraform Cloud workspace.
+mnptu Cloud workspace.
 
 Answer "no" to ignore the existing state and just activate the configured
-Terraform Cloud workspace with its existing state, if any.
+mnptu Cloud workspace with its existing state, if any.
 
-Should Terraform migrate your existing state?
+Should mnptu migrate your existing state?
 `
 
 const tfcInputBackendMigrateRemoteMultiToCloud = `
-When migrating from the 'remote' backend to Terraform's native integration
-with Terraform Cloud, Terraform will automatically create or use existing
+When migrating from the 'remote' backend to mnptu's native integration
+with mnptu Cloud, mnptu will automatically create or use existing
 workspaces based on the previous backend configuration's 'prefix' value.
 
-When the migration is complete, workspace names in Terraform will match the
-fully qualified Terraform Cloud workspace name. If necessary, the workspace
+When the migration is complete, workspace names in mnptu will match the
+fully qualified mnptu Cloud workspace name. If necessary, the workspace
 tags configured in the 'cloud' option block will be added to the associated
-Terraform Cloud workspaces.
+mnptu Cloud workspaces.
 
 Enter "yes" to proceed or "no" to cancel.
 `
@@ -1060,8 +1060,8 @@ backend? Enter "yes" to copy and "no" to start with an empty state.
 `
 
 const inputBackendMigrateEmptyCloud = `
-Pre-existing state was found while migrating the previous %q backend to Terraform Cloud.
-No existing state was found in Terraform Cloud. Do you want to copy this state to Terraform Cloud?
+Pre-existing state was found while migrating the previous %q backend to mnptu Cloud.
+No existing state was found in mnptu Cloud. Do you want to copy this state to mnptu Cloud?
 Enter "yes" to copy and "no" to start with an empty state.
 `
 
@@ -1081,38 +1081,38 @@ configured %[2]q backend.
 
 const inputBackendMigrateNonEmptyCloud = `
 Pre-existing state was found while migrating the previous %q backend to
-Terraform Cloud. An existing non-empty state already exists in Terraform Cloud.
+mnptu Cloud. An existing non-empty state already exists in mnptu Cloud.
 The two states have been saved to temporary files that will be removed after
 responding to this query.
 
 Previous (type %[1]q): %[2]s
-New      (Terraform Cloud): %[3]s
+New      (mnptu Cloud): %[3]s
 
-Do you want to overwrite the state in Terraform Cloud with the previous state?
-Enter "yes" to copy and "no" to start with the existing state in Terraform Cloud.
+Do you want to overwrite the state in mnptu Cloud with the previous state?
+Enter "yes" to copy and "no" to start with the existing state in mnptu Cloud.
 `
 
 const inputBackendMigrateMultiToSingle = `
 The existing %[1]q backend supports workspaces and you currently are
 using more than one. The newly configured %[2]q backend doesn't support
-workspaces. If you continue, Terraform will copy your current workspace %[3]q
+workspaces. If you continue, mnptu will copy your current workspace %[3]q
 to the default workspace in the new backend. Your existing workspaces in the
 source backend won't be modified. If you want to switch workspaces, back them
-up, or cancel altogether, answer "no" and Terraform will abort.
+up, or cancel altogether, answer "no" and mnptu will abort.
 `
 
 const inputBackendMigrateMultiToMulti = `
 Both the existing %[1]q backend and the newly configured %[2]q backend
-support workspaces. When migrating between backends, Terraform will copy
+support workspaces. When migrating between backends, mnptu will copy
 all workspaces (with the same names). THIS WILL OVERWRITE any conflicting
 states in the destination.
 
-Terraform initialization doesn't currently migrate only select workspaces.
+mnptu initialization doesn't currently migrate only select workspaces.
 If you want to migrate a select number of workspaces, you must manually
 pull and push those states.
 
-If you answer "yes", Terraform will migrate all states. If you answer
-"no", Terraform will abort.
+If you answer "yes", mnptu will migrate all states. If you answer
+"no", mnptu will abort.
 `
 
 const inputBackendNewWorkspaceName = `

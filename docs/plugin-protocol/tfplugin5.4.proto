@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 5.4
+// mnptu Plugin RPC protocol version 5.4
 //
 // This file defines version 5.4 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
@@ -12,19 +12,19 @@
 // compatibility. Breaking changes, if any are required, will come
 // in a subsequent major version with its own separate proto definition.
 //
-// Note that only the proto files included in a release tag of Terraform are
+// Note that only the proto files included in a release tag of mnptu are
 // official protocol releases. Proto files taken from other commits may include
 // incomplete changes or features that did not make it into a final release.
 // In all reasonable cases, plugin developers should take the proto file from
-// the tag of the most recent release of Terraform, and not from the main
+// the tag of the most recent release of mnptu, and not from the main
 // branch or any other development branch.
 //
 syntax = "proto3";
-option go_package = "github.com/hashicorp/terraform/internal/tfplugin5";
+option go_package = "github.com/hashicorp/mnptu/internal/tfplugin5";
 
 package tfplugin5;
 
-// DynamicValue is an opaque encoding of terraform data, with the field name
+// DynamicValue is an opaque encoding of mnptu data, with the field name
 // indicating the encoding scheme used.
 message DynamicValue {
     bytes msgpack = 1;
@@ -249,7 +249,7 @@ message ValidateDataSourceConfig {
 
 message Configure {
     message Request {
-        string terraform_version = 1;
+        string mnptu_version = 1;
         DynamicValue config = 2;
     }
     message Response {
@@ -296,8 +296,8 @@ message PlanResourceChange {
         repeated Diagnostic diagnostics = 4;
 
 
-        // This may be set only by the helper/schema "SDK" in the main Terraform
-        // repository, to request that Terraform Core >=0.12 permit additional
+        // This may be set only by the helper/schema "SDK" in the main mnptu
+        // repository, to request that mnptu Core >=0.12 permit additional
         // inconsistencies that can result from the legacy SDK type system
         // and its imprecise mapping to the >=0.12 type system.
         // The change in behavior implied by this flag makes sense only for the
@@ -325,8 +325,8 @@ message ApplyResourceChange {
         bytes private = 2;
         repeated Diagnostic diagnostics = 3;
 
-        // This may be set only by the helper/schema "SDK" in the main Terraform
-        // repository, to request that Terraform Core >=0.12 permit additional
+        // This may be set only by the helper/schema "SDK" in the main mnptu
+        // repository, to request that mnptu Core >=0.12 permit additional
         // inconsistencies that can result from the legacy SDK type system
         // and its imprecise mapping to the >=0.12 type system.
         // The change in behavior implied by this flag makes sense only for the

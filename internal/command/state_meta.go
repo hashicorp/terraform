@@ -8,12 +8,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
 )
 
 // StateMeta is the meta struct that should be embedded in state subcommands.
@@ -45,11 +45,11 @@ func (c *StateMeta) State() (statemgr.Full, error) {
 			return nil, err
 		}
 
-		// Check remote Terraform version is compatible
+		// Check remote mnptu version is compatible
 		remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 		c.showDiagnostics(remoteVersionDiags)
 		if remoteVersionDiags.HasErrors() {
-			return nil, fmt.Errorf("Error checking remote Terraform version")
+			return nil, fmt.Errorf("Error checking remote mnptu version")
 		}
 
 		// Get the state
@@ -128,7 +128,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Unknown module",
-				fmt.Sprintf(`The current state contains no module at %s. If you've just added this module to the configuration, you must run "terraform apply" first to create the module's entry in the state.`, addr),
+				fmt.Sprintf(`The current state contains no module at %s. If you've just added this module to the configuration, you must run "mnptu apply" first to create the module's entry in the state.`, addr),
 			))
 		}
 
@@ -140,7 +140,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Unknown resource",
-					fmt.Sprintf(`The current state contains no resource %s. If you've just added this resource to the configuration, you must run "terraform apply" first to create the resource's entry in the state.`, addr),
+					fmt.Sprintf(`The current state contains no resource %s. If you've just added this resource to the configuration, you must run "mnptu apply" first to create the resource's entry in the state.`, addr),
 				))
 			}
 			break
@@ -153,7 +153,7 @@ func (c *StateMeta) lookupResourceInstanceAddr(state *states.State, allowMissing
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Error,
 					"Unknown resource instance",
-					fmt.Sprintf(`The current state contains no resource instance %s. If you've just added its resource to the configuration or have changed the count or for_each arguments, you must run "terraform apply" first to update the resource's entry in the state.`, addr),
+					fmt.Sprintf(`The current state contains no resource instance %s. If you've just added its resource to the configuration or have changed the count or for_each arguments, you must run "mnptu apply" first to update the resource's entry in the state.`, addr),
 				))
 			}
 			break

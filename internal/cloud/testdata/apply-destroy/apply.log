@@ -1,4 +1,4 @@
-Terraform v0.11.10
+mnptu v0.11.10
 
 Initializing plugins and modules...
 null_resource.hello: Destroying... (ID: 8657651096157629581)

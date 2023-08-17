@@ -11,7 +11,7 @@ import (
 )
 
 // Function is a description of the JSON representation of the signature of
-// a function callable from the Terraform language.
+// a function callable from the mnptu language.
 type Function struct {
 	// Name is the leaf name of the function, without any namespace prefix.
 	Name string `json:"name"`

@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -14,9 +14,9 @@ import (
 	"github.com/mitchellh/reflectwalk"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
 )
 
 // Resource is a legacy way to identify a particular resource instance.
@@ -194,7 +194,7 @@ type ResourceConfig struct {
 //
 // The given value may contain hcl2shim.UnknownVariableValue to signal that
 // something is computed, but it must not contain unprocessed interpolation
-// sequences as we might've seen in Terraform v0.11 and prior.
+// sequences as we might've seen in mnptu v0.11 and prior.
 func NewResourceConfigRaw(raw map[string]interface{}) *ResourceConfig {
 	v := hcl2shim.HCL2ValueFromConfigValue(raw)
 

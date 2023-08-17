@@ -1,4 +1,4 @@
-terraform {
+mnptu {
     backend "local" {}
 }
 

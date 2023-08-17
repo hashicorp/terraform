@@ -14,21 +14,21 @@ import (
 
 	"github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/internal/grpcwrap"
-	tfplugin5 "github.com/hashicorp/terraform/internal/plugin"
-	tfplugin "github.com/hashicorp/terraform/internal/plugin6"
-	simple5 "github.com/hashicorp/terraform/internal/provider-simple"
-	simple "github.com/hashicorp/terraform/internal/provider-simple-v6"
-	proto5 "github.com/hashicorp/terraform/internal/tfplugin5"
-	proto "github.com/hashicorp/terraform/internal/tfplugin6"
+	"github.com/hashicorp/mnptu/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/grpcwrap"
+	tfplugin5 "github.com/hashicorp/mnptu/internal/plugin"
+	tfplugin "github.com/hashicorp/mnptu/internal/plugin6"
+	simple5 "github.com/hashicorp/mnptu/internal/provider-simple"
+	simple "github.com/hashicorp/mnptu/internal/provider-simple-v6"
+	proto5 "github.com/hashicorp/mnptu/internal/tfplugin5"
+	proto "github.com/hashicorp/mnptu/internal/tfplugin6"
 )
 
 // The tests in this file are for the "unmanaged provider workflow", which
 // includes variants of the following sequence, with different details:
-// terraform init
-// terraform plan
-// terraform apply
+// mnptu init
+// mnptu plan
+// mnptu apply
 //
 // These tests are run against an in-process server, and checked to make sure
 // they're not trying to control the lifecycle of the binary. They are not
@@ -149,7 +149,7 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	t.Parallel()
 
 	fixturePath := filepath.Join("testdata", "test-provider")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	reattachCh := make(chan *plugin.ReattachConfig)
 	closeCh := make(chan struct{})
@@ -212,8 +212,8 @@ func TestUnmanagedSeparatePlan(t *testing.T) {
 	if strings.Contains(stdout, "Installing hashicorp/test v") {
 		t.Errorf("test provider download message is present in init output:\n%s", stdout)
 	}
-	if tf.FileExists(filepath.Join(".terraform", "plugins", "registry.terraform.io", "hashicorp", "test")) {
-		t.Errorf("test provider binary found in .terraform dir")
+	if tf.FileExists(filepath.Join(".mnptu", "plugins", "registry.mnptu.io", "hashicorp", "test")) {
+		t.Errorf("test provider binary found in .mnptu dir")
 	}
 
 	//// PLAN
@@ -254,7 +254,7 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 	t.Parallel()
 
 	fixturePath := filepath.Join("testdata", "test-provider")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	reattachCh := make(chan *plugin.ReattachConfig)
 	closeCh := make(chan struct{})
@@ -317,8 +317,8 @@ func TestUnmanagedSeparatePlan_proto5(t *testing.T) {
 	if strings.Contains(stdout, "Installing hashicorp/test v") {
 		t.Errorf("test provider download message is present in init output:\n%s", stdout)
 	}
-	if tf.FileExists(filepath.Join(".terraform", "plugins", "registry.terraform.io", "hashicorp", "test")) {
-		t.Errorf("test provider binary found in .terraform dir")
+	if tf.FileExists(filepath.Join(".mnptu", "plugins", "registry.mnptu.io", "hashicorp", "test")) {
+		t.Errorf("test provider binary found in .mnptu dir")
 	}
 
 	//// PLAN

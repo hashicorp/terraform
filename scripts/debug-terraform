@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# This is a helper script to launch Terraform inside the "dlv" debugger,
+# This is a helper script to launch mnptu inside the "dlv" debugger,
 # configured to await a remote debugging connection on port 2345. You can
 # then connect to it using the following command, or its equivalent in your
 # debugging frontend of choice:
@@ -10,17 +10,17 @@
 #    https://github.com/derekparker/delve/tree/master/Documentation/installation
 #
 # For more convenient use, you may wish to put this script in your PATH:
-#    ln -s ../src/github.com/hashicorp/terraform/scripts/debug-terraform $GOPATH/bin/debug-terraform
+#    ln -s ../src/github.com/hashicorp/mnptu/scripts/debug-mnptu $GOPATH/bin/debug-mnptu
 #
-# Note that when running this script the Terraform binary is NOT in $GOPATH/bin,
-# so any providers installed there won't be found unless Terraform searches
+# Note that when running this script the mnptu binary is NOT in $GOPATH/bin,
+# so any providers installed there won't be found unless mnptu searches
 # there for some _other_ reason.
 
 set -eu
 
-echo "Launching Terraform in a headless debug session"
+echo "Launching mnptu in a headless debug session"
 echo "Connect to it using: dlv connect 127.0.0.1:2345"
-echo "(Terraform takes a long time to build and launch in this mode; some logs will appear below)"
+echo "(mnptu takes a long time to build and launch in this mode; some logs will appear below)"
 echo "---------------------------"
 
-exec dlv debug github.com/hashicorp/terraform --headless --listen :2345 --log -- "$@"
+exec dlv debug github.com/hashicorp/mnptu --headless --listen :2345 --log -- "$@"

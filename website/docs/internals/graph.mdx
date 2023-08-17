@@ -1,7 +1,7 @@
 ---
 page_title: Resource Graph
 description: >-
-  Terraform builds a dependency graph from the Terraform configurations, and
+  mnptu builds a dependency graph from the mnptu configurations, and
   walks this graph to generate plans, refresh state, and more. This page
   documents the details of what are contained in this graph, what types of nodes
   there are, and how the edges of the graph are determined.
@@ -9,21 +9,21 @@ description: >-
 
 # Resource Graph
 
-Terraform builds a
+mnptu builds a
 [dependency graph](https://en.wikipedia.org/wiki/Dependency_graph)
-from the Terraform configurations, and walks this graph to
+from the mnptu configurations, and walks this graph to
 generate plans, refresh state, and more. This page documents
 the details of what are contained in this graph, what types
 of nodes there are, and how the edges of the graph are determined.
 
 ~> **Advanced Topic!** This page covers technical details
-of Terraform. You don't need to understand these details to
-effectively use Terraform. The details are documented here for
+of mnptu. You don't need to understand these details to
+effectively use mnptu. The details are documented here for
 those who wish to learn about them without having to go
 spelunking through the source code.
 
 For some background on graph theory, and a summary of how
-Terraform applies it, see the HashiCorp 2016 presentation
+mnptu applies it, see the HashiCorp 2016 presentation
 [_Applying Graph Theory to Infrastructure as Code_](https://www.youtube.com/watch?v=Ce3RNfRbdZ0).
 This presentation also covers some similar ideas to the following
 guide.
@@ -49,7 +49,7 @@ determined and built:
   node is only present for resources that have a `count`
   parameter greater than 1.
 
-When visualizing a configuration with `terraform graph`, you can
+When visualizing a configuration with `mnptu graph`, you can
 see all of these nodes present.
 
 ## Building the Graph
@@ -108,16 +108,16 @@ dependencies are walked.
 
 The amount of parallelism is limited using a semaphore to prevent too many
 concurrent operations from overwhelming the resources of the machine running
-Terraform. By default, up to 10 nodes in the graph will be processed
+mnptu. By default, up to 10 nodes in the graph will be processed
 concurrently. This number can be set using the `-parallelism` flag on the
-[plan](/terraform/cli/commands/plan), [apply](/terraform/cli/commands/apply), and
-[destroy](/terraform/cli/commands/destroy) commands.
+[plan](/mnptu/cli/commands/plan), [apply](/mnptu/cli/commands/apply), and
+[destroy](/mnptu/cli/commands/destroy) commands.
 
 Setting `-parallelism` is considered an advanced operation and should not be
-necessary for normal usage of Terraform. It may be helpful in certain special
-use cases or to help debug Terraform issues.
+necessary for normal usage of mnptu. It may be helpful in certain special
+use cases or to help debug mnptu issues.
 
 Note that some providers (AWS, for example), handle API rate limiting issues at
 a lower level by implementing graceful backoff/retry in their respective API
-clients. For this reason, Terraform does not use this `parallelism` feature to
+clients. For this reason, mnptu does not use this `parallelism` feature to
 address API rate limits directly.

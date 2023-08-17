@@ -17,7 +17,7 @@ import (
 	"time"
 
 	uuid "github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/version"
 )
 
 var rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -28,10 +28,10 @@ var rngSource = rand.New(rand.NewSource(time.Now().UnixNano()))
 // Implementing Locker alongside Persistent relaxes some of the usual
 // implementation constraints for implementations of Refresher and Persister,
 // under the assumption that the locking mechanism effectively prevents
-// multiple Terraform processes from reading and writing state concurrently.
+// multiple mnptu processes from reading and writing state concurrently.
 // In particular, a type that implements both Locker and Persistent is only
 // required to that the Persistent implementation is concurrency-safe within
-// a single Terraform process.
+// a single mnptu process.
 //
 // A Locker implementation must ensure that another processes with a
 // similarly-configured state manager cannot successfully obtain a lock while
@@ -121,7 +121,7 @@ type LockInfo struct {
 	// returned by the call to Lock.
 	ID string
 
-	// Terraform operation, provided by the caller.
+	// mnptu operation, provided by the caller.
 	Operation string
 
 	// Extra information to store with the lock, provided by the caller.
@@ -130,7 +130,7 @@ type LockInfo struct {
 	// user@hostname when available
 	Who string
 
-	// Terraform version
+	// mnptu version
 	Version string
 
 	// Time that the lock was taken.
@@ -145,7 +145,7 @@ type LockInfo struct {
 func NewLockInfo() *LockInfo {
 	// this doesn't need to be cryptographically secure, just unique.
 	// Using math/rand alleviates the need to check handle the read error.
-	// Use a uuid format to match other IDs used throughout Terraform.
+	// Use a uuid format to match other IDs used throughout mnptu.
 	buf := make([]byte, 16)
 	rngSource.Read(buf)
 

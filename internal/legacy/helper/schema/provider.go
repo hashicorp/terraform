@@ -11,8 +11,8 @@ import (
 	"sync"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 var ReservedProviderFields = []string{
@@ -20,7 +20,7 @@ var ReservedProviderFields = []string{
 	"version",
 }
 
-// Provider represents a resource provider in Terraform, and properly
+// Provider represents a resource provider in mnptu, and properly
 // implements all of the ResourceProvider API.
 //
 // By defining a schema for the configuration of the provider, the
@@ -58,7 +58,7 @@ type Provider struct {
 	// this can be omitted. This functionality is currently experimental
 	// and subject to change or break without warning; it should only be
 	// used by providers that are collaborating on its use with the
-	// Terraform team.
+	// mnptu team.
 	ProviderMetaSchema map[string]*Schema
 
 	// ConfigureFunc is a function for configuring the provider. If the
@@ -80,7 +80,7 @@ type Provider struct {
 	stopCtxCancel context.CancelFunc
 	stopOnce      sync.Once
 
-	TerraformVersion string
+	mnptuVersion string
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -180,7 +180,7 @@ func (p *Provider) stopInit() {
 	p.stopCtx, p.stopCtxCancel = context.WithCancel(context.Background())
 }
 
-// Stop implementation of terraform.ResourceProvider interface.
+// Stop implementation of mnptu.ResourceProvider interface.
 func (p *Provider) Stop() error {
 	p.stopOnce.Do(p.stopInit)
 
@@ -203,8 +203,8 @@ func (p *Provider) TestReset() error {
 	return nil
 }
 
-// GetSchema implementation of terraform.ResourceProvider interface
-func (p *Provider) GetSchema(req *terraform.ProviderSchemaRequest) (*terraform.ProviderSchema, error) {
+// GetSchema implementation of mnptu.ResourceProvider interface
+func (p *Provider) GetSchema(req *mnptu.ProviderSchemaRequest) (*mnptu.ProviderSchema, error) {
 	resourceTypes := map[string]*configschema.Block{}
 	dataSources := map[string]*configschema.Block{}
 
@@ -219,22 +219,22 @@ func (p *Provider) GetSchema(req *terraform.ProviderSchemaRequest) (*terraform.P
 		}
 	}
 
-	return &terraform.ProviderSchema{
+	return &mnptu.ProviderSchema{
 		Provider:      schemaMap(p.Schema).CoreConfigSchema(),
 		ResourceTypes: resourceTypes,
 		DataSources:   dataSources,
 	}, nil
 }
 
-// Input implementation of terraform.ResourceProvider interface.
+// Input implementation of mnptu.ResourceProvider interface.
 func (p *Provider) Input(
-	input terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	input mnptu.UIInput,
+	c *mnptu.ResourceConfig) (*mnptu.ResourceConfig, error) {
 	return schemaMap(p.Schema).Input(input, c)
 }
 
-// Validate implementation of terraform.ResourceProvider interface.
-func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+// Validate implementation of mnptu.ResourceProvider interface.
+func (p *Provider) Validate(c *mnptu.ResourceConfig) ([]string, []error) {
 	if err := p.InternalValidate(); err != nil {
 		return nil, []error{fmt.Errorf(
 			"Internal validation of the provider failed! This is always a bug\n"+
@@ -245,9 +245,9 @@ func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(p.Schema).Validate(c)
 }
 
-// ValidateResource implementation of terraform.ResourceProvider interface.
+// ValidateResource implementation of mnptu.ResourceProvider interface.
 func (p *Provider) ValidateResource(
-	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	t string, c *mnptu.ResourceConfig) ([]string, []error) {
 	r, ok := p.ResourcesMap[t]
 	if !ok {
 		return nil, []error{fmt.Errorf(
@@ -257,8 +257,8 @@ func (p *Provider) ValidateResource(
 	return r.Validate(c)
 }
 
-// Configure implementation of terraform.ResourceProvider interface.
-func (p *Provider) Configure(c *terraform.ResourceConfig) error {
+// Configure implementation of mnptu.ResourceProvider interface.
+func (p *Provider) Configure(c *mnptu.ResourceConfig) error {
 	// No configuration
 	if p.ConfigureFunc == nil {
 		return nil
@@ -287,11 +287,11 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 	return nil
 }
 
-// Apply implementation of terraform.ResourceProvider interface.
+// Apply implementation of mnptu.ResourceProvider interface.
 func (p *Provider) Apply(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+	info *mnptu.InstanceInfo,
+	s *mnptu.InstanceState,
+	d *mnptu.InstanceDiff) (*mnptu.InstanceState, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
@@ -300,11 +300,11 @@ func (p *Provider) Apply(
 	return r.Apply(s, d, p.meta)
 }
 
-// Diff implementation of terraform.ResourceProvider interface.
+// Diff implementation of mnptu.ResourceProvider interface.
 func (p *Provider) Diff(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	info *mnptu.InstanceInfo,
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig) (*mnptu.InstanceDiff, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
@@ -316,9 +316,9 @@ func (p *Provider) Diff(
 // SimpleDiff is used by the new protocol wrappers to get a diff that doesn't
 // attempt to calculate ignore_changes.
 func (p *Provider) SimpleDiff(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	info *mnptu.InstanceInfo,
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig) (*mnptu.InstanceDiff, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
@@ -327,10 +327,10 @@ func (p *Provider) SimpleDiff(
 	return r.simpleDiff(s, c, p.meta)
 }
 
-// Refresh implementation of terraform.ResourceProvider interface.
+// Refresh implementation of mnptu.ResourceProvider interface.
 func (p *Provider) Refresh(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState) (*terraform.InstanceState, error) {
+	info *mnptu.InstanceInfo,
+	s *mnptu.InstanceState) (*mnptu.InstanceState, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
@@ -339,15 +339,15 @@ func (p *Provider) Refresh(
 	return r.Refresh(s, p.meta)
 }
 
-// Resources implementation of terraform.ResourceProvider interface.
-func (p *Provider) Resources() []terraform.ResourceType {
+// Resources implementation of mnptu.ResourceProvider interface.
+func (p *Provider) Resources() []mnptu.ResourceType {
 	keys := make([]string, 0, len(p.ResourcesMap))
 	for k := range p.ResourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	result := make([]terraform.ResourceType, 0, len(keys))
+	result := make([]mnptu.ResourceType, 0, len(keys))
 	for _, k := range keys {
 		resource := p.ResourcesMap[k]
 
@@ -357,7 +357,7 @@ func (p *Provider) Resources() []terraform.ResourceType {
 			resource = &Resource{}
 		}
 
-		result = append(result, terraform.ResourceType{
+		result = append(result, mnptu.ResourceType{
 			Name:       k,
 			Importable: resource.Importer != nil,
 
@@ -371,8 +371,8 @@ func (p *Provider) Resources() []terraform.ResourceType {
 }
 
 func (p *Provider) ImportState(
-	info *terraform.InstanceInfo,
-	id string) ([]*terraform.InstanceState, error) {
+	info *mnptu.InstanceInfo,
+	id string) ([]*mnptu.InstanceState, error) {
 	// Find the resource
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
@@ -400,7 +400,7 @@ func (p *Provider) ImportState(
 	}
 
 	// Convert the results to InstanceState values and return it
-	states := make([]*terraform.InstanceState, len(results))
+	states := make([]*mnptu.InstanceState, len(results))
 	for i, r := range results {
 		states[i] = r.State()
 	}
@@ -412,16 +412,16 @@ func (p *Provider) ImportState(
 			return nil, fmt.Errorf(
 				"nil entry in ImportState results. This is always a bug with\n" +
 					"the resource that is being imported. Please report this as\n" +
-					"a bug to Terraform.")
+					"a bug to mnptu.")
 		}
 	}
 
 	return states, nil
 }
 
-// ValidateDataSource implementation of terraform.ResourceProvider interface.
+// ValidateDataSource implementation of mnptu.ResourceProvider interface.
 func (p *Provider) ValidateDataSource(
-	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	t string, c *mnptu.ResourceConfig) ([]string, []error) {
 	r, ok := p.DataSourcesMap[t]
 	if !ok {
 		return nil, []error{fmt.Errorf(
@@ -431,10 +431,10 @@ func (p *Provider) ValidateDataSource(
 	return r.Validate(c)
 }
 
-// ReadDataDiff implementation of terraform.ResourceProvider interface.
+// ReadDataDiff implementation of mnptu.ResourceProvider interface.
 func (p *Provider) ReadDataDiff(
-	info *terraform.InstanceInfo,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	info *mnptu.InstanceInfo,
+	c *mnptu.ResourceConfig) (*mnptu.InstanceDiff, error) {
 
 	r, ok := p.DataSourcesMap[info.Type]
 	if !ok {
@@ -444,10 +444,10 @@ func (p *Provider) ReadDataDiff(
 	return r.Diff(nil, c, p.meta)
 }
 
-// RefreshData implementation of terraform.ResourceProvider interface.
+// RefreshData implementation of mnptu.ResourceProvider interface.
 func (p *Provider) ReadDataApply(
-	info *terraform.InstanceInfo,
-	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
+	info *mnptu.InstanceInfo,
+	d *mnptu.InstanceDiff) (*mnptu.InstanceState, error) {
 
 	r, ok := p.DataSourcesMap[info.Type]
 	if !ok {
@@ -457,17 +457,17 @@ func (p *Provider) ReadDataApply(
 	return r.ReadDataApply(d, p.meta)
 }
 
-// DataSources implementation of terraform.ResourceProvider interface.
-func (p *Provider) DataSources() []terraform.DataSource {
+// DataSources implementation of mnptu.ResourceProvider interface.
+func (p *Provider) DataSources() []mnptu.DataSource {
 	keys := make([]string, 0, len(p.DataSourcesMap))
 	for k, _ := range p.DataSourcesMap {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	result := make([]terraform.DataSource, 0, len(keys))
+	result := make([]mnptu.DataSource, 0, len(keys))
 	for _, k := range keys {
-		result = append(result, terraform.DataSource{
+		result = append(result, mnptu.DataSource{
 			Name: k,
 
 			// Indicates that a provider is compiled against a new enough

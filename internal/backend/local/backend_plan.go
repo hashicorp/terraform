@@ -9,15 +9,15 @@ import (
 	"io"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/genconfig"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/genconfig"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func (b *Local) opPlan(
@@ -49,7 +49,7 @@ func (b *Local) opPlan(
 			"Plan requires configuration to be present. Planning without a configuration would "+
 				"mark everything for destruction, which is normally not what is desired. If you "+
 				"would like to destroy everything, run plan with the -destroy option. Otherwise, "+
-				"create a Terraform configuration file (.tf file) and try again.",
+				"create a mnptu configuration file (.tf file) and try again.",
 		))
 		op.ReportResult(runningOp, diags)
 		return
@@ -73,7 +73,7 @@ func (b *Local) opPlan(
 	}
 
 	if b.ContextOpts == nil {
-		b.ContextOpts = new(terraform.ContextOpts)
+		b.ContextOpts = new(mnptu.ContextOpts)
 	}
 
 	// Get our context
@@ -139,7 +139,7 @@ func (b *Local) opPlan(
 			// This is always a bug in the operation caller; it's not valid
 			// to set PlanOutPath without also setting PlanOutBackend.
 			diags = diags.Append(fmt.Errorf(
-				"PlanOutPath set without also setting PlanOutBackend (this is a bug in Terraform)"),
+				"PlanOutPath set without also setting PlanOutBackend (this is a bug in mnptu)"),
 			)
 			op.ReportResult(runningOp, diags)
 			return
@@ -157,7 +157,7 @@ func (b *Local) opPlan(
 		// there) and so we just use a stub state file header in this case.
 		// NOTE: This won't be exactly identical to the latest state snapshot
 		// in the backend because it's still been subject to state upgrading
-		// to make it consumable by the current Terraform version, and
+		// to make it consumable by the current mnptu version, and
 		// intentionally doesn't preserve the header info.
 		prevStateFile := &statefile.File{
 			State: plan.PrevRunState,
@@ -204,7 +204,7 @@ func (b *Local) opPlan(
 	// If we've accumulated any diagnostics along the way then we'll show them
 	// here just before we show the summary and next steps. This can potentially
 	// include errors, because we intentionally try to show a partial plan
-	// above even if Terraform Core encountered an error partway through
+	// above even if mnptu Core encountered an error partway through
 	// creating it.
 	op.ReportResult(runningOp, diags)
 

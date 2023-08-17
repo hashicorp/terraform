@@ -17,9 +17,9 @@ import (
 //
 // Currently this supports two different naming schemes. The current
 // standard naming scheme is a subdirectory called $GOOS-$GOARCH containing
-// files named terraform-$KIND-$NAME-V$VERSION. The legacy naming scheme is
+// files named mnptu-$KIND-$NAME-V$VERSION. The legacy naming scheme is
 // files directly in the given directory whose names are like
-// terraform-$KIND-$NAME.
+// mnptu-$KIND-$NAME.
 //
 // Only one plugin will be returned for each unique plugin (name, version)
 // pair, with preference given to files found in earlier directories.
@@ -46,7 +46,7 @@ func FindPluginPaths(kind string, dirs []string) []string {
 }
 
 func findPluginPaths(kind string, dirs []string) []string {
-	prefix := "terraform-" + kind + "-"
+	prefix := "mnptu-" + kind + "-"
 
 	ret := make([]string, 0, len(dirs))
 
@@ -137,7 +137,7 @@ func ResolvePluginPaths(paths []string) PluginMetaSet {
 
 	for _, path := range paths {
 		baseName := strings.ToLower(filepath.Base(path))
-		if !strings.HasPrefix(baseName, "terraform-") {
+		if !strings.HasPrefix(baseName, "mnptu-") {
 			// Should never happen with reasonable input
 			continue
 		}

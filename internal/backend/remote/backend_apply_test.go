@@ -17,20 +17,20 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/cloud"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/cloud"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 func testOperationApply(t *testing.T, configDir string) (*backend.Operation, func(), func(*testing.T) *terminal.TestOutput) {
@@ -52,7 +52,7 @@ func testOperationApplyWithTimeout(t *testing.T, configDir string, timeout time.
 	// Many of our tests use an overridden "null" provider that's just in-memory
 	// inside the test process, not a separate plugin on disk.
 	depLocks := depsfile.NewLocks()
-	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.terraform.io/hashicorp/null"))
+	depLocks.SetProviderOverridden(addrs.MustParseProviderSourceString("registry.mnptu.io/hashicorp/null"))
 
 	return &backend.Operation{
 		ConfigDir:       configDir,
@@ -235,7 +235,7 @@ func TestRemote_applyWithParallelism(t *testing.T) {
 	defer configCleanup()
 
 	if b.ContextOpts == nil {
-		b.ContextOpts = &terraform.ContextOpts{}
+		b.ContextOpts = &mnptu.ContextOpts{}
 	}
 	b.ContextOpts.Parallelism = 3
 	op.Workspace = backend.DefaultStateName
@@ -580,7 +580,7 @@ func TestRemote_applyWithVariables(t *testing.T) {
 	op, configCleanup, done := testOperationApply(t, "./testdata/apply-variables")
 	defer configCleanup()
 
-	op.Variables = testVariables(terraform.ValueFromNamedFile, "foo", "bar")
+	op.Variables = testVariables(mnptu.ValueFromNamedFile, "foo", "bar")
 	op.Workspace = backend.DefaultStateName
 
 	run, err := b.Operation(context.Background(), op)
@@ -1588,7 +1588,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 
 			ctx := context.Background()
 
-			// SETUP: set the operations and Terraform Version fields on the
+			// SETUP: set the operations and mnptu Version fields on the
 			// remote workspace
 			_, err := b.client.Workspaces.Update(
 				ctx,
@@ -1596,7 +1596,7 @@ func TestRemote_applyVersionCheck(t *testing.T) {
 				b.workspace,
 				tfe.WorkspaceUpdateOptions{
 					ExecutionMode:    tfe.String(tc.executionMode),
-					TerraformVersion: tfe.String(tc.remoteVersion),
+					mnptuVersion: tfe.String(tc.remoteVersion),
 				},
 			)
 			if err != nil {

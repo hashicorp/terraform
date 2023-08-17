@@ -34,7 +34,7 @@ Character classes support the following:
 
 Functions are evaluated during configuration parsing rather than at apply time,
 so this function can only be used with files that are already present on disk
-before Terraform takes any actions.
+before mnptu takes any actions.
 
 ## Examples
 
@@ -66,7 +66,7 @@ before Terraform takes any actions.
 ```
 
 A common use of `fileset` is to create one resource instance per matched file, using
-[the `for_each` meta-argument](/terraform/language/meta-arguments/for_each):
+[the `for_each` meta-argument](/mnptu/language/meta-arguments/for_each):
 
 ```hcl
 resource "example_thing" "example" {

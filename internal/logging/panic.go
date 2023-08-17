@@ -15,17 +15,17 @@ import (
 
 // This output is shown if a panic happens.
 const panicOutput = `
-!!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!! mnptu CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-Terraform crashed! This is always indicative of a bug within Terraform.
-Please report the crash with Terraform[1] so that we can fix this.
+mnptu crashed! This is always indicative of a bug within mnptu.
+Please report the crash with mnptu[1] so that we can fix this.
 
-When reporting bugs, please include your terraform version, the stack trace
+When reporting bugs, please include your mnptu version, the stack trace
 shown below, and any additional information which may help replicate the issue.
 
-[1]: https://github.com/hashicorp/terraform/issues
+[1]: https://github.com/hashicorp/mnptu/issues
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!! TERRAFORM CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!! mnptu CRASH !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 `
 
@@ -33,14 +33,14 @@ shown below, and any additional information which may help replicate the issue.
 // recovered by PanicHandler starts printing.
 var panicMutex sync.Mutex
 
-// PanicHandler is called to recover from an internal panic in Terraform, and
+// PanicHandler is called to recover from an internal panic in mnptu, and
 // augments the standard stack trace with a more user friendly error message.
 // PanicHandler must be called as a defered function, and must be the first
 // defer called at the start of a new goroutine.
 func PanicHandler() {
 	// Have all managed goroutines checkin here, and prevent them from exiting
 	// if there's a panic in progress. While this can't lock the entire runtime
-	// to block progress, we can prevent some cases where Terraform may return
+	// to block progress, we can prevent some cases where mnptu may return
 	// early before the panic has been printed out.
 	panicMutex.Lock()
 	defer panicMutex.Unlock()

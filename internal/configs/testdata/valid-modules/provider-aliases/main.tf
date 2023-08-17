@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     foo-test = {
       source = "foo/test"

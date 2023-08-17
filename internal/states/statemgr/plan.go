@@ -6,8 +6,8 @@ package statemgr
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
 )
 
 // PlannedStateUpdate is a special helper to obtain a statefile representation

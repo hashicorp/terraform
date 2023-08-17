@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -11,11 +11,11 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestPrepareFinalInputVariableValue(t *testing.T) {
@@ -96,7 +96,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})
 			})
 		}
-		// https://github.com/hashicorp/terraform/issues/32152
+		// https://github.com/hashicorp/mnptu/issues/32152
 		// This variable was originally added to test that optional attribute
 		// metadata is stripped from empty default collections. Essentially, you
 		// should be able to mix and match custom and default values for the
@@ -110,7 +110,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})), [])
 			}))
         }
- 		// https://github.com/hashicorp/terraform/issues/32160#issuecomment-1302783910
+ 		// https://github.com/hashicorp/mnptu/issues/32160#issuecomment-1302783910
 		// These variables were added to test the specific use case from this
 		// GitHub comment.
 		variable "empty_object_with_optional_nested_object_with_optional_bool" {
@@ -139,7 +139,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 			})
 			default = {}
 		}
-		// https://github.com/hashicorp/terraform/issues/32160
+		// https://github.com/hashicorp/mnptu/issues/32160
 		// This variable was originally added to test that optional objects do
 		// get created containing only their defaults. Instead they should be
 		// left empty. We do not expect nested_object to be created just because
@@ -152,7 +152,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}))
 			})
 		}
-		// https://github.com/hashicorp/terraform/issues/32157
+		// https://github.com/hashicorp/mnptu/issues/32157
 		// Similar to above, we want to see that merging combinations of the
 		// nested_object into a single collection doesn't crash because of
 		// inconsistent elements.
@@ -164,7 +164,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}))
 			}))
 		}
-		// https://github.com/hashicorp/terraform/issues/32109
+		// https://github.com/hashicorp/mnptu/issues/32109
 		// This variable was originally introduced to test the behaviour of 
 		// the dynamic type constraint. You should be able to use the 'any' 
 		// constraint and introduce empty, null, and populated values into the
@@ -184,7 +184,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				}
 			]
 		}
-		// https://github.com/hashicorp/terraform/issues/32396
+		// https://github.com/hashicorp/mnptu/issues/32396
 		// This variable was originally introduced to test the behaviour of the
         // dynamic type constraint. You should be able to set primitive types in
         // the list consistently.
@@ -196,7 +196,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 				})
 			)
 		}
-        // https://github.com/hashicorp/terraform/issues/32752
+        // https://github.com/hashicorp/mnptu/issues/32752
 		// This variable was introduced to make sure the evaluation doesn't 
         // crash even when the types are wrong.
         variable "invalid_nested_type" {
@@ -1066,7 +1066,7 @@ func TestPrepareFinalInputVariableValue(t *testing.T) {
 
 // These tests cover the JSON syntax configuration edge case handling,
 // the background of which is described in detail in comments in the
-// evalVariableValidations function. Future versions of Terraform may
+// evalVariableValidations function. Future versions of mnptu may
 // be able to remove this behaviour altogether.
 func TestEvalVariableValidations_jsonErrorMessageEdgeCase(t *testing.T) {
 	cfgSrc := `{

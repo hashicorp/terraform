@@ -23,15 +23,15 @@ import (
 // remote module package address and thus can contribute its own
 // additions to the final subdirectory selection.
 func SplitPackageSubdir(given string) (packageAddr, subDir string) {
-	// We delegate this mostly to go-getter, because older Terraform
+	// We delegate this mostly to go-getter, because older mnptu
 	// versions just used go-getter directly and so we need to preserve
 	// its various quirks for compatibility reasons.
 	//
-	// However, note that in Terraform we _always_ split off the subdirectory
-	// portion and handle it within Terraform-level code, _never_ passing
+	// However, note that in mnptu we _always_ split off the subdirectory
+	// portion and handle it within mnptu-level code, _never_ passing
 	// a subdirectory portion down into go-getter's own Get function, because
-	// Terraform's ability to refer between local paths inside the same
-	// package depends on Terraform itself always being aware of where the
+	// mnptu's ability to refer between local paths inside the same
+	// package depends on mnptu itself always being aware of where the
 	// package's root directory ended up on disk, and always needs the
 	// package installed wholesale.
 	packageAddr, subDir = getter.SourceDirSubdir(given)
@@ -53,7 +53,7 @@ func SplitPackageSubdir(given string) (packageAddr, subDir string) {
 // will then expand into the single subdirectory found inside instDir, or
 // return an error if the result would be ambiguous.
 func ExpandSubdirGlobs(instDir string, subDir string) (string, error) {
-	// We just delegate this entirely to go-getter, because older Terraform
+	// We just delegate this entirely to go-getter, because older mnptu
 	// versions just used go-getter directly and so we need to preserve
 	// its various quirks for compatibility reasons.
 	return getter.SubdirGlob(instDir, subDir)

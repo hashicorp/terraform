@@ -12,9 +12,9 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 func TestSourceAvailableVersions(t *testing.T) {
@@ -46,12 +46,12 @@ func TestSourceAvailableVersions(t *testing.T) {
 		{
 			"not.example.com/foo/bar",
 			nil,
-			`host not.example.com does not offer a Terraform provider registry`,
+			`host not.example.com does not offer a mnptu provider registry`,
 		},
 		{
 			"too-new.example.com/foo/bar",
 			nil,
-			`host too-new.example.com does not support the provider registry protocol required by this Terraform version, but may be compatible with a different Terraform version`,
+			`host too-new.example.com does not support the provider registry protocol required by this mnptu version, but may be compatible with a different mnptu version`,
 		},
 		{
 			"fails.example.com/foo/bar",
@@ -173,7 +173,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"linux", "amd64",
 			PackageMeta{},
 			nil,
-			`host not.example.com does not offer a Terraform provider registry`,
+			`host not.example.com does not offer a mnptu provider registry`,
 		},
 		{
 			"too-new.example.com/awesomesauce/happycloud",
@@ -181,7 +181,7 @@ func TestSourcePackageMeta(t *testing.T) {
 			"linux", "amd64",
 			PackageMeta{},
 			nil,
-			`host too-new.example.com does not support the provider registry protocol required by this Terraform version, but may be compatible with a different Terraform version`,
+			`host too-new.example.com does not support the provider registry protocol required by this mnptu version, but may be compatible with a different mnptu version`,
 		},
 		{
 			"fails.example.com/awesomesauce/happycloud",

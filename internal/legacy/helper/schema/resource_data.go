@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -26,9 +26,9 @@ import (
 type ResourceData struct {
 	// Settable (internally)
 	schema       map[string]*Schema
-	config       *terraform.ResourceConfig
-	state        *terraform.InstanceState
-	diff         *terraform.InstanceDiff
+	config       *mnptu.ResourceConfig
+	state        *mnptu.InstanceState
+	diff         *mnptu.InstanceDiff
 	meta         map[string]interface{}
 	timeouts     *ResourceTimeout
 	providerMeta cty.Value
@@ -36,7 +36,7 @@ type ResourceData struct {
 	// Don't set
 	multiReader *MultiLevelFieldReader
 	setWriter   *MapFieldWriter
-	newState    *terraform.InstanceState
+	newState    *mnptu.InstanceState
 	partial     bool
 	partialMap  map[string]struct{}
 	once        sync.Once
@@ -289,8 +289,8 @@ func (d *ResourceData) SetType(t string) {
 
 // State returns the new InstanceState after the diff and any Set
 // calls.
-func (d *ResourceData) State() *terraform.InstanceState {
-	var result terraform.InstanceState
+func (d *ResourceData) State() *mnptu.InstanceState {
+	var result mnptu.InstanceState
 	result.ID = d.Id()
 	result.Meta = d.meta
 
@@ -425,7 +425,7 @@ func (d *ResourceData) Timeout(key string) time.Duration {
 
 func (d *ResourceData) init() {
 	// Initialize the field that will store our new state
-	var copyState terraform.InstanceState
+	var copyState mnptu.InstanceState
 	if d.state != nil {
 		copyState = *d.state.DeepCopy()
 	}

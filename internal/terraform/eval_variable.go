@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -13,11 +13,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *InputValue, cfg *configs.Variable) (cty.Value, tfdiags.Diagnostics) {
@@ -121,7 +121,7 @@ func prepareFinalInputVariableValue(addr addrs.AbsInputVariableInstance, raw *In
 			)
 			subject = sourceRange.ToHCL().Ptr()
 
-			// In some workflows, the operator running terraform does not have access to the variables
+			// In some workflows, the operator running mnptu does not have access to the variables
 			// themselves. They are for example stored in encrypted files that will be used by the CI toolset
 			// and not by the operator directly. In such a case, the failing secret value should not be
 			// displayed to the operator
@@ -228,7 +228,7 @@ func evalVariableValidations(addr addrs.AbsInputVariableInstance, config *config
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "No final value for variable",
-			Detail:   fmt.Sprintf("Terraform doesn't have a final value for %s during validation. This is a bug in Terraform; please report it!", addr),
+			Detail:   fmt.Sprintf("mnptu doesn't have a final value for %s during validation. This is a bug in mnptu; please report it!", addr),
 		})
 		return diags
 	}
@@ -267,7 +267,7 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 
 	// The following error handling is a workaround to preserve backwards
 	// compatibility. Due to an implementation quirk, all prior versions of
-	// Terraform would treat error messages specified using JSON
+	// mnptu would treat error messages specified using JSON
 	// configuration syntax (.tf.json) as string literals, even if they
 	// contained the "${" template expression operator. This behaviour did
 	// not match that of HCL configuration syntax, where a template
@@ -297,12 +297,12 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 
 			// This warning diagnostic explains this odd behaviour, while
 			// giving us an escape hatch to change this to a hard failure
-			// in some future Terraform 1.x version.
+			// in some future mnptu 1.x version.
 			errorDiags = hcl.Diagnostics{
 				&hcl.Diagnostic{
 					Severity:    hcl.DiagWarning,
 					Summary:     "Validation error message expression is invalid",
-					Detail:      fmt.Sprintf("The error message provided could not be evaluated as an expression, so Terraform is interpreting it as a string literal.\n\nIn future versions of Terraform, this will be considered an error. Please file a GitHub issue if this would break your workflow.\n\n%s", errorDiags.Error()),
+					Detail:      fmt.Sprintf("The error message provided could not be evaluated as an expression, so mnptu is interpreting it as a string literal.\n\nIn future versions of mnptu, this will be considered an error. Please file a GitHub issue if this would break your workflow.\n\n%s", errorDiags.Error()),
 					Subject:     validation.ErrorMessage.Range().Ptr(),
 					Context:     validation.DeclRange.Ptr(),
 					Expression:  validation.ErrorMessage,
@@ -378,7 +378,7 @@ func evalVariableValidation(validation *configs.CheckRule, hclCtx *hcl.EvalConte
 					Severity: hcl.DiagError,
 
 					Summary: "Error message refers to sensitive values",
-					Detail: `The error expression used to explain this condition refers to sensitive values. Terraform will not display the resulting message.
+					Detail: `The error expression used to explain this condition refers to sensitive values. mnptu will not display the resulting message.
 
 You can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.`,
 

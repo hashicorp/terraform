@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/provisioners"
 )
 
 // ResourceProvisioner is an interface that must be implemented by any
 // resource provisioner: the thing that initializes resources in
-// a Terraform configuration.
+// a mnptu configuration.
 type ResourceProvisioner interface {
 	// GetConfigSchema returns the schema for the provisioner type's main
 	// configuration block. This is called prior to Validate to enable some
@@ -38,15 +38,15 @@ type ResourceProvisioner interface {
 
 	// Stop is called when the provisioner should halt any in-flight actions.
 	//
-	// This can be used to make a nicer Ctrl-C experience for Terraform.
+	// This can be used to make a nicer Ctrl-C experience for mnptu.
 	// Even if this isn't implemented to do anything (just returns nil),
-	// Terraform will still cleanly stop after the currently executing
+	// mnptu will still cleanly stop after the currently executing
 	// graph node is complete. However, this API can be used to make more
 	// efficient halts.
 	//
 	// Stop doesn't have to and shouldn't block waiting for in-flight actions
 	// to complete. It should take any action it wants and return immediately
-	// acknowledging it has received the stop request. Terraform core will
+	// acknowledging it has received the stop request. mnptu core will
 	// automatically not make any further API calls to the provider soon
 	// after Stop is called (technically exactly once the currently executing
 	// graph nodes are complete).

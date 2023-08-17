@@ -6,8 +6,8 @@ package arguments
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Apply represents the command-line arguments for the apply command.
@@ -83,7 +83,7 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Plan file or auto-approve required",
-			"Terraform cannot ask for interactive approval when -json is set. You can either apply a saved plan file, or enable the -auto-approve option.",
+			"mnptu cannot ask for interactive approval when -json is set. You can either apply a saved plan file, or enable the -auto-approve option.",
 		))
 	}
 
@@ -100,13 +100,13 @@ func ParseApply(args []string) (*Apply, tfdiags.Diagnostics) {
 }
 
 // ParseApplyDestroy is a special case of ParseApply that deals with the
-// "terraform destroy" command, which is effectively an alias for
-// "terraform apply -destroy".
+// "mnptu destroy" command, which is effectively an alias for
+// "mnptu apply -destroy".
 func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 	apply, diags := ParseApply(args)
 
 	// So far ParseApply was using the command line options like -destroy
-	// and -refresh-only to determine the plan mode. For "terraform destroy"
+	// and -refresh-only to determine the plan mode. For "mnptu destroy"
 	// we expect neither of those arguments to be set, and so the plan mode
 	// should currently be set to NormalMode, which we'll replace with
 	// DestroyMode here. If it's already set to something else then that
@@ -121,13 +121,13 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid mode option",
-			"The -destroy option is not valid for \"terraform destroy\", because this command always runs in destroy mode.",
+			"The -destroy option is not valid for \"mnptu destroy\", because this command always runs in destroy mode.",
 		))
 	case plans.RefreshOnlyMode:
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid mode option",
-			"The -refresh-only option is not valid for \"terraform destroy\".",
+			"The -refresh-only option is not valid for \"mnptu destroy\".",
 		))
 	default:
 		// This is a non-ideal error message for if we forget to handle a
@@ -136,7 +136,7 @@ func ParseApplyDestroy(args []string) (*Apply, tfdiags.Diagnostics) {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Invalid mode option",
-			fmt.Sprintf("The \"terraform destroy\" command doesn't support %s.", apply.Operation.PlanMode),
+			fmt.Sprintf("The \"mnptu destroy\" command doesn't support %s.", apply.Operation.PlanMode),
 		))
 	}
 

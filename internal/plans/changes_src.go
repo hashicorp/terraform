@@ -6,8 +6,8 @@ package plans
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -69,7 +69,7 @@ type ResourceInstanceChangeSrc struct {
 	RequiredReplace cty.PathSet
 
 	// Private allows a provider to stash any extra data that is opaque to
-	// Terraform that relates to this change. Terraform will save this
+	// mnptu that relates to this change. mnptu will save this
 	// byte-for-byte and return it to the provider in the apply call.
 	Private []byte
 }

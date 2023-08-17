@@ -4,7 +4,7 @@
 package arguments
 
 import (
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Validate represents the command-line arguments for the validate command.
@@ -18,7 +18,7 @@ type Validate struct {
 	// Path.
 	TestDirectory string
 
-	// NoTests indicates that Terraform should not validate any test files
+	// NoTests indicates that mnptu should not validate any test files
 	// included with the module.
 	NoTests bool
 

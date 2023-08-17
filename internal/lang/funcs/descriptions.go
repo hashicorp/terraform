@@ -18,12 +18,12 @@ type descriptionEntry struct {
 }
 
 // DescriptionList is a consolidated list containing all descriptions for all
-// functions available within Terraform. A function's description should point
+// functions available within mnptu. A function's description should point
 // to the matching entry in this list.
 //
 // We keep this as a single list, so we can quickly review descriptions within
 // a single file and copy the whole list to other projects, like
-// terraform-schema.
+// mnptu-schema.
 var DescriptionList = map[string]descriptionEntry{
 	"abs": {
 		Description:      "`abs` returns the absolute value of the given number. In other words, if the number is zero or positive then it is returned as-is, but if it is negative then it is multiplied by -1 to make it positive before returning it.",
@@ -257,7 +257,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"list": {
-		Description:      "The `list` function is no longer available. Prior to Terraform v0.12 it was the only available syntax for writing a literal list inside an expression, but Terraform v0.12 introduced a new first-class syntax.",
+		Description:      "The `list` function is no longer available. Prior to mnptu v0.12 it was the only available syntax for writing a literal list inside an expression, but mnptu v0.12 introduced a new first-class syntax.",
 		ParamDescription: []string{""},
 	},
 	"log": {
@@ -273,7 +273,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{""},
 	},
 	"map": {
-		Description:      "The `map` function is no longer available. Prior to Terraform v0.12 it was the only available syntax for writing a literal map inside an expression, but Terraform v0.12 introduced a new first-class syntax.",
+		Description:      "The `map` function is no longer available. Prior to mnptu v0.12 it was the only available syntax for writing a literal map inside an expression, but mnptu v0.12 introduced a new first-class syntax.",
 		ParamDescription: []string{""},
 	},
 	"matchkeys": {
@@ -341,7 +341,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"sensitive": {
-		Description:      "`sensitive` takes any value and returns a copy of it marked so that Terraform will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/language/values/variables#suppressing-values-in-cli-output).",
+		Description:      "`sensitive` takes any value and returns a copy of it marked so that mnptu will treat it as sensitive, with the same meaning and behavior as for [sensitive input variables](/language/values/variables#suppressing-values-in-cli-output).",
 		ParamDescription: []string{""},
 	},
 	"setintersection": {
@@ -419,7 +419,7 @@ var DescriptionList = map[string]descriptionEntry{
 		ParamDescription: []string{"", ""},
 	},
 	"textencodebase64": {
-		Description:      "`textencodebase64` encodes the unicode characters in a given string using a specified character encoding, returning the result base64 encoded because Terraform language strings are always sequences of unicode characters.",
+		Description:      "`textencodebase64` encodes the unicode characters in a given string using a specified character encoding, returning the result base64 encoded because mnptu language strings are always sequences of unicode characters.",
 		ParamDescription: []string{"", ""},
 	},
 	"timeadd": {

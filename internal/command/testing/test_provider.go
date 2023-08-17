@@ -13,10 +13,10 @@ import (
 	"github.com/hashicorp/go-uuid"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 var (
@@ -54,10 +54,10 @@ var (
 	}
 )
 
-// TestProvider is a wrapper around terraform.MockProvider that defines dynamic
+// TestProvider is a wrapper around mnptu.MockProvider that defines dynamic
 // schemas, and keeps track of the resources and data sources that it contains.
 type TestProvider struct {
-	Provider *terraform.MockProvider
+	Provider *mnptu.MockProvider
 
 	data, resource cty.Value
 
@@ -74,7 +74,7 @@ func NewProvider(store *ResourceStore) *TestProvider {
 	}
 
 	provider := &TestProvider{
-		Provider: new(terraform.MockProvider),
+		Provider: new(mnptu.MockProvider),
 		Store:    store,
 	}
 
@@ -230,7 +230,7 @@ func (provider *TestProvider) ApplyResourceChange(request providers.ApplyResourc
 		}
 
 		// Wait for a second to make sure the interrupts are processed by
-		// Terraform before the provider finishes. This is an attempt to ensure
+		// mnptu before the provider finishes. This is an attempt to ensure
 		// the output of any tests that rely on this behaviour is deterministic.
 		time.Sleep(time.Second)
 	}

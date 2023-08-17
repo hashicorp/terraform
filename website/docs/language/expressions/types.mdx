@@ -13,7 +13,7 @@ applied to it.
 
 ## Types
 
-The Terraform language uses the following types for its values:
+The mnptu language uses the following types for its values:
 
 * `string`: a sequence of Unicode characters representing some text, like
   `"hello"`.
@@ -32,7 +32,7 @@ Strings, numbers, and bools are sometimes called _primitive types._ Lists/tuples
 Finally, there is one special value that has _no_ type:
 
 * `null`: a value that represents _absence_ or _omission._ If you set an
-  argument of a resource to `null`, Terraform behaves as though you
+  argument of a resource to `null`, mnptu behaves as though you
   had completely omitted it — it will use the argument's default value if it has
   one, or raise an error if the argument is mandatory. `null` is most useful in
   conditional expressions, so you can dynamically omit an argument if a
@@ -41,7 +41,7 @@ Finally, there is one special value that has _no_ type:
 ## Literal Expressions
 
 A _literal expression_ is an expression that directly represents a particular
-constant value. Terraform has a literal expression syntax for each of the value
+constant value. mnptu has a literal expression syntax for each of the value
 types described above.
 
 ### Strings
@@ -51,7 +51,7 @@ characters, `"like this"`. There is also a "heredoc" syntax for more complex
 strings.
 
 String literals are the most complex kind of literal expression in
-Terraform, and have their own page of documentation. See [Strings](/terraform/language/expressions/strings)
+mnptu, and have their own page of documentation. See [Strings](/mnptu/language/expressions/strings)
 for information about escape sequences, the heredoc syntax, interpolation, and
 template directives.
 
@@ -95,7 +95,7 @@ The values in a map
 can be arbitrary expressions.
 
 The keys in a map must be strings; they can be left unquoted if
-they are a valid [identifier](/terraform/language/syntax/configuration#identifiers), but must be quoted
+they are a valid [identifier](/mnptu/language/syntax/configuration#identifiers), but must be quoted
 otherwise. You can use a non-literal string expression as a key by wrapping it in
 parentheses, like `(var.business_unit_tag_name) = "SRE"`.
 
@@ -116,7 +116,7 @@ using only the square-bracket index notation (`local.map["keyname"]`).
 ## More About Complex Types
 
 In most situations, lists and tuples behave identically, as do maps and objects.
-Whenever the distinction isn't relevant, the Terraform documentation uses each
+Whenever the distinction isn't relevant, the mnptu documentation uses each
 pair of terms interchangeably (with a historical preference for "list" and
 "map").
 
@@ -126,7 +126,7 @@ offer different ways to restrict the allowed values for input variables and
 resource arguments.
 
 For complete details about these types (and an explanation of why the difference
-usually doesn't matter), see [Type Constraints](/terraform/language/expressions/type-constraints).
+usually doesn't matter), see [Type Constraints](/mnptu/language/expressions/type-constraints).
 
 ## Type Conversion
 
@@ -134,12 +134,12 @@ Expressions are most often used to set values for the arguments of resources and
 child modules. In these cases, the argument has an expected type and the given
 expression must produce a value of that type.
 
-Where possible, Terraform automatically converts values from one type to
-another in order to produce the expected type. If this isn't possible, Terraform
+Where possible, mnptu automatically converts values from one type to
+another in order to produce the expected type. If this isn't possible, mnptu
 will produce a type mismatch error and you must update the configuration with a
 more suitable expression.
 
-Terraform automatically converts number and bool values to strings when needed.
+mnptu automatically converts number and bool values to strings when needed.
 It also converts strings to numbers or bools, as long as the string contains a
 valid representation of a number or bool value.
 

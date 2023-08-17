@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 // graphNodeTemporaryValue is implemented by nodes that may represent temporary
 // values, which are those not saved to the state file. This includes locals,

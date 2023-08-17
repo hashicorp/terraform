@@ -2,7 +2,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.base_after: Plan to update",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "update",
       "previous_resource": {
@@ -29,7 +29,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.dependent: Plan to update",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "change": {
       "action": "update",
       "resource": {
@@ -47,7 +47,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.base_after: Modifying... [id=e450ef2f-b80f-0cce-8bdb-14d88f48649c]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "id_key": "id",
@@ -67,7 +67,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.base_after: Modifications complete after 0s [id=e450ef2f-b80f-0cce-8bdb-14d88f48649c]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "elapsed_seconds": 0,
@@ -88,7 +88,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.dependent: Modifying... [id=2ecc718c-8d04-5774-5c36-7d69bf77d34e]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "id_key": "id",
@@ -108,7 +108,7 @@
   {
     "@level": "info",
     "@message": "tfcoremock_simple_resource.dependent: Modifications complete after 0s [id=2ecc718c-8d04-5774-5c36-7d69bf77d34e]",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "hook": {
       "action": "update",
       "elapsed_seconds": 0,
@@ -129,7 +129,7 @@
   {
     "@level": "info",
     "@message": "Apply complete! Resources: 0 added, 2 changed, 0 destroyed.",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "changes": {
       "add": 0,
       "change": 2,
@@ -141,7 +141,7 @@
   {
     "@level": "info",
     "@message": "Outputs: 0",
-    "@module": "terraform.ui",
+    "@module": "mnptu.ui",
     "outputs": {},
     "type": "outputs"
   }

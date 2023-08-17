@@ -1,20 +1,20 @@
 ---
 page_title: Data Sources - Configuration Language
 description: >-
-  Data sources allow Terraform to use external data, function output, and data
+  Data sources allow mnptu to use external data, function output, and data
   from other configurations. Learn data resource arguments, behavior, and
   lifecycle.
 ---
 
 # Data Sources
 
-_Data sources_ allow Terraform to use information defined outside of Terraform,
-defined by another separate Terraform configuration, or modified by functions.
+_Data sources_ allow mnptu to use information defined outside of mnptu,
+defined by another separate mnptu configuration, or modified by functions.
 
-> **Hands-on:** Try the [Query Data Sources](/terraform/tutorials/configuration-language/data-sources) tutorial.
+> **Hands-on:** Try the [Query Data Sources](/mnptu/tutorials/configuration-language/data-sources) tutorial.
 
-Each [provider](/terraform/language/providers) may offer data sources
-alongside its set of [resource](/terraform/language/resources)
+Each [provider](/mnptu/language/providers) may offer data sources
+alongside its set of [resource](/mnptu/language/resources)
 types.
 
 ## Using Data Sources
@@ -34,9 +34,9 @@ data "aws_ami" "example" {
 }
 ```
 
-A `data` block requests that Terraform read from a given data source ("aws_ami")
+A `data` block requests that mnptu read from a given data source ("aws_ami")
 and export the result under the given local name ("example"). The name is used
-to refer to this resource from elsewhere in the same Terraform module, but has
+to refer to this resource from elsewhere in the same mnptu module, but has
 no significance outside of the scope of a module.
 
 The data source and name together serve as an identifier for a given
@@ -45,13 +45,13 @@ resource and so must be unique within a module.
 Within the block body (between `{` and `}`) are query constraints defined by
 the data source. Most arguments in this section depend on the
 data source, and indeed in this example `most_recent`, `owners` and `tags` are
-all arguments defined specifically for [the `aws_ami` data source](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/ami).
+all arguments defined specifically for [the `aws_ami` data source](https://registry.mnptu.io/providers/hashicorp/aws/latest/docs/data-sources/ami).
 
 When distinguishing from data resources, the primary kind of resource (as declared
 by a `resource` block) is known as a _managed resource_. Both kinds of resources
 take arguments and export attributes for use in configuration, but while
-managed resources cause Terraform to create, update, and delete infrastructure
-objects, data resources cause Terraform only to _read_ objects. For brevity,
+managed resources cause mnptu to create, update, and delete infrastructure
+objects, data resources cause mnptu only to _read_ objects. For brevity,
 managed resources are often referred to just as "resources" when the meaning
 is clear from context.
 
@@ -61,29 +61,29 @@ Each data resource is associated with a single data source, which determines
 the kind of object (or objects) it reads and what query constraint arguments
 are available.
 
-Each data source in turn belongs to a [provider](/terraform/language/providers),
-which is a plugin for Terraform that offers a collection of resource types and
+Each data source in turn belongs to a [provider](/mnptu/language/providers),
+which is a plugin for mnptu that offers a collection of resource types and
 data sources that most often belong to a single cloud or on-premises
 infrastructure platform.
 
 Most of the items within the body of a `data` block are defined by and
 specific to the selected data source, and these arguments can make full
-use of [expressions](/terraform/language/expressions) and other dynamic
-Terraform language features.
+use of [expressions](/mnptu/language/expressions) and other dynamic
+mnptu language features.
 
-However, there are some "meta-arguments" that are defined by Terraform itself
+However, there are some "meta-arguments" that are defined by mnptu itself
 and apply across all data sources. These arguments often have additional
 restrictions on what language features can be used with them, and are described
 in more detail in the following sections.
 
 ## Data Resource Behavior
 
-Terraform reads data resources during the planning phase when possible, but
+mnptu reads data resources during the planning phase when possible, but
 announces in the plan when it must defer reading resources until the apply
-phase to preserve the order of operations. Terraform defers reading data
+phase to preserve the order of operations. mnptu defers reading data
 resources in the following situations:
 * At least one of the given arguments is a managed resource attribute or
-  other value that Terraform cannot predict until the apply step.
+  other value that mnptu cannot predict until the apply step.
 * The data resource depends directly on a managed resource that itself has
   planned changes in the current plan.
 * The data resource has
@@ -100,22 +100,22 @@ be used in situations where values must be fully known.
 
 While many data sources correspond to an infrastructure object type that
 is accessed via a remote network API, some specialized data sources operate
-only within Terraform itself, calculating some results and exposing them
+only within mnptu itself, calculating some results and exposing them
 for use elsewhere.
 
 For example, local-only data sources exist for
-[rendering templates](https://registry.terraform.io/providers/hashicorp/template/latest/docs/data-sources/file),
-[reading local files](https://registry.terraform.io/providers/hashicorp/local/latest/docs/data-sources/file), and
-[rendering AWS IAM policies](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document).
+[rendering templates](https://registry.mnptu.io/providers/hashicorp/template/latest/docs/data-sources/file),
+[reading local files](https://registry.mnptu.io/providers/hashicorp/local/latest/docs/data-sources/file), and
+[rendering AWS IAM policies](https://registry.mnptu.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document).
 
 The behavior of local-only data sources is the same as all other data
-sources, but their result data exists only temporarily during a Terraform
+sources, but their result data exists only temporarily during a mnptu
 operation, and is re-calculated each time a new plan is created.
 
 ## Data Resource Dependencies
 
 Data resources have the same dependency resolution behavior
-[as defined for managed resources](/terraform/language/resources/behavior#resource-dependencies).
+[as defined for managed resources](/mnptu/language/resources/behavior#resource-dependencies).
 Setting the `depends_on` meta-argument within `data` blocks defers reading of
 the data source until after all changes to the dependencies have been applied.
 
@@ -127,7 +127,7 @@ referencing the managed resource values through a `local` value, unless the
 data resource itself has
 [custom conditions](#custom-condition-checks).
 
-~> **NOTE:** **In Terraform 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
+~> **NOTE:** **In mnptu 0.12 and earlier**, due to the data resource behavior of deferring the read until the apply phase when depending on values that are not yet known, using `depends_on` with `data` resources will force the read to always be deferred to the apply phase, and therefore a configuration that uses `depends_on` with a `data` resource can never converge. Due to this behavior, we do not recommend using `depends_on` with data resources.
 
 ## Custom Condition Checks
 
@@ -149,13 +149,13 @@ data "aws_ami" "example" {
 
 Custom conditions can help capture assumptions, helping future maintainers understand the configuration design and intent. They also return useful information about errors earlier and in context, helping consumers more easily diagnose issues in their configurations.
 
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
+Refer to [Custom Condition Checks](/mnptu/language/expressions/custom-conditions#preconditions-and-postconditions) for more details.
 
 
 ## Multiple Resource Instances
 
-Data resources support [`count`](/terraform/language/meta-arguments/count)
-and [`for_each`](/terraform/language/meta-arguments/for_each)
+Data resources support [`count`](/mnptu/language/meta-arguments/count)
+and [`for_each`](/mnptu/language/meta-arguments/for_each)
 meta-arguments as defined for managed resources, with the same syntax and behavior.
 
 As with managed resources, when `count` or `for_each` is present it is important to
@@ -165,7 +165,7 @@ own variant of the constraint arguments, producing an indexed result.
 
 ## Selecting a Non-default Provider Configuration
 
-Data resources support [the `provider` meta-argument](/terraform/language/meta-arguments/resource-provider)
+Data resources support [the `provider` meta-argument](/mnptu/language/meta-arguments/resource-provider)
 as defined for managed resources, with the same syntax and behavior.
 
 ## Lifecycle Customizations
@@ -202,8 +202,8 @@ and name must be unique.
 
 Within the block (the `{ }`) is configuration for the data instance. The
 configuration is dependent on the type; as with
-[resources](/terraform/language/resources), each provider on the
-[Terraform Registry](https://registry.terraform.io/browse/providers) has its own
+[resources](/mnptu/language/resources), each provider on the
+[mnptu Registry](https://registry.mnptu.io/browse/providers) has its own
 documentation for configuring and using the data types it provides.
 
 Each data instance will export one or more attributes, which can be
@@ -220,13 +220,13 @@ resource "aws_instance" "web" {
 ## Meta-Arguments
 
 As data sources are essentially a read only subset of resources, they also
-support the same [meta-arguments](/terraform/language/resources/syntax#meta-arguments) of resources
+support the same [meta-arguments](/mnptu/language/resources/syntax#meta-arguments) of resources
 with the exception of the
-[`lifecycle` configuration block](/terraform/language/meta-arguments/lifecycle).
+[`lifecycle` configuration block](/mnptu/language/meta-arguments/lifecycle).
 
 ### Non-Default Provider Configurations
 
-Similarly to [resources](/terraform/language/resources), when
+Similarly to [resources](/mnptu/language/resources), when
 a module has multiple configurations for the same provider you can specify which
 configuration to use with the `provider` meta-argument:
 
@@ -239,14 +239,14 @@ data "aws_ami" "web" {
 ```
 
 See
-[The Resource `provider` Meta-Argument](/terraform/language/meta-arguments/resource-provider)
+[The Resource `provider` Meta-Argument](/mnptu/language/meta-arguments/resource-provider)
 for more information.
 
 ## Data Source Lifecycle
 
 If the arguments of a data instance contain no references to computed values,
 such as attributes of resources that have not yet been created, then the
-data instance will be read and its state updated during Terraform's "refresh"
+data instance will be read and its state updated during mnptu's "refresh"
 phase, which by default runs prior to creating a plan. This ensures that the
 retrieved data is available for use during planning and the diff will show
 the real values obtained.

@@ -4,7 +4,7 @@
 #
 # If you want to test this locally you'll need to set the three arguments
 # to values realistic for what the hashicorp/actions-docker-build GitHub
-# action would set, and ensure that there's a suitable "terraform" executable
+# action would set, and ensure that there's a suitable "mnptu" executable
 # in the dist/linux/${TARGETARCH} directory.
 
 FROM docker.mirror.hashicorp.services/alpine:latest AS default
@@ -13,21 +13,21 @@ FROM docker.mirror.hashicorp.services/alpine:latest AS default
 # action, which sets these appropriately based on context.
 ARG PRODUCT_VERSION=UNSPECIFIED
 ARG PRODUCT_REVISION=UNSPECIFIED
-ARG BIN_NAME=terraform
+ARG BIN_NAME=mnptu
 
 # This argument is set by the Docker toolchain itself, to the name
 # of the CPU architecture we're building an image for.
-# Our caller should've extracted the corresponding "terraform" executable
+# Our caller should've extracted the corresponding "mnptu" executable
 # into dist/linux/${TARGETARCH} for us to use.
 ARG TARGETARCH
 
-LABEL maintainer="HashiCorp Terraform Team <terraform@hashicorp.com>"
+LABEL maintainer="HashiCorp mnptu Team <mnptu@hashicorp.com>"
 
 # New standard version label.
 LABEL version=$PRODUCT_VERSION
 
-# Historical Terraform-specific label preserved for backward compatibility.
-LABEL "com.hashicorp.terraform.version"="${PRODUCT_VERSION}"
+# Historical mnptu-specific label preserved for backward compatibility.
+LABEL "com.hashicorp.mnptu.version"="${PRODUCT_VERSION}"
 
 RUN apk add --no-cache git openssh
 
@@ -36,6 +36,6 @@ RUN apk add --no-cache git openssh
 # directory before running "docker build", which we'll then copy into the
 # Docker image to make sure that we use an identical binary as all of the
 # other official release channels.
-COPY ["dist/linux/${TARGETARCH}/terraform", "/bin/terraform"]
+COPY ["dist/linux/${TARGETARCH}/mnptu", "/bin/mnptu"]
 
-ENTRYPOINT ["/bin/terraform"]
+ENTRYPOINT ["/bin/mnptu"]

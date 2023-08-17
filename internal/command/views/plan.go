@@ -6,15 +6,15 @@ package views
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // The Plan view is used for the plan command.
 type Plan interface {
 	Operation() Operation
-	Hooks() []terraform.Hook
+	Hooks() []mnptu.Hook
 
 	Diagnostics(diags tfdiags.Diagnostics)
 	HelpPrompt()
@@ -51,8 +51,8 @@ func (v *PlanHuman) Operation() Operation {
 	return NewOperation(arguments.ViewHuman, v.inAutomation, v.view)
 }
 
-func (v *PlanHuman) Hooks() []terraform.Hook {
-	return []terraform.Hook{
+func (v *PlanHuman) Hooks() []mnptu.Hook {
+	return []mnptu.Hook{
 		NewUiHook(v.view),
 	}
 }
@@ -77,8 +77,8 @@ func (v *PlanJSON) Operation() Operation {
 	return &OperationJSON{view: v.view}
 }
 
-func (v *PlanJSON) Hooks() []terraform.Hook {
-	return []terraform.Hook{
+func (v *PlanJSON) Hooks() []mnptu.Hook {
+	return []mnptu.Hook{
 		newJSONHook(v.view),
 	}
 }

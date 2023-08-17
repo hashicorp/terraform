@@ -1,11 +1,11 @@
 ---
-page_title: The Core Terraform Workflow - Guides
-description: 'An overview of how individuals, teams, and organizations can use Terraform. '
+page_title: The Core mnptu Workflow - Guides
+description: 'An overview of how individuals, teams, and organizations can use mnptu. '
 ---
 
-# The Core Terraform Workflow
+# The Core mnptu Workflow
 
-The core Terraform workflow has three steps:
+The core mnptu workflow has three steps:
 
 1. **Write** - Author infrastructure as code.
 1. **Plan** - Preview changes before applying.
@@ -13,7 +13,7 @@ The core Terraform workflow has three steps:
 
 This guide walks through how each of these three steps plays out in the context
 of working as an individual practitioner, how they evolve when a team is
-collaborating on infrastructure, and how Terraform Cloud enables this
+collaborating on infrastructure, and how mnptu Cloud enables this
 workflow to run smoothly for entire organizations.
 
 ## Working as an Individual Practitioner
@@ -23,7 +23,7 @@ on infrastructure as code.
 
 ### Write
 
-You write Terraform configuration just like you write code: in your editor of
+You write mnptu configuration just like you write code: in your editor of
 choice. It's common practice to store your work in a version controlled
 repository even when you're just operating as an individual.
 
@@ -36,12 +36,12 @@ Initialized empty Git repository in /.../my-infra/.git/
 # Write initial config
 $ vim main.tf
 
-# Initialize Terraform
-$ terraform init
+# Initialize mnptu
+$ mnptu init
 
 Initializing provider plugins...
 # ...
-Terraform has been successfully initialized!
+mnptu has been successfully initialized!
 ```
 
 As you make progress on authoring your config, repeatedly running plans can help
@@ -53,7 +53,7 @@ expect.
 $ vim main.tf
 
 # Review plan
-$ terraform plan
+$ mnptu plan
 
 # Make additional edits, and repeat
 $ vim main.tf
@@ -75,12 +75,12 @@ $ git commit -m 'Managing infrastructure as code!'
  1 file changed, 1 insertion(+)
 ```
 
-Because `terraform apply` will display a plan for confirmation before
+Because `mnptu apply` will display a plan for confirmation before
 proceeding to change any infrastructure, that's the command you run for final
 review.
 
 ```sh
-$ terraform apply
+$ mnptu apply
 
 An execution plan has been generated and is shown below.
 # ...
@@ -88,13 +88,13 @@ An execution plan has been generated and is shown below.
 
 ### Apply
 
-After one last check, you are ready to tell Terraform to provision real
+After one last check, you are ready to tell mnptu to provision real
 infrastructure.
 
 ```sh
 Do you want to perform these actions?
 
-  Terraform will perform the actions described above.
+  mnptu will perform the actions described above.
   Only 'yes' will be accepted to approve.
   Enter a value: yes
 
@@ -116,11 +116,11 @@ the process over from the beginning.
 
 Notice how closely this workflow parallels the process of writing application
 code or scripts as an individual? This is what we mean when we talk about
-Terraform enabling infrastructure as code.
+mnptu enabling infrastructure as code.
 
 ## Working as a Team
 
-Once multiple people are collaborating on Terraform configuration, new steps
+Once multiple people are collaborating on mnptu configuration, new steps
 must be added to each part of the core workflow to ensure everyone is working
 together smoothly. You'll see that many of these steps parallel the workflow
 changes we make when we work on application code as teams rather than as
@@ -128,7 +128,7 @@ individuals.
 
 ### Write
 
-While each individual on a team still makes changes to Terraform configuration
+While each individual on a team still makes changes to mnptu configuration
 in their editor of choice, they save their changes to version control _branches_
 to avoid colliding with each other's work. Working in branches enables team
 members to resolve mutually incompatible infrastructure changes using their
@@ -148,23 +148,23 @@ required to run a plan.
 
 To avoid the burden and the security risk of each team member arranging all
 sensitive inputs locally, it's common for teams to migrate to a model in which
-Terraform operations are executed in a shared Continuous Integration (CI)
+mnptu operations are executed in a shared Continuous Integration (CI)
 environment. The work needed to create such a CI environment is nontrivial, and
 is outside the scope of this core workflow overview, but a full deep dive on
 this topic can be found in our
-[Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
+[Running mnptu in Automation](/mnptu/tutorials/automation/automate-mnptu?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS)
 guide.
 
 This longer iteration cycle of committing changes to version control and then
 waiting for the CI pipeline to execute is often lengthy enough to prohibit using
-speculative plans as a feedback loop while authoring individual Terraform
-configuration changes. Speculative plans are still useful before new Terraform
+speculative plans as a feedback loop while authoring individual mnptu
+configuration changes. Speculative plans are still useful before new mnptu
 changes are applied or even merged to the main development branch, however, as
 we'll see in a minute.
 
 ### Plan
 
-For teams collaborating on infrastructure, Terraform's plan output creates an
+For teams collaborating on infrastructure, mnptu's plan output creates an
 opportunity for team members to review each other's work. This allows the team
 to ask questions, evaluate risks, and catch mistakes before any potentially
 harmful changes are made.
@@ -176,12 +176,12 @@ config changes alongside speculative plan output, they can evaluate whether the
 intent of the change is being achieved by the plan.
 
 The problem becomes producing that speculative plan output for the team to
-review. Some teams that still run Terraform locally make a practice that pull
+review. Some teams that still run mnptu locally make a practice that pull
 requests should include an attached copy of speculative plan output generated
 by the change author. Others arrange for their CI system to post speculative
 plan output to pull requests automatically.
 
-![Screenshot of Pull Request with manually posted Terraform plan output](/img/docs/manually-pasted-plan-output.png)
+![Screenshot of Pull Request with manually posted mnptu plan output](/img/docs/manually-pasted-plan-output.png)
 
 In addition to reviewing the plan for the proper expression of its author's
 intent, the team can also make an evaluation whether they want this change to
@@ -207,36 +207,36 @@ anything in our system that we should be watching as we apply this? Is there
 anyone we need to notify that this change is happening?
 
 Depending on the change, sometimes team members will want to watch the apply
-output as it is happening. For teams that are running Terraform locally, this
-may involve a screen share with the team. For teams running Terraform in CI,
+output as it is happening. For teams that are running mnptu locally, this
+may involve a screen share with the team. For teams running mnptu in CI,
 this may involve gathering around the build log.
 
 Just like the workflow for individuals, the core workflow for teams is a loop
 that plays out for each change. For some teams this loop happens a few times a
 week, for others, many times a day.
 
-## The Core Workflow Enhanced by Terraform Cloud
+## The Core Workflow Enhanced by mnptu Cloud
 
 While the above described workflows enable the safe, predictable, and
 reproducible creating or changing of infrastructure, there are multiple
 collaboration points that can be streamlined, especially as teams and
-organizations scale.  We designed Terraform Cloud to support and enhance
-the core Terraform workflow for anyone collaborating on infrastructure, from
-small teams to large organizations. Let's look at how Terraform Cloud makes
+organizations scale.  We designed mnptu Cloud to support and enhance
+the core mnptu workflow for anyone collaborating on infrastructure, from
+small teams to large organizations. Let's look at how mnptu Cloud makes
 for a better experience at each step.
 
 ### Write
 
-Terraform Cloud provides a centralized and secure location for storing
+mnptu Cloud provides a centralized and secure location for storing
 input variables and state while also bringing back a tight feedback loop for
-speculative plans for config authors. Terraform configuration can interact with
-Terraform Cloud through the [CLI integration](/terraform/cli/cloud).
+speculative plans for config authors. mnptu configuration can interact with
+mnptu Cloud through the [CLI integration](/mnptu/cli/cloud).
 
 ```
-terraform {
+mnptu {
   cloud {
     organization = "my-org"
-    hostname = "app.terraform.io" # Optional; defaults to app.terraform.io
+    hostname = "app.mnptu.io" # Optional; defaults to app.mnptu.io
 
     workspaces {
       tags = ["networking", "source:cli"]
@@ -245,23 +245,23 @@ terraform {
 }
 ```
 
-After you configure the integration, a Terraform Cloud API key is all your team members need to edit config and run speculative plans
+After you configure the integration, a mnptu Cloud API key is all your team members need to edit config and run speculative plans
 against the latest version of the state file using all the remotely stored
 input variables.
 
 ```sh
-$ terraform workspace select my-app-dev
+$ mnptu workspace select my-app-dev
 Switched to workspace "my-app-dev".
 
-$ terraform plan
+$ mnptu plan
 
-Running plan remotely in Terraform Enterprise.
+Running plan remotely in mnptu Enterprise.
 
 Output will stream here. To view this plan in a browser, visit:
 
-https://app.terraform.io/my-org/my-app-dev/.../
+https://app.mnptu.io/my-org/my-app-dev/.../
 
-Refreshing Terraform state in-memory prior to plan...
+Refreshing mnptu state in-memory prior to plan...
 
 # ...
 
@@ -273,7 +273,7 @@ authoring config until it is ready to propose as a change via a pull request.
 
 ### Plan
 
-Once a pull request is ready for review, Terraform Cloud makes the process
+Once a pull request is ready for review, mnptu Cloud makes the process
 of reviewing a speculative plan easier for team members. First, the plan is
 automatically run when the pull request is created. Status updates to the pull
 request indicate while the plan is in progress.
@@ -285,17 +285,17 @@ changes in the speculative plan, right from the pull request view.
 
 For certain types of changes, this information is all that's needed for a team
 member to be able to approve the pull request. When a teammate needs to do a
-full review of the plan, clicking the link to Terraform Cloud brings up a
+full review of the plan, clicking the link to mnptu Cloud brings up a
 view that allows them to quickly analyze the full plan details.
 
-![Screenshot of Pull Request run in Terraform Cloud](/img/docs/pr-plan.png)
+![Screenshot of Pull Request run in mnptu Cloud](/img/docs/pr-plan.png)
 
 This page allows the reviewer to quickly determine if the plan is matching the
 config author's intent and evaluate the risk of the change.
 
 ### Apply
 
-After merge, Terraform Cloud presents the concrete plan to the team for
+After merge, mnptu Cloud presents the concrete plan to the team for
 review and approval.
 
 ![Screenshot of concrete plan](/img/docs/concrete-plan.png)
@@ -303,9 +303,9 @@ review and approval.
 The team can discuss any outstanding questions about the plan before the change
 is made.
 
-![Screenshot of back-and-forth in Terraform Cloud comments](/img/docs/plan-comments.png)
+![Screenshot of back-and-forth in mnptu Cloud comments](/img/docs/plan-comments.png)
 
-Once the Apply is confirmed, Terraform Cloud displays the progress live
+Once the Apply is confirmed, mnptu Cloud displays the progress live
 to anyone who'd like to watch.
 
 ![Screenshot of in-progress Apply](/img/docs/in-progress-apply.png)
@@ -323,9 +323,9 @@ And after the change completes, the team can be notified of its outcome.
 
 ## Conclusion
 
-There are many different ways to use Terraform: as an individual user, a single
+There are many different ways to use mnptu: as an individual user, a single
 team, or an entire organization at scale. Choosing the best approach for the
 density of collaboration needed will provide the most return on your investment
-in the core Terraform workflow. For organizations using Terraform at scale,
-Terraform Cloud introduces new layers that build on this core workflow to
+in the core mnptu workflow. For organizations using mnptu at scale,
+mnptu Cloud introduces new layers that build on this core workflow to
 solve problems unique to teams and organizations.

@@ -22,9 +22,9 @@ type Colorer interface {
 
 // Colorize is used to print output when the -no-color flag is used. It will
 // strip all ANSI escaped color codes which are set while the operation was
-// executed in Terraform Enterprise.
+// executed in mnptu Enterprise.
 //
-// When Terraform Enterprise supports run specific variables, this code can be
+// When mnptu Enterprise supports run specific variables, this code can be
 // removed as we can then pass the CLI flag to the backend and prevent the color
 // codes from being written to the output.
 type Colorize struct {

@@ -4,12 +4,12 @@
 package states
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
 )
 
 // CheckResults represents a summary snapshot of the status of a set of checks
-// declared in configuration, updated after each Terraform Core run that
+// declared in configuration, updated after each mnptu Core run that
 // changes the state or remote system in a way that might impact the check
 // results.
 //
@@ -42,12 +42,12 @@ type CheckResultAggregate struct {
 	// Status is the aggregate status across all objects.
 	//
 	// Sometimes an error or check failure during planning will prevent
-	// Terraform Core from even determining the individual checkable objects
+	// mnptu Core from even determining the individual checkable objects
 	// associated with a downstream configuration object, and that situation is
 	// described here by this Status being checks.StatusUnknown and there being
 	// no elements in the ObjectResults field.
 	//
-	// That's different than Terraform Core explicitly reporting that there are
+	// That's different than mnptu Core explicitly reporting that there are
 	// no instances of the config object (e.g. a resource with count = 0),
 	// which leads to the aggregate status being checks.StatusPass while
 	// ObjectResults is still empty.
@@ -80,7 +80,7 @@ type CheckResultObject struct {
 // NewCheckResults constructs a new states.CheckResults object that is a
 // snapshot of the check statuses recorded in the given checks.State object.
 //
-// This should be called only after a Terraform Core run has completed and
+// This should be called only after a mnptu Core run has completed and
 // recorded any results from running the checks in the given object.
 func NewCheckResults(source *checks.State) *CheckResults {
 	ret := &CheckResults{

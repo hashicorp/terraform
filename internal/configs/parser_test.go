@@ -110,7 +110,7 @@ func buildNestedModuleConfig(mod *Module, path string, parser *Parser) (*Config,
 			// For the sake of this test we're going to just treat our
 			// SourceAddr as a path relative to the calling module.
 			// A "real" implementation of ModuleWalker should accept the
-			// various different source address syntaxes Terraform supports.
+			// various different source address syntaxes mnptu supports.
 
 			// Build a full path by walking up the module tree, prepending each
 			// source address path until we hit the root

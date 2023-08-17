@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"errors"
@@ -11,12 +11,12 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestContext2Validate_badCount(t *testing.T) {
@@ -98,9 +98,9 @@ func TestContext2Validate_varNoDefaultExplicitType(t *testing.T) {
 		t.Fatalf("unexpected NewContext errors: %s", diags.Err())
 	}
 
-	// NOTE: This test has grown idiosyncratic because originally Terraform
+	// NOTE: This test has grown idiosyncratic because originally mnptu
 	// would (optionally) check variables during validation, and then in
-	// Terraform v0.12 we switched to checking variables during NewContext,
+	// mnptu v0.12 we switched to checking variables during NewContext,
 	// and now most recently we've switched to checking variables only during
 	// planning because root variables are a plan option. Therefore this has
 	// grown into a plan test rather than a validate test, but it lives on
@@ -866,9 +866,9 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 	})
 	assertNoDiagnostics(t, diags)
 
-	// NOTE: This test has grown idiosyncratic because originally Terraform
+	// NOTE: This test has grown idiosyncratic because originally mnptu
 	// would (optionally) check variables during validation, and then in
-	// Terraform v0.12 we switched to checking variables during NewContext,
+	// mnptu v0.12 we switched to checking variables during NewContext,
 	// and now most recently we've switched to checking variables only during
 	// planning because root variables are a plan option. Therefore this has
 	// grown into a plan test rather than a validate test, but it lives on
@@ -994,8 +994,8 @@ func TestContext2Validate_targetedDestroy(t *testing.T) {
 
 	state := states.NewState()
 	root := state.EnsureModule(addrs.RootModuleInstance)
-	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{"id":"i-bcd345"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
-	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"i-abc123"}`, `provider["registry.terraform.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.foo", `{"id":"i-bcd345"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
+	testSetResourceInstanceCurrent(root, "aws_instance.bar", `{"id":"i-abc123"}`, `provider["registry.mnptu.io/hashicorp/aws"]`)
 
 	ctx := testContext2(t, &ContextOpts{
 		Providers: map[addrs.Provider]providers.Factory{
@@ -1049,7 +1049,7 @@ func TestContext2Validate_varRefUnknown(t *testing.T) {
 }
 
 // Module variables weren't being interpolated during Validate phase.
-// related to https://github.com/hashicorp/terraform/issues/5322
+// related to https://github.com/hashicorp/mnptu/issues/5322
 func TestContext2Validate_interpolateVar(t *testing.T) {
 	input := new(MockUIInput)
 
@@ -1306,7 +1306,7 @@ output "out" {
 		t.Fatal("succeeded; want errors")
 	}
 	// Should get this error:
-	// Invalid resource count attribute: The special "count" attribute is no longer supported after Terraform v0.12. Instead, use length(aws_instance.test) to count resource instances.
+	// Invalid resource count attribute: The special "count" attribute is no longer supported after mnptu v0.12. Instead, use length(aws_instance.test) to count resource instances.
 	if got, want := diags.Err().Error(), "Invalid resource count attribute:"; !strings.Contains(got, want) {
 		t.Fatalf("wrong error:\ngot:  %s\nwant: message containing %q", got, want)
 	}
@@ -1945,7 +1945,7 @@ resource "test_instance" "c" {
 func TestContext2Validate_passInheritedProvider(t *testing.T) {
 	m := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
+mnptu {
   required_providers {
 	test = {
 	  source = "hashicorp/test"
@@ -1965,7 +1965,7 @@ module "first" {
 		// should be able to pass whatever the implied config is to a child
 		// module.
 		"first/main.tf": `
-terraform {
+mnptu {
   required_providers {
     test = {
 	  source = "hashicorp/test"
@@ -1981,7 +1981,7 @@ module "second" {
 }`,
 
 		"first/second/main.tf": `
-terraform {
+mnptu {
   required_providers {
     test = {
 	  source = "hashicorp/test"

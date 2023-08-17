@@ -17,7 +17,7 @@ const (
 // Block represents a configuration block.
 //
 // "Block" here is a logical grouping construct, though it happens to map
-// directly onto the physical block syntax of Terraform's native configuration
+// directly onto the physical block syntax of mnptu's native configuration
 // syntax. It may be a more a matter of convention in other syntaxes, such as
 // JSON.
 //
@@ -73,7 +73,7 @@ type Attribute struct {
 	//
 	// At present nothing is done with this information, but callers are
 	// encouraged to set it where appropriate so that it may be used in the
-	// future to help Terraform mask sensitive information. (Terraform
+	// future to help mnptu mask sensitive information. (mnptu
 	// currently achieves this in a limited sense via other mechanisms.)
 	Sensitive bool
 

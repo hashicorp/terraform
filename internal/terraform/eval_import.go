@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
 )
@@ -40,7 +40,7 @@ func evaluateImportIdExpression(expr hcl.Expression, ctx EvalContext) (string, t
 		return "", diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Invalid import id argument",
-			Detail:   `The import block "id" argument depends on resource attributes that cannot be determined until apply, so Terraform cannot plan to import this resource.`, // FIXME and what should I do about that?
+			Detail:   `The import block "id" argument depends on resource attributes that cannot be determined until apply, so mnptu cannot plan to import this resource.`, // FIXME and what should I do about that?
 			Subject:  expr.Range().Ptr(),
 			//	Expression:
 			//	EvalContext:

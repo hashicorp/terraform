@@ -10,13 +10,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -68,7 +68,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	ret := &backend.LocalRun{}
 
 	// Initialize our context options
-	var coreOpts terraform.ContextOpts
+	var coreOpts mnptu.ContextOpts
 	if v := b.ContextOpts; v != nil {
 		coreOpts = *v
 	}
@@ -78,7 +78,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	var ctxDiags tfdiags.Diagnostics
 	var configSnap *configload.Snapshot
 	if op.PlanFile.IsCloud() {
-		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan when executing Terraform locally is not supported"))
+		diags = diags.Append(fmt.Errorf("error: using a saved cloud plan when executing mnptu locally is not supported"))
 		return nil, nil, nil, diags
 	}
 
@@ -115,7 +115,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	if op.Type != backend.OperationTypeInvalid {
 		// If input asking is enabled, then do that
 		if op.PlanFile == nil && b.OpInput {
-			mode := terraform.InputModeProvider
+			mode := mnptu.InputModeProvider
 
 			log.Printf("[TRACE] backend/local: requesting interactive input, if necessary")
 			inputDiags := ret.Core.Input(ret.Config, mode)
@@ -136,7 +136,7 @@ func (b *Local) localRun(op *backend.Operation) (*backend.LocalRun, *configload.
 	return ret, configSnap, s, diags
 }
 
-func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, coreOpts *terraform.ContextOpts, s statemgr.Full) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, coreOpts *mnptu.ContextOpts, s statemgr.Full) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	// Load the configuration using the caller-provided configuration loader.
@@ -157,11 +157,11 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 		case op.DependencyLocks == nil:
 			// If we get here then it suggests that there's a caller that we
 			// didn't yet update to populate DependencyLocks, which is a bug.
-			suggestion = "This run has no dependency lock information provided at all, which is a bug in Terraform; please report it!"
+			suggestion = "This run has no dependency lock information provided at all, which is a bug in mnptu; please report it!"
 		case op.DependencyLocks.Empty():
-			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  terraform init"
+			suggestion = "To make the initial dependency selections that will initialize the dependency lock file, run:\n  mnptu init"
 		default:
-			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  terraform init -upgrade"
+			suggestion = "To update the locked dependency selections to match a changed configuration, run:\n  mnptu init -upgrade"
 		}
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
@@ -194,7 +194,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 		return nil, nil, diags
 	}
 
-	planOpts := &terraform.PlanOpts{
+	planOpts := &mnptu.PlanOpts{
 		Mode:               op.PlanMode,
 		Targets:            op.Targets,
 		ForceReplace:       op.ForceReplace,
@@ -208,7 +208,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	// snapshot, from the previous run.
 	run.InputState = s.State()
 
-	tfCtx, moreDiags := terraform.NewContext(coreOpts)
+	tfCtx, moreDiags := mnptu.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, diags
@@ -217,7 +217,7 @@ func (b *Local) localRunDirect(op *backend.Operation, run *backend.LocalRun, cor
 	return run, configSnap, diags
 }
 
-func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, run *backend.LocalRun, coreOpts *terraform.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
+func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, run *backend.LocalRun, coreOpts *mnptu.ContextOpts, currentStateMeta *statemgr.SnapshotMeta) (*backend.LocalRun, *configload.Snapshot, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
 	const errSummary = "Invalid plan file"
@@ -342,7 +342,7 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 	// we need to apply the plan.
 	run.Plan = plan
 
-	tfCtx, moreDiags := terraform.NewContext(coreOpts)
+	tfCtx, moreDiags := mnptu.NewContext(coreOpts)
 	diags = diags.Append(moreDiags)
 	if moreDiags.HasErrors() {
 		return nil, nil, diags
@@ -366,12 +366,12 @@ func (b *Local) localRunForPlanFile(op *backend.Operation, pf *planfile.Reader, 
 // additional elements as appropriate.
 //
 // Interactive prompting is a "best effort" thing for first-time user UX and
-// not something we expect folks to be relying on for routine use. Terraform
+// not something we expect folks to be relying on for routine use. mnptu
 // is primarily a non-interactive tool and so we prefer to report in error
 // messages that variables are not set rather than reporting that input failed:
 // the primary resolution to missing variables is to provide them by some other
 // means.
-func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput terraform.UIInput) map[string]backend.UnparsedVariableValue {
+func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[string]backend.UnparsedVariableValue, vcs map[string]*configs.Variable, uiInput mnptu.UIInput) map[string]backend.UnparsedVariableValue {
 	var needed []string
 	if b.OpInput && uiInput != nil {
 		for name, vc := range vcs {
@@ -400,7 +400,7 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 	}
 	for _, name := range needed {
 		vc := vcs[name]
-		rawValue, err := uiInput.Input(ctx, &terraform.InputOpts{
+		rawValue, err := uiInput.Input(ctx, &mnptu.InputOpts{
 			Id:          fmt.Sprintf("var.%s", name),
 			Query:       fmt.Sprintf("var.%s", name),
 			Description: vc.Description,
@@ -435,8 +435,8 @@ func (b *Local) interactiveCollectVariables(ctx context.Context, existing map[st
 //
 // This function should be used only in situations where variables values
 // will not be directly used and the variables map is being constructed only
-// to produce a complete Terraform context for some ancillary functionality
-// like "terraform console", "terraform state ...", etc.
+// to produce a complete mnptu context for some ancillary functionality
+// like "mnptu console", "mnptu state ...", etc.
 //
 // This function is guaranteed not to modify the given map, but it may return
 // the given map unchanged if no additions are required. If additions are
@@ -478,16 +478,16 @@ type unparsedInteractiveVariableValue struct {
 
 var _ backend.UnparsedVariableValue = unparsedInteractiveVariableValue{}
 
-func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+func (v unparsedInteractiveVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	val, valDiags := mode.Parse(v.Name, v.RawValue)
 	diags = diags.Append(valDiags)
 	if diags.HasErrors() {
 		return nil, diags
 	}
-	return &terraform.InputValue{
+	return &mnptu.InputValue{
 		Value:      val,
-		SourceType: terraform.ValueFromInput,
+		SourceType: mnptu.ValueFromInput,
 	}, diags
 }
 
@@ -498,9 +498,9 @@ type unparsedUnknownVariableValue struct {
 
 var _ backend.UnparsedVariableValue = unparsedUnknownVariableValue{}
 
-func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
-	return &terraform.InputValue{
+func (v unparsedUnknownVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*mnptu.InputValue, tfdiags.Diagnostics) {
+	return &mnptu.InputValue{
 		Value:      cty.UnknownVal(v.WantType),
-		SourceType: terraform.ValueFromInput,
+		SourceType: mnptu.ValueFromInput,
 	}, nil
 }

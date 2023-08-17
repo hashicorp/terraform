@@ -3,7 +3,7 @@
 
 package configs
 
-import "github.com/hashicorp/terraform/internal/addrs"
+import "github.com/hashicorp/mnptu/internal/addrs"
 
 // Container provides an interface for scoped resources.
 //

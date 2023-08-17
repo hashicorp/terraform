@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/communicator/shared"
+	"github.com/hashicorp/mnptu/internal/communicator/shared"
 	sshagent "github.com/xanzy/ssh-agent"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/gocty"
@@ -34,10 +34,10 @@ const (
 
 	// DefaultUnixScriptPath is used as the path to copy the file to
 	// for remote execution on unix if not provided otherwise.
-	DefaultUnixScriptPath = "/tmp/terraform_%RAND%.sh"
+	DefaultUnixScriptPath = "/tmp/mnptu_%RAND%.sh"
 	// DefaultWindowsScriptPath is used as the path to copy the file to
 	// for remote execution on windows if not provided otherwise.
-	DefaultWindowsScriptPath = "C:/windows/temp/terraform_%RAND%.cmd"
+	DefaultWindowsScriptPath = "C:/windows/temp/mnptu_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
@@ -330,7 +330,7 @@ func buildSSHClientConfig(opts sshClientConfigOpts) (*ssh.ClientConfig, error) {
 	hkCallback := ssh.InsecureIgnoreHostKey()
 
 	if opts.hostKey != "" {
-		// The knownhosts package only takes paths to files, but terraform
+		// The knownhosts package only takes paths to files, but mnptu
 		// generally wants to handle config data in-memory. Rather than making
 		// the known_hosts file an exception, write out the data to a temporary
 		// file to create the HostKeyCallback.

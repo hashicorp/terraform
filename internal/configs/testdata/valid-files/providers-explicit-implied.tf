@@ -25,7 +25,7 @@ import {
   to       = local_file.bar
 }
 
-terraform {
+mnptu {
   required_providers {
     test = {
       source = "hashicorp/test"

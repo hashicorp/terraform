@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 type graphNodeImportState struct {
@@ -156,8 +156,8 @@ func (n *graphNodeImportState) DynamicExpand(ctx EvalContext) (*Graph, error) {
 		if existing != nil {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Resource already managed by Terraform",
-				fmt.Sprintf("Terraform is already managing a remote object for %s. To import to this address you must first remove the existing object from the state.", addr),
+				"Resource already managed by mnptu",
+				fmt.Sprintf("mnptu is already managing a remote object for %s. To import to this address you must first remove the existing object from the state.", addr),
 			))
 			continue
 		}
@@ -241,7 +241,7 @@ func (n *graphNodeImportStateSub) Execute(ctx EvalContext, op walkOperation) (di
 					"the provider detected that no object exists with the given id. "+
 					"Only pre-existing objects can be imported; check that the id "+
 					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
+					"configured region or endpoint, or use \"mnptu apply\" to "+
 					"create a new remote object for this resource.",
 				n.TargetAddr,
 			),

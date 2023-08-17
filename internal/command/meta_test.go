@@ -14,9 +14,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 	"github.com/mitchellh/cli"
 )
 
@@ -90,7 +90,7 @@ func TestMetaInputMode(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputMode() != terraform.InputModeStd {
+	if m.InputMode() != mnptu.InputModeStd {
 		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
@@ -109,11 +109,11 @@ func TestMetaInputMode_envVar(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	off := terraform.InputMode(0)
-	on := terraform.InputModeStd
+	off := mnptu.InputMode(0)
+	on := mnptu.InputModeStd
 	cases := []struct {
 		EnvVar   string
-		Expected terraform.InputMode
+		Expected mnptu.InputMode
 	}{
 		{"false", off},
 		{"0", off},
@@ -306,7 +306,7 @@ func TestMeta_process(t *testing.T) {
 	// but we're still testing with these files in place to verify that
 	// they _aren't_ being interpreted by process, since that could otherwise
 	// cause them to be added more than once and mess up the precedence order.
-	defaultVarsfile := "terraform.tfvars"
+	defaultVarsfile := "mnptu.tfvars"
 	err := ioutil.WriteFile(
 		filepath.Join(d, defaultVarsfile),
 		[]byte(""),

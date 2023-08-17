@@ -11,12 +11,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/jsonchecks"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/jsonchecks"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 const (
@@ -29,11 +29,11 @@ const (
 	DataResourceMode    = "data"
 )
 
-// State is the top-level representation of the json format of a terraform
+// State is the top-level representation of the json format of a mnptu
 // state.
 type State struct {
 	FormatVersion    string          `json:"format_version,omitempty"`
-	TerraformVersion string          `json:"terraform_version,omitempty"`
+	mnptuVersion string          `json:"mnptu_version,omitempty"`
 	Values           *StateValues    `json:"values,omitempty"`
 	Checks           json.RawMessage `json:"checks,omitempty"`
 }
@@ -104,10 +104,10 @@ type Resource struct {
 	// addresses relative to the containing module.
 	DependsOn []string `json:"depends_on,omitempty"`
 
-	// Tainted is true if the resource is tainted in terraform state.
+	// Tainted is true if the resource is tainted in mnptu state.
 	Tainted bool `json:"tainted,omitempty"`
 
-	// Deposed is set if the resource is deposed in terraform state.
+	// Deposed is set if the resource is deposed in mnptu state.
 	DeposedKey string `json:"deposed_key,omitempty"`
 }
 
@@ -143,7 +143,7 @@ func newState() *State {
 
 // MarshalForRenderer returns the pre-json encoding changes of the state, in a
 // format available to the structured renderer.
-func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module, map[string]Output, error) {
+func MarshalForRenderer(sf *statefile.File, schemas *mnptu.Schemas) (Module, map[string]Output, error) {
 	if sf.State.Modules == nil {
 		// Empty state case.
 		return Module{}, nil, nil
@@ -164,15 +164,15 @@ func MarshalForRenderer(sf *statefile.File, schemas *terraform.Schemas) (Module,
 
 // MarshalForLog returns the origin JSON compatible state, read for a logging
 // package to marshal further.
-func MarshalForLog(sf *statefile.File, schemas *terraform.Schemas) (*State, error) {
+func MarshalForLog(sf *statefile.File, schemas *mnptu.Schemas) (*State, error) {
 	output := newState()
 
 	if sf == nil || sf.State.Empty() {
 		return output, nil
 	}
 
-	if sf.TerraformVersion != nil {
-		output.TerraformVersion = sf.TerraformVersion.String()
+	if sf.mnptuVersion != nil {
+		output.mnptuVersion = sf.mnptuVersion.String()
 	}
 
 	// output.StateValues
@@ -189,8 +189,8 @@ func MarshalForLog(sf *statefile.File, schemas *terraform.Schemas) (*State, erro
 	return output, nil
 }
 
-// Marshal returns the json encoding of a terraform state.
-func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
+// Marshal returns the json encoding of a mnptu state.
+func Marshal(sf *statefile.File, schemas *mnptu.Schemas) ([]byte, error) {
 	output, err := MarshalForLog(sf, schemas)
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func Marshal(sf *statefile.File, schemas *terraform.Schemas) ([]byte, error) {
 	return ret, err
 }
 
-func (jsonstate *State) marshalStateValues(s *states.State, schemas *terraform.Schemas) error {
+func (jsonstate *State) marshalStateValues(s *states.State, schemas *mnptu.Schemas) error {
 	var sv StateValues
 	var err error
 
@@ -248,7 +248,7 @@ func MarshalOutputs(outputs map[string]*states.OutputValue) (map[string]Output, 
 	return ret, nil
 }
 
-func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, error) {
+func marshalRootModule(s *states.State, schemas *mnptu.Schemas) (Module, error) {
 	var ret Module
 	var err error
 
@@ -292,10 +292,10 @@ func marshalRootModule(s *states.State, schemas *terraform.Schemas) (Module, err
 }
 
 // marshalModules is an ungainly recursive function to build a module structure
-// out of terraform state.
+// out of mnptu state.
 func marshalModules(
 	s *states.State,
-	schemas *terraform.Schemas,
+	schemas *mnptu.Schemas,
 	modules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,
 ) ([]Module, error) {
@@ -333,7 +333,7 @@ func marshalModules(
 	return ret, nil
 }
 
-func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *terraform.Schemas) ([]Resource, error) {
+func marshalResources(resources map[string]*states.Resource, module addrs.ModuleInstance, schemas *mnptu.Schemas) ([]Resource, error) {
 	var ret []Resource
 
 	var sortedResources []*states.Resource

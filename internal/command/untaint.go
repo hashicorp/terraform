@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // UntaintCommand is a cli.Command implementation that manually untaints
@@ -70,7 +70,7 @@ func (c *UntaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check remote Terraform version is compatible
+	// Check remote mnptu version is compatible
 	remoteVersionDiags := c.remoteVersionCheck(b, workspace)
 	diags = diags.Append(remoteVersionDiags)
 	c.showDiagnostics(diags)
@@ -132,7 +132,7 @@ func (c *UntaintCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No such resource instance",
-			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"terraform apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
+			fmt.Sprintf("There is no resource instance in the state with the address %s. If the resource configuration has just been added, you must run \"mnptu apply\" once to create the corresponding instance(s) before they can be tainted.", addr),
 		))
 		c.showDiagnostics(diags)
 		return 1
@@ -144,7 +144,7 @@ func (c *UntaintCommand) Run(args []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"No such resource instance",
-				fmt.Sprintf("Resource instance %s is currently part-way through a create_before_destroy replacement action. Run \"terraform apply\" to complete its replacement before tainting it.", addr),
+				fmt.Sprintf("Resource instance %s is currently part-way through a create_before_destroy replacement action. Run \"mnptu apply\" to complete its replacement before tainting it.", addr),
 			))
 		} else {
 			// Don't know why we're here, but we'll produce a generic error message anyway.
@@ -169,7 +169,7 @@ func (c *UntaintCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	var schemas *terraform.Schemas
+	var schemas *mnptu.Schemas
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(state, nil)
@@ -195,19 +195,19 @@ func (c *UntaintCommand) Run(args []string) int {
 
 func (c *UntaintCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] untaint [options] name
+Usage: mnptu [global options] untaint [options] name
 
-  Terraform uses the term "tainted" to describe a resource instance
+  mnptu uses the term "tainted" to describe a resource instance
   which may not be fully functional, either because its creation
   partially failed or because you've manually marked it as such using
-  the "terraform taint" command.
+  the "mnptu taint" command.
 
   This command removes that state from a resource instance, causing
-  Terraform to see it as fully-functional and not in need of
+  mnptu to see it as fully-functional and not in need of
   replacement.
 
   This will not modify your infrastructure directly. It only avoids
-  Terraform planning to replace a tainted instance in a future operation.
+  mnptu planning to replace a tainted instance in a future operation.
 
 Options:
 

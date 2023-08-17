@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package backend provides interfaces that the CLI uses to interact with
-// Terraform. A backend provides the abstraction that allows the same CLI
+// mnptu. A backend provides the abstraction that allows the same CLI
 // to simultaneously support both local and remote operations for seamlessly
-// using Terraform in a team environment.
+// using mnptu in a team environment.
 package backend
 
 import (
@@ -14,20 +14,20 @@ import (
 	"log"
 	"os"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/planfile"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/planfile"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -55,7 +55,7 @@ var (
 // InitFn is used to initialize a new backend.
 type InitFn func() Backend
 
-// Backend is the minimal interface that must be implemented to enable Terraform.
+// Backend is the minimal interface that must be implemented to enable mnptu.
 type Backend interface {
 	// ConfigSchema returns a description of the expected configuration
 	// structure for the receiving backend.
@@ -136,7 +136,7 @@ type HostAlias struct {
 type Enhanced interface {
 	Backend
 
-	// Operation performs a Terraform operation such as refresh, plan, apply.
+	// Operation performs a mnptu operation such as refresh, plan, apply.
 	// It is up to the implementation to determine what "performing" means.
 	// This DOES NOT BLOCK. The context returned as part of RunningOperation
 	// should be used to block for completion.
@@ -153,7 +153,7 @@ type Enhanced interface {
 // Local implements additional behavior on a Backend that allows local
 // operations in addition to remote operations.
 //
-// This enables more behaviors of Terraform that require more data such
+// This enables more behaviors of mnptu that require more data such
 // as `console`, `import`, `graph`. These require direct access to
 // configurations, variables, and more. Not all backends may support this
 // so we separate it out into its own optional interface.
@@ -174,7 +174,7 @@ type Local interface {
 // calculate from an Operation object, which we can then use for local
 // operations.
 //
-// The operation methods on terraform.Context (Plan, Apply, Import, etc) each
+// The operation methods on mnptu.Context (Plan, Apply, Import, etc) each
 // generate new artifacts which supersede parts of the LocalRun object that
 // started the operation, so callers should be careful to use those subsequent
 // artifacts instead of the fields of LocalRun where appropriate. The LocalRun
@@ -183,14 +183,14 @@ type Local interface {
 //
 // This type is a weird architectural wart resulting from the overly-general
 // way our backend API models operations, whereby we behave as if all
-// Terraform operations have the same inputs and outputs even though they
+// mnptu operations have the same inputs and outputs even though they
 // are actually all rather different. The exact meaning of the fields in
 // this type therefore vary depending on which OperationType was passed to
 // Local.Context in order to create an object of this type.
 type LocalRun struct {
-	// Core is an already-initialized Terraform Core context, ready to be
+	// Core is an already-initialized mnptu Core context, ready to be
 	// used to run operations such as Plan and Apply.
-	Core *terraform.Context
+	Core *mnptu.Context
 
 	// Config is the configuration we're working with, which typically comes
 	// from either config files directly on local disk (when we're creating
@@ -208,7 +208,7 @@ type LocalRun struct {
 	//
 	// This is nil when we're applying a saved plan, because the plan itself
 	// contains enough information about its options to apply it.
-	PlanOpts *terraform.PlanOpts
+	PlanOpts *mnptu.PlanOpts
 
 	// Plan is a plan loaded from a saved plan file, if our operation is to
 	// apply that saved plan.
@@ -217,7 +217,7 @@ type LocalRun struct {
 	Plan *plans.Plan
 }
 
-// An operation represents an operation for Terraform to execute.
+// An operation represents an operation for mnptu to execute.
 //
 // Note that not all fields are supported by all backends and can result
 // in an error if set. All backend implementations should show user-friendly
@@ -225,13 +225,13 @@ type LocalRun struct {
 // backend doesn't support a PlanId being set.
 //
 // The operation options are purposely designed to have maximal compatibility
-// between Terraform and Terraform Servers (a commercial product offered by
+// between mnptu and mnptu Servers (a commercial product offered by
 // HashiCorp). Therefore, it isn't expected that other implementation support
 // every possible option. The struct here is generalized in order to allow
 // even partial implementations to exist in the open, without walling off
 // remote functionality 100% behind a commercial wall. Anyone can implement
-// against this interface and have Terraform interact with it just as it
-// would with HashiCorp-provided Terraform Servers.
+// against this interface and have mnptu interact with it just as it
+// would with HashiCorp-provided mnptu Servers.
 type Operation struct {
 	// Type is the operation to perform.
 	Type OperationType
@@ -266,7 +266,7 @@ type Operation struct {
 
 	// Hooks can be used to perform actions triggered by various events during
 	// the operation's lifecycle.
-	Hooks []terraform.Hook
+	Hooks []mnptu.Hook
 
 	// Plan is a plan that was passed as an argument. This is valid for
 	// plan and apply arguments but may not work for all backends.
@@ -294,8 +294,8 @@ type Operation struct {
 	View views.Operation
 
 	// Input/output/control options.
-	UIIn  terraform.UIInput
-	UIOut terraform.UIOutput
+	UIIn  mnptu.UIInput
+	UIOut mnptu.UIOutput
 
 	// StateLocker is used to lock the state while providing UI feedback to the
 	// user. This will be replaced by the Backend to update the context.
@@ -315,7 +315,7 @@ type Operation struct {
 }
 
 // HasConfig returns true if and only if the operation has a ConfigDir value
-// that refers to a directory containing at least one Terraform configuration
+// that refers to a directory containing at least one mnptu configuration
 // file.
 func (o *Operation) HasConfig() bool {
 	return o.ConfigLoader.IsConfigDir(o.ConfigDir)

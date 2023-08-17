@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     tls = {
       source  = "hashicorp/tls"
@@ -12,9 +12,9 @@ terraform {
 resource "implied_foo" "bar" {
 }
 
-# There is no provider in required_providers called "terraform", but for
-# this name in particular we imply terraform.io/builtin/terraform instead,
+# There is no provider in required_providers called "mnptu", but for
+# this name in particular we imply mnptu.io/builtin/mnptu instead,
 # to avoid selecting the now-unmaintained
-# registry.terraform.io/hashicorp/terraform.
-data "terraform_remote_state" "bar" {
+# registry.mnptu.io/hashicorp/mnptu.
+data "mnptu_remote_state" "bar" {
 }

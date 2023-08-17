@@ -23,7 +23,7 @@ locals {
 }
 
 resource "local_file" "data_file" {
-  filename = "terraform.data/${random_integer.random.id}.json"
+  filename = "mnptu.data/${random_integer.random.id}.json"
   content = local.contents
 }
 

@@ -6,7 +6,7 @@ package local
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend"
 )
 
 // backend.CLI impl.

@@ -1,18 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -63,7 +63,7 @@ func upgradeResourceState(addr addrs.AbsResourceInstance, provider providers.Int
 
 	// If we get down here then we need to upgrade the state, with the
 	// provider's help.
-	// If this state was originally created by a version of Terraform prior to
+	// If this state was originally created by a version of mnptu prior to
 	// v0.12, this also includes translating from legacy flatmap to new-style
 	// representation, since only the provider has enough information to
 	// understand a flatmap built against an older schema.

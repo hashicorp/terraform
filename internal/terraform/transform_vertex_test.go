@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/mnptu/internal/dag"
 )
 
 func TestVertexTransformer_impl(t *testing.T) {

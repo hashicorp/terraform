@@ -6,16 +6,16 @@ package statefile
 import (
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/states"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/states"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 // File is the in-memory representation of a state file. It includes the state
 // itself along with various metadata used to track changing state files for
 // the same configuration over time.
 type File struct {
-	// TerraformVersion is the version of Terraform that wrote this state file.
-	TerraformVersion *version.Version
+	// mnptuVersion is the version of mnptu that wrote this state file.
+	mnptuVersion *version.Version
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -43,7 +43,7 @@ func New(state *states.State, lineage string, serial uint64) *File {
 	}
 
 	return &File{
-		TerraformVersion: tfversion.SemVer,
+		mnptuVersion: tfversion.SemVer,
 		State:            state,
 		Lineage:          lineage,
 		Serial:           serial,
@@ -57,7 +57,7 @@ func (f *File) DeepCopy() *File {
 		return nil
 	}
 	return &File{
-		TerraformVersion: f.TerraformVersion,
+		mnptuVersion: f.mnptuVersion,
 		Serial:           f.Serial,
 		Lineage:          f.Lineage,
 		State:            f.State.DeepCopy(),

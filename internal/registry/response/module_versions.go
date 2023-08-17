@@ -4,7 +4,7 @@
 package response
 
 // ModuleVersions is the response format that contains all metadata about module
-// versions needed for terraform CLI to resolve version constraints. See RFC
+// versions needed for mnptu CLI to resolve version constraints. See RFC
 // TF-042 for details on this format.
 type ModuleVersions struct {
 	Modules []*ModuleProviderVersions `json:"modules"`

@@ -1,7 +1,7 @@
-terraform {
+mnptu {
   required_providers {
     nonexist = {
-      source = "teamterraform/nonexist"
+      source = "teammnptu/nonexist"
     }
   }
 }

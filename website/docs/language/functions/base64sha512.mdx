@@ -13,7 +13,7 @@ returns hexadecimal representation.
 
 The given string is first encoded as UTF-8 and then the SHA512 algorithm is applied
 as defined in [RFC 4634](https://tools.ietf.org/html/rfc4634). The raw hash is
-then encoded with Base64 before returning. Terraform uses the "standard" Base64
+then encoded with Base64 before returning. mnptu uses the "standard" Base64
 alphabet as defined in [RFC 4648 section 4](https://tools.ietf.org/html/rfc4648#section-4).
 
 ## Examples
@@ -25,7 +25,7 @@ MJ7MSJwS1utMxA9QyQLytNDtd+5RGnx6m808qG1M2G+YndNbxf9JlnDaNCVbRbDP2DDoH2Bdz33FVC6T
 
 ## Related Functions
 
-* [`filebase64sha512`](/terraform/language/functions/filebase64sha512) calculates the same hash from
+* [`filebase64sha512`](/mnptu/language/functions/filebase64sha512) calculates the same hash from
   the contents of a file rather than from a string value.
-* [`sha512`](/terraform/language/functions/sha512) calculates the same hash but returns the result
+* [`sha512`](/mnptu/language/functions/sha512) calculates the same hash but returns the result
   in a more-verbose hexadecimal encoding.

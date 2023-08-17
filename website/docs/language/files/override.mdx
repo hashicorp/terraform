@@ -7,25 +7,25 @@ description: >-
 
 # Override Files
 
-Terraform normally loads all of the `.tf` and `.tf.json` files within a
+mnptu normally loads all of the `.tf` and `.tf.json` files within a
 directory and expects each one to define a distinct set of configuration
-objects. If two files attempt to define the same object, Terraform returns
+objects. If two files attempt to define the same object, mnptu returns
 an error.
 
 In some rare cases, it is convenient to be able to override specific portions
 of an existing configuration object in a separate file. For example, a
-human-edited configuration file in the Terraform language native syntax
+human-edited configuration file in the mnptu language native syntax
 could be partially overridden using a programmatically-generated file
 in JSON syntax.
 
-For these rare situations, Terraform has special handling of any configuration
+For these rare situations, mnptu has special handling of any configuration
 file whose name ends in `_override.tf` or `_override.tf.json`. This special
 handling also applies to a file named literally `override.tf` or
 `override.tf.json`.
 
-Terraform initially skips these _override files_ when loading configuration,
+mnptu initially skips these _override files_ when loading configuration,
 and then afterwards processes each one in turn (in lexicographical order). For
-each top-level block defined in an override file, Terraform attempts to find
+each top-level block defined in an override file, mnptu attempts to find
 an already-defined object corresponding to that block and then merges the
 override block contents into the existing object.
 
@@ -38,7 +38,7 @@ override files apply changes to each block.
 
 ## Example
 
-If you have a Terraform configuration `example.tf` with the following contents:
+If you have a mnptu configuration `example.tf` with the following contents:
 
 ```hcl
 resource "aws_instance" "web" {
@@ -55,7 +55,7 @@ resource "aws_instance" "web" {
 }
 ```
 
-Terraform will merge the latter into the former, behaving as if the original
+mnptu will merge the latter into the former, behaving as if the original
 configuration had been as follows:
 
 ```hcl
@@ -119,7 +119,7 @@ described above, but some special considerations apply due to the interactions
 between the `type` and `default` arguments.
 
 If the original block defines a `default` value and an override block changes
-the variable's `type`, Terraform attempts to convert the default value to
+the variable's `type`, mnptu attempts to convert the default value to
 the overridden type, producing an error if this conversion is not possible.
 
 Conversely, if the original block defines a `type` and an override block changes
@@ -136,9 +136,9 @@ produce an error.
 Each `locals` block defines a number of named values. Overrides are applied
 on a value-by-value basis, ignoring which `locals` block they are defined in.
 
-### Merging `terraform` blocks
+### Merging `mnptu` blocks
 
-The settings within `terraform` blocks are considered individually when
+The settings within `mnptu` blocks are considered individually when
 merging.
 
 If the `required_providers` argument is set, its value is merged on an
@@ -154,7 +154,7 @@ original block. If both the base block and the override block both set
 The presence of a block defining a backend (either `cloud` or `backend`) in an override
 file always takes precedence over a block defining a backend in the original configuration.
 That is, if a `cloud` block is set within the original configuration and a `backend` block is
-set in the override file, Terraform will use the `backend` block specified in the override file upon merging.
+set in the override file, mnptu will use the `backend` block specified in the override file upon merging.
 Similarly, if a `backend` block is set within the original configuration and a `cloud` block
-is set in the override file, Terraform will use the `cloud` block specified in the override
+is set in the override file, mnptu will use the `cloud` block specified in the override
 file upon merging.

@@ -2,17 +2,17 @@
   "configuration": {
     "provider_config": {
       "local": {
-        "full_name": "registry.terraform.io/hashicorp/local",
+        "full_name": "registry.mnptu.io/hashicorp/local",
         "name": "local",
         "version_constraint": "2.2.3"
       },
       "random": {
-        "full_name": "registry.terraform.io/hashicorp/random",
+        "full_name": "registry.mnptu.io/hashicorp/random",
         "name": "random",
         "version_constraint": "3.4.3"
       },
       "tfcoremock": {
-        "full_name": "registry.terraform.io/hashicorp/tfcoremock",
+        "full_name": "registry.mnptu.io/hashicorp/tfcoremock",
         "name": "tfcoremock",
         "version_constraint": "0.1.1"
       }
@@ -135,7 +135,7 @@
               "address": "module.create.local_file.data_file",
               "mode": "managed",
               "name": "data_file",
-              "provider_name": "registry.terraform.io/hashicorp/local",
+              "provider_name": "registry.mnptu.io/hashicorp/local",
               "schema_version": 0,
               "sensitive_values": {},
               "type": "local_file",
@@ -151,7 +151,7 @@
               "address": "module.create.random_integer.random",
               "mode": "managed",
               "name": "random",
-              "provider_name": "registry.terraform.io/hashicorp/random",
+              "provider_name": "registry.mnptu.io/hashicorp/random",
               "schema_version": 0,
               "sensitive_values": {},
               "type": "random_integer",
@@ -170,7 +170,7 @@
           "address": "data.tfcoremock_simple_resource.read",
           "mode": "data",
           "name": "read",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "tfcoremock_simple_resource",
@@ -186,7 +186,7 @@
           "address": "tfcoremock_simple_resource.create",
           "mode": "managed",
           "name": "create",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "tfcoremock_simple_resource",
@@ -239,7 +239,7 @@
       },
       "mode": "data",
       "name": "read",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     },
     {
@@ -264,7 +264,7 @@
       },
       "mode": "managed",
       "name": "create",
-      "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+      "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
       "type": "tfcoremock_simple_resource"
     },
     {
@@ -294,7 +294,7 @@
       "mode": "managed",
       "module_address": "module.create",
       "name": "data_file",
-      "provider_name": "registry.terraform.io/hashicorp/local",
+      "provider_name": "registry.mnptu.io/hashicorp/local",
       "type": "local_file"
     },
     {
@@ -320,7 +320,7 @@
       "mode": "managed",
       "module_address": "module.create",
       "name": "random",
-      "provider_name": "registry.terraform.io/hashicorp/random",
+      "provider_name": "registry.mnptu.io/hashicorp/random",
       "type": "random_integer"
     }
   ]

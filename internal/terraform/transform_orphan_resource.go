@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 // OrphanResourceInstanceTransformer is a GraphTransformer that adds orphaned
@@ -44,7 +44,7 @@ func (t *OrphanResourceInstanceTransformer) Transform(g *Graph) error {
 		return nil
 	}
 	if t.Config == nil {
-		// Should never happen: we can't be doing any Terraform operations
+		// Should never happen: we can't be doing any mnptu operations
 		// without at least an empty configuration.
 		panic("OrphanResourceInstanceTransformer used without setting Config")
 	}

@@ -14,15 +14,15 @@ provider "too/many/parts/here" { # ERROR: Invalid provider source address
 
 }
 
-provider "Registry.terraform.io/example/example" { # ERROR: Non-normalized provider source address
+provider "Registry.mnptu.io/example/example" { # ERROR: Non-normalized provider source address
 
 }
 
-provider "registry.terraform.io/eXample/example" { # ERROR: Non-normalized provider source address
+provider "registry.mnptu.io/eXample/example" { # ERROR: Non-normalized provider source address
 
 }
 
-provider "registry.terraform.io/example/Example" { # ERROR: Non-normalized provider source address
+provider "registry.mnptu.io/example/Example" { # ERROR: Non-normalized provider source address
 
 }
 
@@ -34,11 +34,11 @@ provider "this/one/okay" { # ERROR: Duplicate provider lock
 }
 
 # Legacy providers are not allowed, because they existed only to
-# support the Terraform 0.13 upgrade process.
-provider "registry.terraform.io/-/null" { # ERROR: Invalid provider source address
+# support the mnptu 0.13 upgrade process.
+provider "registry.mnptu.io/-/null" { # ERROR: Invalid provider source address
 }
 
 # Built-in providers are not allowed, because they are not versioned
-# independently of the Terraform CLI release they are embedded in.
-provider "terraform.io/builtin/foo" { # ERROR: Invalid provider source address
+# independently of the mnptu CLI release they are embedded in.
+provider "mnptu.io/builtin/foo" { # ERROR: Invalid provider source address
 }

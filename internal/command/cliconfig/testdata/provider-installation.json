@@ -10,8 +10,8 @@
     }],
     "network_mirror": [{
       "url": "https://tf-Mirror.example.com/",
-      "include": ["registry.terraform.io/*/*"],
-      "exclude": ["registry.Terraform.io/foobar/*"]
+      "include": ["registry.mnptu.io/*/*"],
+      "exclude": ["registry.mnptu.io/foobar/*"]
     }],
     "filesystem_mirror": [{
       "path": "/tmp/example2"

@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     my-aws = {
       source = "hashicorp/aws"

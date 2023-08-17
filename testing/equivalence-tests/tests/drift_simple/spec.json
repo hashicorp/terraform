@@ -1,5 +1,5 @@
 {
-  "description": "a simple test that models drift in a single resource by updating an existing resource outside of Terraform",
+  "description": "a simple test that models drift in a single resource by updating an existing resource outside of mnptu",
   "include_files": [],
   "ignore_fields": {}
 }

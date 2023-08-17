@@ -1,56 +1,56 @@
 ---
-page_title: Upgrading to Terraform v1.5
-description: Upgrading to Terraform v1.5
+page_title: Upgrading to mnptu v1.5
+description: Upgrading to mnptu v1.5
 ---
 
-# Upgrading to Terraform v1.5
+# Upgrading to mnptu v1.5
 
--> **Tip:** Use the version selector to view the upgrade guides for older Terraform versions.
+-> **Tip:** Use the version selector to view the upgrade guides for older mnptu versions.
 
-Terraform v1.5 is a minor release in the stable Terraform v1.0 series.
+mnptu v1.5 is a minor release in the stable mnptu v1.0 series.
 
-Terraform v1.5 honors the
-[Terraform v1.0 Compatibility Promises](https://developer.hashicorp.com/terraform/language/v1-compatibility-promises),
+mnptu v1.5 honors the
+[mnptu v1.0 Compatibility Promises](https://developer.hashicorp.com/mnptu/language/v1-compatibility-promises),
 but there are some behavior changes outside of those promises that may affect a
 small number of users. Specifically, the following updates may require
 additional upgrade steps:
 * [End of support for older macOS releases](#end-of-support-for-older-macos-releases)
 * [Linux DNS resolver changes](#linux-dns-resolver-changes)
 
-See [the full changelog](https://github.com/hashicorp/terraform/blob/v1.5/CHANGELOG.md)
+See [the full changelog](https://github.com/hashicorp/mnptu/blob/v1.5/CHANGELOG.md)
 for more details. If you encounter any problems during upgrading which are not
 covered this guide, please start a new topic in
-[the Terraform community forum](https://discuss.hashicorp.com/c/terraform-core)
+[the mnptu community forum](https://discuss.hashicorp.com/c/mnptu-core)
 to discuss it.
 
 ## End of support for older macOS releases
 
-Terraform v1.5 will be the last release supported on macOS 10.13 High Sierra
+mnptu v1.5 will be the last release supported on macOS 10.13 High Sierra
 and macOS 10.14 Mojave, both of which are no longer maintained by Apple.
 
-Terraform v1.5 itself supports these older macOS versions, but we strongly
+mnptu v1.5 itself supports these older macOS versions, but we strongly
 recommend upgrading during the v1.5 release period so that you'll be ready to
-use Terraform v1.6 once it is released.
+use mnptu v1.6 once it is released.
 
 ## Linux DNS resolver changes
 
-Terraform on Linux uses a built-in DNS resolver rather than using the DNS
-resolver from the platform's C library, because this allows Terraform to run
+mnptu on Linux uses a built-in DNS resolver rather than using the DNS
+resolver from the platform's C library, because this allows mnptu to run
 on systems with many different C libraries.
 
-In Terraform v1.5, the DNS resolver will now notice when you have set the
+In mnptu v1.5, the DNS resolver will now notice when you have set the
 `trust-ad` option in your `/etc/resolve.conf` file, and will respond by setting
 the "authentic data" option in outgoing DNS requests to better match the
 behavior of the GNU libc DNS resolver.
 
-Terraform does not pay any attention to the corresponding option in responses,
+mnptu does not pay any attention to the corresponding option in responses,
 but some DNSSEC-aware recursive resolvers return different responses when the
 request option isn't set. This should therefore avoid some potential situations
-where a DNS request from Terraform might get a different response than a
+where a DNS request from mnptu might get a different response than a
 similar request from other software on your system.
 
-We don't expect this behavior change to be significant for most Terraform users.
+We don't expect this behavior change to be significant for most mnptu users.
 
-Note that this change affects only DNS requests made by Terraform CLI itself,
+Note that this change affects only DNS requests made by mnptu CLI itself,
 and not requests made by providers. Provider plugins are separate programs
 which handle DNS resolution themselves and so may have different behavior.

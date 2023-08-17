@@ -9,9 +9,9 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/initwd"
 )
 
 func TestChecksHappyPath(t *testing.T) {
@@ -154,10 +154,10 @@ func TestChecksHappyPath(t *testing.T) {
 
 	/////////////////////////////////////////////////////////////////////////
 
-	// The following are steps that would normally be done by Terraform Core
+	// The following are steps that would normally be done by mnptu Core
 	// as part of visiting checkable objects during the graph walk. We're
 	// simulating a likely sequence of calls here for testing purposes, but
-	// Terraform Core won't necessarily visit all of these in exactly the
+	// mnptu Core won't necessarily visit all of these in exactly the
 	// same order every time and so this is just one possible valid ordering
 	// of calls.
 

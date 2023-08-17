@@ -1,16 +1,16 @@
 ---
 page_title: 'Command: workspace select'
-description: The terraform workspace select command is used to choose a workspace.
+description: The mnptu workspace select command is used to choose a workspace.
 ---
 
 # Command: workspace select
 
-The `terraform workspace select` command is used to choose a different
+The `mnptu workspace select` command is used to choose a different
 workspace to use for further operations.
 
 ## Usage
 
-Usage: `terraform workspace select NAME [DIR]`
+Usage: `mnptu workspace select NAME [DIR]`
 
 This command will select another workspace. The named workspace must already
 exist.
@@ -22,11 +22,11 @@ The supported flags are:
 ## Example
 
 ```
-$ terraform workspace list
+$ mnptu workspace list
   default
 * development
   jsmith-test
 
-$ terraform workspace select default
+$ mnptu workspace select default
 Switched to workspace "default".
 ```

@@ -11,11 +11,11 @@ import (
 	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -280,7 +280,7 @@ func TestState_PersistState(t *testing.T) {
 
 	t.Run("Snapshot Interval Backpressure Header", func(t *testing.T) {
 		// The "Create a State Version" API is allowed to return a special
-		// HTTP response header X-Terraform-Snapshot-Interval, in which case
+		// HTTP response header X-mnptu-Snapshot-Interval, in which case
 		// we should remember the number of seconds it specifies and delay
 		// creating any more intermediate state snapshots for that many seconds.
 
@@ -344,7 +344,7 @@ func TestState_PersistState(t *testing.T) {
 			}
 
 			// The PersistState call above should have sent a request to the test
-			// server and got back the x-terraform-snapshot-interval header, whose
+			// server and got back the x-mnptu-snapshot-interval header, whose
 			// value should therefore now be recorded in the relevant field.
 			if got := cloudState.stateSnapshotInterval; got != testCase.expectedInterval {
 				t.Errorf("wrong state snapshot interval after PersistState\ngot:  %s\nwant: %s", got, testCase.expectedInterval)

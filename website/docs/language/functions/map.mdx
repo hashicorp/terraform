@@ -5,9 +5,9 @@ description: The map function constructs a map from some given elements.
 
 # `map` Function
 
-The `map` function is no longer available. Prior to Terraform v0.12 it was
+The `map` function is no longer available. Prior to mnptu v0.12 it was
 the only available syntax for writing a literal map inside an expression,
-but Terraform v0.12 introduced a new first-class syntax.
+but mnptu v0.12 introduced a new first-class syntax.
 
 To update an expression like `map("a", "b", "c", "d")`, write the following instead:
 
@@ -20,10 +20,10 @@ tomap({
 
 The `{ ... }` braces construct an object value, and then the `tomap` function
 then converts it to a map. For more information on the value types in the
-Terraform language, see [Type Constraints](/terraform/language/expressions/types).
+mnptu language, see [Type Constraints](/mnptu/language/expressions/types).
 
 ## Related Functions
 
-* [`tomap`](/terraform/language/functions/tomap) converts an object value to a map.
-* [`zipmap`](/terraform/language/functions/zipmap) constructs a map dynamically, by taking keys from
+* [`tomap`](/mnptu/language/functions/tomap) converts an object value to a map.
+* [`zipmap`](/mnptu/language/functions/zipmap) constructs a map dynamically, by taking keys from
   one list and values from another list.

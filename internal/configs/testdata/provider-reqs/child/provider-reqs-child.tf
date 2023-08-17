@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     cloud = {
       source = "tf.example.com/awesomecorp/happycloud"

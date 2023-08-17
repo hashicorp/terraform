@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/e2e"
 )
 
-// TestProviderDevOverrides is a test that terraform can execute a 3rd party
+// TestProviderDevOverrides is a test that mnptu can execute a 3rd party
 // provisioner plugin.
 func TestProvisioner(t *testing.T) {
 	t.Parallel()
@@ -20,7 +20,7 @@ func TestProvisioner(t *testing.T) {
 	// allowed.
 	skipIfCannotAccessNetwork(t)
 
-	tf := e2e.NewBinary(t, terraformBin, "testdata/provisioner")
+	tf := e2e.NewBinary(t, mnptuBin, "testdata/provisioner")
 
 	//// INIT
 	_, stderr, err := tf.Run("init")

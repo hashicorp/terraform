@@ -1,21 +1,21 @@
 ---
 page_title: 'Command: providers schema'
 description: >-
-  The `terraform providers schema` command prints detailed schemas for the
+  The `mnptu providers schema` command prints detailed schemas for the
   providers used
 
   in the current configuration.
 ---
 
-# Command: terraform providers schema
+# Command: mnptu providers schema
 
-The `terraform providers schema` command is used to print detailed schemas for the providers used in the current configuration.
+The `mnptu providers schema` command is used to print detailed schemas for the providers used in the current configuration.
 
--> `terraform providers schema` requires **Terraform v0.12 or later**.
+-> `mnptu providers schema` requires **mnptu v0.12 or later**.
 
 ## Usage
 
-Usage: `terraform providers schema [options]`
+Usage: `mnptu providers schema [options]`
 
 The following flags are available:
 
@@ -23,7 +23,7 @@ The following flags are available:
 
 Please note that, at this time, the `-json` flag is a _required_ option. In future releases, this command will be extended to allow for additional options.
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
+The output includes a `format_version` key, which as of mnptu 1.1.0 has
 value `"1.0"`. The semantics of this version are:
 
 - We will increment the minor version, e.g. `"1.1"`, for backward-compatible
@@ -34,7 +34,7 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+[the mnptu 1.0 Compatibility Promises](/mnptu/language/v1-compatibility-promises).
 
 ## Format Summary
 
@@ -44,7 +44,7 @@ To avoid excessive repetition, we've split the complete format into several disc
 
 The JSON output format consists of the following objects and sub-objects:
 
-- [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `terraform providers schema -json`
+- [Providers Schema Representation](#providers-schema-representation) - the top-level object returned by `mnptu providers schema -json`
 - [Schema Representation](#schema-representation) - a sub-object of providers, resources, and data sources that describes their schema
 - [Block Representation](#block-representation) - a sub-object of schemas that describes attributes and nested blocks
 

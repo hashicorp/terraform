@@ -9,10 +9,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
 )
 
 type CreateArgs struct {
@@ -48,7 +48,7 @@ type CreateArgs struct {
 // file that might already exist there.
 //
 // A plan file contains both a snapshot of the configuration and of the latest
-// state file in addition to the plan itself, so that Terraform can detect
+// state file in addition to the plan itself, so that mnptu can detect
 // if the world has changed since the plan was created and thus refuse to
 // apply it.
 func Create(filename string, args CreateArgs) error {
@@ -117,7 +117,7 @@ func Create(filename string, args CreateArgs) error {
 		}
 	}
 
-	// .terraform.lock.hcl file, containing dependency lock information
+	// .mnptu.lock.hcl file, containing dependency lock information
 	if args.DependencyLocks != nil { // (this was a later addition, so not all callers set it, but main callers should)
 		src, diags := depsfile.SaveLocksToBytes(args.DependencyLocks)
 		if diags.HasErrors() {

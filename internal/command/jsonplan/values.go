@@ -11,12 +11,12 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/jsonstate"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/jsonstate"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 // StateValues is the common representation of resolved values for both the
@@ -93,7 +93,7 @@ func marshalPlannedOutputs(changes *plans.Changes) (map[string]Output, error) {
 
 }
 
-func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (Module, error) {
+func marshalPlannedValues(changes *plans.Changes, schemas *mnptu.Schemas) (Module, error) {
 	var ret Module
 
 	// build two maps:
@@ -166,7 +166,7 @@ func marshalPlannedValues(changes *plans.Changes, schemas *terraform.Schemas) (M
 }
 
 // marshalPlanResources
-func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *terraform.Schemas) ([]Resource, error) {
+func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstance, schemas *mnptu.Schemas) ([]Resource, error) {
 	var ret []Resource
 
 	for _, ri := range ris {
@@ -248,7 +248,7 @@ func marshalPlanResources(changes *plans.Changes, ris []addrs.AbsResourceInstanc
 // the full module tree.
 func marshalPlanModules(
 	changes *plans.Changes,
-	schemas *terraform.Schemas,
+	schemas *mnptu.Schemas,
 	childModules []addrs.ModuleInstance,
 	moduleMap map[string][]addrs.ModuleInstance,
 	moduleResourceMap map[string][]addrs.AbsResourceInstance,

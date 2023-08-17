@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -9,11 +9,11 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Apply performs the actions described by the given Plan object and returns
@@ -93,9 +93,9 @@ func (c *Context) Apply(plan *plans.Plan, config *configs.Config) (*states.State
 			tfdiags.Warning,
 			"Applied changes may be incomplete",
 			`The plan was created with the -target option in effect, so some changes requested in the configuration may have been ignored and the output values may not be fully updated. Run the following command to verify that no other changes are pending:
-    terraform plan
+    mnptu plan
 	
-Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when Terraform specifically suggests to use it as part of an error message.`,
+Note that the -target option is not suitable for routine use, and is provided only for exceptional situations such as recovering from errors or mistakes, or when mnptu specifically suggests to use it as part of an error message.`,
 		))
 	}
 
@@ -144,7 +144,7 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 	// The plan.VariableValues field only records variables that were actually
 	// set by the caller in the PlanOpts, so we may need to provide
 	// placeholders for any other variables that the user didn't set, in
-	// which case Terraform will once again use the default value from the
+	// which case mnptu will once again use the default value from the
 	// configuration when we visit these variables during the graph walk.
 	for name := range config.Module.Variables {
 		if _, ok := variables[name]; ok {
@@ -189,12 +189,12 @@ func (c *Context) applyGraph(plan *plans.Plan, config *configs.Config, validate 
 
 // ApplyGraphForUI is a last vestage of graphs in the public interface of
 // Context (as opposed to graphs as an implementation detail) intended only for
-// use by the "terraform graph" command when asked to render an apply-time
+// use by the "mnptu graph" command when asked to render an apply-time
 // graph.
 //
 // The result of this is intended only for rendering ot the user as a dot
 // graph, and so may change in future in order to make the result more useful
-// in that context, even if drifts away from the physical graph that Terraform
+// in that context, even if drifts away from the physical graph that mnptu
 // Core currently uses as an implementation detail of planning.
 func (c *Context) ApplyGraphForUI(plan *plans.Plan, config *configs.Config) (*Graph, tfdiags.Diagnostics) {
 	// For now though, this really is just the internal graph, confusing

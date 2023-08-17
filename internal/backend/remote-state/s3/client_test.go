@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 )
 
 func TestRemoteClient_impl(t *testing.T) {
@@ -24,7 +24,7 @@ func TestRemoteClient_impl(t *testing.T) {
 
 func TestRemoteClient(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -46,7 +46,7 @@ func TestRemoteClient(t *testing.T) {
 
 func TestRemoteClientLocks(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -84,7 +84,7 @@ func TestRemoteClientLocks(t *testing.T) {
 // verify that we can unlock a state with an existing lock
 func TestForceUnlock(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-force-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-force-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -161,7 +161,7 @@ func TestForceUnlock(t *testing.T) {
 func TestRemoteClient_clientMD5(t *testing.T) {
 	testACC(t)
 
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -209,7 +209,7 @@ func TestRemoteClient_clientMD5(t *testing.T) {
 func TestRemoteClient_stateChecksum(t *testing.T) {
 	testACC(t)
 
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{

@@ -11,17 +11,17 @@ import (
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/hashicorp/terraform/internal/e2e"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/plans"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // The tests in this file are for the "primary workflow", which includes
 // variants of the following sequence, with different details:
-// terraform init
-// terraform plan
-// terraform apply
-// terraform destroy
+// mnptu init
+// mnptu plan
+// mnptu apply
+// mnptu destroy
 
 func TestPrimarySeparatePlan(t *testing.T) {
 	t.Parallel()
@@ -32,7 +32,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	skipIfCannotAccessNetwork(t)
 
 	fixturePath := filepath.Join("testdata", "full-workflow-null")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	//// INIT
 	stdout, stderr, err := tf.Run("init")
@@ -64,7 +64,7 @@ func TestPrimarySeparatePlan(t *testing.T) {
 	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
 		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+	if !strings.Contains(stdout, "mnptu apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
 	}
 
@@ -152,7 +152,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	// safe to run it even when network access is disallowed.
 
 	fixturePath := filepath.Join("testdata", "chdir-option")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	//// INIT
 	_, stderr, err := tf.Run("-chdir=subdir", "init")
@@ -173,7 +173,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	if !strings.Contains(stdout, "Saved the plan to: tfplan") {
 		t.Errorf("missing \"Saved the plan to...\" message in plan output\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "terraform apply \"tfplan\"") {
+	if !strings.Contains(stdout, "mnptu apply \"tfplan\"") {
 		t.Errorf("missing next-step instruction in plan output\n%s", stdout)
 	}
 
@@ -199,7 +199,7 @@ func TestPrimaryChdirOption(t *testing.T) {
 	}
 
 	// The state file is in subdir because -chdir changed the current working directory.
-	state, err := tf.StateFromFile("subdir/terraform.tfstate")
+	state, err := tf.StateFromFile("subdir/mnptu.tfstate")
 	if err != nil {
 		t.Fatalf("failed to read state file: %s", err)
 	}

@@ -1,5 +1,5 @@
 [
-  { "heading": "Terraform CLI" },
+  { "heading": "mnptu CLI" },
   { "title": "Overview", "path": "" },
   { "title": "Basic CLI Features", "href": "/cli/commands" },
   {
@@ -229,10 +229,10 @@
     ]
   },
   {
-    "title": "Using Terraform Cloud",
+    "title": "Using mnptu Cloud",
     "routes": [
       { "title": "Overview", "path": "cloud" },
-      { "title": "Terraform Cloud Settings", "path": "cloud/settings" },
+      { "title": "mnptu Cloud Settings", "path": "cloud/settings" },
       {
         "title": "Initializing and Migrating",
         "path": "cloud/migrating"
@@ -244,15 +244,15 @@
     ]
   },
   {
-    "title": "Automating Terraform",
+    "title": "Automating mnptu",
     "routes": [
       {
-        "title": "Running Terraform in Automation",
-        "href": "https://learn.hashicorp.com/tutorials/terraform/automate-terraform?in=terraform/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
+        "title": "Running mnptu in Automation",
+        "href": "https://learn.hashicorp.com/tutorials/mnptu/automate-mnptu?in=mnptu/automation&utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
       },
       {
         "title": "GitHub Actions",
-        "href": "https://learn.hashicorp.com/tutorials/terraform/github-actions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
+        "href": "https://learn.hashicorp.com/tutorials/mnptu/github-actions?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS"
       }
     ]
   },
@@ -443,5 +443,5 @@
     ]
   },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" }
+  { "title": "mnptu Internals", "href": "/internals" }
 ]

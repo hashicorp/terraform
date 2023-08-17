@@ -11,12 +11,12 @@ import (
 	"os/exec"
 
 	"github.com/hashicorp/go-plugin"
-	"github.com/hashicorp/terraform/internal/cloudplugin"
-	"github.com/hashicorp/terraform/internal/cloudplugin/cloudplugin1"
-	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/mnptu/internal/cloudplugin"
+	"github.com/hashicorp/mnptu/internal/cloudplugin/cloudplugin1"
+	"github.com/hashicorp/mnptu/internal/logging"
 )
 
-// CloudCommand is a Command implementation that interacts with Terraform
+// CloudCommand is a Command implementation that interacts with mnptu
 // Cloud for operations that are inherently planless. It delegates
 // all execution to an internal plugin.
 type CloudCommand struct {
@@ -47,7 +47,7 @@ func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Cmd:              exec.Command("./terraform-cloudplugin"),
+		Cmd:              exec.Command("./mnptu-cloudplugin"),
 		Logger:           logging.NewCloudLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
@@ -76,7 +76,7 @@ func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
 	// multiple versions are possible.
 	cloud1, ok := raw.(cloudplugin.Cloud1)
 	if !ok {
-		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in Terraform.")
+		c.Ui.Error("If more than one cloudplugin versions are available, they need to be added to the cloud command. This is a bug in mnptu.")
 		return ExitRPCError
 	}
 	return cloud1.Execute(args, stdout, stderr)
@@ -86,10 +86,10 @@ func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
 func (c *CloudCommand) Run(args []string) int {
 	args = c.Meta.process(args)
 
-	// TODO: Download and verify the signing of the terraform-cloudplugin
+	// TODO: Download and verify the signing of the mnptu-cloudplugin
 	// release that is appropriate for this OS/Arch
-	if _, err := os.Stat("./terraform-cloudplugin"); err != nil {
-		c.Ui.Warn("terraform-cloudplugin not found. This plugin does not have an official release yet.")
+	if _, err := os.Stat("./mnptu-cloudplugin"); err != nil {
+		c.Ui.Warn("mnptu-cloudplugin not found. This plugin does not have an official release yet.")
 		return 1
 	}
 
@@ -107,5 +107,5 @@ func (c *CloudCommand) Help() string {
 
 // Synopsis returns a short summary of the cloud command.
 func (c *CloudCommand) Synopsis() string {
-	return "Manage Terraform Cloud settings and metadata"
+	return "Manage mnptu Cloud settings and metadata"
 }

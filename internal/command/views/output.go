@@ -14,10 +14,10 @@ import (
 	"github.com/zclconf/go-cty/cty/convert"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/repl"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/repl"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // The Output view renders either one or all outputs, depending on whether or
@@ -162,7 +162,7 @@ func (v *OutputRaw) Output(name string, outputs map[string]*states.OutputValue) 
 			tfdiags.Error,
 			"Unsupported value for raw output",
 			fmt.Sprintf(
-				"The value for output value %q won't be known until after a successful terraform apply, so -raw mode cannot print it.",
+				"The value for output value %q won't be known until after a successful mnptu apply, so -raw mode cannot print it.",
 				name,
 			),
 		))
@@ -267,10 +267,10 @@ func noOutputsWarning() tfdiags.Diagnostic {
 		"No outputs found",
 		"The state file either has no outputs defined, or all the defined "+
 			"outputs are empty. Please define an output in your configuration "+
-			"with the `output` keyword and run `terraform refresh` for it to "+
+			"with the `output` keyword and run `mnptu refresh` for it to "+
 			"become available. If you are using interpolation, please verify "+
 			"the interpolated value is not empty. You can use the "+
-			"`terraform console` command to assist.",
+			"`mnptu console` command to assist.",
 	)
 }
 
@@ -282,7 +282,7 @@ func missingOutputError(name string) tfdiags.Diagnostic {
 		fmt.Sprintf("Output %q not found", name),
 		"The output variable requested could not be found in the state "+
 			"file. If you recently added this to your configuration, be "+
-			"sure to run `terraform apply`, since the state won't be updated "+
+			"sure to run `mnptu apply`, since the state won't be updated "+
 			"with new output variables until that command is run.",
 	)
 }

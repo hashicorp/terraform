@@ -22,13 +22,13 @@ import (
 	"time"
 
 	"github.com/apparentlymart/go-shquot/shquot"
-	"github.com/hashicorp/terraform/internal/communicator/remote"
-	"github.com/hashicorp/terraform/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/communicator/remote"
+	"github.com/hashicorp/mnptu/internal/provisioners"
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 const (
@@ -103,7 +103,7 @@ func New(v cty.Value) (*Communicator, error) {
 	// Set up the random number generator once. The seed value is the
 	// time multiplied by the PID. This can overflow the int64 but that
 	// is okay. We multiply by the PID in case we have multiple processes
-	// grabbing this at the same time. This is possible with Terraform and
+	// grabbing this at the same time. This is possible with mnptu and
 	// if we communicate to the same host at the same instance, we could
 	// overwrite the same files. Multiplying by the PID prevents this.
 	randLock.Lock()
@@ -274,7 +274,7 @@ func (c *Communicator) Connect(o provisioners.UIOutput) (err error) {
 			for {
 				select {
 				case <-t.C:
-					_, _, err := sshClient.SendRequest("keepalive@terraform.io", true, nil)
+					_, _, err := sshClient.SendRequest("keepalive@mnptu.io", true, nil)
 					respCh <- err
 				case <-ctx.Done():
 					return
@@ -654,7 +654,7 @@ func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader, size
 	if size == 0 {
 		// Create a temporary file where we can copy the contents of the src
 		// so that we can determine the length, since SCP is length-prefixed.
-		tf, err := ioutil.TempFile("", "terraform-upload")
+		tf, err := ioutil.TempFile("", "mnptu-upload")
 		if err != nil {
 			return fmt.Errorf("Error creating temporary file for upload: %s", err)
 		}

@@ -13,7 +13,7 @@
                   "mode": "managed",
                   "type": "test_instance",
                   "name": "test",
-                  "provider_name": "registry.terraform.io/hashicorp/test",
+                  "provider_name": "registry.mnptu.io/hashicorp/test",
                   "schema_version": 0,
                   "values": {
                     "ami": "bar-var"
@@ -35,7 +35,7 @@
       "mode": "managed",
       "type": "test_instance",
       "name": "test",
-      "provider_name": "registry.terraform.io/hashicorp/test",
+      "provider_name": "registry.mnptu.io/hashicorp/test",
       "change": {
         "actions": ["create"],
         "before": null,
@@ -55,7 +55,7 @@
       "module.my_module.module.more:test": {
         "module_address": "module.my_module.module.more",
         "name": "test",
-        "full_name": "registry.terraform.io/hashicorp/test"
+        "full_name": "registry.mnptu.io/hashicorp/test"
       }
     },
     "root_module": {

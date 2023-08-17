@@ -2,27 +2,27 @@
 page_title: 'Command: 0.13upgrade'
 description: >-
   The 0.13upgrade subcommand updates existing configurations to use the new
-  provider source features from Terraform 0.13.
+  provider source features from mnptu 0.13.
 ---
 
 # Command: 0.13upgrade
 
-The `terraform 0.13upgrade` command updates existing configuration to add an
+The `mnptu 0.13upgrade` command updates existing configuration to add an
 explicit `source` attribute for each provider used in a given module. The
 provider source settings are stored in a `required_providers` block.
 
--> **This command is available only in Terraform v0.13 releases.** For more information, see [the Terraform v0.13 upgrade guide](/terraform/language/v1.1.x/upgrade-guides/0-13).
+-> **This command is available only in mnptu v0.13 releases.** For more information, see [the mnptu v0.13 upgrade guide](/mnptu/language/v1.1.x/upgrade-guides/0-13).
 
 ## Usage
 
-Usage: `terraform 0.13upgrade [options] [dir]`
+Usage: `mnptu 0.13upgrade [options] [dir]`
 
 The primary purpose of the `0.13upgrade` command is to determine which
 providers are in use for a module, detect the source address for those
 providers where possible, and record this information in a
 [`required_providers` block][required-providers].
 
-[required-providers]: /terraform/language/providers/requirements
+[required-providers]: /mnptu/language/providers/requirements
 
 ~> Note: the command ignores `.tf.json` files and override files in the module.
 
@@ -38,10 +38,10 @@ When run with no other options, the command will first explain what it is
 going to do and prompt for confirmation:
 
 ```
-$ terraform 0.13upgrade
+$ mnptu 0.13upgrade
 
 This command will update the configuration files in the given directory to use
-the new provider source features from Terraform v0.13. It will also highlight
+the new provider source features from mnptu v0.13. It will also highlight
 any providers for which the source cannot be detected, and advise how to
 proceed.
 
@@ -75,14 +75,14 @@ are not supported by the tool itself, but if you are on a Unix-style system
 you can achieve this using the `find` command as follows:
 
 ```
-$ find . -name '*.tf' | xargs -n1 dirname | uniq | xargs -n1 terraform 0.13upgrade -yes
+$ find . -name '*.tf' | xargs -n1 dirname | uniq | xargs -n1 mnptu 0.13upgrade -yes
 ```
 
 On a Windows system with PowerShell, you can use this command:
 
 ```
 Get-Childitem -Recurse -Include *.tf | Split-Path | `
-Select-Object -Unique | ForEach-Object { terraform 0.13upgrade -yes $_.FullName }
+Select-Object -Unique | ForEach-Object { mnptu 0.13upgrade -yes $_.FullName }
 ```
 
 Note that the above commands include the `-yes` option to override the

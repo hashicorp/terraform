@@ -8,7 +8,7 @@ import (
 	"os"
 	"testing"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 func TestMain(m *testing.M) {

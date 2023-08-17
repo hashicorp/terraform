@@ -8,7 +8,7 @@
         {
             "Key": "child",
             "Source": "hashicorp/module-installer-acctest/aws",
-            "Dir": "testdata/add-version-constraint/.terraform/modules/child"
+            "Dir": "testdata/add-version-constraint/.mnptu/modules/child"
         }
     ]
 }

@@ -8,10 +8,10 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/collections"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/computed"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 type TransformPrimitiveJson func(before, after interface{}, ctype cty.Type, action plans.Action) computed.Diff
@@ -108,7 +108,7 @@ func (opts JsonOpts) processArray(change structured.ChangeSlice) computed.Diff {
 		// we just treat all children of a relevant list as also relevant, so we
 		// ignore the relevant attributes field.
 		//
-		// Interestingly the terraform plan builder also agrees with this, and
+		// Interestingly the mnptu plan builder also agrees with this, and
 		// never sets relevant attributes beneath lists or sets. We're just
 		// going to enforce this logic here as well. If the list is relevant
 		// (decided elsewhere), then every element in the list is also relevant.

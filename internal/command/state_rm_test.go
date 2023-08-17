@@ -11,8 +11,8 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestStateRm(t *testing.T) {
@@ -100,7 +100,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 			},
 		)
 		// This second instance has the same local address as the first but
-		// is in a child module. Older versions of Terraform would incorrectly
+		// is in a child module. Older versions of mnptu would incorrectly
 		// remove this one too, since they failed to check the module address.
 		s.SetResourceInstanceCurrent(
 			addrs.Resource{
@@ -147,7 +147,7 @@ func TestStateRmNotChildModule(t *testing.T) {
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/hashicorp/test"]
+    provider = provider["registry.mnptu.io/hashicorp/test"]
     bar = value
     foo = value
 `)
@@ -160,14 +160,14 @@ module.child:
 	testStateOutput(t, backups[0], `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   bar = value
   foo = value
 
 module.child:
   test_instance.foo:
     ID = foo
-    provider = provider["registry.terraform.io/hashicorp/test"]
+    provider = provider["registry.mnptu.io/hashicorp/test"]
     bar = value
     foo = value
 `)
@@ -563,12 +563,12 @@ func TestStateRm_checkRequiredVersion(t *testing.T) {
 const testStateRmOutputOriginal = `
 test_instance.bar:
   ID = foo
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   bar = value
   foo = value
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   bar = value
   foo = value
 `
@@ -576,7 +576,7 @@ test_instance.foo:
 const testStateRmOutput = `
 test_instance.bar:
   ID = foo
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
   bar = value
   foo = value
 `

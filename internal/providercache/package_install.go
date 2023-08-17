@@ -13,9 +13,9 @@ import (
 
 	getter "github.com/hashicorp/go-getter"
 
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/httpclient"
 )
 
 // We borrow the "unpack a zip file into a target directory" logic from
@@ -33,7 +33,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 	// delegate to installFromLocalArchive below to actually extract it.
 	// (We're not using go-getter here because its HTTP getter has a bunch
 	// of extraneous functionality we don't need or want, like indirection
-	// through X-Terraform-Get header, attempting partial fetches for
+	// through X-mnptu-Get header, attempting partial fetches for
 	// files that already exist, etc.)
 
 	httpClient := httpclient.New()
@@ -56,7 +56,7 @@ func installFromHTTPURL(ctx context.Context, meta getproviders.PackageMeta, targ
 		return nil, fmt.Errorf("unsuccessful request to %s: %s", url, resp.Status)
 	}
 
-	f, err := ioutil.TempFile("", "terraform-provider")
+	f, err := ioutil.TempFile("", "mnptu-provider")
 	if err != nil {
 		return nil, fmt.Errorf("failed to open temporary file to download from %s: %w", url, err)
 	}
@@ -120,7 +120,7 @@ func installFromLocalArchive(ctx context.Context, meta getproviders.PackageMeta,
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the current package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file; for more information: https://www.mnptu.io/language/provider-checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}
@@ -210,7 +210,7 @@ func installFromLocalDir(ctx context.Context, meta getproviders.PackageMeta, tar
 			)
 		} else if !matches {
 			return authResult, fmt.Errorf(
-				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.terraform.io/language/provider-checksum-verification",
+				"the local package for %s %s doesn't match any of the checksums previously recorded in the dependency lock file (this might be because the available checksums are for packages targeting different platforms); for more information: https://www.mnptu.io/language/provider-checksum-verification",
 				meta.Provider, meta.Version,
 			)
 		}

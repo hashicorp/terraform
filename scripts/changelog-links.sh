@@ -15,7 +15,7 @@ set -e
 
 if [[ ! -f CHANGELOG.md ]]; then
   echo "ERROR: CHANGELOG.md not found in pwd."
-  echo "Please run this from the root of the terraform source repository"
+  echo "Please run this from the root of the mnptu source repository"
   exit 1
 fi
 
@@ -27,6 +27,6 @@ else
   SED="sed -i.bak -r -e"
 fi
 
-$SED 's/GH-([0-9]+)/\[#\1\]\(https:\/\/github.com\/hashicorp\/terraform\/issues\/\1\)/g' -e 's/\[\[#(.+)([0-9])\)]$/(\[#\1\2))/g' CHANGELOG.md
+$SED 's/GH-([0-9]+)/\[#\1\]\(https:\/\/github.com\/hashicorp\/mnptu\/issues\/\1\)/g' -e 's/\[\[#(.+)([0-9])\)]$/(\[#\1\2))/g' CHANGELOG.md
 
 rm CHANGELOG.md.bak

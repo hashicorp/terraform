@@ -6,8 +6,8 @@ package globalref
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/lang"
 )
 
 // ReferencesFromOutputValue returns all of the direct references from the

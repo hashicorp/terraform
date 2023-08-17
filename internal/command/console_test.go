@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -59,8 +59,8 @@ func TestConsole_tfvars(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-vars"), td)
 	defer testChdir(t, td)()
 
-	// Write a terraform.tvars
-	varFilePath := filepath.Join(td, "terraform.tfvars")
+	// Write a mnptu.tvars
+	varFilePath := filepath.Join(td, "mnptu.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -105,9 +105,9 @@ func TestConsole_tfvars(t *testing.T) {
 }
 
 func TestConsole_unsetRequiredVars(t *testing.T) {
-	// This test is verifying that it's possible to run "terraform console"
+	// This test is verifying that it's possible to run "mnptu console"
 	// without providing values for all required variables, without
-	// "terraform console" producing an interactive prompt for those variables
+	// "mnptu console" producing an interactive prompt for those variables
 	// or producing errors. Instead, it should allow evaluation in that
 	// partial context but see the unset variables values as being unknown.
 	//

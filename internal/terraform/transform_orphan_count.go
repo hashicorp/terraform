@@ -1,14 +1,14 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 // OrphanResourceInstanceCountTransformer is a GraphTransformer that adds orphans
@@ -34,7 +34,7 @@ func (t *OrphanResourceInstanceCountTransformer) Transform(g *Graph) error {
 
 	// This is an O(n*m) analysis, which we accept for now because the
 	// number of instances of a single resource ought to always be small in any
-	// reasonable Terraform configuration.
+	// reasonable mnptu configuration.
 Have:
 	for key, inst := range rs.Instances {
 		// Instances which have no current objects (only one or more

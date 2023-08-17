@@ -16,8 +16,8 @@ import (
 	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/hashicorp/go-azure-helpers/authentication"
 	"github.com/hashicorp/go-azure-helpers/sender"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/version"
 	"github.com/manicminer/hamilton/environments"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/blobs"
 	"github.com/tombuildsstuff/giovanni/storage/2018-11-09/blob/containers"
@@ -71,7 +71,7 @@ func buildArmClient(ctx context.Context, config BackendConfig) (*ArmClient, erro
 		CustomResourceManagerEndpoint: config.CustomResourceManagerEndpoint,
 		MetadataHost:                  config.MetadataHost,
 		Environment:                   config.Environment,
-		ClientSecretDocsLink:          "https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret",
+		ClientSecretDocsLink:          "https://registry.mnptu.io/providers/hashicorp/azurerm/latest/docs/guides/service_principal_client_secret",
 
 		// Service Principal (Client Certificate)
 		ClientCertPassword: config.ClientCertificatePassword,
@@ -238,7 +238,7 @@ func (c *ArmClient) configureClient(client *autorest.Client, auth autorest.Autho
 }
 
 func buildUserAgent() string {
-	userAgent := httpclient.TerraformUserAgent(version.Version)
+	userAgent := httpclient.mnptuUserAgent(version.Version)
 
 	// append the CloudShell version to the user agent if it exists
 	if azureAgent := os.Getenv("AZURE_HTTP_USER_AGENT"); azureAgent != "" {

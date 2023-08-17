@@ -17,7 +17,7 @@ func TestCloud_loadBasic(t *testing.T) {
 	bookmark := SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
-		Hostname:         "app.terraform.io",
+		Hostname:         "app.mnptu.io",
 	}
 
 	file := "./testdata/plan-bookmark/bookmark.json"
@@ -76,7 +76,7 @@ func TestCloud_saveWhenFileExistsBasic(t *testing.T) {
 		b := &SavedPlanBookmark{
 			RemotePlanFormat: 1,
 			RunID:            "run-GXfuHMkbyHccAGUg",
-			Hostname:         "app.terraform.io",
+			Hostname:         "app.mnptu.io",
 		}
 		err := b.Save(tmpFile.Name())
 		if err != nil {
@@ -90,7 +90,7 @@ func TestCloud_saveWhenFileDoesNotExistBasic(t *testing.T) {
 	b := &SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            "run-GXfuHMkbyHccAGUg",
-		Hostname:         "app.terraform.io",
+		Hostname:         "app.mnptu.io",
 	}
 	err := b.Save(filepath.Join(tmpDir, "create-new-file.txt"))
 	if err != nil {

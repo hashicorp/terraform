@@ -1,13 +1,13 @@
 ---
 page_title: 'Command: validate'
 description: >-
-  The `terraform validate` command is used to validate the syntax of the
-  terraform files.
+  The `mnptu validate` command is used to validate the syntax of the
+  mnptu files.
 ---
 
 # Command: validate
 
-The `terraform validate` command validates the configuration files in a
+The `mnptu validate` command validates the configuration files in a
 directory, referring only to the configuration and not accessing any remote
 services such as remote state, provider APIs, etc.
 
@@ -23,16 +23,16 @@ system.
 Validation requires an initialized working directory with any referenced plugins and modules installed. To initialize a working directory for validation without accessing any configured backend, use:
 
 ```
-$ terraform init -backend=false
+$ mnptu init -backend=false
 ```
 
 To verify configuration in the context of a particular run (a particular
-target workspace, input variable values, etc), use the `terraform plan`
+target workspace, input variable values, etc), use the `mnptu plan`
 command instead, which includes an implied validation check.
 
 ## Usage
 
-Usage: `terraform validate [options]`
+Usage: `mnptu validate [options]`
 
 This command accepts the following options:
 
@@ -44,17 +44,17 @@ This command accepts the following options:
 
 ## JSON Output Format
 
-When you use the `-json` option, Terraform will produce validation results
+When you use the `-json` option, mnptu will produce validation results
 in JSON format to allow using the validation result for tool integrations, such
 as highlighting errors in a text editor.
 
-As with all JSON output options, it's possible that Terraform will encounter
+As with all JSON output options, it's possible that mnptu will encounter
 an error prior to beginning the validation task that will thus not be subject
 to the JSON output setting. For that reason, external software consuming
-Terraform's output should be prepared to find data on stdout that _isn't_ valid
+mnptu's output should be prepared to find data on stdout that _isn't_ valid
 JSON, which it should then treat as a generic error case.
 
-The output includes a `format_version` key, which as of Terraform 1.1.0 has
+The output includes a `format_version` key, which as of mnptu 1.1.0 has
 value `"1.0"`. The semantics of this version are:
 
 * We will increment the minor version, e.g. `"1.1"`, for backward-compatible
@@ -65,43 +65,43 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+[the mnptu 1.0 Compatibility Promises](/mnptu/language/v1-compatibility-promises).
 
-In the normal case, Terraform will print a JSON object to the standard output
+In the normal case, mnptu will print a JSON object to the standard output
 stream. The top-level JSON object will have the following properties:
 
 - `valid` (boolean): Summarizes the overall validation result, by indicating
-  `true` if Terraform considers the current configuration to be valid or
+  `true` if mnptu considers the current configuration to be valid or
   `false` if it detected any errors.
 
 - `error_count` (number): A zero or positive whole number giving the count
-  of errors Terraform detected. If `valid` is `true` then `error_count` will
+  of errors mnptu detected. If `valid` is `true` then `error_count` will
   always be zero, because it is the presence of errors that indicates that
   a configuration is invalid.
 
 - `warning_count` (number): A zero or positive whole number giving the count
-  of warnings Terraform detected. Warnings do not cause Terraform to consider
+  of warnings mnptu detected. Warnings do not cause mnptu to consider
   a configuration to be invalid, but they do indicate potential caveats that
   a user should consider and possibly resolve.
 
 - `diagnostics` (array of objects): A JSON array of nested objects that each
-  describe an error or warning from Terraform.
+  describe an error or warning from mnptu.
 
 The nested objects in `diagnostics` have the following properties:
 
 - `severity` (string): A string keyword, either `"error"` or
   `"warning"`, indicating the diagnostic severity.
 
-  The presence of errors causes Terraform to consider a configuration to be
+  The presence of errors causes mnptu to consider a configuration to be
   invalid, while warnings are just advice or caveats to the user which do not
-  block working with the configuration. Later versions of Terraform may
+  block working with the configuration. Later versions of mnptu may
   introduce new severity keywords, so consumers should be prepared to accept
   and ignore severity values they don't understand.
 
 - `summary` (string): A short description of the nature of the problem that
   the diagnostic is reporting.
 
-  In Terraform's usual human-oriented diagnostic messages, the summary serves
+  In mnptu's usual human-oriented diagnostic messages, the summary serves
   as a sort of "heading" for the diagnostic, printed after the "Error:" or
   "Warning:" indicator.
 
@@ -114,7 +114,7 @@ The nested objects in `diagnostics` have the following properties:
 - `detail` (string): An optional additional message giving more detail about
   the problem.
 
-  In Terraform's usual human-oriented diagnostic messages, the detail provides
+  In mnptu's usual human-oriented diagnostic messages, the detail provides
   the paragraphs of text that appear after the heading and the source location
   reference.
 
@@ -125,7 +125,7 @@ The nested objects in `diagnostics` have the following properties:
   text. Renderers should then soft-wrap the paragraphs to fit the width of the
   rendering container, but leave the preformatted lines unwrapped.
 
-  Some Terraform detail messages contain an approximation of bullet
+  Some mnptu detail messages contain an approximation of bullet
   lists using ASCII characters to mark the bullets. This is not a
   contractural formatting convention, so renderers should avoid depending on
   it and should instead treat those lines as either paragraphs or preformatted
@@ -155,7 +155,7 @@ The nested objects in `diagnostics` have the following properties:
     expression which triggered the diagnostic. For some diagnostics this
     information is not available, and then this property will be `null`.
 
-  - `code` (string): A snippet of Terraform configuration including the
+  - `code` (string): A snippet of mnptu configuration including the
     source of the diagnostic. This can be multiple lines and may include
     additional configuration source code around the expression which
     triggered the diagnostic.
@@ -210,4 +210,4 @@ exactly which values are responsible for an error. The object has two properties
 - `statement` (string): A short English-language fragment describing the value
   of the expression when the diagnostic was triggered. The contents of this
   string are intended to be human-readable and are subject to change in future
-  versions of Terraform.
+  versions of mnptu.

@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -14,16 +14,16 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/didyoumean"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/didyoumean"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Evaluator provides the necessary contextual data for evaluating expressions
@@ -265,7 +265,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 	// be complicated to accommodate all possible inputs, whereas returning
 	// unknown here allows for simpler patterns like using input values as
 	// guards to broadly enable/disable resources, avoid processing things
-	// that are disabled, etc. Terraform's static validation leans towards
+	// that are disabled, etc. mnptu's static validation leans towards
 	// being liberal in what it accepts because the subsequent plan walk has
 	// more information available and so can be more conservative.
 	if d.Operation == walkValidate {
@@ -299,7 +299,7 @@ func (d *evaluationStateData) GetInputVariable(addr addrs.InputVariable, rng tfd
 			Severity: hcl.DiagError,
 			Summary:  `Reference to unresolved input variable`,
 			Detail: fmt.Sprintf(
-				`The final value for %s is missing in Terraform's evaluation context. This is a bug in Terraform; please report it!`,
+				`The final value for %s is missing in mnptu's evaluation context. This is a bug in mnptu; please report it!`,
 				addr.Absolute(d.ModulePath),
 			),
 			Subject: rng.ToHCL().Ptr(),
@@ -680,7 +680,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  `Missing resource type schema`,
-			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in Terraform and should be reported.", addr, config.Provider),
+			Detail:   fmt.Sprintf("No schema is available for %s in %s. This is a bug in mnptu and should be reported.", addr, config.Provider),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -778,7 +778,7 @@ func (d *evaluationStateData) GetResource(addr addrs.Resource, rng tfdiags.Sourc
 				diags = diags.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Missing pending object in plan",
-					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in Terraform; please report it.", instAddr),
+					Detail:   fmt.Sprintf("Instance %s is marked as having a change pending but that change is not recorded in the plan. This is a bug in mnptu; please report it.", instAddr),
 					Subject:  &config.DeclRange,
 				})
 				continue
@@ -917,7 +917,7 @@ func (d *evaluationStateData) getResourceSchema(addr addrs.Resource, providerAdd
 	return schema
 }
 
-func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+func (d *evaluationStateData) GetmnptuAttr(addr addrs.mnptuAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 	switch addr.Name {
 
@@ -926,13 +926,13 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 		return cty.StringVal(workspaceName), diags
 
 	case "env":
-		// Prior to Terraform 0.12 there was an attribute "env", which was
+		// Prior to mnptu 0.12 there was an attribute "env", which was
 		// an alias name for "workspace". This was deprecated and is now
 		// removed.
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Invalid "terraform" attribute`,
-			Detail:   `The terraform.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" concept was renamed to "workspace" in v0.12, and so the workspace name can now be accessed using the terraform.workspace attribute.`,
+			Summary:  `Invalid "mnptu" attribute`,
+			Detail:   `The mnptu.env attribute was deprecated in v0.10 and removed in v0.12. The "state environment" concept was renamed to "workspace" in v0.12, and so the workspace name can now be accessed using the mnptu.workspace attribute.`,
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -940,8 +940,8 @@ func (d *evaluationStateData) GetTerraformAttr(addr addrs.TerraformAttr, rng tfd
 	default:
 		diags = diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
-			Summary:  `Invalid "terraform" attribute`,
-			Detail:   fmt.Sprintf(`The "terraform" object does not have an attribute named %q. The only supported attribute is terraform.workspace, the name of the currently-selected workspace.`, addr.Name),
+			Summary:  `Invalid "mnptu" attribute`,
+			Detail:   fmt.Sprintf(`The "mnptu" object does not have an attribute named %q. The only supported attribute is mnptu.workspace, the name of the currently-selected workspace.`, addr.Name),
 			Subject:  rng.ToHCL().Ptr(),
 		})
 		return cty.DynamicVal, diags
@@ -1006,7 +1006,7 @@ func (d *evaluationStateData) GetCheckBlock(addr addrs.Check, rng tfdiags.Source
 	diags = diags.Append(&hcl.Diagnostic{
 		Severity: hcl.DiagError,
 		Summary:  "Reference to \"check\" in invalid context",
-		Detail:   "The \"check\" object can only be referenced from an \"expect_failures\" attribute within a Terraform testing \"run\" block.",
+		Detail:   "The \"check\" object can only be referenced from an \"expect_failures\" attribute within a mnptu testing \"run\" block.",
 		Subject:  rng.ToHCL().Ptr(),
 	})
 	return cty.NilVal, diags

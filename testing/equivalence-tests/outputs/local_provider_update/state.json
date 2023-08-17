@@ -7,7 +7,7 @@
           "address": "local_file.local_file",
           "mode": "managed",
           "name": "local_file",
-          "provider_name": "registry.terraform.io/hashicorp/local",
+          "provider_name": "registry.mnptu.io/hashicorp/local",
           "schema_version": 0,
           "sensitive_values": {},
           "type": "local_file",

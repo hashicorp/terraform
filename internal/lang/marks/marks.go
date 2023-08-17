@@ -36,7 +36,7 @@ func Contains(val cty.Value, mark valueMark) bool {
 }
 
 // Sensitive indicates that this value is marked as sensitive in the context of
-// Terraform.
+// mnptu.
 const Sensitive = valueMark("Sensitive")
 
 // TypeType is used to indicate that the value contains a representation of

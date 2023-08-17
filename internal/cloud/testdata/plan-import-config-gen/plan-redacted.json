@@ -1,15 +1,15 @@
 {
   "format_version": "1.2",
-  "terraform_version": "1.5.0",
+  "mnptu_version": "1.5.0",
   "planned_values": {
     "root_module": {
       "resources": [
         {
-          "address": "terraform_data.foo",
+          "address": "mnptu_data.foo",
           "mode": "managed",
-          "type": "terraform_data",
+          "type": "mnptu_data",
           "name": "foo",
-          "provider_name": "terraform.io/builtin/terraform",
+          "provider_name": "mnptu.io/builtin/mnptu",
           "schema_version": 0,
           "values": {
             "id": "bar",
@@ -24,11 +24,11 @@
   },
   "resource_changes": [
     {
-      "address": "terraform_data.foo",
+      "address": "mnptu_data.foo",
       "mode": "managed",
-      "type": "terraform_data",
+      "type": "mnptu_data",
       "name": "foo",
-      "provider_name": "terraform.io/builtin/terraform",
+      "provider_name": "mnptu.io/builtin/mnptu",
       "change": {
         "actions": [
           "no-op"
@@ -51,22 +51,22 @@
         "importing": {
           "id": "bar"
         },
-        "generated_config": "resource \"terraform_data\" \"foo\" {\n  input            = null\n  triggers_replace = null\n}"
+        "generated_config": "resource \"mnptu_data\" \"foo\" {\n  input            = null\n  triggers_replace = null\n}"
       }
     }
   ],
   "prior_state": {
     "format_version": "1.0",
-    "terraform_version": "1.6.0",
+    "mnptu_version": "1.6.0",
     "values": {
       "root_module": {
         "resources": [
           {
-            "address": "terraform_data.foo",
+            "address": "mnptu_data.foo",
             "mode": "managed",
-            "type": "terraform_data",
+            "type": "mnptu_data",
             "name": "foo",
-            "provider_name": "terraform.io/builtin/terraform",
+            "provider_name": "mnptu.io/builtin/mnptu",
             "schema_version": 0,
             "values": {
               "id": "bar",
@@ -82,17 +82,17 @@
   },
   "configuration": {
     "provider_config": {
-      "terraform": {
-        "name": "terraform",
-        "full_name": "terraform.io/builtin/terraform"
+      "mnptu": {
+        "name": "mnptu",
+        "full_name": "mnptu.io/builtin/mnptu"
       }
     },
     "root_module": {}
   },
   "provider_schemas": {
-    "terraform.io/builtin/terraform": {
+    "mnptu.io/builtin/mnptu": {
       "resource_schemas": {
-        "terraform_data": {
+        "mnptu_data": {
           "version": 0,
           "block": {
             "attributes": {

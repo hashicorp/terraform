@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     // This is an expected "real world" example of a community provider, which
     // has resources named "foo_*" and will likely be used in configurations

@@ -9,27 +9,27 @@ import (
 	"os/signal"
 
 	"github.com/hashicorp/go-plugin"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform-svchost/disco"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu-svchost/disco"
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/command/webbrowser"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
-	"github.com/hashicorp/terraform/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/command/webbrowser"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	pluginDiscovery "github.com/hashicorp/mnptu/internal/plugin/discovery"
+	"github.com/hashicorp/mnptu/internal/terminal"
 )
 
 // runningInAutomationEnvName gives the name of an environment variable that
 // can be set to any non-empty value in order to suppress certain messages
-// that assume that Terraform is being run from a command prompt.
+// that assume that mnptu is being run from a command prompt.
 const runningInAutomationEnvName = "TF_IN_AUTOMATION"
 
-// Commands is the mapping of all the available Terraform commands.
+// Commands is the mapping of all the available mnptu commands.
 var Commands map[string]cli.CommandFactory
 
 // PrimaryCommands is an ordered sequence of the top-level commands (not
@@ -112,7 +112,7 @@ func initCommands(
 		AllowExperimentalFeatures: ExperimentsAllowed(),
 	}
 
-	// The command list is included in the terraform -help
+	// The command list is included in the mnptu -help
 	// output, which is in turn included in the docs at
 	// website/docs/cli/commands/index.html.markdown; if you
 	// add, remove or reclassify commands then consider updating

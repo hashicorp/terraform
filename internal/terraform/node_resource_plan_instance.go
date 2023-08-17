@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -13,15 +13,15 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/genconfig"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/genconfig"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // NodePlannableResourceInstance represents a _single_ resource
@@ -178,7 +178,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 			diags = diags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Import block target does not exist",
-				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within terraform plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  terraform plan -generate-config-out=generated.tf",
+				Detail:   "The target for the given import block does not exist. If you wish to automatically generate config for this resource, use the -generate-config-out option within mnptu plan. Otherwise, make sure the target resource exists within your configuration. For example:\n\n  mnptu plan -generate-config-out=generated.tf",
 				Subject:  n.importTarget.Config.DeclRange.Ptr(),
 			})
 		} else {
@@ -336,7 +336,7 @@ func (n *NodePlannableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		//
 		// Future work should adjust these APIs such that it is impossible to
 		// update these two data structures incorrectly through any objects
-		// reachable via the terraform.EvalContext API.
+		// reachable via the mnptu.EvalContext API.
 		diags = diags.Append(n.writeChange(ctx, change, ""))
 
 		diags = diags.Append(n.writeResourceInstanceState(ctx, instancePlanState, workingState))
@@ -546,7 +546,7 @@ func (n *NodePlannableResourceInstance) importState(ctx EvalContext, addr addrs.
 					"the provider detected that no object exists with the given id. "+
 					"Only pre-existing objects can be imported; check that the id "+
 					"is correct and that it is associated with the provider's "+
-					"configured region or endpoint, or use \"terraform apply\" to "+
+					"configured region or endpoint, or use \"mnptu apply\" to "+
 					"create a new remote object for this resource.",
 				n.importTarget.Addr,
 			),

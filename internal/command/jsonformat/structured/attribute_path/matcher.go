@@ -177,13 +177,13 @@ func (p *PathMatcher) GetChildWithIndex(index int) Matcher {
 			continue
 		}
 
-		// Terraform actually allows user to provide strings into indexes as
+		// mnptu actually allows user to provide strings into indexes as
 		// long as the string can be interpreted into a number. For example, the
 		// following are equivalent and we need to support them.
 		//    - test_resource.resource.list[0].attribute
 		//    - test_resource.resource.list["0"].attribute
 		//
-		// Note, that Terraform will raise a validation error if the string
+		// Note, that mnptu will raise a validation error if the string
 		// can't be coerced into a number, so we will panic here if anything
 		// goes wrong safe in the knowledge the validation should stop this from
 		// happening.
@@ -196,13 +196,13 @@ func (p *PathMatcher) GetChildWithIndex(index int) Matcher {
 		case string:
 			f, err := strconv.ParseFloat(val, 64)
 			if err != nil {
-				panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
+				panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in mnptu, please report it", val, val))
 			}
 			if int(f) == index {
 				child.Paths = append(child.Paths, path[1:])
 			}
 		default:
-			panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in Terraform, please report it", val, val))
+			panic(fmt.Errorf("found invalid type within path (%v:%T), the validation shouldn't have allowed this to happen; this is a bug in mnptu, please report it", val, val))
 		}
 	}
 	return child

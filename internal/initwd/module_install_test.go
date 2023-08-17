@@ -18,16 +18,16 @@ import (
 	"github.com/go-test/deep"
 	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 func TestMain(m *testing.M) {
@@ -42,7 +42,7 @@ func TestModuleInstaller(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, nil)
@@ -105,7 +105,7 @@ func TestModuleInstaller_error(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -126,7 +126,7 @@ func TestModuleInstaller_emptyModuleName(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -164,7 +164,7 @@ func TestModuleInstaller_packageEscapeError(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -202,7 +202,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -216,7 +216,7 @@ func TestModuleInstaller_explicitPackageBoundary(t *testing.T) {
 
 func TestModuleInstaller_ExactMatchPrerelease(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
-		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+		t.Skip("this test accesses registry.mnptu.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("testdata/prerelease-version-constraint-match")
@@ -225,7 +225,7 @@ func TestModuleInstaller_ExactMatchPrerelease(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -243,7 +243,7 @@ func TestModuleInstaller_ExactMatchPrerelease(t *testing.T) {
 
 func TestModuleInstaller_PartialMatchPrerelease(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
-		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+		t.Skip("this test accesses registry.mnptu.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("testdata/prerelease-version-constraint")
@@ -252,7 +252,7 @@ func TestModuleInstaller_PartialMatchPrerelease(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -275,7 +275,7 @@ func TestModuleInstaller_invalid_version_constraint_error(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -301,7 +301,7 @@ func TestModuleInstaller_invalidVersionConstraintGetter(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -327,7 +327,7 @@ func TestModuleInstaller_invalidVersionConstraintLocal(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -353,7 +353,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -412,7 +412,7 @@ func TestModuleInstaller_symlink(t *testing.T) {
 
 func TestLoaderInstallModules_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
-		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+		t.Skip("this test accesses registry.mnptu.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("testdata/registry-modules")
@@ -429,7 +429,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 	defer done()
 
 	hooks := &testInstallHooks{}
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -447,7 +447,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
-			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "registry.mnptu.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
 			Version:     v,
 		},
 		{
@@ -456,7 +456,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			Version:    v,
 			// NOTE: This local path and the other paths derived from it below
 			// can vary depending on how the registry is implemented. At the
-			// time of writing this test, registry.terraform.io returns
+			// time of writing this test, registry.mnptu.io returns
 			// git repository source addresses and so this path refers to the
 			// root of the git clone, but historically the registry referred
 			// to GitHub-provided tar archives which meant that there was an
@@ -465,7 +465,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 			// an extra segment on this path. If this test fails due to an
 			// additional path segment in future, then a change to the upstream
 			// registry might be the root cause.
-			LocalPath: filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_a"),
+			LocalPath: filepath.Join(dir, ".mnptu/modules/acctest_child_a/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -473,35 +473,35 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
-			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "registry.mnptu.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
 			Version:     v,
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_child_b/modules/child_b"),
 		},
 
 		// acctest_root
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
-			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws",
+			PackageAddr: "registry.mnptu.io/hashicorp/module-installer-acctest/aws",
 			Version:     v,
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
 			Version:    v,
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root"),
 		},
 
 		// acctest_root.child_a
@@ -509,7 +509,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -517,7 +517,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root/modules/child_b"),
 		},
 	}
 
@@ -527,7 +527,7 @@ func TestLoaderInstallModules_registry(t *testing.T) {
 
 	//check that the registry reponses were cached
 	packageAddr := addrs.ModuleRegistryPackage{
-		Host:         svchost.Hostname("registry.terraform.io"),
+		Host:         svchost.Hostname("registry.mnptu.io"),
 		Namespace:    "hashicorp",
 		Name:         "module-installer-acctest",
 		TargetSystem: "aws",
@@ -592,7 +592,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 	defer done()
 
 	hooks := &testInstallHooks{}
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -608,12 +608,12 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_a",
-			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole repo here
+			PackageAddr: "git::https://github.com/hashicorp/mnptu-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole repo here
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_child_a/modules/child_a"),
 		},
 
 		// acctest_child_a.child_b
@@ -621,31 +621,31 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_a/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_child_a/modules/child_b"),
 		},
 
 		// acctest_child_b accesses //modules/child_b directly
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_child_b",
-			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "git::https://github.com/hashicorp/mnptu-aws-module-installer-acctest.git?ref=v0.0.1", // intentionally excludes the subdir because we're downloading the whole package here
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_child_b/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_child_b/modules/child_b"),
 		},
 
 		// acctest_root
 		{
 			Name:        "Download",
 			ModuleAddr:  "acctest_root",
-			PackageAddr: "git::https://github.com/hashicorp/terraform-aws-module-installer-acctest.git?ref=v0.0.1",
+			PackageAddr: "git::https://github.com/hashicorp/mnptu-aws-module-installer-acctest.git?ref=v0.0.1",
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root"),
 		},
 
 		// acctest_root.child_a
@@ -653,7 +653,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root/modules/child_a"),
 		},
 
 		// acctest_root.child_a.child_b
@@ -661,7 +661,7 @@ func TestLoaderInstallModules_goGetter(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "acctest_root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/acctest_root/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/acctest_root/modules/child_b"),
 		},
 	}
 
@@ -711,7 +711,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
 	inst := NewModuleInstaller(modulesDir, loader, nil)
@@ -750,7 +750,7 @@ func TestModuleInstaller_fromTests(t *testing.T) {
 
 func TestLoadInstallModules_registryFromTest(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
-		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+		t.Skip("this test accesses registry.mnptu.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("testdata/registry-module-from-test")
@@ -767,7 +767,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 	defer done()
 
 	hooks := &testInstallHooks{}
-	modulesDir := filepath.Join(dir, ".terraform/modules")
+	modulesDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, close := configload.NewLoaderForTests(t)
 	defer close()
@@ -784,7 +784,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "test.main.setup",
-			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
+			PackageAddr: "registry.mnptu.io/hashicorp/module-installer-acctest/aws", // intentionally excludes the subdir because we're downloading the whole package here
 			Version:     v,
 		},
 		{
@@ -793,7 +793,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 			Version:    v,
 			// NOTE: This local path and the other paths derived from it below
 			// can vary depending on how the registry is implemented. At the
-			// time of writing this test, registry.terraform.io returns
+			// time of writing this test, registry.mnptu.io returns
 			// git repository source addresses and so this path refers to the
 			// root of the git clone, but historically the registry referred
 			// to GitHub-provided tar archives which meant that there was an
@@ -802,7 +802,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 			// an extra segment on this path. If this test fails due to an
 			// additional path segment in future, then a change to the upstream
 			// registry might be the root cause.
-			LocalPath: filepath.Join(dir, ".terraform/modules/test.main.setup"),
+			LocalPath: filepath.Join(dir, ".mnptu/modules/test.main.setup"),
 		},
 
 		// main.tftest.hcl.setup.child_a
@@ -810,7 +810,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/test.main.setup/modules/child_a"),
 		},
 
 		// main.tftest.hcl.setup.child_a.child_b
@@ -818,7 +818,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 		{
 			Name:       "Install",
 			ModuleAddr: "test.main.setup.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/test.main.setup/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/test.main.setup/modules/child_b"),
 		},
 	}
 
@@ -828,7 +828,7 @@ func TestLoadInstallModules_registryFromTest(t *testing.T) {
 
 	//check that the registry reponses were cached
 	packageAddr := addrs.ModuleRegistryPackage{
-		Host:         svchost.Hostname("registry.terraform.io"),
+		Host:         svchost.Hostname("registry.mnptu.io"),
 		Namespace:    "hashicorp",
 		Name:         "module-installer-acctest",
 		TargetSystem: "aws",
@@ -897,7 +897,7 @@ func (h *testInstallHooks) Install(moduleAddr string, version *version.Version, 
 func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 	t.Helper()
 
-	tmpDir, err := ioutil.TempDir("", "terraform-configload")
+	tmpDir, err := ioutil.TempDir("", "mnptu-configload")
 	if err != nil {
 		t.Fatalf("failed to create temporary directory: %s", err)
 		return "", nil
@@ -921,7 +921,7 @@ func tempChdir(t *testing.T, sourceDir string) (string, func()) {
 	}
 
 	// Most of the tests need this, so we'll make it just in case.
-	os.MkdirAll(filepath.Join(tmpDir, ".terraform/modules"), os.ModePerm)
+	os.MkdirAll(filepath.Join(tmpDir, ".mnptu/modules"), os.ModePerm)
 
 	t.Logf("tempChdir switched to %s after copying from %s", tmpDir, sourceDir)
 

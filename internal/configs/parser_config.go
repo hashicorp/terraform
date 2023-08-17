@@ -32,7 +32,7 @@ func (p *Parser) LoadConfigFileOverride(path string) (*File, hcl.Diagnostics) {
 	return p.loadConfigFile(path, true)
 }
 
-// LoadTestFile reads the file at the given path and parses it as a Terraform
+// LoadTestFile reads the file at the given path and parses it as a mnptu
 // test file.
 //
 // It references the same LoadHCLFile as LoadConfigFile, so inherits the same
@@ -72,11 +72,11 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 	for _, block := range content.Blocks {
 		switch block.Type {
 
-		case "terraform":
-			content, contentDiags := block.Body.Content(terraformBlockSchema)
+		case "mnptu":
+			content, contentDiags := block.Body.Content(mnptuBlockSchema)
 			diags = append(diags, contentDiags...)
 
-			// We ignore the "terraform_version", "language" and "experiments"
+			// We ignore the "mnptu_version", "language" and "experiments"
 			// attributes here because sniffCoreVersionRequirements and
 			// sniffActiveExperiments already dealt with those above.
 
@@ -118,11 +118,11 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 			}
 
 		case "required_providers":
-			// required_providers should be nested inside a "terraform" block
+			// required_providers should be nested inside a "mnptu" block
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid required_providers block",
-				Detail:   "A \"required_providers\" block must be nested inside a \"terraform\" block.",
+				Detail:   "A \"required_providers\" block must be nested inside a \"mnptu\" block.",
 				Subject:  block.TypeRange.Ptr(),
 			})
 
@@ -206,18 +206,18 @@ func (p *Parser) loadConfigFile(path string, override bool) (*File, hcl.Diagnost
 }
 
 // sniffCoreVersionRequirements does minimal parsing of the given body for
-// "terraform" blocks with "required_version" attributes, returning the
+// "mnptu" blocks with "required_version" attributes, returning the
 // requirements found.
 //
 // This is intended to maximize the chance that we'll be able to read the
 // requirements (syntax errors notwithstanding) even if the config file contains
-// constructs that might've been added in future Terraform versions
+// constructs that might've been added in future mnptu versions
 //
 // This is a "best effort" sort of method which will return constraints it is
 // able to find, but may return no constraints at all if the given body is
 // so invalid that it cannot be decoded at all.
 func sniffCoreVersionRequirements(body hcl.Body) ([]VersionConstraint, hcl.Diagnostics) {
-	rootContent, _, diags := body.PartialContent(configFileTerraformBlockSniffRootSchema)
+	rootContent, _, diags := body.PartialContent(configFilemnptuBlockSniffRootSchema)
 
 	var constraints []VersionConstraint
 
@@ -246,12 +246,12 @@ func sniffCoreVersionRequirements(body hcl.Body) ([]VersionConstraint, hcl.Diagn
 var configFileSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
-			Type: "terraform",
+			Type: "mnptu",
 		},
 		{
 			// This one is not really valid, but we include it here so we
 			// can create a specialized error message hinting the user to
-			// nest it inside a "terraform" block.
+			// nest it inside a "mnptu" block.
 			Type: "required_providers",
 		},
 		{
@@ -294,9 +294,9 @@ var configFileSchema = &hcl.BodySchema{
 	},
 }
 
-// terraformBlockSchema is the schema for a top-level "terraform" block in
+// mnptuBlockSchema is the schema for a top-level "mnptu" block in
 // a configuration file.
-var terraformBlockSchema = &hcl.BodySchema{
+var mnptuBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "required_version"},
 		{Name: "experiments"},
@@ -320,12 +320,12 @@ var terraformBlockSchema = &hcl.BodySchema{
 	},
 }
 
-// configFileTerraformBlockSniffRootSchema is a schema for
+// configFilemnptuBlockSniffRootSchema is a schema for
 // sniffCoreVersionRequirements and sniffActiveExperiments.
-var configFileTerraformBlockSniffRootSchema = &hcl.BodySchema{
+var configFilemnptuBlockSniffRootSchema = &hcl.BodySchema{
 	Blocks: []hcl.BlockHeaderSchema{
 		{
-			Type: "terraform",
+			Type: "mnptu",
 		},
 	},
 }
@@ -340,7 +340,7 @@ var configFileVersionSniffBlockSchema = &hcl.BodySchema{
 }
 
 // configFileExperimentsSniffBlockSchema is a schema for sniffActiveExperiments,
-// to decode a single attribute from inside a "terraform" block.
+// to decode a single attribute from inside a "mnptu" block.
 var configFileExperimentsSniffBlockSchema = &hcl.BodySchema{
 	Attributes: []hcl.AttributeSchema{
 		{Name: "experiments"},

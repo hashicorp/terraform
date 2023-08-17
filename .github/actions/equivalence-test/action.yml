@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: BUSL-1.1
 
 name: equivalence-test
-description: "Execute the suite of Terraform equivalence tests in testing/equivalence-tests"
+description: "Execute the suite of mnptu equivalence tests in testing/equivalence-tests"
 inputs:
-  target-terraform-version:
-    description: "The version of Terraform to use in execution."
+  target-mnptu-version:
+    description: "The version of mnptu to use in execution."
     required: true
-  target-terraform-branch:
+  target-mnptu-branch:
     description: "The branch within this repository to update and compare."
     required: true
   target-equivalence-test-version:
-    description: "The version of the Terraform equivalence tests to use."
+    description: "The version of the mnptu equivalence tests to use."
     default: "0.3.0"
   target-os:
     description: "Current operating system"
@@ -30,12 +30,12 @@ runs:
           ./bin/equivalence-tests \
           ${{ inputs.target-os }} \
           ${{ inputs.target-arch }}
-    - name: "download terraform binary"
+    - name: "download mnptu binary"
       shell: bash
       run: |
-        ./.github/scripts/equivalence-test.sh download_terraform_binary \
-          ${{ inputs.target-terraform-version }} \
-          ./bin/terraform \
+        ./.github/scripts/equivalence-test.sh download_mnptu_binary \
+          ${{ inputs.target-mnptu-version }} \
+          ./bin/mnptu \
           ${{ inputs.target-os }} \
           ${{ inputs.target-arch }}
     - name: "run and update equivalence tests"
@@ -44,17 +44,17 @@ runs:
         ./bin/equivalence-tests update \
           --tests=testing/equivalence-tests/tests \
           --goldens=testing/equivalence-tests/outputs \
-          --binary=$(pwd)/bin/terraform
+          --binary=$(pwd)/bin/mnptu
         
         changed=$(git diff --quiet -- testing/equivalence-tests/outputs || echo true)
         if [[ $changed == "true" ]]; then
-          echo "found changes, and pushing new golden files into branch ${{ inputs.target-terraform-branch }}."
+          echo "found changes, and pushing new golden files into branch ${{ inputs.target-mnptu-branch }}."
 
-          git config user.email "52939924+teamterraform@users.noreply.github.com"
-          git config user.name "The Terraform Team"
+          git config user.email "52939924+teammnptu@users.noreply.github.com"
+          git config user.name "The mnptu Team"
 
           git add ./testing/equivalence-tests/outputs
-          git commit -m "Automated equivalence test golden file update for release ${{ inputs.target-terraform-version }}."
+          git commit -m "Automated equivalence test golden file update for release ${{ inputs.target-mnptu-version }}."
           git push
         else
           echo "found no changes, so not pushing any updates."

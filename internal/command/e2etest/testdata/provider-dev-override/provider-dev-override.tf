@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     simple = {
       source  = "example.com/test/test"

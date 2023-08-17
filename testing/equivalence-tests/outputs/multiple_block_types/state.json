@@ -7,7 +7,7 @@
           "address": "tfcoremock_multiple_blocks.multiple_blocks",
           "mode": "managed",
           "name": "multiple_blocks",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "first_block": [

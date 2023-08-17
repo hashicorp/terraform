@@ -14,8 +14,8 @@ import (
 
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/aliyun/aliyun-tablestore-go-sdk/tablestore"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
 )
 
 // verify that we are doing ACC tests or the OSS tests specifically
@@ -41,10 +41,10 @@ func TestBackendConfig(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
 		"region":              "cn-beijing",
-		"bucket":              "terraform-backend-oss-test",
+		"bucket":              "mnptu-backend-oss-test",
 		"prefix":              "mystate",
 		"key":                 "first.tfstate",
-		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_endpoint": "https://mnptustate.cn-beijing.ots.aliyuncs.com",
 		"tablestore_table":    "TableStore",
 	}
 
@@ -53,7 +53,7 @@ func TestBackendConfig(t *testing.T) {
 	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")
 	}
-	if b.bucketName != "terraform-backend-oss-test" {
+	if b.bucketName != "mnptu-backend-oss-test" {
 		t.Fatalf("Incorrect bucketName was provided")
 	}
 	if b.statePrefix != "mystate" {
@@ -73,13 +73,13 @@ func TestBackendConfig(t *testing.T) {
 
 func TestBackendConfigWorkSpace(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-backend-oss-test-%d", rand.Intn(1000))
+	bucketName := fmt.Sprintf("mnptu-backend-oss-test-%d", rand.Intn(1000))
 	config := map[string]interface{}{
 		"region":              "cn-beijing",
 		"bucket":              bucketName,
 		"prefix":              "mystate",
 		"key":                 "first.tfstate",
-		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_endpoint": "https://mnptustate.cn-beijing.ots.aliyuncs.com",
 		"tablestore_table":    "TableStore",
 	}
 
@@ -114,10 +114,10 @@ func TestBackendConfigProfile(t *testing.T) {
 	testACC(t)
 	config := map[string]interface{}{
 		"region":              "cn-beijing",
-		"bucket":              "terraform-backend-oss-test",
+		"bucket":              "mnptu-backend-oss-test",
 		"prefix":              "mystate",
 		"key":                 "first.tfstate",
-		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_endpoint": "https://mnptustate.cn-beijing.ots.aliyuncs.com",
 		"tablestore_table":    "TableStore",
 		"profile":             "default",
 	}
@@ -127,7 +127,7 @@ func TestBackendConfigProfile(t *testing.T) {
 	if !strings.HasPrefix(b.ossClient.Config.Endpoint, "https://oss-cn-beijing") {
 		t.Fatalf("Incorrect region was provided")
 	}
-	if b.bucketName != "terraform-backend-oss-test" {
+	if b.bucketName != "mnptu-backend-oss-test" {
 		t.Fatalf("Incorrect bucketName was provided")
 	}
 	if b.statePrefix != "mystate" {
@@ -149,10 +149,10 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 	testACC(t)
 	cfg := hcl2shim.HCL2ValueFromConfigValue(map[string]interface{}{
 		"region":              "cn-beijing",
-		"bucket":              "terraform-backend-oss-test",
+		"bucket":              "mnptu-backend-oss-test",
 		"prefix":              "/leading-slash",
 		"name":                "/test.tfstate",
-		"tablestore_endpoint": "https://terraformstate.cn-beijing.ots.aliyuncs.com",
+		"tablestore_endpoint": "https://mnptustate.cn-beijing.ots.aliyuncs.com",
 		"tablestore_table":    "TableStore",
 	})
 
@@ -165,7 +165,7 @@ func TestBackendConfig_invalidKey(t *testing.T) {
 func TestBackend(t *testing.T) {
 	testACC(t)
 
-	bucketName := fmt.Sprintf("terraform-remote-oss-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-oss-test-%x", time.Now().Unix())
 	statePrefix := "multi/level/path/"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{

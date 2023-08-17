@@ -85,7 +85,7 @@ only one element, which is the first element of each argument:
 ```
 
 Each argument must have a consistent type for all of its elements. If not,
-Terraform will attempt to convert to the most general type, or produce an
+mnptu will attempt to convert to the most general type, or produce an
 error if such a conversion is impossible. For example, mixing both strings and
 numbers results in the numbers being converted to strings so that the result
 elements all have a consistent type:
@@ -115,9 +115,9 @@ elements all have a consistent type:
 ## Finding combinations for `for_each`
 
 The
-[resource `for_each`](/terraform/language/meta-arguments/for_each)
+[resource `for_each`](/mnptu/language/meta-arguments/for_each)
 and
-[`dynamic` block](/terraform/language/expressions/dynamic-blocks)
+[`dynamic` block](/mnptu/language/expressions/dynamic-blocks)
 language features both require a collection value that has one element for
 each repetition.
 
@@ -269,13 +269,13 @@ The `network_subnets` output would look similar to the following:
 
 ## Related Functions
 
-- [`contains`](/terraform/language/functions/contains) tests whether a given list or set contains
+- [`contains`](/mnptu/language/functions/contains) tests whether a given list or set contains
   a given element value.
-- [`flatten`](/terraform/language/functions/flatten) is useful for flattening hierarchical data
+- [`flatten`](/mnptu/language/functions/flatten) is useful for flattening hierarchical data
   into a single list, for situations where the relationships between two
   object types are defined explicitly.
-- [`setintersection`](/terraform/language/functions/setintersection) computes the _intersection_ of
+- [`setintersection`](/mnptu/language/functions/setintersection) computes the _intersection_ of
   multiple sets.
-- [`setsubtract`](/terraform/language/functions/setsubtract) computes the _relative complement_ of two sets
-- [`setunion`](/terraform/language/functions/setunion) computes the _union_ of multiple
+- [`setsubtract`](/mnptu/language/functions/setsubtract) computes the _relative complement_ of two sets
+- [`setunion`](/mnptu/language/functions/setunion) computes the _union_ of multiple
   sets.

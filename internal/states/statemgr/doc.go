@@ -10,8 +10,8 @@
 // parts of state for storage.
 //
 // State managers are responsible for ensuring that stored state can be updated
-// safely across multiple, possibly-concurrent Terraform runs (with reasonable
-// constraints and limitations). The rest of Terraform considers state to be
+// safely across multiple, possibly-concurrent mnptu runs (with reasonable
+// constraints and limitations). The rest of mnptu considers state to be
 // a mutable data structure, with state managers preserving that illusion
 // by creating snapshots of the state and updating them over time.
 //

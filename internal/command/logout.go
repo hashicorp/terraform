@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // LogoutCommand is a Command implementation which removes stored credentials
@@ -38,7 +38,7 @@ func (c *LogoutCommand) Run(args []string) int {
 
 	var diags tfdiags.Diagnostics
 
-	givenHostname := "app.terraform.io"
+	givenHostname := "app.mnptu.io"
 	if len(args) != 0 {
 		givenHostname = args[0]
 	}
@@ -72,7 +72,7 @@ func (c *LogoutCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			fmt.Sprintf("Credentials for %s are manually configured", dispHostname),
-			"The \"terraform logout\" command cannot log out because credentials for this host are manually configured in a CLI configuration file.\n\nTo log out, revoke the existing credentials and remove that block from the CLI configuration.",
+			"The \"mnptu logout\" command cannot log out because credentials for this host are manually configured in a CLI configuration file.\n\nTo log out, revoke the existing credentials and remove that block from the CLI configuration.",
 		))
 	}
 
@@ -108,7 +108,7 @@ func (c *LogoutCommand) Run(args []string) int {
 	c.Ui.Output(
 		fmt.Sprintf(
 			c.Colorize().Color(strings.TrimSpace(`
-[green][bold]Success![reset] [bold]Terraform has removed the stored API token for %s.[reset]
+[green][bold]Success![reset] [bold]mnptu has removed the stored API token for %s.[reset]
 `)),
 			dispHostname,
 		) + "\n",
@@ -127,18 +127,18 @@ func (c *LogoutCommand) Help() string {
 		// more complex behavior for this case. This result is not correct
 		// on all platforms, but given how unlikely we are to hit this case
 		// that seems okay.
-		defaultFile = "~/.terraform/credentials.tfrc.json"
+		defaultFile = "~/.mnptu/credentials.tfrc.json"
 	}
 
 	helpText := `
-Usage: terraform [global options] logout [hostname]
+Usage: mnptu [global options] logout [hostname]
 
   Removes locally-stored credentials for specified hostname.
 
   Note: the API token is only removed from local storage, not destroyed on the
   remote server, so it will remain valid until manually revoked.
 
-  If no hostname is provided, the default hostname is app.terraform.io.
+  If no hostname is provided, the default hostname is app.mnptu.io.
       %s
 `
 	return strings.TrimSpace(helpText)

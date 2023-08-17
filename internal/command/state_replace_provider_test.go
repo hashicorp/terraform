@@ -11,8 +11,8 @@ import (
 
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestStateReplaceProvider(t *testing.T) {
@@ -288,7 +288,7 @@ func TestStateReplaceProvider(t *testing.T) {
 func TestStateReplaceProvider_docs(t *testing.T) {
 	c := &StateReplaceProviderCommand{}
 
-	if got, want := c.Help(), "Usage: terraform [global options] state replace-provider"; !strings.Contains(got, want) {
+	if got, want := c.Help(), "Usage: mnptu [global options] state replace-provider"; !strings.Contains(got, want) {
 		t.Fatalf("unexpected help text\nwant: %s\nfull output:\n%s", want, got)
 	}
 
@@ -393,33 +393,33 @@ func TestStateReplaceProvider_checkRequiredVersion(t *testing.T) {
 const testStateReplaceProviderOutputOriginal = `
 aws_instance.alpha:
   ID = alpha
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
   bar = value
   foo = value
 aws_instance.beta:
   ID = beta
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
   bar = value
   foo = value
 azurerm_virtual_machine.gamma:
   ID = gamma
-  provider = provider["registry.terraform.io/-/azurerm"]
+  provider = provider["registry.mnptu.io/-/azurerm"]
   baz = value
 `
 
 const testStateReplaceProviderOutput = `
 aws_instance.alpha:
   ID = alpha
-  provider = provider["registry.terraform.io/acmecorp/aws"]
+  provider = provider["registry.mnptu.io/acmecorp/aws"]
   bar = value
   foo = value
 aws_instance.beta:
   ID = beta
-  provider = provider["registry.terraform.io/acmecorp/aws"]
+  provider = provider["registry.mnptu.io/acmecorp/aws"]
   bar = value
   foo = value
 azurerm_virtual_machine.gamma:
   ID = gamma
-  provider = provider["registry.terraform.io/-/azurerm"]
+  provider = provider["registry.mnptu.io/-/azurerm"]
   baz = value
 `

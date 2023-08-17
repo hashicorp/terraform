@@ -1,19 +1,19 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 // HookAction is an enum of actions that can be taken as a result of a hook
-// callback. This allows you to modify the behavior of Terraform at runtime.
+// callback. This allows you to modify the behavior of mnptu at runtime.
 type HookAction byte
 
 const (
@@ -21,14 +21,14 @@ const (
 	HookActionContinue HookAction = iota
 
 	// HookActionHalt halts immediately: no more hooks are processed
-	// and the action that Terraform was about to take is cancelled.
+	// and the action that mnptu was about to take is cancelled.
 	HookActionHalt
 )
 
 // Hook is the interface that must be implemented to hook into various
-// parts of Terraform, allowing you to inspect or change behavior at runtime.
+// parts of mnptu, allowing you to inspect or change behavior at runtime.
 //
-// There are MANY hook points into Terraform. If you only want to implement
+// There are MANY hook points into mnptu. If you only want to implement
 // some hook points, but not all (which is the likely case), then embed the
 // NilHook into your struct, which implements all of the interface but does
 // nothing. Then, override only the functions you want to implement.
@@ -90,18 +90,18 @@ type Hook interface {
 	PreApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
 	PostApplyImport(addr addrs.AbsResourceInstance, importing plans.ImportingSrc) (HookAction, error)
 
-	// Stopping is called if an external signal requests that Terraform
+	// Stopping is called if an external signal requests that mnptu
 	// gracefully abort an operation in progress.
 	//
-	// This notification might suggest that the user wants Terraform to exit
-	// ASAP and in that case it's possible that if Terraform runs for too much
+	// This notification might suggest that the user wants mnptu to exit
+	// ASAP and in that case it's possible that if mnptu runs for too much
 	// longer then it'll get killed un-gracefully, and so this hook could be
 	// an opportunity to persist any transient data that would be lost under
 	// a subsequent kill signal. However, implementations must take care to do
 	// so in a way that won't cause corruption if the process _is_ killed while
 	// this hook is still running.
 	//
-	// This hook cannot control whether Terraform continues, because the
+	// This hook cannot control whether mnptu continues, because the
 	// graceful shutdown process is typically already running by the time this
 	// function is called.
 	Stopping()

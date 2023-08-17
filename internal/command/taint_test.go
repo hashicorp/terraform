@@ -11,8 +11,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/mitchellh/cli"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 )
 
 func TestTaint(t *testing.T) {
@@ -546,22 +546,22 @@ func TestTaint_checkRequiredVersion(t *testing.T) {
 const testTaintStr = `
 test_instance.foo: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 `
 
 const testTaintDefaultStr = `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 `
 
 const testTaintModuleStr = `
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 
 module.child:
   test_instance.blah: (tainted)
     ID = blah
-    provider = provider["registry.terraform.io/hashicorp/test"]
+    provider = provider["registry.mnptu.io/hashicorp/test"]
 `

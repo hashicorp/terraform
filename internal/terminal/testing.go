@@ -17,7 +17,7 @@ import (
 //
 // This particular function is for the simple case of a function that only
 // produces output: the returned input stream is connected to the system's
-// "null device", as if a user had run Terraform with I/O redirection like
+// "null device", as if a user had run mnptu with I/O redirection like
 // </dev/null on Unix. It also configures the output as a pipe rather than
 // as a terminal, and so can't be used to test whether code is able to adapt
 // to different terminal widths.

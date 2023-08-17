@@ -4,8 +4,8 @@
 package cloud
 
 import (
-	"github.com/hashicorp/terraform/internal/configs"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 // Most of the logic for migrating into and out of "cloud mode" actually lives
@@ -59,7 +59,7 @@ func DetectConfigChangeType(wdState *legacy.BackendState, config *configs.Backen
 
 	// "uninit" here means that the working directory is totally uninitialized,
 	// even taking into account the possibility of implied local state that
-	// therefore doesn't typically require explicit "terraform init".
+	// therefore doesn't typically require explicit "mnptu init".
 	wdIsUninit := wdState == nil && !haveLocalStates
 
 	switch {

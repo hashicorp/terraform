@@ -1,15 +1,15 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 
 	"github.com/hashicorp/go-uuid"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
@@ -125,7 +125,7 @@ func applyDataStoreResourceChange(req providers.ApplyResourceChangeRequest) (res
 
 	if !req.PlannedState.GetAttr("id").IsKnown() {
 		idString, err := uuid.GenerateUUID()
-		// Terraform would probably never get this far without a good random
+		// mnptu would probably never get this far without a good random
 		// source, but catch the error anyway.
 		if err != nil {
 			diag := tfdiags.AttributeValue(
@@ -150,7 +150,7 @@ func applyDataStoreResourceChange(req providers.ApplyResourceChangeRequest) (res
 	return resp
 }
 
-// TODO: This isn't very useful even for examples, because terraform_data has
+// TODO: This isn't very useful even for examples, because mnptu_data has
 // no way to refresh the full resource value from only the import ID. This
 // minimal implementation allows the import to succeed, and can be extended
 // once the configuration is available during import.

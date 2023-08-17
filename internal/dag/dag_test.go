@@ -13,9 +13,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 func TestMain(m *testing.M) {

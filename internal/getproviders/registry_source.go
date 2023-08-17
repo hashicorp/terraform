@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	disco "github.com/hashicorp/terraform-svchost/disco"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	disco "github.com/hashicorp/mnptu-svchost/disco"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // RegistrySource is a Source that knows how to find and install providers from
@@ -53,15 +53,15 @@ func (s *RegistrySource) AvailableVersions(ctx context.Context, provider addrs.P
 
 	// We ignore protocols here because our goal is to find out which versions
 	// are available _at all_. Which ones are compatible with the current
-	// Terraform becomes relevant only once we've selected one, at which point
+	// mnptu becomes relevant only once we've selected one, at which point
 	// we'll return an error if the selected one is incompatible.
 	//
 	// We intentionally produce an error on incompatibility, rather than
 	// silently ignoring an incompatible version, in order to give the user
 	// explicit feedback about why their selection wasn't valid and allow them
 	// to decide whether to fix that by changing the selection or by some other
-	// action such as upgrading Terraform, using a different OS to run
-	// Terraform, etc. Changes that affect compatibility are considered breaking
+	// action such as upgrading mnptu, using a different OS to run
+	// mnptu, etc. Changes that affect compatibility are considered breaking
 	// changes from a provider API standpoint, so provider teams should change
 	// compatibility only in new major versions.
 	ret := make(VersionList, 0, len(versionsResponse))

@@ -10,11 +10,11 @@ Usage: ./equivalence-test.sh <command> [<args>] [<options>]
 
 Description:
   This script will handle various commands related to the execution of the
-  Terraform equivalence tests.
+  mnptu equivalence tests.
 
 Commands:
   get_target_branch <version>
-    get_target_branch returns the default target branch for a given Terraform
+    get_target_branch returns the default target branch for a given mnptu
     version.
 
     target_branch=$(./equivalence-test.sh get_target_branch v1.4.3); target_branch=v1.4
@@ -24,13 +24,13 @@ Commands:
     download_equivalence_test_binary downloads the equivalence testing binary
     for a given version and places it at the target path.
 
-    ./equivalence-test.sh download_equivalence_test_binary 0.3.0 ./bin/terraform-equivalence-testing linux amd64
+    ./equivalence-test.sh download_equivalence_test_binary 0.3.0 ./bin/mnptu-equivalence-testing linux amd64
 
-  download_terraform_binary <version> <target> <os> <arch>
-    download_terraform_binary downloads the terraform release binary for a given
+  download_mnptu_binary <version> <target> <os> <arch>
+    download_mnptu_binary downloads the mnptu release binary for a given
     version and places it at the target path.
 
-    ./equivalence-test.sh download_terraform_binary 1.4.3 ./bin/terraform linux amd64
+    ./equivalence-test.sh download_mnptu_binary 1.4.3 ./bin/mnptu linux amd64
 EOF
 }
 
@@ -48,24 +48,24 @@ function download_equivalence_test_binary {
 
   curl \
     -H "Accept: application/vnd.github+json" \
-    "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases" > releases.json
+    "https://api.github.com/repos/hashicorp/mnptu-equivalence-testing/releases" > releases.json
 
-  ASSET="terraform-equivalence-testing_v${VERSION}_${OS}_${ARCH}.zip"
+  ASSET="mnptu-equivalence-testing_v${VERSION}_${OS}_${ARCH}.zip"
   ASSET_ID=$(jq -r --arg VERSION "v$VERSION" --arg ASSET "$ASSET" '.[] | select(.name == $VERSION) | .assets[] | select(.name == $ASSET) | .id' releases.json)
 
   mkdir -p zip
   curl -L \
     -H "Accept: application/octet-stream" \
-    "https://api.github.com/repos/hashicorp/terraform-equivalence-testing/releases/assets/$ASSET_ID" > "zip/$ASSET"
+    "https://api.github.com/repos/hashicorp/mnptu-equivalence-testing/releases/assets/$ASSET_ID" > "zip/$ASSET"
 
   mkdir -p bin
-  unzip -p "zip/$ASSET" terraform-equivalence-testing > "$TARGET"
+  unzip -p "zip/$ASSET" mnptu-equivalence-testing > "$TARGET"
   chmod u+x "$TARGET"
   rm -r zip
   rm releases.json
 }
 
-function download_terraform_binary {
+function download_mnptu_binary {
   VERSION="${1:-}"
   TARGET="${2:-}"
   OS="${3:-}"
@@ -78,10 +78,10 @@ function download_terraform_binary {
   fi
 
   mkdir -p zip
-  curl "https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_${OS}_${ARCH}.zip" > "zip/terraform.zip"
+  curl "https://releases.hashicorp.com/mnptu/${VERSION}/mnptu_${VERSION}_${OS}_${ARCH}.zip" > "zip/mnptu.zip"
 
   mkdir -p bin
-  unzip -p "zip/terraform.zip" terraform > "$TARGET"
+  unzip -p "zip/mnptu.zip" mnptu > "$TARGET"
   chmod u+x "$TARGET"
   rm -r zip
 }
@@ -142,14 +142,14 @@ function main {
       download_equivalence_test_binary "$2" "$3" "$4" "$5"
 
       ;;
-    download_terraform_binary)
+    download_mnptu_binary)
       if [ "${#@}" != 5 ]; then
         echo "invalid number of arguments"
         usage
         exit 1
       fi
 
-      download_terraform_binary "$2" "$3" "$4" "$5"
+      download_mnptu_binary "$2" "$3" "$4" "$5"
 
       ;;
     *)

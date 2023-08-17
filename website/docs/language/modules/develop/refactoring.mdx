@@ -5,8 +5,8 @@ description: How to make backward-compatible changes to modules already in use.
 
 # Refactoring
 
--> **Note:** Explicit refactoring declarations with `moved` blocks is available in Terraform v1.1 and later. For earlier Terraform versions or for refactoring actions too complex to express as `moved` blocks, you can
-use the [`terraform state mv` CLI command](/terraform/cli/commands/state/mv)
+-> **Note:** Explicit refactoring declarations with `moved` blocks is available in mnptu v1.1 and later. For earlier mnptu versions or for refactoring actions too complex to express as `moved` blocks, you can
+use the [`mnptu state mv` CLI command](/mnptu/cli/commands/state/mv)
 as a separate step.
 
 In shared modules and long-lived configurations, you may eventually outgrow
@@ -14,16 +14,16 @@ your initial module structure and resource names. For example, you might decide
 that what was previously one child module makes more sense as two separate
 modules and move a subset of the existing resources to the new one.
 
-Terraform compares previous state with new configuration, correlating by
-each module or resource's unique address. Therefore _by default_ Terraform
+mnptu compares previous state with new configuration, correlating by
+each module or resource's unique address. Therefore _by default_ mnptu
 understands moving or renaming an object as an intent to destroy the object
 at the old address and to create a new object at the new address.
 
 When you add `moved` blocks in your configuration to record where you've
-historically moved or renamed an object, Terraform treats an existing object at
+historically moved or renamed an object, mnptu treats an existing object at
 the old address as if it now belongs to the new address.
 
-> **Hands On:** Try the [Use Configuration to Move Resources](/terraform/tutorials/configuration-language/move-config) tutorial.
+> **Hands On:** Try the [Use Configuration to Move Resources](/mnptu/tutorials/configuration-language/move-config) tutorial.
 
 ## `moved` Block Syntax
 
@@ -39,9 +39,9 @@ moved {
 The example above records that the resource currently known as `aws_instance.b`
 was known as `aws_instance.a` in a previous version of this module.
 
-Before creating a new plan for `aws_instance.b`, Terraform first checks
+Before creating a new plan for `aws_instance.b`, mnptu first checks
 whether there is an existing object for `aws_instance.a` recorded in the state.
-If there is an existing object, Terraform renames that object to
+If there is an existing object, mnptu renames that object to
 `aws_instance.b` and then proceeds with creating a plan. The resulting plan is
 as if the object had originally been created at `aws_instance.b`, avoiding any
 need to destroy it during apply.
@@ -70,7 +70,7 @@ resource "aws_instance" "a" {
 }
 ```
 
-Applying this configuration for the first time would cause Terraform to
+Applying this configuration for the first time would cause mnptu to
 create `aws_instance.a[0]` and `aws_instance.a[1]`.
 
 If you later choose a different name for this resource, then you can change the
@@ -89,7 +89,7 @@ moved {
 }
 ```
 
-When creating the next plan for each configuration using this module, Terraform
+When creating the next plan for each configuration using this module, mnptu
 treats any existing objects belonging to `aws_instance.a` as if they had
 been created for `aws_instance.b`: `aws_instance.a[0]` will be treated as
 `aws_instance.b[0]`, and `aws_instance.a[1]` as `aws_instance.b[1]`.
@@ -99,7 +99,7 @@ New instances of the module, which _never_ had an
 `aws_instance.b[0]` and `aws_instance.b[1]` as normal.
 
 Both of the addresses in this example referred to a resource as a whole, and
-so Terraform recognizes the move for all instances of the resource. That is,
+so mnptu recognizes the move for all instances of the resource. That is,
 it covers both `aws_instance.a[0]` and `aws_instance.a[1]` without the need
 to identify each one separately.
 
@@ -119,10 +119,10 @@ resource "aws_instance" "a" {
 }
 ```
 
-Applying this configuration would lead to Terraform creating an object
+Applying this configuration would lead to mnptu creating an object
 bound to the address `aws_instance.a`.
 
-Later, you use [`for_each`](/terraform/language/meta-arguments/for_each) with this
+Later, you use [`for_each`](/mnptu/language/meta-arguments/for_each) with this
 resource to systematically declare multiple instances. To preserve an object
 that was previously associated with `aws_instance.a` alone, you must add a
 `moved` block to specify which instance key the object will take in the new
@@ -153,12 +153,12 @@ moved {
 }
 ```
 
-The above will keep Terraform from planning to destroy any existing object at
+The above will keep mnptu from planning to destroy any existing object at
 `aws_instance.a`, treating that object instead as if it were originally
 created as `aws_instance.a["small"]`.
 
 When at least one of the two addresses includes an instance key, like
-`["small"]` in the above example, Terraform understands both addresses as
+`["small"]` in the above example, mnptu understands both addresses as
 referring to specific _instances_ of a resource rather than the resource as a
 whole. That means you can use `moved` to switch between keys and to add and
 remove keys as you switch between `count`, `for_each`, or neither.
@@ -196,7 +196,7 @@ moved {
 ```
 
 -> **Note:** When you add `count` to an existing resource that didn't use it,
-Terraform automatically proposes to move the original object to instance zero,
+mnptu automatically proposes to move the original object to instance zero,
 unless you write an `moved` block explicitly mentioning that resource.
 However, we recommend still writing out the corresponding `moved` block
 explicitly, to make the change clearer to future readers of the module.
@@ -214,7 +214,7 @@ module "a" {
 }
 ```
 
-When applying this configuration, Terraform would prefix the addresses for
+When applying this configuration, mnptu would prefix the addresses for
 any resources declared in this module with the module path `module.a`.
 For example, a resource `aws_instance.example` would have the full address
 `module.a.aws_instance.example`.
@@ -235,13 +235,13 @@ moved {
 }
 ```
 
-When creating the next plan for each configuration using this module, Terraform
+When creating the next plan for each configuration using this module, mnptu
 will treat any existing object addresses beginning with `module.a` as if
 they had instead been created in `module.b`. `module.a.aws_instance.example`
 would be treated as `module.b.aws_instance.example`.
 
 Both of the addresses in this example referred to a module call as a whole, and
-so Terraform recognizes the move for all instances of the call. If this
+so mnptu recognizes the move for all instances of the call. If this
 module call used `count` or `for_each` then it would apply to all of the
 instances, without the need to specify each one separately.
 
@@ -257,11 +257,11 @@ module "a" {
 }
 ```
 
-Applying this configuration would cause Terraform to create objects whose
+Applying this configuration would cause mnptu to create objects whose
 addresses begin with `module.a`.
 
 In later module versions, you may need to use
-[`count`](/terraform/language/meta-arguments/count) with this resource to systematically
+[`count`](/mnptu/language/meta-arguments/count) with this resource to systematically
 declare multiple instances. To preserve an object that was previously associated
 with `aws_instance.a` alone, you can add a `moved` block to specify which
 instance key that object will take in the new configuration:
@@ -280,12 +280,12 @@ moved {
 }
 ```
 
-The configuration above directs Terraform to treat all objects in `module.a` as
-if they were originally created in `module.a[2]`. As a result, Terraform plans
+The configuration above directs mnptu to treat all objects in `module.a` as
+if they were originally created in `module.a[2]`. As a result, mnptu plans
 to create new objects only for `module.a[0]` and `module.a[1]`.
 
 When at least one of the two addresses includes an instance key, like
-`[2]` in the above example, Terraform will understand both addresses as
+`[2]` in the above example, mnptu will understand both addresses as
 referring to specific _instances_ of a module call rather than the module
 call as a whole. That means you can use `moved` to switch between keys and to
 add and remove keys as you switch between `count`, `for_each`, or neither.
@@ -384,7 +384,7 @@ moved {
 ```
 
 When an existing user of the original module upgrades to the new "shim"
-version, Terraform notices these three `moved` blocks and behaves
+version, mnptu notices these three `moved` blocks and behaves
 as if the objects associated with the three old resource addresses were
 originally created inside the two new modules.
 
@@ -398,9 +398,9 @@ typical rule that a parent module sees its child module as a "closed box",
 unaware of exactly which resources are declared inside it. This compromise
 assumes that all three of these modules are maintained by the same people
 and distributed together in a single
-[module package](/terraform/language/modules/sources#modules-in-package-sub-directories).
+[module package](/mnptu/language/modules/sources#modules-in-package-sub-directories).
 
-Terraform resolves module references in `moved` blocks relative to the module
+mnptu resolves module references in `moved` blocks relative to the module
 instance they are defined in. For example, if the original module above were
 already a child module named `module.original`, the reference to
 `module.x.aws_instance.a` would resolve as
@@ -425,7 +425,7 @@ Over time, a long-lasting module may accumulate many `moved` blocks.
 
 Removing a `moved` block is a generally breaking change because any configurations that refer to the old address will plan to delete that existing object instead of move it. We strongly recommend that you retain all historical `moved` blocks from earlier versions of your modules to preserve the upgrade path for users of any previous version.
 
-If you do decide to remove `moved` blocks, proceed with caution. It can be safe to remove `moved` blocks when you are maintaining private modules within an organization and you are certain that all users have successfully run `terraform apply` with your new module version.
+If you do decide to remove `moved` blocks, proceed with caution. It can be safe to remove `moved` blocks when you are maintaining private modules within an organization and you are certain that all users have successfully run `mnptu apply` with your new module version.
 
 If you need to rename or move the same object twice, we recommend documenting the full history
 using _chained_ `moved` blocks, where the new block refers to the existing block:
@@ -444,5 +444,5 @@ moved {
 
 Recording a sequence of moves in this way allows for successful upgrades for
 both configurations with objects at `aws_instance.a` _and_ configurations with
-objects at `aws_instance.b`. In both cases, Terraform treats the existing
+objects at `aws_instance.b`. In both cases, mnptu treats the existing
 object as if it had been originally created as `aws_instance.c`.

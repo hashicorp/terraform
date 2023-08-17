@@ -4,8 +4,8 @@
 package providers
 
 import (
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
 )
 
 // ProviderSchema is an overall container for all of the schemas for all

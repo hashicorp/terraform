@@ -1,6 +1,6 @@
 {
     "format_version": "1.0",
-    "terraform_version": "0.14.0",
+    "mnptu_version": "0.14.0",
     "values": {
         "root_module": {
             "resources": [
@@ -9,7 +9,7 @@
                     "mode": "managed",
                     "type": "test_instance",
                     "name": "test",
-                    "provider_name": "registry.terraform.io/hashicorp/test",
+                    "provider_name": "registry.mnptu.io/hashicorp/test",
                     "schema_version": 0,
                     "values": {
                         "id": "621124146446964903",

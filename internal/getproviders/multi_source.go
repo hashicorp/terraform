@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // MultiSource is a Source that wraps a series of other sources and combines

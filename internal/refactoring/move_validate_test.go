@@ -12,13 +12,13 @@ import (
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/zclconf/go-cty/cty/gocty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/initwd"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/initwd"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestValidateMoves(t *testing.T) {
@@ -530,7 +530,7 @@ A chain of move statements must end with an address that doesn't appear in any o
 // loadRefactoringFixture reads a configuration from the given directory and
 // does some naive static processing on any count and for_each expressions
 // inside, in order to get a realistic-looking instances.Set for what it
-// declares without having to run a full Terraform plan.
+// declares without having to run a full mnptu plan.
 func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instances.Set) {
 	t.Helper()
 

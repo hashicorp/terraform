@@ -1,10 +1,10 @@
 
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   + create
  <= read (data resources)
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # data.tfcoremock_simple_resource.read will be read during apply
   # (config refers to values not yet known)
@@ -42,4 +42,4 @@ Plan: 3 to add, 0 to change, 0 to destroy.
 Saved the plan to: equivalence_test_plan
 
 To perform exactly these actions, run the following command to apply:
-    terraform apply "equivalence_test_plan"
+    mnptu apply "equivalence_test_plan"

@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
-// ValidateCommand is a Command implementation that validates the terraform files
+// ValidateCommand is a Command implementation that validates the mnptu files
 type ValidateCommand struct {
 	Meta
 }
@@ -59,7 +59,7 @@ func (c *ValidateCommand) Run(rawArgs []string) int {
 
 	// Validating with dev overrides in effect means that the result might
 	// not be valid for a stable release, so we'll warn about that in case
-	// the user is trying to use "terraform validate" as a sort of pre-flight
+	// the user is trying to use "mnptu validate" as a sort of pre-flight
 	// check before submitting a change.
 	diags = diags.Append(c.providerDevOverrideRuntimeWarnings())
 
@@ -88,7 +88,7 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 			return diags
 		}
 
-		tfCtx, ctxDiags := terraform.NewContext(opts)
+		tfCtx, ctxDiags := mnptu.NewContext(opts)
 		diags = diags.Append(ctxDiags)
 		if ctxDiags.HasErrors() {
 			return diags
@@ -105,8 +105,8 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 
 	validatedModules := make(map[string]bool)
 
-	// We'll also do a quick validation of the Terraform test files. These live
-	// outside the Terraform graph so we have to do this separately.
+	// We'll also do a quick validation of the mnptu test files. These live
+	// outside the mnptu graph so we have to do this separately.
 	for _, file := range cfg.Module.Tests {
 		for _, run := range file.Runs {
 
@@ -117,7 +117,7 @@ func (c *ValidateCommand) validate(dir, testDir string, noTests bool) tfdiags.Di
 				// Basically, local testing modules are something the user can
 				// reasonably go and fix. If it's a module being downloaded from
 				// the registry, the expectation is that the author of the
-				// module should have ran `terraform validate` themselves.
+				// module should have ran `mnptu validate` themselves.
 				if _, ok := run.Module.Source.(addrs.ModuleSourceLocal); ok {
 
 					if validated := validatedModules[run.Module.Source.String()]; !validated {
@@ -145,7 +145,7 @@ func (c *ValidateCommand) Synopsis() string {
 
 func (c *ValidateCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] validate [options]
+Usage: mnptu [global options] validate [options]
 
   Validate the configuration files in a directory, referring only to the
   configuration and not accessing any remote services such as remote state,
@@ -163,10 +163,10 @@ Usage: terraform [global options] validate [options]
   Validation requires an initialized working directory with any referenced
   plugins and modules installed. To initialize a working directory for
   validation without accessing any configured remote backend, use:
-      terraform init -backend=false
+      mnptu init -backend=false
 
   To verify configuration in the context of a particular run (a particular
-  target workspace, input variable values, etc), use the 'terraform plan'
+  target workspace, input variable values, etc), use the 'mnptu plan'
   command instead, which includes an implied validation check.
 
 Options:
@@ -177,9 +177,9 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
-  -no-tests             If specified, Terraform will not validate test files.
+  -no-tests             If specified, mnptu will not validate test files.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -test-directory=path	Set the mnptu test directory, defaults to "tests".
 `
 	return strings.TrimSpace(helpText)
 }

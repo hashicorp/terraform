@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
+	"github.com/hashicorp/mnptu/internal/cloud/cloudplan"
 )
 
 // WrappedPlanFile is a sum type that represents a saved plan, loaded from a

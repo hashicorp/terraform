@@ -13,7 +13,7 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// helpFunc is a cli.HelpFunc that can be used to output the help CLI instructions for Terraform.
+// helpFunc is a cli.HelpFunc that can be used to output the help CLI instructions for mnptu.
 func helpFunc(commands map[string]cli.CommandFactory) string {
 	// Determine the maximum key length, and classify based on type
 	var otherCommands []string
@@ -47,7 +47,7 @@ func helpFunc(commands map[string]cli.CommandFactory) string {
 	// website/source/docs/cli/commands/index.html.markdown; if you
 	// change this then consider updating that to match.
 	helpText := fmt.Sprintf(`
-Usage: terraform [global options] <subcommand> [args]
+Usage: mnptu [global options] <subcommand> [args]
 
 The available commands for execution are listed below.
 The primary workflow commands are given first, followed by

@@ -9,16 +9,16 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestCountHook_impl(t *testing.T) {
-	var _ terraform.Hook = new(countHook)
+	var _ mnptu.Hook = new(countHook)
 }
 
 func TestCountHookPostDiff_DestroyDeposed(t *testing.T) {

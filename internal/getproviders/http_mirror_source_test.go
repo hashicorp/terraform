@@ -12,10 +12,10 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 func TestHTTPMirrorSource(t *testing.T) {
@@ -37,11 +37,11 @@ func TestHTTPMirrorSource(t *testing.T) {
 	})
 	source := newHTTPMirrorSourceWithHTTPClient(baseURL, creds, httpClient)
 
-	existingProvider := addrs.MustParseProviderSourceString("terraform.io/test/exists")
-	missingProvider := addrs.MustParseProviderSourceString("terraform.io/test/missing")
-	failingProvider := addrs.MustParseProviderSourceString("terraform.io/test/fails")
-	redirectingProvider := addrs.MustParseProviderSourceString("terraform.io/test/redirects")
-	redirectLoopProvider := addrs.MustParseProviderSourceString("terraform.io/test/redirect-loop")
+	existingProvider := addrs.MustParseProviderSourceString("mnptu.io/test/exists")
+	missingProvider := addrs.MustParseProviderSourceString("mnptu.io/test/missing")
+	failingProvider := addrs.MustParseProviderSourceString("mnptu.io/test/fails")
+	redirectingProvider := addrs.MustParseProviderSourceString("mnptu.io/test/redirects")
+	redirectLoopProvider := addrs.MustParseProviderSourceString("mnptu.io/test/redirect-loop")
 	tosPlatform := Platform{OS: "tos", Arch: "m68k"}
 
 	t.Run("AvailableVersions for provider that exists", func(t *testing.T) {
@@ -124,8 +124,8 @@ func TestHTTPMirrorSource(t *testing.T) {
 			Provider:       existingProvider,
 			Version:        version,
 			TargetPlatform: tosPlatform,
-			Filename:       "terraform-provider-test_v1.0.0_tos_m68k.zip",
-			Location:       PackageHTTPURL(httpServer.URL + "/terraform.io/test/exists/terraform-provider-test_v1.0.0_tos_m68k.zip"),
+			Filename:       "mnptu-provider-test_v1.0.0_tos_m68k.zip",
+			Location:       PackageHTTPURL(httpServer.URL + "/mnptu.io/test/exists/mnptu-provider-test_v1.0.0_tos_m68k.zip"),
 			Authentication: packageHashAuthentication{
 				RequiredHashes: []Hash{"h1:placeholder-hash"},
 				AllHashes:      []Hash{"h1:placeholder-hash", "h0:unacceptable-hash"},
@@ -153,8 +153,8 @@ func TestHTTPMirrorSource(t *testing.T) {
 			Provider:       existingProvider,
 			Version:        version,
 			TargetPlatform: tosPlatform,
-			Filename:       "terraform-provider-test_v1.0.1_tos_m68k.zip",
-			Location:       PackageHTTPURL(httpServer.URL + "/terraform.io/test/exists/terraform-provider-test_v1.0.1_tos_m68k.zip"),
+			Filename:       "mnptu-provider-test_v1.0.1_tos_m68k.zip",
+			Location:       PackageHTTPURL(httpServer.URL + "/mnptu.io/test/exists/mnptu-provider-test_v1.0.1_tos_m68k.zip"),
 			Authentication: nil,
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
@@ -190,11 +190,11 @@ func TestHTTPMirrorSource(t *testing.T) {
 			Provider:       redirectingProvider,
 			Version:        version,
 			TargetPlatform: tosPlatform,
-			Filename:       "terraform-provider-test.zip",
+			Filename:       "mnptu-provider-test.zip",
 
 			// NOTE: The final URL is interpreted relative to the redirect
 			// target, not relative to what we originally requested.
-			Location: PackageHTTPURL(httpServer.URL + "/redirect-target/terraform-provider-test.zip"),
+			Location: PackageHTTPURL(httpServer.URL + "/redirect-target/mnptu-provider-test.zip"),
 		}
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("wrong result\n%s", diff)
@@ -224,7 +224,7 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	switch req.URL.Path {
-	case "/terraform.io/test/exists/index.json":
+	case "/mnptu.io/test/exists/index.json":
 		resp.Header().Add("Content-Type", "application/json; ignored=yes")
 		resp.WriteHeader(200)
 		fmt.Fprint(resp, `
@@ -237,18 +237,18 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 			}
 		`)
 
-	case "/terraform.io/test/fails/index.json", "/terraform.io/test/fails/1.0.0.json":
+	case "/mnptu.io/test/fails/index.json", "/mnptu.io/test/fails/1.0.0.json":
 		resp.WriteHeader(500)
 		fmt.Fprint(resp, "server error")
 
-	case "/terraform.io/test/exists/1.0.0.json":
+	case "/mnptu.io/test/exists/1.0.0.json":
 		resp.Header().Add("Content-Type", "application/json; ignored=yes")
 		resp.WriteHeader(200)
 		fmt.Fprint(resp, `
 			{
 				"archives": {
 					"tos_m68k": {
-						"url": "terraform-provider-test_v1.0.0_tos_m68k.zip",
+						"url": "mnptu-provider-test_v1.0.0_tos_m68k.zip",
 						"hashes": [
 							"h1:placeholder-hash",
 							"h0:unacceptable-hash"
@@ -258,20 +258,20 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 			}
 		`)
 
-	case "/terraform.io/test/exists/1.0.1.json":
+	case "/mnptu.io/test/exists/1.0.1.json":
 		resp.Header().Add("Content-Type", "application/json; ignored=yes")
 		resp.WriteHeader(200)
 		fmt.Fprint(resp, `
 			{
 				"archives": {
 					"tos_m68k": {
-						"url": "terraform-provider-test_v1.0.1_tos_m68k.zip"
+						"url": "mnptu-provider-test_v1.0.1_tos_m68k.zip"
 					}
 				}
 			}
 		`)
 
-	case "/terraform.io/test/exists/1.0.2-beta.1.json":
+	case "/mnptu.io/test/exists/1.0.2-beta.1.json":
 		resp.Header().Add("Content-Type", "application/json; ignored=yes")
 		resp.WriteHeader(200)
 		fmt.Fprint(resp, `
@@ -280,7 +280,7 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 			}
 		`)
 
-	case "/terraform.io/test/redirects/index.json":
+	case "/mnptu.io/test/redirects/index.json":
 		resp.Header().Add("location", "/redirect-target/index.json")
 		resp.WriteHeader(301)
 		fmt.Fprint(resp, "redirect")
@@ -296,7 +296,7 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 			}
 		`)
 
-	case "/terraform.io/test/redirects/1.0.0.json":
+	case "/mnptu.io/test/redirects/1.0.0.json":
 		resp.Header().Add("location", "/redirect-target/1.0.0.json")
 		resp.WriteHeader(301)
 		fmt.Fprint(resp, "redirect")
@@ -308,13 +308,13 @@ func testHTTPMirrorSourceHandler(resp http.ResponseWriter, req *http.Request) {
 			{
 				"archives": {
 					"tos_m68k": {
-						"url": "terraform-provider-test.zip"
+						"url": "mnptu-provider-test.zip"
 					}
 				}
 			}
 		`)
 
-	case "/terraform.io/test/redirect-loop/index.json":
+	case "/mnptu.io/test/redirect-loop/index.json":
 		// This is intentionally redirecting to itself, to create a loop.
 		resp.Header().Add("location", req.URL.Path)
 		resp.WriteHeader(301)

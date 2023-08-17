@@ -8,7 +8,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -16,7 +16,7 @@ import (
 // repetition values (count and for_each in configuration) and then later
 // making use of them to fully enumerate all of the instances of an object.
 //
-// The two repeatable object types in Terraform are modules and resources.
+// The two repeatable object types in mnptu are modules and resources.
 // Because resources belong to modules and modules can nest inside other
 // modules, module expansion in particular has a recursive effect that can
 // cause deep objects to expand exponentially. Expander assumes that all

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-// Dir represents a single Terraform working directory.
+// Dir represents a single mnptu working directory.
 //
 // "Working directory" is unfortunately a slight misnomer, because non-default
 // options can potentially stretch the definition such that multiple working
@@ -36,13 +36,13 @@ import (
 type Dir struct {
 	// mainDir is the path to the directory that we present as the
 	// "working directory" in the user model, which is typically the
-	// current working directory when running Terraform CLI, or the
+	// current working directory when running mnptu CLI, or the
 	// directory explicitly chosen by the user using the -chdir=...
 	// global option.
 	mainDir string
 
 	// originalDir is the path to the working directory that was
-	// selected when creating the Terraform CLI process, regardless of
+	// selected when creating the mnptu CLI process, regardless of
 	// -chdir=... being set. This is only for very limited purposes
 	// related to backward compatibility; most functionality should
 	// use mainDir instead.
@@ -50,7 +50,7 @@ type Dir struct {
 
 	// dataDir is the path to the directory where we will store our
 	// working directory settings and artifacts. This is typically a
-	// directory named ".terraform" within mainDir, but users may
+	// directory named ".mnptu" within mainDir, but users may
 	// override it.
 	dataDir string
 }
@@ -77,14 +77,14 @@ func NewDir(mainPath string) *Dir {
 	return &Dir{
 		mainDir:     mainPath,
 		originalDir: mainPath,
-		dataDir:     filepath.Join(mainPath, ".terraform"),
+		dataDir:     filepath.Join(mainPath, ".mnptu"),
 	}
 }
 
 // OverrideOriginalWorkingDir records a different path as the
 // "original working directory" for the reciever.
 //
-// Use this only to record the original working directory when Terraform is run
+// Use this only to record the original working directory when mnptu is run
 // with the -chdir=... global option. In that case, the directory given in
 // -chdir=... is the "main path" to pass in to NewDir, while the original
 // working directory should be sent to this method.
@@ -112,10 +112,10 @@ func (d *Dir) RootModuleDir() string {
 }
 
 // OriginalWorkingDir returns the true, operating-system-originated working
-// directory that the current Terraform process was launched from.
+// directory that the current mnptu process was launched from.
 //
 // This is usually the same as the main working directory, but differs in the
-// special case where the user ran Terraform with the global -chdir=...
+// special case where the user ran mnptu with the global -chdir=...
 // option. This is here only for a few backward compatibility affordances
 // from before we had the -chdir=... option, so should typically not be used
 // for anything new.
@@ -140,7 +140,7 @@ func (d *Dir) DataDir() string {
 //
 // For directories that already exist ensureDataDir will preserve their
 // permissions, while it'll create any new directories to be owned by the user
-// running Terraform, readable and writable by that user, and readable by
+// running mnptu, readable and writable by that user, and readable by
 // all other users, or some approximation of that on non-Unix platforms which
 // have a different permissions model.
 func (d *Dir) ensureDataDir() error {

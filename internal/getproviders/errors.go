@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"net/url"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // ErrHostNoProviders is an error type used to indicate that a hostname given
@@ -19,20 +19,20 @@ type ErrHostNoProviders struct {
 
 	// HasOtherVersionis set to true if the discovery process detected
 	// declarations of services named "providers" whose version numbers did not
-	// match any version supported by the current version of Terraform.
+	// match any version supported by the current version of mnptu.
 	//
 	// If this is set, it's helpful to hint to the user in an error message
 	// that the provider host may be expecting an older or a newer version
-	// of Terraform, rather than that it isn't a provider registry host at all.
+	// of mnptu, rather than that it isn't a provider registry host at all.
 	HasOtherVersion bool
 }
 
 func (err ErrHostNoProviders) Error() string {
 	switch {
 	case err.HasOtherVersion:
-		return fmt.Sprintf("host %s does not support the provider registry protocol required by this Terraform version, but may be compatible with a different Terraform version", err.Hostname.ForDisplay())
+		return fmt.Sprintf("host %s does not support the provider registry protocol required by this mnptu version, but may be compatible with a different mnptu version", err.Hostname.ForDisplay())
 	default:
-		return fmt.Sprintf("host %s does not offer a Terraform provider registry", err.Hostname.ForDisplay())
+		return fmt.Sprintf("host %s does not offer a mnptu provider registry", err.Hostname.ForDisplay())
 	}
 }
 
@@ -100,7 +100,7 @@ func (err ErrProviderNotFound) Error() string {
 // A caller serving requests from an end-user should recognize this error type
 // and use it to produce user-friendly hints for common errors such as failing
 // to specify an explicit source for a provider not in the default namespace
-// (one not under registry.terraform.io/hashicorp/). The default error message
+// (one not under registry.mnptu.io/hashicorp/). The default error message
 // for this type is a direct description of the problem with no such hints,
 // because we expect that the caller will have better context to decide what
 // hints are appropriate, e.g. by looking at the configuration given by the
@@ -154,7 +154,7 @@ func (err ErrPlatformNotSupported) Error() string {
 }
 
 // ErrProtocolNotSupported is an error type used to indicate that a particular
-// version of a provider is not supported by the current version of Terraform.
+// version of a provider is not supported by the current version of mnptu.
 //
 // Specfically, this is returned when the version's plugin protocol is not supported.
 //
@@ -168,7 +168,7 @@ type ErrProtocolNotSupported struct {
 
 func (err ErrProtocolNotSupported) Error() string {
 	return fmt.Sprintf(
-		"provider %s %s is not supported by this version of terraform",
+		"provider %s %s is not supported by this version of mnptu",
 		err.Provider,
 		err.Version,
 	)

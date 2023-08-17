@@ -1,7 +1,7 @@
 ---
 page_title: 'Backend Type: cos'
 description: >-
-  Terraform can store the state remotely, making it easier to version and work
+  mnptu can store the state remotely, making it easier to version and work
   with in a team.
 ---
 
@@ -9,9 +9,9 @@ description: >-
 
 Stores the state as an object in a configurable prefix in a given bucket on [Tencent Cloud Object Storage](https://intl.cloud.tencent.com/product/cos) (COS).
 
-This backend supports [state locking](/terraform/language/state/locking). Storing your state in a COS bucket requires the following permissions:
+This backend supports [state locking](/mnptu/language/state/locking). Storing your state in a COS bucket requires the following permissions:
 
-- `CreateTag`, `DeleteTag`, and `DescribeTags` on the tag key `tencentcloud-terraform-lock`
+- `CreateTag`, `DeleteTag`, and `DescribeTags` on the tag key `tencentcloud-mnptu-lock`
 - `Put`, `Get`, and `Delete` files for the specified bucket's prefix
 
 ~> **Warning!** It is highly recommended that you enable [Object Versioning](https://intl.cloud.tencent.com/document/product/436/19883)
@@ -20,37 +20,37 @@ on the COS bucket to allow for state recovery in the case of accidental deletion
 ## Example Configuration
 
 ```hcl
-terraform {
+mnptu {
   backend "cos" {
     region = "ap-guangzhou"
-    bucket = "bucket-for-terraform-state-1258798060"
-    prefix = "terraform/state"
+    bucket = "bucket-for-mnptu-state-1258798060"
+    prefix = "mnptu/state"
   }
 }
 ```
 
-This assumes we have a [COS Bucket](https://registry.terraform.io/providers/tencentcloudstack/tencentcloud/latest/docs/resources/cos_bucket) created named `bucket-for-terraform-state-1258798060`,
-Terraform state will be written into the file `terraform/state/terraform.tfstate`.
+This assumes we have a [COS Bucket](https://registry.mnptu.io/providers/tencentcloudstack/tencentcloud/latest/docs/resources/cos_bucket) created named `bucket-for-mnptu-state-1258798060`,
+mnptu state will be written into the file `mnptu/state/mnptu.tfstate`.
 
 ## Data Source Configuration
 
-To make use of the COS remote state in another configuration, use the [`terraform_remote_state` data source](/terraform/language/state/remote-state-data).
+To make use of the COS remote state in another configuration, use the [`mnptu_remote_state` data source](/mnptu/language/state/remote-state-data).
 
 ```hcl
-data "terraform_remote_state" "foo" {
+data "mnptu_remote_state" "foo" {
   backend = "cos"
 
   config = {
     region = "ap-guangzhou"
-    bucket = "bucket-for-terraform-state-1258798060"
-    prefix = "terraform/state"
+    bucket = "bucket-for-mnptu-state-1258798060"
+    prefix = "mnptu/state"
   }
 }
 ```
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, mnptu will include these values in both the `.mnptu` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/mnptu/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options or environment variables are supported:
 
@@ -60,16 +60,16 @@ The following configuration options or environment variables are supported:
 - `region` - (Optional) The region of the COS bucket. It supports environment variables `TENCENTCLOUD_REGION`.
 - `bucket` - (Required) The name of the COS bucket. You shall manually create it first.
 - `prefix` - (Optional) The directory for saving the state file in bucket. Default to "env:".
-- `key` - (Optional) The path for saving the state file in bucket. Defaults to `terraform.tfstate`.
+- `key` - (Optional) The path for saving the state file in bucket. Defaults to `mnptu.tfstate`.
 - `encrypt` - (Optional) Whether to enable server side encryption of the state file. If it is true, COS will use 'AES256' encryption algorithm to encrypt state file.
 - `acl` - (Optional) Object ACL to be applied to the state file, allows `private` and `public-read`. Defaults to `private`.
 - `accelerate` - (Optional) Whether to enable global Acceleration. Defaults to `false`.
 
 ### Assume Role
-If provided with an assume role, Terraform will attempt to assume this role using the supplied credentials.
+If provided with an assume role, mnptu will attempt to assume this role using the supplied credentials.
 Assume role can be provided by adding an `assume_role` block in the cos backend block.
 
-- `assume_role` - (Optional) The `assume_role` block. If provided, terraform will attempt to assume this role using the supplied credentials.
+- `assume_role` - (Optional) The `assume_role` block. If provided, mnptu will attempt to assume this role using the supplied credentials.
 
 The details of `assume_role` block as following:
 - `role_arn` - (Required) The ARN of the role to assume. It can be sourced from the `TENCENTCLOUD_ASSUME_ROLE_ARN`.
@@ -80,11 +80,11 @@ The details of `assume_role` block as following:
 Usage:
 
 ```hcl
-terraform {
+mnptu {
   backend "cos" {
     region = "ap-guangzhou"
-    bucket = "bucket-for-terraform-state-{appid}"
-    prefix = "terraform/state"
+    bucket = "bucket-for-mnptu-state-{appid}"
+    prefix = "mnptu/state"
     assume_role {
       role_arn = "qcs::cam::uin/xxx:roleName/yyy"
       session_name = "my-session-name"
@@ -105,5 +105,5 @@ $ export TENCENTCLOUD_REGION="ap-guangzhou"
 $ export TENCENTCLOUD_ASSUME_ROLE_ARN="qcs::cam::uin/xxx:roleName/yyy"
 $ export TENCENTCLOUD_ASSUME_ROLE_SESSION_NAME="my-session-name"
 $ export TENCENTCLOUD_ASSUME_ROLE_SESSION_DURATION=3600
-$ terraform plan
+$ mnptu plan
 ```

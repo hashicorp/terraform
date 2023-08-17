@@ -7,9 +7,9 @@ on:
         type: string
         description: "Which branch should be updated?"
         required: true
-      terraform-version:
+      mnptu-version:
         type: string
-        description: "Terraform version to run against (no v prefix, eg. 1.4.4)."
+        description: "mnptu version to run against (no v prefix, eg. 1.4.4)."
         required: true
       equivalence-test-version:
         type: string
@@ -30,8 +30,8 @@ jobs:
           ref: ${{ inputs.target-branch }}
       - uses: ./.github/actions/equivalence-test
         with:
-          target-terraform-version: ${{ inputs.terraform-version }}
-          target-terraform-branch: ${{ inputs.target-branch }}
+          target-mnptu-version: ${{ inputs.mnptu-version }}
+          target-mnptu-branch: ${{ inputs.target-branch }}
           target-equivalence-test-version: ${{ inputs.equivalence-test-version }}
           target-os: linux
           target-arch: amd64

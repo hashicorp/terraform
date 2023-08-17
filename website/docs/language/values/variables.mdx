@@ -7,30 +7,30 @@ description: >-
 
 # Input Variables
 
-> **Hands-on:** Try the [Customize Terraform Configuration with Variables](/terraform/tutorials/configuration-language/variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Customize mnptu Configuration with Variables](/mnptu/tutorials/configuration-language/variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Input variables let you customize aspects of Terraform modules without altering
+Input variables let you customize aspects of mnptu modules without altering
 the module's own source code. This functionality allows you to share modules across different
-Terraform configurations, making your module composable and reusable.
+mnptu configurations, making your module composable and reusable.
 
 When you declare variables in the root module of your configuration, you can
 set their values using CLI options and environment variables.
-When you declare them in [child modules](/terraform/language/modules),
+When you declare them in [child modules](/mnptu/language/modules),
 the calling module should pass values in the `module` block.
 
 If you're familiar with traditional programming languages, it can be useful to
-compare Terraform modules to function definitions:
+compare mnptu modules to function definitions:
 
 * Input variables are like function arguments.
-* [Output values](/terraform/language/values/outputs) are like function return values.
-* [Local values](/terraform/language/values/locals) are like a function's temporary local variables.
+* [Output values](/mnptu/language/values/outputs) are like function return values.
+* [Local values](/mnptu/language/values/locals) are like a function's temporary local variables.
 
 -> **Note:** For brevity, input variables are often referred to as just
-"variables" or "Terraform variables" when it is clear from context what sort of
-variable is being discussed. Other kinds of variables in Terraform include
-_environment variables_ (set by the shell where Terraform runs) and _expression
+"variables" or "mnptu variables" when it is clear from context what sort of
+variable is being discussed. Other kinds of variables in mnptu include
+_environment variables_ (set by the shell where mnptu runs) and _expression
 variables_ (used to indirectly represent a value in an
-[expression](/terraform/language/expressions)).
+[expression](/mnptu/language/expressions)).
 
 ## Declaring an Input Variable
 
@@ -68,22 +68,22 @@ be unique among all variables in the same module. This name is used to
 assign a value to the variable from outside and to reference the variable's
 value from within the module.
 
-The name of a variable can be any valid [identifier](/terraform/language/syntax/configuration#identifiers)
+The name of a variable can be any valid [identifier](/mnptu/language/syntax/configuration#identifiers)
 _except_ the following: `source`, `version`, `providers`, `count`, `for_each`, `lifecycle`, `depends_on`, `locals`.
 
 These names are reserved for meta-arguments in
-[module configuration blocks](/terraform/language/modules/syntax), and cannot be
+[module configuration blocks](/mnptu/language/modules/syntax), and cannot be
 declared as variable names.
 
 ## Arguments
 
-Terraform CLI defines the following optional arguments for variable declarations:
+mnptu CLI defines the following optional arguments for variable declarations:
 
 * [`default`][inpage-default] - A default value which then makes the variable optional.
 * [`type`][inpage-type] - This argument specifies what value types are accepted for the variable.
 * [`description`][inpage-description] - This specifies the input variable's documentation.
 * [`validation`][inpage-validation] - A block to define validation rules, usually in addition to type constraints.
-* [`sensitive`][inpage-sensitive] - Limits Terraform UI output when the variable is used in configuration.
+* [`sensitive`][inpage-sensitive] - Limits mnptu UI output when the variable is used in configuration.
 * [`nullable`][inpage-nullable] - Specify if the variable can be `null` within the module.
 
 ### Default values
@@ -92,7 +92,7 @@ Terraform CLI defines the following optional arguments for variable declarations
 
 The variable declaration can also include a `default` argument. If present,
 the variable is considered to be _optional_ and the default value will be used
-if no value is set when calling the module or running Terraform. The `default`
+if no value is set when calling the module or running mnptu. The `default`
 argument requires a literal value and cannot reference other objects in the
 configuration.
 
@@ -101,13 +101,13 @@ configuration.
 [inpage-type]: #type-constraints
 
 The `type` argument in a `variable` block allows you to restrict the
-[type of value](/terraform/language/expressions/types) that will be accepted as
+[type of value](/mnptu/language/expressions/types) that will be accepted as
 the value for a variable. If no type constraint is set then a value of any type
 is accepted.
 
 While type constraints are optional, we recommend specifying them; they
 can serve as helpful reminders for users of the module, and they
-allow Terraform to return a helpful error message if the wrong type is used.
+allow mnptu to return a helpful error message if the wrong type is used.
 
 Type constraints are created from a mixture of type keywords and type
 constructors. The supported type keywords are:
@@ -128,7 +128,7 @@ collections:
 The keyword `any` may be used to indicate that any type is acceptable. For
 more information on the meaning and behavior of these different types, as well
 as detailed information about automatic conversion of complex types, see
-[Type Constraints](/terraform/language/expressions/types).
+[Type Constraints](/mnptu/language/expressions/types).
 
 If both the `type` and `default` arguments are specified, the given default
 value must be convertible to the specified type.
@@ -158,7 +158,7 @@ commentary for module maintainers, use comments.
 
 [inpage-validation]: #custom-validation-rules
 
--> This feature was introduced in Terraform CLI v0.13.0.
+-> This feature was introduced in mnptu CLI v0.13.0.
 
 You can specify custom validation rules for a particular variable by adding a `validation` block within the corresponding `variable` block. The example below checks whether the AMI ID has the correct syntax.
 
@@ -173,24 +173,24 @@ variable "image_id" {
   }
 }
 ```
-Refer to [Custom Condition Checks](/terraform/language/expressions/custom-conditions#input-variable-validation) for more details.
+Refer to [Custom Condition Checks](/mnptu/language/expressions/custom-conditions#input-variable-validation) for more details.
 
 ### Suppressing Values in CLI Output
 
 [inpage-sensitive]: #suppressing-values-in-cli-output
 
--> This feature was introduced in Terraform v0.14.0.
+-> This feature was introduced in mnptu v0.14.0.
 
-> **Hands-on:** Try the [Protect Sensitive Input Variables](/terraform/tutorials/configuration-language/sensitive-variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Protect Sensitive Input Variables](/mnptu/tutorials/configuration-language/sensitive-variables?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Setting a variable as `sensitive` prevents Terraform from showing its value in
+Setting a variable as `sensitive` prevents mnptu from showing its value in
 the `plan` or `apply` output, when you use that variable elsewhere in your
 configuration.
 
-Terraform will still record sensitive values in the [state](/terraform/language/state),
+mnptu will still record sensitive values in the [state](/mnptu/language/state),
 and so anyone who can access the state data will have access to the sensitive
 values in cleartext. For more information, see
-[_Sensitive Data in State_](/terraform/language/state/sensitive-data).
+[_Sensitive Data in State_](/mnptu/language/state/sensitive-data).
 
 Declare a variable as sensitive by setting the `sensitive` argument to `true`:
 
@@ -214,7 +214,7 @@ as sensitive themselves, and so in the above example the two arguments of
 `resource "some_resource" "a"` will also be hidden in the plan output:
 
 ```
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # some_resource.a will be created
   + resource "some_resource" "a" {
@@ -225,7 +225,7 @@ Terraform will perform the following actions:
 Plan: 1 to add, 0 to change, 0 to destroy.
 ```
 
-In some cases where you use a sensitive variable inside a nested block, Terraform
+In some cases where you use a sensitive variable inside a nested block, mnptu
 may treat the entire block as redacted. This happens for resource types where
 all of the blocks of a particular type are required to be unique, and so
 disclosing the content of one block might imply the content of a sibling block.
@@ -241,17 +241,17 @@ disclosing the content of one block might imply the content of a sibling block.
 ```
 
 A provider can also
-[declare an attribute as sensitive](/terraform/plugin/sdkv2/best-practices/sensitive-state#using-the-sensitive-flag),
-which will cause Terraform to hide it from regular output regardless of how
+[declare an attribute as sensitive](/mnptu/plugin/sdkv2/best-practices/sensitive-state#using-the-sensitive-flag),
+which will cause mnptu to hide it from regular output regardless of how
 you assign it a value. For more information, see
-[Sensitive Resource Attributes](/terraform/language/expressions/references#sensitive-resource-attributes).
+[Sensitive Resource Attributes](/mnptu/language/expressions/references#sensitive-resource-attributes).
 
 If you use a sensitive value as part of an
-[output value](/terraform/language/values/outputs) then Terraform will require
+[output value](/mnptu/language/values/outputs) then mnptu will require
 you to also mark the output value itself as sensitive, to confirm that you
 intended to export it.
 
-#### Cases where Terraform may disclose a sensitive variable
+#### Cases where mnptu may disclose a sensitive variable
 
 A `sensitive` variable is a configuration-centered concept, and values are sent to providers without any obfuscation. A provider error could disclose a value if that value is included in the error message. For example, a provider might return the following error even if "foo" is a sensitive value: `"Invalid value 'foo' for field"`
 
@@ -278,7 +278,7 @@ random_pet.animal: Creation complete after 0s [id=jae-known-mongoose]
 
 [inpage-nullable]: #disallowing-null-input-values
 
--> This feature is available in Terraform v1.1.0 and later.
+-> This feature is available in mnptu v1.1.0 and later.
 
 The `nullable` argument in a variable block controls whether the module caller
 may assign the value `null` to the variable.
@@ -297,7 +297,7 @@ account for the possibility of the variable value being `null`. Passing a
 
 Setting `nullable` to `false` ensures that the variable value will never be
 `null` within the module. If `nullable` is `false` and the variable has a
-`default` value, then Terraform uses the default when a module input argument is `null`.
+`default` value, then mnptu uses the default when a module input argument is `null`.
 
 The `nullable` argument only controls where the direct value of the variable may be `null`.
 For variables of collection or structural types, such as lists or objects,
@@ -307,7 +307,7 @@ the collection or structure itself is not null.
 ## Using Input Variable Values
 
 Within the module that declared a variable, its value can be accessed from
-within [expressions](/terraform/language/expressions) as `var.<NAME>`,
+within [expressions](/mnptu/language/expressions) as `var.<NAME>`,
 where `<NAME>` matches the label given in the declaration block:
 
 -> **Note:** Input variables are _created_ by a `variable` block, but you
@@ -328,7 +328,7 @@ the module where it was declared.
 When variables are declared in the root module of your configuration, they
 can be set in a number of ways:
 
-* [In a Terraform Cloud workspace](/terraform/cloud-docs/workspaces/variables).
+* [In a mnptu Cloud workspace](/mnptu/cloud-docs/workspaces/variables).
 * Individually, with the `-var` command line option.
 * In variable definitions (`.tfvars`) files, either specified on the command line
   or automatically loaded.
@@ -337,23 +337,23 @@ can be set in a number of ways:
 The following sections describe these options in more detail. This section does
 not apply to _child_ modules, where values for input variables are instead
 assigned in the configuration of their parent module, as described in
-[_Modules_](/terraform/language/modules).
+[_Modules_](/mnptu/language/modules).
 
 ### Variables on the Command Line
 
 To specify individual variables on the command line, use the `-var` option
-when running the `terraform plan` and `terraform apply` commands:
+when running the `mnptu plan` and `mnptu apply` commands:
 
 ```
-terraform apply -var="image_id=ami-abc123"
-terraform apply -var='image_id_list=["ami-abc123","ami-def456"]' -var="instance_type=t2.micro"
-terraform apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-def456"}'
+mnptu apply -var="image_id=ami-abc123"
+mnptu apply -var='image_id_list=["ami-abc123","ami-def456"]' -var="instance_type=t2.micro"
+mnptu apply -var='image_id_map={"us-east-1":"ami-abc123","us-east-2":"ami-def456"}'
 ```
 
 The above examples show appropriate syntax for Unix-style shells, such as on
 Linux or macOS. For more information on shell quoting, including additional
 examples for Windows Command Prompt, see
-[Input Variables on the Command Line](/terraform/cli/commands/plan#input-variables-on-the-command-line).
+[Input Variables on the Command Line](/mnptu/cli/commands/plan#input-variables-on-the-command-line).
 
 You can use the `-var` option multiple times in a single command to set several
 different variables.
@@ -368,13 +368,13 @@ or `.tfvars.json`) and then specify that file on the command line with
 `-var-file`:
 
 ```
-terraform apply -var-file="testing.tfvars"
+mnptu apply -var-file="testing.tfvars"
 ```
 
--> **Note:** This is how Terraform Cloud passes
-[workspace variables](/terraform/cloud-docs/workspaces/variables) to Terraform.
+-> **Note:** This is how mnptu Cloud passes
+[workspace variables](/mnptu/cloud-docs/workspaces/variables) to mnptu.
 
-A variable definitions file uses the same basic syntax as Terraform language
+A variable definitions file uses the same basic syntax as mnptu language
 files, but consists only of variable name assignments:
 
 ```hcl
@@ -385,10 +385,10 @@ availability_zone_names = [
 ]
 ```
 
-Terraform also automatically loads a number of variable definitions files
+mnptu also automatically loads a number of variable definitions files
 if they are present:
 
-* Files named exactly `terraform.tfvars` or `terraform.tfvars.json`.
+* Files named exactly `mnptu.tfvars` or `mnptu.tfvars.json`.
 * Any files with names ending in `.auto.tfvars` or `.auto.tfvars.json`.
 
 Files whose names end with `.json` are parsed instead as JSON objects, with
@@ -403,43 +403,43 @@ the root object properties corresponding to variable names:
 
 ### Environment Variables
 
-As a fallback for the other ways of defining variables, Terraform searches
+As a fallback for the other ways of defining variables, mnptu searches
 the environment of its own process for environment variables named `TF_VAR_`
 followed by the name of a declared variable.
 
-This can be useful when running Terraform in automation, or when running a
-sequence of Terraform commands in succession with the same variables.
+This can be useful when running mnptu in automation, or when running a
+sequence of mnptu commands in succession with the same variables.
 For example, at a `bash` prompt on a Unix system:
 
 ```
 $ export TF_VAR_image_id=ami-abc123
-$ terraform plan
+$ mnptu plan
 ...
 ```
 
 On operating systems where environment variable names are case-sensitive,
-Terraform matches the variable name exactly as given in configuration, and
+mnptu matches the variable name exactly as given in configuration, and
 so the required environment variable name will usually have a mix of upper
 and lower case letters as in the above example.
 
 ### Complex-typed Values
 
 When variable values are provided in a variable definitions file, you can use
-Terraform's usual syntax for
-[literal expressions](/terraform/language/expressions/types#literal-expressions)
+mnptu's usual syntax for
+[literal expressions](/mnptu/language/expressions/types#literal-expressions)
 to assign complex-typed values, like lists and maps.
 
 Some special rules apply to the `-var` command line option and to environment
-variables. For convenience, Terraform defaults to interpreting `-var` and
+variables. For convenience, mnptu defaults to interpreting `-var` and
 environment variable values as literal strings, which need only shell quoting,
-and no special quoting for Terraform. For example, in a Unix-style shell:
+and no special quoting for mnptu. For example, in a Unix-style shell:
 
 ```
 $ export TF_VAR_image_id='ami-abc123'
 ```
 
 However, if a root module variable uses a [type constraint](#type-constraints)
-to require a complex value (list, set, map, object, or tuple), Terraform will
+to require a complex value (list, set, map, object, or tuple), mnptu will
 instead attempt to parse its value using the same syntax used within variable
 definitions files, which requires careful attention to the string escaping rules
 in your shell:
@@ -452,7 +452,7 @@ For readability, and to avoid the need to worry about shell escaping, we
 recommend always setting complex variable values via variable definitions files.
 For more information on quoting and escaping for `-var` arguments,
 see
-[Input Variables on the Command Line](/terraform/cli/commands/plan#input-variables-on-the-command-line).
+[Input Variables on the Command Line](/mnptu/cli/commands/plan#input-variables-on-the-command-line).
 
 ### Values for Undeclared Variables
 
@@ -469,7 +469,7 @@ you will get a warning. This is to help in cases where you have provided a varia
 value _meant_ for a variable declaration, but perhaps there is a mistake in the
 value definition. For example, the following configuration:
 
-```terraform
+```mnptu
 variable "moose" {
   type = string
 }
@@ -481,37 +481,37 @@ And the following `.tfvars` file:
 mosse = "Moose"
 ```
 
-Will cause Terraform to warn you that there is no variable declared `"mosse"`, which can help
+Will cause mnptu to warn you that there is no variable declared `"mosse"`, which can help
 you spot this mistake.
 
 If you use `.tfvars` files across multiple configurations and expect to continue to see this warning,
-you can use the [`-compact-warnings`](/terraform/cli/commands/plan#compact-warnings)
+you can use the [`-compact-warnings`](/mnptu/cli/commands/plan#compact-warnings)
 option to simplify your output.
 
 If you provide values for undeclared variables on the [command line](#variables-on-the-command-line),
-Terraform will return an error. To avoid this error, either declare a variable block for the value, or remove
-the variable value from your Terraform call.
+mnptu will return an error. To avoid this error, either declare a variable block for the value, or remove
+the variable value from your mnptu call.
 
 ### Variable Definition Precedence
 
 The above mechanisms for setting variables can be used together in any
-combination. If the same variable is assigned multiple values, Terraform uses
+combination. If the same variable is assigned multiple values, mnptu uses
 the _last_ value it finds, overriding any previous values. Note that the same
 variable cannot be assigned multiple values within a single source.
 
-Terraform loads variables in the following order, with later sources taking
+mnptu loads variables in the following order, with later sources taking
 precedence over earlier ones:
 
 * Environment variables
-* The `terraform.tfvars` file, if present.
-* The `terraform.tfvars.json` file, if present.
+* The `mnptu.tfvars` file, if present.
+* The `mnptu.tfvars.json` file, if present.
 * Any `*.auto.tfvars` or `*.auto.tfvars.json` files, processed in lexical order
   of their filenames.
 * Any `-var` and `-var-file` options on the command line, in the order they
-  are provided. (This includes variables set by a Terraform Cloud
+  are provided. (This includes variables set by a mnptu Cloud
   workspace.)
 
-~> **Important:** In Terraform 0.12 and later, variables with map and object
+~> **Important:** In mnptu 0.12 and later, variables with map and object
 values behave the same way as other variables: the last value found overrides
-the previous values. This is a change from previous versions of Terraform, which
+the previous values. This is a change from previous versions of mnptu, which
 would _merge_ map values instead of overriding them.

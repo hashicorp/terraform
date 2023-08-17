@@ -10,9 +10,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 // VersionCommand is a Command implementation prints the version.
@@ -26,19 +26,19 @@ type VersionCommand struct {
 }
 
 type VersionOutput struct {
-	Version            string            `json:"terraform_version"`
+	Version            string            `json:"mnptu_version"`
 	Platform           string            `json:"platform"`
 	ProviderSelections map[string]string `json:"provider_selections"`
-	Outdated           bool              `json:"terraform_outdated"`
+	Outdated           bool              `json:"mnptu_outdated"`
 }
 
 // VersionCheckFunc is the callback called by the Version command to
-// check if there is a new version of Terraform.
+// check if there is a new version of mnptu.
 type VersionCheckFunc func() (VersionCheckInfo, error)
 
 // VersionCheckInfo is the return value for the VersionCheckFunc callback
 // and tells the Version command information about the latest version
-// of Terraform.
+// of mnptu.
 type VersionCheckInfo struct {
 	Outdated bool
 	Latest   string
@@ -47,9 +47,9 @@ type VersionCheckInfo struct {
 
 func (c *VersionCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] version [options]
+Usage: mnptu [global options] version [options]
 
-  Displays the version of Terraform and all installed plugins
+  Displays the version of mnptu and all installed plugins
 
 Options:
 
@@ -78,18 +78,18 @@ func (c *VersionCommand) Run(args []string) int {
 		return 1
 	}
 
-	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
+	fmt.Fprintf(&versionString, "mnptu v%s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
 	}
 
 	// We'll also attempt to print out the selected plugin versions. We do
 	// this based on the dependency lock file, and so the result might be
-	// empty or incomplete if the user hasn't successfully run "terraform init"
+	// empty or incomplete if the user hasn't successfully run "mnptu init"
 	// since the most recent change to dependencies.
 	//
 	// Generally-speaking this is a best-effort thing that will give us a good
-	// result in the usual case where the user successfully ran "terraform init"
+	// result in the usual case where the user successfully ran "mnptu init"
 	// and then hit a problem running _another_ command.
 	var providerVersions []string
 	var providerLocks map[addrs.Provider]*depsfile.ProviderLock
@@ -160,8 +160,8 @@ func (c *VersionCommand) Run(args []string) int {
 		}
 		if outdated {
 			c.Ui.Output(fmt.Sprintf(
-				"\nYour version of Terraform is out of date! The latest version\n"+
-					"is %s. You can update by downloading from https://www.terraform.io/downloads.html",
+				"\nYour version of mnptu is out of date! The latest version\n"+
+					"is %s. You can update by downloading from https://www.mnptu.io/downloads.html",
 				latest))
 		}
 
@@ -171,5 +171,5 @@ func (c *VersionCommand) Run(args []string) int {
 }
 
 func (c *VersionCommand) Synopsis() string {
-	return "Show the current Terraform version"
+	return "Show the current mnptu version"
 }

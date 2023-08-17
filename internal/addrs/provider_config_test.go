@@ -20,67 +20,67 @@ func TestParseAbsProviderConfig(t *testing.T) {
 		WantDiag string
 	}{
 		{
-			`provider["registry.terraform.io/hashicorp/aws"]`,
+			`provider["registry.mnptu.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: RootModule,
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
+					Hostname:  "registry.mnptu.io",
 				},
 			},
 			``,
 		},
 		{
-			`provider["registry.terraform.io/hashicorp/aws"].foo`,
+			`provider["registry.mnptu.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: RootModule,
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
+					Hostname:  "registry.mnptu.io",
 				},
 				Alias: "foo",
 			},
 			``,
 		},
 		{
-			`module.baz.provider["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz.provider["registry.mnptu.io/hashicorp/aws"]`,
 			AbsProviderConfig{
 				Module: Module{"baz"},
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
+					Hostname:  "registry.mnptu.io",
 				},
 			},
 			``,
 		},
 		{
-			`module.baz.provider["registry.terraform.io/hashicorp/aws"].foo`,
+			`module.baz.provider["registry.mnptu.io/hashicorp/aws"].foo`,
 			AbsProviderConfig{
 				Module: Module{"baz"},
 				Provider: Provider{
 					Type:      "aws",
 					Namespace: "hashicorp",
-					Hostname:  "registry.terraform.io",
+					Hostname:  "registry.mnptu.io",
 				},
 				Alias: "foo",
 			},
 			``,
 		},
 		{
-			`module.baz["foo"].provider["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz["foo"].provider["registry.mnptu.io/hashicorp/aws"]`,
 			AbsProviderConfig{},
 			`Provider address cannot contain module indexes`,
 		},
 		{
-			`module.baz[1].provider["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz[1].provider["registry.mnptu.io/hashicorp/aws"]`,
 			AbsProviderConfig{},
 			`Provider address cannot contain module indexes`,
 		},
 		{
-			`module.baz[1].module.bar.provider["registry.terraform.io/hashicorp/aws"]`,
+			`module.baz[1].module.bar.provider["registry.mnptu.io/hashicorp/aws"]`,
 			AbsProviderConfig{},
 			`Provider address cannot contain module indexes`,
 		},
@@ -166,14 +166,14 @@ func TestAbsProviderConfigString(t *testing.T) {
 				Module:   RootModule,
 				Provider: NewLegacyProvider("foo"),
 			},
-			`provider["registry.terraform.io/-/foo"]`,
+			`provider["registry.mnptu.io/-/foo"]`,
 		},
 		{
 			AbsProviderConfig{
 				Module:   RootModule.Child("child_module"),
 				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/hashicorp/foo"]`,
+			`module.child_module.provider["registry.mnptu.io/hashicorp/foo"]`,
 		},
 		{
 			AbsProviderConfig{
@@ -181,7 +181,7 @@ func TestAbsProviderConfigString(t *testing.T) {
 				Alias:    "bar",
 				Provider: NewDefaultProvider("foo"),
 			},
-			`provider["registry.terraform.io/hashicorp/foo"].bar`,
+			`provider["registry.mnptu.io/hashicorp/foo"].bar`,
 		},
 		{
 			AbsProviderConfig{
@@ -189,7 +189,7 @@ func TestAbsProviderConfigString(t *testing.T) {
 				Alias:    "bar",
 				Provider: NewDefaultProvider("foo"),
 			},
-			`module.child_module.provider["registry.terraform.io/hashicorp/foo"].bar`,
+			`module.child_module.provider["registry.mnptu.io/hashicorp/foo"].bar`,
 		},
 	}
 
@@ -266,10 +266,10 @@ func TestParseLegacyAbsProviderConfigStr(t *testing.T) {
 			},
 		},
 		{
-			`provider.terraform`,
+			`provider.mnptu`,
 			AbsProviderConfig{
 				Module:   RootModule,
-				Provider: NewBuiltInProvider("terraform"),
+				Provider: NewBuiltInProvider("mnptu"),
 			},
 		},
 	}

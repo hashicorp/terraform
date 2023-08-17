@@ -1,10 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
 )
 
 func init() {

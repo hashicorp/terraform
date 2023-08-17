@@ -16,7 +16,7 @@ type pluginSHA256LockFile struct {
 
 // Read loads the lock information from the file and returns it. If the file
 // cannot be read, an empty map is returned to indicate that _no_ providers
-// are acceptable, since the user must run "terraform init" to lock some
+// are acceptable, since the user must run "mnptu init" to lock some
 // providers before a context can be created.
 func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	// Returning an empty map is different than nil because it causes
@@ -31,7 +31,7 @@ func (pf *pluginSHA256LockFile) Read() map[string][]byte {
 	buf, err := ioutil.ReadFile(pf.Filename)
 	if err != nil {
 		// This is expected if the user runs any context-using command before
-		// running "terraform init".
+		// running "mnptu init".
 		log.Printf("[INFO] Failed to read plugin lock file %s: %s", pf.Filename, err)
 		return digests
 	}

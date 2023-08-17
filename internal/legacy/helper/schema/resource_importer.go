@@ -3,25 +3,25 @@
 
 package schema
 
-// ResourceImporter defines how a resource is imported in Terraform. This
+// ResourceImporter defines how a resource is imported in mnptu. This
 // can be set onto a Resource struct to make it Importable. Not all resources
 // have to be importable; if a Resource doesn't have a ResourceImporter then
 // it won't be importable.
 //
-// "Importing" in Terraform is the process of taking an already-created
-// resource and bringing it under Terraform management. This can include
-// updating Terraform state, generating Terraform configuration, etc.
+// "Importing" in mnptu is the process of taking an already-created
+// resource and bringing it under mnptu management. This can include
+// updating mnptu state, generating mnptu configuration, etc.
 type ResourceImporter struct {
 	// The functions below must all be implemented for importing to work.
 
 	// State is called to convert an ID to one or more InstanceState to
-	// insert into the Terraform state. If this isn't specified, then
+	// insert into the mnptu state. If this isn't specified, then
 	// the ID is passed straight through.
 	State StateFunc
 }
 
 // StateFunc is the function called to import a resource into the
-// Terraform state. It is given a ResourceData with only ID set. This
+// mnptu state. It is given a ResourceData with only ID set. This
 // ID is going to be an arbitrary value given by the user and may not map
 // directly to the ID format that the resource expects, so that should
 // be validated.

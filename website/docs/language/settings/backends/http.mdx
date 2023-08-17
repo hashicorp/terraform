@@ -1,6 +1,6 @@
 ---
 page_title: 'Backend Type: http'
-description: Terraform can store state remotely at any valid HTTP endpoint.
+description: mnptu can store state remotely at any valid HTTP endpoint.
 ---
 
 # http
@@ -9,7 +9,7 @@ Stores the state using a simple [REST](https://en.wikipedia.org/wiki/Representat
 
 State will be fetched via GET, updated via POST, and purged with DELETE. The method used for updating is configurable.
 
-This backend optionally supports [state locking](/terraform/language/state/locking). When locking
+This backend optionally supports [state locking](/mnptu/language/state/locking). When locking
 support is enabled it will use LOCK and UNLOCK requests providing the lock info in the body. The
 endpoint should return a 423: Locked or 409: Conflict with the holding lock info when it's already
 taken, 200: OK for success. Any other status will be considered an error. The ID of the holding lock
@@ -18,7 +18,7 @@ info will be added as a query parameter to state updates requests.
 ## Example Usage
 
 ```hcl
-terraform {
+mnptu {
   backend "http" {
     address = "http://myrest.api.com/foo"
     lock_address = "http://myrest.api.com/foo"
@@ -30,7 +30,7 @@ terraform {
 ## Data Source Configuration
 
 ```hcl
-data "terraform_remote_state" "foo" {
+data "mnptu_remote_state" "foo" {
   backend = "http"
   config = {
     address = "http://my.rest.api.com"
@@ -40,7 +40,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, mnptu will include these values in both the `.mnptu` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/mnptu/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options / environment variables are supported:
 

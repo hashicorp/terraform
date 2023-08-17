@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func readStateV2(src []byte) (*File, tfdiags.Diagnostics) {
@@ -49,8 +49,8 @@ type stateV2 struct {
 	// Version is the state file protocol version.
 	Version int `json:"version"`
 
-	// TFVersion is the version of Terraform that wrote this state.
-	TFVersion string `json:"terraform_version,omitempty"`
+	// TFVersion is the version of mnptu that wrote this state.
+	TFVersion string `json:"mnptu_version,omitempty"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -123,19 +123,19 @@ type moduleStateV2 struct {
 	// existing to remain intact. For example: an module may depend
 	// on a VPC ID given by an aws_vpc resource.
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a module that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on"`
 }
 
 type resourceStateV2 struct {
-	// This is filled in and managed by Terraform, and is the resource
+	// This is filled in and managed by mnptu, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
 	Type string `json:"type"`
@@ -145,12 +145,12 @@ type resourceStateV2 struct {
 	// depend on a subnet (which itself might depend on a VPC, and so
 	// on).
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a resource that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on"`
@@ -181,17 +181,17 @@ type resourceStateV2 struct {
 }
 
 type instanceStateV2 struct {
-	// A unique ID for this resource. This is opaque to Terraform
+	// A unique ID for this resource. This is opaque to mnptu
 	// and is only meant as a lookup mechanism for the providers.
 	ID string `json:"id"`
 
 	// Attributes are basic information about the resource. Any keys here
-	// are accessible in variable format within Terraform configurations:
+	// are accessible in variable format within mnptu configurations:
 	// ${resourcetype.name.attribute}.
 	Attributes map[string]string `json:"attributes"`
 
 	// Meta is a simple K/V map that is persisted to the State but otherwise
-	// ignored by Terraform core. It's meant to be used for accounting by
+	// ignored by mnptu core. It's meant to be used for accounting by
 	// external client code. The value here must only contain Go primitives
 	// and collections.
 	Meta map[string]interface{} `json:"meta"`

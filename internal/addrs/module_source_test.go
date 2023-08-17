@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 )
 
 func TestParseModuleSource(t *testing.T) {
@@ -63,7 +63,7 @@ func TestParseModuleSource(t *testing.T) {
 			input: "hashicorp/subnets/cidr",
 			want: ModuleSourceRegistry{
 				Package: ModuleRegistryPackage{
-					Host:         svchost.Hostname("registry.terraform.io"),
+					Host:         svchost.Hostname("registry.mnptu.io"),
 					Namespace:    "hashicorp",
 					Name:         "subnets",
 					TargetSystem: "cidr",
@@ -75,7 +75,7 @@ func TestParseModuleSource(t *testing.T) {
 			input: "hashicorp/subnets/cidr//examples/foo",
 			want: ModuleSourceRegistry{
 				Package: ModuleRegistryPackage{
-					Host:         svchost.Hostname("registry.terraform.io"),
+					Host:         svchost.Hostname("registry.mnptu.io"),
 					Namespace:    "hashicorp",
 					Name:         "subnets",
 					TargetSystem: "cidr",
@@ -119,15 +119,15 @@ func TestParseModuleSource(t *testing.T) {
 
 		// Remote package addresses
 		"github.com shorthand": {
-			input: "github.com/hashicorp/terraform-cidr-subnets",
+			input: "github.com/hashicorp/mnptu-cidr-subnets",
 			want: ModuleSourceRemote{
-				Package: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
+				Package: ModulePackage("git::https://github.com/hashicorp/mnptu-cidr-subnets.git"),
 			},
 		},
 		"github.com shorthand, subdir": {
-			input: "github.com/hashicorp/terraform-cidr-subnets//example/foo",
+			input: "github.com/hashicorp/mnptu-cidr-subnets//example/foo",
 			want: ModuleSourceRemote{
-				Package: ModulePackage("git::https://github.com/hashicorp/terraform-cidr-subnets.git"),
+				Package: ModulePackage("git::https://github.com/hashicorp/mnptu-cidr-subnets.git"),
 				Subdir:  "example/foo",
 			},
 		},
@@ -223,15 +223,15 @@ func TestParseModuleSource(t *testing.T) {
 		},
 
 		"Amazon S3 bucket implied, archive object": {
-			input: "s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
+			input: "s3-eu-west-1.amazonaws.com/examplecorp-mnptu-modules/vpc.zip",
 			want: ModuleSourceRemote{
-				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
+				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-mnptu-modules/vpc.zip"),
 			},
 		},
 		"Amazon S3 bucket, archive object": {
-			input: "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip",
+			input: "s3::https://s3-eu-west-1.amazonaws.com/examplecorp-mnptu-modules/vpc.zip",
 			want: ModuleSourceRemote{
-				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-terraform-modules/vpc.zip"),
+				Package: ModulePackage("s3::https://s3-eu-west-1.amazonaws.com/examplecorp-mnptu-modules/vpc.zip"),
 			},
 		},
 
@@ -311,7 +311,7 @@ func TestParseModuleSource(t *testing.T) {
 			// just a general "this string doesn't match any of our source
 			// address patterns" situation, not _necessarily_ about relative
 			// local paths.
-			wantErr: `Terraform cannot detect a supported external module source type for boop/bloop`,
+			wantErr: `mnptu cannot detect a supported external module source type for boop/bloop`,
 		},
 
 		"go-getter will accept all sorts of garbage": {
@@ -481,7 +481,7 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 	// the user provided in the input, and so for backward compatibility
 	// we're continuing to do that here, at the expense of now making the
 	// "ForDisplay" output case-preserving where its predecessor in the
-	// old package wasn't. The main Terraform Registry at registry.terraform.io
+	// old package wasn't. The main mnptu Registry at registry.mnptu.io
 	// is itself case-insensitive anyway, so our case-preserving here is
 	// entirely for the benefit of existing third-party registry
 	// implementations that might be case-sensitive, which we must remain
@@ -496,25 +496,25 @@ func TestParseModuleSourceRegistry(t *testing.T) {
 	}{
 		"public registry": {
 			input:           `hashicorp/consul/aws`,
-			wantString:      `registry.terraform.io/hashicorp/consul/aws`,
+			wantString:      `registry.mnptu.io/hashicorp/consul/aws`,
 			wantForDisplay:  `hashicorp/consul/aws`,
 			wantForProtocol: `hashicorp/consul/aws`,
 		},
 		"public registry with subdir": {
 			input:           `hashicorp/consul/aws//foo`,
-			wantString:      `registry.terraform.io/hashicorp/consul/aws//foo`,
+			wantString:      `registry.mnptu.io/hashicorp/consul/aws//foo`,
 			wantForDisplay:  `hashicorp/consul/aws//foo`,
 			wantForProtocol: `hashicorp/consul/aws`,
 		},
 		"public registry using explicit hostname": {
-			input:           `registry.terraform.io/hashicorp/consul/aws`,
-			wantString:      `registry.terraform.io/hashicorp/consul/aws`,
+			input:           `registry.mnptu.io/hashicorp/consul/aws`,
+			wantString:      `registry.mnptu.io/hashicorp/consul/aws`,
 			wantForDisplay:  `hashicorp/consul/aws`,
 			wantForProtocol: `hashicorp/consul/aws`,
 		},
 		"public registry with mixed case names": {
 			input:           `HashiCorp/Consul/aws`,
-			wantString:      `registry.terraform.io/HashiCorp/Consul/aws`,
+			wantString:      `registry.mnptu.io/HashiCorp/Consul/aws`,
 			wantForDisplay:  `HashiCorp/Consul/aws`,
 			wantForProtocol: `HashiCorp/Consul/aws`,
 		},

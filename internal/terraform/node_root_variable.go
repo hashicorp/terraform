@@ -1,17 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"log"
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // NodeRootVariable represents a root variable input.
@@ -19,7 +19,7 @@ type NodeRootVariable struct {
 	Addr   addrs.InputVariable
 	Config *configs.Variable
 
-	// RawValue is the value for the variable set from outside Terraform
+	// RawValue is the value for the variable set from outside mnptu
 	// Core, such as on the command line, or from an environment variable,
 	// or similar. This is the raw value that was provided, not yet
 	// converted or validated, and can be nil for a variable that isn't

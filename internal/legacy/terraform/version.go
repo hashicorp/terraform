@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/version"
 )
 
-// Deprecated: Providers should use schema.Provider.TerraformVersion instead
+// Deprecated: Providers should use schema.Provider.mnptuVersion instead
 func VersionString() string {
 	return version.String()
 }

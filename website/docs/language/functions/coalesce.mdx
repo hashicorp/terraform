@@ -10,7 +10,7 @@ description: |-
 `coalesce` takes any number of arguments and returns the first one
 that isn't null or an empty string.
 
-All of the arguments must be of the same type. Terraform will try to
+All of the arguments must be of the same type. mnptu will try to
 convert mismatched arguments to the most general of the types that all
 arguments can convert to, or return an error if the types are incompatible.
 The result type is the same as the type of all of the arguments.
@@ -34,9 +34,9 @@ symbol to expand the list as arguments:
 b
 ```
 
-Terraform attempts to select a result type that all of the arguments can
+mnptu attempts to select a result type that all of the arguments can
 convert to, so mixing argument types may produce surprising results due to
-Terraform's automatic type conversion rules:
+mnptu's automatic type conversion rules:
 
 ```
 > coalesce(1, "hello")
@@ -52,5 +52,5 @@ Call to function "coalesce" failed: all arguments must have the same type.
 
 ## Related Functions
 
-* [`coalescelist`](/terraform/language/functions/coalescelist) performs a similar operation with
+* [`coalescelist`](/mnptu/language/functions/coalescelist) performs a similar operation with
   list arguments rather than individual arguments.

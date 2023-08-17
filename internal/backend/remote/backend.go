@@ -17,29 +17,29 @@ import (
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
 )
 
 const (
-	defaultHostname    = "app.terraform.io"
+	defaultHostname    = "app.mnptu.io"
 	defaultParallelism = 10
 	stateServiceID     = "state.v2"
 	tfeServiceID       = "tfe.v2.1"
-	genericHostname    = "localterraform.com"
+	genericHostname    = "localmnptu.com"
 )
 
 // Remote is an implementation of EnhancedBackend that performs all
@@ -51,9 +51,9 @@ type Remote struct {
 	CLIColor *colorstring.Colorize
 
 	// ContextOpts are the base context options to set when initializing a
-	// new Terraform context. Many of these will be overridden or merged by
+	// new mnptu context. Many of these will be overridden or merged by
 	// Operation. See Operation for more details.
-	ContextOpts *terraform.ContextOpts
+	ContextOpts *mnptu.ContextOpts
 
 	// client is the remote backend API client.
 	client *tfe.Client
@@ -89,8 +89,8 @@ type Remote struct {
 	opLock sync.Mutex
 
 	// ignoreVersionConflict, if true, will disable the requirement that the
-	// local Terraform version matches the remote workspace's configured
-	// version. This will also cause VerifyWorkspaceTerraformVersion to return
+	// local mnptu version matches the remote workspace's configured
+	// version. This will also cause VerifyWorkspacemnptuVersion to return
 	// a warning diagnostic instead of an error.
 	ignoreVersionConflict bool
 }
@@ -306,7 +306,7 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	// Return an error if we still don't have a token at this point.
 	if token == "" {
-		loginCommand := "terraform login"
+		loginCommand := "mnptu login"
 		if b.hostname != defaultHostname {
 			loginCommand = loginCommand + " " + b.hostname
 		}
@@ -338,10 +338,10 @@ func (b *Remote) Configure(obj cty.Value) tfdiags.Diagnostics {
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
-			"Failed to create the Terraform Enterprise client",
+			"Failed to create the mnptu Enterprise client",
 			fmt.Sprintf(
 				`The "remote" backend encountered an unexpected error while creating the `+
-					`Terraform Enterprise client: %s.`, err,
+					`mnptu Enterprise client: %s.`, err,
 			),
 		))
 		return diags
@@ -396,7 +396,7 @@ func (b *Remote) discover(serviceID string) (*url.URL, *disco.Constraints, error
 
 	// We purposefully ignore the error and return the previous error, as
 	// checking for version constraints is considered optional.
-	constraints, _ := host.VersionConstraints(serviceID, "terraform")
+	constraints, _ := host.VersionConstraints(serviceID, "mnptu")
 
 	return service, constraints, err
 }
@@ -485,14 +485,14 @@ func (b *Remote) checkConstraints(c *disco.Constraints) tfdiags.Diagnostics {
 		excluding = ""
 	}
 
-	summary := fmt.Sprintf("Incompatible Terraform version v%s", v.String())
+	summary := fmt.Sprintf("Incompatible mnptu version v%s", v.String())
 	details := fmt.Sprintf(
-		"The configured Terraform Enterprise backend is compatible with Terraform "+
+		"The configured mnptu Enterprise backend is compatible with mnptu "+
 			"versions >= %s, <= %s%s.", c.Minimum, c.Maximum, excluding,
 	)
 
 	if action != "" && toVersion != "" {
-		summary = fmt.Sprintf("Please %s Terraform to %s", action, toVersion)
+		summary = fmt.Sprintf("Please %s mnptu to %s", action, toVersion)
 		details += fmt.Sprintf(" Please %s to a supported version and try again.", action)
 	}
 
@@ -662,10 +662,10 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 			Name: tfe.String(name),
 		}
 
-		// We only set the Terraform Version for the new workspace if this is
+		// We only set the mnptu Version for the new workspace if this is
 		// a release candidate or a final release.
 		if tfversion.Prerelease == "" || strings.HasPrefix(tfversion.Prerelease, "rc") {
-			options.TerraformVersion = tfe.String(tfversion.String())
+			options.mnptuVersion = tfe.String(tfversion.String())
 		}
 
 		workspace, err = b.client.Workspaces.Create(context.Background(), b.organization, options)
@@ -680,11 +680,11 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 	// accidentally upgrade state with a new code path, and the version check
 	// logic is coarser and simpler.
 	if !b.ignoreVersionConflict {
-		wsv := workspace.TerraformVersion
+		wsv := workspace.mnptuVersion
 		// Explicitly ignore the pseudo-version "latest" here, as it will cause
 		// plan and apply to always fail.
 		if wsv != tfversion.String() && wsv != "latest" {
-			return nil, fmt.Errorf("Remote workspace Terraform version %q does not match local Terraform version %q", workspace.TerraformVersion, tfversion.String())
+			return nil, fmt.Errorf("Remote workspace mnptu version %q does not match local mnptu version %q", workspace.mnptuVersion, tfversion.String())
 		}
 	}
 
@@ -693,17 +693,17 @@ func (b *Remote) StateMgr(name string) (statemgr.Full, error) {
 		organization: b.organization,
 		workspace:    workspace,
 
-		// This is optionally set during Terraform Enterprise runs.
+		// This is optionally set during mnptu Enterprise runs.
 		runID: os.Getenv("TFE_RUN_ID"),
 	}
 
 	return &remote.State{
 		Client: client,
 
-		// client.runID will be set if we're running a the Terraform Cloud
-		// or Terraform Enterprise remote execution environment, in which
+		// client.runID will be set if we're running a the mnptu Cloud
+		// or mnptu Enterprise remote execution environment, in which
 		// case we'll disable intermediate snapshots to avoid extra storage
-		// costs for Terraform Enterprise customers.
+		// costs for mnptu Enterprise customers.
 		// Other implementations of the remote state protocol should not run
 		// in contexts where there's a "TFE Run ID" and so are not affected
 		// by this special case.
@@ -751,14 +751,14 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 		return nil, err
 	}
 
-	// Terraform remote version conflicts are not a concern for operations. We
+	// mnptu remote version conflicts are not a concern for operations. We
 	// are in one of three states:
 	//
 	// - Running remotely, in which case the local version is irrelevant;
 	// - Workspace configured for local operations, in which case the remote
 	//   version is meaningless;
 	// - Forcing local operations with a remote backend, which should only
-	//   happen in the Terraform Cloud worker, in which case the Terraform
+	//   happen in the mnptu Cloud worker, in which case the mnptu
 	//   versions by definition match.
 	b.IgnoreVersionConflict()
 
@@ -784,7 +784,7 @@ func (b *Remote) Operation(ctx context.Context, op *backend.Operation) (*backend
 	case backend.OperationTypeRefresh:
 		return nil, fmt.Errorf(
 			"\n\nThe \"refresh\" operation is not supported when using the \"remote\" backend. " +
-				"Use \"terraform apply -refresh-only\" instead.")
+				"Use \"mnptu apply -refresh-only\" instead.")
 	default:
 		return nil, fmt.Errorf(
 			"\n\nThe \"remote\" backend does not support the %q operation.", op.Type)
@@ -869,7 +869,7 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe
 		// Only ask if the remote operation should be canceled
 		// if the auto approve flag is not set.
 		if !op.AutoApprove {
-			v, err := op.UIIn.Input(cancelCtx, &terraform.InputOpts{
+			v, err := op.UIIn.Input(cancelCtx, &mnptu.InputOpts{
 				Id:          "cancel",
 				Query:       "\nDo you want to cancel the remote operation?",
 				Description: "Only 'yes' will be accepted to cancel.",
@@ -904,8 +904,8 @@ func (b *Remote) cancel(cancelCtx context.Context, op *backend.Operation, r *tfe
 }
 
 // IgnoreVersionConflict allows commands to disable the fall-back check that
-// the local Terraform version matches the remote workspace's configured
-// Terraform version. This should be called by commands where this check is
+// the local mnptu version matches the remote workspace's configured
+// mnptu version. This should be called by commands where this check is
 // unnecessary, such as those performing remote operations, or read-only
 // operations. It will also be called if the user uses a command-line flag to
 // override this check.
@@ -913,12 +913,12 @@ func (b *Remote) IgnoreVersionConflict() {
 	b.ignoreVersionConflict = true
 }
 
-// VerifyWorkspaceTerraformVersion compares the local Terraform version against
-// the workspace's configured Terraform version. If they are equal, this means
+// VerifyWorkspacemnptuVersion compares the local mnptu version against
+// the workspace's configured mnptu version. If they are equal, this means
 // that there are no compatibility concerns, so it returns no diagnostics.
 //
 // If the versions differ,
-func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.Diagnostics {
+func (b *Remote) VerifyWorkspacemnptuVersion(workspaceName string) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 
 	workspace, err := b.getRemoteWorkspace(context.Background(), workspaceName)
@@ -939,39 +939,39 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 	}
 
 	// If the workspace has the pseudo-version "latest", all bets are off. We
-	// cannot reasonably determine what the intended Terraform version is, so
+	// cannot reasonably determine what the intended mnptu version is, so
 	// we'll skip version verification.
-	if workspace.TerraformVersion == "latest" {
+	if workspace.mnptuVersion == "latest" {
 		return nil
 	}
 
-	// If the workspace has remote operations disabled, the remote Terraform
+	// If the workspace has remote operations disabled, the remote mnptu
 	// version is effectively meaningless, so we'll skip version verification.
 	if isLocalExecutionMode(workspace.ExecutionMode) {
 		return nil
 	}
 
-	remoteVersion, err := version.NewSemver(workspace.TerraformVersion)
+	remoteVersion, err := version.NewSemver(workspace.mnptuVersion)
 	if err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Error looking up workspace",
-			fmt.Sprintf("Invalid Terraform version: %s", err),
+			fmt.Sprintf("Invalid mnptu version: %s", err),
 		))
 		return diags
 	}
 
 	v014 := version.Must(version.NewSemver("0.14.0"))
 	if tfversion.SemVer.LessThan(v014) || remoteVersion.LessThan(v014) {
-		// Versions of Terraform prior to 0.14.0 will refuse to load state files
-		// written by a newer version of Terraform, even if it is only a patch
+		// Versions of mnptu prior to 0.14.0 will refuse to load state files
+		// written by a newer version of mnptu, even if it is only a patch
 		// level difference. As a result we require an exact match.
 		if tfversion.SemVer.Equal(remoteVersion) {
 			return diags
 		}
 	}
 	if tfversion.SemVer.GreaterThanOrEqual(v014) && remoteVersion.GreaterThanOrEqual(v014) {
-		// Versions of Terraform after 0.14.0 should be compatible with each
+		// Versions of mnptu after 0.14.0 should be compatible with each
 		// other.  At the time this code was written, the only constraints we
 		// are aware of are:
 		//
@@ -981,7 +981,7 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 		if tfversion.SemVer.LessThan(v130) && remoteVersion.LessThan(v130) {
 			return diags
 		}
-		// - Any new Terraform state version will require at least minor patch
+		// - Any new mnptu state version will require at least minor patch
 		//   increment, so x.y.* will always be compatible with each other
 		tfvs := tfversion.SemVer.Segments64()
 		rwvs := remoteVersion.Segments64()
@@ -992,25 +992,25 @@ func (b *Remote) VerifyWorkspaceTerraformVersion(workspaceName string) tfdiags.D
 
 	// Even if ignoring version conflicts, it may still be useful to call this
 	// method and warn the user about a mismatch between the local and remote
-	// Terraform versions.
+	// mnptu versions.
 	severity := tfdiags.Error
 	if b.ignoreVersionConflict {
 		severity = tfdiags.Warning
 	}
 
-	suggestion := " If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
+	suggestion := " If you're sure you want to upgrade the state, you can force mnptu to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
 	if b.ignoreVersionConflict {
 		suggestion = ""
 	}
 	diags = diags.Append(tfdiags.Sourceless(
 		severity,
-		"Terraform version mismatch",
+		"mnptu version mismatch",
 		fmt.Sprintf(
-			"The local Terraform version (%s) does not match the configured version for remote workspace %s/%s (%s).%s",
+			"The local mnptu version (%s) does not match the configured version for remote workspace %s/%s (%s).%s",
 			tfversion.String(),
 			b.organization,
 			workspace.Name,
-			workspace.TerraformVersion,
+			workspace.mnptuVersion,
 			suggestion,
 		),
 	))
@@ -1066,7 +1066,7 @@ func checkConstraintsWarning(err error) tfdiags.Diagnostic {
 // The newline in this error is to make it look good in the CLI!
 const initialRetryError = `
 [reset][yellow]There was an error connecting to the remote backend. Please do not exit
-Terraform to prevent data loss! Trying to restore the connection...
+mnptu to prevent data loss! Trying to restore the connection...
 [reset]
 `
 
@@ -1083,7 +1083,7 @@ const operationNotCanceled = `
 `
 
 var schemaDescriptions = map[string]string{
-	"hostname":     "The remote backend hostname to connect to (defaults to app.terraform.io).",
+	"hostname":     "The remote backend hostname to connect to (defaults to app.mnptu.io).",
 	"organization": "The name of the organization containing the targeted workspace(s).",
 	"token": "The token used to authenticate with the remote backend. If credentials for the\n" +
 		"host are configured in the CLI Config File, then those will be used instead.",

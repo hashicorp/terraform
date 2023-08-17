@@ -76,14 +76,14 @@ func shimTraversalInString(expr hcl.Expression, wantKeyword bool) (hcl.Expressio
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Quoted keywords are deprecated",
-			Detail:   "In this context, keywords are expected literally rather than in quotes. Terraform 0.11 and earlier required quotes, but quoted keywords are now deprecated and will be removed in a future version of Terraform. Remove the quotes surrounding this keyword to silence this warning.",
+			Detail:   "In this context, keywords are expected literally rather than in quotes. mnptu 0.11 and earlier required quotes, but quoted keywords are now deprecated and will be removed in a future version of mnptu. Remove the quotes surrounding this keyword to silence this warning.",
 			Subject:  &srcRange,
 		})
 	} else {
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagWarning,
 			Summary:  "Quoted references are deprecated",
-			Detail:   "In this context, references are expected literally rather than in quotes. Terraform 0.11 and earlier required quotes, but quoted references are now deprecated and will be removed in a future version of Terraform. Remove the quotes surrounding this reference to silence this warning.",
+			Detail:   "In this context, references are expected literally rather than in quotes. mnptu 0.11 and earlier required quotes, but quoted references are now deprecated and will be removed in a future version of mnptu. Remove the quotes surrounding this reference to silence this warning.",
 			Subject:  &srcRange,
 		})
 	}

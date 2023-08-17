@@ -1,10 +1,10 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
-	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/mnptu/internal/dag"
 )
 
 const rootNodeName = "root"

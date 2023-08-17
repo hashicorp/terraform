@@ -13,20 +13,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
-	backendInit "github.com/hashicorp/terraform/internal/backend/init"
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
+	backendInit "github.com/hashicorp/mnptu/internal/backend/init"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
+	backendInmem "github.com/hashicorp/mnptu/internal/backend/remote-state/inmem"
 )
 
 // Test empty directory with no config/state creates a local state.
@@ -1901,7 +1901,7 @@ func TestMetaBackend_configToExtra(t *testing.T) {
 	backendHash := s.Backend.Hash
 
 	// init again but remove the path option from the config
-	cfg := "terraform {\n  backend \"local\" {}\n}\n"
+	cfg := "mnptu {\n  backend \"local\" {}\n}\n"
 	if err := ioutil.WriteFile("main.tf", []byte(cfg), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -1933,8 +1933,8 @@ func TestBackendFromState(t *testing.T) {
 	// Setup the meta
 	m := testMetaBackend(t, nil)
 	m.WorkingDir = wd
-	// terraform caches a small "state" file that stores the backend config.
-	// This test must override m.dataDir so it loads the "terraform.tfstate" file in the
+	// mnptu caches a small "state" file that stores the backend config.
+	// This test must override m.dataDir so it loads the "mnptu.tfstate" file in the
 	// test directory as the backend config cache. This fixture is really a
 	// fixture for the data dir rather than the module dir, so we'll override
 	// them to match just for this test.

@@ -11,11 +11,11 @@ import (
 
 	uuid "github.com/hashicorp/go-uuid"
 
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 // State implements the State interfaces in the state package to handle
@@ -42,7 +42,7 @@ type State struct {
 	disableLocks         bool
 
 	// If this is set then the state manager will decline to store intermediate
-	// state snapshots created while a Terraform Core apply operation is in
+	// state snapshots created while a mnptu Core apply operation is in
 	// progress. Otherwise (by default) it will accept persistent snapshots
 	// using the default rules defined in the local backend.
 	DisableIntermediateSnapshots bool
@@ -166,7 +166,7 @@ func (s *State) refreshState() error {
 }
 
 // statemgr.Persister impl.
-func (s *State) PersistState(schemas *terraform.Schemas) error {
+func (s *State) PersistState(schemas *mnptu.Schemas) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

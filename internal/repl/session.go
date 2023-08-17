@@ -12,10 +12,10 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/lang"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/lang/types"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/lang"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/lang/types"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Session represents the state for a single REPL session.
@@ -88,7 +88,7 @@ func (s *Session) handleEval(line string) (string, tfdiags.Diagnostics) {
 
 func (s *Session) handleHelp() (string, tfdiags.Diagnostics) {
 	text := `
-The Terraform console allows you to experiment with Terraform interpolations.
+The mnptu console allows you to experiment with mnptu interpolations.
 You may access resources in the state (if you have one) just as you would
 from a configuration. For example: "aws_instance.foo.id" would evaluate
 to the ID of "aws_instance.foo" if it exists in your state.

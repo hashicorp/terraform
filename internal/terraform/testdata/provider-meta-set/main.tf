@@ -2,7 +2,7 @@ resource "test_instance" "bar" {
   foo = "bar"
 }
 
-terraform {
+mnptu {
   provider_meta "test" {
     baz = "quux"
   }

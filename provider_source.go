@@ -11,17 +11,17 @@ import (
 	"path/filepath"
 
 	"github.com/apparentlymart/go-userdirs/userdirs"
-	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/mnptu-svchost/disco"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // providerSource constructs a provider source based on a combination of the
 // CLI configuration and some default search locations. This will be the
-// provider source used for provider installation in the "terraform init"
+// provider source used for provider installation in the "mnptu init"
 // command, unless overridden by the special -plugin-dir option.
 func providerSource(configs []*cliconfig.ProviderInstallation, services *disco.Disco) (getproviders.Source, tfdiags.Diagnostics) {
 	if len(configs) == 0 {
@@ -91,12 +91,12 @@ func explicitProviderSource(config *cliconfig.ProviderInstallation, services *di
 // "exclude" argument in the direct provider source in the CLI config.
 func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	// The local search directories we use for implicit configuration are:
-	// - The "terraform.d/plugins" directory in the current working directory,
+	// - The "mnptu.d/plugins" directory in the current working directory,
 	//   which we've historically documented as a place to put plugins as a
-	//   way to include them in bundles uploaded to Terraform Cloud, where
+	//   way to include them in bundles uploaded to mnptu Cloud, where
 	//   there has historically otherwise been no way to use custom providers.
 	// - The "plugins" subdirectory of the CLI config search directory.
-	//   (thats ~/.terraform.d/plugins on Unix systems, equivalents elsewhere)
+	//   (thats ~/.mnptu.d/plugins on Unix systems, equivalents elsewhere)
 	// - The "plugins" subdirectory of any platform-specific search paths,
 	//   following e.g. the XDG base directory specification on Unix systems,
 	//   Apple's guidelines on OS X, and "known folders" on Windows.
@@ -143,7 +143,7 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 		}
 	}
 
-	addLocalDir("terraform.d/plugins") // our "vendor" directory
+	addLocalDir("mnptu.d/plugins") // our "vendor" directory
 	cliConfigDir, err := cliconfig.ConfigDir()
 	if err == nil {
 		addLocalDir(filepath.Join(cliConfigDir, "plugins"))
@@ -155,10 +155,10 @@ func implicitProviderSource(services *disco.Disco) getproviders.Source {
 	// suitable application-specific subdirectory name following the
 	// conventions for each platform:
 	//
-	//   XDG (Unix): lowercase of the first string, "terraform"
-	//   Windows:    two-level hierarchy of first two strings, "HashiCorp\Terraform"
-	//   OS X:       reverse-DNS unique identifier, "io.terraform".
-	sysSpecificDirs := userdirs.ForApp("Terraform", "HashiCorp", "io.terraform")
+	//   XDG (Unix): lowercase of the first string, "mnptu"
+	//   Windows:    two-level hierarchy of first two strings, "HashiCorp\mnptu"
+	//   OS X:       reverse-DNS unique identifier, "io.mnptu".
+	sysSpecificDirs := userdirs.ForApp("mnptu", "HashiCorp", "io.mnptu")
 	for _, dir := range sysSpecificDirs.DataSearchPaths("plugins") {
 		addLocalDir(dir)
 	}

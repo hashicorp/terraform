@@ -10,15 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/backend/local"
-	"github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/backend/local"
+	"github.com/hashicorp/mnptu/internal/backend/remote-state/inmem"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 	"github.com/mitchellh/cli"
 
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestWorkspace_createAndChange(t *testing.T) {
@@ -400,7 +400,7 @@ func TestWorkspace_deleteWithState(t *testing.T) {
 		},
 	}
 
-	f, err := os.Create(filepath.Join(local.DefaultWorkspaceDir, "test", "terraform.tfstate"))
+	f, err := os.Create(filepath.Join(local.DefaultWorkspaceDir, "test", "mnptu.tfstate"))
 	if err != nil {
 		t.Fatal(err)
 	}

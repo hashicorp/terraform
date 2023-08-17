@@ -25,13 +25,13 @@ func Test_cloud_organization_env_var(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						remoteWorkspace := "cloud-workspace"
-						tfBlock := terraformConfigCloudBackendOmitOrg(remoteWorkspace)
+						tfBlock := mnptuConfigCloudBackendOmitOrg(remoteWorkspace)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -72,13 +72,13 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendOmitWorkspaces(org.Name)
+						tfBlock := mnptuConfigCloudBackendOmitWorkspaces(org.Name)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -88,13 +88,13 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 				},
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendOmitWorkspaces(org.Name)
+						tfBlock := mnptuConfigCloudBackendOmitWorkspaces(org.Name)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -111,7 +111,7 @@ func Test_cloud_workspace_name_env_var(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendOmitWorkspaces(org.Name)
+						tfBlock := mnptuConfigCloudBackendOmitWorkspaces(org.Name)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -153,13 +153,13 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
+						tfBlock := mnptuConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -169,13 +169,13 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 				},
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
+						tfBlock := mnptuConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},
@@ -192,7 +192,7 @@ func Test_cloud_workspace_tags_env_var(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
+						tfBlock := mnptuConfigCloudBackendTags(org.Name, wkValid.TagNames[0])
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -226,13 +226,13 @@ func Test_cloud_null_config(t *testing.T) {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendOmitConfig()
+						tfBlock := mnptuConfigCloudBackendOmitConfig()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:         []string{"apply", "-auto-approve"},
@@ -242,13 +242,13 @@ func Test_cloud_null_config(t *testing.T) {
 				},
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigCloudBackendOmitConfig()
+						tfBlock := mnptuConfigCloudBackendOmitConfig()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"init"},
-							expectedCmdOutput: `Terraform Cloud has been successfully initialized!`,
+							expectedCmdOutput: `mnptu Cloud has been successfully initialized!`,
 						},
 						{
 							command:           []string{"workspace", "show"},

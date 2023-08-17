@@ -6,7 +6,7 @@
 //
 // For example, this is used to describe the expected contents of a resource
 // configuration block, which is defined by the corresponding provider plugin
-// and thus not compiled into Terraform core.
+// and thus not compiled into mnptu core.
 //
 // A configschema primarily describes the shape of configuration, but it is
 // also suitable for use with other structures derived from the configuration,

@@ -7,7 +7,7 @@ description: >-
 # Standard Module Structure
 
 The standard module structure is a file and directory layout we recommend for
-reusable modules distributed in separate repositories. Terraform tooling is
+reusable modules distributed in separate repositories. mnptu tooling is
 built to understand the standard module structure and use that structure to
 generate documentation, index modules for the module registry, and more.
 
@@ -16,10 +16,10 @@ appear long, but everything is optional except for the root module. Most modules
 don't need to do any extra work to follow the standard structure.
 
 * **Root module**. This is the **only required element** for the standard
-  module structure. Terraform files must exist in the root directory of
+  module structure. mnptu files must exist in the root directory of
   the repository. This should be the primary entrypoint for the module and is
   expected to be opinionated. For the
-  [Consul module](https://registry.terraform.io/modules/hashicorp/consul)
+  [Consul module](https://registry.mnptu.io/modules/hashicorp/consul)
   the root module sets up a complete Consul cluster. It makes a lot of assumptions
   however, and we expect that advanced users will use specific _nested modules_
   to more carefully control what they want.
@@ -29,7 +29,7 @@ don't need to do any extra work to follow the standard structure.
   be treated as markdown. There should be a description of the module and
   what it should be used for. If you want to include an example for how this
   module can be used in combination with other resources, put it in an [examples
-  directory like this](https://github.com/hashicorp/terraform-aws-consul/tree/master/examples).
+  directory like this](https://github.com/hashicorp/mnptu-aws-consul/tree/master/examples).
   Consider including a visual diagram depicting the infrastructure resources
   the module may create and their relationship.
 
@@ -55,28 +55,28 @@ don't need to do any extra work to follow the standard structure.
 * **Variables and outputs should have descriptions.** All variables and
   outputs should have one or two sentence descriptions that explain their
   purpose. This is used for documentation. See the documentation for
-  [variable configuration](/terraform/language/values/variables) and
-  [output configuration](/terraform/language/values/outputs) for more details.
+  [variable configuration](/mnptu/language/values/variables) and
+  [output configuration](/mnptu/language/values/outputs) for more details.
 
 * **Nested modules**. Nested modules should exist under the `modules/`
   subdirectory. Any nested module with a `README.md` is considered usable
   by an external user. If a README doesn't exist, it is considered for internal
-  use only. These are purely advisory; Terraform will not actively deny usage
+  use only. These are purely advisory; mnptu will not actively deny usage
   of internal modules. Nested modules should be used to split complex behavior
   into multiple small modules that advanced users can carefully pick and
   choose. For example, the
-  [Consul module](https://registry.terraform.io/modules/hashicorp/consul)
+  [Consul module](https://registry.mnptu.io/modules/hashicorp/consul)
   has a nested module for creating the Cluster that is separate from the
   module to setup necessary IAM policies. This allows a user to bring in their
   own IAM policy choices.
 
   If the root module includes calls to nested modules, they should use relative
-  paths like `./modules/consul-cluster` so that Terraform will consider them
+  paths like `./modules/consul-cluster` so that mnptu will consider them
   to be part of the same repository or package, rather than downloading them
   again separately.
 
   If a repository or package contains multiple nested modules, they should
-  ideally be [composable](/terraform/language/modules/develop/composition) by the caller, rather than
+  ideally be [composable](/mnptu/language/modules/develop/composition) by the caller, rather than
   calling directly to each other and creating a deeply-nested tree of modules.
 
 * **Examples**. Examples of using the module should exist under the

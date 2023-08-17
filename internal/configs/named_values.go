@@ -13,7 +13,7 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/convert"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // A consistent detail message for all "not a valid identifier" diagnostics.
@@ -211,7 +211,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid quoted type constraints",
-				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"string\".",
+				Detail:   "mnptu 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of mnptu. Remove the quotes around \"string\".",
 				Subject:  expr.Range().Ptr(),
 			})
 			return cty.DynamicPseudoType, nil, VariableParseLiteral, diags
@@ -219,7 +219,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid quoted type constraints",
-				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"list\" and write list(string) instead to explicitly indicate that the list elements are strings.",
+				Detail:   "mnptu 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of mnptu. Remove the quotes around \"list\" and write list(string) instead to explicitly indicate that the list elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
 			return cty.DynamicPseudoType, nil, VariableParseHCL, diags
@@ -227,7 +227,7 @@ func decodeVariableType(expr hcl.Expression) (cty.Type, *typeexpr.Defaults, Vari
 			diags = append(diags, &hcl.Diagnostic{
 				Severity: hcl.DiagError,
 				Summary:  "Invalid quoted type constraints",
-				Detail:   "Terraform 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of Terraform. Remove the quotes around \"map\" and write map(string) instead to explicitly indicate that the map elements are strings.",
+				Detail:   "mnptu 0.11 and earlier required type constraints to be given in quotes, but that form is now deprecated and will be removed in a future version of mnptu. Remove the quotes around \"map\" and write map(string) instead to explicitly indicate that the map elements are strings.",
 				Subject:  expr.Range().Ptr(),
 			})
 			return cty.DynamicPseudoType, nil, VariableParseHCL, diags

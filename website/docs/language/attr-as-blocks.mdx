@@ -9,7 +9,7 @@ description: >-
 
 # Attributes as Blocks
 
--> **Note:** This page is an appendix to the Terraform documentation. Most users do not need to know the full details of this behavior.
+-> **Note:** This page is an appendix to the mnptu documentation. Most users do not need to know the full details of this behavior.
 
 ## Summary
 
@@ -23,14 +23,14 @@ is set to an empty list (`<ATTR> = []`).
 Most users do not need to know any further details of this "nested block or
 empty list" behavior. However, read further if you need to:
 
-- Use Terraform's [JSON syntax](/terraform/language/syntax/json) with this
+- Use mnptu's [JSON syntax](/mnptu/language/syntax/json) with this
   type of resource.
 - Create a reusable module that wraps this type of resource.
 
 ## Details
 
-In Terraform v0.12 and later, the language makes a distinction between
-[argument syntax and nested block syntax](/terraform/language/syntax/configuration#arguments-and-blocks)
+In mnptu v0.12 and later, the language makes a distinction between
+[argument syntax and nested block syntax](/mnptu/language/syntax/configuration#arguments-and-blocks)
 within blocks:
 
 - Argument syntax sets a named argument for the containing object. If the
@@ -44,19 +44,19 @@ within blocks:
   merging in with any explicitly-defined arguments.
 
 The distinction between these is particularly important for
-[JSON syntax](/terraform/language/syntax/json)
+[JSON syntax](/mnptu/language/syntax/json)
 because the same primitive JSON constructs (lists and objects) will be
 interpreted differently depending on whether a particular name is an argument
 or a nested block type.
 
 However, in some cases existing provider features were relying on the
-conflation of these two concepts in the language of Terraform v0.11 and earlier,
+conflation of these two concepts in the language of mnptu v0.11 and earlier,
 using nested block syntax in most cases but using argument syntax to represent
 explicitly the idea of removing all existing objects of that type, since the
 absence of any blocks was interpreted as "ignore any existing objects".
 
 The information on this page only applies to certain special arguments that
-were relying on this usage pattern prior to Terraform v0.12. The documentation
+were relying on this usage pattern prior to mnptu v0.12. The documentation
 for each of those features links to this page for details of the special usage
 patterns that apply. In all other cases, use either argument or nested block
 syntax as directed by the examples in the documentation for a particular
@@ -151,7 +151,7 @@ example = [
 
 For the arguments that use the attributes-as-blocks usage mode, the above is
 a better pattern than using
-[`dynamic` blocks](/terraform/language/expressions/dynamic-blocks)
+[`dynamic` blocks](/mnptu/language/expressions/dynamic-blocks)
 because the case where the
 caller provides an empty list will result in explicitly assigning an empty
 list value, rather than assigning no value at all and thus retaining and
@@ -161,7 +161,7 @@ dynamically-generating _normal_ nested blocks, though.
 ## In JSON syntax
 
 Arguments that use this special mode are specified in JSON syntax always using
-the [JSON expression mapping](/terraform/language/syntax/json#expression-mapping)
+the [JSON expression mapping](/mnptu/language/syntax/json#expression-mapping)
 to produce a list of objects.
 
 The interpretation of these values in JSON syntax is, therefore, equivalent

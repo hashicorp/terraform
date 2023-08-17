@@ -34,8 +34,8 @@ func TestModule(t *testing.T) {
 		},
 		{
 			name:        "public registry, explicit host",
-			source:      "registry.terraform.io/hashicorp/consul/aws",
-			wantString:  "registry.terraform.io/hashicorp/consul/aws",
+			source:      "registry.mnptu.io/hashicorp/consul/aws",
+			wantString:  "registry.mnptu.io/hashicorp/consul/aws",
 			wantDisplay: "hashicorp/consul/aws",
 			wantNorm:    "hashicorp/consul/aws",
 			wantErr:     false,
@@ -73,7 +73,7 @@ func TestModule(t *testing.T) {
 			// //modules/Foo and //modules/foo describe different paths, but
 			// it's less confusing in general just to not support that. Any user
 			// with a module with submodules in both cases is already asking for
-			// portability issues, and terraform can ensure it does
+			// portability issues, and mnptu can ensure it does
 			// case-insensitive search for the dir in those cases.
 			wantDisplay: "испытание.com:1234/hashicorp/consul/aws//foo",
 			wantNorm:    "xn--80akhbyknj4f.com:1234/hashicorp/consul/aws//foo",

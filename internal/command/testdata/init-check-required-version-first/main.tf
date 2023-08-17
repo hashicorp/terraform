@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_version = ">200.0.0"
 
   bad {

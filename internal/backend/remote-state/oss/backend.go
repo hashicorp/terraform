@@ -32,9 +32,9 @@ import (
 	"github.com/jmespath/go-jmespath"
 	"github.com/mitchellh/go-homedir"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/legacy/helper/schema"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/legacy/helper/schema"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // Deprecated in favor of flattening assume_role_* options
@@ -174,7 +174,7 @@ func New() backend.Backend {
 					}
 					return nil, nil
 				},
-				Default: "terraform.tfstate",
+				Default: "mnptu.tfstate",
 			},
 
 			"tablestore_table": {
@@ -350,7 +350,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	}
 
 	if sessionName == "" {
-		sessionName = "terraform"
+		sessionName = "mnptu"
 	}
 	if sessionExpiration == 0 {
 		if v := os.Getenv("ALICLOUD_ASSUME_ROLE_SESSION_EXPIRATION"); v != "" {
@@ -404,7 +404,7 @@ func (b *Backend) configure(ctx context.Context) error {
 	if securityToken != "" {
 		options = append(options, oss.SecurityToken(securityToken))
 	}
-	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", TerraformUA, TerraformVersion)))
+	options = append(options, oss.UserAgent(fmt.Sprintf("%s/%s", mnptuUA, mnptuVersion)))
 
 	proxyUrl := getHttpProxyUrl()
 	if proxyUrl != nil {
@@ -438,7 +438,7 @@ func (b *Backend) getOSSEndpointByRegion(access_key, secret_key, security_token,
 		return nil, fmt.Errorf("unable to initialize the location client: %#v", err)
 
 	}
-	locationClient.AppendUserAgent(TerraformUA, TerraformVersion)
+	locationClient.AppendUserAgent(mnptuUA, mnptuVersion)
 	endpointsResponse, err := locationClient.DescribeEndpoints(args)
 	if err != nil {
 		return nil, fmt.Errorf("describe oss endpoint using region: %#v got an error: %#v", region, err)
@@ -505,9 +505,9 @@ type Catcher struct {
 	RetryWaitSeconds int
 }
 
-const TerraformUA = "HashiCorp-Terraform"
+const mnptuUA = "HashiCorp-mnptu"
 
-var TerraformVersion = strings.TrimSuffix(version.String(), "-dev")
+var mnptuVersion = strings.TrimSuffix(version.String(), "-dev")
 var ClientErrorCatcher = Catcher{"AliyunGoClientFailure", 10, 3}
 var ServiceBusyCatcher = Catcher{"ServiceUnavailable", 10, 3}
 
@@ -622,7 +622,7 @@ var securityCredURL = "http://100.100.100.200/latest/meta-data/ram/security-cred
 // Actually, the job should be done by sdk, but currently not all resources and products support alibaba-cloud-sdk-go,
 // and their go sdk does support ecs role name.
 // This method is a temporary solution and it should be removed after all go sdk support ecs role name
-// The related PR: https://github.com/terraform-providers/terraform-provider-alicloud/pull/731
+// The related PR: https://github.com/mnptu-providers/mnptu-provider-alicloud/pull/731
 func getAuthCredentialByEcsRoleName(ecsRoleName string) (accessKey, secretKey, token string, err error) {
 
 	if ecsRoleName == "" {

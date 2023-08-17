@@ -1,5 +1,5 @@
 # This test case is intended to cover many of the main formatting
-# rules of "terraform fmt" at once. It's fine to add new stuff in
+# rules of "mnptu fmt" at once. It's fine to add new stuff in
 # here, but you can also add other _in.tf/_out.tf pairs in the
 # same directory if you want to test something complicated that,
 # for example, requires specific nested context.
@@ -10,7 +10,7 @@
 # repository (or similar), be sure to skip this one to avoid
 # invalidating the test.
 
-terraform {
+mnptu {
 required_providers {
 foo = { version = "1.0.0" }
 barbaz = {

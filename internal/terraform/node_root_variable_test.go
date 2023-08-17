@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"testing"
@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/hcl/v2/hcltest"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/checks"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/checks"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/lang"
 )
 
 func TestNodeRootVariableExecute(t *testing.T) {
@@ -54,7 +54,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 	t.Run("validation", func(t *testing.T) {
 		ctx := new(MockEvalContext)
 
-		// The variable validation function gets called with Terraform's
+		// The variable validation function gets called with mnptu's
 		// built-in functions available, so we need a minimal scope just for
 		// it to get the functions from.
 		ctx.EvaluationScopeScope = &lang.Scope{}
@@ -93,7 +93,7 @@ func TestNodeRootVariableExecute(t *testing.T) {
 							// conversion.
 							// This had previously not been handled correctly,
 							// as reported in:
-							//     https://github.com/hashicorp/terraform/issues/29899
+							//     https://github.com/hashicorp/mnptu/issues/29899
 							vars := ctx.Variables["var"]
 							if vars == cty.NilVal || !vars.Type().IsObjectType() || !vars.Type().HasAttribute("foo") {
 								t.Logf("var.foo isn't available")

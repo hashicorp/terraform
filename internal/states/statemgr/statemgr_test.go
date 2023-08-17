@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	_ "github.com/hashicorp/terraform/internal/logging"
+	_ "github.com/hashicorp/mnptu/internal/logging"
 )
 
 func TestNewLockInfo(t *testing.T) {

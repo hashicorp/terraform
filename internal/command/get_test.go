@@ -83,7 +83,7 @@ func TestGet_update(t *testing.T) {
 }
 
 func TestGet_cancel(t *testing.T) {
-	// This test runs `terraform get` as if SIGINT (or similar on other
+	// This test runs `mnptu get` as if SIGINT (or similar on other
 	// platforms) were sent to it, testing that it is interruptible.
 
 	wd := tempWorkingDirFixture(t, "init-registry-module")

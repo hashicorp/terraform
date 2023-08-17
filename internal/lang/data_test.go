@@ -6,8 +6,8 @@ package lang
 import (
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 type dataForTests struct {
@@ -18,7 +18,7 @@ type dataForTests struct {
 	OutputValues   map[string]cty.Value
 	Modules        map[string]cty.Value
 	PathAttrs      map[string]cty.Value
-	TerraformAttrs map[string]cty.Value
+	mnptuAttrs map[string]cty.Value
 	InputVariables map[string]cty.Value
 	CheckBlocks    map[string]cty.Value
 	RunBlocks      map[string]cty.Value
@@ -64,8 +64,8 @@ func (d *dataForTests) GetPathAttr(addr addrs.PathAttr, rng tfdiags.SourceRange)
 	return d.PathAttrs[addr.Name], nil
 }
 
-func (d *dataForTests) GetTerraformAttr(addr addrs.TerraformAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
-	return d.TerraformAttrs[addr.Name], nil
+func (d *dataForTests) GetmnptuAttr(addr addrs.mnptuAttr, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.mnptuAttrs[addr.Name], nil
 }
 
 func (d *dataForTests) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {

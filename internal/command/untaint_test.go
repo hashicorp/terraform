@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/states"
 	"github.com/mitchellh/cli"
 )
 
@@ -54,7 +54,7 @@ func TestUntaint(t *testing.T) {
 	expected := strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`)
 	testStateOutput(t, statePath, expected)
 }
@@ -151,14 +151,14 @@ func TestUntaint_backup(t *testing.T) {
 	testStateOutput(t, DefaultStateFilename+".backup", strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 
 	// State is untainted
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }
 
@@ -210,7 +210,7 @@ func TestUntaint_backupDisable(t *testing.T) {
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }
 
@@ -276,7 +276,7 @@ func TestUntaint_defaultState(t *testing.T) {
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }
 
@@ -323,7 +323,7 @@ func TestUntaint_defaultWorkspaceState(t *testing.T) {
 	testStateOutput(t, path, strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }
 
@@ -461,12 +461,12 @@ func TestUntaint_stateOut(t *testing.T) {
 	testStateOutput(t, DefaultStateFilename, strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 	testStateOutput(t, "foo", strings.TrimSpace(`
 test_instance.foo:
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }
 
@@ -525,11 +525,11 @@ func TestUntaint_module(t *testing.T) {
 	testStateOutput(t, statePath, strings.TrimSpace(`
 test_instance.foo: (tainted)
   ID = bar
-  provider = provider["registry.terraform.io/hashicorp/test"]
+  provider = provider["registry.mnptu.io/hashicorp/test"]
 
 module.child:
   test_instance.blah:
     ID = bar
-    provider = provider["registry.terraform.io/hashicorp/test"]
+    provider = provider["registry.mnptu.io/hashicorp/test"]
 	`))
 }

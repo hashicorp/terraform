@@ -9,12 +9,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/repl"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/repl"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 
 	"github.com/mitchellh/cli"
 )
@@ -121,7 +121,7 @@ func (c *ConsoleCommand) Run(args []string) int {
 		ErrorWriter: os.Stderr,
 	}
 
-	evalOpts := &terraform.EvalOpts{}
+	evalOpts := &mnptu.EvalOpts{}
 	if lr.PlanOpts != nil {
 		// the LocalRun type is built primarily to support the main operations,
 		// so the variable values end up in the "PlanOpts" even though we're
@@ -192,9 +192,9 @@ func (c *ConsoleCommand) modePiped(session *repl.Session, ui cli.Ui) int {
 
 func (c *ConsoleCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] console [options]
+Usage: mnptu [global options] console [options]
 
-  Starts an interactive console for experimenting with Terraform
+  Starts an interactive console for experimenting with mnptu
   interpolations.
 
   This will open an interactive console that you can use to type
@@ -209,16 +209,16 @@ Options:
   -state=path       Legacy option for the local backend only. See the local
                     backend's documentation for more information.
 
-  -var 'foo=bar'    Set a variable in the Terraform configuration. This
+  -var 'foo=bar'    Set a variable in the mnptu configuration. This
                     flag can be set multiple times.
 
-  -var-file=foo     Set variables in the Terraform configuration from
-                    a file. If "terraform.tfvars" or any ".auto.tfvars"
+  -var-file=foo     Set variables in the mnptu configuration from
+                    a file. If "mnptu.tfvars" or any ".auto.tfvars"
                     files are present, they will be automatically loaded.
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *ConsoleCommand) Synopsis() string {
-	return "Try Terraform expressions at an interactive command prompt"
+	return "Try mnptu expressions at an interactive command prompt"
 }

@@ -6,8 +6,8 @@ package cloud
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/configs"
-	legacy "github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs"
+	legacy "github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestDetectConfigChangeType(t *testing.T) {
@@ -61,7 +61,7 @@ func TestDetectConfigChangeType(t *testing.T) {
 		},
 
 		// Various other cases can potentially be valid (decided by the
-		// Terraform CLI layer) but are irrelevant for Cloud mode purposes.
+		// mnptu CLI layer) but are irrelevant for Cloud mode purposes.
 		"init default local": {
 			``, ``, false,
 			ConfigChangeIrrelevant,

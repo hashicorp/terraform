@@ -16,7 +16,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+*'
 
 env:
-  PKG_NAME: "terraform"
+  PKG_NAME: "mnptu"
 
 permissions:
   contents: read
@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   get-product-version:
-    name: "Determine intended Terraform version"
+    name: "Determine intended mnptu version"
     runs-on: ubuntu-latest
     outputs:
       product-version: ${{ steps.get-product-version.outputs.product-version }}
@@ -53,7 +53,7 @@ jobs:
       - name: Report chosen version number
         run: |
           [ -n "${{steps.get-product-version.outputs.product-version}}" ]
-          echo "::notice title=Terraform CLI Version::${{ steps.get-product-version.outputs.product-version }}"
+          echo "::notice title=mnptu CLI Version::${{ steps.get-product-version.outputs.product-version }}"
 
   get-go-version:
     name: "Determine Go toolchain version"
@@ -93,7 +93,7 @@ jobs:
     needs:
       - get-product-version
       - get-go-version
-    uses: ./.github/workflows/build-terraform-oss.yml
+    uses: ./.github/workflows/build-mnptu-oss.yml
     with:
       goarch: ${{ matrix.goarch }}
       goos: ${{ matrix.goos }}
@@ -134,16 +134,16 @@ jobs:
         arch: ["amd64", "386", "arm", "arm64"]
       fail-fast: false
     env:
-      repo: "terraform"
+      repo: "mnptu"
       version: ${{needs.get-product-version.outputs.product-version}}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - name: Build Docker images
         uses: hashicorp/actions-docker-build@v1
         with:
-          pkg_name: "terraform_${{env.version}}"
+          pkg_name: "mnptu_${{env.version}}"
           version: ${{env.version}}
-          bin_name: terraform
+          bin_name: mnptu
           target: default
           arch: ${{matrix.arch}}
           dockerfile: .github/workflows/build-Dockerfile
@@ -201,7 +201,7 @@ jobs:
           # NOTE: This script reacts to the GOOS, GOARCH, and GO_LDFLAGS
           # environment variables defined above. The e2e test harness
           # needs to know the version we're building for so it can verify
-          # that "terraform version" is returning that version number.
+          # that "mnptu version" is returning that version number.
           bash ./internal/command/e2etest/make-archive.sh
 
       - name: Save test harness to cache
@@ -252,17 +252,17 @@ jobs:
           key: ${{ needs.e2etest-build.outputs.e2e-cache-key }}_${{ matrix.goos }}_${{ matrix.goarch }}
           fail-on-cache-miss: true
           enableCrossOsArchive: true
-      - name: "Download Terraform CLI package"
+      - name: "Download mnptu CLI package"
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         id: clipkg
         with:
-          name: terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
+          name: mnptu_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip
           path: .
       - name: Extract packages
         if: ${{ matrix.goos == 'windows' }}
         run: |
-          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/terraform-e2etest_${{ env.os }}_${{ env.arch }}.zip"
-          unzip "./terraform_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "${{ needs.e2etest-build.outputs.e2e-cache-path }}/mnptu-e2etest_${{ env.os }}_${{ env.arch }}.zip"
+          unzip "./mnptu_${{env.version}}_${{ env.os }}_${{ env.arch }}.zip"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@2b82ce82d56a2a04d2637cd93a637ae1b359c0a7 # v2.2.0
         if: ${{ contains(matrix.goarch, 'arm') }}
@@ -284,7 +284,7 @@ jobs:
 
 
   e2e-test-exec:
-    name: Run terraform-exec test for linux amd64
+    name: Run mnptu-exec test for linux amd64
     runs-on: ubuntu-latest
     needs:
       - get-product-version
@@ -301,21 +301,21 @@ jobs:
         uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
         with:
           go-version: ${{ needs.get-go-version.outputs.go-version }}
-      - name: Download Terraform CLI package
+      - name: Download mnptu CLI package
         uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
         id: clipkg
         with:
-          name: terraform_${{ env.version }}_linux_amd64.zip
+          name: mnptu_${{ env.version }}_linux_amd64.zip
           path: .
-      - name: Checkout terraform-exec repo
+      - name: Checkout mnptu-exec repo
         uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
         with:
-          repository: hashicorp/terraform-exec
-          path: terraform-exec
-      - name: Run terraform-exec end-to-end tests
+          repository: hashicorp/mnptu-exec
+          path: mnptu-exec
+      - name: Run mnptu-exec end-to-end tests
         run: |
           FULL_RELEASE_VERSION="${{ env.version }}"
-          unzip terraform_${FULL_RELEASE_VERSION}_linux_amd64.zip
-          export TFEXEC_E2ETEST_TERRAFORM_PATH="$(pwd)/terraform"
-          cd terraform-exec
+          unzip mnptu_${FULL_RELEASE_VERSION}_linux_amd64.zip
+          export TFEXEC_E2ETEST_mnptu_PATH="$(pwd)/mnptu"
+          cd mnptu-exec
           go test -race -timeout=30m -v ./tfexec/internal/e2etest

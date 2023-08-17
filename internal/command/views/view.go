@@ -4,10 +4,10 @@
 package views
 
 import (
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/format"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/format"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/colorstring"
 )
 
@@ -20,7 +20,7 @@ type View struct {
 
 	compactWarnings bool
 
-	// When this is true it's a hint that Terraform is being run indirectly
+	// When this is true it's a hint that mnptu is being run indirectly
 	// via a wrapper script or other automation and so we may wish to replace
 	// direct examples of commands to run with more conceptual directions.
 	// However, we only do this on a best-effort basis, typically prioritizing
@@ -50,8 +50,8 @@ func NewView(streams *terminal.Streams) *View {
 
 // SetRunningInAutomation modifies the view's "running in automation" flag,
 // which causes some slight adjustments to certain messages that would normally
-// suggest specific Terraform commands to run, to make more conceptual gestures
-// instead for situations where the user isn't running Terraform directly.
+// suggest specific mnptu commands to run, to make more conceptual gestures
+// instead for situations where the user isn't running mnptu directly.
 //
 // For convenient use during initialization (in conjunction with NewView),
 // SetRunningInAutomation returns the reciever after modifying it.
@@ -103,7 +103,7 @@ func (v *View) Diagnostics(diags tfdiags.Diagnostics) {
 		}
 		if useCompact {
 			msg := format.DiagnosticWarningsCompact(diags, v.colorize)
-			msg = "\n" + msg + "\nTo see the full warning notes, run Terraform without -compact-warnings.\n"
+			msg = "\n" + msg + "\nTo see the full warning notes, run mnptu without -compact-warnings.\n"
 			v.streams.Print(msg)
 			return
 		}
@@ -134,7 +134,7 @@ func (v *View) HelpPrompt(command string) {
 
 const helpPrompt = `
 For more help on using this command, run:
-  terraform %s -help
+  mnptu %s -help
 `
 
 // outputColumns returns the number of text character cells any non-error

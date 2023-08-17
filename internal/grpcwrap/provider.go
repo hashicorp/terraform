@@ -6,9 +6,9 @@ package grpcwrap
 import (
 	"context"
 
-	"github.com/hashicorp/terraform/internal/plugin/convert"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/tfplugin5"
+	"github.com/hashicorp/mnptu/internal/plugin/convert"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/tfplugin5"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
@@ -166,7 +166,7 @@ func (p *provider) Configure(_ context.Context, req *tfplugin5.Configure_Request
 	}
 
 	configureResp := p.provider.ConfigureProvider(providers.ConfigureProviderRequest{
-		TerraformVersion: req.TerraformVersion,
+		mnptuVersion: req.mnptuVersion,
 		Config:           configVal,
 	})
 

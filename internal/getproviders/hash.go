@@ -36,7 +36,7 @@ const NilHash = Hash("")
 
 // ParseHash parses the string representation of a Hash into a Hash value.
 //
-// A particular version of Terraform only supports a fixed set of hash schemes,
+// A particular version of mnptu only supports a fixed set of hash schemes,
 // but this function intentionally allows unrecognized schemes so that we can
 // silently ignore other schemes that may be introduced in the future. For
 // that reason, the Scheme method of the returned Hash may return a value that
@@ -116,7 +116,7 @@ func (h Hash) GoString() string {
 		return fmt.Sprintf("getproviders.HashSchemeZip.New(%q)", h.Value())
 	default:
 		// This fallback is for when we encounter lock files or API responses
-		// with hash schemes that the current version of Terraform isn't
+		// with hash schemes that the current version of mnptu isn't
 		// familiar with. They were presumably introduced in a later version.
 		return fmt.Sprintf("getproviders.HashScheme(%q).New(%q)", scheme, h.Value())
 	}
@@ -200,7 +200,7 @@ func PackageMatchesHash(loc PackageLocation, want Hash) (bool, error) {
 		}
 		return got == want, nil
 	default:
-		return false, fmt.Errorf("unsupported hash format (this may require a newer version of Terraform)")
+		return false, fmt.Errorf("unsupported hash format (this may require a newer version of mnptu)")
 	}
 }
 
@@ -261,7 +261,7 @@ func PackageMatchesAnyHash(loc PackageLocation, allowed []Hash) (bool, error) {
 }
 
 // PreferredHashes examines all of the given hash strings and returns the one
-// that the current version of Terraform considers to provide the strongest
+// that the current version of mnptu considers to provide the strongest
 // verification.
 //
 // Returns an empty string if none of the given hashes are of a supported
@@ -356,7 +356,7 @@ func PackageHashV1(loc PackageLocation) (Hash, error) {
 	// changes by being used in a wide array of go.sum files already.
 	//
 	// In particular, it also supports computing an equivalent hash from
-	// an unpacked zip file, which is not important for Terraform workflow
+	// an unpacked zip file, which is not important for mnptu workflow
 	// today but is likely to become so in future if we adopt a top-level
 	// lockfile mechanism that is intended to be checked in to version control,
 	// rather than just a transient lock for a particular local cache directory.

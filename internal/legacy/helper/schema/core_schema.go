@@ -6,16 +6,16 @@ package schema
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
 // The functions and methods in this file are concerned with the conversion
 // of this package's schema model into the slightly-lower-level schema model
-// used by Terraform core for configuration parsing.
+// used by mnptu core for configuration parsing.
 
 // CoreConfigSchema lowers the receiver to the schema model expected by
-// Terraform core.
+// mnptu core.
 //
 // This lower-level model has fewer features than the schema in this package,
 // describing only the basic structure of configuration and state values we
@@ -47,7 +47,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 			// *Resource (since that would be ambiguous in flatmap) and
 			// so Elem is treated as a TypeString schema if so. This matches
 			// how the field readers treat this situation, for compatibility
-			// with configurations targeting Terraform 0.11 and earlier.
+			// with configurations targeting mnptu 0.11 and earlier.
 			if _, isResource := schema.Elem.(*Resource); isResource {
 				sch := *schema // shallow copy
 				sch.Elem = &Schema{
@@ -91,7 +91,7 @@ func (m schemaMap) CoreConfigSchema() *configschema.Block {
 func (s *Schema) coreConfigSchemaAttribute() *configschema.Attribute {
 	// The Schema.DefaultFunc capability adds some extra weirdness here since
 	// it can be combined with "Required: true" to create a situation where
-	// required-ness is conditional. Terraform Core doesn't share this concept,
+	// required-ness is conditional. mnptu Core doesn't share this concept,
 	// so we must sniff for this possibility here and conditionally turn
 	// off the "Required" flag if it looks like the DefaultFunc is going
 	// to provide a value.

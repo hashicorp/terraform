@@ -12,16 +12,16 @@ import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // GenerateResourceContents generates HCL configuration code for the provided
 // resource and state value.
 //
-// If you want to generate actual valid Terraform code you should follow this
-// call up with a call to WrapResourceContents, which will place a Terraform
+// If you want to generate actual valid mnptu code you should follow this
+// call up with a call to WrapResourceContents, which will place a mnptu
 // resource header around the attributes and blocks returned by this function.
 func GenerateResourceContents(addr addrs.AbsResourceInstance,
 	schema *configschema.Block,

@@ -1,17 +1,17 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -36,15 +36,15 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 		{
 			Addr: addrs.Resource{
 				Mode: addrs.DataResourceMode,
-				Type: "terraform_remote_state",
+				Type: "mnptu_remote_state",
 				Name: "baz",
 			}.InModule(addrs.RootModule),
 			Want: addrs.Provider{
-				// As a special case, the type prefix "terraform_" maps to
+				// As a special case, the type prefix "mnptu_" maps to
 				// the builtin provider, not the default one.
 				Hostname:  addrs.BuiltInProviderHost,
 				Namespace: addrs.BuiltInProviderNamespace,
-				Type:      "terraform",
+				Type:      "mnptu",
 			},
 		},
 		{
@@ -72,7 +72,7 @@ func TestNodeAbstractResourceProvider(t *testing.T) {
 		{
 			Addr: addrs.Resource{
 				Mode: addrs.DataResourceMode,
-				Type: "terraform_remote_state",
+				Type: "mnptu_remote_state",
 				Name: "baz",
 			}.InModule(addrs.RootModule),
 			Config: &configs.Resource{
@@ -123,12 +123,12 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 		// (This would not be valid for some other functions.)
 		Addr: addrs.Resource{
 			Mode: addrs.DataResourceMode,
-			Type: "terraform_remote_state",
+			Type: "mnptu_remote_state",
 			Name: "baz",
 		}.InModule(addrs.RootModule),
 		Config: &configs.Resource{
 			Mode: addrs.ManagedResourceMode,
-			Type: "terraform_remote_state",
+			Type: "mnptu_remote_state",
 			Name: "baz",
 			// Just enough configs.Resource for the Provider method. Not
 			// actually valid for general use.
@@ -145,14 +145,14 @@ func TestNodeAbstractResourceSetProvider(t *testing.T) {
 		t.Fatalf("no exact provider should be found from this confniguration, got %q\n", p)
 	}
 
-	// the implied non-exact provider should be "terraform"
+	// the implied non-exact provider should be "mnptu"
 	lpc, ok := p.(addrs.LocalProviderConfig)
 	if !ok {
 		t.Fatalf("expected LocalProviderConfig, got %#v\n", p)
 	}
 
-	if lpc.LocalName != "terraform" {
-		t.Fatalf("expected non-exact provider of 'terraform', got %q", lpc.LocalName)
+	if lpc.LocalName != "mnptu" {
+		t.Fatalf("expected non-exact provider of 'mnptu', got %q", lpc.LocalName)
 	}
 
 	// now set a resolved provider for the resource
@@ -219,7 +219,7 @@ func TestNodeAbstractResource_ReadResourceInstanceState(t *testing.T) {
 			}),
 			Node: &NodeAbstractResource{
 				Addr:             mustConfigResourceAddr("aws_instance.bar"),
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 			ExpectedInstanceId: "i-abc123",
 		},
@@ -285,7 +285,7 @@ func TestNodeAbstractResource_ReadResourceInstanceStateDeposed(t *testing.T) {
 			}),
 			Node: &NodeAbstractResource{
 				Addr:             mustConfigResourceAddr("aws_instance.bar"),
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 			ExpectedInstanceId: "i-abc123",
 		},

@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   provider_meta "my-provider" {
     hello = var.name
   }

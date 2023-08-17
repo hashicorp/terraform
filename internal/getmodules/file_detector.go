@@ -10,13 +10,13 @@ import (
 )
 
 // fileDetector is a replacement for go-getter's own file detector which
-// better meets Terraform's needs: specifically, it rejects relative filesystem
+// better meets mnptu's needs: specifically, it rejects relative filesystem
 // paths with a somewhat-decent error message.
 //
 // This is a replacement for some historical hackery we did where we tried to
 // avoid calling into go-getter altogether in this situation. This is,
 // therefore, a copy of getter.FileDetector but with the "not absolute path"
-// case replaced with a similar result as Terraform's old heuristic would've
+// case replaced with a similar result as mnptu's old heuristic would've
 // returned: a custom error type that the caller can react to in order to
 // produce a hint error message if desired.
 type fileDetector struct{}
@@ -64,5 +64,5 @@ type MaybeRelativePathErr struct {
 }
 
 func (e *MaybeRelativePathErr) Error() string {
-	return fmt.Sprintf("Terraform cannot detect a supported external module source type for %s", e.Addr)
+	return fmt.Sprintf("mnptu cannot detect a supported external module source type for %s", e.Addr)
 }

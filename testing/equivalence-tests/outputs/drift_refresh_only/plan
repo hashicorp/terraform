@@ -1,9 +1,9 @@
 tfcoremock_simple_resource.drift: Refreshing state... [id=cb79269e-dc39-1e68-0a9c-63cb392afda9]
 
-Note: Objects have changed outside of Terraform
+Note: Objects have changed outside of mnptu
 
-Terraform detected the following changes made outside of Terraform since the
-last "terraform apply" which may have affected this plan:
+mnptu detected the following changes made outside of mnptu since the
+last "mnptu apply" which may have affected this plan:
 
   # tfcoremock_simple_resource.drift has changed
   ~ resource "tfcoremock_simple_resource" "drift" {
@@ -12,9 +12,9 @@ last "terraform apply" which may have affected this plan:
     }
 
 
-This is a refresh-only plan, so Terraform will not take any actions to undo
+This is a refresh-only plan, so mnptu will not take any actions to undo
 these. If you were expecting these changes then you can apply this plan to
-record the updated values in the Terraform state without changing any remote
+record the updated values in the mnptu state without changing any remote
 objects.
 
 ─────────────────────────────────────────────────────────────────────────────
@@ -22,4 +22,4 @@ objects.
 Saved the plan to: equivalence_test_plan
 
 To perform exactly these actions, run the following command to apply:
-    terraform apply "equivalence_test_plan"
+    mnptu apply "equivalence_test_plan"

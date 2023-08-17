@@ -1,28 +1,28 @@
 ---
 page_title: Providers - Configuration Language
 description: >-
-  An overview of how to install and use providers, Terraform plugins that
+  An overview of how to install and use providers, mnptu plugins that
   interact with services, cloud providers, and other APIs.
 ---
 
 # Providers
 
-> **Hands-on:** Try the [Perform CRUD Operations with Providers](/terraform/tutorials/configuration-language/provider-use?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Perform CRUD Operations with Providers](/mnptu/tutorials/configuration-language/provider-use?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
-Terraform relies on plugins called providers to interact with cloud providers,
+mnptu relies on plugins called providers to interact with cloud providers,
 SaaS providers, and other APIs.
 
-Terraform configurations must declare which providers they require so that
-Terraform can install and use them. Additionally, some providers require
+mnptu configurations must declare which providers they require so that
+mnptu can install and use them. Additionally, some providers require
 configuration (like endpoint URLs or cloud regions) before they can be used.
 
 ## What Providers Do
 
-Each provider adds a set of [resource types](/terraform/language/resources)
-and/or [data sources](/terraform/language/data-sources) that Terraform can
+Each provider adds a set of [resource types](/mnptu/language/resources)
+and/or [data sources](/mnptu/language/data-sources) that mnptu can
 manage.
 
-Every resource type is implemented by a provider; without providers, Terraform
+Every resource type is implemented by a provider; without providers, mnptu
 can't manage any kind of infrastructure.
 
 Most providers configure a specific infrastructure platform (either cloud or
@@ -31,11 +31,11 @@ generating random numbers for unique resource names.
 
 ## Where Providers Come From
 
-Providers are distributed separately from Terraform itself, and each provider
+Providers are distributed separately from mnptu itself, and each provider
 has its own release cadence and version numbers.
 
-The [Terraform Registry](https://registry.terraform.io/browse/providers)
-is the main directory of publicly available Terraform providers, and hosts
+The [mnptu Registry](https://registry.mnptu.io/browse/providers)
+is the main directory of publicly available mnptu providers, and hosts
 providers for most major infrastructure platforms.
 
 ## Provider Documentation
@@ -43,60 +43,60 @@ providers for most major infrastructure platforms.
 Each provider has its own documentation, describing its resource
 types and their arguments.
 
-The [Terraform Registry](https://registry.terraform.io/browse/providers)
-includes documentation for a wide range of providers developed by HashiCorp, third-party vendors, and our Terraform community. Use the
+The [mnptu Registry](https://registry.mnptu.io/browse/providers)
+includes documentation for a wide range of providers developed by HashiCorp, third-party vendors, and our mnptu community. Use the
 "Documentation" link in a provider's header to browse its documentation.
 
 Provider documentation in the Registry is versioned; you can use the version
 menu in the header to change which version you're viewing.
 
 For details about writing, generating, and previewing provider documentation,
-see the [provider publishing documentation](/terraform/registry/providers/docs).
+see the [provider publishing documentation](/mnptu/registry/providers/docs).
 
 ## How to Use Providers
 
-Providers are released separately from Terraform itself and have their own version numbers. In production we recommend constraining the acceptable provider versions in the configuration's provider requirements block, to make sure that `terraform init` does not install newer versions of the provider that are incompatible with the configuration.
+Providers are released separately from mnptu itself and have their own version numbers. In production we recommend constraining the acceptable provider versions in the configuration's provider requirements block, to make sure that `mnptu init` does not install newer versions of the provider that are incompatible with the configuration.
 
 To use resources from a given provider, you need to include some information
 about it in your configuration. See the following pages for details:
 
-- [Provider Requirements](/terraform/language/providers/requirements)
-  documents how to declare providers so Terraform can install them.
+- [Provider Requirements](/mnptu/language/providers/requirements)
+  documents how to declare providers so mnptu can install them.
 
-- [Provider Configuration](/terraform/language/providers/configuration)
+- [Provider Configuration](/mnptu/language/providers/configuration)
   documents how to configure settings for providers.
 
-- [Dependency Lock File](/terraform/language/files/dependency-lock)
+- [Dependency Lock File](/mnptu/language/files/dependency-lock)
   documents an additional HCL file that can be included with a configuration,
-  which tells Terraform to always use a specific set of provider versions.
+  which tells mnptu to always use a specific set of provider versions.
 
 ## Provider Installation
 
-- Terraform Cloud and Terraform Enterprise install providers as part of every run.
+- mnptu Cloud and mnptu Enterprise install providers as part of every run.
 
-- Terraform CLI finds and installs providers when
-  [initializing a working directory](/terraform/cli/init). It can
-  automatically download providers from a Terraform registry, or load them from
+- mnptu CLI finds and installs providers when
+  [initializing a working directory](/mnptu/cli/init). It can
+  automatically download providers from a mnptu registry, or load them from
   a local mirror or cache. If you are using a persistent working directory, you
   must reinitialize whenever you change a configuration's providers.
 
-  To save time and bandwidth, Terraform CLI supports an optional plugin
+  To save time and bandwidth, mnptu CLI supports an optional plugin
   cache. You can enable the cache using the `plugin_cache_dir` setting in
-  [the CLI configuration file](/terraform/cli/config/config-file).
+  [the CLI configuration file](/mnptu/cli/config/config-file).
 
-To ensure Terraform always installs the same provider versions for a given
-configuration, you can use Terraform CLI to create a
-[dependency lock file](/terraform/language/files/dependency-lock)
+To ensure mnptu always installs the same provider versions for a given
+configuration, you can use mnptu CLI to create a
+[dependency lock file](/mnptu/language/files/dependency-lock)
 and commit it to version control along with your configuration. If a lock file
-is present, Terraform Cloud, CLI, and Enterprise will all obey it when
+is present, mnptu Cloud, CLI, and Enterprise will all obey it when
 installing providers.
 
-> **Hands-on:** Try the [Lock and Upgrade Provider Versions](/terraform/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+> **Hands-on:** Try the [Lock and Upgrade Provider Versions](/mnptu/tutorials/configuration-language/provider-versioning?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 ## How to Find Providers
 
 To find providers for the infrastructure platforms you use, browse
-[the providers section of the Terraform Registry](https://registry.terraform.io/browse/providers).
+[the providers section of the mnptu Registry](https://registry.mnptu.io/browse/providers).
 
 Some providers on the Registry are developed and published by HashiCorp, some
 are published by platform maintainers, and some are published by users and
@@ -108,8 +108,8 @@ develops and maintains a given provider.
 
 ## How to Develop Providers
 
-Providers are written in Go, using the Terraform Plugin SDK. For more
+Providers are written in Go, using the mnptu Plugin SDK. For more
 information on developing providers, see:
 
-- The [Plugin Development](/terraform/plugin) documentation
-- The [Call APIs with Terraform Providers](/terraform/tutorials/providers-plugin-framework?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials
+- The [Plugin Development](/mnptu/plugin) documentation
+- The [Call APIs with mnptu Providers](/mnptu/tutorials/providers-plugin-framework?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials

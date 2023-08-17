@@ -4,8 +4,8 @@
 package provisioners
 
 import (
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -28,7 +28,7 @@ type Interface interface {
 	//
 	// Stop should not block waiting for in-flight actions to complete. It
 	// should take any action it wants and return immediately acknowledging it
-	// has received the stop request. Terraform will not make any further API
+	// has received the stop request. mnptu will not make any further API
 	// calls to the provisioner after Stop is called.
 	//
 	// The error returned, if non-nil, is assumed to mean that signaling the

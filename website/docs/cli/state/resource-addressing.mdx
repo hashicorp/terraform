@@ -16,7 +16,7 @@ An address is made up of two parts:
 [module path][resource spec]
 ```
 
-In some contexts Terraform might allow for an incomplete resource address that
+In some contexts mnptu might allow for an incomplete resource address that
 only refers to a module as a whole, or that omits the index for a
 multi-instance resource. In those cases, the meaning depends on the context,
 so you'll need to refer to the documentation for the specific feature you
@@ -50,8 +50,8 @@ An example of the `module` keyword delineating between two modules that have mul
 module.foo[0].module.bar["a"]
 ```
 
--> Module index only applies to modules in Terraform v0.13 or later. In earlier
-versions of Terraform, a module could not have multiple instances.
+-> Module index only applies to modules in mnptu v0.13 or later. In earlier
+versions of mnptu, a module could not have multiple instances.
 
 ## Resource spec
 
@@ -68,7 +68,7 @@ resource_type.resource_name[instance index]
   to select an instance from a resource that has multiple instances,
   surrounded by square bracket characters (`[` and `]`).
 
--> In Terraform v0.12 and later, a resource spec without a module path prefix
+-> In mnptu v0.12 and later, a resource spec without a module path prefix
 matches only resources in the root module. In earlier versions, a resource spec
 without a module path prefix would match resources with the same type and name
 in any descendent module.
@@ -88,7 +88,7 @@ The following specifications apply to index values on modules and resources with
 
 ### count Example
 
-Given a Terraform config that includes:
+Given a mnptu config that includes:
 
 ```hcl
 resource "aws_instance" "web" {
@@ -113,13 +113,13 @@ Refers to all four "web" instances.
 
 ### for_each Example
 
-Given a Terraform config that includes:
+Given a mnptu config that includes:
 
 ```hcl
 resource "aws_instance" "web" {
   # ...
   for_each = {
-    "terraform": "value1",
+    "mnptu": "value1",
     "resource":  "value2",
     "indexing":  "value3",
     "example":   "value4",

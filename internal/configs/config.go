@@ -11,9 +11,9 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/depsfile"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/depsfile"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 // A Config is a node in the tree of modules within a configuration.
@@ -195,7 +195,7 @@ func (c *Config) DescendentForInstance(path addrs.ModuleInstance) *Config {
 // directly via a remote source address or indirectly via a registry source
 // address.
 //
-// Other behaviors in Terraform may treat package crossings as a special
+// Other behaviors in mnptu may treat package crossings as a special
 // situation, because that indicates that the caller and callee can change
 // independently of one another and thus we should disallow using any features
 // where the caller assumes anything about the callee other than its input
@@ -217,11 +217,11 @@ func (c *Config) EntersNewPackage() bool {
 // multiple inconsistencies then it will attempt to describe as many of them
 // as possible, rather than stopping at the first problem.
 //
-// It's typically the responsibility of "terraform init" to change the locked
+// It's typically the responsibility of "mnptu init" to change the locked
 // dependencies to conform with the configuration, and so
 // VerifyDependencySelections is intended for other commands to check whether
 // it did so correctly and to catch if anything has changed in configuration
-// since the last "terraform init" which requires re-initialization. However,
+// since the last "mnptu init" which requires re-initialization. However,
 // it's up to the caller to decide how to advise users recover from these
 // errors, because the advise can vary depending on what operation the user
 // is attempting.
@@ -486,7 +486,7 @@ func (c *Config) addProviderRequirements(reqs getproviders.Requirements, recurse
 				if i.ProviderConfigRef.Name != target.ProviderConfigRef.Name || i.ProviderConfigRef.Alias != target.ProviderConfigRef.Alias {
 					// This means we have a provider specified in both the
 					// import block and the resource block, and they disagree.
-					// This is bad as Terraform now has different instructions
+					// This is bad as mnptu now has different instructions
 					// about which provider to use.
 					//
 					// The general guidance is that only the resource should be
@@ -882,7 +882,7 @@ func (c *Config) TransformForTest(run *TestRun, file *TestFile) (func(), hcl.Dia
 	//
 	// We can have a set of providers defined within the config, we can also
 	// have a set of providers defined within the test file. Then the run can
-	// also specify a set of overrides that tell Terraform exactly which
+	// also specify a set of overrides that tell mnptu exactly which
 	// providers from the test file to apply into the config.
 	//
 	// The process here is as follows:

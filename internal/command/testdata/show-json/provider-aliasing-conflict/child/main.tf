@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     test = {
       source = "hashicorp2/test"

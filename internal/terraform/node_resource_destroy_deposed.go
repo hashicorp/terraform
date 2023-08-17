@@ -1,18 +1,18 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/dag"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/dag"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ConcreteResourceInstanceDeposedNodeFunc is a callback type used to convert
@@ -106,11 +106,11 @@ func (n *NodePlanDeposedResourceInstanceObject) Execute(ctx EvalContext, op walk
 	// here is a bit overloaded.
 	if !n.skipRefresh && op != walkPlanDestroy {
 		// Refresh this object even though it is going to be destroyed, in
-		// case it's already been deleted outside of Terraform. If this is a
+		// case it's already been deleted outside of mnptu. If this is a
 		// normal plan, providers expect a Read request to remove missing
 		// resources from the plan before apply, and may not handle a missing
 		// resource during Delete correctly. If this is a simple refresh,
-		// Terraform is expected to remove the missing resource from the state
+		// mnptu is expected to remove the missing resource from the state
 		// entirely
 		refreshedState, refreshDiags := n.refresh(ctx, n.DeposedKey, state)
 		diags = diags.Append(refreshDiags)
@@ -300,7 +300,7 @@ func (n *NodeDestroyDeposedResourceInstanceObject) writeResourceInstanceState(ct
 
 	if key == states.NotDeposed {
 		// should never happen
-		return fmt.Errorf("can't save deposed object for %s without a deposed key; this is a bug in Terraform that should be reported", absAddr)
+		return fmt.Errorf("can't save deposed object for %s without a deposed key; this is a bug in mnptu that should be reported", absAddr)
 	}
 
 	if obj == nil {

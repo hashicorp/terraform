@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/clistate"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/clistate"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -355,7 +355,7 @@ func (c *StateMvCommand) Run(args []string) int {
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				msgInvalidSource,
-				fmt.Sprintf("Cannot move %s: Terraform doesn't know how to move this object.", rawAddrFrom),
+				fmt.Sprintf("Cannot move %s: mnptu doesn't know how to move this object.", rawAddrFrom),
 			))
 		}
 
@@ -397,7 +397,7 @@ func (c *StateMvCommand) Run(args []string) int {
 	}
 
 	// Get schemas, if possible, before writing state
-	var schemas *terraform.Schemas
+	var schemas *mnptu.Schemas
 	if isCloudMode(b) {
 		var schemaDiags tfdiags.Diagnostics
 		schemas, schemaDiags = c.MaybeGetSchemas(stateTo, nil)
@@ -462,7 +462,7 @@ func (c *StateMvCommand) sourceObjectAddrs(state *states.State, matched addrs.Ta
 		// If this refers to a resource without "count" or "for_each" set then
 		// we'll assume the user intended it to be a resource instance
 		// address instead, to allow for requests like this:
-		//   terraform state mv aws_instance.foo aws_instance.bar[1]
+		//   mnptu state mv aws_instance.foo aws_instance.bar[1]
 		// That wouldn't be allowed if aws_instance.foo had multiple instances
 		// since we can't move multiple instances into one.
 		if rs := state.Resource(addr); rs != nil {
@@ -518,7 +518,7 @@ func (c *StateMvCommand) validateResourceMove(addrFrom, addrTo addrs.AbsResource
 
 func (c *StateMvCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] state mv [options] SOURCE DESTINATION
+Usage: mnptu [global options] state mv [options] SOURCE DESTINATION
 
  This command will move an item matched by the address given to the
  destination address. This command can also move to a destination address
@@ -527,7 +527,7 @@ Usage: terraform [global options] state mv [options] SOURCE DESTINATION
  This can be used for simple resource renaming, moving items to and from
  a module, moving entire modules, and more. And because this command can also
  move data to a completely new state, it can also be used for refactoring
- one configuration into multiple separately managed Terraform configurations.
+ one configuration into multiple separately managed mnptu configurations.
 
  This command will output a backup copy of the state prior to saving any
  changes. The backup cannot be disabled. Due to the destructive nature

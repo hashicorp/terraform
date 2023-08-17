@@ -28,9 +28,9 @@ LDFLAGS="-w -s"
 if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
 LDFLAGS="${LDFLAGS} -X 'main.experimentsAllowed=yes'"
 fi
-LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/terraform/version.dev=no'"
+LDFLAGS="${LDFLAGS} -X 'github.com/hashicorp/mnptu/version.dev=no'"
 
-echo "Building Terraform CLI ${VERSION}"
+echo "Building mnptu CLI ${VERSION}"
 if [[ "$EXPERIMENTS_ENABLED" == 1 ]]; then
 echo "This build allows use of experimental features"
 fi

@@ -1,10 +1,10 @@
 local_file.local_file: Refreshing state... [id=2248ee2fa0aaaad99178531f924bf00b4b0a8f4e]
 
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   - destroy
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # local_file.local_file will be destroyed
   # (because local_file.local_file is not in configuration)
@@ -27,4 +27,4 @@ Plan: 0 to add, 0 to change, 1 to destroy.
 Saved the plan to: equivalence_test_plan
 
 To perform exactly these actions, run the following command to apply:
-    terraform apply "equivalence_test_plan"
+    mnptu apply "equivalence_test_plan"

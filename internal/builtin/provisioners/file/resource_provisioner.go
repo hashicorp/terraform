@@ -10,10 +10,10 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/hashicorp/terraform/internal/communicator"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/provisioners"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/communicator"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/provisioners"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )

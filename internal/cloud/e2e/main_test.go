@@ -15,11 +15,11 @@ import (
 
 	expect "github.com/Netflix/go-expect"
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/e2e"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/e2e"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
-var terraformBin string
+var mnptuBin string
 var cliConfigFileEnv string
 
 var tfeClient *tfe.Client
@@ -60,7 +60,7 @@ func skipIfMissingEnvVar(t *testing.T) {
 }
 
 func setup() func() {
-	tfOutput := flag.Bool("tfoutput", false, "This flag produces the terraform output from tests.")
+	tfOutput := flag.Bool("tfoutput", false, "This flag produces the mnptu output from tests.")
 	flag.Parse()
 	verboseMode = *tfOutput
 
@@ -92,7 +92,7 @@ func testRunner(t *testing.T, cases testCases, orgCount int, tfEnvFlags ...strin
 
 			tmpDir := t.TempDir()
 
-			tf := e2e.NewBinary(t, terraformBin, tmpDir)
+			tf := e2e.NewBinary(t, mnptuBin, tmpDir)
 			tfEnvFlags = append(tfEnvFlags, "TF_LOG=INFO")
 			tfEnvFlags = append(tfEnvFlags, cliConfigFileEnv)
 			for _, env := range tfEnvFlags {
@@ -182,13 +182,13 @@ func setTfeClient() {
 }
 
 func setupBinary() func() {
-	log.Println("Setting up terraform binary")
-	tmpTerraformBinaryDir, err := ioutil.TempDir("", "terraform-test")
+	log.Println("Setting up mnptu binary")
+	tmpmnptuBinaryDir, err := ioutil.TempDir("", "mnptu-test")
 	if err != nil {
 		fmt.Printf("Could not create temp directory: %v\n", err)
 		os.Exit(1)
 	}
-	log.Println(tmpTerraformBinaryDir)
+	log.Println(tmpmnptuBinaryDir)
 	currentDir, err := os.Getwd()
 	defer os.Chdir(currentDir)
 	if err != nil {
@@ -209,8 +209,8 @@ func setupBinary() func() {
 	cmd := exec.Command(
 		"go",
 		"build",
-		"-o", tmpTerraformBinaryDir,
-		"-ldflags", fmt.Sprintf("-X \"github.com/hashicorp/terraform/version.Prerelease=%s\"", tfversion.Prerelease),
+		"-o", tmpmnptuBinaryDir,
+		"-ldflags", fmt.Sprintf("-X \"github.com/hashicorp/mnptu/version.Prerelease=%s\"", tfversion.Prerelease),
 	)
 	err = cmd.Run()
 	if err != nil {
@@ -218,14 +218,14 @@ func setupBinary() func() {
 		os.Exit(1)
 	}
 
-	credFile := fmt.Sprintf("%s/dev.tfrc", tmpTerraformBinaryDir)
+	credFile := fmt.Sprintf("%s/dev.tfrc", tmpmnptuBinaryDir)
 	writeCredRC(credFile)
 
-	terraformBin = fmt.Sprintf("%s/terraform", tmpTerraformBinaryDir)
+	mnptuBin = fmt.Sprintf("%s/mnptu", tmpmnptuBinaryDir)
 	cliConfigFileEnv = fmt.Sprintf("TF_CLI_CONFIG_FILE=%s", credFile)
 
 	return func() {
-		os.RemoveAll(tmpTerraformBinaryDir)
+		os.RemoveAll(tmpmnptuBinaryDir)
 	}
 }
 

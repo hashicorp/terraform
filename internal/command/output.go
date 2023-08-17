@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // OutputCommand is a Command implementation that reads an output
-// from a Terraform state and prints it.
+// from a mnptu state and prints it.
 type OutputCommand struct {
 	Meta
 }
@@ -95,9 +95,9 @@ func (c *OutputCommand) Outputs(statePath string) (map[string]*states.OutputValu
 
 func (c *OutputCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] output [options] [NAME]
+Usage: mnptu [global options] output [options] [NAME]
 
-  Reads an output variable from a Terraform state file and prints
+  Reads an output variable from a mnptu state file and prints
   the value. With no additional arguments, output will display all
   the outputs for the root module.  If NAME is not specified, all
   outputs are printed.
@@ -105,7 +105,7 @@ Usage: terraform [global options] output [options] [NAME]
 Options:
 
   -state=path      Path to the state file to read. Defaults to
-                   "terraform.tfstate". Ignored when remote 
+                   "mnptu.tfstate". Ignored when remote 
                    state is used.
 
   -no-color        If specified, output won't contain any color.

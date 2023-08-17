@@ -1,13 +1,13 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 func TestRootTransformer(t *testing.T) {
@@ -87,11 +87,11 @@ root
 
 const testTransformRootBasicStr = `
 aws_instance.foo
-  provider["registry.terraform.io/hashicorp/aws"]
+  provider["registry.mnptu.io/hashicorp/aws"]
 do_droplet.bar
-  provider["registry.terraform.io/hashicorp/do"]
-provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/do"]
+  provider["registry.mnptu.io/hashicorp/do"]
+provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/do"]
 root
   aws_instance.foo
   do_droplet.bar

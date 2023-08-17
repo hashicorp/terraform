@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	svchost "github.com/hashicorp/terraform-svchost"
+	svchost "github.com/hashicorp/mnptu-svchost"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // SearchLocalDirectory performs an immediate, one-off scan of the given base
@@ -30,7 +30,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 	// an infinite loop, but as a measure of pragmatism we'll allow the
 	// top-level location itself to be a symlink, so that a user can
 	// potentially keep their plugins in a non-standard location but use a
-	// symlink to help Terraform find them anyway.
+	// symlink to help mnptu find them anyway.
 	originalBaseDir := baseDir
 	if finalDir, err := filepath.EvalSymlinks(baseDir); err == nil {
 		if finalDir != filepath.Clean(baseDir) {
@@ -51,8 +51,8 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 		}
 
 		// There are two valid directory structures that we support here...
-		// Unpacked: registry.terraform.io/hashicorp/aws/2.0.0/linux_amd64 (a directory)
-		// Packed:   registry.terraform.io/hashicorp/aws/terraform-provider-aws_2.0.0_linux_amd64.zip (a file)
+		// Unpacked: registry.mnptu.io/hashicorp/aws/2.0.0/linux_amd64 (a directory)
+		// Packed:   registry.mnptu.io/hashicorp/aws/mnptu-provider-aws_2.0.0_linux_amd64.zip (a file)
 		//
 		// Both of these give us enough information to identify the package
 		// metadata.
@@ -159,7 +159,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 
 				// Because this is already unpacked, the filename is synthetic
 				// based on the standard naming scheme.
-				Filename: fmt.Sprintf("terraform-provider-%s_%s_%s.zip", providerAddr.Type, version, platform),
+				Filename: fmt.Sprintf("mnptu-provider-%s_%s_%s.zip", providerAddr.Type, version, platform),
 				Location: PackageLocalDir(fullPath),
 
 				// FIXME: What about the SHA256Sum field? As currently specified
@@ -188,7 +188,7 @@ func SearchLocalDirectory(baseDir string) (map[addrs.Provider]PackageMetaList, e
 			// filename has the expected prefix identifying it as a package
 			// for the provider in question, and the suffix identifying it
 			// as a zip file.
-			prefix := "terraform-provider-" + providerAddr.Type + "_"
+			prefix := "mnptu-provider-" + providerAddr.Type + "_"
 			const suffix = ".zip"
 			if !strings.HasPrefix(normFilename, prefix) {
 				log.Printf("[WARN] ignoring file %q as possible package for %s: filename lacks expected prefix %q", fsPath, providerAddr, prefix)
@@ -287,6 +287,6 @@ func PackedFilePathForPackage(baseDir string, provider addrs.Provider, version V
 	return filepath.ToSlash(filepath.Join(
 		baseDir,
 		provider.Hostname.ForDisplay(), provider.Namespace, provider.Type,
-		fmt.Sprintf("terraform-provider-%s_%s_%s.zip", provider.Type, version.String(), platform.String()),
+		fmt.Sprintf("mnptu-provider-%s_%s_%s.zip", provider.Type, version.String(), platform.String()),
 	))
 }

@@ -12,16 +12,16 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configload"
-	"github.com/hashicorp/terraform/internal/copy"
-	"github.com/hashicorp/terraform/internal/registry"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configload"
+	"github.com/hashicorp/mnptu/internal/copy"
+	"github.com/hashicorp/mnptu/internal/registry"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestDirFromModule_registry(t *testing.T) {
 	if os.Getenv("TF_ACC") == "" {
-		t.Skip("this test accesses registry.terraform.io and github.com; set TF_ACC=1 to run it")
+		t.Skip("this test accesses registry.mnptu.io and github.com; set TF_ACC=1 to run it")
 	}
 
 	fixtureDir := filepath.Clean("testdata/empty")
@@ -36,7 +36,7 @@ func TestDirFromModule_registry(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	modsDir := filepath.Join(dir, ".terraform/modules")
+	modsDir := filepath.Join(dir, ".mnptu/modules")
 
 	hooks := &testInstallHooks{}
 
@@ -62,7 +62,7 @@ func TestDirFromModule_registry(t *testing.T) {
 		{
 			Name:        "Download",
 			ModuleAddr:  "root",
-			PackageAddr: "registry.terraform.io/hashicorp/module-installer-acctest/aws",
+			PackageAddr: "registry.mnptu.io/hashicorp/module-installer-acctest/aws",
 			Version:     v,
 		},
 		{
@@ -71,7 +71,7 @@ func TestDirFromModule_registry(t *testing.T) {
 			Version:    v,
 			// NOTE: This local path and the other paths derived from it below
 			// can vary depending on how the registry is implemented. At the
-			// time of writing this test, registry.terraform.io returns
+			// time of writing this test, registry.mnptu.io returns
 			// git repository source addresses and so this path refers to the
 			// root of the git clone, but historically the registry referred
 			// to GitHub-provided tar archives which meant that there was an
@@ -80,17 +80,17 @@ func TestDirFromModule_registry(t *testing.T) {
 			// an extra segment on this path. If this test fails due to an
 			// additional path segment in future, then a change to the upstream
 			// registry might be the root cause.
-			LocalPath: filepath.Join(dir, ".terraform/modules/root"),
+			LocalPath: filepath.Join(dir, ".mnptu/modules/root"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/root/modules/child_a"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/root/modules/child_a"),
 		},
 		{
 			Name:       "Install",
 			ModuleAddr: "root.child_a.child_b",
-			LocalPath:  filepath.Join(dir, ".terraform/modules/root/modules/child_b"),
+			LocalPath:  filepath.Join(dir, ".mnptu/modules/root/modules/child_b"),
 		},
 	}
 
@@ -142,7 +142,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 	// the same for our "wantCalls" comparison values. Otherwise this test
 	// will fail when building in a source tree with symlinks in $PWD.
 	//
-	// See also: https://github.com/hashicorp/terraform/issues/26014
+	// See also: https://github.com/hashicorp/mnptu/issues/26014
 	//
 	fromModuleDirRealpath, err := filepath.EvalSymlinks(fromModuleDir)
 	if err != nil {
@@ -157,7 +157,7 @@ func TestDirFromModule_submodules(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	modInstallDir := filepath.Join(dir, ".terraform/modules")
+	modInstallDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
@@ -231,7 +231,7 @@ func TestDirFromModule_submodulesWithProvider(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	modInstallDir := filepath.Join(dir, ".terraform/modules")
+	modInstallDir := filepath.Join(dir, ".mnptu/modules")
 
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()
@@ -246,7 +246,7 @@ func TestDirFromModule_submodulesWithProvider(t *testing.T) {
 
 // TestDirFromModule_rel_submodules is similar to the test above, but the
 // from-module is relative to the install dir ("../"):
-// https://github.com/hashicorp/terraform/issues/23010
+// https://github.com/hashicorp/mnptu/issues/23010
 func TestDirFromModule_rel_submodules(t *testing.T) {
 	// This test creates a tmpdir with the following directory structure:
 	// - tmpdir/local-modules (with contents of testdata/local-modules)
@@ -283,7 +283,7 @@ func TestDirFromModule_rel_submodules(t *testing.T) {
 
 	hooks := &testInstallHooks{}
 
-	modInstallDir := ".terraform/modules"
+	modInstallDir := ".mnptu/modules"
 	sourceDir := "../local-modules"
 	loader, cleanup := configload.NewLoaderForTests(t)
 	defer cleanup()

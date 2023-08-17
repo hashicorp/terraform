@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: MPL-2.0
 
-// Terraform Plugin RPC protocol version 6.1
+// mnptu Plugin RPC protocol version 6.1
 //
 // This file defines version 6.1 of the RPC protocol. To implement a plugin
 // against this protocol, copy this definition into your own codebase and
@@ -12,19 +12,19 @@
 // compatibility. Breaking changes, if any are required, will come
 // in a subsequent major version with its own separate proto definition.
 //
-// Note that only the proto files included in a release tag of Terraform are
+// Note that only the proto files included in a release tag of mnptu are
 // official protocol releases. Proto files taken from other commits may include
 // incomplete changes or features that did not make it into a final release.
 // In all reasonable cases, plugin developers should take the proto file from
-// the tag of the most recent release of Terraform, and not from the main
+// the tag of the most recent release of mnptu, and not from the main
 // branch or any other development branch.
 //
 syntax = "proto3";
-option go_package = "github.com/hashicorp/terraform/internal/tfplugin6";
+option go_package = "github.com/hashicorp/mnptu/internal/tfplugin6";
 
 package tfplugin6;
 
-// DynamicValue is an opaque encoding of terraform data, with the field name
+// DynamicValue is an opaque encoding of mnptu data, with the field name
 // indicating the encoding scheme used.
 message DynamicValue {
     bytes msgpack = 1;
@@ -240,7 +240,7 @@ message ValidateDataResourceConfig {
 
 message ConfigureProvider {
     message Request {
-        string terraform_version = 1;
+        string mnptu_version = 1;
         DynamicValue config = 2;
     }
     message Response {

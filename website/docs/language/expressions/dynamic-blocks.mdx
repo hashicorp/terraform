@@ -44,7 +44,7 @@ resource "aws_elastic_beanstalk_environment" "tfenvtest" {
 }
 ```
 
-A `dynamic` block acts much like a [`for` expression](/terraform/language/expressions/for), but produces
+A `dynamic` block acts much like a [`for` expression](/mnptu/language/expressions/for), but produces
 nested blocks instead of a complex typed value. It iterates over a given
 complex value, and generates a nested block for each element of that complex
 value.
@@ -76,17 +76,17 @@ The iterator object (`setting` in the example above) has two attributes:
 A `dynamic` block can only generate arguments that belong to the resource type,
 data source, provider or provisioner being configured. It is _not_ possible
 to generate meta-argument blocks such as `lifecycle` and `provisioner`
-blocks, since Terraform must process these before it is safe to evaluate
+blocks, since mnptu must process these before it is safe to evaluate
 expressions.
 
 The `for_each` value must be a collection with one element per desired
 nested block. If you need to declare resource instances based on a nested
 data structure or combinations of elements from multiple data structures you
-can use Terraform expressions and functions to derive a suitable value.
+can use mnptu expressions and functions to derive a suitable value.
 For some common examples of such situations, see the
-[`flatten`](/terraform/language/functions/flatten)
+[`flatten`](/mnptu/language/functions/flatten)
 and
-[`setproduct`](/terraform/language/functions/setproduct)
+[`setproduct`](/mnptu/language/functions/setproduct)
 functions.
 
 ## Multi-level Nested Block Structures
@@ -110,7 +110,7 @@ variable "load_balancer_origin_groups" {
 
 If you were defining a resource whose type expects a block for each origin
 group and then nested blocks for each origin within a group, you could ask
-Terraform to generate that dynamically using the following nested `dynamic`
+mnptu to generate that dynamically using the following nested `dynamic`
 blocks:
 
 ```hcl
@@ -151,5 +151,5 @@ nested blocks using directly-corresponding attributes from an input variable
 then that might suggest that your module is not creating a useful abstraction.
 It may be better for the calling module to define the resource itself then
 pass information about it into your module. For more information on this design
-tradeoff, see [When to Write a Module](/terraform/language/modules/develop#when-to-write-a-module)
-and [Module Composition](/terraform/language/modules/develop/composition).
+tradeoff, see [When to Write a Module](/mnptu/language/modules/develop#when-to-write-a-module)
+and [Module Composition](/mnptu/language/modules/develop/composition).

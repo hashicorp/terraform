@@ -1,35 +1,35 @@
 ---
 page_title: Overview - Configuration Language
 description: >-
-  Use the Terraform configuration language to describe the infrastructure that Terraform manages.
+  Use the mnptu configuration language to describe the infrastructure that mnptu manages.
 ---
 
-# Terraform Language Documentation
+# mnptu Language Documentation
 
-This is the documentation for Terraform's configuration language. It is relevant
-to users of [Terraform CLI](/terraform/cli),
-[Terraform Cloud](https://cloud.hashicorp.com/products/terraform), and
-[Terraform Enterprise](/terraform/enterprise). Terraform's language is
-its primary user interface. Configuration files you write in Terraform
-language tell Terraform what plugins to install, what infrastructure to create,
-and what data to fetch. Terraform language also lets you define dependencies
+This is the documentation for mnptu's configuration language. It is relevant
+to users of [mnptu CLI](/mnptu/cli),
+[mnptu Cloud](https://cloud.hashicorp.com/products/mnptu), and
+[mnptu Enterprise](/mnptu/enterprise). mnptu's language is
+its primary user interface. Configuration files you write in mnptu
+language tell mnptu what plugins to install, what infrastructure to create,
+and what data to fetch. mnptu language also lets you define dependencies
 between resources and create multiple similar resources from a single
 configuration block.
 
-> **Hands-on:** Try the [Write Terraform Configuration](/terraform/tutorials/configuration-language) tutorials.
+> **Hands-on:** Try the [Write mnptu Configuration](/mnptu/tutorials/configuration-language) tutorials.
 
-## About the Terraform Language
+## About the mnptu Language
 
-The main purpose of the Terraform language is declaring
-[resources](/terraform/language/resources), which represent infrastructure objects. All other
+The main purpose of the mnptu language is declaring
+[resources](/mnptu/language/resources), which represent infrastructure objects. All other
 language features exist only to make the definition of resources more flexible
 and convenient.
 
-A _Terraform configuration_ is a complete document in the Terraform language
-that tells Terraform how to manage a given collection of infrastructure. A
+A _mnptu configuration_ is a complete document in the mnptu language
+that tells mnptu how to manage a given collection of infrastructure. A
 configuration can consist of multiple files and directories.
 
-The syntax of the Terraform language consists of only a few basic elements:
+The syntax of the mnptu language consists of only a few basic elements:
 
 ```hcl
 resource "aws_vpc" "main" {
@@ -45,16 +45,16 @@ resource "aws_vpc" "main" {
 - _Blocks_ are containers for other content and usually represent the
   configuration of some kind of object, like a resource. Blocks have a
   _block type,_ can have zero or more _labels,_ and have a _body_ that contains
-  any number of arguments and nested blocks. Most of Terraform's features are
+  any number of arguments and nested blocks. Most of mnptu's features are
   controlled by top-level blocks in a configuration file.
 - _Arguments_ assign a value to a name. They appear within blocks.
 - _Expressions_ represent a value, either literally or by referencing and
   combining other values. They appear as values for arguments, or within other
   expressions.
 
-The Terraform language is declarative, describing an intended goal rather than
+The mnptu language is declarative, describing an intended goal rather than
 the steps to reach that goal. The ordering of blocks and the files they are
-organized into are generally not significant; Terraform only considers implicit
+organized into are generally not significant; mnptu only considers implicit
 and explicit relationships between resources when determining an order of
 operations.
 
@@ -62,13 +62,13 @@ operations.
 
 The following example describes a simple network topology for Amazon Web
 Services, just to give a sense of the overall structure and syntax of the
-Terraform language. Similar configurations can be created for other virtual
+mnptu language. Similar configurations can be created for other virtual
 network services, using resource types defined by other providers, and a
 practical network configuration will often contain additional elements not
 shown here.
 
 ```hcl
-terraform {
+mnptu {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -106,7 +106,7 @@ resource "aws_subnet" "az" {
   # For each subnet, use one of the specified availability zones.
   availability_zone = var.availability_zones[count.index]
 
-  # By referencing the aws_vpc.main object, Terraform knows that the subnet
+  # By referencing the aws_vpc.main object, mnptu knows that the subnet
   # must be created only after the VPC is created.
   vpc_id = aws_vpc.main.id
 

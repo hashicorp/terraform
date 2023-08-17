@@ -10,32 +10,32 @@ import (
 func Test_backend_apply_before_init(t *testing.T) {
 	t.Parallel()
 	skipIfMissingEnvVar(t)
-	skipWithoutRemoteTerraformVersion(t)
+	skipWithoutRemotemnptuVersion(t)
 
 	cases := testCases{
-		"terraform apply with cloud block - blank state": {
+		"mnptu apply with cloud block - blank state": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
+							expectedCmdOutput: `mnptu Cloud initialization required: please run "mnptu init"`,
 							expectError:       true,
 						},
 					},
 				},
 			},
 		},
-		"terraform apply with cloud block - local state": {
+		"mnptu apply with cloud block - local state": {
 			operations: []operationSets{
 				{
 					prep: func(t *testing.T, orgName, dir string) {
-						tfBlock := terraformConfigLocalBackend()
+						tfBlock := mnptuConfigLocalBackend()
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
@@ -52,13 +52,13 @@ func Test_backend_apply_before_init(t *testing.T) {
 				{
 					prep: func(t *testing.T, orgName, dir string) {
 						wsName := "new-workspace"
-						tfBlock := terraformConfigCloudBackendName(orgName, wsName)
+						tfBlock := mnptuConfigCloudBackendName(orgName, wsName)
 						writeMainTF(t, tfBlock, dir)
 					},
 					commands: []tfCommand{
 						{
 							command:           []string{"apply"},
-							expectedCmdOutput: `Terraform Cloud initialization required: please run "terraform init"`,
+							expectedCmdOutput: `mnptu Cloud initialization required: please run "mnptu init"`,
 							expectError:       true,
 						},
 					},

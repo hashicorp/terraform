@@ -11,18 +11,18 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	getter "github.com/hashicorp/go-getter"
-	"github.com/hashicorp/terraform/internal/copy"
+	"github.com/hashicorp/mnptu/internal/copy"
 )
 
 // We configure our own go-getter detector and getter sets here, because
-// the set of sources we support is part of Terraform's documentation and
+// the set of sources we support is part of mnptu's documentation and
 // so we don't want any new sources introduced in go-getter to sneak in here
 // and work even though they aren't documented. This also insulates us from
 // any meddling that might be done by other go-getter callers linked into our
 // executable.
 //
 // Note that over time we've found go-getter's design to be not wholly fit
-// for Terraform's purposes in various ways, and so we're continuing to use
+// for mnptu's purposes in various ways, and so we're continuing to use
 // it here because our backward compatibility with earlier versions depends
 // on it, but we use go-getter very carefully and always only indirectly via
 // the public API of this package so that we can get the subset of the
@@ -88,7 +88,7 @@ var getterHTTPClient = cleanhttp.DefaultClient()
 var getterHTTPGetter = &getter.HttpGetter{
 	Client:             getterHTTPClient,
 	Netrc:              true,
-	XTerraformGetLimit: 10,
+	XmnptuGetLimit: 10,
 }
 
 // A reusingGetter is a helper for the module installer that remembers

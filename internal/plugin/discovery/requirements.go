@@ -9,7 +9,7 @@ import (
 
 // PluginInstallProtocolVersion is the protocol version TF-core
 // supports to communicate with servers, and is used to resolve
-// plugin discovery with terraform registry, in addition to
+// plugin discovery with mnptu registry, in addition to
 // any specified plugin version constraints
 const PluginInstallProtocolVersion = 5
 

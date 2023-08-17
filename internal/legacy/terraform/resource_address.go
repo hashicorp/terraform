@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
 )
 
 // ResourceAddress is a way of identifying an individual resource (or,
@@ -96,7 +96,7 @@ func (r *ResourceAddress) String() string {
 // HasResourceSpec returns true if the address has a resource spec, as
 // defined in the documentation:
 //
-//	https://www.terraform.io/docs/cli/state/resource-addressing.html
+//	https://www.mnptu.io/docs/cli/state/resource-addressing.html
 //
 // In particular, this returns false if the address contains only
 // a module path, thus addressing the entire module.

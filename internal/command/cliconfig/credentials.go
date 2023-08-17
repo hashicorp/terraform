@@ -16,11 +16,11 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	pluginDiscovery "github.com/hashicorp/terraform/internal/plugin/discovery"
-	"github.com/hashicorp/terraform/internal/replacefile"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	pluginDiscovery "github.com/hashicorp/mnptu/internal/plugin/discovery"
+	"github.com/hashicorp/mnptu/internal/replacefile"
 )
 
 // credentialsConfigFile returns the path for the special configuration file
@@ -150,12 +150,12 @@ func collectCredentialsFromEnv() map[svchost.Hostname]string {
 		// libraries that might interfere with how they are encoded, we'll
 		// be tolerant of them being given either directly as UTF-8 IDNs
 		// or in Punycode form, normalizing to Punycode form here because
-		// that is what the Terraform credentials helper protocol will
+		// that is what the mnptu credentials helper protocol will
 		// use in its requests.
 		//
-		// Using ForDisplay first here makes this more liberal than Terraform
+		// Using ForDisplay first here makes this more liberal than mnptu
 		// itself would usually be in that it will tolerate pre-punycoded
-		// hostnames that Terraform normally rejects in other contexts in order
+		// hostnames that mnptu normally rejects in other contexts in order
 		// to ensure stored hostnames are human-readable.
 		dispHost := svchost.ForDisplay(rawHost)
 		hostname, err := svchost.ForComparison(dispHost)

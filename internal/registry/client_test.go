@@ -12,11 +12,11 @@ import (
 	"time"
 
 	version "github.com/hashicorp/go-version"
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/registry/regsrc"
-	"github.com/hashicorp/terraform/internal/registry/test"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/registry/regsrc"
+	"github.com/hashicorp/mnptu/internal/registry/test"
+	tfversion "github.com/hashicorp/mnptu/version"
 )
 
 func TestConfigureDiscoveryRetry(t *testing.T) {
@@ -214,12 +214,12 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		t.Skip()
 	}
 	regDisco := disco.New()
-	regDisco.SetUserAgent(httpclient.TerraformUserAgent(tfversion.String()))
+	regDisco.SetUserAgent(httpclient.mnptuUserAgent(tfversion.String()))
 
 	// test with and without a hostname
 	for _, src := range []string{
-		"terraform-aws-modules/vpc/aws",
-		regsrc.PublicRegistryHost.String() + "/terraform-aws-modules/vpc/aws",
+		"mnptu-aws-modules/vpc/aws",
+		regsrc.PublicRegistryHost.String() + "/mnptu-aws-modules/vpc/aws",
 	} {
 		modsrc, err := regsrc.ParseModuleSource(src)
 		if err != nil {
@@ -237,7 +237,7 @@ func TestAccLookupModuleVersions(t *testing.T) {
 		}
 
 		mod := resp.Modules[0]
-		name := "terraform-aws-modules/vpc/aws"
+		name := "mnptu-aws-modules/vpc/aws"
 		if mod.Source != name {
 			t.Fatalf("expected module name %q, got %q", name, mod.Source)
 		}

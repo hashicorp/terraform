@@ -17,9 +17,9 @@ import (
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/google/go-cmp/cmp"
-	svchost "github.com/hashicorp/terraform-svchost"
-	disco "github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/addrs"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	disco "github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 func TestConfigureDiscoveryRetry(t *testing.T) {
@@ -124,12 +124,12 @@ func testRegistryServices(t *testing.T) (services *disco.Disco, baseURL string, 
 		"providers.v1": server.URL + "/fails-immediately/",
 	})
 
-	// We'll also permit registry.terraform.io here just because it's our
+	// We'll also permit registry.mnptu.io here just because it's our
 	// default and has some unique features that are not allowed on any other
 	// hostname. It behaves the same as example.com, which should be preferred
 	// if you're not testing something specific to the default registry in order
 	// to ensure that most things are hostname-agnostic.
-	services.ForceHostServices(svchost.Hostname("registry.terraform.io"), map[string]interface{}{
+	services.ForceHostServices(svchost.Hostname("registry.mnptu.io"), map[string]interface{}{
 		"providers.v1": server.URL + "/providers/v1/",
 	})
 

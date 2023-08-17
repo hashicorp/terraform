@@ -16,18 +16,18 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	"golang.org/x/exp/slices"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/arguments"
-	"github.com/hashicorp/terraform/internal/command/views"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/internal/moduletest"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/arguments"
+	"github.com/hashicorp/mnptu/internal/command/views"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/internal/moduletest"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 const (
@@ -40,13 +40,13 @@ type TestCommand struct {
 
 func (c *TestCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] test [options]
+Usage: mnptu [global options] test [options]
 
-  Executes automated integration tests against the current Terraform 
+  Executes automated integration tests against the current mnptu 
   configuration.
 
-  Terraform will search for .tftest.hcl files within the current configuration 
-  and testing directories. Terraform will then execute the testing run blocks 
+  mnptu will search for .tftest.hcl files within the current configuration 
+  and testing directories. mnptu will then execute the testing run blocks 
   within any testing files in order, and verify conditional checks and 
   assertions against the created infrastructure. 
 
@@ -56,7 +56,7 @@ Usage: terraform [global options] test [options]
 
 Options:
 
-  -filter=testfile      If specified, Terraform will only execute the test files
+  -filter=testfile      If specified, mnptu will only execute the test files
                         specified by this flag. You can use this option multiple
                         times to execute more than one test file.
 
@@ -65,14 +65,14 @@ Options:
 
   -no-color             If specified, output won't contain any color.
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".    
+  -test-directory=path	Set the mnptu test directory, defaults to "tests".    
 
   -var 'foo=bar'        Set a value for one of the input variables in the root
                         module of the configuration. Use this option more than
                         once to set more than one variable.
 
   -var-file=filename    Load variable values from the given file, in addition
-                        to the default files terraform.tfvars and *.auto.tfvars.
+                        to the default files mnptu.tfvars and *.auto.tfvars.
                         Use this option more than once to include more than one
                         variables file.
 
@@ -83,7 +83,7 @@ Options:
 }
 
 func (c *TestCommand) Synopsis() string {
-	return "Execute integration tests for Terraform modules"
+	return "Execute integration tests for mnptu modules"
 }
 
 func (c *TestCommand) Run(rawArgs []string) int {
@@ -303,7 +303,7 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	return 0
 }
 
-// TestSuiteRunner executes an entire set of Terraform test files.
+// TestSuiteRunner executes an entire set of mnptu test files.
 //
 // It contains all shared information needed by all the test files, like the
 // main configuration and the global variable values.
@@ -314,7 +314,7 @@ type TestSuiteRunner struct {
 	Config *configs.Config
 
 	GlobalVariables map[string]backend.UnparsedVariableValue
-	Opts            *terraform.ContextOpts
+	Opts            *mnptu.ContextOpts
 
 	View views.Test
 
@@ -329,7 +329,7 @@ type TestSuiteRunner struct {
 	Stopped   bool
 	Cancelled bool
 
-	// StoppedCtx and CancelledCtx allow in progress Terraform operations to
+	// StoppedCtx and CancelledCtx allow in progress mnptu operations to
 	// respond to external calls from the test command.
 	StoppedCtx   context.Context
 	CancelledCtx context.Context
@@ -361,7 +361,7 @@ func (runner *TestSuiteRunner) Start() {
 					State: states.NewState(),
 				},
 			},
-			PriorStates: make(map[string]*terraform.TestContext),
+			PriorStates: make(map[string]*mnptu.TestContext),
 		}
 
 		fileRunner.ExecuteTestFile(file)
@@ -389,7 +389,7 @@ type TestFileRunner struct {
 	// previous run blocks. It is passed into the Evaluate functions that
 	// validate the test assertions, and used when calculating values for
 	// variables within run blocks.
-	PriorStates map[string]*terraform.TestContext
+	PriorStates map[string]*mnptu.TestContext
 }
 
 // TestFileState is a helper struct that just maps a run block to the state that
@@ -440,7 +440,7 @@ func (runner *TestFileRunner) ExecuteTestFile(file *moduletest.File) {
 				run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
 					Severity: hcl.DiagError,
 					Summary:  "Invalid module source",
-					Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in Terraform - please report it!", key),
+					Detail:   fmt.Sprintf("The source for the selected module evaluated to %s which should not be possible. This is a bug in mnptu - please report it!", key),
 					Subject:  run.Config.Module.DeclRange.Ptr(),
 				})
 
@@ -544,7 +544,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 				diags = diags.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
 					"Failed to print verbose output",
-					fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
+					fmt.Sprintf("mnptu failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
 			} else {
 				run.Verbose = &moduletest.Verbose{
 					Plan:         plan,
@@ -629,7 +629,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Warning,
 				"Failed to print verbose output",
-				fmt.Sprintf("Terraform failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
+				fmt.Sprintf("mnptu failed to print the verbose output for %s, other diagnostics will contain more details as to why.", path.Join(file.Name, run.Name))))
 		} else {
 			run.Verbose = &moduletest.Verbose{
 				Plan:         plan,
@@ -664,7 +664,7 @@ func (runner *TestFileRunner) validate(config *configs.Config, run *moduletest.R
 
 	var diags tfdiags.Diagnostics
 
-	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
+	tfCtx, ctxDiags := mnptu.NewContext(runner.Suite.Opts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		return diags
@@ -711,12 +711,12 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 		return state, diags
 	}
 
-	planOpts := &terraform.PlanOpts{
+	planOpts := &mnptu.PlanOpts{
 		Mode:         plans.DestroyMode,
 		SetVariables: variables,
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
+	tfCtx, ctxDiags := mnptu.NewContext(runner.Suite.Opts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		return state, diags
@@ -752,7 +752,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	return updated, diags
 }
 
-func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File) (*terraform.Context, *plans.Plan, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File) (*mnptu.Context, *plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -773,7 +773,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 		return nil, nil, diags
 	}
 
-	planOpts := &terraform.PlanOpts{
+	planOpts := &mnptu.PlanOpts{
 		Mode: func() plans.Mode {
 			switch run.Config.Options.Mode {
 			case configs.RefreshOnlyTestMode:
@@ -789,7 +789,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 		ExternalReferences: references,
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
+	tfCtx, ctxDiags := mnptu.NewContext(runner.Suite.Opts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		return nil, nil, diags
@@ -819,7 +819,7 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 	return tfCtx, plan, diags
 }
 
-func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File) (*terraform.Context, *states.State, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, config *configs.Config, run *moduletest.Run, file *moduletest.File) (*mnptu.Context, *states.State, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called apply for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -843,7 +843,7 @@ func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, confi
 		created = append(created, change)
 	}
 
-	tfCtx, ctxDiags := terraform.NewContext(runner.Suite.Opts)
+	tfCtx, ctxDiags := mnptu.NewContext(runner.Suite.Opts)
 	diags = diags.Append(ctxDiags)
 	if ctxDiags.HasErrors() {
 		return nil, state, diags
@@ -873,7 +873,7 @@ func (runner *TestFileRunner) apply(plan *plans.Plan, state *states.State, confi
 	return tfCtx, updated, diags
 }
 
-func (runner *TestFileRunner) wait(ctx *terraform.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
+func (runner *TestFileRunner) wait(ctx *mnptu.Context, runningCtx context.Context, run *moduletest.Run, file *moduletest.File, created []*plans.ResourceInstanceChangeSrc) (diags tfdiags.Diagnostics, cancelled bool) {
 	var identifier string
 	if file == nil {
 		identifier = "validate"
@@ -958,7 +958,7 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 	if main.Run == nil {
 		if !main.State.Empty() {
 			log.Printf("[ERROR] TestFileRunner: found inconsistent run block and state file in %s", file.Name)
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in mnptu - please report it", file.Name)))
 		}
 	} else {
 		reset, configDiags := runner.Suite.Config.TransformForTest(main.Run.Config, file.Config)
@@ -1001,7 +1001,7 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 			// print a diagnostic instead of panicking later.
 
 			var diags tfdiags.Diagnostics
-			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in Terraform - please report it", file.Name)))
+			diags = diags.Append(tfdiags.Sourceless(tfdiags.Error, "Inconsistent state", fmt.Sprintf("Found inconsistent state while cleaning up %s. This is a bug in mnptu - please report it", file.Name)))
 			runner.Suite.View.DestroySummary(diags, nil, file, state.State)
 			continue
 		}
@@ -1044,13 +1044,13 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 	}
 }
 
-// buildInputVariablesForTest creates a terraform.InputValues mapping for
+// buildInputVariablesForTest creates a mnptu.InputValues mapping for
 // variable values that are relevant to the config being tested.
 //
 // Crucially, it differs from prepareInputVariablesForAssertions in that it only
 // includes variables that are reference by the config and not everything that
 // is defined within the test run block and test file.
-func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config) (mnptu.InputValues, tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 	for name := range config.Module.Variables {
 		if run != nil {
@@ -1069,7 +1069,7 @@ func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, fi
 				// If it's not set locally, it maybe set for the entire file.
 				variables[name] = unparsedVariableValueExpression{
 					expr:       expr,
-					sourceType: terraform.ValueFromConfig,
+					sourceType: mnptu.ValueFromConfig,
 				}
 				continue
 			}
@@ -1090,7 +1090,7 @@ func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, fi
 	return backend.ParseVariableValues(variables, config.Module.Variables)
 }
 
-// prepareInputVariablesForAssertions creates a terraform.InputValues mapping
+// prepareInputVariablesForAssertions creates a mnptu.InputValues mapping
 // that contains all the variables defined for a given run and file, alongside
 // any unset variables that have defaults within the provided config.
 //
@@ -1102,7 +1102,7 @@ func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, fi
 // In addition, it modifies the provided config so that any variables that are
 // available are also defined in the config. It returns a function that resets
 // the config which must be called so the config can be reused going forward.
-func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File) (terraform.InputValues, func(), tfdiags.Diagnostics) {
+func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File) (mnptu.InputValues, func(), tfdiags.Diagnostics) {
 	variables := make(map[string]backend.UnparsedVariableValue)
 
 	if run != nil {
@@ -1123,7 +1123,7 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 			}
 			variables[name] = unparsedVariableValueExpression{
 				expr:       expr,
-				sourceType: terraform.ValueFromConfig,
+				sourceType: mnptu.ValueFromConfig,
 			}
 		}
 	}
@@ -1139,9 +1139,9 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 	}
 
 	// We've gathered all the values we have, let's convert them into
-	// terraform.InputValues so they can be passed into the Terraform graph.
+	// mnptu.InputValues so they can be passed into the mnptu graph.
 
-	inputs := make(terraform.InputValues, len(variables))
+	inputs := make(mnptu.InputValues, len(variables))
 	var diags tfdiags.Diagnostics
 	for name, variable := range variables {
 		value, valueDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
@@ -1150,7 +1150,7 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 	}
 
 	// Next, we're going to apply any default values from the configuration.
-	// We do this after the conversion into terraform.InputValues, as the
+	// We do this after the conversion into mnptu.InputValues, as the
 	// defaults have already been converted into cty.Value objects.
 
 	for name, variable := range config.Module.Variables {
@@ -1161,9 +1161,9 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 		}
 
 		if variable.Default != cty.NilVal {
-			inputs[name] = &terraform.InputValue{
+			inputs[name] = &mnptu.InputValue{
 				Value:       variable.Default,
-				SourceType:  terraform.ValueFromConfig,
+				SourceType:  mnptu.ValueFromConfig,
 				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
 			}
 		}

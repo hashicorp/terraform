@@ -1,20 +1,20 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/instances"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/plans/objchange"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/instances"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/plans/objchange"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // NodeApplyableResourceInstance represents a resource instance that is
@@ -132,7 +132,7 @@ func (n *NodeApplyableResourceInstance) Execute(ctx EvalContext, op walkOperatio
 			tfdiags.Error,
 			"Resource node has no configuration attached",
 			fmt.Sprintf(
-				"The graph node for %s has no configuration attached to it. This suggests a bug in Terraform's apply graph builder; please report it!",
+				"The graph node for %s has no configuration attached to it. This suggests a bug in mnptu's apply graph builder; please report it!",
 				addr,
 			),
 		))
@@ -167,7 +167,7 @@ func (n *NodeApplyableResourceInstance) dataResourceExecute(ctx EvalContext) (di
 		return diags
 	}
 	if change.Action != plans.Read && change.Action != plans.NoOp {
-		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", change.Action, n.Addr))
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in mnptu", change.Action, n.Addr))
 	}
 
 	// In this particular call to applyDataSource we include our planned
@@ -238,7 +238,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 		return diags
 	}
 	if diffApply.Action == plans.Read {
-		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in Terraform", diffApply.Action, n.Addr))
+		diags = diags.Append(fmt.Errorf("nonsensical planned action %#v for %s; this is a bug in mnptu", diffApply.Action, n.Addr))
 	}
 
 	destroy := (diffApply.Action == plans.Delete || diffApply.Action.IsReplace())
@@ -350,7 +350,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					tfdiags.Error,
 					"Attempt to restore non-existent deposed object",
 					fmt.Sprintf(
-						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in Terraform; please report it!",
+						"mnptu has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This occurred during a %s action. This is a bug in mnptu; please report it!",
 						addr, diffApply.Action,
 					),
 				))
@@ -359,7 +359,7 @@ func (n *NodeApplyableResourceInstance) managedResourceExecute(ctx EvalContext) 
 					tfdiags.Error,
 					"Attempt to restore non-existent deposed object",
 					fmt.Sprintf(
-						"Terraform has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in Terraform; please report it!",
+						"mnptu has encountered a bug where it would need to restore a deposed object for %s without knowing a deposed object key for that object. This is a bug in mnptu; please report it!",
 						addr,
 					),
 				))
@@ -400,7 +400,7 @@ func (n *NodeApplyableResourceInstance) managedResourcePostconditions(ctx EvalCo
 //
 // Errors here are most often indicative of a bug in the provider, so our error
 // messages will report with that in mind. It's also possible that there's a bug
-// in Terraform's Core's own "proposed new value" code in EvalDiff.
+// in mnptu's Core's own "proposed new value" code in EvalDiff.
 func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plannedChange, actualChange *plans.ResourceInstanceChange, providerSchema providers.ProviderSchema) tfdiags.Diagnostics {
 	var diags tfdiags.Diagnostics
 	addr := n.ResourceInstanceAddr().Resource
@@ -426,12 +426,12 @@ func (n *NodeApplyableResourceInstance) checkPlannedChange(ctx EvalContext, plan
 
 		case (plannedChange.Action == plans.CreateThenDelete && actualChange.Action == plans.DeleteThenCreate) ||
 			(plannedChange.Action == plans.DeleteThenCreate && actualChange.Action == plans.CreateThenDelete):
-			// If the order of replacement changed, then that is a bug in terraform
+			// If the order of replacement changed, then that is a bug in mnptu
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
-				"Terraform produced inconsistent final plan",
+				"mnptu produced inconsistent final plan",
 				fmt.Sprintf(
-					"When expanding the plan for %s to include new values learned so far during apply, the planned action changed from %s to %s.\n\nThis is a bug in Terraform and should be reported.",
+					"When expanding the plan for %s to include new values learned so far during apply, the planned action changed from %s to %s.\n\nThis is a bug in mnptu and should be reported.",
 					absAddr, plannedChange.Action, actualChange.Action,
 				),
 			))

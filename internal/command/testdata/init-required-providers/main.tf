@@ -1,4 +1,4 @@
-terraform {
+mnptu {
   required_providers {
     test = "1.2.3"
     source = {

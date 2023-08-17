@@ -21,12 +21,12 @@ func TestFindPluginPaths(t *testing.T) {
 		},
 	)
 	want := []string{
-		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v0.0.1"),
-		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-bar_v1.0.0.exe"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "mnptu-foo-bar_v0.0.1"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "mnptu-foo-bar_v1.0.0.exe"),
 		// un-versioned plugins are still picked up, even in current-style paths
-		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "terraform-foo-missing-version"),
-		filepath.Join("testdata", "legacy-style-plugins", "terraform-foo-bar"),
-		filepath.Join("testdata", "legacy-style-plugins", "terraform-foo-baz"),
+		filepath.Join("testdata", "current-style-plugins", "mockos_mockarch", "mnptu-foo-missing-version"),
+		filepath.Join("testdata", "legacy-style-plugins", "mnptu-foo-bar"),
+		filepath.Join("testdata", "legacy-style-plugins", "mnptu-foo-baz"),
 	}
 
 	// Turn the paths back into relative paths, since we don't care exactly
@@ -54,75 +54,75 @@ func TestFindPluginPaths(t *testing.T) {
 
 func TestResolvePluginPaths(t *testing.T) {
 	got := ResolvePluginPaths([]string{
-		"/example/mockos_mockarch/terraform-foo-bar_v0.0.1",
-		"/example/mockos_mockarch/terraform-foo-baz_v0.0.1",
-		"/example/mockos_mockarch/terraform-foo-baz_v1.0.0",
-		"/example/mockos_mockarch/terraform-foo-baz_v2.0.0_x4",
-		"/example/mockos_mockarch/terraform-foo-upper_V2.0.0_X4",
-		"/example/terraform-foo-bar",
-		"/example/mockos_mockarch/terraform-foo-bar_vbananas",
-		"/example/mockos_mockarch/terraform-foo-bar_v",
-		"/example/mockos_mockarch/terraform-foo-windowsthing1_v1.0.0.exe",
-		"/example/mockos_mockarch/terraform-foo-windowsthing2_v1.0.0_x4.exe",
-		"/example/mockos_mockarch/terraform-foo-windowsthing3.exe",
-		"/example2/mockos_mockarch/terraform-foo-bar_v0.0.1",
+		"/example/mockos_mockarch/mnptu-foo-bar_v0.0.1",
+		"/example/mockos_mockarch/mnptu-foo-baz_v0.0.1",
+		"/example/mockos_mockarch/mnptu-foo-baz_v1.0.0",
+		"/example/mockos_mockarch/mnptu-foo-baz_v2.0.0_x4",
+		"/example/mockos_mockarch/mnptu-foo-upper_V2.0.0_X4",
+		"/example/mnptu-foo-bar",
+		"/example/mockos_mockarch/mnptu-foo-bar_vbananas",
+		"/example/mockos_mockarch/mnptu-foo-bar_v",
+		"/example/mockos_mockarch/mnptu-foo-windowsthing1_v1.0.0.exe",
+		"/example/mockos_mockarch/mnptu-foo-windowsthing2_v1.0.0_x4.exe",
+		"/example/mockos_mockarch/mnptu-foo-windowsthing3.exe",
+		"/example2/mockos_mockarch/mnptu-foo-bar_v0.0.1",
 	})
 
 	want := []PluginMeta{
 		{
 			Name:    "bar",
 			Version: "0.0.1",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar_v0.0.1",
+			Path:    "/example/mockos_mockarch/mnptu-foo-bar_v0.0.1",
 		},
 		{
 			Name:    "baz",
 			Version: "0.0.1",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz_v0.0.1",
+			Path:    "/example/mockos_mockarch/mnptu-foo-baz_v0.0.1",
 		},
 		{
 			Name:    "baz",
 			Version: "1.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz_v1.0.0",
+			Path:    "/example/mockos_mockarch/mnptu-foo-baz_v1.0.0",
 		},
 		{
 			Name:    "baz",
 			Version: "2.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-baz_v2.0.0_x4",
+			Path:    "/example/mockos_mockarch/mnptu-foo-baz_v2.0.0_x4",
 		},
 		{
 			Name:    "upper",
 			Version: "2.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-upper_V2.0.0_X4",
+			Path:    "/example/mockos_mockarch/mnptu-foo-upper_V2.0.0_X4",
 		},
 		{
 			Name:    "bar",
 			Version: "0.0.0",
-			Path:    "/example/terraform-foo-bar",
+			Path:    "/example/mnptu-foo-bar",
 		},
 		{
 			Name:    "bar",
 			Version: "bananas",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar_vbananas",
+			Path:    "/example/mockos_mockarch/mnptu-foo-bar_vbananas",
 		},
 		{
 			Name:    "bar",
 			Version: "",
-			Path:    "/example/mockos_mockarch/terraform-foo-bar_v",
+			Path:    "/example/mockos_mockarch/mnptu-foo-bar_v",
 		},
 		{
 			Name:    "windowsthing1",
 			Version: "1.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing1_v1.0.0.exe",
+			Path:    "/example/mockos_mockarch/mnptu-foo-windowsthing1_v1.0.0.exe",
 		},
 		{
 			Name:    "windowsthing2",
 			Version: "1.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing2_v1.0.0_x4.exe",
+			Path:    "/example/mockos_mockarch/mnptu-foo-windowsthing2_v1.0.0_x4.exe",
 		},
 		{
 			Name:    "windowsthing3",
 			Version: "0.0.0",
-			Path:    "/example/mockos_mockarch/terraform-foo-windowsthing3.exe",
+			Path:    "/example/mockos_mockarch/mnptu-foo-windowsthing3.exe",
 		},
 	}
 

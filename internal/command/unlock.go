@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
 
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/mitchellh/cli"
 )
 
@@ -89,11 +89,11 @@ func (c *UnlockCommand) Run(args []string) int {
 			return 1
 		}
 
-		desc := "Terraform will remove the lock on the remote state.\n" +
-			"This will allow local Terraform commands to modify this state, even though it\n" +
+		desc := "mnptu will remove the lock on the remote state.\n" +
+			"This will allow local mnptu commands to modify this state, even though it\n" +
 			"may still be in use. Only 'yes' will be accepted to confirm."
 
-		v, err := c.UIInput().Input(context.Background(), &terraform.InputOpts{
+		v, err := c.UIInput().Input(context.Background(), &mnptu.InputOpts{
 			Id:          "force-unlock",
 			Query:       "Do you really want to force-unlock?",
 			Description: desc,
@@ -119,7 +119,7 @@ func (c *UnlockCommand) Run(args []string) int {
 
 func (c *UnlockCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] force-unlock LOCK_ID
+Usage: mnptu [global options] force-unlock LOCK_ID
 
   Manually unlock the state for the defined configuration.
 
@@ -140,8 +140,8 @@ func (c *UnlockCommand) Synopsis() string {
 }
 
 const outputUnlockSuccess = `
-[reset][bold][green]Terraform state has been successfully unlocked![reset][green]
+[reset][bold][green]mnptu state has been successfully unlocked![reset][green]
 
-The state has been unlocked, and Terraform commands should now be able to
+The state has been unlocked, and mnptu commands should now be able to
 obtain a new lock on the remote state.
 `

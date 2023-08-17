@@ -1,7 +1,7 @@
-terraform {
+mnptu {
     required_version = "~> 0.9.0"
 }
 
-terraform {
+mnptu {
     required_version = ">= 0.13.0"
 }

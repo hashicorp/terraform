@@ -8,9 +8,9 @@ description: >-
 # Strings and Templates
 
 String literals are the most complex kind of literal expression in
-Terraform, and also the most commonly used.
+mnptu, and also the most commonly used.
 
-Terraform supports both a quoted syntax and a "heredoc" syntax for strings.
+mnptu supports both a quoted syntax and a "heredoc" syntax for strings.
 Both of these syntaxes support template sequences for interpolating values and
 manipulating text.
 
@@ -47,7 +47,7 @@ There are also two special escape sequences that do not use backslashes:
 
 ## Heredoc Strings
 
-Terraform also supports a "heredoc" style of string literal inspired by Unix
+mnptu also supports a "heredoc" style of string literal inspired by Unix
 shell languages, which allows multi-line strings to be expressed more clearly.
 
 ```hcl
@@ -67,7 +67,7 @@ A heredoc string consists of:
 - The delimiter word you chose, alone on its own line (with indentation allowed for indented heredocs)
 
 The `<<` marker followed by any identifier at the end of a line introduces the
-sequence. Terraform then processes the following lines until it finds one that
+sequence. mnptu then processes the following lines until it finds one that
 consists entirely of the identifier given in the introducer.
 
 In the above example, `EOT` is the identifier selected. Any identifier is
@@ -77,8 +77,8 @@ allowed, but conventionally this identifier is in all-uppercase and begins with
 ### Generating JSON or YAML
 
 Don't use "heredoc" strings to generate JSON or YAML. Instead, use
-[the `jsonencode` function](/terraform/language/functions/jsonencode) or
-[the `yamlencode` function](/terraform/language/functions/yamlencode) so that Terraform
+[the `jsonencode` function](/mnptu/language/functions/jsonencode) or
+[the `yamlencode` function](/mnptu/language/functions/yamlencode) so that mnptu
 can be responsible for guaranteeing valid JSON or YAML syntax.
 
 ```hcl
@@ -104,7 +104,7 @@ EOT
 }
 ```
 
-To improve on this, Terraform also accepts an _indented_ heredoc string variant
+To improve on this, mnptu also accepts an _indented_ heredoc string variant
 that is introduced by the `<<-` sequence:
 
 ```hcl
@@ -116,7 +116,7 @@ block {
 }
 ```
 
-In this case, Terraform analyses the lines in the sequence to find the one
+In this case, mnptu analyses the lines in the sequence to find the one
 with the smallest number of leading spaces, and then trims that many spaces
 from the beginning of all of the lines, leading to the following result:
 

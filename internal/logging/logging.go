@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	// ValidLevels are the log level names that Terraform recognizes.
+	// ValidLevels are the log level names that mnptu recognizes.
 	ValidLevels = []string{"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF"}
 
 	// logger is the global hclog logger

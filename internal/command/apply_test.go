@@ -21,14 +21,14 @@ import (
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statemgr"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statemgr"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func TestApply(t *testing.T) {
@@ -299,7 +299,7 @@ func TestApply_parallelism(t *testing.T) {
 	providerFactories := map[addrs.Provider]providers.Factory{}
 	for i := 0; i < 10; i++ {
 		name := fmt.Sprintf("test%d", i)
-		provider := &terraform.MockProvider{}
+		provider := &mnptu.MockProvider{}
 		provider.GetProviderSchemaResponse = &providers.GetProviderSchemaResponse{
 			ResourceTypes: map[string]providers.Schema{
 				name + "_instance": {Block: &configschema.Block{}},
@@ -569,7 +569,7 @@ result = foo
 	testStateOutput(t, statePath, expected)
 }
 
-// When only a partial set of the variables are set, Terraform
+// When only a partial set of the variables are set, mnptu
 // should still ask for the unset ones by default (with -input=true)
 func TestApply_inputPartial(t *testing.T) {
 	// Create a temporary working directory that is empty
@@ -853,7 +853,7 @@ func TestApply_plan_remoteState(t *testing.T) {
 
 func TestApply_planWithVarFile(t *testing.T) {
 	varFileDir := testTempDir(t)
-	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	varFilePath := filepath.Join(varFileDir, "mnptu.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1434,7 +1434,7 @@ func TestApply_varFileDefault(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-vars"), td)
 	defer testChdir(t, td)()
 
-	varFilePath := filepath.Join(td, "terraform.tfvars")
+	varFilePath := filepath.Join(td, "mnptu.tfvars")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1495,7 +1495,7 @@ func TestApply_varFileDefaultJSON(t *testing.T) {
 	testCopyDir(t, testFixturePath("apply-vars"), td)
 	defer testChdir(t, td)()
 
-	varFilePath := filepath.Join(td, "terraform.tfvars.json")
+	varFilePath := filepath.Join(td, "mnptu.tfvars.json")
 	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFileJSON), 0644); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1705,11 +1705,11 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 }
 
-// Test that the Terraform env is passed through
-func TestApply_terraformEnv(t *testing.T) {
+// Test that the mnptu env is passed through
+func TestApply_mnptuEnv(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
+	testCopyDir(t, testFixturePath("apply-mnptu-env"), td)
 	defer testChdir(t, td)()
 
 	statePath := testTempFile(t)
@@ -1742,11 +1742,11 @@ output = default
 	testStateOutput(t, statePath, expected)
 }
 
-// Test that the Terraform env is passed through
-func TestApply_terraformEnvNonDefault(t *testing.T) {
+// Test that the mnptu env is passed through
+func TestApply_mnptuEnvNonDefault(t *testing.T) {
 	// Create a temporary working directory that is empty
 	td := t.TempDir()
-	testCopyDir(t, testFixturePath("apply-terraform-env"), td)
+	testCopyDir(t, testFixturePath("apply-mnptu-env"), td)
 	defer testChdir(t, td)()
 
 	// Create new env
@@ -1794,7 +1794,7 @@ func TestApply_terraformEnvNonDefault(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, output.Stderr())
 	}
 
-	statePath := filepath.Join("terraform.tfstate.d", "test", "terraform.tfstate")
+	statePath := filepath.Join("mnptu.tfstate.d", "test", "mnptu.tfstate")
 	expected := strings.TrimSpace(`
 <no state>
 Outputs:
@@ -2127,7 +2127,7 @@ func TestApply_warnings(t *testing.T) {
 		wantWarnings := []string{
 			"warning 1",
 			"warning 2",
-			"To see the full warning notes, run Terraform without -compact-warnings.",
+			"To see the full warning notes, run mnptu without -compact-warnings.",
 		}
 		for _, want := range wantWarnings {
 			if !strings.Contains(output.Stdout(), want) {
@@ -2159,8 +2159,8 @@ func applyFixtureSchema() *providers.GetProviderSchemaResponse {
 // operation with the configuration in testdata/apply. This mock has
 // GetSchemaResponse, PlanResourceChangeFn, and ApplyResourceChangeFn populated,
 // with the plan/apply steps just passing through the data determined by
-// Terraform Core.
-func applyFixtureProvider() *terraform.MockProvider {
+// mnptu Core.
+func applyFixtureProvider() *mnptu.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = applyFixtureSchema()
 	p.PlanResourceChangeFn = func(req providers.PlanResourceChangeRequest) providers.PlanResourceChangeResponse {

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // Package experiments contains the models and logic for opt-in experiments
-// that can be activated for a particular Terraform module.
+// that can be activated for a particular mnptu module.
 //
 // We use experiments to get feedback on new configuration language features
 // in a way that permits breaking changes without waiting for a future minor

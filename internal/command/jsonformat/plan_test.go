@@ -12,19 +12,19 @@ import (
 	"github.com/mitchellh/colorstring"
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/differ"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
-	"github.com/hashicorp/terraform/internal/command/jsonplan"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/differ"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured/attribute_path"
+	"github.com/hashicorp/mnptu/internal/command/jsonplan"
+	"github.com/hashicorp/mnptu/internal/command/jsonprovider"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 )
 
 func TestRenderHuman_EmptyPlan(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRenderHuman_EmptyPlan(t *testing.T) {
 	want := `
 No changes. Your infrastructure matches the configuration.
 
-Terraform has compared your real infrastructure against your configuration
+mnptu has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 `
 
@@ -70,7 +70,7 @@ func TestRenderHuman_EmptyOutputs(t *testing.T) {
 	want := `
 No changes. Your infrastructure matches the configuration.
 
-Terraform has compared your real infrastructure against your configuration
+mnptu has compared your real infrastructure against your configuration
 and found no differences, so no changes are needed.
 `
 
@@ -133,7 +133,7 @@ func TestRenderHuman_Imports(t *testing.T) {
 				},
 			},
 			output: `
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.resource will be imported
     resource "test_resource" "resource" {
@@ -175,7 +175,7 @@ Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.resource will be imported
   # (config will be generated)
@@ -215,7 +215,7 @@ Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.before has moved to test_resource.after
   # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
@@ -255,11 +255,11 @@ Plan: 1 to import, 0 to add, 0 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   ~ update in-place
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.after will be updated in-place
   # (moved from test_resource.before)
@@ -299,11 +299,11 @@ Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   ~ update in-place
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.resource will be updated in-place
   # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
@@ -340,11 +340,11 @@ Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   ~ update in-place
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.resource will be updated in-place
   # (will be imported first)
@@ -385,11 +385,11 @@ Plan: 1 to import, 0 to add, 1 to change, 0 to destroy.
 				},
 			},
 			output: `
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
 +/- create replacement and then destroy
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # test_resource.resource must be replaced
   # (imported from "1D5F5E9E-F2E5-401B-9ED5-692A215AC67E")
@@ -1651,7 +1651,7 @@ func TestResourceChange_JSON(t *testing.T) {
 
 func TestResourceChange_listObject(t *testing.T) {
 	testCases := map[string]testCase{
-		// https://github.com/hashicorp/terraform/issues/30641
+		// https://github.com/hashicorp/mnptu/issues/30641
 		"updating non-identifying attribute": {
 			Action: plans.Update,
 			Mode:   addrs.ManagedResourceMode,
@@ -6986,7 +6986,7 @@ func runTestCases(t *testing.T, testCases map[string]testCase) {
 				RequiredReplace: tc.RequiredReplace,
 			}
 
-			tfschemas := &terraform.Schemas{
+			tfschemas := &mnptu.Schemas{
 				Providers: map[addrs.Provider]providers.ProviderSchema{
 					src.ProviderAddr.Provider: {
 						ResourceTypes: map[string]providers.Schema{

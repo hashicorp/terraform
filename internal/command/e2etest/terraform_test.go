@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/e2e"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/e2e"
 )
 
-func TestTerraformProviderData(t *testing.T) {
+func TestmnptuProviderData(t *testing.T) {
 
-	fixturePath := filepath.Join("testdata", "terraform-managed-data")
-	tf := e2e.NewBinary(t, terraformBin, fixturePath)
+	fixturePath := filepath.Join("testdata", "mnptu-managed-data")
+	tf := e2e.NewBinary(t, mnptuBin, fixturePath)
 
 	_, stderr, err := tf.Run("init", "-input=false")
 	if err != nil {

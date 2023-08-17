@@ -8,34 +8,34 @@ package init
 import (
 	"sync"
 
-	"github.com/hashicorp/terraform-svchost/disco"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu-svchost/disco"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
-	backendLocal "github.com/hashicorp/terraform/internal/backend/local"
-	backendRemote "github.com/hashicorp/terraform/internal/backend/remote"
-	backendAzure "github.com/hashicorp/terraform/internal/backend/remote-state/azure"
-	backendConsul "github.com/hashicorp/terraform/internal/backend/remote-state/consul"
-	backendCos "github.com/hashicorp/terraform/internal/backend/remote-state/cos"
-	backendGCS "github.com/hashicorp/terraform/internal/backend/remote-state/gcs"
-	backendHTTP "github.com/hashicorp/terraform/internal/backend/remote-state/http"
-	backendInmem "github.com/hashicorp/terraform/internal/backend/remote-state/inmem"
-	backendKubernetes "github.com/hashicorp/terraform/internal/backend/remote-state/kubernetes"
-	backendOSS "github.com/hashicorp/terraform/internal/backend/remote-state/oss"
-	backendPg "github.com/hashicorp/terraform/internal/backend/remote-state/pg"
-	backendS3 "github.com/hashicorp/terraform/internal/backend/remote-state/s3"
-	backendCloud "github.com/hashicorp/terraform/internal/cloud"
+	backendLocal "github.com/hashicorp/mnptu/internal/backend/local"
+	backendRemote "github.com/hashicorp/mnptu/internal/backend/remote"
+	backendAzure "github.com/hashicorp/mnptu/internal/backend/remote-state/azure"
+	backendConsul "github.com/hashicorp/mnptu/internal/backend/remote-state/consul"
+	backendCos "github.com/hashicorp/mnptu/internal/backend/remote-state/cos"
+	backendGCS "github.com/hashicorp/mnptu/internal/backend/remote-state/gcs"
+	backendHTTP "github.com/hashicorp/mnptu/internal/backend/remote-state/http"
+	backendInmem "github.com/hashicorp/mnptu/internal/backend/remote-state/inmem"
+	backendKubernetes "github.com/hashicorp/mnptu/internal/backend/remote-state/kubernetes"
+	backendOSS "github.com/hashicorp/mnptu/internal/backend/remote-state/oss"
+	backendPg "github.com/hashicorp/mnptu/internal/backend/remote-state/pg"
+	backendS3 "github.com/hashicorp/mnptu/internal/backend/remote-state/s3"
+	backendCloud "github.com/hashicorp/mnptu/internal/cloud"
 )
 
 // backends is the list of available backends. This is a global variable
-// because backends are currently hardcoded into Terraform and can't be
+// because backends are currently hardcoded into mnptu and can't be
 // modified without recompilation.
 //
 // To read an available backend, use the Backend function. This ensures
 // safe concurrent read access to the list of built-in backends.
 //
-// Backends are hardcoded into Terraform because the API for backends uses
+// Backends are hardcoded into mnptu because the API for backends uses
 // complex structures and supporting that over the plugin system is currently
 // prohibitively difficult. For those wanting to implement a custom backend,
 // they can do so with recompilation.
@@ -67,18 +67,18 @@ func Init(services *disco.Disco) {
 		"pg":         func() backend.Backend { return backendPg.New() },
 		"s3":         func() backend.Backend { return backendS3.New() },
 
-		// Terraform Cloud 'backend'
+		// mnptu Cloud 'backend'
 		// This is an implementation detail only, used for the cloud package
 		"cloud": func() backend.Backend { return backendCloud.New(services) },
 	}
 
 	RemovedBackends = map[string]string{
-		"artifactory": `The "artifactory" backend is not supported in Terraform v1.3 or later.`,
+		"artifactory": `The "artifactory" backend is not supported in mnptu v1.3 or later.`,
 		"azure":       `The "azure" backend name has been removed, please use "azurerm".`,
-		"etcd":        `The "etcd" backend is not supported in Terraform v1.3 or later.`,
-		"etcdv3":      `The "etcdv3" backend is not supported in Terraform v1.3 or later.`,
-		"manta":       `The "manta" backend is not supported in Terraform v1.3 or later.`,
-		"swift":       `The "swift" backend is not supported in Terraform v1.3 or later.`,
+		"etcd":        `The "etcd" backend is not supported in mnptu v1.3 or later.`,
+		"etcdv3":      `The "etcdv3" backend is not supported in mnptu v1.3 or later.`,
+		"manta":       `The "manta" backend is not supported in mnptu v1.3 or later.`,
+		"swift":       `The "swift" backend is not supported in mnptu v1.3 or later.`,
 	}
 }
 
@@ -95,7 +95,7 @@ func Backend(name string) backend.InitFn {
 // then it will be overwritten.
 //
 // This method sets this backend globally and care should be taken to do
-// this only before Terraform is executing to prevent odd behavior of backends
+// this only before mnptu is executing to prevent odd behavior of backends
 // changing mid-execution.
 func Set(name string, f backend.InitFn) {
 	backendsLock.Lock()

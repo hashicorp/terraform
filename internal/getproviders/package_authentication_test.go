@@ -122,7 +122,7 @@ func TestPackageAuthenticationAll_failure(t *testing.T) {
 // result should be "verified checksum".
 func TestPackageHashAuthentication_success(t *testing.T) {
 	// Location must be a PackageLocalArchive path
-	location := PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64")
+	location := PackageLocalDir("testdata/filesystem-mirror/registry.mnptu.io/hashicorp/null/2.0.0/linux_amd64")
 
 	wantHashes := []Hash{
 		// Known-good HashV1 result for this directory
@@ -152,11 +152,11 @@ func TestPackageHashAuthentication_failure(t *testing.T) {
 			"failed to verify provider package checksums: lstat testdata/no-package-here.zip: no such file or directory",
 		},
 		"checksum mismatch": {
-			PackageLocalDir("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/2.0.0/linux_amd64"),
+			PackageLocalDir("testdata/filesystem-mirror/registry.mnptu.io/hashicorp/null/2.0.0/linux_amd64"),
 			"provider package doesn't match the expected checksum \"h1:invalid\"",
 		},
 		"invalid zip file": {
-			PackageLocalArchive("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/terraform-provider-null_2.1.0_linux_amd64.zip"),
+			PackageLocalArchive("testdata/filesystem-mirror/registry.mnptu.io/hashicorp/null/mnptu-provider-null_2.1.0_linux_amd64.zip"),
 			"failed to verify provider package checksums: zip: not a valid zip file",
 		},
 	}
@@ -182,7 +182,7 @@ func TestPackageHashAuthentication_failure(t *testing.T) {
 // SHA256 hash. The result should be "verified checksum".
 func TestArchiveChecksumAuthentication_success(t *testing.T) {
 	// Location must be a PackageLocalArchive path
-	location := PackageLocalArchive("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/terraform-provider-null_2.1.0_linux_amd64.zip")
+	location := PackageLocalArchive("testdata/filesystem-mirror/registry.mnptu.io/hashicorp/null/mnptu-provider-null_2.1.0_linux_amd64.zip")
 
 	// Known-good SHA256 hash for this archive
 	wantSHA256Sum := [sha256.Size]byte{
@@ -217,7 +217,7 @@ func TestArchiveChecksumAuthentication_failure(t *testing.T) {
 			"failed to compute checksum for testdata/no-package-here.zip: lstat testdata/no-package-here.zip: no such file or directory",
 		},
 		"checksum mismatch": {
-			PackageLocalArchive("testdata/filesystem-mirror/registry.terraform.io/hashicorp/null/terraform-provider-null_2.1.0_linux_amd64.zip"),
+			PackageLocalArchive("testdata/filesystem-mirror/registry.mnptu.io/hashicorp/null/mnptu-provider-null_2.1.0_linux_amd64.zip"),
 			"archive has incorrect checksum zh:4fb39849f2e138eb16a18ba0c682635d781cb8c3b25901dd5a792ade9711f501 (expected zh:0000000000000000000000000000000000000000000000000000000000000000)",
 		},
 		"invalid location": {
@@ -656,18 +656,18 @@ const testShaSumsPlaceholder = "example shasums data"
 // testShaSumsRealistic is a more realistic SHA256SUMS document that we can use
 // to test the AcceptableHashes method. The signature values in other constants
 // in this file do not sign this string.
-const testShaSumsRealistic = `7d7e888fdd28abfe00894f9055209b9eec785153641de98e6852aa071008d4ee  terraform_0.14.0-alpha20200923_darwin_amd64.zip
-f8b6cf9ade087c17826d49d89cef21261cdc22bd27065bbc5b27d7dbf7fbbf6c  terraform_0.14.0-alpha20200923_freebsd_386.zip
-a5ba9945606bb7bfb821ba303957eeb40dd9ee4e706ba8da1eaf7cbeb0356e63  terraform_0.14.0-alpha20200923_freebsd_amd64.zip
-df3a5a8d6ffff7bacf19c92d10d0d500f98169ea17b3764b01a789f563d1aad7  terraform_0.14.0-alpha20200923_freebsd_arm.zip
-086119a26576d06b8281a97e8644380da89ce16197cd955f74ea5ee664e9358b  terraform_0.14.0-alpha20200923_linux_386.zip
-1e5f7a5f3ade7b8b1d1d59c5cea2e1a2f8d2f8c3f41962dbbe8647e222be8239  terraform_0.14.0-alpha20200923_linux_amd64.zip
-0e9fd0f3e2254b526a0e81e0cfdfc82583b0cd343778c53ead21aa7d52f776d7  terraform_0.14.0-alpha20200923_linux_arm.zip
-66a947e7de1c74caf9f584c3ed4e91d2cb1af6fe5ce8abaf1cf8f7ff626a09d1  terraform_0.14.0-alpha20200923_openbsd_386.zip
-def1b73849bec0dc57a04405847921bf9206c75b52ae9de195476facb26bd85e  terraform_0.14.0-alpha20200923_openbsd_amd64.zip
-48f1826ec31d6f104e46cc2022b41f30cd1019ef48eaec9697654ef9ec37a879  terraform_0.14.0-alpha20200923_solaris_amd64.zip
-17e0b496022bc4e4137be15e96d2b051c8acd6e14cb48d9b13b262330464f6cc  terraform_0.14.0-alpha20200923_windows_386.zip
-2696c86228f491bc5425561c45904c9ce39b1c676b1e17734cb2ee6b578c4bcd  terraform_0.14.0-alpha20200923_windows_amd64.zip`
+const testShaSumsRealistic = `7d7e888fdd28abfe00894f9055209b9eec785153641de98e6852aa071008d4ee  mnptu_0.14.0-alpha20200923_darwin_amd64.zip
+f8b6cf9ade087c17826d49d89cef21261cdc22bd27065bbc5b27d7dbf7fbbf6c  mnptu_0.14.0-alpha20200923_freebsd_386.zip
+a5ba9945606bb7bfb821ba303957eeb40dd9ee4e706ba8da1eaf7cbeb0356e63  mnptu_0.14.0-alpha20200923_freebsd_amd64.zip
+df3a5a8d6ffff7bacf19c92d10d0d500f98169ea17b3764b01a789f563d1aad7  mnptu_0.14.0-alpha20200923_freebsd_arm.zip
+086119a26576d06b8281a97e8644380da89ce16197cd955f74ea5ee664e9358b  mnptu_0.14.0-alpha20200923_linux_386.zip
+1e5f7a5f3ade7b8b1d1d59c5cea2e1a2f8d2f8c3f41962dbbe8647e222be8239  mnptu_0.14.0-alpha20200923_linux_amd64.zip
+0e9fd0f3e2254b526a0e81e0cfdfc82583b0cd343778c53ead21aa7d52f776d7  mnptu_0.14.0-alpha20200923_linux_arm.zip
+66a947e7de1c74caf9f584c3ed4e91d2cb1af6fe5ce8abaf1cf8f7ff626a09d1  mnptu_0.14.0-alpha20200923_openbsd_386.zip
+def1b73849bec0dc57a04405847921bf9206c75b52ae9de195476facb26bd85e  mnptu_0.14.0-alpha20200923_openbsd_amd64.zip
+48f1826ec31d6f104e46cc2022b41f30cd1019ef48eaec9697654ef9ec37a879  mnptu_0.14.0-alpha20200923_solaris_amd64.zip
+17e0b496022bc4e4137be15e96d2b051c8acd6e14cb48d9b13b262330464f6cc  mnptu_0.14.0-alpha20200923_windows_386.zip
+2696c86228f491bc5425561c45904c9ce39b1c676b1e17734cb2ee6b578c4bcd  mnptu_0.14.0-alpha20200923_windows_amd64.zip`
 
 // testAuthorSignatureGoodBase64 is a signature of testShaSums signed with
 // testAuthorKeyArmor, which represents the SHA256SUMS.sig file downloaded for
@@ -689,17 +689,17 @@ const testSignatureBadBase64 = `iQEzBAABCAAdFiEEW/7sQxfnRgCGIZcGN6arO88s` +
 // testHashiCorpPublicKeyID is the Key ID of the HashiCorpPublicKey.
 const testHashiCorpPublicKeyID = `34365D9472D7468F`
 
-const testProviderShaSums = `fea4227271ebf7d9e2b61b89ce2328c7262acd9fd190e1fd6d15a591abfa848e  terraform-provider-null_3.1.0_darwin_amd64.zip
-9ebf4d9704faba06b3ec7242c773c0fbfe12d62db7d00356d4f55385fc69bfb2  terraform-provider-null_3.1.0_darwin_arm64.zip
-a6576c81adc70326e4e1c999c04ad9ca37113a6e925aefab4765e5a5198efa7e  terraform-provider-null_3.1.0_freebsd_386.zip
-5f9200bf708913621d0f6514179d89700e9aa3097c77dac730e8ba6e5901d521  terraform-provider-null_3.1.0_freebsd_amd64.zip
-fc39cc1fe71234a0b0369d5c5c7f876c71b956d23d7d6f518289737a001ba69b  terraform-provider-null_3.1.0_freebsd_arm.zip
-c797744d08a5307d50210e0454f91ca4d1c7621c68740441cf4579390452321d  terraform-provider-null_3.1.0_linux_386.zip
-53e30545ff8926a8e30ad30648991ca8b93b6fa496272cd23b26763c8ee84515  terraform-provider-null_3.1.0_linux_amd64.zip
-cecb6a304046df34c11229f20a80b24b1603960b794d68361a67c5efe58e62b8  terraform-provider-null_3.1.0_linux_arm64.zip
-e1371aa1e502000d9974cfaff5be4cfa02f47b17400005a16f14d2ef30dc2a70  terraform-provider-null_3.1.0_linux_arm.zip
-a8a42d13346347aff6c63a37cda9b2c6aa5cc384a55b2fe6d6adfa390e609c53  terraform-provider-null_3.1.0_windows_386.zip
-02a1675fd8de126a00460942aaae242e65ca3380b5bb192e8773ef3da9073fd2  terraform-provider-null_3.1.0_windows_amd64.zip
+const testProviderShaSums = `fea4227271ebf7d9e2b61b89ce2328c7262acd9fd190e1fd6d15a591abfa848e  mnptu-provider-null_3.1.0_darwin_amd64.zip
+9ebf4d9704faba06b3ec7242c773c0fbfe12d62db7d00356d4f55385fc69bfb2  mnptu-provider-null_3.1.0_darwin_arm64.zip
+a6576c81adc70326e4e1c999c04ad9ca37113a6e925aefab4765e5a5198efa7e  mnptu-provider-null_3.1.0_freebsd_386.zip
+5f9200bf708913621d0f6514179d89700e9aa3097c77dac730e8ba6e5901d521  mnptu-provider-null_3.1.0_freebsd_amd64.zip
+fc39cc1fe71234a0b0369d5c5c7f876c71b956d23d7d6f518289737a001ba69b  mnptu-provider-null_3.1.0_freebsd_arm.zip
+c797744d08a5307d50210e0454f91ca4d1c7621c68740441cf4579390452321d  mnptu-provider-null_3.1.0_linux_386.zip
+53e30545ff8926a8e30ad30648991ca8b93b6fa496272cd23b26763c8ee84515  mnptu-provider-null_3.1.0_linux_amd64.zip
+cecb6a304046df34c11229f20a80b24b1603960b794d68361a67c5efe58e62b8  mnptu-provider-null_3.1.0_linux_arm64.zip
+e1371aa1e502000d9974cfaff5be4cfa02f47b17400005a16f14d2ef30dc2a70  mnptu-provider-null_3.1.0_linux_arm.zip
+a8a42d13346347aff6c63a37cda9b2c6aa5cc384a55b2fe6d6adfa390e609c53  mnptu-provider-null_3.1.0_windows_386.zip
+02a1675fd8de126a00460942aaae242e65ca3380b5bb192e8773ef3da9073fd2  mnptu-provider-null_3.1.0_windows_amd64.zip
 `
 
 // testHashicorpSignatureGoodBase64 is a signature of testProviderShaSums signed with
@@ -732,12 +732,12 @@ func TestEntityString(t *testing.T) {
 		{
 			"testAuthorEccKeyArmor",
 			testReadArmoredEntity(t, testAuthorEccKeyArmor),
-			"6540DDA046E5E135 Terraform Testing <terraform+testing@hashicorp.com>",
+			"6540DDA046E5E135 mnptu Testing <mnptu+testing@hashicorp.com>",
 		},
 		{
 			"testAuthorKeyArmor",
 			testReadArmoredEntity(t, testAuthorKeyArmor),
-			"37A6AB3BCF2C170A Terraform Testing (plugin/discovery/) <terraform+testing@hashicorp.com>",
+			"37A6AB3BCF2C170A mnptu Testing (plugin/discovery/) <mnptu+testing@hashicorp.com>",
 		},
 		{
 			"HashicorpPublicKey",
@@ -747,7 +747,7 @@ func TestEntityString(t *testing.T) {
 		{
 			"HashicorpPartnersKey",
 			testReadArmoredEntity(t, HashicorpPartnersKey),
-			"7D72D4268E4660FC HashiCorp Security (Terraform Partner Signing) <security+terraform@hashicorp.com>",
+			"7D72D4268E4660FC HashiCorp Security (mnptu Partner Signing) <security+mnptu@hashicorp.com>",
 		},
 	}
 

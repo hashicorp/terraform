@@ -60,7 +60,7 @@ func TestReadPathOrContents_TildePath(t *testing.T) {
 
 func TestRead_PathNoPermission(t *testing.T) {
 	// This skip condition is intended to get this test out of the way of users
-	// who are building and testing Terraform from within a Linux-based Docker
+	// who are building and testing mnptu from within a Linux-based Docker
 	// container, where it is common for processes to be running as effectively
 	// root within the container.
 	if u, err := user.Current(); err == nil && u.Uid == "0" {

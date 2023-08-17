@@ -1,6 +1,6 @@
-terraform {
+mnptu {
   backend "foo" {
-    path = "relative/path/to/terraform.tfstate"
+    path = "relative/path/to/mnptu.tfstate"
   }
 }
 

@@ -7,7 +7,7 @@
           "address": "tfcoremock_set.set",
           "mode": "managed",
           "name": "set",
-          "provider_name": "registry.terraform.io/hashicorp/tfcoremock",
+          "provider_name": "registry.mnptu.io/hashicorp/tfcoremock",
           "schema_version": 0,
           "sensitive_values": {
             "set": [

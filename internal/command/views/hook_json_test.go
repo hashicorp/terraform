@@ -9,11 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/terminal"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/terminal"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -106,7 +106,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Creating...",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_start",
 			"hook": map[string]interface{}{
 				"action":   string("create"),
@@ -116,7 +116,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Provisioning with 'local-exec'...",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "provision_start",
 			"hook": map[string]interface{}{
 				"provisioner": "local-exec",
@@ -126,7 +126,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": `test_instance.boop: (local-exec): Executing: ["/bin/sh" "-c" "touch /etc/motd"]`,
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "provision_progress",
 			"hook": map[string]interface{}{
 				"output":      `Executing: ["/bin/sh" "-c" "touch /etc/motd"]`,
@@ -137,7 +137,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: (local-exec) Provisioning complete",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "provision_complete",
 			"hook": map[string]interface{}{
 				"provisioner": "local-exec",
@@ -147,7 +147,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Still creating... [10s elapsed]",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_progress",
 			"hook": map[string]interface{}{
 				"action":          string("create"),
@@ -158,7 +158,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Still creating... [20s elapsed]",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_progress",
 			"hook": map[string]interface{}{
 				"action":          string("create"),
@@ -169,7 +169,7 @@ func TestJSONHook_create(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Creation complete after 22s [id=test]",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_complete",
 			"hook": map[string]interface{}{
 				"action":          string("create"),
@@ -237,7 +237,7 @@ func TestJSONHook_errors(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Destroying...",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_start",
 			"hook": map[string]interface{}{
 				"action":   string("delete"),
@@ -247,7 +247,7 @@ func TestJSONHook_errors(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: (local-exec) Provisioning errored",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "provision_errored",
 			"hook": map[string]interface{}{
 				"provisioner": "local-exec",
@@ -257,7 +257,7 @@ func TestJSONHook_errors(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "test_instance.boop: Destruction errored after 0s",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "apply_errored",
 			"hook": map[string]interface{}{
 				"action":          string("delete"),
@@ -305,7 +305,7 @@ func TestJSONHook_refresh(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "data.test_data_source.beep: Refreshing state... [id=honk]",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "refresh_start",
 			"hook": map[string]interface{}{
 				"resource": wantResource,
@@ -316,7 +316,7 @@ func TestJSONHook_refresh(t *testing.T) {
 		{
 			"@level":   "info",
 			"@message": "data.test_data_source.beep: Refresh complete [id=honk]",
-			"@module":  "terraform.ui",
+			"@module":  "mnptu.ui",
 			"type":     "refresh_complete",
 			"hook": map[string]interface{}{
 				"resource": wantResource,
@@ -329,13 +329,13 @@ func TestJSONHook_refresh(t *testing.T) {
 	testJSONViewOutputEquals(t, done(t).Stdout(), want)
 }
 
-func testHookReturnValues(t *testing.T, action terraform.HookAction, err error) {
+func testHookReturnValues(t *testing.T, action mnptu.HookAction, err error) {
 	t.Helper()
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if action != terraform.HookActionContinue {
+	if action != mnptu.HookActionContinue {
 		t.Fatalf("Expected hook to continue, given: %#v", action)
 	}
 }

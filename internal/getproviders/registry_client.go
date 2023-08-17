@@ -20,17 +20,17 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
-	svchost "github.com/hashicorp/terraform-svchost"
-	svcauth "github.com/hashicorp/terraform-svchost/auth"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	svcauth "github.com/hashicorp/mnptu-svchost/auth"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/httpclient"
-	"github.com/hashicorp/terraform/internal/logging"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/httpclient"
+	"github.com/hashicorp/mnptu/internal/logging"
+	"github.com/hashicorp/mnptu/version"
 )
 
 const (
-	terraformVersionHeader = "X-Terraform-Version"
+	mnptuVersionHeader = "X-mnptu-Version"
 
 	// registryDiscoveryRetryEnvName is the name of the environment variable that
 	// can be configured to customize number of retries for module and provider
@@ -167,7 +167,7 @@ func (c *registryClient) ProviderVersions(ctx context.Context, addr addrs.Provid
 //     under the assumption that the caller previously checked that the provider
 //     and version are valid.
 //   - ErrProtocolNotSupported if the requested provider version's protocols are not
-//     supported by this version of terraform.
+//     supported by this version of mnptu.
 //   - ErrUnauthorized if the registry responds with 401 or 403 status codes
 //   - ErrQueryFailed for any other operational problem.
 func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provider, version Version, target Platform) (PackageMeta, error) {
@@ -250,7 +250,7 @@ func (c *registryClient) PackageMeta(ctx context.Context, provider addrs.Provide
 	}
 	protoVersions.Sort()
 
-	// Verify that this version of terraform supports the providers' protocol
+	// Verify that this version of mnptu supports the providers' protocol
 	// version(s)
 	if len(protoVersions) > 0 {
 		supportedProtos := MeetingConstraints(SupportedPluginProtocols)
@@ -410,7 +410,7 @@ func (c *registryClient) addHeadersToRequest(req *http.Request) {
 	if c.creds != nil {
 		c.creds.PrepareRequest(req)
 	}
-	req.Header.Set(terraformVersionHeader, version.String())
+	req.Header.Set(mnptuVersionHeader, version.String())
 }
 
 func (c *registryClient) errQueryFailed(provider addrs.Provider, err error) error {

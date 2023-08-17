@@ -6,11 +6,11 @@ package configs
 import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hcldec"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// Backend represents a "backend" block inside a "terraform" block in a module
+// Backend represents a "backend" block inside a "mnptu" block in a module
 // or file.
 type Backend struct {
 	Type   string

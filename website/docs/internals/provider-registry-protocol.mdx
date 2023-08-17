@@ -2,101 +2,101 @@
 page_title: Provider Registry Protocol
 description: |-
   The provider registry protocol is implemented by a host intending to be the
-  origin host for one or more Terraform providers, specifying which providers
+  origin host for one or more mnptu providers, specifying which providers
   are available and where to find their distribution packages.
 ---
 
 # Provider Registry Protocol
 
--> Third-party provider registries are supported only in Terraform CLI 0.13 and later. Prior versions do not support this protocol.
+-> Third-party provider registries are supported only in mnptu CLI 0.13 and later. Prior versions do not support this protocol.
 
-The provider registry protocol is what Terraform CLI uses to discover metadata
+The provider registry protocol is what mnptu CLI uses to discover metadata
 about providers available for installation and to locate the distribution
 packages for a selected provider.
 
 The primary implementation of this protocol is the public
-[Terraform Registry](https://registry.terraform.io/) at `registry.terraform.io`.
+[mnptu Registry](https://registry.mnptu.io/) at `registry.mnptu.io`.
 By writing and deploying your own implementation of this protocol, you can
 create a separate _origin registry_ to distribute your own providers, as an
-alternative to publishing them on the public Terraform Registry.
+alternative to publishing them on the public mnptu Registry.
 
 This page describes the provider _registry_ protocol, which is the protocol
 for finding providers available for installation. It _doesn't_ describe the
-API that provider plugins themselves implement to serve requests from Terraform
-CLI at runtime. For more information on the provider API, see the Terraform
+API that provider plugins themselves implement to serve requests from mnptu
+CLI at runtime. For more information on the provider API, see the mnptu
 SDK documentation.
 
-The public Terraform Registry implements a superset of the API described on
+The public mnptu Registry implements a superset of the API described on
 this page, in order to capture additional information used in the registry UI.
 Third-party implementations should not include those extensions because they
 may change in future without notice.
 
 ## Provider Addresses
 
-Each Terraform provider has an associated address which uniquely identifies it
-within Terraform. A provider address has the syntax `hostname/namespace/type`,
+Each mnptu provider has an associated address which uniquely identifies it
+within mnptu. A provider address has the syntax `hostname/namespace/type`,
 where:
 
 * `hostname` is the registry host that the provider is considered to have
-  originated from, and the default location Terraform will consult for
+  originated from, and the default location mnptu will consult for
   information about the provider
-  [unless overridden in the CLI configuration](/terraform/cli/config/config-file#provider-installation).
+  [unless overridden in the CLI configuration](/mnptu/cli/config/config-file#provider-installation).
 * `namespace` is the name of a namespace, unique on a particular hostname, that
   can contain one or more providers that are somehow related. On the public
-  Terraform Registry the "namespace" represents the organization that is
+  mnptu Registry the "namespace" represents the organization that is
   packaging and distributing the provider.
 * `type` is the provider type, like "azurerm", "aws", "google", "dns", etc.
   A provider type is unique within a particular hostname and namespace.
 
 The `hostname/` portion of a provider address (including its slash delimiter)
-is optional, and if omitted defaults to `registry.terraform.io/`.
+is optional, and if omitted defaults to `registry.mnptu.io/`.
 
 For example:
 
-* `hashicorp/aws` is a shorthand for `registry.terraform.io/hashicorp/aws`,
+* `hashicorp/aws` is a shorthand for `registry.mnptu.io/hashicorp/aws`,
   which is the official AWS provider published by HashiCorp.
-* `example/foo` is a shorthand for `registry.terraform.io/example/foo`, which
+* `example/foo` is a shorthand for `registry.mnptu.io/example/foo`, which
   is a hypothetical third-party provider published on the public
-  Terraform Registry.
+  mnptu Registry.
 * `example.com/bar/baz` is a hypothetical third-party provider published at a
   third-party provider registry on `example.com`.
 
 If you intend only to share a provider you've developed for use by all
-Terraform users, please consider publishing it into the public
-[Terraform Registry](https://registry.terraform.io/), which will make your
+mnptu users, please consider publishing it into the public
+[mnptu Registry](https://registry.mnptu.io/), which will make your
 provider discoverable. You only need to implement this provider registry
 protocol if you wish to publish providers whose addresses include a different
 hostname that is under your control.
 
-Terraform uses the full address (after normalization to always include a
+mnptu uses the full address (after normalization to always include a
 hostname) as its global identifier for providers internally, and so it's
 important to note that re-uploading the `hashicorp/azurerm` provider into
-another namespace or publishing it on a different hostname will cause Terraform
+another namespace or publishing it on a different hostname will cause mnptu
 to see it as an entirely separate provider that will _not_ be usable by modules
 that declare a dependency on `hashicorp/azurerm`. If your goal is to create
 an alternative local distribution source for an existing provider -- that is,
 a _mirror_ of the provider -- refer to
-[the provider installation method configuration](/terraform/cli/config/config-file#provider-installation)
+[the provider installation method configuration](/mnptu/cli/config/config-file#provider-installation)
 instead.
 
 ## Provider Versions
 
 Each distinct provider address has associated with it a set of versions, each
-of which has an associated version number. Terraform assumes version numbers
+of which has an associated version number. mnptu assumes version numbers
 follow the [Semantic Versioning 2.0](https://semver.org/) conventions, with
 the schema and behavior of the provider as documented from the perspective of
-an end-user of Terraform serving as the "public API".
+an end-user of mnptu serving as the "public API".
 
 All available versions for a particular provider address are considered to be
-the same provider by Terraform. Each Terraform configuration selects only one
+the same provider by mnptu. Each mnptu configuration selects only one
 version of each provider for use in the entire configuration, so the version
 constraints across all modules are considered together for the purposes of
 version selection.
 
 ## Service Discovery
 
-The providers protocol begins with Terraform CLI using
-[Terraform's remote service discovery protocol](/terraform/internals/remote-service-discovery),
+The providers protocol begins with mnptu CLI using
+[mnptu's remote service discovery protocol](/mnptu/internals/remote-service-discovery),
 with the hostname in the provider address acting as the "User-facing Hostname".
 
 The service identifier for the provider registry protocol is `providers.v1`.
@@ -108,22 +108,22 @@ the provider registry protocol might contain the following:
 
 ```json
 {
-  "providers.v1": "/terraform/providers/v1/"
+  "providers.v1": "/mnptu/providers/v1/"
 }
 ```
 
-If the given URL is a relative URL then Terraform will interpret it as relative
+If the given URL is a relative URL then mnptu will interpret it as relative
 to the discovery document itself. The specific provider registry protocol
 endpoints are defined as URLs relative to the given base URL, and so the
 specified base URL should generally end with a slash to ensure that those
 relative paths will be resolved as expected.
 
 The following sections describe the various operations that a provider
-registry must implement to be compatible with Terraform CLI's provider
+registry must implement to be compatible with mnptu CLI's provider
 installer. The indicated URLs are all relative to the URL resulting from
 service discovery, as described above. We use the current URLs on
-Terraform Registry as working examples, assuming that the caller already
-performed service discovery on `registry.terraform.io` to learn the base URL.
+mnptu Registry as working examples, assuming that the caller already
+performed service discovery on `registry.mnptu.io` to learn the base URL.
 
 The URLs are shown with the convention that a path portion with a colon `:`
 prefix is a placeholder for a dynamically-selected value, while all other
@@ -149,7 +149,7 @@ particular provider.
 ### Sample Request
 
 ```
-curl 'https://registry.terraform.io/v1/providers/hashicorp/random/versions'
+curl 'https://registry.mnptu.io/v1/providers/hashicorp/random/versions'
 ```
 
 ### Sample Response
@@ -190,29 +190,29 @@ with the following properties:
 * `version` (required): the version number this object is describing, using
   the semantic versioning string notation. `version` must be unique across
   all objects in the response.
-* `protocols` (recommended): an array of Terraform provider API versions that
+* `protocols` (recommended): an array of mnptu provider API versions that
   this version supports, each given in `MAJOR.MINOR` format where each major
   version appears only once and the given minor version is the highest minor
   version supported. For example, `5.1` means that the provider supports both
   protocol `5.0` and protocol `5.1`.
 
-  Terraform uses this information, when available, to provide hints to users
+  mnptu uses this information, when available, to provide hints to users
   about upgrading or downgrading their version of a particular provider to
-  work with their current version of Terraform, if their currently-selected
+  work with their current version of mnptu, if their currently-selected
   versions are not compatible.
 
   Which API versions are supported is, for most providers, decided by which
-  version of the Terraform SDK they are built against. Consult the Terraform
+  version of the mnptu SDK they are built against. Consult the mnptu
   SDK documentation for more information.
 
-  Only Terraform 0.13 and later support third-party provider registries and
-  that Terraform version requires API version `5.0` or later, so in practice
+  Only mnptu 0.13 and later support third-party provider registries and
+  that mnptu version requires API version `5.0` or later, so in practice
   it isn't useful to list major versions 4 or earlier in a third-party
   provider registry.
 * `platforms` (recommended): an array of objects describing platforms that have
   packages available for this version.
 
-  Terraform may use this information, when available, to provide hints to
+  mnptu may use this information, when available, to provide hints to
   users about upgrading or downgrading their version of a particular provider
   for compatibility with their current platform.
 
@@ -229,7 +229,7 @@ This operation returns the download URL of and associated metadata about the
 distribution package for a particular version of a provider for a particular
 operating system and architecture.
 
-Terraform CLI uses this operation after it has selected the newest available
+mnptu CLI uses this operation after it has selected the newest available
 version matching the configured version constraints, in order to find the zip
 archive containing the plugin itself.
 
@@ -253,7 +253,7 @@ archive containing the plugin itself.
 ### Sample Request
 
 ```
-curl 'https://registry.terraform.io/v1/providers/hashicorp/random/2.0.0/download/linux/amd64'
+curl 'https://registry.mnptu.io/v1/providers/hashicorp/random/2.0.0/download/linux/amd64'
 ```
 
 ### Sample Response
@@ -263,10 +263,10 @@ curl 'https://registry.terraform.io/v1/providers/hashicorp/random/2.0.0/download
   "protocols": ["4.0", "5.1"],
   "os": "linux",
   "arch": "amd64",
-  "filename": "terraform-provider-random_2.0.0_linux_amd64.zip",
-  "download_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_linux_amd64.zip",
-  "shasums_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_SHA256SUMS",
-  "shasums_signature_url": "https://releases.hashicorp.com/terraform-provider-random/2.0.0/terraform-provider-random_2.0.0_SHA256SUMS.sig",
+  "filename": "mnptu-provider-random_2.0.0_linux_amd64.zip",
+  "download_url": "https://releases.hashicorp.com/mnptu-provider-random/2.0.0/mnptu-provider-random_2.0.0_linux_amd64.zip",
+  "shasums_url": "https://releases.hashicorp.com/mnptu-provider-random/2.0.0/mnptu-provider-random_2.0.0_SHA256SUMS",
+  "shasums_signature_url": "https://releases.hashicorp.com/mnptu-provider-random/2.0.0/mnptu-provider-random_2.0.0_SHA256SUMS.sig",
   "shasum": "5f9c7aa76b7c34d722fc9123208e26b22d60440cb47150dd04733b9b94f4541a",
   "signing_keys": {
     "gpg_public_keys": [
@@ -286,12 +286,12 @@ curl 'https://registry.terraform.io/v1/providers/hashicorp/random/2.0.0/download
 
 A successful result is a JSON object with the following properties:
 
-* `protocols` (required): an array of Terraform provider API versions that
+* `protocols` (required): an array of mnptu provider API versions that
   the provider supports, in the same format as for
   [List Available Versions](#list-available-versions).
 
   While this property is optional when listing available options, it is
-  _required_ for describing an individual provider package so that Terraform
+  _required_ for describing an individual provider package so that mnptu
   CLI can avoid downloading a package that will not be compatible with it.
 
 * `os` (required): this must echo back the `os` parameter from the
@@ -301,14 +301,14 @@ A successful result is a JSON object with the following properties:
   request. 
 
 * `filename` (required): the filename for this provider's zip archive as
-  recorded in the "shasums" document, so that Terraform CLI can determine which
+  recorded in the "shasums" document, so that mnptu CLI can determine which
   of the given checksums should be used for this specific package.
 
-* `download_url` (required): a URL from which Terraform can retrieve the
+* `download_url` (required): a URL from which mnptu can retrieve the
   provider's zip archive. If this is a relative URL then it will be resolved
   relative to the URL that returned the containing JSON object.
 
-* `shasums_url` (required): a URL from which Terraform can retrieve a text
+* `shasums_url` (required): a URL from which mnptu can retrieve a text
   document recording expected SHA256 checksums for this package and possibly
   other packages for the same provider version on other platforms.
 
@@ -316,7 +316,7 @@ A successful result is a JSON object with the following properties:
   command available on many Unix systems, with one entry recording the
   same filename given in the `filename` property (case sensitive).
 
-* `shasums_signature_url` (required): a URL from which Terraform can retrieve
+* `shasums_signature_url` (required): a URL from which mnptu can retrieve
   a binary, detached GPG signature for the document at `shasums_url`, signed
   by one of the keys indicated in the `signing_keys` property.
   
@@ -339,6 +339,6 @@ A successful result is a JSON object with the following properties:
       associated with this GPG key.
 
 Return `404 Not Found` to signal that the given provider version isn't
-available for the requested operating system and/or architecture. Terraform
+available for the requested operating system and/or architecture. mnptu
 CLI will only attempt to download versions that it has previously seen in
 response to [List Available Versions](#list-available-versions).

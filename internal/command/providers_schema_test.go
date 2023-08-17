@@ -12,9 +12,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/mnptu"
 	"github.com/mitchellh/cli"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -75,7 +75,7 @@ func TestProvidersSchema_output(t *testing.T) {
 			// flush the init output from the mock ui
 			ui.OutputWriter.Reset()
 
-			// `terraform provider schemas` command
+			// `mnptu provider schemas` command
 			pc := &ProvidersSchemaCommand{Meta: m}
 			if code := pc.Run([]string{"-json"}); code != 0 {
 				t.Fatalf("wrong exit status %d; want 0\nstderr: %s", code, ui.ErrorWriter.String())
@@ -116,7 +116,7 @@ type providerSchema struct {
 
 // testProvider returns a mock provider that is configured for basic
 // operation with the configuration in testdata/providers-schema.
-func providersSchemaFixtureProvider() *terraform.MockProvider {
+func providersSchemaFixtureProvider() *mnptu.MockProvider {
 	p := testProvider()
 	p.GetProviderSchemaResponse = providersSchemaFixtureSchema()
 	return p

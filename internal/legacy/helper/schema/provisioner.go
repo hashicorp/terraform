@@ -10,15 +10,15 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
-// Provisioner represents a resource provisioner in Terraform and properly
+// Provisioner represents a resource provisioner in mnptu and properly
 // implements all of the ResourceProvisioner API.
 //
 // This higher level structure makes it much easier to implement a new or
-// custom provisioner for Terraform.
+// custom provisioner for mnptu.
 //
 // The function callbacks for this structure are all passed a context object.
 // This context object has a number of pre-defined values that can be accessed
@@ -46,7 +46,7 @@ type Provisioner struct {
 
 	// ValidateFunc is a function for extended validation. This is optional
 	// and should be used when individual field validation is not enough.
-	ValidateFunc func(*terraform.ResourceConfig) ([]string, []error)
+	ValidateFunc func(*mnptu.ResourceConfig) ([]string, []error)
 
 	stopCtx       context.Context
 	stopCtxCancel context.CancelFunc
@@ -66,7 +66,7 @@ var (
 	// Guaranteed to never be nil.
 	ProvConfigDataKey = contextKey("provider config data")
 
-	// This returns a terraform.UIOutput. Guaranteed to never be nil.
+	// This returns a mnptu.UIOutput. Guaranteed to never be nil.
 	ProvOutputKey = contextKey("provider output")
 
 	// This returns the raw InstanceState passed to Apply. Guaranteed to
@@ -117,28 +117,28 @@ func (p *Provisioner) stopInit() {
 	p.stopCtx, p.stopCtxCancel = context.WithCancel(context.Background())
 }
 
-// Stop implementation of terraform.ResourceProvisioner interface.
+// Stop implementation of mnptu.ResourceProvisioner interface.
 func (p *Provisioner) Stop() error {
 	p.stopOnce.Do(p.stopInit)
 	p.stopCtxCancel()
 	return nil
 }
 
-// GetConfigSchema implementation of terraform.ResourceProvisioner interface.
+// GetConfigSchema implementation of mnptu.ResourceProvisioner interface.
 func (p *Provisioner) GetConfigSchema() (*configschema.Block, error) {
 	return schemaMap(p.Schema).CoreConfigSchema(), nil
 }
 
-// Apply implementation of terraform.ResourceProvisioner interface.
+// Apply implementation of mnptu.ResourceProvisioner interface.
 func (p *Provisioner) Apply(
-	o terraform.UIOutput,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) error {
+	o mnptu.UIOutput,
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig) error {
 	var connData, configData *ResourceData
 
 	{
 		// We first need to turn the connection information into a
-		// terraform.ResourceConfig so that we can use that type to more
+		// mnptu.ResourceConfig so that we can use that type to more
 		// easily build a ResourceData structure. We do this by simply treating
 		// the conn info as configuration input.
 		raw := make(map[string]interface{})
@@ -148,7 +148,7 @@ func (p *Provisioner) Apply(
 			}
 		}
 
-		c := terraform.NewResourceConfigRaw(raw)
+		c := mnptu.NewResourceConfigRaw(raw)
 		sm := schemaMap(p.ConnSchema)
 		diff, err := sm.Diff(nil, c, nil, nil, true)
 		if err != nil {
@@ -183,8 +183,8 @@ func (p *Provisioner) Apply(
 	return p.ApplyFunc(ctx)
 }
 
-// Validate implements the terraform.ResourceProvisioner interface.
-func (p *Provisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+// Validate implements the mnptu.ResourceProvisioner interface.
+func (p *Provisioner) Validate(c *mnptu.ResourceConfig) (ws []string, es []error) {
 	if err := p.InternalValidate(); err != nil {
 		return nil, []error{fmt.Errorf(
 			"Internal validation of the provisioner failed! This is always a bug\n"+

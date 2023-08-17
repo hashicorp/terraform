@@ -4,9 +4,9 @@
 syntax = "proto3";
 package tfplan;
 
-// For Terraform's own parsing, the proto stub types go into an internal Go
-// package. The public API is in github.com/hashicorp/terraform/plans/planfile .
-option go_package = "github.com/hashicorp/terraform/internal/plans/internal/planproto";
+// For mnptu's own parsing, the proto stub types go into an internal Go
+// package. The public API is in github.com/hashicorp/mnptu/plans/planfile .
+option go_package = "github.com/hashicorp/mnptu/internal/plans/internal/planproto";
 
 // Plan is the root message type for the tfplan file
 message Plan {
@@ -22,9 +22,9 @@ message Plan {
 
     // The mode that was active when this plan was created.
     //
-    // This is saved only for UI purposes, so that Terraform can tailor its
+    // This is saved only for UI purposes, so that mnptu can tailor its
     // rendering of the plan depending on the mode. This must never be used to
-    // make decisions in Terraform Core during the applying of a plan.
+    // make decisions in mnptu Core during the applying of a plan.
     Mode ui_mode = 17;
 
     // Errored is true for any plan whose creation was interrupted by an
@@ -42,7 +42,7 @@ message Plan {
     repeated ResourceInstanceChange resource_changes = 3;
 
     // An unordered set of detected drift: changes made to resources outside of
-    // Terraform, computed by comparing the previous run's state to the state
+    // mnptu, computed by comparing the previous run's state to the state
     // after refresh.
     repeated ResourceInstanceChange resource_drift = 18;
 
@@ -70,8 +70,8 @@ message Plan {
     // conclusion about what action a particular resource instance needs.
     repeated string force_replace_addrs = 16;
 
-    // The version string for the Terraform binary that created this plan.
-    string terraform_version = 14;
+    // The version string for the mnptu binary that created this plan.
+    string mnptu_version = 14;
 
     // Backend is a description of the backend configuration and other related
     // settings at the time the plan was created.
@@ -183,14 +183,14 @@ message ResourceInstanceChange {
     // this resource instance was tracked during the previous apply operation.
     //
     // This is populated only if it would be different from addr due to
-    // Terraform having reacted to refactoring annotations in the configuration.
+    // mnptu having reacted to refactoring annotations in the configuration.
     // If empty, the previous run address is the same as the current address.
     string prev_run_addr = 14;
 
     // NOTE: Earlier versions of this format had fields 1 through 6 describing
     // various indivdual parts of "addr". We're now using our standard compact
     // string representation to capture the same information. We don't support
-    // preserving plan files from one Terraform version to the next, so we
+    // preserving plan files from one mnptu version to the next, so we
     // no longer declare nor accept those fields.
 
     // deposed_key, if set, indicates that this change applies to a deposed

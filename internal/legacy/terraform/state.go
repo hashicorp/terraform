@@ -1,7 +1,7 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"bufio"
@@ -25,13 +25,13 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/tfdiags"
-	tfversion "github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
+	tfversion "github.com/hashicorp/mnptu/version"
 	"github.com/mitchellh/copystructure"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -49,7 +49,7 @@ var rootModulePath = []string{"root"}
 // have a redundant "root" label at the start of it) into an
 // addrs.ModuleInstance representing the same module.
 //
-// For legacy reasons, different parts of Terraform disagree about whether the
+// For legacy reasons, different parts of mnptu disagree about whether the
 // root module has the path []string{} or []string{"root"}, and so this
 // function accepts both and trims off the "root". An implication of this is
 // that it's not possible to actually have a module call in the root module
@@ -79,15 +79,15 @@ func normalizeModulePath(p []string) addrs.ModuleInstance {
 	return ret
 }
 
-// State keeps track of a snapshot state-of-the-world that Terraform
+// State keeps track of a snapshot state-of-the-world that mnptu
 // can use to keep track of what real world resources it is actually
 // managing.
 type State struct {
 	// Version is the state file protocol version.
 	Version int `json:"version"`
 
-	// TFVersion is the version of Terraform that wrote this state.
-	TFVersion string `json:"terraform_version,omitempty"`
+	// TFVersion is the version of mnptu that wrote this state.
+	TFVersion string `json:"mnptu_version,omitempty"`
 
 	// Serial is incremented on any operation that modifies
 	// the State file. It is used to detect potentially conflicting
@@ -189,7 +189,7 @@ func (s *State) addModule(path addrs.ModuleInstance) *ModuleState {
 	legacyPath[0] = "root"
 	for i, step := range path {
 		if step.InstanceKey != addrs.NoKey {
-			// FIXME: Once the rest of Terraform is ready to use count and
+			// FIXME: Once the rest of mnptu is ready to use count and
 			// for_each, remove all of this and just write the addrs.ModuleInstance
 			// value itself into the ModuleState.
 			panic("state cannot represent modules with count or for_each keys")
@@ -284,8 +284,8 @@ func (s *State) IsRemote() bool {
 
 // Validate validates the integrity of this state file.
 //
-// Certain properties of the statefile are expected by Terraform in order
-// to behave properly. The core of Terraform will assume that once it
+// Certain properties of the statefile are expected by mnptu in order
+// to behave properly. The core of mnptu will assume that once it
 // receives a State structure that it has been validated. This validation
 // check should be called to ensure that.
 //
@@ -299,7 +299,7 @@ func (s *State) Validate() error {
 
 	// !!!! FOR DEVELOPERS !!!!
 	//
-	// Any errors returned from this Validate function will BLOCK TERRAFORM
+	// Any errors returned from this Validate function will BLOCK mnptu
 	// from loading a state file. Therefore, this should only contain checks
 	// that are only resolvable through manual intervention.
 	//
@@ -548,7 +548,7 @@ const (
 //
 // This is a simple check using the state's serial, and is thus only as
 // reliable as the serial itself. In the normal case, only one state
-// exists for a given combination of lineage/serial, but Terraform
+// exists for a given combination of lineage/serial, but mnptu
 // does not guarantee this and so the result of this method should be
 // used with care.
 //
@@ -618,9 +618,9 @@ func (s *State) DeepCopy() *State {
 	return copy.(*State)
 }
 
-// FromFutureTerraform checks if this state was written by a Terraform
+// FromFuturemnptu checks if this state was written by a mnptu
 // version from the future.
-func (s *State) FromFutureTerraform() bool {
+func (s *State) FromFuturemnptu() bool {
 	s.Lock()
 	defer s.Unlock()
 
@@ -961,7 +961,7 @@ func (s *OutputState) deepcopy() *OutputState {
 }
 
 // ModuleState is used to track all the state relevant to a single
-// module. Previous to Terraform 0.3, all state belonged to the "root"
+// module. Previous to mnptu 0.3, all state belonged to the "root"
 // module.
 type ModuleState struct {
 	// Path is the import path from the root module. Modules imports are
@@ -987,12 +987,12 @@ type ModuleState struct {
 	// existing to remain intact. For example: an module may depend
 	// on a VPC ID given by an aws_vpc resource.
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a module that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on"`
@@ -1429,7 +1429,7 @@ func ParseResourceStateKey(k string) (*ResourceStateKey, error) {
 // Extra is just extra data that a provider can return that we store
 // for later, but is not exposed in any way to the user.
 type ResourceState struct {
-	// This is filled in and managed by Terraform, and is the resource
+	// This is filled in and managed by mnptu, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
 	Type string `json:"type"`
@@ -1439,12 +1439,12 @@ type ResourceState struct {
 	// depend on a subnet (which itself might depend on a VPC, and so
 	// on).
 	//
-	// Terraform uses this information to build valid destruction
+	// mnptu uses this information to build valid destruction
 	// orders and to warn the user if they're destroying a resource that
 	// another resource depends on.
 	//
 	// Things can be put into this list that may not be managed by
-	// Terraform. If Terraform doesn't find a matching ID in the
+	// mnptu. If mnptu doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on"`
@@ -1616,22 +1616,22 @@ func (s *ResourceState) String() string {
 // InstanceState is used to track the unique state information belonging
 // to a given instance.
 type InstanceState struct {
-	// A unique ID for this resource. This is opaque to Terraform
+	// A unique ID for this resource. This is opaque to mnptu
 	// and is only meant as a lookup mechanism for the providers.
 	ID string `json:"id"`
 
 	// Attributes are basic information about the resource. Any keys here
-	// are accessible in variable format within Terraform configurations:
+	// are accessible in variable format within mnptu configurations:
 	// ${resourcetype.name.attribute}.
 	Attributes map[string]string `json:"attributes"`
 
 	// Ephemeral is used to store any state associated with this instance
-	// that is necessary for the Terraform run to complete, but is not
+	// that is necessary for the mnptu run to complete, but is not
 	// persisted to a state file.
 	Ephemeral EphemeralState `json:"-"`
 
 	// Meta is a simple K/V map that is persisted to the State but otherwise
-	// ignored by Terraform core. It's meant to be used for accounting by
+	// ignored by mnptu core. It's meant to be used for accounting by
 	// external client code. The value here must only contain Go primitives
 	// and collections.
 	Meta map[string]interface{} `json:"meta"`
@@ -1922,10 +1922,10 @@ func testForV0State(buf *bufio.Reader) error {
 		return fmt.Errorf("Failed to check for magic bytes: %v", err)
 	}
 	if string(start) == "tfstate" {
-		return fmt.Errorf("Terraform 0.7 no longer supports upgrading the binary state\n" +
-			"format which was used prior to Terraform 0.3. Please upgrade\n" +
-			"this state file using Terraform 0.6.16 prior to using it with\n" +
-			"Terraform 0.7.")
+		return fmt.Errorf("mnptu 0.7 no longer supports upgrading the binary state\n" +
+			"format which was used prior to mnptu 0.3. Please upgrade\n" +
+			"this state file using mnptu 0.6.16 prior to using it with\n" +
+			"mnptu 0.7.")
 	}
 
 	return nil
@@ -2011,7 +2011,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 		result = v3State
 	default:
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("mnptu %s does not support state version %d, please update.",
 			tfversion.SemVer.String(), versionIdentifier.Version)
 	}
 
@@ -2055,7 +2055,7 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("mnptu %s does not support state version %d, please update.",
 			tfversion.SemVer.String(), state.Version)
 	}
 
@@ -2064,9 +2064,9 @@ func ReadStateV2(jsonBytes []byte) (*State, error) {
 		if _, err := version.NewVersion(state.TFVersion); err != nil {
 			return nil, fmt.Errorf(
 				"State contains invalid version: %s\n\n"+
-					"Terraform validates the version format prior to writing it. This\n"+
+					"mnptu validates the version format prior to writing it. This\n"+
 					"means that this is invalid of the state becoming corrupted through\n"+
-					"some external means. Please manually modify the Terraform version\n"+
+					"some external means. Please manually modify the mnptu version\n"+
 					"field to be a proper semantic version.",
 				state.TFVersion)
 		}
@@ -2090,7 +2090,7 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
 	if state.Version > StateVersion {
-		return nil, fmt.Errorf("Terraform %s does not support state version %d, please update.",
+		return nil, fmt.Errorf("mnptu %s does not support state version %d, please update.",
 			tfversion.SemVer.String(), state.Version)
 	}
 
@@ -2099,9 +2099,9 @@ func ReadStateV3(jsonBytes []byte) (*State, error) {
 		if _, err := version.NewVersion(state.TFVersion); err != nil {
 			return nil, fmt.Errorf(
 				"State contains invalid version: %s\n\n"+
-					"Terraform validates the version format prior to writing it. This\n"+
+					"mnptu validates the version format prior to writing it. This\n"+
 					"means that this is invalid of the state becoming corrupted through\n"+
-					"some external means. Please manually modify the Terraform version\n"+
+					"some external means. Please manually modify the mnptu version\n"+
 					"field to be a proper semantic version.",
 				state.TFVersion)
 		}
@@ -2153,7 +2153,7 @@ func WriteState(d *State, dst io.Writer) error {
 		if _, err := version.NewVersion(d.TFVersion); err != nil {
 			return fmt.Errorf(
 				"Error writing state, invalid version: %s\n\n"+
-					"The Terraform version when writing the state must be a semantic\n"+
+					"The mnptu version when writing the state must be a semantic\n"+
 					"version.",
 				d.TFVersion)
 		}
@@ -2251,7 +2251,7 @@ const stateValidateErrMultiModule = `
 Multiple modules with the same path: %s
 
 This means that there are multiple entries in the "modules" field
-in your state file that point to the same module. This will cause Terraform
+in your state file that point to the same module. This will cause mnptu
 to behave in unexpected and error prone ways and is invalid. Please back up
 and modify your state file manually to resolve this.
 `

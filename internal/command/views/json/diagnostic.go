@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/hcl/v2/hcled"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/lang/marks"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -76,7 +76,7 @@ type DiagnosticSnippet struct {
 	// the resource block in which an expression causes an error.
 	Context *string `json:"context"`
 
-	// Code is a possibly-multi-line string of Terraform configuration, which
+	// Code is a possibly-multi-line string of mnptu configuration, which
 	// includes both the diagnostic source and any relevant context as defined
 	// by the diagnostic.
 	Code string `json:"code"`

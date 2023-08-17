@@ -8,13 +8,13 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/command/jsonformat/collections"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/computed/renderers"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured"
-	"github.com/hashicorp/terraform/internal/command/jsonformat/structured/attribute_path"
-	"github.com/hashicorp/terraform/internal/command/jsonprovider"
-	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/collections"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/computed"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/computed/renderers"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat/structured/attribute_path"
+	"github.com/hashicorp/mnptu/internal/command/jsonprovider"
+	"github.com/hashicorp/mnptu/internal/plans"
 )
 
 func computeAttributeDiffAsSet(change structured.Change, elementType cty.Type) computed.Diff {
@@ -90,7 +90,7 @@ func processSet(change structured.Change, process func(value structured.Change))
 		// we just treat all children of a relevant list or set as also
 		// relevant.
 		//
-		// Interestingly the terraform plan builder also agrees with this, and
+		// Interestingly the mnptu plan builder also agrees with this, and
 		// never sets relevant attributes beneath lists or sets. We're just
 		// going to enforce this logic here as well. If the collection is
 		// relevant (decided elsewhere), then every element in the collection is

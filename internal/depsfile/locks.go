@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
 )
 
 // Locks is the top-level type representing the information retained in a
@@ -23,13 +23,13 @@ type Locks struct {
 
 	// overriddenProviders is a subset of providers which we might be tracking
 	// in field providers but whose lock information we're disregarding for
-	// this particular run due to some feature that forces Terraform to not
+	// this particular run due to some feature that forces mnptu to not
 	// use a normally-installed plugin for it. For example, the "provider dev
 	// overrides" feature means that we'll be using an arbitrary directory on
 	// disk as the package, regardless of what might be selected in "providers".
 	//
 	// overriddenProviders is an in-memory-only annotation, never stored as
-	// part of a lock file and thus not persistent between Terraform runs.
+	// part of a lock file and thus not persistent between mnptu runs.
 	// The CLI layer is generally the one responsible for populating this,
 	// by calling SetProviderOverridden in response to CLI Configuration
 	// settings, environment variables, or whatever similar sources.
@@ -118,7 +118,7 @@ func (l *Locks) RemoveProvider(addr addrs.Provider) {
 	delete(l.providers, addr)
 }
 
-// SetProviderOverridden records that this particular Terraform process will
+// SetProviderOverridden records that this particular mnptu process will
 // not pay attention to the recorded lock entry for the given provider, and
 // will instead access that provider's functionality in some other special
 // way that isn't sensitive to provider version selections or checksums.
@@ -333,7 +333,7 @@ type ProviderLock struct {
 	// version is the specific version that was previously selected, while
 	// versionConstraints is the constraint that was used to make that
 	// selection, which we can potentially use to hint to run
-	// e.g. terraform init -upgrade if a user has changed a version
+	// e.g. mnptu init -upgrade if a user has changed a version
 	// constraint but the previous selection still remains valid.
 	// "version" is therefore authoritative, while "versionConstraints" is
 	// just for a UI hint and not used to make any real decisions.
@@ -354,7 +354,7 @@ type ProviderLock struct {
 	//
 	// There is also a legacy hash format which is just a lowercase-hex-encoded
 	// SHA256 hash of the official upstream .zip file for the selected version.
-	// We'll allow as that a stop-gap until we can upgrade Terraform Registry
+	// We'll allow as that a stop-gap until we can upgrade mnptu Registry
 	// to support the new scheme, but is non-ideal because we can verify it only
 	// when we have the original .zip file exactly; we can't verify a local
 	// directory containing the unpacked contents of that .zip file.
@@ -384,9 +384,9 @@ func (l *ProviderLock) Version() getproviders.Version {
 // being used to choose the version returned by Version.
 //
 // These version constraints are not authoritative for future selections and
-// are included only so Terraform can detect if the constraints in
+// are included only so mnptu can detect if the constraints in
 // configuration have changed since a selection was made, and thus hint to the
-// user that they may need to run terraform init -upgrade to apply the new
+// user that they may need to run mnptu init -upgrade to apply the new
 // constraints.
 func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 	return l.versionConstraints
@@ -398,7 +398,7 @@ func (l *ProviderLock) VersionConstraints() getproviders.VersionConstraints {
 //
 // If your intent is to verify a package against the recorded hashes, use
 // PreferredHashes to get only the hashes which the current version
-// of Terraform considers the strongest of the available hashing schemes, one
+// of mnptu considers the strongest of the available hashing schemes, one
 // of which must match in order for verification to be considered successful.
 //
 // Do not modify the backing array of the returned slice.

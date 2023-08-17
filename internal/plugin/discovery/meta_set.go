@@ -171,7 +171,7 @@ func (s PluginMetaSet) ConstrainVersions(reqd PluginRequirements) map[string]Plu
 // names are removed and replaced with the single path given in the map.
 //
 // This is here only to continue to support the legacy way of overriding
-// plugin binaries in the .terraformrc file. It treats all given plugins
+// plugin binaries in the .mnpturc file. It treats all given plugins
 // as pre-versioning (version 0.0.0). This mechanism will eventually be
 // phased out, with vendor directories being the intended replacement.
 func (s PluginMetaSet) OverridePaths(paths map[string]string) PluginMetaSet {

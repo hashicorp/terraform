@@ -1,25 +1,25 @@
 ---
 page_title: 'Command: init'
 description: >-
-  The terraform init command initializes a working directory containing
+  The mnptu init command initializes a working directory containing
   configuration files and installs plugins for required providers.
 ---
 
 # Command: init
 
-> **Hands-on:** Try the [Terraform: Get Started](/terraform/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials. For more in-depth details on the `init` command, check out the [Initialize Terraform Configuration tutorial](/terraform/tutorials/cli/init?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
+> **Hands-on:** Try the [mnptu: Get Started](/mnptu/tutorials/aws-get-started?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorials. For more in-depth details on the `init` command, check out the [Initialize mnptu Configuration tutorial](/mnptu/tutorials/cli/init?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS).
 
-The `terraform init` command initializes a working directory
-containing Terraform configuration files. This is the first command that should
-be run after writing a new Terraform configuration or cloning an existing one
+The `mnptu init` command initializes a working directory
+containing mnptu configuration files. This is the first command that should
+be run after writing a new mnptu configuration or cloning an existing one
 from version control. It is safe to run this command multiple times.
 
 ## Usage
 
-Usage: `terraform init [options]`
+Usage: `mnptu init [options]`
 
 This command performs several different initialization steps in order to
-prepare the current working directory for use with Terraform. More details on
+prepare the current working directory for use with mnptu. More details on
 these are in the sections below, but in most cases it is not necessary to worry
 about these individual steps.
 
@@ -37,7 +37,7 @@ The following options apply to all of (or several of) the initialization steps:
 
 * `-lock=false` Disable locking of state files during state-related operations.
 
-* `-lock-timeout=<duration>` Override the time Terraform will wait to acquire
+* `-lock-timeout=<duration>` Override the time mnptu will wait to acquire
   a state lock. The default is `0s` (zero seconds), which causes immediate
   failure if the lock is already held by another process.
 
@@ -48,7 +48,7 @@ The following options apply to all of (or several of) the initialization steps:
 
 ## Copy a Source Module
 
-By default, `terraform init` assumes that the working directory already
+By default, `mnptu init` assumes that the working directory already
 contains a configuration and will attempt to initialize that configuration.
 
 Optionally, init can be run against an empty directory with the
@@ -69,12 +69,12 @@ For routine use it is recommended to check out configuration from version
 control separately, using the version control system's own commands. This way
 it is possible to pass extra flags to the version control system when necessary,
 and to perform other preparation steps (such as configuration generation, or
-activating credentials) before running `terraform init`.
+activating credentials) before running `mnptu init`.
 
 ## Backend Initialization
 
 During init, the root configuration directory is consulted for
-[backend configuration](/terraform/language/settings/backends/configuration) and the chosen backend
+[backend configuration](/mnptu/language/settings/backends/configuration) and the chosen backend
 is initialized using the given configuration settings.
 
 Re-running init with an already-initialized backend will update the working
@@ -96,14 +96,14 @@ when the working directory was already previously initialized for a particular
 backend.
 
 The `-backend-config=...` option can be used for
-[partial backend configuration](/terraform/language/settings/backends/configuration#partial-configuration),
+[partial backend configuration](/mnptu/language/settings/backends/configuration#partial-configuration),
 in situations where the backend settings are dynamic or sensitive and so cannot
 be statically specified in the configuration file.
 
 ## Child Module Installation
 
 During init, the configuration is searched for `module` blocks, and the source
-code for referenced [modules](/terraform/language/modules/develop) is retrieved from the locations
+code for referenced [modules](/mnptu/language/modules/develop) is retrieved from the locations
 given in their `source` arguments.
 
 Re-running init with modules already installed will install the sources for
@@ -118,47 +118,47 @@ initialized with its child modules.
 
 ## Plugin Installation
 
-Most Terraform providers are published separately from Terraform as plugins.
-During init, Terraform searches the configuration for both direct and indirect
+Most mnptu providers are published separately from mnptu as plugins.
+During init, mnptu searches the configuration for both direct and indirect
 references to providers and attempts to install the plugins for those providers.
 
 For providers that are published in either
-[the public Terraform Registry](https://registry.terraform.io/) or in a
-third-party provider registry, `terraform init` will automatically find,
+[the public mnptu Registry](https://registry.mnptu.io/) or in a
+third-party provider registry, `mnptu init` will automatically find,
 download, and install the necessary provider plugins. If you cannot or do not
 wish to install providers from their origin registries, you can customize how
-Terraform installs providers using
-[the provider installation settings in the CLI configuration](/terraform/cli/config/config-file#provider-installation).
+mnptu installs providers using
+[the provider installation settings in the CLI configuration](/mnptu/cli/config/config-file#provider-installation).
 
 For more information about specifying which providers are required for each
-of your modules, see [Provider Requirements](/terraform/language/providers/requirements).
+of your modules, see [Provider Requirements](/mnptu/language/providers/requirements).
 
-After successful installation, Terraform writes information about the selected
-providers to [the dependency lock file](/terraform/language/files/dependency-lock).
+After successful installation, mnptu writes information about the selected
+providers to [the dependency lock file](/mnptu/language/files/dependency-lock).
 You should commit this file to your version control system to ensure that
-when you run `terraform init` again in future Terraform will select exactly
-the same provider versions. Use the `-upgrade` option if you want Terraform
+when you run `mnptu init` again in future mnptu will select exactly
+the same provider versions. Use the `-upgrade` option if you want mnptu
 to ignore the dependency lock file and consider installing newer versions.
 
-You can modify `terraform init`'s plugin behavior with the following options:
+You can modify `mnptu init`'s plugin behavior with the following options:
 
 * `-upgrade` Upgrade all previously-selected plugins to the newest version
   that complies with the configuration's version constraints. This will
-  cause Terraform to ignore any selections recorded in the dependency lock
+  cause mnptu to ignore any selections recorded in the dependency lock
   file, and to take the newest available version matching the configured
   version constraints.
 * `-get-plugins=false` — Skip plugin installation.
 
-  -> Note: Since Terraform 0.13, this option has been superseded by the
-  [`provider_installation`](/terraform/cli/config/config-file#provider-installation) and
-  [`plugin_cache_dir`](/terraform/cli/config/config-file#plugin_cache_dir) settings.
-  It should not be used in Terraform versions 0.13+, and this option
-  was removed in Terraform 0.15.
+  -> Note: Since mnptu 0.13, this option has been superseded by the
+  [`provider_installation`](/mnptu/cli/config/config-file#provider-installation) and
+  [`plugin_cache_dir`](/mnptu/cli/config/config-file#plugin_cache_dir) settings.
+  It should not be used in mnptu versions 0.13+, and this option
+  was removed in mnptu 0.15.
 * `-plugin-dir=PATH` — Force plugin installation to read plugins _only_ from
   the specified directory, as if it had been configured as a `filesystem_mirror`
   in the CLI configuration. If you intend to routinely use a particular
   filesystem mirror then we recommend
-  [configuring Terraform's installation methods globally](/terraform/cli/config/config-file#provider-installation).
+  [configuring mnptu's installation methods globally](/mnptu/cli/config/config-file#provider-installation).
   You can use `-plugin-dir` as a one-time override for exceptional situations,
   such as if you are testing a local build of a provider plugin you are
   currently developing.
@@ -171,35 +171,35 @@ The valid values for the lockfile mode are as follows:
   update the lockfile with third-party dependency management tools, it would be
   useful to control when it changes explicitly.
 
-## Running `terraform init` in automation
+## Running `mnptu init` in automation
 
-For teams that use Terraform as a key part of a change management and
-deployment pipeline, it can be desirable to orchestrate Terraform runs in some
+For teams that use mnptu as a key part of a change management and
+deployment pipeline, it can be desirable to orchestrate mnptu runs in some
 sort of automation in order to ensure consistency between runs, and provide
 other interesting features such as integration with version control hooks.
 
 There are some special concerns when running `init` in such an environment,
 including optionally making plugins available locally to avoid repeated
 re-installation. For more information, see
-the [Running Terraform in Automation](/terraform/tutorials/automation/automate-terraform?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
+the [Running mnptu in Automation](/mnptu/tutorials/automation/automate-mnptu?utm_source=WEBSITE&utm_medium=WEB_IO&utm_offer=ARTICLE_PAGE&utm_content=DOCS) tutorial.
 
 ## Passing a Different Configuration Directory
 
-Terraform v0.13 and earlier also accepted a directory path in place of the
-plan file argument to `terraform apply`, in which case Terraform would use
+mnptu v0.13 and earlier also accepted a directory path in place of the
+plan file argument to `mnptu apply`, in which case mnptu would use
 that directory as the root module instead of the current working directory.
 
-That usage is still supported in Terraform v0.14, but is now deprecated and removed in
-Terraform v0.15. If your workflow relies on overriding
+That usage is still supported in mnptu v0.14, but is now deprecated and removed in
+mnptu v0.15. If your workflow relies on overriding
 the root module directory, use
-[the `-chdir` global option](/terraform/cli/commands#switching-working-directory-with-chdir)
-instead, which works across all commands and makes Terraform consistently look
+[the `-chdir` global option](/mnptu/cli/commands#switching-working-directory-with-chdir)
+instead, which works across all commands and makes mnptu consistently look
 in the given directory for all files it would normally read or write in the
 current working directory.
 
-If your previous use of this legacy pattern was also relying on Terraform
-writing the `.terraform` subdirectory into the current working directory even
+If your previous use of this legacy pattern was also relying on mnptu
+writing the `.mnptu` subdirectory into the current working directory even
 though the root module directory was overridden, use
-[the `TF_DATA_DIR` environment variable](/terraform/cli/config/environment-variables#tf_data_dir)
-to direct Terraform to write the `.terraform` directory to a location other
+[the `TF_DATA_DIR` environment variable](/mnptu/cli/config/environment-variables#tf_data_dir)
+to direct mnptu to write the `.mnptu` directory to a location other
 than the current working directory.

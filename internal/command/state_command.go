@@ -21,11 +21,11 @@ func (c *StateCommand) Run(args []string) int {
 
 func (c *StateCommand) Help() string {
 	helpText := `
-Usage: terraform [global options] state <subcommand> [options] [args]
+Usage: mnptu [global options] state <subcommand> [options] [args]
 
   This command has subcommands for advanced state management.
 
-  These subcommands can be used to slice and dice the Terraform state.
+  These subcommands can be used to slice and dice the mnptu state.
   This is sometimes necessary in advanced cases. For your safety, all
   state management commands that modify the state create a timestamped
   backup of the state prior to making modifications.

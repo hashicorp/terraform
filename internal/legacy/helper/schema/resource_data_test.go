@@ -11,14 +11,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 )
 
 func TestResourceDataGet(t *testing.T) {
 	cases := []struct {
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 	}{
@@ -35,9 +35,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "foo",
 						New:         "bar",
 						NewComputed: true,
@@ -62,9 +62,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -90,9 +90,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:      "",
 						New:      "foo!",
 						NewExtra: "foo",
@@ -115,7 +115,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 				},
@@ -139,15 +139,15 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "foo",
 						New:         "bar",
 						NewComputed: true,
@@ -170,7 +170,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"port": "80",
 				},
@@ -193,7 +193,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "1",
@@ -217,7 +217,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "1",
@@ -258,7 +258,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "1",
@@ -291,13 +291,13 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ingress.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ingress.#": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"ingress.0.from": &terraform.ResourceAttrDiff{
+					"ingress.0.from": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "8080",
 					},
@@ -330,13 +330,13 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ingress.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ingress.#": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"ingress.0.from": &terraform.ResourceAttrDiff{
+					"ingress.0.from": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "8080",
 					},
@@ -361,7 +361,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -385,9 +385,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -417,17 +417,17 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"config_vars.#": &mnptu.ResourceAttrDiff{
 						Old: "0",
 						New: "2",
 					},
-					"config_vars.0.foo": &terraform.ResourceAttrDiff{
+					"config_vars.0.foo": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "bar",
 					},
-					"config_vars.1.bar": &terraform.ResourceAttrDiff{
+					"config_vars.1.bar": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "baz",
 					},
@@ -459,7 +459,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
 					"config_vars.0.foo": "baz",
@@ -494,20 +494,20 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.FOO": "bar",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"config_vars.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "0",
 					},
-					"config_vars.0.FOO": &terraform.ResourceAttrDiff{
+					"config_vars.0.FOO": &mnptu.ResourceAttrDiff{
 						Old:        "bar",
 						NewRemoved: true,
 					},
@@ -533,7 +533,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":  "1",
 					"ports.80": "80",
@@ -573,7 +573,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"data.#":        "1",
 					"data.10.index": "10",
@@ -581,9 +581,9 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"data.10.value": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"data.10.value": &mnptu.ResourceAttrDiff{
 						Old: "50",
 						New: "80",
 					},
@@ -652,7 +652,7 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ratio": "0.5",
 				},
@@ -675,15 +675,15 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ratio": "-0.5",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ratio": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ratio": &mnptu.ResourceAttrDiff{
 						Old: "-0.5",
 						New: "33.0",
 					},
@@ -709,24 +709,24 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":  "1",
 					"ports.80": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "2",
 						New: "1",
 					},
-					"ports.80": &terraform.ResourceAttrDiff{
+					"ports.80": &mnptu.ResourceAttrDiff{
 						Old: "80",
 						New: "80",
 					},
-					"ports.8080": &terraform.ResourceAttrDiff{
+					"ports.8080": &mnptu.ResourceAttrDiff{
 						Old:        "8080",
 						New:        "0",
 						NewRemoved: true,
@@ -760,8 +760,8 @@ func TestResourceDataGet(t *testing.T) {
 func TestResourceDataGetChange(t *testing.T) {
 	cases := []struct {
 		Schema   map[string]*Schema
-		State    *terraform.InstanceState
-		Diff     *terraform.InstanceDiff
+		State    *mnptu.InstanceState
+		Diff     *mnptu.InstanceDiff
 		Key      string
 		OldValue interface{}
 		NewValue interface{}
@@ -778,9 +778,9 @@ func TestResourceDataGetChange(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -804,15 +804,15 @@ func TestResourceDataGetChange(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -846,8 +846,8 @@ func TestResourceDataGetChange(t *testing.T) {
 func TestResourceDataGetOk(t *testing.T) {
 	cases := []struct {
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -867,9 +867,9 @@ func TestResourceDataGetOk(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "",
 					},
@@ -893,9 +893,9 @@ func TestResourceDataGetOk(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "",
 						NewComputed: true,
@@ -1024,9 +1024,9 @@ func TestResourceDataGetOk(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "0",
 						New: "0",
 					},
@@ -1051,9 +1051,9 @@ func TestResourceDataGetOk(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"from_port": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"from_port": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "0",
 					},
@@ -1090,8 +1090,8 @@ func TestResourceDataGetOkExists(t *testing.T) {
 	cases := []struct {
 		Name   string
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Value  interface{}
 		Ok     bool
@@ -1112,8 +1112,8 @@ func TestResourceDataGetOkExists(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "",
@@ -1139,8 +1139,8 @@ func TestResourceDataGetOkExists(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old:         "",
 						New:         "",
@@ -1275,8 +1275,8 @@ func TestResourceDataGetOkExists(t *testing.T) {
 			},
 
 			State: nil,
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						Old: "",
 						New: "",
@@ -1302,8 +1302,8 @@ func TestResourceDataGetOkExists(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
 					"availability_zone": {
 						New: "true",
 					},
@@ -1418,8 +1418,8 @@ func TestResourceDataTimeout(t *testing.T) {
 func TestResourceDataHasChange(t *testing.T) {
 	cases := []struct {
 		Schema map[string]*Schema
-		State  *terraform.InstanceState
-		Diff   *terraform.InstanceDiff
+		State  *mnptu.InstanceState
+		Diff   *mnptu.InstanceDiff
 		Key    string
 		Change bool
 	}{
@@ -1435,9 +1435,9 @@ func TestResourceDataHasChange(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -1460,15 +1460,15 @@ func TestResourceDataHasChange(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -1492,9 +1492,9 @@ func TestResourceDataHasChange(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"tags.Name": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"tags.Name": &mnptu.ResourceAttrDiff{
 						Old: "foo",
 						New: "foo",
 					},
@@ -1516,16 +1516,16 @@ func TestResourceDataHasChange(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":  "1",
 					"ports.80": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "0",
 					},
@@ -1537,7 +1537,7 @@ func TestResourceDataHasChange(t *testing.T) {
 			Change: true,
 		},
 
-		// https://github.com/hashicorp/terraform/issues/927
+		// https://github.com/hashicorp/mnptu/issues/927
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1548,16 +1548,16 @@ func TestResourceDataHasChange(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":  "1",
 					"ports.80": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"tags.foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"tags.foo": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "bar",
 					},
@@ -1588,8 +1588,8 @@ func TestResourceDataSet(t *testing.T) {
 
 	cases := []struct {
 		Schema   map[string]*Schema
-		State    *terraform.InstanceState
-		Diff     *terraform.InstanceDiff
+		State    *mnptu.InstanceState
+		Diff     *mnptu.InstanceDiff
 		Key      string
 		Value    interface{}
 		Err      bool
@@ -1803,7 +1803,7 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "100",
@@ -1833,7 +1833,7 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.100": "100",
@@ -1868,7 +1868,7 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "2",
 					"ports.100": "100",
@@ -2160,11 +2160,11 @@ func TestResourceDataSet(t *testing.T) {
 func TestResourceDataState_dynamicAttributes(t *testing.T) {
 	cases := []struct {
 		Schema    map[string]*Schema
-		State     *terraform.InstanceState
-		Diff      *terraform.InstanceDiff
+		State     *mnptu.InstanceState
+		Diff      *mnptu.InstanceDiff
 		Set       map[string]interface{}
 		UnsafeSet map[string]string
-		Result    *terraform.InstanceState
+		Result    *mnptu.InstanceState
 	}{
 		{
 			Schema: map[string]*Schema{
@@ -2192,7 +2192,7 @@ func TestResourceDataState_dynamicAttributes(t *testing.T) {
 				"test2": "value",
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"schema_field": "present",
 					"test1":        "value",
@@ -2240,10 +2240,10 @@ func TestResourceDataState_dynamicAttributes(t *testing.T) {
 func TestResourceDataState_schema(t *testing.T) {
 	cases := []struct {
 		Schema  map[string]*Schema
-		State   *terraform.InstanceState
-		Diff    *terraform.InstanceDiff
+		State   *mnptu.InstanceState
+		Diff    *mnptu.InstanceDiff
 		Set     map[string]interface{}
-		Result  *terraform.InstanceState
+		Result  *mnptu.InstanceState
 		Partial []string
 	}{
 		// #0 Basic primitive in diff
@@ -2259,9 +2259,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -2269,7 +2269,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -2289,9 +2289,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -2303,7 +2303,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"availability_zone": "bar",
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 				},
@@ -2327,7 +2327,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"vpc": true,
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"vpc": "true",
 				},
@@ -2347,9 +2347,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:      "",
 						New:      "foo",
 						NewExtra: "foo!",
@@ -2357,7 +2357,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 				},
@@ -2374,27 +2374,27 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "1",
 					"ports.0": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "2",
 					},
-					"ports.1": &terraform.ResourceAttrDiff{
+					"ports.1": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "100",
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.0": "80",
@@ -2420,31 +2420,31 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ingress.#":      "1",
 					"ingress.0.from": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ingress.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ingress.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "2",
 					},
-					"ingress.0.from": &terraform.ResourceAttrDiff{
+					"ingress.0.from": &mnptu.ResourceAttrDiff{
 						Old: "80",
 						New: "150",
 					},
-					"ingress.1.from": &terraform.ResourceAttrDiff{
+					"ingress.1.from": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "100",
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ingress.#":      "2",
 					"ingress.0.from": "150",
@@ -2466,7 +2466,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
 					"config_vars.0.%":   "2",
@@ -2477,9 +2477,9 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"config_vars.0.bar": &mnptu.ResourceAttrDiff{
 						NewRemoved: true,
 					},
 				},
@@ -2496,7 +2496,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
 					"config_vars.0.%":   "1",
@@ -2520,27 +2520,27 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.FOO": "bar",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"config_vars.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "0",
 					},
-					"config_vars.0.FOO": &terraform.ResourceAttrDiff{
+					"config_vars.0.FOO": &mnptu.ResourceAttrDiff{
 						Old:        "bar",
 						NewRemoved: true,
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#": "0",
 				},
@@ -2558,16 +2558,16 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				ID: "bar",
 				Attributes: map[string]string{
 					"id": "bar",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -2575,7 +2575,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				ID: "bar",
 				Attributes: map[string]string{
 					"id":                "bar",
@@ -2598,7 +2598,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.100": "100",
@@ -2609,7 +2609,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Diff: nil,
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.80":  "80",
@@ -2641,7 +2641,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"ports": []interface{}{100, 80},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "2",
 					"ports.80":  "80",
@@ -2681,7 +2681,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":        "2",
 					"ports.10.order": "10",
@@ -2706,7 +2706,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":        "2",
 					"ports.10.order": "10",
@@ -2738,9 +2738,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"availability_zone": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"availability_zone": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						New:         "foo",
 						RequiresNew: true,
@@ -2750,7 +2750,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{},
 			},
 		},
@@ -2765,20 +2765,20 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "1",
 					"ports.0": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "2",
 					},
-					"ports.1": &terraform.ResourceAttrDiff{
+					"ports.1": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "100",
 					},
@@ -2787,7 +2787,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "1",
 					"ports.0": "80",
@@ -2808,9 +2808,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						NewComputed: true,
 					},
@@ -2823,7 +2823,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"ports": []interface{}{},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{},
 			},
 		},
@@ -2845,24 +2845,24 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ingress.#":      "1",
 					"ingress.0.from": "80",
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ingress.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ingress.#": &mnptu.ResourceAttrDiff{
 						Old: "1",
 						New: "2",
 					},
-					"ingress.0.from": &terraform.ResourceAttrDiff{
+					"ingress.0.from": &mnptu.ResourceAttrDiff{
 						Old: "80",
 						New: "150",
 					},
-					"ingress.1.from": &terraform.ResourceAttrDiff{
+					"ingress.1.from": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "100",
 					},
@@ -2871,7 +2871,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ingress.#":      "1",
 					"ingress.0.from": "80",
@@ -2892,7 +2892,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
 					"config_vars.0.foo": "bar",
@@ -2901,9 +2901,9 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"config_vars.0.bar": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"config_vars.0.bar": &mnptu.ResourceAttrDiff{
 						NewRemoved: true,
 					},
 				},
@@ -2922,7 +2922,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					// TODO: broken, shouldn't bar be removed?
 					"config_vars.#":     "2",
@@ -2949,7 +2949,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.100": "100",
@@ -2958,9 +2958,9 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.120": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.120": &mnptu.ResourceAttrDiff{
 						New: "120",
 					},
 				},
@@ -2968,7 +2968,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.80":  "80",
@@ -2994,9 +2994,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old:         "",
 						NewComputed: true,
 					},
@@ -3005,7 +3005,7 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			Partial: []string{},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{},
 			},
 		},
@@ -3022,16 +3022,16 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"tags.Name": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"tags.Name": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "foo",
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"tags.%":    "1",
 					"tags.Name": "foo",
@@ -3051,9 +3051,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"tags.Name": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"tags.Name": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "foo",
 					},
@@ -3064,7 +3064,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"tags": map[string]string{},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"tags.%": "0",
 				},
@@ -3083,15 +3083,15 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						NewComputed: true,
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{},
 			},
 		},
@@ -3108,9 +3108,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"foo": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"foo": &mnptu.ResourceAttrDiff{
 						NewComputed: true,
 					},
 				},
@@ -3120,7 +3120,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"foo": "bar",
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
@@ -3149,9 +3149,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.10.uuids.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.10.uuids.#": &mnptu.ResourceAttrDiff{
 						NewComputed: true,
 					},
 				},
@@ -3168,7 +3168,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":           "1",
 					"ports.10.index":    "10",
@@ -3192,7 +3192,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			State: &terraform.InstanceState{
+			State: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":   "3",
 					"ports.100": "100",
@@ -3201,16 +3201,16 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						Old: "3",
 						New: "0",
 					},
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "0",
 				},
@@ -3239,7 +3239,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"ports": []interface{}{},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "0",
 				},
@@ -3265,7 +3265,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				"ports": []interface{}{},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "0",
 				},
@@ -3290,9 +3290,9 @@ func TestResourceDataState_schema(t *testing.T) {
 
 			State: nil,
 
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.#": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"ports.#": &mnptu.ResourceAttrDiff{
 						NewComputed: true,
 					},
 				},
@@ -3309,7 +3309,7 @@ func TestResourceDataState_schema(t *testing.T) {
 				},
 			},
 
-			Result: &terraform.InstanceState{
+			Result: &mnptu.InstanceState{
 				Attributes: map[string]string{
 					"ports.#":          "1",
 					"ports.0.index":    "10",
@@ -3364,7 +3364,7 @@ func TestResourceDataState_schema(t *testing.T) {
 func TestResourceData_nonStringValuesInMap(t *testing.T) {
 	cases := []struct {
 		Schema       map[string]*Schema
-		Diff         *terraform.InstanceDiff
+		Diff         *mnptu.InstanceDiff
 		MapFieldName string
 		ItemName     string
 		ExpectedType string
@@ -3377,13 +3377,13 @@ func TestResourceData_nonStringValuesInMap(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"boolMap.%": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"boolMap.%": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"boolMap.boolField": &terraform.ResourceAttrDiff{
+					"boolMap.boolField": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "true",
 					},
@@ -3401,13 +3401,13 @@ func TestResourceData_nonStringValuesInMap(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"intMap.%": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"intMap.%": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"intMap.intField": &terraform.ResourceAttrDiff{
+					"intMap.intField": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "8",
 					},
@@ -3425,13 +3425,13 @@ func TestResourceData_nonStringValuesInMap(t *testing.T) {
 					Optional: true,
 				},
 			},
-			Diff: &terraform.InstanceDiff{
-				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"floatMap.%": &terraform.ResourceAttrDiff{
+			Diff: &mnptu.InstanceDiff{
+				Attributes: map[string]*mnptu.ResourceAttrDiff{
+					"floatMap.%": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "1",
 					},
-					"floatMap.floatField": &terraform.ResourceAttrDiff{
+					"floatMap.floatField": &mnptu.ResourceAttrDiff{
 						Old: "",
 						New: "8.22",
 					},
@@ -3503,7 +3503,7 @@ func TestResourceDataSetMeta_Timeouts(t *testing.T) {
 
 func TestResourceDataSetId(t *testing.T) {
 	d := &ResourceData{
-		state: &terraform.InstanceState{
+		state: &mnptu.InstanceState{
 			ID: "test",
 			Attributes: map[string]string{
 				"id": "test",
@@ -3529,7 +3529,7 @@ func TestResourceDataSetId(t *testing.T) {
 
 func TestResourceDataSetId_clear(t *testing.T) {
 	d := &ResourceData{
-		state: &terraform.InstanceState{ID: "bar"},
+		state: &mnptu.InstanceState{ID: "bar"},
 	}
 	d.SetId("")
 
@@ -3541,7 +3541,7 @@ func TestResourceDataSetId_clear(t *testing.T) {
 
 func TestResourceDataSetId_override(t *testing.T) {
 	d := &ResourceData{
-		state: &terraform.InstanceState{ID: "bar"},
+		state: &mnptu.InstanceState{ID: "bar"},
 	}
 	d.SetId("foo")
 

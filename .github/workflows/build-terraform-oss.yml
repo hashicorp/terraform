@@ -1,9 +1,9 @@
 ---
-name: build_terraform
+name: build_mnptu
 
 # This workflow is intended to be called by the build workflow. The crt make
 # targets that are utilized automatically determine build metadata and
-# handle building and packing Terraform.
+# handle building and packing mnptu.
 
 on:
   workflow_call:
@@ -22,7 +22,7 @@ on:
         type: string
       package-name:
         type: string
-        default: terraform
+        default: mnptu
       product-version:
         type: string
         required: true
@@ -36,7 +36,7 @@ on:
 jobs:
   build:
     runs-on: ${{ inputs.runson }}
-    name: Terraform ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
+    name: mnptu ${{ inputs.goos }} ${{ inputs.goarch }} v${{ inputs.product-version }}
     steps:
       - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
       - uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
@@ -44,7 +44,7 @@ jobs:
           go-version: ${{ inputs.go-version }}
       - name: Determine artifact basename
         run: echo "ARTIFACT_BASENAME=${{ inputs.package-name }}_${{ inputs.product-version }}_${{ inputs.goos }}_${{ inputs.goarch }}.zip" >> $GITHUB_ENV
-      - name: Build Terraform
+      - name: Build mnptu
         env:
           GOOS: ${{ inputs.goos }}
           GOARCH: ${{ inputs.goarch }}
@@ -72,14 +72,14 @@ jobs:
       - if: ${{ inputs.goos == 'linux' }}
         uses: hashicorp/actions-packaging-linux@v1
         with:
-          name: "terraform"
-          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
+          name: "mnptu"
+          description: "mnptu enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
           arch: ${{ inputs.goarch }}
           version: ${{ inputs.product-version }}
           maintainer: "HashiCorp"
-          homepage: "https://terraform.io/"
+          homepage: "https://mnptu.io/"
           license: "BUSL-1.1"
-          binary: "dist/terraform"
+          binary: "dist/mnptu"
           deb_depends: "git"
           rpm_depends: "git"
       - if: ${{ inputs.goos == 'linux' }}

@@ -1,19 +1,19 @@
 ---
 page_title: 'Internals: Machine-Readable UI'
 description: >-
-  Terraform provides a machine-readable streaming JSON UI output for plan,
+  mnptu provides a machine-readable streaming JSON UI output for plan,
   apply, and refresh operations.
 ---
 
 # Machine-Readable UI
 
--> **Note:** This format is available in Terraform 0.15.3 and later.
+-> **Note:** This format is available in mnptu 0.15.3 and later.
 
-By default, many Terraform commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
+By default, many mnptu commands display UI output as unstructured text, intended to be read by a user via a terminal emulator. This text stream is not a stable interface for integrations. Some commands support a `-json` flag, which enables a structured JSON output mode with a defined interface.
 
 For long-running commands such as `plan`, `apply`, and `refresh`, the `-json` flag outputs a stream of JSON UI messages, one per line. These can be processed one message at a time, with integrating software filtering, combining, or modifying the output as desired.
 
-The first message output has type `version`, and includes a `ui` key, which as of Terraform 1.1.0 has
+The first message output has type `version`, and includes a `ui` key, which as of mnptu 1.1.0 has
 value `"1.0"`. The semantics of this version are:
 
 - We will increment the minor version, e.g. `"1.1"`, for backward-compatible
@@ -24,33 +24,33 @@ value `"1.0"`. The semantics of this version are:
   version.
 
 We will introduce new major versions only within the bounds of
-[the Terraform 1.0 Compatibility Promises](/terraform/language/v1-compatibility-promises).
+[the mnptu 1.0 Compatibility Promises](/mnptu/language/v1-compatibility-promises).
 
 ## Sample JSON Output
 
-Below is sample output from running `terraform apply -json`:
+Below is sample output from running `mnptu apply -json`:
 
 ```javascript
-{"@level":"info","@message":"Terraform 0.15.4","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.275359-04:00","terraform":"0.15.4","type":"version","ui":"0.1.0"}
-{"@level":"info","@message":"random_pet.animal: Plan to create","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.705503-04:00","change":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"planned_change"}
-{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.705638-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"plan"},"type":"change_summary"}
-{"@level":"info","@message":"random_pet.animal: Creating...","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.825308-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"apply_start"}
-{"@level":"info","@message":"random_pet.animal: Creation complete after 0s [id=smart-lizard]","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.826179-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create","id_key":"id","id_value":"smart-lizard","elapsed_seconds":0},"type":"apply_complete"}
-{"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.869168-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"apply"},"type":"change_summary"}
-{"@level":"info","@message":"Outputs: 1","@module":"terraform.ui","@timestamp":"2021-05-25T13:32:41.869280-04:00","outputs":{"pets":{"sensitive":false,"type":"string","value":"smart-lizard"}},"type":"outputs"}
+{"@level":"info","@message":"mnptu 0.15.4","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.275359-04:00","mnptu":"0.15.4","type":"version","ui":"0.1.0"}
+{"@level":"info","@message":"random_pet.animal: Plan to create","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.705503-04:00","change":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"planned_change"}
+{"@level":"info","@message":"Plan: 1 to add, 0 to change, 0 to destroy.","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.705638-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"plan"},"type":"change_summary"}
+{"@level":"info","@message":"random_pet.animal: Creating...","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.825308-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create"},"type":"apply_start"}
+{"@level":"info","@message":"random_pet.animal: Creation complete after 0s [id=smart-lizard]","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.826179-04:00","hook":{"resource":{"addr":"random_pet.animal","module":"","resource":"random_pet.animal","implied_provider":"random","resource_type":"random_pet","resource_name":"animal","resource_key":null},"action":"create","id_key":"id","id_value":"smart-lizard","elapsed_seconds":0},"type":"apply_complete"}
+{"@level":"info","@message":"Apply complete! Resources: 1 added, 0 changed, 0 destroyed.","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.869168-04:00","changes":{"add":1,"change":0,"remove":0,"operation":"apply"},"type":"change_summary"}
+{"@level":"info","@message":"Outputs: 1","@module":"mnptu.ui","@timestamp":"2021-05-25T13:32:41.869280-04:00","outputs":{"pets":{"sensitive":false,"type":"string","value":"smart-lizard"}},"type":"outputs"}
 ```
 
 Each line consists of a JSON object with several keys common to all messages. These are:
 
 - `@level`: this is normally "info", but can be "error" or "warn" when showing diagnostics
 - `@message`: a human-readable summary of the contents of this message
-- `@module`: always "terraform.ui" when rendering UI output
+- `@module`: always "mnptu.ui" when rendering UI output
 - `@timestamp`: an RFC3339 timestamp of when the message was output
 - `type`: defines which kind of message this is and determines how to interpret other keys which may be present
 
 Clients presenting the logs as a user interface should handle unexpected message types by presenting at least the `@message` field to the user.
 
-Messages will be emitted as events occur to trigger them. This means that messages related to several resources may be interleaved (if Terraform is running with concurrency above 1). The [`resource` object value](#resource-object) can be used to link multiple messages about a single resource.
+Messages will be emitted as events occur to trigger them. This means that messages related to several resources may be interleaved (if mnptu is running with concurrency above 1). The [`resource` object value](#resource-object) can be used to link multiple messages about a single resource.
 
 ## Message Types
 
@@ -58,13 +58,13 @@ The following message types are supported:
 
 ### Generic Messages
 
-- `version`: information about the Terraform version and the version of the schema used for the following messages
+- `version`: information about the mnptu version and the version of the schema used for the following messages
 - `log`: unstructured human-readable log lines
-- `diagnostic`: diagnostic warning or error messages; [see the `terraform validate` docs for more details on the format](/terraform/cli/commands/validate#json)
+- `diagnostic`: diagnostic warning or error messages; [see the `mnptu validate` docs for more details on the format](/mnptu/cli/commands/validate#json)
 
 ### Operation Results
 
-- `resource_drift`: describes a detected change to a single resource made outside of Terraform
+- `resource_drift`: describes a detected change to a single resource made outside of mnptu
 - `planned_change`: describes a planned change to a single resource
 - `change_summary`: summary of all planned or applied changes
 - `outputs`: list of all root module outputs
@@ -79,7 +79,7 @@ The following message types are supported:
 
 A machine-readable UI command output will always begin with a `version` message. The following message-specific keys are defined:
 
-- `terraform`: the Terraform version which emitted this message
+- `mnptu`: the mnptu version which emitted this message
 - `ui`: the machine-readable UI schema version defining the meaning of the following messages
 
 ### Example
@@ -87,10 +87,10 @@ A machine-readable UI command output will always begin with a `version` message.
 ```json
 {
   "@level": "info",
-  "@message": "Terraform 0.15.4",
-  "@module": "terraform.ui",
+  "@message": "mnptu 0.15.4",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.275359-04:00",
-  "terraform": "0.15.4",
+  "mnptu": "0.15.4",
   "type": "version",
   "ui": "0.1.0"
 }
@@ -98,12 +98,12 @@ A machine-readable UI command output will always begin with a `version` message.
 
 ## Resource Drift
 
-If drift is detected during planning, Terraform will emit a `resource_drift` message for each resource which has changed outside of Terraform. This message has an embedded `change` object with the following keys:
+If drift is detected during planning, mnptu will emit a `resource_drift` message for each resource which has changed outside of mnptu. This message has an embedded `change` object with the following keys:
 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
 - `action`: the action planned to be taken for the resource. Values: `update`, `delete`.
 
-This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/mnptu/internals/json-format).
 
 ### Example
 
@@ -111,7 +111,7 @@ This message does not include details about the exact changes which caused the c
 {
   "@level": "info",
   "@message": "random_pet.animal: Drift detected (update)",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.705503-04:00",
   "change": {
     "resource": {
@@ -131,7 +131,7 @@ This message does not include details about the exact changes which caused the c
 
 ## Planned Change
 
-At the end of a plan or before an apply, Terraform will emit a `planned_change` message for each resource which has changes to apply. This message has an embedded `change` object with the following keys:
+At the end of a plan or before an apply, mnptu will emit a `planned_change` message for each resource which has changes to apply. This message has an embedded `change` object with the following keys:
 
 - `resource`: object describing the address of the resource to be changed; see [resource object](#resource-object) below for details
 - `previous_resource`: object describing the previous address of the resource, if this change includes a configuration-driven move
@@ -146,7 +146,7 @@ At the end of a plan or before an apply, Terraform will emit a `planned_change` 
   - `delete_because_each_key`: resource instance key is not included in the `for_each` argument
   - `delete_because_no_module`: enclosing module instance is not in configuration
 
-This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/terraform/internals/json-format).
+This message does not include details about the exact changes which caused the change to be planned. That information is available in [the JSON plan output](/mnptu/internals/json-format).
 
 ### Example
 
@@ -154,7 +154,7 @@ This message does not include details about the exact changes which caused the c
 {
   "@level": "info",
   "@message": "random_pet.animal: Plan to create",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.705503-04:00",
   "change": {
     "resource": {
@@ -174,7 +174,7 @@ This message does not include details about the exact changes which caused the c
 
 ## Change Summary
 
-Terraform outputs a change summary when a plan or apply operation completes. Both message types include a `changes` object, which has the following keys:
+mnptu outputs a change summary when a plan or apply operation completes. Both message types include a `changes` object, which has the following keys:
 
 - `add`: count of resources to be created (including as part of replacement)
 - `change`: count of resources to be changed in-place
@@ -187,7 +187,7 @@ Terraform outputs a change summary when a plan or apply operation completes. Bot
 {
   "@level": "info",
   "@message": "Apply complete! Resources: 1 added, 0 changed, 0 destroyed.",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.869168-04:00",
   "changes": {
     "add": 1,
@@ -216,7 +216,7 @@ Note that `sensitive` outputs still include the `value` field, and integrating s
 {
   "@level": "info",
   "@message": "Outputs: 1",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.869280-04:00",
   "outputs": {
     "pets": {
@@ -231,7 +231,7 @@ Note that `sensitive` outputs still include the `value` field, and integrating s
 
 ## Operation Messages
 
-Performing Terraform operations to a resource will often result in several messages being emitted. The message types include:
+Performing mnptu operations to a resource will often result in several messages being emitted. The message types include:
 
 - `apply_start`: when starting to apply changes for a resource
 - `apply_progress`: periodically, showing elapsed time output
@@ -260,7 +260,7 @@ The `apply_start` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "random_pet.animal: Creating...",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.825308-04:00",
   "hook": {
     "resource": {
@@ -292,7 +292,7 @@ The `apply_progress` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[4]: Still creating... [30s elapsed]",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-17T09:34:26.222465-04:00",
   "hook": {
     "resource": {
@@ -326,7 +326,7 @@ The `apply_complete` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "random_pet.animal: Creation complete after 0s [id=smart-lizard]",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-05-25T13:32:41.826179-04:00",
   "hook": {
     "resource": {
@@ -363,7 +363,7 @@ The exact detail of the error will be rendered as a separate `diagnostic` messag
 {
   "@level": "info",
   "@message": "null_resource.none[0]: Creation errored after 10s",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T16:38:54.013910-04:00",
   "hook": {
     "resource": {
@@ -395,7 +395,7 @@ The `provision_start` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[0]: Provisioning with 'local-exec'...",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T16:38:43.997431-04:00",
   "hook": {
     "resource": {
@@ -429,7 +429,7 @@ One `provision_progress` message is output for each log line received from the p
 {
   "@level": "info",
   "@message": "null_resource.none[0]: (local-exec): Executing: [\"/bin/sh\" \"-c\" \"sleep 10 && exit 1\"]",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T16:38:43.997869-04:00",
   "hook": {
     "resource": {
@@ -461,7 +461,7 @@ The `provision_complete` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[0]: (local-exec) Provisioning complete",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-17T09:34:06.239043-04:00",
   "hook": {
     "resource": {
@@ -492,7 +492,7 @@ The `provision_errored` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[0]: (local-exec) Provisioning errored",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T16:38:54.013572-04:00",
   "hook": {
     "resource": {
@@ -523,7 +523,7 @@ The `refresh_start` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[0]: Refreshing state... [id=1971614370559474622]",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T14:18:06.508915-04:00",
   "hook": {
     "resource": {
@@ -555,7 +555,7 @@ The `refresh_complete` message `hook` object has the following keys:
 {
   "@level": "info",
   "@message": "null_resource.none[0]: Refresh complete [id=1971614370559474622]",
-  "@module": "terraform.ui",
+  "@module": "mnptu.ui",
   "@timestamp": "2021-03-26T14:18:06.509371-04:00",
   "hook": {
     "resource": {

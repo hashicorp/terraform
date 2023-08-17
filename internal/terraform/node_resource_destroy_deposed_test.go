@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/providers"
-	"github.com/hashicorp/terraform/internal/states"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/providers"
+	"github.com/hashicorp/mnptu/internal/states"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -25,7 +25,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	p := testProvider("test")
@@ -61,7 +61,7 @@ func TestNodePlanDeposedResourceInstanceObject_Execute(t *testing.T) {
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			Addr: absResource,
 			NodeAbstractResource: NodeAbstractResource{
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 			},
 		},
 		DeposedKey: deposedKey,
@@ -95,7 +95,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 			Status:    states.ObjectTainted,
 			AttrsJSON: []byte(`{"id":"bar"}`),
 		},
-		mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+		mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 	)
 
 	schema := providers.ProviderSchema{
@@ -133,7 +133,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_Execute(t *testing.T) {
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			Addr: absResource,
 			NodeAbstractResource: NodeAbstractResource{
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 			},
 		},
 		DeposedKey: deposedKey,
@@ -174,7 +174,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 	node := &NodeDestroyDeposedResourceInstanceObject{
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			NodeAbstractResource: NodeAbstractResource{
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/aws"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/aws"]`),
 			},
 			Addr: mustResourceInstanceAddr("aws_instance.foo"),
 		},
@@ -188,7 +188,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_WriteResourceInstanceState(t *
 	checkStateString(t, state, `
 aws_instance.foo: (1 deposed)
   ID = <not created>
-  provider = provider["registry.terraform.io/hashicorp/aws"]
+  provider = provider["registry.mnptu.io/hashicorp/aws"]
   Deposed ID 1 = i-abc123
 	`)
 }
@@ -206,7 +206,7 @@ func TestNodeDestroyDeposedResourceInstanceObject_ExecuteMissingState(t *testing
 		NodeAbstractResourceInstance: &NodeAbstractResourceInstance{
 			Addr: mustResourceInstanceAddr("test_object.foo"),
 			NodeAbstractResource: NodeAbstractResource{
-				ResolvedProvider: mustProviderConfig(`provider["registry.terraform.io/hashicorp/test"]`),
+				ResolvedProvider: mustProviderConfig(`provider["registry.mnptu.io/hashicorp/test"]`),
 			},
 		},
 		DeposedKey: states.NewDeposedKey(),

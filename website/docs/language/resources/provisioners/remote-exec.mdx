@@ -13,12 +13,12 @@ description: >-
 The `remote-exec` provisioner invokes a script on a remote resource after it
 is created. This can be used to run a configuration management tool, bootstrap
 into a cluster, etc. To invoke a local process, see the `local-exec`
-[provisioner](/terraform/language/resources/provisioners/local-exec) instead. The `remote-exec`
-provisioner requires a [connection](/terraform/language/resources/provisioners/connection)
+[provisioner](/mnptu/language/resources/provisioners/local-exec) instead. The `remote-exec`
+provisioner requires a [connection](/mnptu/language/resources/provisioners/connection)
 and supports both `ssh` and `winrm`.
 
 ~> **Important:** Use provisioners as a last resort. There are better alternatives for most situations. Refer to
-[Declaring Provisioners](/terraform/language/resources/provisioners/syntax) for more details.
+[Declaring Provisioners](/mnptu/language/resources/provisioners/syntax) for more details.
 
 ## Example usage
 
@@ -60,14 +60,14 @@ The following arguments are supported:
   that will be copied to the remote resource and then executed. They are executed
   in the order they are provided. This cannot be provided with `inline` or `script`.
 
--> **Note:** Since `inline` is implemented by concatenating commands into a script, [`on_failure`](/terraform/language/resources/provisioners/syntax#failure-behavior) applies only to the final command in the list. In particular, with `on_failure = fail` (the default behaviour) earlier commands will be allowed to fail, and later commands will also execute. If this behaviour is not desired, consider using `"set -o errexit"` as the first command.
+-> **Note:** Since `inline` is implemented by concatenating commands into a script, [`on_failure`](/mnptu/language/resources/provisioners/syntax#failure-behavior) applies only to the final command in the list. In particular, with `on_failure = fail` (the default behaviour) earlier commands will be allowed to fail, and later commands will also execute. If this behaviour is not desired, consider using `"set -o errexit"` as the first command.
 
 ## Script Arguments
 
 You cannot pass any arguments to scripts using the `script` or
 `scripts` arguments to this provisioner. If you want to specify arguments,
 upload the script with the
-[file provisioner](/terraform/language/resources/provisioners/file)
+[file provisioner](/mnptu/language/resources/provisioners/file)
 and then use `inline` to call it. Example:
 
 ```hcl

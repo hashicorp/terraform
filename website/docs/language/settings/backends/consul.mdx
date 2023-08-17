@@ -1,18 +1,18 @@
 ---
 page_title: 'Backend Type: consul'
-description: Terraform can store state in Consul.
+description: mnptu can store state in Consul.
 ---
 
 # consul
 
 Stores the state in the [Consul](https://www.consul.io/) KV store at a given path.
 
-This backend supports [state locking](/terraform/language/state/locking).
+This backend supports [state locking](/mnptu/language/state/locking).
 
 ## Example Configuration
 
 ```hcl
-terraform {
+mnptu {
   backend "consul" {
     address = "consul.example.com"
     scheme  = "https"
@@ -22,12 +22,12 @@ terraform {
 ```
 
 Note that for the access credentials we recommend using a
-[partial configuration](/terraform/language/settings/backends/configuration#partial-configuration).
+[partial configuration](/mnptu/language/settings/backends/configuration#partial-configuration).
 
 ## Data Source Configuration
 
 ```hcl
-data "terraform_remote_state" "foo" {
+data "mnptu_remote_state" "foo" {
   backend = "consul"
   config = {
     path = "full/path"
@@ -37,7 +37,7 @@ data "terraform_remote_state" "foo" {
 
 ## Configuration Variables
 
-!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, Terraform will include these values in both the `.terraform` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/terraform/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
+!> **Warning:**  We recommend using environment variables to supply credentials and other sensitive data. If you use `-backend-config` or hardcode these values directly in your configuration, mnptu will include these values in both the `.mnptu` subdirectory and in plan files. Refer to [Credentials and Sensitive Data](/mnptu/language/settings/backends/configuration#credentials-and-sensitive-data) for details.
 
 The following configuration options / environment variables are supported:
 

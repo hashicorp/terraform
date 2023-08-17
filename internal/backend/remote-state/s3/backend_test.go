@@ -18,12 +18,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/go-cmp/cmp"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/remote"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/remote"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -830,7 +830,7 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 func TestBackend(t *testing.T) {
 	testACC(t)
 
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "testState"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -849,7 +849,7 @@ func TestBackend(t *testing.T) {
 func TestBackendLocked(t *testing.T) {
 	testACC(t)
 
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "test/state"
 
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -901,7 +901,7 @@ func TestBackendSSECustomerKeyConfig(t *testing.T) {
 		testCase := testCase
 
 		t.Run(name, func(t *testing.T) {
-			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+			bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 			config := map[string]interface{}{
 				"bucket":           bucketName,
 				"encrypt":          true,
@@ -963,7 +963,7 @@ func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
 		testCase := testCase
 
 		t.Run(name, func(t *testing.T) {
-			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+			bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 			config := map[string]interface{}{
 				"bucket":  bucketName,
 				"encrypt": true,
@@ -1008,7 +1008,7 @@ func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
 // add some extra junk in S3 to try and confuse the env listing.
 func TestBackendExtraPaths(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 	keyName := "test/state/tfstate"
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
@@ -1147,7 +1147,7 @@ func TestBackendExtraPaths(t *testing.T) {
 // of the workspace name itself.
 func TestBackendPrefixInWorkspace(t *testing.T) {
 	testACC(t)
-	bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
+	bucketName := fmt.Sprintf("mnptu-remote-s3-test-%x", time.Now().Unix())
 
 	b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":               bucketName,
@@ -1176,7 +1176,7 @@ func TestKeyEnv(t *testing.T) {
 	testACC(t)
 	keyName := "some/paths/tfstate"
 
-	bucket0Name := fmt.Sprintf("terraform-remote-s3-test-%x-0", time.Now().Unix())
+	bucket0Name := fmt.Sprintf("mnptu-remote-s3-test-%x-0", time.Now().Unix())
 	b0 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":               bucket0Name,
 		"key":                  keyName,
@@ -1187,7 +1187,7 @@ func TestKeyEnv(t *testing.T) {
 	createS3Bucket(t, b0.s3Client, bucket0Name)
 	defer deleteS3Bucket(t, b0.s3Client, bucket0Name)
 
-	bucket1Name := fmt.Sprintf("terraform-remote-s3-test-%x-1", time.Now().Unix())
+	bucket1Name := fmt.Sprintf("mnptu-remote-s3-test-%x-1", time.Now().Unix())
 	b1 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":               bucket1Name,
 		"key":                  keyName,
@@ -1198,7 +1198,7 @@ func TestKeyEnv(t *testing.T) {
 	createS3Bucket(t, b1.s3Client, bucket1Name)
 	defer deleteS3Bucket(t, b1.s3Client, bucket1Name)
 
-	bucket2Name := fmt.Sprintf("terraform-remote-s3-test-%x-2", time.Now().Unix())
+	bucket2Name := fmt.Sprintf("mnptu-remote-s3-test-%x-2", time.Now().Unix())
 	b2 := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(map[string]interface{}{
 		"bucket":  bucket2Name,
 		"key":     keyName,

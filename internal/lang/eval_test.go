@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs/configschema"
-	"github.com/hashicorp/terraform/internal/instances"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/instances"
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
@@ -68,7 +68,7 @@ func TestScopeEvalContext(t *testing.T) {
 		PathAttrs: map[string]cty.Value{
 			"module": cty.StringVal("foo/bar"),
 		},
-		TerraformAttrs: map[string]cty.Value{
+		mnptuAttrs: map[string]cty.Value{
 			"workspace": cty.StringVal("default"),
 		},
 		InputVariables: map[string]cty.Value{
@@ -359,9 +359,9 @@ func TestScopeEvalContext(t *testing.T) {
 			},
 		},
 		{
-			Expr: `terraform.workspace`,
+			Expr: `mnptu.workspace`,
 			Want: map[string]cty.Value{
-				"terraform": cty.ObjectVal(map[string]cty.Value{
+				"mnptu": cty.ObjectVal(map[string]cty.Value{
 					"workspace": cty.StringVal("default"),
 				}),
 			},
@@ -810,7 +810,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 			"cwd":    cty.StringVal("/home/foo/bar"),
 			"root":   cty.StringVal("/home/foo"),
 		},
-		TerraformAttrs: map[string]cty.Value{
+		mnptuAttrs: map[string]cty.Value{
 			"workspace": cty.StringVal("default"),
 		},
 	}
@@ -886,7 +886,7 @@ func TestScopeEvalSelfBlock(t *testing.T) {
 			},
 		},
 		{
-			Config: `attr = terraform.workspace`,
+			Config: `attr = mnptu.workspace`,
 			Want: map[string]cty.Value{
 				"attr": cty.StringVal("default"),
 				"num":  cty.NullVal(cty.Number),

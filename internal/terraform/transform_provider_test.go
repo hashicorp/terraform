@@ -1,16 +1,16 @@
 // Copyright (c) HashiCorp, Inc.
 // SPDX-License-Identifier: BUSL-1.1
 
-package terraform
+package mnptu
 
 import (
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/dag"
+	"github.com/hashicorp/mnptu/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/dag"
 )
 
 func testProviderTransformerGraph(t *testing.T, cfg *configs.Config) *Graph {
@@ -305,8 +305,8 @@ resource "test_object" "a" {
 	}
 
 	expected := `module.moda.test_object.a
-  provider["registry.terraform.io/hashicorp/test"]
-provider["registry.terraform.io/hashicorp/test"]`
+  provider["registry.mnptu.io/hashicorp/test"]
+provider["registry.mnptu.io/hashicorp/test"]`
 
 	actual := strings.TrimSpace(g.String())
 	if actual != expected {
@@ -318,10 +318,10 @@ provider["registry.terraform.io/hashicorp/test"]`
 func TestProviderConfigTransformer_nestedModuleProviders(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
+mnptu {
   required_providers {
     test = {
-      source = "registry.terraform.io/hashicorp/test"
+      source = "registry.mnptu.io/hashicorp/test"
 	}
   }
 }
@@ -340,10 +340,10 @@ module "moda" {
 `,
 
 		"moda/main.tf": `
-terraform {
+mnptu {
   required_providers {
     test = {
-      source = "registry.terraform.io/hashicorp/test"
+      source = "registry.mnptu.io/hashicorp/test"
       configuration_aliases = [ test.x ]
 	}
   }
@@ -383,13 +383,13 @@ resource "test_object" "a" {
 	}
 
 	expected := `module.moda.module.modb.test_object.a
-  module.moda.provider["registry.terraform.io/hashicorp/test"]
-module.moda.provider["registry.terraform.io/hashicorp/test"]
+  module.moda.provider["registry.mnptu.io/hashicorp/test"]
+module.moda.provider["registry.mnptu.io/hashicorp/test"]
 module.moda.test_object.a
-  module.moda.provider["registry.terraform.io/hashicorp/test"]
+  module.moda.provider["registry.mnptu.io/hashicorp/test"]
 module.moda.test_object.x
-  provider["registry.terraform.io/hashicorp/test"].z
-provider["registry.terraform.io/hashicorp/test"].z`
+  provider["registry.mnptu.io/hashicorp/test"].z
+provider["registry.mnptu.io/hashicorp/test"].z`
 
 	actual := strings.TrimSpace(g.String())
 	if actual != expected {
@@ -400,13 +400,13 @@ provider["registry.terraform.io/hashicorp/test"].z`
 func TestProviderConfigTransformer_duplicateLocalName(t *testing.T) {
 	mod := testModuleInline(t, map[string]string{
 		"main.tf": `
-terraform {
+mnptu {
   required_providers {
 	# We have to allow this since it wasn't previously prevented. If the
 	# default config is equivalent to the provider config, the user may never
 	# see an error.
     dupe = {
-      source = "registry.terraform.io/hashicorp/test"
+      source = "registry.mnptu.io/hashicorp/test"
     }
   }
 }
@@ -425,7 +425,7 @@ provider "test" {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := `provider["registry.terraform.io/hashicorp/test"]`
+	expected := `provider["registry.mnptu.io/hashicorp/test"]`
 
 	actual := strings.TrimSpace(g.String())
 	if actual != expected {
@@ -435,60 +435,60 @@ provider "test" {
 
 const testTransformProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"]
+  provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/aws"]
 `
 
 const testTransformCloseProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"] (close)
+  provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/aws"] (close)
   aws_instance.web
-  provider["registry.terraform.io/hashicorp/aws"]
+  provider["registry.mnptu.io/hashicorp/aws"]
 `
 
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
-  provider["registry.terraform.io/hashicorp/aws"]
+  provider["registry.mnptu.io/hashicorp/aws"]
 foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/aws"] (close)
+  provider["registry.mnptu.io/hashicorp/foo"]
+provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/aws"] (close)
   aws_instance.web
-  provider["registry.terraform.io/hashicorp/aws"]
-provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"] (close)
+  provider["registry.mnptu.io/hashicorp/aws"]
+provider["registry.mnptu.io/hashicorp/foo"]
+provider["registry.mnptu.io/hashicorp/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
+  provider["registry.mnptu.io/hashicorp/foo"]
 `
 
 const testTransformMissingGrandchildProviderStr = `
 module.sub.module.subsub.bar_instance.two
-  provider["registry.terraform.io/hashicorp/bar"]
+  provider["registry.mnptu.io/hashicorp/bar"]
 module.sub.module.subsub.foo_instance.one
-  module.sub.provider["registry.terraform.io/hashicorp/foo"]
-module.sub.provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/bar"]
+  module.sub.provider["registry.mnptu.io/hashicorp/foo"]
+module.sub.provider["registry.mnptu.io/hashicorp/foo"]
+provider["registry.mnptu.io/hashicorp/bar"]
 `
 
 const testTransformPruneProviderBasicStr = `
 foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"]
-provider["registry.terraform.io/hashicorp/foo"] (close)
+  provider["registry.mnptu.io/hashicorp/foo"]
+provider["registry.mnptu.io/hashicorp/foo"]
+provider["registry.mnptu.io/hashicorp/foo"] (close)
   foo_instance.web
-  provider["registry.terraform.io/hashicorp/foo"]
+  provider["registry.mnptu.io/hashicorp/foo"]
 `
 
 const testTransformModuleProviderConfigStr = `
 module.child.aws_instance.thing
-  provider["registry.terraform.io/hashicorp/aws"].foo
-provider["registry.terraform.io/hashicorp/aws"].foo
+  provider["registry.mnptu.io/hashicorp/aws"].foo
+provider["registry.mnptu.io/hashicorp/aws"].foo
 `
 
 const testTransformModuleProviderGrandparentStr = `
 module.child.module.grandchild.aws_instance.baz
-  provider["registry.terraform.io/hashicorp/aws"].foo
-provider["registry.terraform.io/hashicorp/aws"].foo
+  provider["registry.mnptu.io/hashicorp/aws"].foo
+provider["registry.mnptu.io/hashicorp/aws"].foo
 `

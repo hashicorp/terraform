@@ -14,10 +14,10 @@ This function supports a subset of [YAML 1.2](https://yaml.org/spec/1.2/spec.htm
 as described below.
 
 This function maps YAML values to
-[Terraform language values](/terraform/language/expressions/types)
+[mnptu language values](/mnptu/language/expressions/types)
 in the following way:
 
-| YAML type     | Terraform type                                                     |
+| YAML type     | mnptu type                                                     |
 | ------------- | ------------------------------------------------------------------ |
 | `!!str`       | `string`                                                           |
 | `!!float`     | `number`                                                           |
@@ -25,11 +25,11 @@ in the following way:
 | `!!bool`      | `bool`                                                             |
 | `!!map`       | `object(...)` with attribute types determined per this table       |
 | `!!seq`       | `tuple(...)` with element types determined per this table          |
-| `!!null`      | The Terraform language `null` value                                |
+| `!!null`      | The mnptu language `null` value                                |
 | `!!timestamp` | `string` in [RFC 3339](https://tools.ietf.org/html/rfc3339) format |
 | `!!binary`    | `string` containing base64-encoded representation                  |
 
-The Terraform language automatic type conversion rules mean that you don't
+The mnptu language automatic type conversion rules mean that you don't
 usually need to worry about exactly what type is produced for a given value,
 and can just use the result in an intuitive way.
 
@@ -38,7 +38,7 @@ types map to the same target type -- and so round-tripping through `yamldecode`
 and then `yamlencode` cannot produce an identical result.
 
 YAML is a complex language and it supports a number of possibilities that the
-Terraform language's type system cannot represent. Therefore this YAML decoder
+mnptu language's type system cannot represent. Therefore this YAML decoder
 supports only a subset of YAML 1.2, with restrictions including the following:
 
 - Although aliases to earlier anchors are supported, cyclic data structures
@@ -93,7 +93,7 @@ Call to function "yamldecode" failed: unsupported tag "!not-supported".
 
 ## Related Functions
 
-- [`jsondecode`](/terraform/language/functions/jsondecode) is a similar operation using JSON instead
+- [`jsondecode`](/mnptu/language/functions/jsondecode) is a similar operation using JSON instead
   of YAML.
-- [`yamlencode`](/terraform/language/functions/yamlencode) performs the opposite operation, _encoding_
+- [`yamlencode`](/mnptu/language/functions/yamlencode) performs the opposite operation, _encoding_
   a value as YAML.

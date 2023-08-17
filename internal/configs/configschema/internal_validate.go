@@ -19,7 +19,7 @@ var validName = regexp.MustCompile(`^[a-z0-9_]+$`)
 // schema.
 //
 // This can be used within unit tests to detect when a given schema is invalid,
-// and is run when terraform loads provider schemas during NewContext.
+// and is run when mnptu loads provider schemas during NewContext.
 func (b *Block) InternalValidate() error {
 	if b == nil {
 		return fmt.Errorf("top-level block schema is nil")

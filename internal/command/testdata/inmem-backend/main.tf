@@ -1,3 +1,3 @@
-terraform {
+mnptu {
   backend "inmem" {}
 }

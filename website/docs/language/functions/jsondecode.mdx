@@ -13,19 +13,19 @@ of the result of decoding that string.
 The JSON encoding is defined in [RFC 7159](https://tools.ietf.org/html/rfc7159).
 
 This function maps JSON values to
-[Terraform language values](/terraform/language/expressions/types)
+[mnptu language values](/mnptu/language/expressions/types)
 in the following way:
 
-| JSON type | Terraform type                                               |
+| JSON type | mnptu type                                               |
 | --------- | ------------------------------------------------------------ |
 | String    | `string`                                                     |
 | Number    | `number`                                                     |
 | Boolean   | `bool`                                                       |
 | Object    | `object(...)` with attribute types determined per this table |
 | Array     | `tuple(...)` with element types determined per this table    |
-| Null      | The Terraform language `null` value                          |
+| Null      | The mnptu language `null` value                          |
 
-The Terraform language automatic type conversion rules mean that you don't
+The mnptu language automatic type conversion rules mean that you don't
 usually need to worry about exactly what type is produced for a given value,
 and can just use the result in an intuitive way.
 
@@ -42,5 +42,5 @@ true
 
 ## Related Functions
 
-* [`jsonencode`](/terraform/language/functions/jsonencode) performs the opposite operation, _encoding_
+* [`jsonencode`](/mnptu/language/functions/jsonencode) performs the opposite operation, _encoding_
   a value as JSON.

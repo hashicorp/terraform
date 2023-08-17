@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/hashicorp/terraform/internal/command/cliconfig"
+	"github.com/hashicorp/mnptu/internal/command/cliconfig"
 )
 
 // globalPluginDirs returns directories that should be searched for
@@ -20,7 +20,7 @@ import (
 // older versions where both satisfy the provider version constraints.
 func globalPluginDirs() []string {
 	var ret []string
-	// Look in ~/.terraform.d/plugins/ , or its equivalent on non-UNIX
+	// Look in ~/.mnptu.d/plugins/ , or its equivalent on non-UNIX
 	dir, err := cliconfig.ConfigDir()
 	if err != nil {
 		log.Printf("[ERROR] Error finding global config directory: %s", err)

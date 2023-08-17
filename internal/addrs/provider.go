@@ -5,9 +5,9 @@ package addrs
 
 import (
 	"github.com/hashicorp/hcl/v2"
-	tfaddr "github.com/hashicorp/terraform-registry-address"
-	svchost "github.com/hashicorp/terraform-svchost"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	tfaddr "github.com/hashicorp/mnptu-registry-address"
+	svchost "github.com/hashicorp/mnptu-svchost"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // Provider encapsulates a single provider type. In the future this will be
@@ -61,20 +61,20 @@ func NewProvider(hostname svchost.Hostname, namespace, typeName string) Provider
 // ImpliedProviderForUnqualifiedType represents the rules for inferring what
 // provider FQN a user intended when only a naked type name is available.
 //
-// For all except the type name "terraform" this returns a so-called "default"
-// provider, which is under the registry.terraform.io/hashicorp/ namespace.
+// For all except the type name "mnptu" this returns a so-called "default"
+// provider, which is under the registry.mnptu.io/hashicorp/ namespace.
 //
-// As a special case, the string "terraform" maps to
-// "terraform.io/builtin/terraform" because that is the more likely user
-// intent than the now-unmaintained "registry.terraform.io/hashicorp/terraform"
-// which remains only for compatibility with older Terraform versions.
+// As a special case, the string "mnptu" maps to
+// "mnptu.io/builtin/mnptu" because that is the more likely user
+// intent than the now-unmaintained "registry.mnptu.io/hashicorp/mnptu"
+// which remains only for compatibility with older mnptu versions.
 func ImpliedProviderForUnqualifiedType(typeName string) Provider {
 	switch typeName {
-	case "terraform":
+	case "mnptu":
 		// Note for future maintainers: any additional strings we add here
 		// as implied to be builtin must never also be use as provider names
-		// in the registry.terraform.io/hashicorp/... namespace, because
-		// otherwise older versions of Terraform could implicitly select
+		// in the registry.mnptu.io/hashicorp/... namespace, because
+		// otherwise older versions of mnptu could implicitly select
 		// the registry name instead of the internal one.
 		return NewBuiltInProvider(typeName)
 	default:
@@ -118,7 +118,7 @@ func NewLegacyProvider(name string) Provider {
 // ParseProviderSourceString parses a value of the form expected in the "source"
 // argument of a required_providers entry and returns the corresponding
 // fully-qualified provider address. This is intended primarily to parse the
-// FQN-like strings returned by terraform-config-inspect.
+// FQN-like strings returned by mnptu-config-inspect.
 //
 // The following are valid source string formats:
 //

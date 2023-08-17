@@ -1,10 +1,10 @@
 tfcoremock_simple_resource.base: Refreshing state... [id=f6f74ca6-e8ef-e51f-522c-433b9ed5038f]
 tfcoremock_simple_resource.dependent: Refreshing state... [id=1b17b502-96c9-fcc3-3b09-2af1c3de6ad8]
 
-Note: Objects have changed outside of Terraform
+Note: Objects have changed outside of mnptu
 
-Terraform detected the following changes made outside of Terraform since the
-last "terraform apply" which may have affected this plan:
+mnptu detected the following changes made outside of mnptu since the
+last "mnptu apply" which may have affected this plan:
 
   # tfcoremock_simple_resource.base has changed
   ~ resource "tfcoremock_simple_resource" "base" {
@@ -20,11 +20,11 @@ actions to undo or respond to these changes.
 
 ─────────────────────────────────────────────────────────────────────────────
 
-Terraform used the selected providers to generate the following execution
+mnptu used the selected providers to generate the following execution
 plan. Resource actions are indicated with the following symbols:
   ~ update in-place
 
-Terraform will perform the following actions:
+mnptu will perform the following actions:
 
   # tfcoremock_simple_resource.base will be updated in-place
   ~ resource "tfcoremock_simple_resource" "base" {
@@ -46,4 +46,4 @@ Plan: 0 to add, 2 to change, 0 to destroy.
 Saved the plan to: equivalence_test_plan
 
 To perform exactly these actions, run the following command to apply:
-    terraform apply "equivalence_test_plan"
+    mnptu apply "equivalence_test_plan"

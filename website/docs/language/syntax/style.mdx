@@ -1,20 +1,20 @@
 ---
 page_title: Style Conventions - Configuration Language
 description: >-
-  Learn recommended formatting conventions for the Terraform language and a
+  Learn recommended formatting conventions for the mnptu language and a
   command to automatically enforce them.
 ---
 
 # Style Conventions
 
-The Terraform parser allows you some flexibility in how you lay out the
-elements in your configuration files, but the Terraform language also has some
+The mnptu parser allows you some flexibility in how you lay out the
+elements in your configuration files, but the mnptu language also has some
 idiomatic style conventions which we recommend users always follow
 for consistency between files and modules written by different teams.
 Automatic source code formatting tools may apply these conventions
 automatically.
 
--> **Note**: You can enforce these conventions automatically by running [`terraform fmt`](/terraform/cli/commands/fmt).
+-> **Note**: You can enforce these conventions automatically by running [`mnptu fmt`](/mnptu/cli/commands/fmt).
 
 * Indent two spaces for each nesting level.
 
@@ -34,7 +34,7 @@ automatically.
 * Use empty lines to separate logical groups of arguments within a block.
 
 * For blocks that contain both arguments and "meta-arguments" (as defined by
-  the Terraform language semantics), list meta-arguments first
+  the mnptu language semantics), list meta-arguments first
   and separate them from other arguments with one blank line. Place
   meta-argument blocks _last_ and separate them from other blocks with
   one blank line.

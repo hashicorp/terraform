@@ -1,5 +1,5 @@
 
-terraform {
+mnptu {
   cloud {
     foo = "bar"
 

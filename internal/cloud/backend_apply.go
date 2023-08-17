@@ -13,11 +13,11 @@ import (
 	"strings"
 
 	tfe "github.com/hashicorp/go-tfe"
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operation, w *tfe.Workspace) (*tfe.Run, error) {
@@ -51,7 +51,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
-			`Terraform Cloud does not support setting a custom parallelism `+
+			`mnptu Cloud does not support setting a custom parallelism `+
 				`value at this time.`,
 		))
 	}
@@ -60,7 +60,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Applying a saved local plan is not supported",
-			`Terraform Cloud can apply a saved cloud plan, or create a new plan when `+
+			`mnptu Cloud can apply a saved cloud plan, or create a new plan when `+
 				`configuration is present. It cannot apply a saved local plan.`,
 		))
 	}
@@ -71,7 +71,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			"No configuration files found",
 			`Apply requires configuration to be present. Applying without a configuration `+
 				`would mark everything for destruction, which is normally not what is desired. `+
-				`If you would like to destroy everything, please run 'terraform destroy' which `+
+				`If you would like to destroy everything, please run 'mnptu destroy' which `+
 				`does not require any configuration files.`,
 		))
 	}
@@ -91,7 +91,7 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 			diags = diags.Append(tfdiags.Sourceless(
 				tfdiags.Error,
 				"Saved plan is for a different hostname",
-				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured Terraform Cloud or Terraform Enterprise instance is %s.", cp.Hostname, b.hostname),
+				fmt.Sprintf("The given saved plan refers to a run on %s, but the currently configured mnptu Cloud or mnptu Enterprise instance is %s.", cp.Hostname, b.hostname),
 			))
 			return r, diags.Err()
 		}
@@ -154,15 +154,15 @@ func (b *Cloud) opApply(stopCtx, cancelCtx context.Context, op *backend.Operatio
 		mustConfirm := (op.UIIn != nil && op.UIOut != nil) && !op.AutoApprove
 
 		if mustConfirm && b.input {
-			opts := &terraform.InputOpts{Id: "approve"}
+			opts := &mnptu.InputOpts{Id: "approve"}
 
 			if op.PlanMode == plans.DestroyMode {
 				opts.Query = "\nDo you really want to destroy all resources in workspace \"" + op.Workspace + "\"?"
-				opts.Description = "Terraform will destroy all your managed infrastructure, as shown above.\n" +
+				opts.Description = "mnptu will destroy all your managed infrastructure, as shown above.\n" +
 					"There is no undo. Only 'yes' will be accepted to confirm."
 			} else {
 				opts.Query = "\nDo you want to perform these actions in workspace \"" + op.Workspace + "\"?"
-				opts.Description = "Terraform will perform the actions described above.\n" +
+				opts.Description = "mnptu will perform the actions described above.\n" +
 					"Only 'yes' will be accepted to approve."
 			}
 
@@ -240,7 +240,7 @@ func (b *Cloud) renderApplyLogs(ctx context.Context, run *tfe.Run) error {
 				line = append(line, l...)
 			}
 
-			// Apply logs show the same Terraform info logs as shown in the plan logs
+			// Apply logs show the same mnptu info logs as shown in the plan logs
 			// (which contain version and os/arch information), we therefore skip to prevent duplicate output.
 			if skip < 3 {
 				skip++
@@ -289,16 +289,16 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 		reason = "The given plan file is already being applied, and cannot be applied again."
 	case tfe.RunCanceled:
 		summary = "Saved plan is canceled"
-		reason = "The given plan file can no longer be applied because the run was canceled via the Terraform Cloud UI or API."
+		reason = "The given plan file can no longer be applied because the run was canceled via the mnptu Cloud UI or API."
 	case tfe.RunDiscarded:
 		summary = "Saved plan is discarded"
-		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the Terraform Cloud UI or API."
+		reason = "The given plan file can no longer be applied; either another run was applied first, or a user discarded it via the mnptu Cloud UI or API."
 	case tfe.RunErrored:
 		summary = "Saved plan is errored"
 		reason = "The given plan file refers to a plan that had errors and did not complete successfully. It cannot be applied."
 	case tfe.RunPlannedAndFinished:
 		// Note: planned and finished can also indicate a plan-only run, but
-		// terraform plan can't create a saved plan for a plan-only run, so we
+		// mnptu plan can't create a saved plan for a plan-only run, so we
 		// know it's no-changes in this case.
 		summary = "Saved plan has no changes"
 		reason = "The given plan file contains no changes, so it cannot be applied."
@@ -307,7 +307,7 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 		reason = "The given plan file has soft policy failures, and cannot be applied until a user with appropriate permissions overrides the policy check."
 	default:
 		summary = "Saved plan cannot be applied"
-		reason = "Terraform Cloud cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem."
+		reason = "mnptu Cloud cannot apply the given plan file. This may mean the plan and checks have not yet completed, or may indicate another problem."
 	}
 
 	diags = diags.Append(tfdiags.Sourceless(
@@ -319,7 +319,7 @@ func unusableSavedPlanError(status tfe.RunStatus, url string) error {
 }
 
 const applyDefaultHeader = `
-[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running apply in mnptu Cloud. Output will stream here. Pressing Ctrl-C
 will cancel the remote apply if it's still pending. If the apply started it
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
@@ -327,7 +327,7 @@ Preparing the remote apply...
 `
 
 const applySavedHeader = `
-[reset][yellow]Running apply in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running apply in mnptu Cloud. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the apply running remotely.[reset]
 
 Preparing the remote apply...

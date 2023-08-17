@@ -3,15 +3,15 @@
 
 schema = "1"
 
-project "terraform" {
+project "mnptu" {
   // the team key is not used by CRT currently
-  team = "terraform"
+  team = "mnptu"
   slack {
     notification_channel = "C011WJ112MD"
   }
   github {
     organization = "hashicorp"
-    repository = "terraform"
+    repository = "mnptu"
 
     release_branches = [
       "main",
@@ -25,7 +25,7 @@ event "build" {
   depends = ["merge"]
   action "build" {
     organization = "hashicorp"
-    repository = "terraform"
+    repository = "mnptu"
     workflow = "build"
   }
 }
@@ -159,7 +159,7 @@ event "crt-hook-tfc-upload" {
   depends = ["promote-production-packaging"]
   action "crt-hook-tfc-upload" {
     organization = "hashicorp"
-    repository = "terraform-releases"
+    repository = "mnptu-releases"
     workflow = "crt-hook-tfc-upload"
   }
 

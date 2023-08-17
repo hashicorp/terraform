@@ -22,13 +22,13 @@ import (
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
 
-	"github.com/hashicorp/terraform/internal/backend"
-	"github.com/hashicorp/terraform/internal/cloud/cloudplan"
-	"github.com/hashicorp/terraform/internal/command/jsonformat"
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/genconfig"
-	"github.com/hashicorp/terraform/internal/plans"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/backend"
+	"github.com/hashicorp/mnptu/internal/cloud/cloudplan"
+	"github.com/hashicorp/mnptu/internal/command/jsonformat"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/genconfig"
+	"github.com/hashicorp/mnptu/internal/plans"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 var planConfigurationVersionsPollInterval = 500 * time.Millisecond
@@ -52,7 +52,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Custom parallelism values are currently not supported",
-			`Terraform Cloud does not support setting a custom parallelism `+
+			`mnptu Cloud does not support setting a custom parallelism `+
 				`value at this time.`,
 		))
 	}
@@ -61,7 +61,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Displaying a saved plan is currently not supported",
-			`Terraform Cloud currently requires configuration to be present and `+
+			`mnptu Cloud currently requires configuration to be present and `+
 				`does not accept an existing saved plan as an argument at this time.`,
 		))
 	}
@@ -74,7 +74,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 				`would mark everything for destruction, which is normally not what is desired. `+
 				`If you would like to destroy everything, please run plan with the "-destroy" `+
 				`flag or create a single empty configuration file. Otherwise, please create `+
-				`a Terraform configuration file in the path being executed and try again.`,
+				`a mnptu configuration file in the path being executed and try again.`,
 		))
 	}
 
@@ -117,7 +117,7 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(header) + "\n"))
 	}
 
-	// Plan-only means they ran terraform plan without -out.
+	// Plan-only means they ran mnptu plan without -out.
 	provisional := op.PlanOutPath != ""
 	planOnly := op.Type == backend.OperationTypePlan && !provisional
 
@@ -160,9 +160,9 @@ func (b *Cloud) plan(stopCtx, cancelCtx context.Context, op *backend.Operation, 
 The remote workspace is configured to work with configuration at
 %s relative to the target repository.
 
-Terraform will upload the contents of the following directory,
-excluding files or directories as defined by a .terraformignore file
-at %s/.terraformignore (if it is present),
+mnptu will upload the contents of the following directory,
+excluding files or directories as defined by a .mnptuignore file
+at %s/.mnptuignore (if it is present),
 in order to capture the filesystem context the remote workspace expects:
     %s
 `), w.WorkingDirectory, configDir, configDir) + "\n")
@@ -237,7 +237,7 @@ in order to capture the filesystem context the remote workspace expects:
 		// field.
 		return nil, generalError(
 			"Invalid plan mode",
-			fmt.Errorf("Terraform Cloud doesn't support %s", op.PlanMode),
+			fmt.Errorf("mnptu Cloud doesn't support %s", op.PlanMode),
 		)
 	}
 
@@ -400,25 +400,25 @@ func (b *Cloud) AssertImportCompatible(config *configs.Config) error {
 		// First, check the remote API version is high enough.
 		currentAPIVersion, err := version.NewVersion(b.client.RemoteAPIVersion())
 		if err != nil {
-			return fmt.Errorf("Error parsing remote API version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing remote API version. To proceed, please remove any import blocks from your config. Please report the following error to the mnptu team: %s", err)
 		}
 		desiredAPIVersion, _ := version.NewVersion("2.6")
 		if currentAPIVersion.LessThan(desiredAPIVersion) {
-			return fmt.Errorf("Import blocks are not supported in this version of Terraform Enterprise. Please remove any import blocks from your config or upgrade Terraform Enterprise.")
+			return fmt.Errorf("Import blocks are not supported in this version of mnptu Enterprise. Please remove any import blocks from your config or upgrade mnptu Enterprise.")
 		}
 
 		// Second, check the agent version is high enough.
 		agentEnv, isSet := os.LookupEnv("TFC_AGENT_VERSION")
 		if !isSet {
-			return fmt.Errorf("Error reading TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: TFC_AGENT_VERSION not present.")
+			return fmt.Errorf("Error reading TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the mnptu team: TFC_AGENT_VERSION not present.")
 		}
 		currentAgentVersion, err := version.NewVersion(agentEnv)
 		if err != nil {
-			return fmt.Errorf("Error parsing TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the Terraform team: %s", err)
+			return fmt.Errorf("Error parsing TFC agent version. To proceed, please remove any import blocks from your config. Please report the following error to the mnptu team: %s", err)
 		}
 		desiredAgentVersion, _ := version.NewVersion("1.10")
 		if currentAgentVersion.LessThan(desiredAgentVersion) {
-			return fmt.Errorf("Import blocks are not supported in this version of the Terraform Cloud Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
+			return fmt.Errorf("Import blocks are not supported in this version of the mnptu Cloud Agent. You are using agent version %s, but this feature requires version %s. Please remove any import blocks from your config or upgrade your agent.", currentAgentVersion, desiredAgentVersion)
 		}
 	}
 	return nil
@@ -571,7 +571,7 @@ func maybeWriteGeneratedConfig(plan *jsonformat.Plan, out string) (diags tfdiags
 }
 
 // shouldRenderStructuredRunOutput ensures the remote workspace has structured
-// run output enabled and, if using Terraform Enterprise, ensures it is a release
+// run output enabled and, if using mnptu Enterprise, ensures it is a release
 // that supports enabling SRO for CLI-driven runs. The plan output will have
 // already been rendered when the logs were read if this wasn't the case.
 func (b *Cloud) shouldRenderStructuredRunOutput(run *tfe.Run) (bool, error) {
@@ -621,7 +621,7 @@ func shouldGenerateConfig(out string, run *tfe.Run) bool {
 }
 
 const planDefaultHeader = `
-[reset][yellow]Running plan in Terraform Cloud. Output will stream here. Pressing Ctrl-C
+[reset][yellow]Running plan in mnptu Cloud. Output will stream here. Pressing Ctrl-C
 will stop streaming the logs, but will not stop the plan running remotely.[reset]
 
 Preparing the remote plan...

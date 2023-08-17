@@ -1,5 +1,5 @@
 [
-  { "heading": "Terraform Language" },
+  { "heading": "mnptu Language" },
   { "title": "Overview", "path": "" },
   {
     "title": "Attributes as Blocks - Configuration Language",
@@ -96,8 +96,8 @@
         ]
       },
       {
-        "title": "The <code>terraform_data</code> Resource Type",
-        "path": "resources/terraform-data"
+        "title": "The <code>mnptu_data</code> Resource Type",
+        "path": "resources/mnptu-data"
       }
     ]
   },
@@ -914,10 +914,10 @@
     ]
   },
   {
-    "title": "Terraform Settings",
+    "title": "mnptu Settings",
     "routes": [
       { "title": "Overview", "path": "settings" },
-      { "title": "Terraform Cloud", "path": "settings/terraform-cloud" },
+      { "title": "mnptu Cloud", "path": "settings/mnptu-cloud" },
       {
         "title": "Backends",
         "routes": [
@@ -1039,7 +1039,7 @@
       { "title": "Overview", "path": "state" },
       { "title": "Purpose", "path": "state/purpose" },
       {
-        "title": "The <code>terraform_remote_state</code> Data Source",
+        "title": "The <code>mnptu_remote_state</code> Data Source",
         "path": "state/remote-state-data"
       },
       {
@@ -1060,7 +1060,7 @@
     ]
   },
   {
-    "title": "Upgrading to Terraform v1.5",
+    "title": "Upgrading to mnptu v1.5",
     "path": "upgrade-guides"
   },
   {
@@ -1068,5 +1068,5 @@
     "path": "v1-compatibility-promises"
   },
   { "divider": true },
-  { "title": "Terraform Internals", "href": "/internals" }
+  { "title": "mnptu Internals", "href": "/internals" }
 ]

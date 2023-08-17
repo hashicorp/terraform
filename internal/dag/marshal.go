@@ -179,7 +179,7 @@ func marshalVertexID(v Vertex) string {
 	return VertexName(v)
 
 	// we could try harder by attempting to read the arbitrary value from the
-	// interface, but we shouldn't get here from terraform right now.
+	// interface, but we shouldn't get here from mnptu right now.
 }
 
 // check for a Subgrapher, and return the underlying *Graph.

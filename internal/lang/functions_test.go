@@ -12,8 +12,8 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/hashicorp/terraform/internal/experiments"
-	"github.com/hashicorp/terraform/internal/lang/marks"
+	"github.com/hashicorp/mnptu/internal/experiments"
+	"github.com/hashicorp/mnptu/internal/lang/marks"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -138,7 +138,7 @@ func TestFunctions(t *testing.T) {
 				// Note: "can" only works with expressions that pass static
 				// validation, because it only gets an opportunity to run in
 				// that case. The following "works" (captures the error) because
-				// Terraform understands it as a reference to an attribute
+				// mnptu understands it as a reference to an attribute
 				// that does not exist during dynamic evaluation.
 				//
 				// "can" doesn't work with references that could never possibly
@@ -534,7 +534,7 @@ func TestFunctions(t *testing.T) {
 				cty.StringVal("{\"hello\":\"world\"}"),
 			},
 			// We are intentionally choosing to escape <, >, and & characters
-			// to preserve backwards compatibility with Terraform 0.11
+			// to preserve backwards compatibility with mnptu 0.11
 			{
 				`jsonencode({"hello"="<cats & kittens>"})`,
 				cty.StringVal("{\"hello\":\"\\u003ccats \\u0026 kittens\\u003e\"}"),
@@ -1076,7 +1076,7 @@ func TestFunctions(t *testing.T) {
 				// Note: "try" only works with expressions that pass static
 				// validation, because it only gets an opportunity to run in
 				// that case. The following "works" (captures the error) because
-				// Terraform understands it as a reference to an attribute
+				// mnptu understands it as a reference to an attribute
 				// that does not exist during dynamic evaluation.
 				//
 				// "try" doesn't work with references that could never possibly
@@ -1084,7 +1084,7 @@ func TestFunctions(t *testing.T) {
 				// as an expression like "foo" alone which would be understood
 				// as an invalid resource reference. That's okay because this
 				// function exists primarily to ease access to dynamically-typed
-				// structures that Terraform can't statically validate by
+				// structures that mnptu can't statically validate by
 				// definition.
 				`try({}.baz, "fallback")`,
 				cty.StringVal("fallback"),

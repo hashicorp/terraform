@@ -10,9 +10,9 @@ import (
 
 	"github.com/xlab/treeprint"
 
-	"github.com/hashicorp/terraform/internal/configs"
-	"github.com/hashicorp/terraform/internal/getproviders"
-	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/hashicorp/mnptu/internal/configs"
+	"github.com/hashicorp/mnptu/internal/getproviders"
+	"github.com/hashicorp/mnptu/internal/tfdiags"
 )
 
 // ProvidersCommand is a Command implementation that prints out information
@@ -54,7 +54,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"Error validating configuration directory",
-			fmt.Sprintf("Terraform encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
+			fmt.Sprintf("mnptu encountered an unexpected error while verifying that the given configuration directory is valid: %s.", err),
 		))
 		c.showDiagnostics(diags)
 		return 1
@@ -67,7 +67,7 @@ func (c *ProvidersCommand) Run(args []string) int {
 		diags = diags.Append(tfdiags.Sourceless(
 			tfdiags.Error,
 			"No configuration files",
-			fmt.Sprintf("The directory %s contains no Terraform configuration files.", absPath),
+			fmt.Sprintf("The directory %s contains no mnptu configuration files.", absPath),
 		))
 		c.showDiagnostics(diags)
 		return 1
@@ -175,7 +175,7 @@ func (c *ProvidersCommand) populateTreeNode(tree treeprint.Tree, node *configs.M
 }
 
 const providersCommandHelp = `
-Usage: terraform [global options] providers [options] [DIR]
+Usage: mnptu [global options] providers [options] [DIR]
 
   Prints out a tree of modules in the referenced configuration annotated with
   their provider requirements.
@@ -186,5 +186,5 @@ Usage: terraform [global options] providers [options] [DIR]
 
 Options:
 
-  -test-directory=path	Set the Terraform test directory, defaults to "tests".
+  -test-directory=path	Set the mnptu test directory, defaults to "tests".
 `

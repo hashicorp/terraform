@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 // schema is a high-level framework for easily writing new providers
-// for Terraform. Usage of schema is recommended over attempting to write
+// for mnptu. Usage of schema is recommended over attempting to write
 // to the low-level plugin interfaces manually.
 //
 // schema breaks down provider creation into simple CRUD operations for
@@ -25,8 +25,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
-	"github.com/hashicorp/terraform/internal/legacy/terraform"
+	"github.com/hashicorp/mnptu/internal/configs/hcl2shim"
+	"github.com/hashicorp/mnptu/internal/legacy/mnptu"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/mapstructure"
 )
@@ -196,8 +196,8 @@ type Schema struct {
 
 	// PromoteSingle originally allowed for a single element to be assigned
 	// where a primitive list was expected, but this no longer works from
-	// Terraform v0.12 onwards (Terraform Core will require a list to be set
-	// regardless of what this is set to) and so only applies to Terraform v0.11
+	// mnptu v0.12 onwards (mnptu Core will require a list to be set
+	// regardless of what this is set to) and so only applies to mnptu v0.11
 	// and earlier, and so should be used only to retain this functionality
 	// for those still using v0.11 with a provider that formerly used this.
 	PromoteSingle bool
@@ -247,7 +247,7 @@ type Schema struct {
 
 	// Sensitive ensures that the attribute's value does not get displayed in
 	// logs or regular output. It should be used for passwords or other
-	// secret fields. Future versions of Terraform may encrypt these
+	// secret fields. Future versions of mnptu may encrypt these
 	// values.
 	Sensitive bool
 }
@@ -360,7 +360,7 @@ func (s *Schema) ZeroValue() interface{} {
 	}
 }
 
-func (s *Schema) finalizeDiff(d *terraform.ResourceAttrDiff, customized bool) *terraform.ResourceAttrDiff {
+func (s *Schema) finalizeDiff(d *mnptu.ResourceAttrDiff, customized bool) *mnptu.ResourceAttrDiff {
 	if d == nil {
 		return d
 	}
@@ -447,8 +447,8 @@ func (m schemaMap) panicOnError() bool {
 //
 // The diff is optional.
 func (m schemaMap) Data(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (*ResourceData, error) {
+	s *mnptu.InstanceState,
+	d *mnptu.InstanceDiff) (*ResourceData, error) {
 	return &ResourceData{
 		schema:       m,
 		state:        s,
@@ -470,13 +470,13 @@ func (m *schemaMap) DeepCopy() schemaMap {
 // Diff returns the diff for a resource given the schema map,
 // state, and configuration.
 func (m schemaMap) Diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
+	s *mnptu.InstanceState,
+	c *mnptu.ResourceConfig,
 	customizeDiff CustomizeDiffFunc,
 	meta interface{},
-	handleRequiresNew bool) (*terraform.InstanceDiff, error) {
-	result := new(terraform.InstanceDiff)
-	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+	handleRequiresNew bool) (*mnptu.InstanceDiff, error) {
+	result := new(mnptu.InstanceDiff)
+	result.Attributes = make(map[string]*mnptu.ResourceAttrDiff)
 
 	// Make sure to mark if the resource is tainted
 	if s != nil {
@@ -527,8 +527,8 @@ func (m schemaMap) Diff(
 		// caused that.
 		if result.RequiresNew() {
 			// Create the new diff
-			result2 := new(terraform.InstanceDiff)
-			result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+			result2 := new(mnptu.InstanceDiff)
+			result2.Attributes = make(map[string]*mnptu.ResourceAttrDiff)
 
 			// Preserve the DestroyTainted flag
 			result2.DestroyTainted = result.DestroyTainted
@@ -613,11 +613,11 @@ func (m schemaMap) Diff(
 	return result, nil
 }
 
-// Input implements the terraform.ResourceProvider method by asking
+// Input implements the mnptu.ResourceProvider method by asking
 // for input for required configuration keys that don't have a value.
 func (m schemaMap) Input(
-	input terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	input mnptu.UIInput,
+	c *mnptu.ResourceConfig) (*mnptu.ResourceConfig, error) {
 	keys := make([]string, 0, len(m))
 	for k, _ := range m {
 		keys = append(keys, k)
@@ -676,7 +676,7 @@ func (m schemaMap) Input(
 }
 
 // Validate validates the configuration against this schema mapping.
-func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+func (m schemaMap) Validate(c *mnptu.ResourceConfig) ([]string, []error) {
 	return m.validateObject("", m, c)
 }
 
@@ -868,12 +868,12 @@ type resourceDiffer interface {
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,
-	diff *terraform.InstanceDiff,
+	diff *mnptu.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
 
-	unsupressedDiff := new(terraform.InstanceDiff)
-	unsupressedDiff.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+	unsupressedDiff := new(mnptu.InstanceDiff)
+	unsupressedDiff.Attributes = make(map[string]*mnptu.ResourceAttrDiff)
 
 	var err error
 	switch schema.Type {
@@ -901,7 +901,7 @@ func (m schemaMap) diff(
 					continue
 				}
 
-				attrV = &terraform.ResourceAttrDiff{
+				attrV = &mnptu.ResourceAttrDiff{
 					Old: attrV.Old,
 					New: attrV.Old,
 				}
@@ -916,7 +916,7 @@ func (m schemaMap) diff(
 func (m schemaMap) diffList(
 	k string,
 	schema *Schema,
-	diff *terraform.InstanceDiff,
+	diff *mnptu.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
 	o, n, _, computedList, customized := d.diffChange(k)
@@ -961,7 +961,7 @@ func (m schemaMap) diffList(
 
 	// If the whole list is computed, then say that the # is computed
 	if computedList {
-		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
+		diff.Attributes[k+".#"] = &mnptu.ResourceAttrDiff{
 			Old:         oldStr,
 			NewComputed: true,
 			RequiresNew: schema.ForceNew,
@@ -987,7 +987,7 @@ func (m schemaMap) diffList(
 		}
 
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old: oldStr,
 				New: newStr,
 			},
@@ -1038,7 +1038,7 @@ func (m schemaMap) diffList(
 func (m schemaMap) diffMap(
 	k string,
 	schema *Schema,
-	diff *terraform.InstanceDiff,
+	diff *mnptu.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
 	prefix := k + "."
@@ -1093,7 +1093,7 @@ func (m schemaMap) diffMap(
 		}
 
 		diff.Attributes[k+".%"] = countSchema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old: oldStr,
 				New: newStr,
 			},
@@ -1116,7 +1116,7 @@ func (m schemaMap) diffMap(
 		}
 
 		diff.Attributes[prefix+k] = schema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old: old,
 				New: v,
 			},
@@ -1125,7 +1125,7 @@ func (m schemaMap) diffMap(
 	}
 	for k, v := range stateMap {
 		diff.Attributes[prefix+k] = schema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old:        v,
 				NewRemoved: true,
 			},
@@ -1139,7 +1139,7 @@ func (m schemaMap) diffMap(
 func (m schemaMap) diffSet(
 	k string,
 	schema *Schema,
-	diff *terraform.InstanceDiff,
+	diff *mnptu.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
 
@@ -1203,7 +1203,7 @@ func (m schemaMap) diffSet(
 		}
 
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old:         countStr,
 				NewComputed: true,
 			},
@@ -1216,7 +1216,7 @@ func (m schemaMap) diffSet(
 	changed := oldLen != newLen
 	if changed || all {
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
-			&terraform.ResourceAttrDiff{
+			&mnptu.ResourceAttrDiff{
 				Old: oldStr,
 				New: newStr,
 			},
@@ -1266,7 +1266,7 @@ func (m schemaMap) diffSet(
 func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
-	diff *terraform.InstanceDiff,
+	diff *mnptu.InstanceDiff,
 	d resourceDiffer,
 	all bool) error {
 	var originalN interface{}
@@ -1309,7 +1309,7 @@ func (m schemaMap) diffString(
 	}
 
 	diff.Attributes[k] = schema.finalizeDiff(
-		&terraform.ResourceAttrDiff{
+		&mnptu.ResourceAttrDiff{
 			Old:         os,
 			New:         ns,
 			NewExtra:    originalN,
@@ -1323,10 +1323,10 @@ func (m schemaMap) diffString(
 }
 
 func (m schemaMap) inputString(
-	input terraform.UIInput,
+	input mnptu.UIInput,
 	k string,
 	schema *Schema) (interface{}, error) {
-	result, err := input.Input(context.Background(), &terraform.InputOpts{
+	result, err := input.Input(context.Background(), &mnptu.InputOpts{
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,
@@ -1339,7 +1339,7 @@ func (m schemaMap) inputString(
 func (m schemaMap) validate(
 	k string,
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 	raw, ok := c.Get(k)
 	if !ok && schema.DefaultFunc != nil {
 		// We have a dynamic default. Check if we have a value.
@@ -1413,7 +1413,7 @@ func isWhollyKnown(raw interface{}) bool {
 func (m schemaMap) validateConflictingAttributes(
 	k string,
 	schema *Schema,
-	c *terraform.ResourceConfig) error {
+	c *mnptu.ResourceConfig) error {
 
 	if len(schema.ConflictsWith) == 0 {
 		return nil
@@ -1438,7 +1438,7 @@ func (m schemaMap) validateList(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
 		if s == hcl2shim.UnknownVariableValue {
@@ -1530,7 +1530,7 @@ func (m schemaMap) validateMap(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 	// first check if the list is wholly unknown
 	if s, ok := raw.(string); ok {
 		if s == hcl2shim.UnknownVariableValue {
@@ -1666,7 +1666,7 @@ func getValueType(k string, schema *Schema) (ValueType, error) {
 func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 	raw, _ := c.Get(k)
 
 	// schemaMap can't validate nil
@@ -1717,7 +1717,7 @@ func (m schemaMap) validatePrimitive(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 
 	// a nil value shouldn't happen in the old protocol, and in the new
 	// protocol the types have already been validated. Either way, we can't
@@ -1805,7 +1805,7 @@ func (m schemaMap) validateType(
 	k string,
 	raw interface{},
 	schema *Schema,
-	c *terraform.ResourceConfig) ([]string, []error) {
+	c *mnptu.ResourceConfig) ([]string, []error) {
 	var ws []string
 	var es []error
 	switch schema.Type {

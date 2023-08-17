@@ -7,10 +7,10 @@ package statemgr
 // operations done against full state managers.
 
 import (
-	"github.com/hashicorp/terraform/internal/states"
-	"github.com/hashicorp/terraform/internal/states/statefile"
-	"github.com/hashicorp/terraform/internal/terraform"
-	"github.com/hashicorp/terraform/version"
+	"github.com/hashicorp/mnptu/internal/states"
+	"github.com/hashicorp/mnptu/internal/states/statefile"
+	"github.com/hashicorp/mnptu/internal/mnptu"
+	"github.com/hashicorp/mnptu/version"
 )
 
 // NewStateFile creates a new statefile.File object, with a newly-minted
@@ -18,7 +18,7 @@ import (
 func NewStateFile() *statefile.File {
 	return &statefile.File{
 		Lineage:          NewLineage(),
-		TerraformVersion: version.SemVer,
+		mnptuVersion: version.SemVer,
 		State:            states.NewState(),
 	}
 }
@@ -48,7 +48,7 @@ func RefreshAndRead(mgr Storage) (*states.State, error) {
 // out quickly with a user-facing error. In situations where more control
 // is required, call WriteState and PersistState on the state manager directly
 // and handle their errors.
-func WriteAndPersist(mgr Storage, state *states.State, schemas *terraform.Schemas) error {
+func WriteAndPersist(mgr Storage, state *states.State, schemas *mnptu.Schemas) error {
 	err := mgr.WriteState(state)
 	if err != nil {
 		return err

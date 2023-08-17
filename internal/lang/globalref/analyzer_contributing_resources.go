@@ -6,7 +6,7 @@ package globalref
 import (
 	"sort"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 )
 
 // ContributingResources analyzes all of the given references and

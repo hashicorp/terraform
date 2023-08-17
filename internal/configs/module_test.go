@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/mnptu/internal/addrs"
 	"github.com/zclconf/go-cty/cty"
 )
 
@@ -39,15 +39,15 @@ func TestNewModule_provider_local_name(t *testing.T) {
 		t.Error("wrong local name returned for a non-local provider")
 	}
 
-	// can also look up the "terraform" provider and see that it sources is
+	// can also look up the "mnptu" provider and see that it sources is
 	// allowed to be overridden, even though there is a builtin provider
-	// called "terraform".
-	p = addrs.NewProvider(addrs.DefaultProviderRegistryHost, "not-builtin", "not-terraform")
+	// called "mnptu".
+	p = addrs.NewProvider(addrs.DefaultProviderRegistryHost, "not-builtin", "not-mnptu")
 	if name, exists := mod.ProviderLocalNames[p]; !exists {
-		t.Fatal("provider FQN not-builtin/not-terraform not found")
+		t.Fatal("provider FQN not-builtin/not-mnptu not found")
 	} else {
-		if name != "terraform" {
-			t.Fatalf("provider localname mismatch: got %s, want terraform", name)
+		if name != "mnptu" {
+			t.Fatalf("provider localname mismatch: got %s, want mnptu", name)
 		}
 	}
 }
@@ -296,7 +296,7 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 	foo := addrs.NewProvider("registry.acme.corp", "acme", "foo")
 	whatever := addrs.NewProvider(addrs.DefaultProviderRegistryHost, "acme", "something")
 	bar := addrs.NewDefaultProvider("bar")
-	tf := addrs.NewBuiltInProvider("terraform")
+	tf := addrs.NewBuiltInProvider("mnptu")
 
 	tests := []struct {
 		Type     string
@@ -305,7 +305,7 @@ func TestImpliedProviderForUnqualifiedType(t *testing.T) {
 		{"foo", foo},
 		{"whatever", whatever},
 		{"bar", bar},
-		{"terraform", tf},
+		{"mnptu", tf},
 	}
 	for _, test := range tests {
 		got := mod.ImpliedProviderForUnqualifiedType(test.Type)
@@ -335,7 +335,7 @@ func TestModule_backend_override(t *testing.T) {
 		t.Fatal(diags.Error())
 	}
 
-	wantAttr := cty.StringVal("CHANGED/relative/path/to/terraform.tfstate")
+	wantAttr := cty.StringVal("CHANGED/relative/path/to/mnptu.tfstate")
 
 	if !gotAttr.RawEquals(wantAttr) {
 		t.Errorf("wrong result for backend 'path': got %#v, want %#v\n", gotAttr, wantAttr)
@@ -411,7 +411,7 @@ func TestModule_cloud_override(t *testing.T) {
 
 func TestModule_cloud_duplicate_overrides(t *testing.T) {
 	_, diags := testModuleFromDir("testdata/invalid-modules/override-cloud-duplicates")
-	want := `Duplicate Terraform Cloud configurations`
+	want := `Duplicate mnptu Cloud configurations`
 	if got := diags.Error(); !strings.Contains(got, want) {
 		t.Fatalf("expected module error to contain %q\nerror was:\n%s", want, got)
 	}

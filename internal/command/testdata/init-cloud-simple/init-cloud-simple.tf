@@ -1,9 +1,9 @@
-# This is a simple configuration with Terraform Cloud mode minimally
+# This is a simple configuration with mnptu Cloud mode minimally
 # activated, but it's suitable only for testing things that we can exercise
-# without actually accessing Terraform Cloud, such as checking of invalid
-# command-line options to "terraform init".
+# without actually accessing mnptu Cloud, such as checking of invalid
+# command-line options to "mnptu init".
 
-terraform {
+mnptu {
   cloud {
     organization = "PLACEHOLDER"
     workspaces {

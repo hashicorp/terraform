@@ -9,7 +9,7 @@ import (
 
 	"github.com/zclconf/go-cty/cty"
 
-	"github.com/hashicorp/terraform/internal/configs/configschema"
+	"github.com/hashicorp/mnptu/internal/configs/configschema"
 )
 
 // ProposedNew constructs a proposed new object value by combining the
@@ -56,7 +56,7 @@ func ProposedNew(schema *configschema.Block, prior, config cty.Value) cty.Value 
 // provider when the data resource is finally read.
 //
 // Data resources are different because the planning of them is handled
-// entirely within Terraform Core and not subject to customization by the
+// entirely within mnptu Core and not subject to customization by the
 // provider. This function is, in effect, producing an equivalent result to
 // passing the proposedNewBlock result into a provider's PlanResourceChange
 // function, assuming a fixed implementation of PlanResourceChange that just

@@ -11,5 +11,5 @@ import (
 var tracer trace.Tracer
 
 func init() {
-	tracer = otel.Tracer("github.com/hashicorp/terraform/internal/command")
+	tracer = otel.Tracer("github.com/hashicorp/mnptu/internal/command")
 }

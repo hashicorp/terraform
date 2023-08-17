@@ -9,10 +9,10 @@ import (
 	version "github.com/hashicorp/go-version"
 	"github.com/hashicorp/hcl/v2"
 
-	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/mnptu/internal/configs"
 )
 
-// LoadConfig reads the Terraform module in the given directory and uses it as the
+// LoadConfig reads the mnptu module in the given directory and uses it as the
 // root module to build the static module tree that represents a configuration,
 // assuming that all required descendent modules have already been installed.
 //
@@ -55,7 +55,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 	// Since we're just loading here, we expect that all referenced modules
 	// will be already installed and described in our manifest. However, we
 	// do verify that the manifest and the configuration are in agreement
-	// so that we can prompt the user to run "terraform init" if not.
+	// so that we can prompt the user to run "mnptu init" if not.
 
 	key := l.modules.manifest.ModuleKey(req.Path)
 	record, exists := l.modules.manifest[key]
@@ -65,7 +65,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 			{
 				Severity: hcl.DiagError,
 				Summary:  "Module not installed",
-				Detail:   "This module is not yet installed. Run \"terraform init\" to install all modules required by this configuration.",
+				Detail:   "This module is not yet installed. Run \"mnptu init\" to install all modules required by this configuration.",
 				Subject:  &req.CallRange,
 			},
 		}
@@ -81,7 +81,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module source has changed",
-			Detail:   "The source address was changed since this module was installed. Run \"terraform init\" to install all modules required by this configuration.",
+			Detail:   "The source address was changed since this module was installed. Run \"mnptu init\" to install all modules required by this configuration.",
 			Subject:  &req.SourceAddrRange,
 		})
 	}
@@ -89,7 +89,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 		diags = append(diags, &hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  "Module version requirements have changed",
-			Detail:   "The version requirements have changed since this module was installed and the installed version is no longer acceptable. Run \"terraform init\" to install all modules required by this configuration.",
+			Detail:   "The version requirements have changed since this module was installed and the installed version is no longer acceptable. Run \"mnptu init\" to install all modules required by this configuration.",
 			Subject:  &req.SourceAddrRange,
 		})
 	}
@@ -98,7 +98,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 			Severity: hcl.DiagError,
 			Summary:  "Module version requirements have changed",
 			Detail: fmt.Sprintf(
-				"The version requirements have changed since this module was installed and the installed version (%s) is no longer acceptable. Run \"terraform init\" to install all modules required by this configuration.",
+				"The version requirements have changed since this module was installed and the installed version (%s) is no longer acceptable. Run \"mnptu init\" to install all modules required by this configuration.",
 				record.Version,
 			),
 			Subject: &req.SourceAddrRange,
@@ -116,7 +116,7 @@ func (l *Loader) moduleWalkerLoad(req *configs.ModuleRequest) (*configs.Module, 
 			{
 				Severity: hcl.DiagError,
 				Summary:  "Module not installed",
-				Detail:   fmt.Sprintf("This module's local cache directory %s could not be read. Run \"terraform init\" to install all modules required by this configuration.", record.Dir),
+				Detail:   fmt.Sprintf("This module's local cache directory %s could not be read. Run \"mnptu init\" to install all modules required by this configuration.", record.Dir),
 				Subject:  &req.CallRange,
 			},
 		}
