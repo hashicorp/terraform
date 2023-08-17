@@ -153,6 +153,27 @@ message BuildProviderPluginCache {
     message Request {
         string cache_dir = 1;
         int64 dependency_locks_handle = 2;
+        repeated InstallMethod installation_methods = 3;
+
+        // If set, this populates the cache with plugins for a different
+        // platform than the one the Terraform Core RPC server is running on.
+        // If unset (empty) then the cache will be populated with packages
+        // for the same platform as Terraform Core was built for, if available.
+        //
+        // If this is set to a different platform than the Terraform Core RPC
+        // server's then the generated cache directory will appear empty to
+        // other operations on this server.
+        string override_platform = 4;
+
+        message InstallMethod {
+            oneof source {
+                bool direct = 1;
+                string local_mirror_dir = 2;
+                string network_mirror_url = 3;
+            }
+            repeated string include = 4;
+            repeated string exclude = 5;
+        }
     }
     message Event {
         oneof event {
@@ -214,6 +235,16 @@ message BuildProviderPluginCache {
 message OpenProviderPluginCache {
     message Request {
         string cache_dir = 1;
+
+        // As with the field of the same name in BuildProviderPluginCache.Request.
+        //
+        // If this is set to anything other than this RPC server's native
+        // platform then any operations that require executing the provider
+        // plugin are likely to fail due to executable format errors or
+        // similar. However, it's valid to use the returned handle with
+        // GetCachedProviders, since it only analyzes the cache metadata
+        // and doesn't actually run the plugins inside.
+        string override_platform = 2;
     }
     message Response {
         int64 provider_cache_handle = 1;

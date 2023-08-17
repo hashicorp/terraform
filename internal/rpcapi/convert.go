@@ -12,31 +12,36 @@ func diagnosticsToProto(diags tfdiags.Diagnostics) []*terraform1.Diagnostic {
 
 	ret := make([]*terraform1.Diagnostic, len(diags))
 	for i, diag := range diags {
-		protoDiag := &terraform1.Diagnostic{}
-		ret[i] = protoDiag
-
-		switch diag.Severity() {
-		case tfdiags.Error:
-			protoDiag.Severity = terraform1.Diagnostic_ERROR
-		case tfdiags.Warning:
-			protoDiag.Severity = terraform1.Diagnostic_WARNING
-		default:
-			protoDiag.Severity = terraform1.Diagnostic_INVALID
-		}
-
-		desc := diag.Description()
-		protoDiag.Summary = desc.Summary
-		protoDiag.Detail = desc.Detail
-
-		srcRngs := diag.Source()
-		if srcRngs.Subject != nil {
-			protoDiag.Subject = sourceRangeToProto(*srcRngs.Subject)
-		}
-		if srcRngs.Context != nil {
-			protoDiag.Context = sourceRangeToProto(*srcRngs.Context)
-		}
+		ret[i] = diagnosticToProto(diag)
 	}
 	return ret
+}
+
+func diagnosticToProto(diag tfdiags.Diagnostic) *terraform1.Diagnostic {
+	protoDiag := &terraform1.Diagnostic{}
+
+	switch diag.Severity() {
+	case tfdiags.Error:
+		protoDiag.Severity = terraform1.Diagnostic_ERROR
+	case tfdiags.Warning:
+		protoDiag.Severity = terraform1.Diagnostic_WARNING
+	default:
+		protoDiag.Severity = terraform1.Diagnostic_INVALID
+	}
+
+	desc := diag.Description()
+	protoDiag.Summary = desc.Summary
+	protoDiag.Detail = desc.Detail
+
+	srcRngs := diag.Source()
+	if srcRngs.Subject != nil {
+		protoDiag.Subject = sourceRangeToProto(*srcRngs.Subject)
+	}
+	if srcRngs.Context != nil {
+		protoDiag.Context = sourceRangeToProto(*srcRngs.Context)
+	}
+
+	return protoDiag
 }
 
 func sourceRangeToProto(rng tfdiags.SourceRange) *terraform1.SourceRange {

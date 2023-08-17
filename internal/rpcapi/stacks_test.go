@@ -8,6 +8,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -62,7 +63,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 	// A hypothetical attempt to close the underlying source bundle while
 	// the stack configuration is active should fail.
 	{
-		depsServer := newDependenciesServer(handles)
+		depsServer := newDependenciesServer(handles, disco.New())
 
 		_, err := depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),
@@ -91,7 +92,7 @@ func TestStacksOpenCloseStackConfiguration(t *testing.T) {
 
 	// Should be able to close the source bundle now too.
 	{
-		depsServer := newDependenciesServer(handles)
+		depsServer := newDependenciesServer(handles, disco.New())
 
 		_, err := depsServer.CloseSourceBundle(ctx, &terraform1.CloseSourceBundle_Request{
 			SourceBundleHandle: sourcesHnd.ForProtobuf(),

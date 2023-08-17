@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/rpcapi/dynrpcserver"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"google.golang.org/grpc"
@@ -42,12 +43,24 @@ func (p *corePlugin) handshakeFunc(s *grpc.Server) func(context.Context, *terraf
 		// can be passed from one service to another.
 		handles := newHandleTable()
 
+		// NOTE: This is intentionally not the same disco that "package main"
+		// instantiates for Terraform CLI, because the RPC API is
+		// architecturally independent from CLI despite being launched through
+		// it, and so it is not subject to any ambient CLI configuration files
+		// that might be in scope. If we later discover requirements for
+		// callers to customize the service discovery settings, consider
+		// adding new fields to terraform1.ClientCapabilities (even though
+		// this isn't strictly a "capability") so that the RPC caller has
+		// full control without needing to also tinker with the current user's
+		// CLI configuration.
+		services := disco.New()
+
 		// If handshaking is successful (which it currently always is, because
 		// we don't have any special capabilities to negotiate yet) then we
 		// will initialize all of the other services so the client can begin
 		// doing real work. In future the details of what we register here
 		// might vary based on the negotiated capabilities.
-		dependencies.ActivateRPCServer(newDependenciesServer(handles))
+		dependencies.ActivateRPCServer(newDependenciesServer(handles, services))
 		stacks.ActivateRPCServer(newStacksServer(handles))
 
 		// If the client requested any extra capabililties that we're going

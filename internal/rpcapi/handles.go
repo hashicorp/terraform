@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform/internal/depsfile"
+	"github.com/hashicorp/terraform/internal/providercache"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 )
 
@@ -61,6 +62,13 @@ type handleTable struct {
 	// The first level of map is the object being depended on, and the second
 	// level are the objects doing the depending.
 	handleDeps map[int64]map[int64]struct{}
+
+	// TODO: Consider also tracking when a particular handle is being actively
+	// used by a running RPC operation, so that we can return an error if
+	// a caller tries to close a handle concurrently with an active operation.
+	// That would be a weird thing to do though and always a bug in the caller,
+	// so for now we're just letting it cause unspecified behavior for
+	// simplicity's sake.
 
 	mu sync.Mutex
 }
@@ -118,6 +126,19 @@ func (t *handleTable) DependencyLocks(hnd handle[*depsfile.Locks]) *depsfile.Loc
 }
 
 func (t *handleTable) CloseDependencyLocks(hnd handle[*depsfile.Locks]) error {
+	return closeHandle(t, hnd)
+}
+
+func (t *handleTable) NewProviderPluginCache(dir *providercache.Dir) handle[*providercache.Dir] {
+	return newHandle(t, dir)
+}
+
+func (t *handleTable) ProviderPluginCache(hnd handle[*providercache.Dir]) *providercache.Dir {
+	ret, _ := readHandle(t, hnd) // non-existent or invalid returns nil
+	return ret
+}
+
+func (t *handleTable) CloseProviderPluginCache(hnd handle[*providercache.Dir]) error {
 	return closeHandle(t, hnd)
 }
 

@@ -2562,8 +2562,18 @@ type BuildProviderPluginCache_Request struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	CacheDir              string `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
-	DependencyLocksHandle int64  `protobuf:"varint,2,opt,name=dependency_locks_handle,json=dependencyLocksHandle,proto3" json:"dependency_locks_handle,omitempty"`
+	CacheDir              string                                            `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
+	DependencyLocksHandle int64                                             `protobuf:"varint,2,opt,name=dependency_locks_handle,json=dependencyLocksHandle,proto3" json:"dependency_locks_handle,omitempty"`
+	InstallationMethods   []*BuildProviderPluginCache_Request_InstallMethod `protobuf:"bytes,3,rep,name=installation_methods,json=installationMethods,proto3" json:"installation_methods,omitempty"`
+	// If set, this populates the cache with plugins for a different
+	// platform than the one the Terraform Core RPC server is running on.
+	// If unset (empty) then the cache will be populated with packages
+	// for the same platform as Terraform Core was built for, if available.
+	//
+	// If this is set to a different platform than the Terraform Core RPC
+	// server's then the generated cache directory will appear empty to
+	// other operations on this server.
+	OverridePlatform string `protobuf:"bytes,4,opt,name=override_platform,json=overridePlatform,proto3" json:"override_platform,omitempty"`
 }
 
 func (x *BuildProviderPluginCache_Request) Reset() {
@@ -2610,6 +2620,20 @@ func (x *BuildProviderPluginCache_Request) GetDependencyLocksHandle() int64 {
 		return x.DependencyLocksHandle
 	}
 	return 0
+}
+
+func (x *BuildProviderPluginCache_Request) GetInstallationMethods() []*BuildProviderPluginCache_Request_InstallMethod {
+	if x != nil {
+		return x.InstallationMethods
+	}
+	return nil
+}
+
+func (x *BuildProviderPluginCache_Request) GetOverridePlatform() string {
+	if x != nil {
+		return x.OverridePlatform
+	}
+	return ""
 }
 
 type BuildProviderPluginCache_Event struct {
@@ -2791,6 +2815,120 @@ func (*BuildProviderPluginCache_Event_FetchComplete_) isBuildProviderPluginCache
 
 func (*BuildProviderPluginCache_Event_Diagnostic) isBuildProviderPluginCache_Event_Event() {}
 
+type BuildProviderPluginCache_Request_InstallMethod struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// Types that are assignable to Source:
+	//
+	//	*BuildProviderPluginCache_Request_InstallMethod_Direct
+	//	*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir
+	//	*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl
+	Source  isBuildProviderPluginCache_Request_InstallMethod_Source `protobuf_oneof:"source"`
+	Include []string                                                `protobuf:"bytes,4,rep,name=include,proto3" json:"include,omitempty"`
+	Exclude []string                                                `protobuf:"bytes,5,rep,name=exclude,proto3" json:"exclude,omitempty"`
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) Reset() {
+	*x = BuildProviderPluginCache_Request_InstallMethod{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_terraform1_proto_msgTypes[44]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BuildProviderPluginCache_Request_InstallMethod) ProtoMessage() {}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) ProtoReflect() protoreflect.Message {
+	mi := &file_terraform1_proto_msgTypes[44]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BuildProviderPluginCache_Request_InstallMethod.ProtoReflect.Descriptor instead.
+func (*BuildProviderPluginCache_Request_InstallMethod) Descriptor() ([]byte, []int) {
+	return file_terraform1_proto_rawDescGZIP(), []int{8, 0, 0}
+}
+
+func (m *BuildProviderPluginCache_Request_InstallMethod) GetSource() isBuildProviderPluginCache_Request_InstallMethod_Source {
+	if m != nil {
+		return m.Source
+	}
+	return nil
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) GetDirect() bool {
+	if x, ok := x.GetSource().(*BuildProviderPluginCache_Request_InstallMethod_Direct); ok {
+		return x.Direct
+	}
+	return false
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) GetLocalMirrorDir() string {
+	if x, ok := x.GetSource().(*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir); ok {
+		return x.LocalMirrorDir
+	}
+	return ""
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) GetNetworkMirrorUrl() string {
+	if x, ok := x.GetSource().(*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl); ok {
+		return x.NetworkMirrorUrl
+	}
+	return ""
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) GetInclude() []string {
+	if x != nil {
+		return x.Include
+	}
+	return nil
+}
+
+func (x *BuildProviderPluginCache_Request_InstallMethod) GetExclude() []string {
+	if x != nil {
+		return x.Exclude
+	}
+	return nil
+}
+
+type isBuildProviderPluginCache_Request_InstallMethod_Source interface {
+	isBuildProviderPluginCache_Request_InstallMethod_Source()
+}
+
+type BuildProviderPluginCache_Request_InstallMethod_Direct struct {
+	Direct bool `protobuf:"varint,1,opt,name=direct,proto3,oneof"`
+}
+
+type BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir struct {
+	LocalMirrorDir string `protobuf:"bytes,2,opt,name=local_mirror_dir,json=localMirrorDir,proto3,oneof"`
+}
+
+type BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl struct {
+	NetworkMirrorUrl string `protobuf:"bytes,3,opt,name=network_mirror_url,json=networkMirrorUrl,proto3,oneof"`
+}
+
+func (*BuildProviderPluginCache_Request_InstallMethod_Direct) isBuildProviderPluginCache_Request_InstallMethod_Source() {
+}
+
+func (*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir) isBuildProviderPluginCache_Request_InstallMethod_Source() {
+}
+
+func (*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl) isBuildProviderPluginCache_Request_InstallMethod_Source() {
+}
+
 type BuildProviderPluginCache_Event_Pending struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2802,7 +2940,7 @@ type BuildProviderPluginCache_Event_Pending struct {
 func (x *BuildProviderPluginCache_Event_Pending) Reset() {
 	*x = BuildProviderPluginCache_Event_Pending{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[44]
+		mi := &file_terraform1_proto_msgTypes[45]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2815,7 +2953,7 @@ func (x *BuildProviderPluginCache_Event_Pending) String() string {
 func (*BuildProviderPluginCache_Event_Pending) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_Pending) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[44]
+	mi := &file_terraform1_proto_msgTypes[45]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2850,7 +2988,7 @@ type BuildProviderPluginCache_Event_ProviderConstraints struct {
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderConstraints{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[45]
+		mi := &file_terraform1_proto_msgTypes[46]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2863,7 +3001,7 @@ func (x *BuildProviderPluginCache_Event_ProviderConstraints) String() string {
 func (*BuildProviderPluginCache_Event_ProviderConstraints) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderConstraints) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[45]
+	mi := &file_terraform1_proto_msgTypes[46]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2905,7 +3043,7 @@ type BuildProviderPluginCache_Event_ProviderVersion struct {
 func (x *BuildProviderPluginCache_Event_ProviderVersion) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderVersion{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[46]
+		mi := &file_terraform1_proto_msgTypes[47]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2918,7 +3056,7 @@ func (x *BuildProviderPluginCache_Event_ProviderVersion) String() string {
 func (*BuildProviderPluginCache_Event_ProviderVersion) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderVersion) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[46]
+	mi := &file_terraform1_proto_msgTypes[47]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2960,7 +3098,7 @@ type BuildProviderPluginCache_Event_ProviderWarnings struct {
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) Reset() {
 	*x = BuildProviderPluginCache_Event_ProviderWarnings{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[47]
+		mi := &file_terraform1_proto_msgTypes[48]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -2973,7 +3111,7 @@ func (x *BuildProviderPluginCache_Event_ProviderWarnings) String() string {
 func (*BuildProviderPluginCache_Event_ProviderWarnings) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_ProviderWarnings) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[47]
+	mi := &file_terraform1_proto_msgTypes[48]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3015,7 +3153,7 @@ type BuildProviderPluginCache_Event_FetchBegin struct {
 func (x *BuildProviderPluginCache_Event_FetchBegin) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchBegin{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[48]
+		mi := &file_terraform1_proto_msgTypes[49]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3028,7 +3166,7 @@ func (x *BuildProviderPluginCache_Event_FetchBegin) String() string {
 func (*BuildProviderPluginCache_Event_FetchBegin) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchBegin) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[48]
+	mi := &file_terraform1_proto_msgTypes[49]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3076,7 +3214,7 @@ type BuildProviderPluginCache_Event_FetchComplete struct {
 func (x *BuildProviderPluginCache_Event_FetchComplete) Reset() {
 	*x = BuildProviderPluginCache_Event_FetchComplete{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[49]
+		mi := &file_terraform1_proto_msgTypes[50]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3089,7 +3227,7 @@ func (x *BuildProviderPluginCache_Event_FetchComplete) String() string {
 func (*BuildProviderPluginCache_Event_FetchComplete) ProtoMessage() {}
 
 func (x *BuildProviderPluginCache_Event_FetchComplete) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[49]
+	mi := &file_terraform1_proto_msgTypes[50]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3132,12 +3270,21 @@ type OpenProviderPluginCache_Request struct {
 	unknownFields protoimpl.UnknownFields
 
 	CacheDir string `protobuf:"bytes,1,opt,name=cache_dir,json=cacheDir,proto3" json:"cache_dir,omitempty"`
+	// As with the field of the same name in BuildProviderPluginCache.Request.
+	//
+	// If this is set to anything other than this RPC server's native
+	// platform then any operations that require executing the provider
+	// plugin are likely to fail due to executable format errors or
+	// similar. However, it's valid to use the returned handle with
+	// GetCachedProviders, since it only analyzes the cache metadata
+	// and doesn't actually run the plugins inside.
+	OverridePlatform string `protobuf:"bytes,2,opt,name=override_platform,json=overridePlatform,proto3" json:"override_platform,omitempty"`
 }
 
 func (x *OpenProviderPluginCache_Request) Reset() {
 	*x = OpenProviderPluginCache_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[50]
+		mi := &file_terraform1_proto_msgTypes[51]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3150,7 +3297,7 @@ func (x *OpenProviderPluginCache_Request) String() string {
 func (*OpenProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[50]
+	mi := &file_terraform1_proto_msgTypes[51]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3173,6 +3320,13 @@ func (x *OpenProviderPluginCache_Request) GetCacheDir() string {
 	return ""
 }
 
+func (x *OpenProviderPluginCache_Request) GetOverridePlatform() string {
+	if x != nil {
+		return x.OverridePlatform
+	}
+	return ""
+}
+
 type OpenProviderPluginCache_Response struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -3184,7 +3338,7 @@ type OpenProviderPluginCache_Response struct {
 func (x *OpenProviderPluginCache_Response) Reset() {
 	*x = OpenProviderPluginCache_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[51]
+		mi := &file_terraform1_proto_msgTypes[52]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3197,7 +3351,7 @@ func (x *OpenProviderPluginCache_Response) String() string {
 func (*OpenProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *OpenProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[51]
+	mi := &file_terraform1_proto_msgTypes[52]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3231,7 +3385,7 @@ type CloseProviderPluginCache_Request struct {
 func (x *CloseProviderPluginCache_Request) Reset() {
 	*x = CloseProviderPluginCache_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[52]
+		mi := &file_terraform1_proto_msgTypes[53]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3244,7 +3398,7 @@ func (x *CloseProviderPluginCache_Request) String() string {
 func (*CloseProviderPluginCache_Request) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[52]
+	mi := &file_terraform1_proto_msgTypes[53]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3276,7 +3430,7 @@ type CloseProviderPluginCache_Response struct {
 func (x *CloseProviderPluginCache_Response) Reset() {
 	*x = CloseProviderPluginCache_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[53]
+		mi := &file_terraform1_proto_msgTypes[54]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3289,7 +3443,7 @@ func (x *CloseProviderPluginCache_Response) String() string {
 func (*CloseProviderPluginCache_Response) ProtoMessage() {}
 
 func (x *CloseProviderPluginCache_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[53]
+	mi := &file_terraform1_proto_msgTypes[54]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3316,7 +3470,7 @@ type GetCachedProviders_Request struct {
 func (x *GetCachedProviders_Request) Reset() {
 	*x = GetCachedProviders_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[54]
+		mi := &file_terraform1_proto_msgTypes[55]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3329,7 +3483,7 @@ func (x *GetCachedProviders_Request) String() string {
 func (*GetCachedProviders_Request) ProtoMessage() {}
 
 func (x *GetCachedProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[54]
+	mi := &file_terraform1_proto_msgTypes[55]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3363,7 +3517,7 @@ type GetCachedProviders_Response struct {
 func (x *GetCachedProviders_Response) Reset() {
 	*x = GetCachedProviders_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[55]
+		mi := &file_terraform1_proto_msgTypes[56]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3376,7 +3530,7 @@ func (x *GetCachedProviders_Response) String() string {
 func (*GetCachedProviders_Response) ProtoMessage() {}
 
 func (x *GetCachedProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[55]
+	mi := &file_terraform1_proto_msgTypes[56]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3433,7 +3587,7 @@ type GetProviderSchema_Request struct {
 func (x *GetProviderSchema_Request) Reset() {
 	*x = GetProviderSchema_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[56]
+		mi := &file_terraform1_proto_msgTypes[57]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3446,7 +3600,7 @@ func (x *GetProviderSchema_Request) String() string {
 func (*GetProviderSchema_Request) ProtoMessage() {}
 
 func (x *GetProviderSchema_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[56]
+	mi := &file_terraform1_proto_msgTypes[57]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3494,7 +3648,7 @@ type GetProviderSchema_Response struct {
 func (x *GetProviderSchema_Response) Reset() {
 	*x = GetProviderSchema_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[57]
+		mi := &file_terraform1_proto_msgTypes[58]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3507,7 +3661,7 @@ func (x *GetProviderSchema_Response) String() string {
 func (*GetProviderSchema_Response) ProtoMessage() {}
 
 func (x *GetProviderSchema_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[57]
+	mi := &file_terraform1_proto_msgTypes[58]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3542,7 +3696,7 @@ type OpenStackConfiguration_Request struct {
 func (x *OpenStackConfiguration_Request) Reset() {
 	*x = OpenStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[60]
+		mi := &file_terraform1_proto_msgTypes[61]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3555,7 +3709,7 @@ func (x *OpenStackConfiguration_Request) String() string {
 func (*OpenStackConfiguration_Request) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[60]
+	mi := &file_terraform1_proto_msgTypes[61]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3597,7 +3751,7 @@ type OpenStackConfiguration_Response struct {
 func (x *OpenStackConfiguration_Response) Reset() {
 	*x = OpenStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[61]
+		mi := &file_terraform1_proto_msgTypes[62]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3610,7 +3764,7 @@ func (x *OpenStackConfiguration_Response) String() string {
 func (*OpenStackConfiguration_Response) ProtoMessage() {}
 
 func (x *OpenStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[61]
+	mi := &file_terraform1_proto_msgTypes[62]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3651,7 +3805,7 @@ type CloseStackConfiguration_Request struct {
 func (x *CloseStackConfiguration_Request) Reset() {
 	*x = CloseStackConfiguration_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[62]
+		mi := &file_terraform1_proto_msgTypes[63]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3664,7 +3818,7 @@ func (x *CloseStackConfiguration_Request) String() string {
 func (*CloseStackConfiguration_Request) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[62]
+	mi := &file_terraform1_proto_msgTypes[63]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3696,7 +3850,7 @@ type CloseStackConfiguration_Response struct {
 func (x *CloseStackConfiguration_Response) Reset() {
 	*x = CloseStackConfiguration_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[63]
+		mi := &file_terraform1_proto_msgTypes[64]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3709,7 +3863,7 @@ func (x *CloseStackConfiguration_Response) String() string {
 func (*CloseStackConfiguration_Response) ProtoMessage() {}
 
 func (x *CloseStackConfiguration_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[63]
+	mi := &file_terraform1_proto_msgTypes[64]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3736,7 +3890,7 @@ type FindStackConfigurationComponents_Request struct {
 func (x *FindStackConfigurationComponents_Request) Reset() {
 	*x = FindStackConfigurationComponents_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[64]
+		mi := &file_terraform1_proto_msgTypes[65]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3749,7 +3903,7 @@ func (x *FindStackConfigurationComponents_Request) String() string {
 func (*FindStackConfigurationComponents_Request) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[64]
+	mi := &file_terraform1_proto_msgTypes[65]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3783,7 +3937,7 @@ type FindStackConfigurationComponents_Response struct {
 func (x *FindStackConfigurationComponents_Response) Reset() {
 	*x = FindStackConfigurationComponents_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[65]
+		mi := &file_terraform1_proto_msgTypes[66]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3796,7 +3950,7 @@ func (x *FindStackConfigurationComponents_Response) String() string {
 func (*FindStackConfigurationComponents_Response) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[65]
+	mi := &file_terraform1_proto_msgTypes[66]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3831,7 +3985,7 @@ type FindStackConfigurationComponents_StackConfig struct {
 func (x *FindStackConfigurationComponents_StackConfig) Reset() {
 	*x = FindStackConfigurationComponents_StackConfig{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[66]
+		mi := &file_terraform1_proto_msgTypes[67]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3844,7 +3998,7 @@ func (x *FindStackConfigurationComponents_StackConfig) String() string {
 func (*FindStackConfigurationComponents_StackConfig) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_StackConfig) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[66]
+	mi := &file_terraform1_proto_msgTypes[67]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3887,7 +4041,7 @@ type FindStackConfigurationComponents_EmbeddedStack struct {
 func (x *FindStackConfigurationComponents_EmbeddedStack) Reset() {
 	*x = FindStackConfigurationComponents_EmbeddedStack{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[67]
+		mi := &file_terraform1_proto_msgTypes[68]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3900,7 +4054,7 @@ func (x *FindStackConfigurationComponents_EmbeddedStack) String() string {
 func (*FindStackConfigurationComponents_EmbeddedStack) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_EmbeddedStack) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[67]
+	mi := &file_terraform1_proto_msgTypes[68]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3949,7 +4103,7 @@ type FindStackConfigurationComponents_Component struct {
 func (x *FindStackConfigurationComponents_Component) Reset() {
 	*x = FindStackConfigurationComponents_Component{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[68]
+		mi := &file_terraform1_proto_msgTypes[69]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -3962,7 +4116,7 @@ func (x *FindStackConfigurationComponents_Component) String() string {
 func (*FindStackConfigurationComponents_Component) ProtoMessage() {}
 
 func (x *FindStackConfigurationComponents_Component) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[68]
+	mi := &file_terraform1_proto_msgTypes[69]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4003,7 +4157,7 @@ type FindStackConfigurationProviders_Request struct {
 func (x *FindStackConfigurationProviders_Request) Reset() {
 	*x = FindStackConfigurationProviders_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[71]
+		mi := &file_terraform1_proto_msgTypes[72]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4016,7 +4170,7 @@ func (x *FindStackConfigurationProviders_Request) String() string {
 func (*FindStackConfigurationProviders_Request) ProtoMessage() {}
 
 func (x *FindStackConfigurationProviders_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[71]
+	mi := &file_terraform1_proto_msgTypes[72]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4048,7 +4202,7 @@ type FindStackConfigurationProviders_Response struct {
 func (x *FindStackConfigurationProviders_Response) Reset() {
 	*x = FindStackConfigurationProviders_Response{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[72]
+		mi := &file_terraform1_proto_msgTypes[73]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4061,7 +4215,7 @@ func (x *FindStackConfigurationProviders_Response) String() string {
 func (*FindStackConfigurationProviders_Response) ProtoMessage() {}
 
 func (x *FindStackConfigurationProviders_Response) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[72]
+	mi := &file_terraform1_proto_msgTypes[73]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4090,7 +4244,7 @@ type PlanStackChanges_Request struct {
 func (x *PlanStackChanges_Request) Reset() {
 	*x = PlanStackChanges_Request{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[73]
+		mi := &file_terraform1_proto_msgTypes[74]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4103,7 +4257,7 @@ func (x *PlanStackChanges_Request) String() string {
 func (*PlanStackChanges_Request) ProtoMessage() {}
 
 func (x *PlanStackChanges_Request) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[73]
+	mi := &file_terraform1_proto_msgTypes[74]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4155,7 +4309,7 @@ type PlanStackChanges_Event struct {
 func (x *PlanStackChanges_Event) Reset() {
 	*x = PlanStackChanges_Event{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[74]
+		mi := &file_terraform1_proto_msgTypes[75]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4168,7 +4322,7 @@ func (x *PlanStackChanges_Event) String() string {
 func (*PlanStackChanges_Event) ProtoMessage() {}
 
 func (x *PlanStackChanges_Event) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[74]
+	mi := &file_terraform1_proto_msgTypes[75]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4237,7 +4391,7 @@ type AttributePath_Step struct {
 func (x *AttributePath_Step) Reset() {
 	*x = AttributePath_Step{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[76]
+		mi := &file_terraform1_proto_msgTypes[77]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4250,7 +4404,7 @@ func (x *AttributePath_Step) String() string {
 func (*AttributePath_Step) ProtoMessage() {}
 
 func (x *AttributePath_Step) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[76]
+	mi := &file_terraform1_proto_msgTypes[77]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4345,7 +4499,7 @@ type PlannedChange_ComponentInstance struct {
 func (x *PlannedChange_ComponentInstance) Reset() {
 	*x = PlannedChange_ComponentInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[77]
+		mi := &file_terraform1_proto_msgTypes[78]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4358,7 +4512,7 @@ func (x *PlannedChange_ComponentInstance) String() string {
 func (*PlannedChange_ComponentInstance) ProtoMessage() {}
 
 func (x *PlannedChange_ComponentInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[77]
+	mi := &file_terraform1_proto_msgTypes[78]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4410,7 +4564,7 @@ type PlannedChange_ResourceInstance struct {
 func (x *PlannedChange_ResourceInstance) Reset() {
 	*x = PlannedChange_ResourceInstance{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[78]
+		mi := &file_terraform1_proto_msgTypes[79]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4423,7 +4577,7 @@ func (x *PlannedChange_ResourceInstance) String() string {
 func (*PlannedChange_ResourceInstance) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[78]
+	mi := &file_terraform1_proto_msgTypes[79]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4490,7 +4644,7 @@ type PlannedChange_OutputValue struct {
 func (x *PlannedChange_OutputValue) Reset() {
 	*x = PlannedChange_OutputValue{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[79]
+		mi := &file_terraform1_proto_msgTypes[80]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4503,7 +4657,7 @@ func (x *PlannedChange_OutputValue) String() string {
 func (*PlannedChange_OutputValue) ProtoMessage() {}
 
 func (x *PlannedChange_OutputValue) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[79]
+	mi := &file_terraform1_proto_msgTypes[80]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4551,7 +4705,7 @@ type PlannedChange_ResourceInstance_Moved struct {
 func (x *PlannedChange_ResourceInstance_Moved) Reset() {
 	*x = PlannedChange_ResourceInstance_Moved{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[80]
+		mi := &file_terraform1_proto_msgTypes[81]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4564,7 +4718,7 @@ func (x *PlannedChange_ResourceInstance_Moved) String() string {
 func (*PlannedChange_ResourceInstance_Moved) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Moved) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[80]
+	mi := &file_terraform1_proto_msgTypes[81]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4598,7 +4752,7 @@ type PlannedChange_ResourceInstance_Imported struct {
 func (x *PlannedChange_ResourceInstance_Imported) Reset() {
 	*x = PlannedChange_ResourceInstance_Imported{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[81]
+		mi := &file_terraform1_proto_msgTypes[82]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4611,7 +4765,7 @@ func (x *PlannedChange_ResourceInstance_Imported) String() string {
 func (*PlannedChange_ResourceInstance_Imported) ProtoMessage() {}
 
 func (x *PlannedChange_ResourceInstance_Imported) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[81]
+	mi := &file_terraform1_proto_msgTypes[82]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4649,7 +4803,7 @@ type Schema_Block struct {
 func (x *Schema_Block) Reset() {
 	*x = Schema_Block{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[82]
+		mi := &file_terraform1_proto_msgTypes[83]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4662,7 +4816,7 @@ func (x *Schema_Block) String() string {
 func (*Schema_Block) ProtoMessage() {}
 
 func (x *Schema_Block) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[82]
+	mi := &file_terraform1_proto_msgTypes[83]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4732,7 +4886,7 @@ type Schema_Attribute struct {
 func (x *Schema_Attribute) Reset() {
 	*x = Schema_Attribute{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[83]
+		mi := &file_terraform1_proto_msgTypes[84]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4745,7 +4899,7 @@ func (x *Schema_Attribute) String() string {
 func (*Schema_Attribute) ProtoMessage() {}
 
 func (x *Schema_Attribute) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[83]
+	mi := &file_terraform1_proto_msgTypes[84]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4839,7 +4993,7 @@ type Schema_NestedBlock struct {
 func (x *Schema_NestedBlock) Reset() {
 	*x = Schema_NestedBlock{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[84]
+		mi := &file_terraform1_proto_msgTypes[85]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4852,7 +5006,7 @@ func (x *Schema_NestedBlock) String() string {
 func (*Schema_NestedBlock) ProtoMessage() {}
 
 func (x *Schema_NestedBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[84]
+	mi := &file_terraform1_proto_msgTypes[85]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4915,7 +5069,7 @@ type Schema_Object struct {
 func (x *Schema_Object) Reset() {
 	*x = Schema_Object{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[85]
+		mi := &file_terraform1_proto_msgTypes[86]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4928,7 +5082,7 @@ func (x *Schema_Object) String() string {
 func (*Schema_Object) ProtoMessage() {}
 
 func (x *Schema_Object) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[85]
+	mi := &file_terraform1_proto_msgTypes[86]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4970,7 +5124,7 @@ type Schema_DocString struct {
 func (x *Schema_DocString) Reset() {
 	*x = Schema_DocString{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_terraform1_proto_msgTypes[86]
+		mi := &file_terraform1_proto_msgTypes[87]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -4983,7 +5137,7 @@ func (x *Schema_DocString) String() string {
 func (*Schema_DocString) ProtoMessage() {}
 
 func (x *Schema_DocString) ProtoReflect() protoreflect.Message {
-	mi := &file_terraform1_proto_msgTypes[86]
+	mi := &file_terraform1_proto_msgTypes[87]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5082,126 +5236,151 @@ var file_terraform1_proto_rawDesc = []byte{
 	0x72, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x1b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
 	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x61,
 	0x63, 0x6b, 0x61, 0x67, 0x65, 0x52, 0x11, 0x73, 0x65, 0x6c, 0x65, 0x63, 0x74, 0x65, 0x64, 0x50,
-	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x22, 0xa8, 0x0e, 0x0a, 0x18, 0x42, 0x75, 0x69,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x73, 0x22, 0x8b, 0x11, 0x0a, 0x18, 0x42, 0x75, 0x69,
 	0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e,
-	0x43, 0x61, 0x63, 0x68, 0x65, 0x1a, 0x5e, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
-	0x12, 0x1b, 0x0a, 0x09, 0x63, 0x61, 0x63, 0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01, 0x20,
-	0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x61, 0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x12, 0x36, 0x0a,
-	0x17, 0x64, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x5f, 0x6c, 0x6f, 0x63, 0x6b,
-	0x73, 0x5f, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52, 0x15,
-	0x64, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73, 0x48,
-	0x61, 0x6e, 0x64, 0x6c, 0x65, 0x1a, 0xab, 0x0d, 0x0a, 0x05, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x12,
-	0x4e, 0x0a, 0x07, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x32, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75,
-	0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69,
-	0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x65, 0x6e,
-	0x64, 0x69, 0x6e, 0x67, 0x48, 0x00, 0x52, 0x07, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x12,
-	0x69, 0x0a, 0x11, 0x61, 0x6c, 0x72, 0x65, 0x61, 0x64, 0x79, 0x5f, 0x69, 0x6e, 0x73, 0x74, 0x61,
-	0x6c, 0x6c, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x74, 0x65, 0x72,
-	0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f,
-	0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65,
-	0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x10, 0x61, 0x6c, 0x72, 0x65, 0x61, 0x64,
-	0x79, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x65, 0x64, 0x12, 0x57, 0x0a, 0x08, 0x62, 0x75,
-	0x69, 0x6c, 0x74, 0x5f, 0x69, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x74,
-	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50,
-	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63,
-	0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
-	0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x07, 0x62, 0x75, 0x69, 0x6c,
-	0x74, 0x49, 0x6e, 0x12, 0x61, 0x0a, 0x0b, 0x71, 0x75, 0x65, 0x72, 0x79, 0x5f, 0x62, 0x65, 0x67,
-	0x69, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61,
-	0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45,
-	0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e,
-	0x73, 0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x71, 0x75, 0x65, 0x72,
-	0x79, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12, 0x61, 0x0a, 0x0d, 0x71, 0x75, 0x65, 0x72, 0x79, 0x5f,
-	0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e,
+	0x43, 0x61, 0x63, 0x68, 0x65, 0x1a, 0xc0, 0x03, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x61, 0x63, 0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63, 0x61, 0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x12, 0x36,
+	0x0a, 0x17, 0x64, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x5f, 0x6c, 0x6f, 0x63,
+	0x6b, 0x73, 0x5f, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x03, 0x52,
+	0x15, 0x64, 0x65, 0x70, 0x65, 0x6e, 0x64, 0x65, 0x6e, 0x63, 0x79, 0x4c, 0x6f, 0x63, 0x6b, 0x73,
+	0x48, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x12, 0x6d, 0x0a, 0x14, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c,
+	0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x5f, 0x6d, 0x65, 0x74, 0x68, 0x6f, 0x64, 0x73, 0x18, 0x03,
+	0x20, 0x03, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50,
+	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x2e, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x4d, 0x65, 0x74, 0x68, 0x6f, 0x64,
+	0x52, 0x13, 0x69, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x4d, 0x65,
+	0x74, 0x68, 0x6f, 0x64, 0x73, 0x12, 0x2b, 0x0a, 0x11, 0x6f, 0x76, 0x65, 0x72, 0x72, 0x69, 0x64,
+	0x65, 0x5f, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x18, 0x04, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x10, 0x6f, 0x76, 0x65, 0x72, 0x72, 0x69, 0x64, 0x65, 0x50, 0x6c, 0x61, 0x74, 0x66, 0x6f,
+	0x72, 0x6d, 0x1a, 0xc3, 0x01, 0x0a, 0x0d, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x4d, 0x65,
+	0x74, 0x68, 0x6f, 0x64, 0x12, 0x18, 0x0a, 0x06, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x18, 0x01,
+	0x20, 0x01, 0x28, 0x08, 0x48, 0x00, 0x52, 0x06, 0x64, 0x69, 0x72, 0x65, 0x63, 0x74, 0x12, 0x2a,
+	0x0a, 0x10, 0x6c, 0x6f, 0x63, 0x61, 0x6c, 0x5f, 0x6d, 0x69, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x64,
+	0x69, 0x72, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x0e, 0x6c, 0x6f, 0x63, 0x61,
+	0x6c, 0x4d, 0x69, 0x72, 0x72, 0x6f, 0x72, 0x44, 0x69, 0x72, 0x12, 0x2e, 0x0a, 0x12, 0x6e, 0x65,
+	0x74, 0x77, 0x6f, 0x72, 0x6b, 0x5f, 0x6d, 0x69, 0x72, 0x72, 0x6f, 0x72, 0x5f, 0x75, 0x72, 0x6c,
+	0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x10, 0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72,
+	0x6b, 0x4d, 0x69, 0x72, 0x72, 0x6f, 0x72, 0x55, 0x72, 0x6c, 0x12, 0x18, 0x0a, 0x07, 0x69, 0x6e,
+	0x63, 0x6c, 0x75, 0x64, 0x65, 0x18, 0x04, 0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x69, 0x6e, 0x63,
+	0x6c, 0x75, 0x64, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x78, 0x63, 0x6c, 0x75, 0x64, 0x65, 0x18,
+	0x05, 0x20, 0x03, 0x28, 0x09, 0x52, 0x07, 0x65, 0x78, 0x63, 0x6c, 0x75, 0x64, 0x65, 0x42, 0x08,
+	0x0a, 0x06, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x1a, 0xab, 0x0d, 0x0a, 0x05, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x12, 0x4e, 0x0a, 0x07, 0x70, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c,
+	0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e,
+	0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e, 0x67, 0x48, 0x00, 0x52, 0x07, 0x70, 0x65, 0x6e, 0x64, 0x69,
+	0x6e, 0x67, 0x12, 0x69, 0x0a, 0x11, 0x61, 0x6c, 0x72, 0x65, 0x61, 0x64, 0x79, 0x5f, 0x69, 0x6e,
+	0x73, 0x74, 0x61, 0x6c, 0x6c, 0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e,
 	0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64,
 	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61,
 	0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
-	0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x64, 0x0a, 0x0e, 0x71, 0x75, 0x65,
-	0x72, 0x79, 0x5f, 0x77, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73, 0x18, 0x06, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x3b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42,
-	0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72,
-	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73, 0x48, 0x00,
-	0x52, 0x0d, 0x71, 0x75, 0x65, 0x72, 0x79, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73, 0x12,
-	0x58, 0x0a, 0x0b, 0x66, 0x65, 0x74, 0x63, 0x68, 0x5f, 0x62, 0x65, 0x67, 0x69, 0x6e, 0x18, 0x07,
-	0x20, 0x01, 0x28, 0x0b, 0x32, 0x35, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x10, 0x61, 0x6c, 0x72,
+	0x65, 0x61, 0x64, 0x79, 0x49, 0x6e, 0x73, 0x74, 0x61, 0x6c, 0x6c, 0x65, 0x64, 0x12, 0x57, 0x0a,
+	0x08, 0x62, 0x75, 0x69, 0x6c, 0x74, 0x5f, 0x69, 0x6e, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x3a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69,
+	0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e,
+	0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76,
+	0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x07, 0x62,
+	0x75, 0x69, 0x6c, 0x74, 0x49, 0x6e, 0x12, 0x61, 0x0a, 0x0b, 0x71, 0x75, 0x65, 0x72, 0x79, 0x5f,
+	0x62, 0x65, 0x67, 0x69, 0x6e, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3e, 0x2e, 0x74, 0x65,
+	0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68,
+	0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x71,
+	0x75, 0x65, 0x72, 0x79, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12, 0x61, 0x0a, 0x0d, 0x71, 0x75, 0x65,
+	0x72, 0x79, 0x5f, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x05, 0x20, 0x01, 0x28, 0x0b,
+	0x32, 0x3a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75,
+	0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69,
+	0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f,
+	0x76, 0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x48, 0x00, 0x52, 0x0c,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x53, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x12, 0x64, 0x0a, 0x0e,
+	0x71, 0x75, 0x65, 0x72, 0x79, 0x5f, 0x77, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73, 0x18, 0x06,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x3b, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
 	0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50,
 	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74,
-	0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x48, 0x00, 0x52, 0x0a, 0x66,
-	0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12, 0x61, 0x0a, 0x0e, 0x66, 0x65, 0x74,
-	0x63, 0x68, 0x5f, 0x63, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x18, 0x08, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x38, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42,
+	0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67,
+	0x73, 0x48, 0x00, 0x52, 0x0d, 0x71, 0x75, 0x65, 0x72, 0x79, 0x57, 0x61, 0x72, 0x6e, 0x69, 0x6e,
+	0x67, 0x73, 0x12, 0x58, 0x0a, 0x0b, 0x66, 0x65, 0x74, 0x63, 0x68, 0x5f, 0x62, 0x65, 0x67, 0x69,
+	0x6e, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x35, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66,
+	0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76,
+	0x65, 0x6e, 0x74, 0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x48, 0x00,
+	0x52, 0x0a, 0x66, 0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12, 0x61, 0x0a, 0x0e,
+	0x66, 0x65, 0x74, 0x63, 0x68, 0x5f, 0x63, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x18, 0x08,
+	0x20, 0x01, 0x28, 0x0b, 0x32, 0x38, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d,
+	0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50,
+	0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74,
+	0x2e, 0x46, 0x65, 0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x48, 0x00,
+	0x52, 0x0d, 0x66, 0x65, 0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x12,
+	0x38, 0x0a, 0x0a, 0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x18, 0x09, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x2e, 0x44, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x48, 0x00, 0x52, 0x0a, 0x64,
+	0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x1a, 0x65, 0x0a, 0x07, 0x50, 0x65, 0x6e,
+	0x64, 0x69, 0x6e, 0x67, 0x12, 0x5a, 0x0a, 0x08, 0x65, 0x78, 0x70, 0x65, 0x63, 0x74, 0x65, 0x64,
+	0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x3e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f,
+	0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65,
+	0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x73, 0x74,
+	0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x52, 0x08, 0x65, 0x78, 0x70, 0x65, 0x63, 0x74, 0x65, 0x64,
+	0x1a, 0x52, 0x0a, 0x13, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x73,
+	0x74, 0x72, 0x61, 0x69, 0x6e, 0x74, 0x73, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x73, 0x1a, 0x4c, 0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
+	0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63,
+	0x65, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f,
+	0x75, 0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73,
+	0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69,
+	0x6f, 0x6e, 0x1a, 0x4f, 0x0a, 0x10, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x57, 0x61,
+	0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
+	0x5f, 0x61, 0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75,
+	0x72, 0x63, 0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x77, 0x61, 0x72, 0x6e, 0x69,
+	0x6e, 0x67, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x77, 0x61, 0x72, 0x6e, 0x69,
+	0x6e, 0x67, 0x73, 0x1a, 0x8f, 0x01, 0x0a, 0x0a, 0x46, 0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67,
+	0x69, 0x6e, 0x12, 0x65, 0x0a, 0x10, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x5f, 0x76,
+	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x74,
+	0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63,
+	0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65,
+	0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64,
+	0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x6f, 0x63,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x6f, 0x63,
+	0x61, 0x74, 0x69, 0x6f, 0x6e, 0x1a, 0xf5, 0x02, 0x0a, 0x0d, 0x46, 0x65, 0x74, 0x63, 0x68, 0x43,
+	0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x12, 0x65, 0x0a, 0x10, 0x70, 0x72, 0x6f, 0x76, 0x69,
+	0x64, 0x65, 0x72, 0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0b, 0x32, 0x3a, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42,
 	0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67,
-	0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x46, 0x65,
-	0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x48, 0x00, 0x52, 0x0d, 0x66,
-	0x65, 0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x12, 0x38, 0x0a, 0x0a,
-	0x64, 0x69, 0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x18, 0x09, 0x20, 0x01, 0x28, 0x0b,
-	0x32, 0x16, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x44, 0x69,
-	0x61, 0x67, 0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x48, 0x00, 0x52, 0x0a, 0x64, 0x69, 0x61, 0x67,
-	0x6e, 0x6f, 0x73, 0x74, 0x69, 0x63, 0x1a, 0x65, 0x0a, 0x07, 0x50, 0x65, 0x6e, 0x64, 0x69, 0x6e,
-	0x67, 0x12, 0x5a, 0x0a, 0x08, 0x65, 0x78, 0x70, 0x65, 0x63, 0x74, 0x65, 0x64, 0x18, 0x01, 0x20,
-	0x03, 0x28, 0x0b, 0x32, 0x3e, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
+	0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72,
+	0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0f, 0x70,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x64,
+	0x0a, 0x0b, 0x61, 0x75, 0x74, 0x68, 0x5f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x0e, 0x32, 0x43, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31,
 	0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c,
 	0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e,
-	0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61, 0x69,
-	0x6e, 0x74, 0x73, 0x52, 0x08, 0x65, 0x78, 0x70, 0x65, 0x63, 0x74, 0x65, 0x64, 0x1a, 0x52, 0x0a,
-	0x13, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x6f, 0x6e, 0x73, 0x74, 0x72, 0x61,
-	0x69, 0x6e, 0x74, 0x73, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61,
-	0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
-	0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
-	0x73, 0x1a, 0x4c, 0x0a, 0x0f, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72,
-	0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61,
-	0x64, 0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63,
-	0x65, 0x41, 0x64, 0x64, 0x72, 0x12, 0x18, 0x0a, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e,
-	0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x07, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x1a,
-	0x4f, 0x0a, 0x10, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x57, 0x61, 0x72, 0x6e, 0x69,
-	0x6e, 0x67, 0x73, 0x12, 0x1f, 0x0a, 0x0b, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x5f, 0x61, 0x64,
-	0x64, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0a, 0x73, 0x6f, 0x75, 0x72, 0x63, 0x65,
-	0x41, 0x64, 0x64, 0x72, 0x12, 0x1a, 0x0a, 0x08, 0x77, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73,
-	0x18, 0x02, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x77, 0x61, 0x72, 0x6e, 0x69, 0x6e, 0x67, 0x73,
-	0x1a, 0x8f, 0x01, 0x0a, 0x0a, 0x46, 0x65, 0x74, 0x63, 0x68, 0x42, 0x65, 0x67, 0x69, 0x6e, 0x12,
-	0x65, 0x0a, 0x10, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x5f, 0x76, 0x65, 0x72, 0x73,
-	0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a, 0x2e, 0x74, 0x65, 0x72, 0x72,
-	0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76,
-	0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e,
-	0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56, 0x65,
-	0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0f, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x56,
-	0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x1a, 0x0a, 0x08, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x6c, 0x6f, 0x63, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x1a, 0xf5, 0x02, 0x0a, 0x0d, 0x46, 0x65, 0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70,
-	0x6c, 0x65, 0x74, 0x65, 0x12, 0x65, 0x0a, 0x10, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72,
-	0x5f, 0x76, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x3a,
-	0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75, 0x69, 0x6c,
-	0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43,
-	0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69,
-	0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x52, 0x0f, 0x70, 0x72, 0x6f, 0x76,
-	0x69, 0x64, 0x65, 0x72, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x64, 0x0a, 0x0b, 0x61,
-	0x75, 0x74, 0x68, 0x5f, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e,
-	0x32, 0x43, 0x2e, 0x74, 0x65, 0x72, 0x72, 0x61, 0x66, 0x6f, 0x72, 0x6d, 0x31, 0x2e, 0x42, 0x75,
-	0x69, 0x6c, 0x64, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69,
-	0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x2e, 0x45, 0x76, 0x65, 0x6e, 0x74, 0x2e, 0x46, 0x65, 0x74,
-	0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x2e, 0x41, 0x75, 0x74, 0x68, 0x52,
-	0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x0a, 0x61, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c,
-	0x74, 0x12, 0x2b, 0x0a, 0x12, 0x6b, 0x65, 0x79, 0x5f, 0x69, 0x64, 0x5f, 0x66, 0x6f, 0x72, 0x5f,
-	0x64, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x0f, 0x6b,
-	0x65, 0x79, 0x49, 0x64, 0x46, 0x6f, 0x72, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x22, 0x6a,
-	0x0a, 0x0a, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x0b, 0x0a, 0x07,
-	0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11, 0x56, 0x45, 0x52,
-	0x49, 0x46, 0x49, 0x45, 0x44, 0x5f, 0x43, 0x48, 0x45, 0x43, 0x4b, 0x53, 0x55, 0x4d, 0x10, 0x01,
-	0x12, 0x13, 0x0a, 0x0f, 0x4f, 0x46, 0x46, 0x49, 0x43, 0x49, 0x41, 0x4c, 0x5f, 0x53, 0x49, 0x47,
-	0x4e, 0x45, 0x44, 0x10, 0x02, 0x12, 0x12, 0x0a, 0x0e, 0x50, 0x41, 0x52, 0x54, 0x4e, 0x45, 0x52,
-	0x5f, 0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x03, 0x12, 0x0f, 0x0a, 0x0b, 0x53, 0x45, 0x4c,
-	0x46, 0x5f, 0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x04, 0x42, 0x07, 0x0a, 0x05, 0x65, 0x76,
-	0x65, 0x6e, 0x74, 0x22, 0x81, 0x01, 0x0a, 0x17, 0x4f, 0x70, 0x65, 0x6e, 0x50, 0x72, 0x6f, 0x76,
-	0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63, 0x68, 0x65, 0x1a,
-	0x26, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b, 0x0a, 0x09, 0x63, 0x61,
-	0x63, 0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x63,
-	0x61, 0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x1a, 0x3e, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
+	0x46, 0x65, 0x74, 0x63, 0x68, 0x43, 0x6f, 0x6d, 0x70, 0x6c, 0x65, 0x74, 0x65, 0x2e, 0x41, 0x75,
+	0x74, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x0a, 0x61, 0x75, 0x74, 0x68, 0x52, 0x65,
+	0x73, 0x75, 0x6c, 0x74, 0x12, 0x2b, 0x0a, 0x12, 0x6b, 0x65, 0x79, 0x5f, 0x69, 0x64, 0x5f, 0x66,
+	0x6f, 0x72, 0x5f, 0x64, 0x69, 0x73, 0x70, 0x6c, 0x61, 0x79, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x0f, 0x6b, 0x65, 0x79, 0x49, 0x64, 0x46, 0x6f, 0x72, 0x44, 0x69, 0x73, 0x70, 0x6c, 0x61,
+	0x79, 0x22, 0x6a, 0x0a, 0x0a, 0x41, 0x75, 0x74, 0x68, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12,
+	0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11,
+	0x56, 0x45, 0x52, 0x49, 0x46, 0x49, 0x45, 0x44, 0x5f, 0x43, 0x48, 0x45, 0x43, 0x4b, 0x53, 0x55,
+	0x4d, 0x10, 0x01, 0x12, 0x13, 0x0a, 0x0f, 0x4f, 0x46, 0x46, 0x49, 0x43, 0x49, 0x41, 0x4c, 0x5f,
+	0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x02, 0x12, 0x12, 0x0a, 0x0e, 0x50, 0x41, 0x52, 0x54,
+	0x4e, 0x45, 0x52, 0x5f, 0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x03, 0x12, 0x0f, 0x0a, 0x0b,
+	0x53, 0x45, 0x4c, 0x46, 0x5f, 0x53, 0x49, 0x47, 0x4e, 0x45, 0x44, 0x10, 0x04, 0x42, 0x07, 0x0a,
+	0x05, 0x65, 0x76, 0x65, 0x6e, 0x74, 0x22, 0xae, 0x01, 0x0a, 0x17, 0x4f, 0x70, 0x65, 0x6e, 0x50,
+	0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x43, 0x61, 0x63,
+	0x68, 0x65, 0x1a, 0x53, 0x0a, 0x07, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x1b, 0x0a,
+	0x09, 0x63, 0x61, 0x63, 0x68, 0x65, 0x5f, 0x64, 0x69, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+	0x52, 0x08, 0x63, 0x61, 0x63, 0x68, 0x65, 0x44, 0x69, 0x72, 0x12, 0x2b, 0x0a, 0x11, 0x6f, 0x76,
+	0x65, 0x72, 0x72, 0x69, 0x64, 0x65, 0x5f, 0x70, 0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x10, 0x6f, 0x76, 0x65, 0x72, 0x72, 0x69, 0x64, 0x65, 0x50,
+	0x6c, 0x61, 0x74, 0x66, 0x6f, 0x72, 0x6d, 0x1a, 0x3e, 0x0a, 0x08, 0x52, 0x65, 0x73, 0x70, 0x6f,
 	0x6e, 0x73, 0x65, 0x12, 0x32, 0x0a, 0x15, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x5f,
 	0x63, 0x61, 0x63, 0x68, 0x65, 0x5f, 0x68, 0x61, 0x6e, 0x64, 0x6c, 0x65, 0x18, 0x01, 0x20, 0x01,
 	0x28, 0x03, 0x52, 0x13, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x43, 0x61, 0x63, 0x68,
@@ -5771,7 +5950,7 @@ func file_terraform1_proto_rawDescGZIP() []byte {
 }
 
 var file_terraform1_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 87)
+var file_terraform1_proto_msgTypes = make([]protoimpl.MessageInfo, 88)
 var file_terraform1_proto_goTypes = []interface{}{
 	(PlanMode)(0),   // 0: terraform1.PlanMode
 	(ChangeType)(0), // 1: terraform1.ChangeType
@@ -5825,163 +6004,165 @@ var file_terraform1_proto_goTypes = []interface{}{
 	(*GetLockedProviderDependencies_Response)(nil),               // 49: terraform1.GetLockedProviderDependencies.Response
 	(*BuildProviderPluginCache_Request)(nil),                     // 50: terraform1.BuildProviderPluginCache.Request
 	(*BuildProviderPluginCache_Event)(nil),                       // 51: terraform1.BuildProviderPluginCache.Event
-	(*BuildProviderPluginCache_Event_Pending)(nil),               // 52: terraform1.BuildProviderPluginCache.Event.Pending
-	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 53: terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 54: terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 55: terraform1.BuildProviderPluginCache.Event.ProviderWarnings
-	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 56: terraform1.BuildProviderPluginCache.Event.FetchBegin
-	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 57: terraform1.BuildProviderPluginCache.Event.FetchComplete
-	(*OpenProviderPluginCache_Request)(nil),                      // 58: terraform1.OpenProviderPluginCache.Request
-	(*OpenProviderPluginCache_Response)(nil),                     // 59: terraform1.OpenProviderPluginCache.Response
-	(*CloseProviderPluginCache_Request)(nil),                     // 60: terraform1.CloseProviderPluginCache.Request
-	(*CloseProviderPluginCache_Response)(nil),                    // 61: terraform1.CloseProviderPluginCache.Response
-	(*GetCachedProviders_Request)(nil),                           // 62: terraform1.GetCachedProviders.Request
-	(*GetCachedProviders_Response)(nil),                          // 63: terraform1.GetCachedProviders.Response
-	(*GetProviderSchema_Request)(nil),                            // 64: terraform1.GetProviderSchema.Request
-	(*GetProviderSchema_Response)(nil),                           // 65: terraform1.GetProviderSchema.Response
-	nil,                                                          // 66: terraform1.ProviderSchema.ManagedResourceTypesEntry
-	nil,                                                          // 67: terraform1.ProviderSchema.DataResourceTypesEntry
-	(*OpenStackConfiguration_Request)(nil),                       // 68: terraform1.OpenStackConfiguration.Request
-	(*OpenStackConfiguration_Response)(nil),                      // 69: terraform1.OpenStackConfiguration.Response
-	(*CloseStackConfiguration_Request)(nil),                      // 70: terraform1.CloseStackConfiguration.Request
-	(*CloseStackConfiguration_Response)(nil),                     // 71: terraform1.CloseStackConfiguration.Response
-	(*FindStackConfigurationComponents_Request)(nil),             // 72: terraform1.FindStackConfigurationComponents.Request
-	(*FindStackConfigurationComponents_Response)(nil),            // 73: terraform1.FindStackConfigurationComponents.Response
-	(*FindStackConfigurationComponents_StackConfig)(nil),         // 74: terraform1.FindStackConfigurationComponents.StackConfig
-	(*FindStackConfigurationComponents_EmbeddedStack)(nil),       // 75: terraform1.FindStackConfigurationComponents.EmbeddedStack
-	(*FindStackConfigurationComponents_Component)(nil),           // 76: terraform1.FindStackConfigurationComponents.Component
-	nil, // 77: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	nil, // 78: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
-	(*FindStackConfigurationProviders_Request)(nil),  // 79: terraform1.FindStackConfigurationProviders.Request
-	(*FindStackConfigurationProviders_Response)(nil), // 80: terraform1.FindStackConfigurationProviders.Response
-	(*PlanStackChanges_Request)(nil),                 // 81: terraform1.PlanStackChanges.Request
-	(*PlanStackChanges_Event)(nil),                   // 82: terraform1.PlanStackChanges.Event
-	nil,                                              // 83: terraform1.PlanStackChanges.Request.PreviousStateEntry
-	(*AttributePath_Step)(nil),                       // 84: terraform1.AttributePath.Step
-	(*PlannedChange_ComponentInstance)(nil),          // 85: terraform1.PlannedChange.ComponentInstance
-	(*PlannedChange_ResourceInstance)(nil),           // 86: terraform1.PlannedChange.ResourceInstance
-	(*PlannedChange_OutputValue)(nil),                // 87: terraform1.PlannedChange.OutputValue
-	(*PlannedChange_ResourceInstance_Moved)(nil),     // 88: terraform1.PlannedChange.ResourceInstance.Moved
-	(*PlannedChange_ResourceInstance_Imported)(nil),  // 89: terraform1.PlannedChange.ResourceInstance.Imported
-	(*Schema_Block)(nil),                             // 90: terraform1.Schema.Block
-	(*Schema_Attribute)(nil),                         // 91: terraform1.Schema.Attribute
-	(*Schema_NestedBlock)(nil),                       // 92: terraform1.Schema.NestedBlock
-	(*Schema_Object)(nil),                            // 93: terraform1.Schema.Object
-	(*Schema_DocString)(nil),                         // 94: terraform1.Schema.DocString
-	(*anypb.Any)(nil),                                // 95: google.protobuf.Any
+	(*BuildProviderPluginCache_Request_InstallMethod)(nil),       // 52: terraform1.BuildProviderPluginCache.Request.InstallMethod
+	(*BuildProviderPluginCache_Event_Pending)(nil),               // 53: terraform1.BuildProviderPluginCache.Event.Pending
+	(*BuildProviderPluginCache_Event_ProviderConstraints)(nil),   // 54: terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	(*BuildProviderPluginCache_Event_ProviderVersion)(nil),       // 55: terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	(*BuildProviderPluginCache_Event_ProviderWarnings)(nil),      // 56: terraform1.BuildProviderPluginCache.Event.ProviderWarnings
+	(*BuildProviderPluginCache_Event_FetchBegin)(nil),            // 57: terraform1.BuildProviderPluginCache.Event.FetchBegin
+	(*BuildProviderPluginCache_Event_FetchComplete)(nil),         // 58: terraform1.BuildProviderPluginCache.Event.FetchComplete
+	(*OpenProviderPluginCache_Request)(nil),                      // 59: terraform1.OpenProviderPluginCache.Request
+	(*OpenProviderPluginCache_Response)(nil),                     // 60: terraform1.OpenProviderPluginCache.Response
+	(*CloseProviderPluginCache_Request)(nil),                     // 61: terraform1.CloseProviderPluginCache.Request
+	(*CloseProviderPluginCache_Response)(nil),                    // 62: terraform1.CloseProviderPluginCache.Response
+	(*GetCachedProviders_Request)(nil),                           // 63: terraform1.GetCachedProviders.Request
+	(*GetCachedProviders_Response)(nil),                          // 64: terraform1.GetCachedProviders.Response
+	(*GetProviderSchema_Request)(nil),                            // 65: terraform1.GetProviderSchema.Request
+	(*GetProviderSchema_Response)(nil),                           // 66: terraform1.GetProviderSchema.Response
+	nil,                                                          // 67: terraform1.ProviderSchema.ManagedResourceTypesEntry
+	nil,                                                          // 68: terraform1.ProviderSchema.DataResourceTypesEntry
+	(*OpenStackConfiguration_Request)(nil),                       // 69: terraform1.OpenStackConfiguration.Request
+	(*OpenStackConfiguration_Response)(nil),                      // 70: terraform1.OpenStackConfiguration.Response
+	(*CloseStackConfiguration_Request)(nil),                      // 71: terraform1.CloseStackConfiguration.Request
+	(*CloseStackConfiguration_Response)(nil),                     // 72: terraform1.CloseStackConfiguration.Response
+	(*FindStackConfigurationComponents_Request)(nil),             // 73: terraform1.FindStackConfigurationComponents.Request
+	(*FindStackConfigurationComponents_Response)(nil),            // 74: terraform1.FindStackConfigurationComponents.Response
+	(*FindStackConfigurationComponents_StackConfig)(nil),         // 75: terraform1.FindStackConfigurationComponents.StackConfig
+	(*FindStackConfigurationComponents_EmbeddedStack)(nil),       // 76: terraform1.FindStackConfigurationComponents.EmbeddedStack
+	(*FindStackConfigurationComponents_Component)(nil),           // 77: terraform1.FindStackConfigurationComponents.Component
+	nil, // 78: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	nil, // 79: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	(*FindStackConfigurationProviders_Request)(nil),  // 80: terraform1.FindStackConfigurationProviders.Request
+	(*FindStackConfigurationProviders_Response)(nil), // 81: terraform1.FindStackConfigurationProviders.Response
+	(*PlanStackChanges_Request)(nil),                 // 82: terraform1.PlanStackChanges.Request
+	(*PlanStackChanges_Event)(nil),                   // 83: terraform1.PlanStackChanges.Event
+	nil,                                              // 84: terraform1.PlanStackChanges.Request.PreviousStateEntry
+	(*AttributePath_Step)(nil),                       // 85: terraform1.AttributePath.Step
+	(*PlannedChange_ComponentInstance)(nil),          // 86: terraform1.PlannedChange.ComponentInstance
+	(*PlannedChange_ResourceInstance)(nil),           // 87: terraform1.PlannedChange.ResourceInstance
+	(*PlannedChange_OutputValue)(nil),                // 88: terraform1.PlannedChange.OutputValue
+	(*PlannedChange_ResourceInstance_Moved)(nil),     // 89: terraform1.PlannedChange.ResourceInstance.Moved
+	(*PlannedChange_ResourceInstance_Imported)(nil),  // 90: terraform1.PlannedChange.ResourceInstance.Imported
+	(*Schema_Block)(nil),                             // 91: terraform1.Schema.Block
+	(*Schema_Attribute)(nil),                         // 92: terraform1.Schema.Attribute
+	(*Schema_NestedBlock)(nil),                       // 93: terraform1.Schema.NestedBlock
+	(*Schema_Object)(nil),                            // 94: terraform1.Schema.Object
+	(*Schema_DocString)(nil),                         // 95: terraform1.Schema.DocString
+	(*anypb.Any)(nil),                                // 96: google.protobuf.Any
 }
 var file_terraform1_proto_depIdxs = []int32{
 	37, // 0: terraform1.ProviderSchema.provider_config:type_name -> terraform1.Schema
-	66, // 1: terraform1.ProviderSchema.managed_resource_types:type_name -> terraform1.ProviderSchema.ManagedResourceTypesEntry
-	67, // 2: terraform1.ProviderSchema.data_resource_types:type_name -> terraform1.ProviderSchema.DataResourceTypesEntry
+	67, // 1: terraform1.ProviderSchema.managed_resource_types:type_name -> terraform1.ProviderSchema.ManagedResourceTypesEntry
+	68, // 2: terraform1.ProviderSchema.data_resource_types:type_name -> terraform1.ProviderSchema.DataResourceTypesEntry
 	30, // 3: terraform1.DynamicValue.sensitive:type_name -> terraform1.AttributePath
 	28, // 4: terraform1.DynamicValueChange.old:type_name -> terraform1.DynamicValue
 	28, // 5: terraform1.DynamicValueChange.new:type_name -> terraform1.DynamicValue
-	84, // 6: terraform1.AttributePath.steps:type_name -> terraform1.AttributePath.Step
-	95, // 7: terraform1.PlannedChange.raw:type_name -> google.protobuf.Any
-	85, // 8: terraform1.PlannedChange.component_instance_planned:type_name -> terraform1.PlannedChange.ComponentInstance
-	86, // 9: terraform1.PlannedChange.resource_instance_drifted:type_name -> terraform1.PlannedChange.ResourceInstance
-	86, // 10: terraform1.PlannedChange.resource_instance_planned:type_name -> terraform1.PlannedChange.ResourceInstance
-	87, // 11: terraform1.PlannedChange.output_value_planned:type_name -> terraform1.PlannedChange.OutputValue
+	85, // 6: terraform1.AttributePath.steps:type_name -> terraform1.AttributePath.Step
+	96, // 7: terraform1.PlannedChange.raw:type_name -> google.protobuf.Any
+	86, // 8: terraform1.PlannedChange.component_instance_planned:type_name -> terraform1.PlannedChange.ComponentInstance
+	87, // 9: terraform1.PlannedChange.resource_instance_drifted:type_name -> terraform1.PlannedChange.ResourceInstance
+	87, // 10: terraform1.PlannedChange.resource_instance_planned:type_name -> terraform1.PlannedChange.ResourceInstance
+	88, // 11: terraform1.PlannedChange.output_value_planned:type_name -> terraform1.PlannedChange.OutputValue
 	4,  // 12: terraform1.Diagnostic.severity:type_name -> terraform1.Diagnostic.Severity
 	35, // 13: terraform1.Diagnostic.subject:type_name -> terraform1.SourceRange
 	35, // 14: terraform1.Diagnostic.context:type_name -> terraform1.SourceRange
 	36, // 15: terraform1.SourceRange.start:type_name -> terraform1.SourcePos
 	36, // 16: terraform1.SourceRange.end:type_name -> terraform1.SourcePos
-	90, // 17: terraform1.Schema.block:type_name -> terraform1.Schema.Block
+	91, // 17: terraform1.Schema.block:type_name -> terraform1.Schema.Block
 	9,  // 18: terraform1.Handshake.Request.capabilities:type_name -> terraform1.ClientCapabilities
 	10, // 19: terraform1.Handshake.Response.capabilities:type_name -> terraform1.ServerCapabilities
 	32, // 20: terraform1.OpenDependencyLockFile.Request.source_address:type_name -> terraform1.SourceAddress
 	34, // 21: terraform1.OpenDependencyLockFile.Response.diagnostics:type_name -> terraform1.Diagnostic
 	21, // 22: terraform1.GetLockedProviderDependencies.Response.selected_providers:type_name -> terraform1.ProviderPackage
-	52, // 23: terraform1.BuildProviderPluginCache.Event.pending:type_name -> terraform1.BuildProviderPluginCache.Event.Pending
-	54, // 24: terraform1.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	54, // 25: terraform1.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	53, // 26: terraform1.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	54, // 27: terraform1.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	55, // 28: terraform1.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderWarnings
-	56, // 29: terraform1.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.BuildProviderPluginCache.Event.FetchBegin
-	57, // 30: terraform1.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete
-	34, // 31: terraform1.BuildProviderPluginCache.Event.diagnostic:type_name -> terraform1.Diagnostic
-	53, // 32: terraform1.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
-	54, // 33: terraform1.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	54, // 34: terraform1.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
-	2,  // 35: terraform1.BuildProviderPluginCache.Event.FetchComplete.auth_result:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete.AuthResult
-	21, // 36: terraform1.GetCachedProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
-	22, // 37: terraform1.GetProviderSchema.Response.schema:type_name -> terraform1.ProviderSchema
-	37, // 38: terraform1.ProviderSchema.ManagedResourceTypesEntry.value:type_name -> terraform1.Schema
-	37, // 39: terraform1.ProviderSchema.DataResourceTypesEntry.value:type_name -> terraform1.Schema
-	32, // 40: terraform1.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
-	34, // 41: terraform1.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
-	74, // 42: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
-	77, // 43: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
-	78, // 44: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
-	3,  // 45: terraform1.FindStackConfigurationComponents.EmbeddedStack.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	74, // 46: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
-	3,  // 47: terraform1.FindStackConfigurationComponents.Component.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
-	76, // 48: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
-	75, // 49: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
-	0,  // 50: terraform1.PlanStackChanges.Request.plan_mode:type_name -> terraform1.PlanMode
-	83, // 51: terraform1.PlanStackChanges.Request.previous_state:type_name -> terraform1.PlanStackChanges.Request.PreviousStateEntry
-	33, // 52: terraform1.PlanStackChanges.Event.planned_change:type_name -> terraform1.PlannedChange
-	34, // 53: terraform1.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
-	95, // 54: terraform1.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
-	1,  // 55: terraform1.PlannedChange.ComponentInstance.actions:type_name -> terraform1.ChangeType
-	31, // 56: terraform1.PlannedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	1,  // 57: terraform1.PlannedChange.ResourceInstance.actions:type_name -> terraform1.ChangeType
-	29, // 58: terraform1.PlannedChange.ResourceInstance.values:type_name -> terraform1.DynamicValueChange
-	88, // 59: terraform1.PlannedChange.ResourceInstance.moved:type_name -> terraform1.PlannedChange.ResourceInstance.Moved
-	89, // 60: terraform1.PlannedChange.ResourceInstance.imported:type_name -> terraform1.PlannedChange.ResourceInstance.Imported
-	1,  // 61: terraform1.PlannedChange.OutputValue.actions:type_name -> terraform1.ChangeType
-	29, // 62: terraform1.PlannedChange.OutputValue.values:type_name -> terraform1.DynamicValueChange
-	31, // 63: terraform1.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
-	91, // 64: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
-	92, // 65: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
-	94, // 66: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
-	93, // 67: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
-	94, // 68: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
-	90, // 69: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
-	5,  // 70: terraform1.Schema.NestedBlock.nesting:type_name -> terraform1.Schema.NestedBlock.NestingMode
-	91, // 71: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
-	6,  // 72: terraform1.Schema.Object.nesting:type_name -> terraform1.Schema.Object.NestingMode
-	7,  // 73: terraform1.Schema.DocString.format:type_name -> terraform1.Schema.DocString.Format
-	38, // 74: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
-	40, // 75: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
-	42, // 76: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
-	44, // 77: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
-	46, // 78: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
-	48, // 79: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
-	50, // 80: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
-	58, // 81: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
-	60, // 82: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
-	62, // 83: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
-	64, // 84: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
-	68, // 85: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
-	70, // 86: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
-	79, // 87: terraform1.Stacks.FindStackConfigurationProviders:input_type -> terraform1.FindStackConfigurationProviders.Request
-	72, // 88: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
-	81, // 89: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
-	39, // 90: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
-	41, // 91: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
-	43, // 92: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
-	45, // 93: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
-	47, // 94: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
-	49, // 95: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
-	51, // 96: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
-	59, // 97: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
-	61, // 98: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
-	63, // 99: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
-	65, // 100: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
-	69, // 101: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
-	71, // 102: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
-	80, // 103: terraform1.Stacks.FindStackConfigurationProviders:output_type -> terraform1.FindStackConfigurationProviders.Response
-	73, // 104: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
-	82, // 105: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
-	90, // [90:106] is the sub-list for method output_type
-	74, // [74:90] is the sub-list for method input_type
-	74, // [74:74] is the sub-list for extension type_name
-	74, // [74:74] is the sub-list for extension extendee
-	0,  // [0:74] is the sub-list for field type_name
+	52, // 23: terraform1.BuildProviderPluginCache.Request.installation_methods:type_name -> terraform1.BuildProviderPluginCache.Request.InstallMethod
+	53, // 24: terraform1.BuildProviderPluginCache.Event.pending:type_name -> terraform1.BuildProviderPluginCache.Event.Pending
+	55, // 25: terraform1.BuildProviderPluginCache.Event.already_installed:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	55, // 26: terraform1.BuildProviderPluginCache.Event.built_in:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	54, // 27: terraform1.BuildProviderPluginCache.Event.query_begin:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	55, // 28: terraform1.BuildProviderPluginCache.Event.query_success:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	56, // 29: terraform1.BuildProviderPluginCache.Event.query_warnings:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderWarnings
+	57, // 30: terraform1.BuildProviderPluginCache.Event.fetch_begin:type_name -> terraform1.BuildProviderPluginCache.Event.FetchBegin
+	58, // 31: terraform1.BuildProviderPluginCache.Event.fetch_complete:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete
+	34, // 32: terraform1.BuildProviderPluginCache.Event.diagnostic:type_name -> terraform1.Diagnostic
+	54, // 33: terraform1.BuildProviderPluginCache.Event.Pending.expected:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderConstraints
+	55, // 34: terraform1.BuildProviderPluginCache.Event.FetchBegin.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	55, // 35: terraform1.BuildProviderPluginCache.Event.FetchComplete.provider_version:type_name -> terraform1.BuildProviderPluginCache.Event.ProviderVersion
+	2,  // 36: terraform1.BuildProviderPluginCache.Event.FetchComplete.auth_result:type_name -> terraform1.BuildProviderPluginCache.Event.FetchComplete.AuthResult
+	21, // 37: terraform1.GetCachedProviders.Response.available_providers:type_name -> terraform1.ProviderPackage
+	22, // 38: terraform1.GetProviderSchema.Response.schema:type_name -> terraform1.ProviderSchema
+	37, // 39: terraform1.ProviderSchema.ManagedResourceTypesEntry.value:type_name -> terraform1.Schema
+	37, // 40: terraform1.ProviderSchema.DataResourceTypesEntry.value:type_name -> terraform1.Schema
+	32, // 41: terraform1.OpenStackConfiguration.Request.source_address:type_name -> terraform1.SourceAddress
+	34, // 42: terraform1.OpenStackConfiguration.Response.diagnostics:type_name -> terraform1.Diagnostic
+	75, // 43: terraform1.FindStackConfigurationComponents.Response.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	78, // 44: terraform1.FindStackConfigurationComponents.StackConfig.components:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry
+	79, // 45: terraform1.FindStackConfigurationComponents.StackConfig.embedded_stacks:type_name -> terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry
+	3,  // 46: terraform1.FindStackConfigurationComponents.EmbeddedStack.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
+	75, // 47: terraform1.FindStackConfigurationComponents.EmbeddedStack.config:type_name -> terraform1.FindStackConfigurationComponents.StackConfig
+	3,  // 48: terraform1.FindStackConfigurationComponents.Component.instances:type_name -> terraform1.FindStackConfigurationComponents.Instances
+	77, // 49: terraform1.FindStackConfigurationComponents.StackConfig.ComponentsEntry.value:type_name -> terraform1.FindStackConfigurationComponents.Component
+	76, // 50: terraform1.FindStackConfigurationComponents.StackConfig.EmbeddedStacksEntry.value:type_name -> terraform1.FindStackConfigurationComponents.EmbeddedStack
+	0,  // 51: terraform1.PlanStackChanges.Request.plan_mode:type_name -> terraform1.PlanMode
+	84, // 52: terraform1.PlanStackChanges.Request.previous_state:type_name -> terraform1.PlanStackChanges.Request.PreviousStateEntry
+	33, // 53: terraform1.PlanStackChanges.Event.planned_change:type_name -> terraform1.PlannedChange
+	34, // 54: terraform1.PlanStackChanges.Event.diagnostic:type_name -> terraform1.Diagnostic
+	96, // 55: terraform1.PlanStackChanges.Request.PreviousStateEntry.value:type_name -> google.protobuf.Any
+	1,  // 56: terraform1.PlannedChange.ComponentInstance.actions:type_name -> terraform1.ChangeType
+	31, // 57: terraform1.PlannedChange.ResourceInstance.addr:type_name -> terraform1.ResourceInstanceInStackAddr
+	1,  // 58: terraform1.PlannedChange.ResourceInstance.actions:type_name -> terraform1.ChangeType
+	29, // 59: terraform1.PlannedChange.ResourceInstance.values:type_name -> terraform1.DynamicValueChange
+	89, // 60: terraform1.PlannedChange.ResourceInstance.moved:type_name -> terraform1.PlannedChange.ResourceInstance.Moved
+	90, // 61: terraform1.PlannedChange.ResourceInstance.imported:type_name -> terraform1.PlannedChange.ResourceInstance.Imported
+	1,  // 62: terraform1.PlannedChange.OutputValue.actions:type_name -> terraform1.ChangeType
+	29, // 63: terraform1.PlannedChange.OutputValue.values:type_name -> terraform1.DynamicValueChange
+	31, // 64: terraform1.PlannedChange.ResourceInstance.Moved.prev_addr:type_name -> terraform1.ResourceInstanceInStackAddr
+	92, // 65: terraform1.Schema.Block.attributes:type_name -> terraform1.Schema.Attribute
+	93, // 66: terraform1.Schema.Block.block_types:type_name -> terraform1.Schema.NestedBlock
+	95, // 67: terraform1.Schema.Block.description:type_name -> terraform1.Schema.DocString
+	94, // 68: terraform1.Schema.Attribute.nested_type:type_name -> terraform1.Schema.Object
+	95, // 69: terraform1.Schema.Attribute.description:type_name -> terraform1.Schema.DocString
+	91, // 70: terraform1.Schema.NestedBlock.block:type_name -> terraform1.Schema.Block
+	5,  // 71: terraform1.Schema.NestedBlock.nesting:type_name -> terraform1.Schema.NestedBlock.NestingMode
+	92, // 72: terraform1.Schema.Object.attributes:type_name -> terraform1.Schema.Attribute
+	6,  // 73: terraform1.Schema.Object.nesting:type_name -> terraform1.Schema.Object.NestingMode
+	7,  // 74: terraform1.Schema.DocString.format:type_name -> terraform1.Schema.DocString.Format
+	38, // 75: terraform1.Setup.Handshake:input_type -> terraform1.Handshake.Request
+	40, // 76: terraform1.Dependencies.OpenSourceBundle:input_type -> terraform1.OpenSourceBundle.Request
+	42, // 77: terraform1.Dependencies.CloseSourceBundle:input_type -> terraform1.CloseSourceBundle.Request
+	44, // 78: terraform1.Dependencies.OpenDependencyLockFile:input_type -> terraform1.OpenDependencyLockFile.Request
+	46, // 79: terraform1.Dependencies.CloseDependencyLocks:input_type -> terraform1.CloseDependencyLocks.Request
+	48, // 80: terraform1.Dependencies.GetLockedProviderDependencies:input_type -> terraform1.GetLockedProviderDependencies.Request
+	50, // 81: terraform1.Dependencies.BuildProviderPluginCache:input_type -> terraform1.BuildProviderPluginCache.Request
+	59, // 82: terraform1.Dependencies.OpenProviderPluginCache:input_type -> terraform1.OpenProviderPluginCache.Request
+	61, // 83: terraform1.Dependencies.CloseProviderPluginCache:input_type -> terraform1.CloseProviderPluginCache.Request
+	63, // 84: terraform1.Dependencies.GetCachedProviders:input_type -> terraform1.GetCachedProviders.Request
+	65, // 85: terraform1.Dependencies.GetProviderSchema:input_type -> terraform1.GetProviderSchema.Request
+	69, // 86: terraform1.Stacks.OpenStackConfiguration:input_type -> terraform1.OpenStackConfiguration.Request
+	71, // 87: terraform1.Stacks.CloseStackConfiguration:input_type -> terraform1.CloseStackConfiguration.Request
+	80, // 88: terraform1.Stacks.FindStackConfigurationProviders:input_type -> terraform1.FindStackConfigurationProviders.Request
+	73, // 89: terraform1.Stacks.FindStackConfigurationComponents:input_type -> terraform1.FindStackConfigurationComponents.Request
+	82, // 90: terraform1.Stacks.PlanStackChanges:input_type -> terraform1.PlanStackChanges.Request
+	39, // 91: terraform1.Setup.Handshake:output_type -> terraform1.Handshake.Response
+	41, // 92: terraform1.Dependencies.OpenSourceBundle:output_type -> terraform1.OpenSourceBundle.Response
+	43, // 93: terraform1.Dependencies.CloseSourceBundle:output_type -> terraform1.CloseSourceBundle.Response
+	45, // 94: terraform1.Dependencies.OpenDependencyLockFile:output_type -> terraform1.OpenDependencyLockFile.Response
+	47, // 95: terraform1.Dependencies.CloseDependencyLocks:output_type -> terraform1.CloseDependencyLocks.Response
+	49, // 96: terraform1.Dependencies.GetLockedProviderDependencies:output_type -> terraform1.GetLockedProviderDependencies.Response
+	51, // 97: terraform1.Dependencies.BuildProviderPluginCache:output_type -> terraform1.BuildProviderPluginCache.Event
+	60, // 98: terraform1.Dependencies.OpenProviderPluginCache:output_type -> terraform1.OpenProviderPluginCache.Response
+	62, // 99: terraform1.Dependencies.CloseProviderPluginCache:output_type -> terraform1.CloseProviderPluginCache.Response
+	64, // 100: terraform1.Dependencies.GetCachedProviders:output_type -> terraform1.GetCachedProviders.Response
+	66, // 101: terraform1.Dependencies.GetProviderSchema:output_type -> terraform1.GetProviderSchema.Response
+	70, // 102: terraform1.Stacks.OpenStackConfiguration:output_type -> terraform1.OpenStackConfiguration.Response
+	72, // 103: terraform1.Stacks.CloseStackConfiguration:output_type -> terraform1.CloseStackConfiguration.Response
+	81, // 104: terraform1.Stacks.FindStackConfigurationProviders:output_type -> terraform1.FindStackConfigurationProviders.Response
+	74, // 105: terraform1.Stacks.FindStackConfigurationComponents:output_type -> terraform1.FindStackConfigurationComponents.Response
+	83, // 106: terraform1.Stacks.PlanStackChanges:output_type -> terraform1.PlanStackChanges.Event
+	91, // [91:107] is the sub-list for method output_type
+	75, // [75:91] is the sub-list for method input_type
+	75, // [75:75] is the sub-list for extension type_name
+	75, // [75:75] is the sub-list for extension extendee
+	0,  // [0:75] is the sub-list for field type_name
 }
 
 func init() { file_terraform1_proto_init() }
@@ -6519,7 +6700,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[44].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_Pending); i {
+			switch v := v.(*BuildProviderPluginCache_Request_InstallMethod); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6531,7 +6712,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[45].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderConstraints); i {
+			switch v := v.(*BuildProviderPluginCache_Event_Pending); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6543,7 +6724,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[46].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderVersion); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderConstraints); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6555,7 +6736,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[47].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_ProviderWarnings); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderVersion); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6567,7 +6748,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[48].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_FetchBegin); i {
+			switch v := v.(*BuildProviderPluginCache_Event_ProviderWarnings); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6579,7 +6760,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[49].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*BuildProviderPluginCache_Event_FetchComplete); i {
+			switch v := v.(*BuildProviderPluginCache_Event_FetchBegin); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6591,7 +6772,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[50].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenProviderPluginCache_Request); i {
+			switch v := v.(*BuildProviderPluginCache_Event_FetchComplete); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6603,7 +6784,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[51].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*OpenProviderPluginCache_Response); i {
+			switch v := v.(*OpenProviderPluginCache_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6615,7 +6796,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[52].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseProviderPluginCache_Request); i {
+			switch v := v.(*OpenProviderPluginCache_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6627,7 +6808,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[53].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*CloseProviderPluginCache_Response); i {
+			switch v := v.(*CloseProviderPluginCache_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6639,7 +6820,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[54].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetCachedProviders_Request); i {
+			switch v := v.(*CloseProviderPluginCache_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6651,7 +6832,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[55].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetCachedProviders_Response); i {
+			switch v := v.(*GetCachedProviders_Request); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6663,7 +6844,7 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[56].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*GetProviderSchema_Request); i {
+			switch v := v.(*GetCachedProviders_Response); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -6675,6 +6856,18 @@ func file_terraform1_proto_init() {
 			}
 		}
 		file_terraform1_proto_msgTypes[57].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetProviderSchema_Request); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_terraform1_proto_msgTypes[58].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*GetProviderSchema_Response); i {
 			case 0:
 				return &v.state
@@ -6686,7 +6879,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[60].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OpenStackConfiguration_Request); i {
 			case 0:
 				return &v.state
@@ -6698,7 +6891,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[61].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*OpenStackConfiguration_Response); i {
 			case 0:
 				return &v.state
@@ -6710,7 +6903,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[62].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CloseStackConfiguration_Request); i {
 			case 0:
 				return &v.state
@@ -6722,7 +6915,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[63].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*CloseStackConfiguration_Response); i {
 			case 0:
 				return &v.state
@@ -6734,7 +6927,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[64].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[65].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_Request); i {
 			case 0:
 				return &v.state
@@ -6746,7 +6939,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[65].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[66].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_Response); i {
 			case 0:
 				return &v.state
@@ -6758,7 +6951,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[66].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[67].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_StackConfig); i {
 			case 0:
 				return &v.state
@@ -6770,7 +6963,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[67].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_EmbeddedStack); i {
 			case 0:
 				return &v.state
@@ -6782,7 +6975,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[68].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[69].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationComponents_Component); i {
 			case 0:
 				return &v.state
@@ -6794,7 +6987,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[71].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationProviders_Request); i {
 			case 0:
 				return &v.state
@@ -6806,7 +6999,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[72].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*FindStackConfigurationProviders_Response); i {
 			case 0:
 				return &v.state
@@ -6818,7 +7011,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[73].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlanStackChanges_Request); i {
 			case 0:
 				return &v.state
@@ -6830,7 +7023,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[74].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[75].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlanStackChanges_Event); i {
 			case 0:
 				return &v.state
@@ -6842,7 +7035,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[76].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[77].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*AttributePath_Step); i {
 			case 0:
 				return &v.state
@@ -6854,7 +7047,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[77].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[78].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlannedChange_ComponentInstance); i {
 			case 0:
 				return &v.state
@@ -6866,7 +7059,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[78].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[79].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlannedChange_ResourceInstance); i {
 			case 0:
 				return &v.state
@@ -6878,7 +7071,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[79].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlannedChange_OutputValue); i {
 			case 0:
 				return &v.state
@@ -6890,7 +7083,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[80].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[81].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlannedChange_ResourceInstance_Moved); i {
 			case 0:
 				return &v.state
@@ -6902,7 +7095,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[81].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*PlannedChange_ResourceInstance_Imported); i {
 			case 0:
 				return &v.state
@@ -6914,7 +7107,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[82].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[83].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_Block); i {
 			case 0:
 				return &v.state
@@ -6926,7 +7119,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[83].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_Attribute); i {
 			case 0:
 				return &v.state
@@ -6938,7 +7131,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[84].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[85].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_NestedBlock); i {
 			case 0:
 				return &v.state
@@ -6950,7 +7143,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[85].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_Object); i {
 			case 0:
 				return &v.state
@@ -6962,7 +7155,7 @@ func file_terraform1_proto_init() {
 				return nil
 			}
 		}
-		file_terraform1_proto_msgTypes[86].Exporter = func(v interface{}, i int) interface{} {
+		file_terraform1_proto_msgTypes[87].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Schema_DocString); i {
 			case 0:
 				return &v.state
@@ -6993,11 +7186,16 @@ func file_terraform1_proto_init() {
 		(*BuildProviderPluginCache_Event_FetchComplete_)(nil),
 		(*BuildProviderPluginCache_Event_Diagnostic)(nil),
 	}
-	file_terraform1_proto_msgTypes[74].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[44].OneofWrappers = []interface{}{
+		(*BuildProviderPluginCache_Request_InstallMethod_Direct)(nil),
+		(*BuildProviderPluginCache_Request_InstallMethod_LocalMirrorDir)(nil),
+		(*BuildProviderPluginCache_Request_InstallMethod_NetworkMirrorUrl)(nil),
+	}
+	file_terraform1_proto_msgTypes[75].OneofWrappers = []interface{}{
 		(*PlanStackChanges_Event_PlannedChange)(nil),
 		(*PlanStackChanges_Event_Diagnostic)(nil),
 	}
-	file_terraform1_proto_msgTypes[76].OneofWrappers = []interface{}{
+	file_terraform1_proto_msgTypes[77].OneofWrappers = []interface{}{
 		(*AttributePath_Step_AttributeName)(nil),
 		(*AttributePath_Step_ElementKeyString)(nil),
 		(*AttributePath_Step_ElementKeyInt)(nil),
@@ -7008,7 +7206,7 @@ func file_terraform1_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_terraform1_proto_rawDesc,
 			NumEnums:      8,
-			NumMessages:   87,
+			NumMessages:   88,
 			NumExtensions: 0,
 			NumServices:   3,
 		},
