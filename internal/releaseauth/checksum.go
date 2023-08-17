@@ -22,7 +22,7 @@ type ChecksumAuthentication struct {
 
 // ErrChecksumDoesNotMatch is the error returned when the archive checksum does
 // not match the given checksum.
-var ErrChecksumDoesNotMatch = errors.New("failed to authenticate that the downloaded archive matches the release checksum")
+var ErrChecksumDoesNotMatch = errors.New("downloaded archive does not match the release checksum")
 
 // NewChecksumAuthentication creates an instance of ChecksumAuthentication with the given
 // checksum and file location.

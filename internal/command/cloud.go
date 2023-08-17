@@ -190,12 +190,12 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}
 
-	vm, err := cloudplugin.NewVersionManager(ctx, packagesPath, serviceURL, runtime.GOOS, runtime.GOARCH)
+	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, serviceURL, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
 	}
 
-	version, err := vm.Resolve()
+	version, err := bm.Resolve()
 	if err != nil {
 		return diags.Append(tfdiags.Sourceless(tfdiags.Error, "Cloud plugin download error", err.Error()))
 	}
@@ -204,8 +204,8 @@ func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
 	if version.ResolvedFromCache {
 		cacheTraceMsg = " (resolved from cache)"
 	}
-	log.Printf("[TRACE] plugin %q binary located at %q%s", version.ProductVersion, version.BinaryLocation, cacheTraceMsg)
-	c.pluginBinary = version.BinaryLocation
+	log.Printf("[TRACE] plugin %q binary located at %q%s", version.ProductVersion, version.Path, cacheTraceMsg)
+	c.pluginBinary = version.Path
 	return nil
 }
 

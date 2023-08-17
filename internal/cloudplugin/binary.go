@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/go-getter"
@@ -17,9 +18,9 @@ import (
 	"github.com/hashicorp/terraform/internal/releaseauth"
 )
 
-// VersionManager downloads, caches, and returns information about versions
-// of terraform-cloudplugin binaries downloaded from the specified backend.
-type VersionManager struct {
+// BinaryManager downloads, caches, and returns information about the
+// terraform-cloudplugin binary downloaded from the specified backend.
+type BinaryManager struct {
 	signingKey         string
 	binaryName         string
 	cloudPluginDataDir string
@@ -30,10 +31,10 @@ type VersionManager struct {
 	ctx                context.Context
 }
 
-// Version is a struct containing the path to the binary corresponding to
-// the manifest version.
-type Version struct {
-	BinaryLocation    string
+// Binary is a struct containing the path to an authenticated binary corresponding to
+// a backend service.
+type Binary struct {
+	Path              string
 	ProductVersion    string
 	ResolvedFromCache bool
 }
@@ -43,16 +44,16 @@ const (
 	MB = 1000 * KB
 )
 
-// NewVersionManager initializes a new VersionManager to broker data between the
+// BinaryManager initializes a new BinaryManager to broker data between the
 // specified directory location containing cloudplugin package data and a
 // Terraform Cloud backend URL.
-func NewVersionManager(ctx context.Context, cloudPluginDataDir string, serviceURL *url.URL, goos, arch string) (*VersionManager, error) {
+func NewBinaryManager(ctx context.Context, cloudPluginDataDir string, serviceURL *url.URL, goos, arch string) (*BinaryManager, error) {
 	client, err := NewCloudPluginClient(ctx, serviceURL)
 	if err != nil {
 		return nil, fmt.Errorf("could not initialize cloudplugin version manager: %w", err)
 	}
 
-	return &VersionManager{
+	return &BinaryManager{
 		cloudPluginDataDir: cloudPluginDataDir,
 		host:               svchost.Hostname(serviceURL.Host),
 		client:             client,
@@ -63,21 +64,29 @@ func NewVersionManager(ctx context.Context, cloudPluginDataDir string, serviceUR
 	}, nil
 }
 
-func (v VersionManager) versionedPackageLocation(version string) string {
-	return path.Join(v.cloudPluginDataDir, "bin", version, fmt.Sprintf("%s_%s", v.goos, v.arch))
+func (v BinaryManager) binaryLocation() string {
+	return path.Join(v.cloudPluginDataDir, "bin", fmt.Sprintf("%s_%s", v.goos, v.arch))
 }
 
-func (v VersionManager) cachedVersion(version string) *string {
-	binaryPath := path.Join(v.versionedPackageLocation(version), v.binaryName)
+func (v BinaryManager) cachedVersion(version string) *string {
+	binaryPath := path.Join(v.binaryLocation(), v.binaryName)
+
 	if _, err := os.Stat(binaryPath); err != nil {
 		return nil
 	}
+
+	// The version from the manifest must match the contents of ".version"
+	versionData, err := os.ReadFile(path.Join(v.binaryLocation(), ".version"))
+	if err != nil || strings.Trim(string(versionData), " \n\r\t") != version {
+		return nil
+	}
+
 	return &binaryPath
 }
 
 // Resolve fetches, authenticates, and caches a plugin binary matching the specifications
 // and returns its location and version.
-func (v VersionManager) Resolve() (*Version, error) {
+func (v BinaryManager) Resolve() (*Binary, error) {
 	manifest, err := v.latestManifest(v.ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not resolve cloudplugin version for host %q: %w", v.host.ForDisplay(), err)
@@ -90,8 +99,8 @@ func (v VersionManager) Resolve() (*Version, error) {
 
 	// Check if there's a cached binary
 	if cachedBinary := v.cachedVersion(manifest.ProductVersion); cachedBinary != nil {
-		return &Version{
-			BinaryLocation:    *cachedBinary,
+		return &Binary{
+			Path:              *cachedBinary,
 			ProductVersion:    manifest.ProductVersion,
 			ResolvedFromCache: true,
 		}, nil
@@ -121,7 +130,7 @@ func (v VersionManager) Resolve() (*Version, error) {
 		FilesLimit:    1,
 		FileSizeLimit: 500 * MB,
 	}
-	targetPath := v.versionedPackageLocation(manifest.ProductVersion)
+	targetPath := v.binaryLocation()
 	log.Printf("[TRACE] decompressing %q to %q", t.Name(), targetPath)
 
 	err = unzip.Decompress(targetPath, t.Name(), true, 0000)
@@ -129,15 +138,20 @@ func (v VersionManager) Resolve() (*Version, error) {
 		return nil, fmt.Errorf("failed to decompress cloud plugin: %w", err)
 	}
 
-	return &Version{
-		BinaryLocation:    path.Join(targetPath, v.binaryName),
+	err = os.WriteFile(path.Join(targetPath, ".version"), []byte(manifest.ProductVersion), 0644)
+	if err != nil {
+		log.Printf("[ERROR] failed to write .version file to %q: %s", targetPath, err)
+	}
+
+	return &Binary{
+		Path:              path.Join(targetPath, v.binaryName),
 		ProductVersion:    manifest.ProductVersion,
 		ResolvedFromCache: false,
 	}, nil
 }
 
 // Useful for small files that can be decoded all at once
-func (v VersionManager) downloadFileBuffer(pathOrURL string) ([]byte, error) {
+func (v BinaryManager) downloadFileBuffer(pathOrURL string) ([]byte, error) {
 	buffer := bytes.Buffer{}
 	err := v.client.DownloadFile(pathOrURL, &buffer)
 	if err != nil {
@@ -148,7 +162,7 @@ func (v VersionManager) downloadFileBuffer(pathOrURL string) ([]byte, error) {
 }
 
 // verifyCloudPlugin authenticates the downloaded release archive
-func (v VersionManager) verifyCloudPlugin(archiveManifest *Manifest, info *ManifestReleaseBuild, archiveLocation string) error {
+func (v BinaryManager) verifyCloudPlugin(archiveManifest *Manifest, info *ManifestReleaseBuild, archiveLocation string) error {
 	signature, err := v.downloadFileBuffer(archiveManifest.SHA256SumsSignatureURL)
 	if err != nil {
 		return fmt.Errorf("failed to download cloudplugin SHA256SUMS signature file: %w", err)
@@ -181,7 +195,7 @@ func (v VersionManager) verifyCloudPlugin(archiveManifest *Manifest, info *Manif
 	return all.Authenticate()
 }
 
-func (v VersionManager) latestManifest(ctx context.Context) (*Manifest, error) {
+func (v BinaryManager) latestManifest(ctx context.Context) (*Manifest, error) {
 	manifestCacheLocation := path.Join(v.cloudPluginDataDir, v.host.String(), "manifest.json")
 
 	// Find the manifest cache for the hostname.
