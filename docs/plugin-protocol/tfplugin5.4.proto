@@ -1,6 +1,3 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 // Terraform Plugin RPC protocol version 5.4
 //
 // This file defines version 5.4 of the RPC protocol. To implement a plugin
