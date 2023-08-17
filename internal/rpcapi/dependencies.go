@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sort"
 
 	"github.com/apparentlymart/go-versions/versions"
 	"github.com/hashicorp/go-slug/sourceaddrs"
@@ -85,6 +86,42 @@ func (s *dependenciesServer) CloseDependencyLocks(ctx context.Context, req *terr
 		return nil, status.Error(codes.InvalidArgument, "invalid dependency locks handle")
 	}
 	return &terraform1.CloseDependencyLocks_Response{}, nil
+}
+
+func (s *dependenciesServer) GetLockedProviderDependencies(ctx context.Context, req *terraform1.GetLockedProviderDependencies_Request) (*terraform1.GetLockedProviderDependencies_Response, error) {
+	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
+	locks := s.handles.DependencyLocks(hnd)
+	if locks == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid dependency locks handle")
+	}
+
+	providers := locks.AllProviders()
+	protoProviders := make([]*terraform1.ProviderPackage, 0, len(providers))
+	for _, lock := range providers {
+		hashes := lock.PreferredHashes()
+		var hashStrs []string
+		if len(hashes) != 0 {
+			hashStrs = make([]string, len(hashes))
+		}
+		for i, hash := range hashes {
+			hashStrs[i] = hash.String()
+		}
+		protoProviders = append(protoProviders, &terraform1.ProviderPackage{
+			SourceAddr: lock.Provider().String(),
+			Version:    lock.Version().String(),
+			Hashes:     hashStrs,
+		})
+	}
+
+	// This is just to make the result be consistent between requests. This
+	// _particular_ ordering is not guaranteed to callers.
+	sort.Slice(protoProviders, func(i, j int) bool {
+		return protoProviders[i].SourceAddr < protoProviders[j].SourceAddr
+	})
+
+	return &terraform1.GetLockedProviderDependencies_Response{
+		SelectedProviders: protoProviders,
+	}, nil
 }
 
 func resolveFinalSourceAddr(protoSourceAddr *terraform1.SourceAddress, sources *sourcebundle.Bundle) (sourceaddrs.FinalSource, error) {

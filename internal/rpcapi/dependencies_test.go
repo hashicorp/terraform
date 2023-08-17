@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
+	"google.golang.org/protobuf/testing/protocmp"
 )
 
 func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
@@ -56,7 +57,7 @@ func TestDependenciesOpenCloseSourceBundle(t *testing.T) {
 	}
 }
 
-func TestOpenCloseDependencyLocks(t *testing.T) {
+func TestDependencyLocks(t *testing.T) {
 	ctx := context.Background()
 
 	handles := newHandleTable()
@@ -82,6 +83,9 @@ func TestOpenCloseDependencyLocks(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if len(openLocksResp.Diagnostics) != 0 {
+		t.Error("OpenDependencyLockFile returned unexpected diagnostics")
 	}
 
 	// A client wouldn't normally be able to interact directly with the
@@ -110,6 +114,25 @@ func TestOpenCloseDependencyLocks(t *testing.T) {
 		if diff := cmp.Diff(want, got, cmp.AllowUnexported(depsfile.ProviderLock{})); diff != "" {
 			t.Errorf("wrong locked providers\n%s", diff)
 		}
+	}
+
+	getProvidersResp, err := depsServer.GetLockedProviderDependencies(ctx, &terraform1.GetLockedProviderDependencies_Request{
+		DependencyLocksHandle: openLocksResp.DependencyLocksHandle,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantProviderLocks := []*terraform1.ProviderPackage{
+		{
+			SourceAddr: "example.com/foo/bar",
+			Version:    "1.2.3",
+			Hashes: []string{
+				"zh:abcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcdabcd",
+			},
+		},
+	}
+	if diff := cmp.Diff(wantProviderLocks, getProvidersResp.SelectedProviders, protocmp.Transform()); diff != "" {
+		t.Errorf("wrong GetLockedProviderDependencies result\n%s", diff)
 	}
 
 	_, err = depsServer.CloseDependencyLocks(ctx, &terraform1.CloseDependencyLocks_Request{
