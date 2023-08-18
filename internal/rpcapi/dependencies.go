@@ -11,15 +11,18 @@ import (
 	"github.com/hashicorp/go-slug/sourceaddrs"
 	"github.com/hashicorp/go-slug/sourcebundle"
 	"github.com/hashicorp/terraform-svchost/disco"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/hashicorp/terraform/internal/addrs"
+	terraformProvider "github.com/hashicorp/terraform/internal/builtin/providers/terraform"
 	"github.com/hashicorp/terraform/internal/depsfile"
 	"github.com/hashicorp/terraform/internal/getproviders"
 	"github.com/hashicorp/terraform/internal/providercache"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/rpcapi/terraform1"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type dependenciesServer struct {
@@ -457,6 +460,67 @@ func (s *dependenciesServer) GetCachedProviders(ctx context.Context, req *terraf
 	}, nil
 }
 
+func (s *dependenciesServer) GetBuiltInProviders(ctx context.Context, req *terraform1.GetBuiltInProviders_Request) (*terraform1.GetBuiltInProviders_Response, error) {
+	ret := make([]*terraform1.ProviderPackage, 0, len(builtinProviders))
+	for typeName := range builtinProviders {
+		ret = append(ret, &terraform1.ProviderPackage{
+			SourceAddr: addrs.NewBuiltInProvider(typeName).ForDisplay(),
+		})
+	}
+	sort.Slice(ret, func(i, j int) bool {
+		return ret[i].SourceAddr < ret[j].SourceAddr
+	})
+	return &terraform1.GetBuiltInProviders_Response{
+		AvailableProviders: ret,
+	}, nil
+}
+
+func (s *dependenciesServer) GetProviderSchema(ctx context.Context, req *terraform1.GetProviderSchema_Request) (*terraform1.GetProviderSchema_Response, error) {
+	var cacheHnd handle[*providercache.Dir]
+	var cacheDir *providercache.Dir
+	if req.GetProviderCacheHandle() != 0 {
+		cacheHnd = handle[*providercache.Dir](req.ProviderCacheHandle)
+		cacheDir = s.handles.ProviderPluginCache(cacheHnd)
+		if cacheDir == nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid provider cache handle")
+		}
+	}
+	// NOTE: cacheDir will be nil if the cache handle was absent. We'll
+	// check that below once we know if the requested provider is a built-in.
+
+	var err error
+
+	providerAddr, diags := addrs.ParseProviderSourceString(req.ProviderAddr)
+	if diags.HasErrors() {
+		return nil, status.Error(codes.InvalidArgument, "invalid provider source address syntax")
+	}
+	var providerVersion getproviders.Version
+	if req.ProviderVersion != "" {
+		if providerAddr.IsBuiltIn() {
+			return nil, status.Errorf(codes.InvalidArgument, "can't specify version for built-in provider")
+		}
+		providerVersion, err = getproviders.ParseVersion(req.ProviderVersion)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid provider version string: %s", err)
+		}
+	}
+
+	// For non-builtin providers the caller MUST provide a provider cache
+	// handle. For built-in providers it's optional.
+	if cacheHnd.IsNil() && !providerAddr.IsBuiltIn() {
+		return nil, status.Errorf(codes.InvalidArgument, "provider cache handle is required for non-builtin provider")
+	}
+
+	schemaResp, err := loadProviderSchema(providerAddr, providerVersion, cacheDir)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, err.Error())
+	}
+
+	return &terraform1.GetProviderSchema_Response{
+		Schema: providerSchemaToProto(schemaResp),
+	}, nil
+}
+
 func resolveFinalSourceAddr(protoSourceAddr *terraform1.SourceAddress, sources *sourcebundle.Bundle) (sourceaddrs.FinalSource, error) {
 	sourceAddr, err := sourceaddrs.ParseSource(protoSourceAddr.Source)
 	if err != nil {
@@ -489,5 +553,26 @@ func resolveFinalSourceAddr(protoSourceAddr *terraform1.SourceAddress, sources *
 		// types in future then we ought to add a cases for them above at the
 		// same time as upgrading the go-slug dependency.
 		return nil, fmt.Errorf("unsupported source address type %T (this is a bug in Terraform)", sourceAddr)
+	}
+}
+
+// builtinProviders provides the instantiation functions for each of the
+// built-in providers that are available when using Terraform Core through
+// its RPC API.
+//
+// TODO: Prior to the RPC API the built-in providers were architecturally
+// the responsibility of Terraform CLI, which is a bit strange and means
+// we can't readily share this definition with the CLI-driven usage patterns.
+// In future it would be nice to factor out the table of built-in providers
+// into a common location that both can share, or ideally change Terraform CLI
+// to consume this RPC API through an internal API bridge so that the
+// architectural divide between CLI and Core is more explicit.
+var builtinProviders map[string]func() providers.Interface
+
+func init() {
+	builtinProviders = map[string]func() providers.Interface{
+		"terraform": func() providers.Interface {
+			return terraformProvider.NewProvider()
+		},
 	}
 }

@@ -287,3 +287,138 @@ func TestDependenciesProviderCache(t *testing.T) {
 		t.Errorf("wrong providers in cache reported after building\n%s", diff)
 	}
 }
+
+func TestDependenciesProviderSchema(t *testing.T) {
+	ctx := context.Background()
+
+	handles := newHandleTable()
+	depsServer := newDependenciesServer(handles, disco.New())
+
+	providersResp, err := depsServer.GetBuiltInProviders(ctx, &terraform1.GetBuiltInProviders_Request{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		got := providersResp.AvailableProviders
+		want := []*terraform1.ProviderPackage{
+			{
+				SourceAddr: "terraform.io/builtin/terraform",
+			},
+		}
+		if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+			t.Errorf("wrong built-in providers\n%s", diff)
+		}
+	}
+
+	schemaResp, err := depsServer.GetProviderSchema(ctx, &terraform1.GetProviderSchema_Request{
+		ProviderAddr: "terraform.io/builtin/terraform",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	{
+		got := schemaResp.Schema
+		want := &terraform1.ProviderSchema{
+			ProviderConfig: &terraform1.Schema{
+				Block: &terraform1.Schema_Block{
+					// This provider has no configuration arguments
+				},
+			},
+			DataResourceTypes: map[string]*terraform1.Schema{
+				"terraform_remote_state": &terraform1.Schema{
+					Block: &terraform1.Schema_Block{
+						Attributes: []*terraform1.Schema_Attribute{
+							{
+								Name:     "backend",
+								Type:     []byte(`"string"`),
+								Required: true,
+								Description: &terraform1.Schema_DocString{
+									Description: "The remote backend to use, e.g. `remote` or `http`.",
+									Format:      terraform1.Schema_DocString_MARKDOWN,
+								},
+							},
+							{
+								Name:     "config",
+								Type:     []byte(`"dynamic"`),
+								Optional: true,
+								Description: &terraform1.Schema_DocString{
+									Description: "The configuration of the remote backend. Although this is optional, most backends require some configuration.\n\nThe object can use any arguments that would be valid in the equivalent `terraform { backend \"<TYPE>\" { ... } }` block.",
+									Format:      terraform1.Schema_DocString_MARKDOWN,
+								},
+							},
+							{
+								Name:     "defaults",
+								Type:     []byte(`"dynamic"`),
+								Optional: true,
+								Description: &terraform1.Schema_DocString{
+									Description: "Default values for outputs, in case the state file is empty or lacks a required output.",
+									Format:      terraform1.Schema_DocString_MARKDOWN,
+								},
+							},
+							{
+								Name:     "outputs",
+								Type:     []byte(`"dynamic"`),
+								Computed: true,
+								Description: &terraform1.Schema_DocString{
+									Description: "An object containing every root-level output in the remote state.",
+									Format:      terraform1.Schema_DocString_MARKDOWN,
+								},
+							},
+							{
+								Name:     "workspace",
+								Type:     []byte(`"string"`),
+								Optional: true,
+								Description: &terraform1.Schema_DocString{
+									Description: "The Terraform workspace to use, if the backend supports workspaces.",
+									Format:      terraform1.Schema_DocString_MARKDOWN,
+								},
+							},
+						},
+					},
+				},
+			},
+			ManagedResourceTypes: map[string]*terraform1.Schema{
+				"terraform_data": &terraform1.Schema{
+					Block: &terraform1.Schema_Block{
+						Attributes: []*terraform1.Schema_Attribute{
+							{
+								Name:     "id",
+								Type:     []byte(`"string"`),
+								Computed: true,
+							},
+							{
+								Name:     "input",
+								Type:     []byte(`"dynamic"`),
+								Optional: true,
+							},
+							{
+								Name:     "output",
+								Type:     []byte(`"dynamic"`),
+								Computed: true,
+							},
+							{
+								Name:     "triggers_replace",
+								Type:     []byte(`"dynamic"`),
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+		}
+		if diff := cmp.Diff(want, got, protocmp.Transform()); diff != "" {
+			// NOTE: This is testing against the schema of a real provider
+			// that can evolve independently of rpcapi. If that provider's
+			// schema changes in future then it's expected that this test
+			// will fail, and it's okay to change "want" to match as long as
+			// it's a correct description of that provider's updated schema.
+			//
+			// If this turns out to be a big maintenence burden then we could
+			// consider some way to include a mock provider, but that would
+			// add another possible kind of provider into the mix and we'd
+			// rather avoid that complexity if possible.
+			t.Errorf("unexpected schema for the built-in 'terraform' provider\n%s", diff)
+		}
+	}
+
+}

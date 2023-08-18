@@ -50,6 +50,14 @@ func (s *Dependencies) CloseSourceBundle(a0 context.Context, a1 *tf1.CloseSource
 	return impl.CloseSourceBundle(a0, a1)
 }
 
+func (s *Dependencies) GetBuiltInProviders(a0 context.Context, a1 *tf1.GetBuiltInProviders_Request) (*tf1.GetBuiltInProviders_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.GetBuiltInProviders(a0, a1)
+}
+
 func (s *Dependencies) GetCachedProviders(a0 context.Context, a1 *tf1.GetCachedProviders_Request) (*tf1.GetCachedProviders_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {

@@ -90,6 +90,10 @@ service Dependencies {
     // available in the given provider plugin cache.
     rpc GetCachedProviders(GetCachedProviders.Request) returns (GetCachedProviders.Response);
 
+    // Returns information about the built-in providers that are compiled in
+    // to this Terraform Core server.
+    rpc GetBuiltInProviders(GetBuiltInProviders.Request) returns (GetBuiltInProviders.Response);
+
     // Returns a description of the schema for a particular provider in a
     // given provider plugin cache, or of a particular built-in provider
     // known to this version of Terraform Core.
@@ -264,6 +268,21 @@ message GetCachedProviders {
         int64 provider_cache_handle = 1;
     }
     message Response {
+        repeated ProviderPackage available_providers = 1;
+    }
+}
+
+message GetBuiltInProviders {
+    message Request {
+    }
+    message Response {
+        // The built-in providers that are compiled in to this Terraform Core
+        // server.
+        //
+        // This uses ProviderPackage messages for consistency with the other
+        // operations which list providers, but built-in providers do not
+        // have version numbers nor hashes so those fields will always be
+        // unset in the result.
         repeated ProviderPackage available_providers = 1;
     }
 }
@@ -634,11 +653,10 @@ message Schema {
     Block block = 1;
 
     message Block {
-        int64 version = 1;
-        repeated Attribute attributes = 2;
-        repeated NestedBlock block_types = 3;
-        DocString description = 4;
-        bool deprecated = 5;
+        repeated Attribute attributes = 1;
+        repeated NestedBlock block_types = 2;
+        DocString description = 3;
+        bool deprecated = 4;
     }
 
     message Attribute {
@@ -666,8 +684,6 @@ message Schema {
         string type_name = 1;
         Block block = 2;
         NestingMode nesting = 3;
-        int64 min_items = 4;
-        int64 max_items = 5;
     }
 
     message Object {
