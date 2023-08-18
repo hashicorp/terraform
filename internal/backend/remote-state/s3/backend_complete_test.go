@@ -1388,7 +1388,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRolePolicy"
+		// WAS: "config AssumeRolePolicy"
 		"with policy": {
 			config: map[string]any{
 				"access_key": awsbase.MockStaticAccessKey,
@@ -1424,7 +1424,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRoleTags"
+		// WAS: "config AssumeRoleTags"
 		"with tags": {
 			config: map[string]any{
 				"access_key": awsbase.MockStaticAccessKey,
@@ -1444,7 +1444,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRoleTransitiveTagKeys"
+		// WAS: "config AssumeRoleTransitiveTagKeys"
 		"with transitive tags": {
 			config: map[string]any{
 				"access_key": awsbase.MockStaticAccessKey,
