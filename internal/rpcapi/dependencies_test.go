@@ -147,6 +147,26 @@ func TestDependencyLocks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// We should now be able to create a new locks handle referring to the
+	// same providers as the one we just closed. This simulates a caller
+	// propagating its provider locks between separate instances of rpcapi.
+	newLocksResp, err := depsServer.CreateDependencyLocks(ctx, &terraform1.CreateDependencyLocks_Request{
+		ProviderSelections: getProvidersResp.SelectedProviders,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	getProvidersResp, err = depsServer.GetLockedProviderDependencies(ctx, &terraform1.GetLockedProviderDependencies_Request{
+		DependencyLocksHandle: newLocksResp.DependencyLocksHandle,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if diff := cmp.Diff(wantProviderLocks, getProvidersResp.SelectedProviders, protocmp.Transform()); diff != "" {
+		t.Errorf("wrong GetLockedProviderDependencies result\n%s", diff)
+	}
 }
 
 func TestDependenciesProviderCache(t *testing.T) {

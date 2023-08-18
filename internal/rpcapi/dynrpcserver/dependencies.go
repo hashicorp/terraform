@@ -50,6 +50,14 @@ func (s *Dependencies) CloseSourceBundle(a0 context.Context, a1 *tf1.CloseSource
 	return impl.CloseSourceBundle(a0, a1)
 }
 
+func (s *Dependencies) CreateDependencyLocks(a0 context.Context, a1 *tf1.CreateDependencyLocks_Request) (*tf1.CreateDependencyLocks_Response, error) {
+	impl, err := s.realRPCServer()
+	if err != nil {
+		return nil, err
+	}
+	return impl.CreateDependencyLocks(a0, a1)
+}
+
 func (s *Dependencies) GetBuiltInProviders(a0 context.Context, a1 *tf1.GetBuiltInProviders_Request) (*tf1.GetBuiltInProviders_Response, error) {
 	impl, err := s.realRPCServer()
 	if err != nil {

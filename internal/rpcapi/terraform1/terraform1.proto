@@ -62,6 +62,10 @@ service Dependencies {
     // a valid handle, e.g. if there are non-blocking warning diagnostics.
     rpc OpenDependencyLockFile(OpenDependencyLockFile.Request) returns (OpenDependencyLockFile.Response);
 
+    // Creates an in-memory-only dependency locks handle with a fixed set of
+    // dependency selections provided as arguments.
+    rpc CreateDependencyLocks(CreateDependencyLocks.Request) returns (CreateDependencyLocks.Response);
+
     rpc CloseDependencyLocks(CloseDependencyLocks.Request) returns (CloseDependencyLocks.Response);
 
     // Returns information about the provider version selections in a
@@ -133,6 +137,21 @@ message OpenDependencyLockFile {
     message Response {
         int64 dependency_locks_handle = 1;
         repeated Diagnostic diagnostics = 2;
+    }
+}
+
+message CreateDependencyLocks {
+    message Request {
+        // The provider selections to include in the locks object.
+        //
+        // A typical value would be the result of an earlier call to
+        // GetLockedProviderDependencies on some other locks object,
+        // e.g. if a caller needs to propagate a set of locks from one
+        // Terraform Core RPC server to another.
+        repeated ProviderPackage provider_selections = 1;
+    }
+    message Response {
+        int64 dependency_locks_handle = 1;
     }
 }
 

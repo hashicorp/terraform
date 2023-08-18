@@ -91,6 +91,49 @@ func (s *dependenciesServer) OpenDependencyLockFile(ctx context.Context, req *te
 	}, nil
 }
 
+func (s *dependenciesServer) CreateDependencyLocks(ctx context.Context, req *terraform1.CreateDependencyLocks_Request) (*terraform1.CreateDependencyLocks_Response, error) {
+	locks := depsfile.NewLocks()
+	for _, provider := range req.ProviderSelections {
+		addr, diags := addrs.ParseProviderSourceString(provider.SourceAddr)
+		if diags.HasErrors() {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid provider source string %q", provider.SourceAddr)
+		}
+		version, err := getproviders.ParseVersion(provider.Version)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid version %q for %q: %s", provider.Version, addr.ForDisplay(), err)
+		}
+		hashes := make([]getproviders.Hash, len(provider.Hashes))
+		for i, hashStr := range provider.Hashes {
+			hash, err := getproviders.ParseHash(hashStr)
+			if err != nil {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid hash %q for %q: %s", hashStr, addr.ForDisplay(), err)
+			}
+			hashes[i] = hash
+		}
+
+		if existing := locks.Provider(addr); existing != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "duplicate entry for provider %q", addr.ForDisplay())
+		}
+
+		if !depsfile.ProviderIsLockable(addr) {
+			if addr.IsBuiltIn() {
+				status.Errorf(codes.InvalidArgument, "cannot lock builtin provider %q", addr.ForDisplay())
+			}
+			return nil, status.Errorf(codes.InvalidArgument, "provider %q does not support dependency locking", addr.ForDisplay())
+		}
+
+		locks.SetProvider(
+			addr, version,
+			nil, hashes,
+		)
+	}
+
+	locksHnd := s.handles.NewDependencyLocks(locks)
+	return &terraform1.CreateDependencyLocks_Response{
+		DependencyLocksHandle: locksHnd.ForProtobuf(),
+	}, nil
+}
+
 func (s *dependenciesServer) CloseDependencyLocks(ctx context.Context, req *terraform1.CloseDependencyLocks_Request) (*terraform1.CloseDependencyLocks_Response, error) {
 	hnd := handle[*depsfile.Locks](req.DependencyLocksHandle)
 	err := s.handles.CloseDependencyLocks(hnd)
