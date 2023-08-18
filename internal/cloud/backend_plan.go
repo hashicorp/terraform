@@ -95,7 +95,7 @@ func (b *Cloud) opPlan(stopCtx, cancelCtx context.Context, op *backend.Operation
 
 	// Save plan file if -out <FILE> was specified
 	if op.PlanOutPath != "" {
-		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.hostname)
+		bookmark := cloudplan.NewSavedPlanBookmark(run.ID, b.Hostname)
 		err = bookmark.Save(op.PlanOutPath)
 		if err != nil {
 			return nil, err
@@ -323,7 +323,7 @@ in order to capture the filesystem context the remote workspace expects:
 
 	if b.CLI != nil {
 		b.CLI.Output(b.Colorize().Color(strings.TrimSpace(fmt.Sprintf(
-			runHeader, b.hostname, b.organization, op.Workspace, r.ID)) + "\n"))
+			runHeader, b.Hostname, b.organization, op.Workspace, r.ID)) + "\n"))
 	}
 
 	// Render any warnings that were raised during run creation

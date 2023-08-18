@@ -24,8 +24,8 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	var opts []plans.Quality
 
 	// Bail early if wrong hostname
-	if runHostname != b.hostname {
-		return nil, fmt.Errorf("hostname for run (%s) does not match the configured cloud integration (%s)", runHostname, b.hostname)
+	if runHostname != b.Hostname {
+		return nil, fmt.Errorf("hostname for run (%s) does not match the configured cloud integration (%s)", runHostname, b.Hostname)
 	}
 
 	// Get run and plan
@@ -76,7 +76,7 @@ func (b *Cloud) ShowPlanForRun(ctx context.Context, runID, runHostname string, r
 	}
 
 	// Format a run header and footer
-	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.hostname, b.organization, r.Workspace.Name, r.ID))
+	header := strings.TrimSpace(fmt.Sprintf(runHeader, b.Hostname, b.organization, r.Workspace.Name, r.ID))
 	footer := strings.TrimSpace(statusFooter(r.Status, r.Actions.IsConfirmable, r.Workspace.Locked))
 
 	out := &cloudplan.RemotePlanJSON{

@@ -5,15 +5,24 @@ package command
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
+	"log"
+	"net/url"
 	"os"
 	"os/exec"
+	"path"
+	"runtime"
 
 	"github.com/hashicorp/go-plugin"
+	svchost "github.com/hashicorp/terraform-svchost"
+	"github.com/hashicorp/terraform-svchost/disco"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/cloudplugin"
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudplugin1"
 	"github.com/hashicorp/terraform/internal/logging"
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // CloudCommand is a Command implementation that interacts with Terraform
@@ -21,6 +30,7 @@ import (
 // all execution to an internal plugin.
 type CloudCommand struct {
 	Meta
+	pluginBinary string
 }
 
 const (
@@ -31,6 +41,10 @@ const (
 	// ExitRPCError is the exit code that is returned if an plugin
 	// communication error occurred.
 	ExitRPCError = 99
+
+	// ExitPluginError is the exit code that is returned if the plugin
+	// cannot be downloaded.
+	ExitPluginError = 98
 )
 
 var (
@@ -41,13 +55,23 @@ var (
 		MagicCookieValue: "721fca41431b780ff3ad2623838faaa178d74c65e1cfdfe19537c31656496bf9f82d6c6707f71d81c8eed0db9043f79e56ab4582d013bc08ead14f57961461dc",
 		ProtocolVersion:  DefaultCloudPluginVersion,
 	}
+	// CloudPluginDataDir is the name of the directory within the data directory
+	CloudPluginDataDir = "cloudplugin"
 )
 
-func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
+func (c *CloudCommand) realRun(args []string, stdout, stderr io.Writer) int {
+	args = c.Meta.process(args)
+
+	diags := c.initPlugin()
+	if diags.HasErrors() {
+		c.Ui.Warn(diags.ErrWithWarnings().Error())
+		return ExitPluginError
+	}
+
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig:  Handshake,
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-		Cmd:              exec.Command("./terraform-cloudplugin"),
+		Cmd:              exec.Command(c.pluginBinary),
 		Logger:           logging.NewCloudLogger(),
 		VersionedPlugins: map[int]plugin.PluginSet{
 			1: {
@@ -82,25 +106,138 @@ func (c *CloudCommand) proxy(args []string, stdout, stderr io.Writer) int {
 	return cloud1.Execute(args, stdout, stderr)
 }
 
+// discover the TFC/E API service URL and version constraints.
+func (c *CloudCommand) discover(hostname string) (*url.URL, error) {
+	hn, err := svchost.ForComparison(hostname)
+	if err != nil {
+		return nil, err
+	}
+
+	host, err := c.Services.Discover(hn)
+	if err != nil {
+		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
+
+		switch {
+		case errors.As(err, &serviceDiscoErr):
+			err = fmt.Errorf("a network issue prevented cloud configuration; %w", err)
+			return nil, err
+		default:
+			return nil, err
+		}
+	}
+
+	service, err := host.ServiceURL("cloudplugin.v1")
+	// Return the error, unless its a disco.ErrVersionNotSupported error.
+	if _, ok := err.(*disco.ErrVersionNotSupported); !ok && err != nil {
+		return nil, err
+	}
+
+	return service, err
+}
+
+func (c *CloudCommand) hostnameFromConfig() (string, error) {
+	var diags tfdiags.Diagnostics
+
+	backendConfig, backendDiags := c.loadBackendConfig(".")
+	diags = diags.Append(backendDiags)
+	if diags.HasErrors() {
+		return "", diags.Err()
+	}
+
+	b, backendDiags := c.Backend(&BackendOpts{
+		Config: backendConfig,
+	})
+	diags = diags.Append(backendDiags)
+	if backendDiags.HasErrors() {
+		return "", diags.Err()
+	}
+
+	cloudBackend, ok := b.(*cloud.Cloud)
+	if !ok {
+		return "", fmt.Errorf("cloud command requires that a cloud block be configured in the working directory")
+	}
+
+	return cloudBackend.Hostname, nil
+}
+
+func (c *CloudCommand) hostnameFromEnv() string {
+	return os.Getenv("TF_CLOUD_HOSTNAME")
+}
+
+func (c *CloudCommand) initPlugin() tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	var errorSummary = "Cloud plugin initialization error"
+
+	// Initialization can be aborted by interruption signals
+	ctx, done := c.InterruptibleContext(c.CommandContext())
+	defer done()
+
+	var hostname string
+	if hostname = c.hostnameFromEnv(); hostname == "" {
+		var err error
+		hostname, err = c.hostnameFromConfig()
+		if err != nil {
+			return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
+		}
+	}
+
+	serviceURL, err := c.discover(hostname)
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
+	}
+
+	packagesPath, err := c.initPackagesCache()
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
+	}
+
+	bm, err := cloudplugin.NewBinaryManager(ctx, packagesPath, serviceURL, runtime.GOOS, runtime.GOARCH)
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(tfdiags.Error, errorSummary, err.Error()))
+	}
+
+	version, err := bm.Resolve()
+	if err != nil {
+		return diags.Append(tfdiags.Sourceless(tfdiags.Error, "Cloud plugin download error", err.Error()))
+	}
+
+	var cacheTraceMsg = ""
+	if version.ResolvedFromCache {
+		cacheTraceMsg = " (resolved from cache)"
+	}
+	log.Printf("[TRACE] plugin %q binary located at %q%s", version.ProductVersion, version.Path, cacheTraceMsg)
+	c.pluginBinary = version.Path
+	return nil
+}
+
+func (c *CloudCommand) initPackagesCache() (string, error) {
+	packagesPath := path.Join(c.WorkingDir.DataDir(), CloudPluginDataDir)
+
+	if info, err := os.Stat(packagesPath); err != nil || !info.IsDir() {
+		log.Printf("[TRACE] initialized cloudplugin cache directory at %q", packagesPath)
+		err = os.MkdirAll(packagesPath, 0755)
+		if err != nil {
+			return "", fmt.Errorf("failed to initialize cloudplugin cache directory: %w", err)
+		}
+	} else {
+		log.Printf("[TRACE] cloudplugin cache directory found at %q", packagesPath)
+	}
+
+	return packagesPath, nil
+}
+
 // Run runs the cloud command with the given arguments.
 func (c *CloudCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-
-	// TODO: Download and verify the signing of the terraform-cloudplugin
-	// release that is appropriate for this OS/Arch
-	if _, err := os.Stat("./terraform-cloudplugin"); err != nil {
-		c.Ui.Warn("terraform-cloudplugin not found. This plugin does not have an official release yet.")
-		return 1
-	}
-
-	// TODO: Need to use some type of c.Meta handle here
-	return c.proxy(args, os.Stdout, os.Stderr)
+	return c.realRun(args, c.Meta.Streams.Stdout.File, c.Meta.Streams.Stderr.File)
 }
 
 // Help returns help text for the cloud command.
 func (c *CloudCommand) Help() string {
 	helpText := new(bytes.Buffer)
-	c.proxy([]string{}, helpText, io.Discard)
+	if exitCode := c.realRun([]string{}, helpText, io.Discard); exitCode != 0 {
+		return ""
+	}
 
 	return helpText.String()
 }

@@ -47,16 +47,22 @@ func (c GRPCCloudClient) Execute(args []string, stdout, stderr io.Writer) int {
 		}
 
 		if bytes := response.GetStdout(); len(bytes) > 0 {
-			_, err := fmt.Fprint(stdout, string(bytes))
+			written, err := fmt.Fprint(stdout, string(bytes))
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stdout: %s", err)
 				return 1
 			}
+			if written != len(bytes) {
+				log.Printf("[ERROR] Wrote %d bytes to stdout but expected to write %d", written, len(bytes))
+			}
 		} else if bytes := response.GetStderr(); len(bytes) > 0 {
-			fmt.Fprint(stderr, string(bytes))
+			written, err := fmt.Fprint(stderr, string(bytes))
 			if err != nil {
 				log.Printf("[ERROR] Failed to write cloudplugin output to stderr: %s", err)
 				return 1
+			}
+			if written != len(bytes) {
+				log.Printf("[ERROR] Wrote %d bytes to stdout but expected to write %d", written, len(bytes))
 			}
 		} else {
 			exitCode := response.GetExitCode()
