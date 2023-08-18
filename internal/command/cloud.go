@@ -11,7 +11,6 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
-	"strings"
 
 	"github.com/hashicorp/go-plugin"
 	svchost "github.com/hashicorp/terraform-svchost"
@@ -21,7 +20,6 @@ import (
 	"github.com/hashicorp/terraform/internal/cloudplugin/cloudplugin1"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/mitchellh/cli"
 )
 
 // CloudCommand is a Command implementation that interacts with Terraform
@@ -225,30 +223,10 @@ func (c *CloudCommand) initPackagesCache() (string, error) {
 	return packagesPath, nil
 }
 
-type proxyOutput struct {
-	io.Writer
-	upstream cli.Ui
-}
-
-func (p proxyOutput) Write(data []byte) (int, error) {
-	p.upstream.Output(strings.TrimSuffix(string(data), "\n"))
-	return len(data), nil
-}
-
-type proxyError struct {
-	io.Writer
-	upstream cli.Ui
-}
-
-func (p proxyError) Write(data []byte) (int, error) {
-	p.upstream.Error(strings.TrimSuffix(string(data), "\n"))
-	return len(data), nil
-}
-
 // Run runs the cloud command with the given arguments.
 func (c *CloudCommand) Run(args []string) int {
 	args = c.Meta.process(args)
-	return c.realRun(args, proxyOutput{upstream: c.Meta.Ui}, proxyError{upstream: c.Meta.Ui})
+	return c.realRun(args, c.Meta.Streams.Stdout.File, c.Meta.Streams.Stderr.File)
 }
 
 // Help returns help text for the cloud command.
