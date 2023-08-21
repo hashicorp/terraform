@@ -87,13 +87,13 @@ require (
 	go.opentelemetry.io/otel v1.16.0
 	go.opentelemetry.io/otel/sdk v1.16.0
 	go.opentelemetry.io/otel/trace v1.16.0
-	golang.org/x/crypto v0.11.0
+	golang.org/x/crypto v0.10.0
 	golang.org/x/mod v0.10.0
-	golang.org/x/net v0.12.0
+	golang.org/x/net v0.11.0
 	golang.org/x/oauth2 v0.8.0
-	golang.org/x/sys v0.10.0
-	golang.org/x/term v0.10.0
-	golang.org/x/text v0.11.0
+	golang.org/x/sys v0.9.0
+	golang.org/x/term v0.9.0
+	golang.org/x/text v0.10.0
 	golang.org/x/tools v0.6.0
 	golang.org/x/tools/cmd/cover v0.1.0-deprecated
 	google.golang.org/api v0.114.0
@@ -241,6 +241,4 @@ require (
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
 
-go 1.19
-
-replace github.com/KscSDK/ksc-sdk-go => /Users/lvsongke/workspace/go/golang/src/github.com/KscSDK/ksc-sdk-go
+go 1.20
