@@ -10,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-svchost/disco"
 	"github.com/hashicorp/terraform/internal/backend"
+	backendKs3 "github.com/hashicorp/terraform/internal/backend/remote-state/ks3"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 
@@ -59,6 +60,7 @@ func Init(services *disco.Disco) {
 		"azurerm":    func() backend.Backend { return backendAzure.New() },
 		"consul":     func() backend.Backend { return backendConsul.New() },
 		"cos":        func() backend.Backend { return backendCos.New() },
+		"ks3":        func() backend.Backend { return backendKs3.New() },
 		"gcs":        func() backend.Backend { return backendGCS.New() },
 		"http":       func() backend.Backend { return backendHTTP.New() },
 		"inmem":      func() backend.Backend { return backendInmem.New() },
