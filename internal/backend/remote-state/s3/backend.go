@@ -72,6 +72,19 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
+				Deprecated:  true,
+			},
+			"endpoints": {
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingSingle,
+					Attributes: map[string]*configschema.Attribute{
+						"s3": {
+							Type:        cty.String,
+							Required:    true,
+							Description: "A custom endpoint for the S3 API",
+						},
+					},
+				},
 			},
 			"iam_endpoint": {
 				Type:        cty.String,
@@ -337,6 +350,32 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	endpointFields := map[string]string{
+		"endpoint": "s3",
+	}
+	endpoints := make(map[string]string)
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		for _, k := range []string{"s3"} {
+			if v := val.GetAttr(k); !v.IsNull() {
+				endpoints[k] = v.AsString()
+			}
+		}
+	}
+	for k, v := range endpointFields {
+		if val := obj.GetAttr(k); !val.IsNull() {
+			diags = diags.Append(deprecatedAttrDiag(cty.GetAttrPath(k), cty.GetAttrPath("endpoints").GetAttr(v)))
+			if _, ok := endpoints[v]; ok {
+				diags = diags.Append(wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+						pathString(cty.GetAttrPath(k)),
+						pathString(cty.GetAttrPath("endpoints").GetAttr(v)),
+					),
+				))
+			}
+		}
+	}
+
 	return obj, diags
 }
 
@@ -551,8 +590,25 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
 	var s3Config aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_ENDPOINT_URL_S3", "AWS_S3_ENDPOINT"); ok {
-		s3Config.Endpoint = aws.String(v)
+	var s3Endpoint string
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		if v := val.GetAttr("s3"); !v.IsNull() {
+			s3Endpoint = v.AsString()
+		}
+	}
+	if s3Endpoint == "" {
+		if val := obj.GetAttr("endpoint"); !val.IsNull() {
+			s3Endpoint = val.AsString()
+		}
+	}
+	if s3Endpoint == "" {
+		s3Endpoint = os.Getenv("AWS_ENDPOINT_URL_S3")
+	}
+	if s3Endpoint == "" {
+		s3Endpoint = os.Getenv("AWS_S3_ENDPOINT")
+	}
+	if s3Endpoint != "" {
+		s3Config.Endpoint = aws.String(s3Endpoint)
 	}
 	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
 		s3Config.S3ForcePathStyle = aws.Bool(v)
@@ -975,6 +1031,14 @@ func assumeRoleFullSchema() objectSchema {
 			validateSet{},
 		},
 	}
+}
+
+func deprecatedAttrDiag(attr, replacement cty.Path) tfdiags.Diagnostic {
+	return attributeWarningDiag(
+		"Deprecated Parameter",
+		fmt.Sprintf(`The parameter "%s" is deprecated. Use parameter "%s" instead.`, pathString(attr), pathString(replacement)),
+		attr,
+	)
 }
 
 func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {

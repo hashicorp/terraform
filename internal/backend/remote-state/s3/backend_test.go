@@ -261,10 +261,12 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.dynClient.Config, tc.expectedEndpoint)
-
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if !diags.HasErrors() {
+				checkClientEndpoint(t, b.dynClient.Config, tc.expectedEndpoint)
 			}
 		})
 	}
@@ -284,9 +286,38 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		},
 		"config": {
 			config: map[string]any{
+				"endpoints": map[string]any{
+					"s3": "s3.test",
+				},
+			},
+			expectedEndpoint: "s3.test",
+		},
+		"deprecated config": {
+			config: map[string]any{
 				"endpoint": "s3.test",
 			},
 			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"endpoint": "s3.test",
+				"endpoints": map[string]any{
+					"s3": "s3.test",
+				},
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
+					),
+				)},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -333,10 +364,12 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
 			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
-
 			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if !diags.HasErrors() {
+				checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
 			}
 		})
 	}

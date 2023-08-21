@@ -164,6 +164,13 @@ The following configuration is optional:
 * `sts_endpoint` - (Optional) Custom endpoint for the AWS Security Token Service (STS) API. This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
 
+#### Overriding AWS API endpoints
+
+The optional argument `endpoints` contains the following arguments:
+
+* `s3` - (Optional) Custom endpoint for the AWS S3 API.
+  This can also be sourced from the environment variable `AWS_ENDPOINT_URL_S3` or the deprecated environment variable `AWS_S3_ENDPOINT`.
+
 #### Assume Role Configuration
 
 Assuming an IAM Role can be configured in two ways.
@@ -214,7 +221,8 @@ The following configuration is optional:
 
 * `acl` - (Optional) [Canned ACL](https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl) to be applied to the state file.
 * `encrypt` - (Optional) Enable [server side encryption](https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingServerSideEncryption.html) of the state file.
-* `endpoint` - (Optional) Custom endpoint for the AWS S3 API. This can also be sourced from the environment variable `AWS_ENDPOINT_URL_S3` or the deprecated environment variable `AWS_S3_ENDPOINT`.
+* `endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS S3 API.
+  Use `endpoints.s3` instead.
 * `force_path_style` - (Optional) Enable path-style S3 URLs (`https://<HOST>/<BUCKET>` instead of `https://<BUCKET>.<HOST>`).
 * `kms_key_id` - (Optional) Amazon Resource Name (ARN) of a Key Management Service (KMS) Key to use for encrypting the state. Note that if this value is specified, Terraform will need `kms:Encrypt`, `kms:Decrypt` and `kms:GenerateDataKey` permissions on this KMS key.
 * `sse_customer_key` - (Optional) The key to use for encrypting state with [Server-Side Encryption with Customer-Provided Keys (SSE-C)](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html). This is the base64-encoded value of the key, which must decode to 256 bits. This can also be sourced from the `AWS_SSE_CUSTOMER_KEY` environment variable, which is recommended due to the sensitivity of the value. Setting it inside a terraform file will cause it to be persisted to disk in `terraform.tfstate`.
