@@ -224,7 +224,7 @@ The following configuration is optional:
 
 The following configuration is optional:
 
-* `dynamodb_endpoint` - (Optional) Custom endpoint for the AWS DynamoDB API. This can also be sourced from the `AWS_DYNAMODB_ENDPOINT` environment variable.
+* `dynamodb_endpoint` - (Optional) Custom endpoint for the AWS DynamoDB API. This can also be sourced from the environment variable `AWS_ENDPOINT_URL_DYNAMODB` or the deprecated environment variable `AWS_DYNAMODB_ENDPOINT`.
 * `dynamodb_table` - (Optional) Name of DynamoDB Table to use for state locking and consistency. The table must have a partition key named `LockID` with type of `String`. If not configured, state locking will be disabled.
 
 ## Multi-account AWS Architecture

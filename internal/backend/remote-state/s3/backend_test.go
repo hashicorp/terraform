@@ -202,24 +202,34 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	testACC(t)
 
 	cases := map[string]struct {
-		config   map[string]any
-		vars     map[string]string
-		expected string
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expected: "",
+			expectedEndpoint: "",
 		},
 		"config": {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
 		},
 		"envvar": {
 			vars: map[string]string{
+				"AWS_ENDPOINT_URL_DYNAMODB": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
 				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+			},
 		},
 	}
 
@@ -248,9 +258,14 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				}
 			}
 
-			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.dynClient.Config, tc.expected)
+			checkClientEndpoint(t, b.dynClient.Config, tc.expectedEndpoint)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 		})
 	}
 }

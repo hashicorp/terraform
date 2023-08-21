@@ -455,7 +455,8 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	for envvar, replacement := range map[string]string{
-		"AWS_S3_ENDPOINT": "AWS_ENDPOINT_URL_S3",
+		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
+		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
 	} {
 		if val := os.Getenv(envvar); val != "" {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
@@ -542,7 +543,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var dynamoConfig aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_ENDPOINT_URL_DYNAMODB", "AWS_DYNAMODB_ENDPOINT"); ok {
 		dynamoConfig.Endpoint = aws.String(v)
 	}
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
