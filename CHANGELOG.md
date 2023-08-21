@@ -15,6 +15,13 @@ BUG FIXES:
 * Transitive dependencies were lost during apply when the referenced resource expanded into zero instances [GH-33403]
 * Terraform will no longer override SSH settings in local git configuration when installing modules. [GH-33592]
 
+S3 BACKEND
+
+Enhancements
+
+* Moves arguments associated with assuming an IAM role into nested block `assume_role`.
+  This deprecates the arguments `role_arn`, `session_name`, `external_id`, `assume_role_duration_seconds`, `assume_role_policy`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys`. [GH-33630]
+
 ## Previous Releases
 
 For information on prior major and minor releases, see their changelogs:
