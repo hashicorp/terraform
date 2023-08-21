@@ -10,15 +10,13 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/internal/backend/local"
+	"github.com/hashicorp/terraform/internal/cloud"
 	"github.com/hashicorp/terraform/internal/command/arguments"
+	"github.com/hashicorp/terraform/internal/command/jsonformat"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-)
-
-const (
-	MainStateIdentifier = ""
 )
 
 type TestCommand struct {
@@ -85,6 +83,13 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 	common, rawArgs := arguments.ParseView(rawArgs)
 	c.View.Configure(common)
+
+	// Since we build the colorizer for the cloud runner outside the views
+	// package we need to propagate our no-color setting manually. Once the
+	// cloud package is fully migrated over to the new streams IO we should be
+	// able to remove this.
+	c.Meta.color = !common.NoColor
+	c.Meta.Color = c.Meta.color
 
 	args, diags := arguments.ParseTest(rawArgs)
 	if diags.HasErrors() {
@@ -158,7 +163,36 @@ func (c *TestCommand) Run(rawArgs []string) int {
 
 	var runner moduletest.TestSuiteRunner
 	if len(args.CloudRunSource) > 0 {
-		panic("Cloud runs are not yet supported.")
+
+		var renderer *jsonformat.Renderer
+		if args.ViewType == arguments.ViewHuman {
+			// We only set the renderer if we want Human-readable output.
+			// Otherwise, we just let the runner echo whatever data it receives
+			// back from the agent anyway.
+			renderer = &jsonformat.Renderer{
+				Streams:             c.Streams,
+				Colorize:            c.Colorize(),
+				RunningInAutomation: c.RunningInAutomation,
+			}
+		}
+
+		runner = &cloud.TestSuiteRunner{
+			ConfigDirectory:  ".", // Always loading from the current directory.
+			TestingDirectory: args.TestDirectory,
+			Config:           config,
+			Services:         c.Services,
+			Source:           args.CloudRunSource,
+			GlobalVariables:  variables,
+			Stopped:          false,
+			Cancelled:        false,
+			StoppedCtx:       stopCtx,
+			CancelledCtx:     cancelCtx,
+			Verbose:          args.Verbose,
+			Filters:          args.Filter,
+			Renderer:         renderer,
+			View:             view,
+			Streams:          c.Streams,
+		}
 	} else {
 		runner = &local.TestSuiteRunner{
 			Config:          config,
@@ -204,11 +238,24 @@ func (c *TestCommand) Run(rawArgs []string) int {
 			runner.Cancel()
 			cancel()
 
+			waitTime := 5 * time.Second
+			if len(args.CloudRunSource) > 0 {
+				// We wait longer for cloud runs because the agent should force
+				// kill the remote job after 5 seconds and we still want to
+				// wait for all the logs to be printed locally before we
+				// forcefully exit.
+				//
+				// If after 10 seconds there still hasn't been progress from the
+				// agent then something else has gone wrong and we'll just have
+				// to live with the consequences.
+				waitTime = 10 * time.Second
+			}
+
 			// We'll wait 5 seconds for this operation to finish now, regardless
 			// of whether it finishes successfully or not.
 			select {
 			case <-runningCtx.Done():
-			case <-time.After(5 * time.Second):
+			case <-time.After(waitTime):
 			}
 
 		case <-runningCtx.Done():

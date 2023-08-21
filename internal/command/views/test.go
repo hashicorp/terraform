@@ -6,7 +6,10 @@ package views
 import (
 	"bytes"
 	"fmt"
+	"net/http"
+	"time"
 
+	"github.com/hashicorp/go-tfe"
 	"github.com/mitchellh/colorstring"
 
 	"github.com/hashicorp/terraform/internal/command/arguments"
@@ -68,6 +71,13 @@ type Test interface {
 	// operation alongside the current state as the state will be missing newly
 	// created resources that also need to be handled manually.
 	FatalInterruptSummary(run *moduletest.Run, file *moduletest.File, states map[*moduletest.Run]*states.State, created []*plans.ResourceInstanceChangeSrc)
+
+	// TFCStatusUpdate prints a reassuring update, letting users know the latest
+	// status of their ongoing remote test run.
+	TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration)
+
+	// TFCRetryHook prints an update if a request failed and is being retried.
+	TFCRetryHook(attemptNum int, resp *http.Response)
 }
 
 func NewTest(vt arguments.ViewType, view *View) Test {
@@ -86,6 +96,8 @@ func NewTest(vt arguments.ViewType, view *View) Test {
 }
 
 type TestHuman struct {
+	CloudHooks
+
 	view *View
 }
 
@@ -334,7 +346,22 @@ func (t *TestHuman) FatalInterruptSummary(run *moduletest.Run, file *moduletest.
 	}
 }
 
+func (t *TestHuman) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {
+	switch status {
+	case tfe.TestRunQueued:
+		t.view.streams.Printf("Waiting for the tests to start... (%s elapsed)\n", elapsed.Truncate(30*time.Second))
+	case tfe.TestRunRunning:
+		t.view.streams.Printf("Waiting for the tests to complete... (%s elapsed)\n", elapsed.Truncate(30*time.Second))
+	}
+}
+
+func (t *TestHuman) TFCRetryHook(attemptNum int, resp *http.Response) {
+	t.view.streams.Println(t.view.colorize.Color(t.RetryLogHook(attemptNum, resp, true)))
+}
+
 type TestJSON struct {
+	CloudHooks
+
 	view *JSONView
 }
 
@@ -626,6 +653,34 @@ func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.F
 			json.MessageTestInterrupt, message,
 			"@testfile", file.Name)
 	}
+}
+
+func (t *TestJSON) TFCStatusUpdate(status tfe.TestRunStatus, elapsed time.Duration) {
+	var message string
+	switch status {
+	case tfe.TestRunQueued:
+		message = fmt.Sprintf("Waiting for the tests to start... (%s elapsed)\n", elapsed.Truncate(30*time.Second))
+	case tfe.TestRunRunning:
+		message = fmt.Sprintf("Waiting for the tests to complete... (%s elapsed)\n", elapsed.Truncate(30*time.Second))
+	default:
+		// Don't care about updates for other statuses.
+		return
+	}
+
+	t.view.log.Info(
+		message,
+		"type", json.MessageTestStatus,
+		json.MessageTestStatus, json.TestStatusUpdate{
+			Status:   string(status),
+			Duration: elapsed.Seconds(),
+		})
+}
+
+func (t *TestJSON) TFCRetryHook(attemptNum int, resp *http.Response) {
+	t.view.log.Error(
+		t.RetryLogHook(attemptNum, resp, false),
+		"type", json.MessageTestRetry,
+	)
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {
