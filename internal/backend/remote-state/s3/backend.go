@@ -67,6 +67,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
+				Deprecated:  true,
 			},
 			"endpoint": {
 				Type:        cty.String,
@@ -78,6 +79,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				NestedType: &configschema.Object{
 					Nesting: configschema.NestingSingle,
 					Attributes: map[string]*configschema.Attribute{
+						"dynamodb": {
+							Type:        cty.String,
+							Required:    true,
+							Description: "A custom endpoint for the DynamoDB API",
+						},
 						"s3": {
 							Type:        cty.String,
 							Required:    true,
@@ -351,11 +357,12 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	endpointFields := map[string]string{
-		"endpoint": "s3",
+		"dynamodb_endpoint": "dynamodb",
+		"endpoint":          "s3",
 	}
 	endpoints := make(map[string]string)
 	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		for _, k := range []string{"s3"} {
+		for _, k := range []string{"dynamodb", "s3"} {
 			if v := val.GetAttr(k); !v.IsNull() {
 				endpoints[k] = v.AsString()
 			}
@@ -584,8 +591,25 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var dynamoConfig aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_ENDPOINT_URL_DYNAMODB", "AWS_DYNAMODB_ENDPOINT"); ok {
-		dynamoConfig.Endpoint = aws.String(v)
+	var dynamoEndpoint string
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		if v := val.GetAttr("dynamodb"); !v.IsNull() {
+			dynamoEndpoint = v.AsString()
+		}
+	}
+	if dynamoEndpoint == "" {
+		if val := obj.GetAttr("dynamodb_endpoint"); !val.IsNull() {
+			dynamoEndpoint = val.AsString()
+		}
+	}
+	if dynamoEndpoint == "" {
+		dynamoEndpoint = os.Getenv("AWS_ENDPOINT_URL_DYNAMODB")
+	}
+	if dynamoEndpoint == "" {
+		dynamoEndpoint = os.Getenv("AWS_DYNAMODB_ENDPOINT")
+	}
+	if dynamoEndpoint != "" {
+		dynamoConfig.Endpoint = aws.String(dynamoEndpoint)
 	}
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 

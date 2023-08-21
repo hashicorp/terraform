@@ -212,9 +212,40 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		},
 		"config": {
 			config: map[string]any{
+				"endpoints": map[string]any{
+					"dynamodb": "dynamo.test",
+					"s3":       nil,
+				},
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated config": {
+			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
 			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"dynamodb_endpoint": "dynamo.test",
+				"endpoints": map[string]any{
+					"dynamodb": "dynamo.test",
+					"s3":       nil,
+				},
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("dynamodb_endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+					),
+				)},
 		},
 		"envvar": {
 			vars: map[string]string{
@@ -287,7 +318,8 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		"config": {
 			config: map[string]any{
 				"endpoints": map[string]any{
-					"s3": "s3.test",
+					"dynamodb": nil,
+					"s3":       "s3.test",
 				},
 			},
 			expectedEndpoint: "s3.test",
@@ -305,7 +337,8 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			config: map[string]any{
 				"endpoint": "s3.test",
 				"endpoints": map[string]any{
-					"s3": "s3.test",
+					"dynamodb": nil,
+					"s3":       "s3.test",
 				},
 			},
 			expectedEndpoint: "s3.test",
