@@ -35,10 +35,12 @@ type MockClient struct {
 	RedactedPlans         *MockRedactedPlans
 	PolicyChecks          *MockPolicyChecks
 	Projects              *MockProjects
+	RegistryModules       *MockRegistryModules
 	Runs                  *MockRuns
 	RunEvents             *MockRunEvents
 	StateVersions         *MockStateVersions
 	StateVersionOutputs   *MockStateVersionOutputs
+	TestRuns              *MockTestRuns
 	Variables             *MockVariables
 	Workspaces            *MockWorkspaces
 }
@@ -54,10 +56,12 @@ func NewMockClient() *MockClient {
 	c.PolicySetOutcomes = newMockPolicySetOutcomes(c)
 	c.PolicyChecks = newMockPolicyChecks(c)
 	c.Projects = newMockProjects(c)
+	c.RegistryModules = newMockRegistryModules(c)
 	c.Runs = newMockRuns(c)
 	c.RunEvents = newMockRunEvents(c)
 	c.StateVersions = newMockStateVersions(c)
 	c.StateVersionOutputs = newMockStateVersionOutputs(c)
+	c.TestRuns = newMockTestRuns(c)
 	c.Variables = newMockVariables(c)
 	c.Workspaces = newMockWorkspaces(c)
 	c.RedactedPlans = newMockRedactedPlans(c)
@@ -174,6 +178,8 @@ type MockConfigurationVersions struct {
 	uploadURLs     map[string]*tfe.ConfigurationVersion
 }
 
+var _ tfe.ConfigurationVersions = (*MockConfigurationVersions)(nil)
+
 func newMockConfigurationVersions(client *MockClient) *MockConfigurationVersions {
 	return &MockConfigurationVersions{
 		client:         client,
@@ -216,6 +222,22 @@ func (m *MockConfigurationVersions) Create(ctx context.Context, workspaceID stri
 
 	if options.Speculative != nil && *options.Speculative {
 		cv.Speculative = true
+	}
+
+	m.configVersions[cv.ID] = cv
+	m.uploadURLs[url] = cv
+
+	return cv, nil
+}
+
+func (m *MockConfigurationVersions) CreateForRegistryModule(ctx context.Context, moduleID tfe.RegistryModuleID) (*tfe.ConfigurationVersion, error) {
+	id := GenerateID("cv-")
+	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	cv := &tfe.ConfigurationVersion{
+		ID:        id,
+		Status:    tfe.ConfigurationPending,
+		UploadURL: url,
 	}
 
 	m.configVersions[cv.ID] = cv
@@ -1045,6 +1067,122 @@ func (m *MockProjects) Delete(ctx context.Context, projectID string) error {
 	return nil
 }
 
+type MockRegistryModules struct {
+	sync.Mutex
+
+	client        *MockClient
+	Modules       map[string]*tfe.RegistryModule
+	organizations map[string][]*tfe.RegistryModule
+}
+
+var _ tfe.RegistryModules = (*MockRegistryModules)(nil)
+
+func newMockRegistryModules(client *MockClient) *MockRegistryModules {
+	return &MockRegistryModules{
+		client:        client,
+		Modules:       make(map[string]*tfe.RegistryModule),
+		organizations: make(map[string][]*tfe.RegistryModule),
+	}
+}
+
+func (m *MockRegistryModules) List(ctx context.Context, organization string, options *tfe.RegistryModuleListOptions) (*tfe.RegistryModuleList, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) Create(ctx context.Context, organization string, options tfe.RegistryModuleCreateOptions) (*tfe.RegistryModule, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	org, err := m.client.Organizations.Read(ctx, organization)
+	if err != nil {
+		return nil, err
+	}
+
+	id := fmt.Sprintf("%s/%s/%s", options.Namespace, *options.Name, *options.Provider)
+	if _, exists := m.Modules[id]; exists {
+		panic("already exists")
+	}
+
+	module := &tfe.RegistryModule{
+		ID:              id,
+		Name:            *options.Name,
+		Provider:        *options.Provider,
+		RegistryName:    options.RegistryName,
+		Namespace:       options.Namespace,
+		VersionStatuses: nil,
+		CreatedAt:       time.Now().UTC().String(),
+		UpdatedAt:       time.Now().UTC().String(),
+		Organization:    org,
+	}
+
+	m.Modules[id] = module
+	m.organizations[org.ExternalID] = append(m.organizations[org.ExternalID], module)
+	return module, nil
+}
+
+func (m *MockRegistryModules) CreateVersion(ctx context.Context, moduleID tfe.RegistryModuleID, options tfe.RegistryModuleCreateVersionOptions) (*tfe.RegistryModuleVersion, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) CreateWithVCSConnection(ctx context.Context, options tfe.RegistryModuleCreateWithVCSConnectionOptions) (*tfe.RegistryModule, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) Read(ctx context.Context, moduleID tfe.RegistryModuleID) (*tfe.RegistryModule, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	id := fmt.Sprintf("%s/%s/%s", moduleID.Namespace, moduleID.Name, moduleID.Provider)
+	module, exists := m.Modules[id]
+	if !exists {
+		return nil, tfe.ErrResourceNotFound
+	}
+	return module, nil
+}
+
+func (m *MockRegistryModules) Delete(ctx context.Context, organization string, name string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) DeleteProvider(ctx context.Context, moduleID tfe.RegistryModuleID) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) DeleteVersion(ctx context.Context, moduleID tfe.RegistryModuleID, version string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) Update(ctx context.Context, moduleID tfe.RegistryModuleID, options tfe.RegistryModuleUpdateOptions) (*tfe.RegistryModule, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) Upload(ctx context.Context, rmv tfe.RegistryModuleVersion, path string) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) UploadTarGzip(ctx context.Context, url string, r io.Reader) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) ListCommits(ctx context.Context, moduleID tfe.RegistryModuleID) (*tfe.CommitList, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (m *MockRegistryModules) ReadVersion(ctx context.Context, moduleID tfe.RegistryModuleID, version string) (*tfe.RegistryModuleVersion, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 type MockRuns struct {
 	sync.Mutex
 
@@ -1489,6 +1627,171 @@ func (m *MockStateVersionOutputs) ReadCurrent(ctx context.Context, workspaceID s
 	}
 
 	return svl, nil
+}
+
+type MockTestRuns struct {
+	sync.Mutex
+
+	client *MockClient
+
+	// TestRuns and modules keep track of our tfe.TestRun objects.
+	TestRuns map[string]*tfe.TestRun
+	modules  map[string][]*tfe.TestRun
+	logs     map[string]string
+}
+
+var _ tfe.TestRuns = (*MockTestRuns)(nil)
+
+func newMockTestRuns(client *MockClient) *MockTestRuns {
+	return &MockTestRuns{
+		client:   client,
+		TestRuns: make(map[string]*tfe.TestRun),
+		modules:  make(map[string][]*tfe.TestRun),
+		logs:     make(map[string]string),
+	}
+}
+
+func (m *MockTestRuns) List(ctx context.Context, registryModuleId tfe.RegistryModuleID, options *tfe.TestRunListOptions) (*tfe.TestRunList, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	module, err := m.client.RegistryModules.Read(ctx, registryModuleId)
+	if err != nil {
+		return nil, err
+	}
+
+	trl := &tfe.TestRunList{}
+	trl.Items = append(trl.Items, m.modules[module.ID]...)
+	trl.Pagination = &tfe.Pagination{
+		CurrentPage:  1,
+		PreviousPage: 1,
+		NextPage:     1,
+		TotalPages:   1,
+		TotalCount:   len(trl.Items),
+	}
+
+	return trl, nil
+}
+
+func (m *MockTestRuns) Read(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) (*tfe.TestRun, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	if tr, exists := m.TestRuns[testRunID]; exists {
+
+		// This just simulates some natural progression
+		switch tr.Status {
+		case tfe.TestRunQueued:
+			tr.Status = tfe.TestRunRunning
+		case tfe.TestRunRunning:
+			tr.Status = tfe.TestRunFinished
+		}
+
+		return tr, nil
+	}
+	return nil, tfe.ErrResourceNotFound
+}
+
+func (m *MockTestRuns) Create(ctx context.Context, options tfe.TestRunCreateOptions) (*tfe.TestRun, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	if options.ConfigurationVersion.Status != tfe.ConfigurationUploaded {
+		return nil, fmt.Errorf("configuration hasn't been uploaded")
+	}
+
+	id := GenerateID("testrun-")
+	url := fmt.Sprintf("https://app.terraform.io/_archivist/%s", id)
+
+	tr := &tfe.TestRun{
+		ID:         id,
+		LogReadURL: url,
+		Status:     tfe.TestRunQueued,
+		TestStatus: tfe.TestPass, // Default the test runs we create to passing.
+
+		ConfigurationVersion: options.ConfigurationVersion,
+		RegistryModule:       options.RegistryModule,
+	}
+
+	m.TestRuns[tr.ID] = tr
+	m.logs[tr.LogReadURL] = filepath.Join(
+		m.client.ConfigurationVersions.uploadPaths[options.ConfigurationVersion.ID],
+		"test.log",
+	)
+	m.modules[tr.RegistryModule.ID] = append(m.modules[tr.RegistryModule.ID], tr)
+
+	return tr, nil
+}
+
+func (m *MockTestRuns) Logs(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) (io.Reader, error) {
+	m.Lock()
+	defer m.Unlock()
+
+	tr, exists := m.TestRuns[testRunID]
+	if !exists {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logfile, exists := m.logs[tr.LogReadURL]
+	if !exists {
+		return nil, tfe.ErrResourceNotFound
+	}
+
+	logs, err := os.ReadFile(logfile)
+	if err != nil {
+		return nil, err
+	}
+
+	done := func() (bool, error) {
+		tr, exists := m.TestRuns[testRunID]
+		if !exists {
+			return false, tfe.ErrResourceNotFound
+		}
+
+		switch tr.Status {
+		case tfe.TestRunRunning:
+			// Update the status so that on the next call it thinks it's
+			// finished.
+			tr.Status = tfe.TestRunFinished
+			return false, nil
+
+		case tfe.TestRunFinished, tfe.TestRunCanceled:
+			// We're done.
+			return true, nil
+
+		case tfe.TestRunQueued:
+			// We shouldn't call the Logs function before the test has started
+			// so if that happens let's just trigger a panic.
+			panic("shouldn't call Logs on a queued test run")
+		default:
+			panic("unrecognized test status: " + string(tr.Status))
+		}
+	}
+
+	return &mockLogReader{
+		done: done,
+		logs: bytes.NewBuffer(logs),
+	}, nil
+}
+
+func (m *MockTestRuns) Cancel(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) error {
+	tr, exists := m.TestRuns[testRunID]
+	if !exists {
+		return tfe.ErrResourceNotFound
+	}
+
+	tr.Status = tfe.TestRunCanceled
+	return nil
+}
+
+func (m *MockTestRuns) ForceCancel(ctx context.Context, moduleID tfe.RegistryModuleID, testRunID string) error {
+	tr, exists := m.TestRuns[testRunID]
+	if !exists {
+		return tfe.ErrResourceNotFound
+	}
+
+	tr.Status = tfe.TestRunCanceled
+	return nil
 }
 
 type MockVariables struct {

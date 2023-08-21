@@ -5,6 +5,7 @@ package cloud
 
 import (
 	"github.com/hashicorp/hcl/v2/hclwrite"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -38,6 +39,35 @@ func ParseCloudRunVariables(vv map[string]backend.UnparsedVariableValue, decls m
 
 		// RunVariables are always expressed as HCL strings
 		tokens := hclwrite.TokensForValue(v.Value)
+		ret[name] = string(tokens.Bytes())
+	}
+
+	return ret, diags
+}
+
+// ParseCloudRunTestVariables is similar to ParseCloudVariables, except it does
+// not make any assumptions about variables needed by the configuration.
+//
+// Within a test run execution, variables can be defined inside test files and
+// inside child modules as well as the main configuration and it is a lot of
+// effort to track down exactly where variable definitions exist. We just accept
+// all values.
+func ParseCloudRunTestVariables(globals map[string]backend.UnparsedVariableValue) (map[string]string, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ret := make(map[string]string, len(globals))
+
+	for name, v := range globals {
+		variable, variableDiags := v.ParseVariableValue(configs.VariableParseLiteral)
+		diags = diags.Append(variableDiags)
+		if variableDiags.HasErrors() {
+			continue
+		}
+
+		if !allowedSourceType(variable.SourceType) {
+			continue
+		}
+
+		tokens := hclwrite.TokensForValue(variable.Value)
 		ret[name] = string(tokens.Bytes())
 	}
 

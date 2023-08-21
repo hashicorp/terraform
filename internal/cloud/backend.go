@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	tfe "github.com/hashicorp/go-tfe"
 	version "github.com/hashicorp/go-version"
@@ -27,6 +26,7 @@ import (
 
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/command/jsonformat"
+	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/states/statemgr"
@@ -63,8 +63,9 @@ type Cloud struct {
 	// client is the Terraform Cloud/Enterprise API client.
 	client *tfe.Client
 
-	// lastRetry is set to the last time a request was retried.
-	lastRetry time.Time
+	// viewHooks implements functions integrating the tfe.Client with the CLI
+	// output.
+	viewHooks views.CloudHooks
 
 	// Hostname of Terraform Cloud or Terraform Enterprise
 	Hostname string
@@ -245,7 +246,16 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	// Discover the service URL to confirm that it provides the Terraform Cloud/Enterprise API
-	service, err := b.discover()
+	hostname, err := svchost.ForComparison(b.Hostname)
+
+	var service *url.URL
+	if err == nil {
+		// We want to handle the errors returned by svchost and discover in the
+		// same way. So we only execute this if there wasn't an error previously
+		// and let the block below handle an error that occurred in either
+		// place.
+		service, err = discover(hostname, b.services)
+	}
 
 	// Check for errors before we continue.
 	if err != nil {
@@ -267,7 +277,7 @@ func (b *Cloud) Configure(obj cty.Value) tfdiags.Diagnostics {
 	// Get the token from the CLI Config File in the credentials section
 	// if no token was not set in the configuration
 	if token == "" {
-		token, err = b.cliConfigToken()
+		token, err = cliConfigToken(hostname, b.services)
 		if err != nil {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
@@ -456,13 +466,8 @@ func (b *Cloud) setConfigurationFields(obj cty.Value) tfdiags.Diagnostics {
 }
 
 // discover the TFC/E API service URL and version constraints.
-func (b *Cloud) discover() (*url.URL, error) {
-	hostname, err := svchost.ForComparison(b.Hostname)
-	if err != nil {
-		return nil, err
-	}
-
-	host, err := b.services.Discover(hostname)
+func discover(hostname svchost.Hostname, services *disco.Disco) (*url.URL, error) {
+	host, err := services.Discover(hostname)
 	if err != nil {
 		var serviceDiscoErr *disco.ErrServiceDiscoveryNetworkRequest
 
@@ -487,14 +492,10 @@ func (b *Cloud) discover() (*url.URL, error) {
 // cliConfigToken returns the token for this host as configured in the credentials
 // section of the CLI Config File. If no token was configured, an empty
 // string will be returned instead.
-func (b *Cloud) cliConfigToken() (string, error) {
-	hostname, err := svchost.ForComparison(b.Hostname)
+func cliConfigToken(hostname svchost.Hostname, services *disco.Disco) (string, error) {
+	creds, err := services.CredentialsForHost(hostname)
 	if err != nil {
-		return "", err
-	}
-	creds, err := b.services.CredentialsForHost(hostname)
-	if err != nil {
-		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", b.Hostname, err)
+		log.Printf("[WARN] Failed to get credentials for %s: %s (ignoring)", hostname.ForDisplay(), err)
 		return "", nil
 	}
 	if creds != nil {
@@ -507,23 +508,8 @@ func (b *Cloud) cliConfigToken() (string, error) {
 // backend to log any connection issues to prevent data loss.
 func (b *Cloud) retryLogHook(attemptNum int, resp *http.Response) {
 	if b.CLI != nil {
-		// Ignore the first retry to make sure any delayed output will
-		// be written to the console before we start logging retries.
-		//
-		// The retry logic in the TFE client will retry both rate limited
-		// requests and server errors, but in the cloud backend we only
-		// care about server errors so we ignore rate limit (429) errors.
-		if attemptNum == 0 || (resp != nil && resp.StatusCode == 429) {
-			// Reset the last retry time.
-			b.lastRetry = time.Now()
-			return
-		}
-
-		if attemptNum == 1 {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(initialRetryError)))
-		} else {
-			b.CLI.Output(b.Colorize().Color(strings.TrimSpace(
-				fmt.Sprintf(repeatedRetryError, time.Since(b.lastRetry).Round(time.Second)))))
+		if output := b.viewHooks.RetryLogHook(attemptNum, resp, true); len(output) > 0 {
+			b.CLI.Output(b.Colorize().Color(output))
 		}
 	}
 }
@@ -1241,17 +1227,6 @@ func generalError(msg string, err error) error {
 		return diags.Err()
 	}
 }
-
-// The newline in this error is to make it look good in the CLI!
-const initialRetryError = `
-[reset][yellow]There was an error connecting to Terraform Cloud. Please do not exit
-Terraform to prevent data loss! Trying to restore the connection...
-[reset]
-`
-
-const repeatedRetryError = `
-[reset][yellow]Still trying to restore the connection... (%s elapsed)[reset]
-`
 
 const operationCanceled = `
 [reset][red]The remote operation was successfully cancelled.[reset]

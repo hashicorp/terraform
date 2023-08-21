@@ -88,6 +88,7 @@ func TestMain(m *testing.M) {
 }
 
 // tempWorkingDir constructs a workdir.Dir object referring to a newly-created
+// tempWorkingDir constructs a workdir.Dir object referring to a newly-created
 // temporary directory. The temporary directory is automatically removed when
 // the test and all its subtests complete.
 //

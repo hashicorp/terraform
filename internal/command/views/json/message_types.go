@@ -38,4 +38,6 @@ const (
 	MessageTestSummary   MessageType = "test_summary"
 	MessageTestCleanup   MessageType = "test_cleanup"
 	MessageTestInterrupt MessageType = "test_interrupt"
+	MessageTestStatus    MessageType = "test_status"
+	MessageTestRetry     MessageType = "test_retry"
 )

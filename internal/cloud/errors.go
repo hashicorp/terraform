@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+
+	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
 // String based errors
@@ -38,6 +39,12 @@ var (
 		fmt.Sprintf("Only one of workspace \"tags\" or \"name\" is allowed.\n\n%s", workspaceConfigurationHelp),
 		cty.Path{cty.GetAttrStep{Name: "workspaces"}},
 	)
+
+	conflictingWorkspacesAndPrivateRegistryModulesDefinitions = tfdiags.AttributeValue(
+		tfdiags.Error,
+		"Conflicting \"workspaces\" and \"private_registry_modules\" configuration",
+		"Only one out of the \"workspaces\" and \"private_registry_modules\" blocks can be provided. Terraform configuration files should either be used as a module to distribute via the private registry or as configuration for your intended infrastructure in a workspace but not both.",
+		cty.Path{cty.GetAttrStep{Name: "workspaces"}})
 )
 
 const ignoreRemoteVersionHelp = "If you're sure you want to upgrade the state, you can force Terraform to continue using the -ignore-remote-version flag. This may result in an unusable workspace."
