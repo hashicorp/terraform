@@ -65,6 +65,7 @@ The following configuration options or environment variables are supported:
 - `acl` - (Optional) Object ACL to be applied to the state file, allows `private` and `public-read`. Defaults to `private`.
 - `accelerate` - (Optional) Whether to enable global Acceleration. Defaults to `false`.
 - `endpoint` - (Optional) The Custom Endpoint for the COS backend. It supports environment variables `TENCENTCLOUD_ENDPOINT`.
+- `domain` - (Optional) The root domain of the API request. Defaults to `tencentcloudapi.com`. It supports environment variables `TENCENTCLOUD_DOMAIN`.
 
 ### Assume Role
 If provided with an assume role, Terraform will attempt to assume this role using the supplied credentials.
@@ -112,7 +113,7 @@ $ terraform plan
 ### Endpoint
 If provided with an endpoint url, Terraform will attempt to access COS backend by the `endpoint` configuration or environment variables `TENCENTCLOUD_ENDPOINT`.
 
-A typical endpoint like this: `http://{Bucket}.cos-internal.{Region}.tencentcos.cn`, both http or https can be accepted.
+A typical endpoint like this: `http://cos-internal.{Region}.tencentcos.cn`, both http or https can be accepted.
 
 Usage:
 
@@ -122,7 +123,7 @@ terraform {
     region   = "ap-guangzhou"
     bucket   = "bucket-for-terraform-state-1258798060"
     prefix   = "terraform/state"
-    endpoint = "http://bucket-for-terraform-state-1258798060.cos-internal.ap-guangzhou.tencentcos.cn"
+    endpoint = "http://cos-internal.ap-guangzhou.tencentcos.cn"
   }
 }
 ```
