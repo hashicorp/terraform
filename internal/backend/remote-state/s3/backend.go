@@ -458,6 +458,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
 		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
 		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
+		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
 	} {
 		if val := os.Getenv(envvar); val != "" {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
@@ -477,7 +478,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
 		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
+		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
 		Token:                  stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
