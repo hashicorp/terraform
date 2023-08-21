@@ -84,6 +84,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 							Required:    true,
 							Description: "A custom endpoint for the DynamoDB API",
 						},
+						"iam": {
+							Type:        cty.String,
+							Required:    true,
+							Description: "A custom endpoint for the IAM API",
+						},
 						"s3": {
 							Type:        cty.String,
 							Required:    true,
@@ -96,6 +101,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the IAM API",
+				Deprecated:  true,
 			},
 			"sts_endpoint": {
 				Type:        cty.String,
@@ -358,11 +364,12 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	endpointFields := map[string]string{
 		"dynamodb_endpoint": "dynamodb",
+		"iam_endpoint":      "iam",
 		"endpoint":          "s3",
 	}
 	endpoints := make(map[string]string)
 	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		for _, k := range []string{"dynamodb", "s3"} {
+		for _, k := range []string{"dynamodb", "iam", "s3"} {
 			if v := val.GetAttr(k); !v.IsNull() {
 				endpoints[k] = v.AsString()
 			}
@@ -374,7 +381,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			if _, ok := endpoints[v]; ok {
 				diags = diags.Append(wholeBodyErrDiag(
 					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
 						pathString(cty.GetAttrPath(k)),
 						pathString(cty.GetAttrPath("endpoints").GetAttr(v)),
 					),

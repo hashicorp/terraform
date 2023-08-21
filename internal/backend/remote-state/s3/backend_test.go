@@ -214,6 +214,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 			config: map[string]any{
 				"endpoints": map[string]any{
 					"dynamodb": "dynamo.test",
+					"iam":      nil,
 					"s3":       nil,
 				},
 			},
@@ -233,6 +234,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				"dynamodb_endpoint": "dynamo.test",
 				"endpoints": map[string]any{
 					"dynamodb": "dynamo.test",
+					"iam":      nil,
 					"s3":       nil,
 				},
 			},
@@ -241,7 +243,7 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 				wholeBodyErrDiag(
 					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
 						pathString(cty.GetAttrPath("dynamodb_endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
 					),
@@ -303,6 +305,102 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	}
 }
 
+func TestBackendConfig_IAMEndpoint(t *testing.T) {
+	testACC(t)
+
+	// Doesn't test for expected endpoint, since the IAM endpoint is used internally to `aws-sdk-go-base`
+	// The mocked tests won't work if the config parameter doesn't work
+	cases := map[string]struct {
+		config        map[string]any
+		vars          map[string]string
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"none": {},
+		"config": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"dynamodb": nil,
+					"iam":      "iam.test",
+					"s3":       nil,
+				},
+			},
+		},
+		"deprecated config": {
+			config: map[string]any{
+				"iam_endpoint": "iam.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"iam_endpoint": "iam.test",
+				"endpoints": map[string]any{
+					"dynamodb": nil,
+					"iam":      "iam.test",
+					"s3":       nil,
+				},
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("iam_endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
+					),
+				)},
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_ENDPOINT_URL_IAM": "iam.test",
+			},
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
+				"AWS_IAM_ENDPOINT": "iam.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_IAM_ENDPOINT", "AWS_ENDPOINT_URL_IAM"),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
+
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
+
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
 func TestBackendConfig_S3Endpoint(t *testing.T) {
 	testACC(t)
 
@@ -319,6 +417,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 			config: map[string]any{
 				"endpoints": map[string]any{
 					"dynamodb": nil,
+					"iam":      nil,
 					"s3":       "s3.test",
 				},
 			},
@@ -338,6 +437,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				"endpoint": "s3.test",
 				"endpoints": map[string]any{
 					"dynamodb": nil,
+					"iam":      nil,
 					"s3":       "s3.test",
 				},
 			},
@@ -346,7 +446,7 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
 				wholeBodyErrDiag(
 					"Conflicting Parameters",
-					fmt.Sprintf(`The parameters "%s" and %s" cannot be configured together.`,
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
 						pathString(cty.GetAttrPath("endpoint")),
 						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
 					),
