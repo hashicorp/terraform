@@ -4,6 +4,7 @@
 package s3
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -16,6 +17,9 @@ func diagnosticString(diag tfdiags.Diagnostic) string {
 	if diag.Description().Detail != "" {
 		buffer.WriteString("\n\n")
 		buffer.WriteString(diag.Description().Detail)
+	}
+	if path := tfdiags.GetAttribute(diag); len(path) != 0 {
+		fmt.Fprintf(&buffer, "\nPath: %#v", path)
 	}
 	return buffer.String()
 }
