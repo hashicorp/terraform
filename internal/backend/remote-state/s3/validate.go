@@ -352,3 +352,7 @@ func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnos
 func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
 	return tfdiags.WholeContainingBody(tfdiags.Error, summary, detail)
 }
+
+func wholeBodyWarningDiag(summary, detail string) tfdiags.Diagnostic {
+	return tfdiags.WholeContainingBody(tfdiags.Warning, summary, detail)
+}

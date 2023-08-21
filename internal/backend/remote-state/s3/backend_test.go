@@ -18,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/go-cmp/cmp"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
@@ -200,24 +202,34 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	testACC(t)
 
 	cases := map[string]struct {
-		config   map[string]any
-		vars     map[string]string
-		expected string
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expected: "",
+			expectedEndpoint: "",
 		},
 		"config": {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
 		},
 		"envvar": {
 			vars: map[string]string{
+				"AWS_ENDPOINT_URL_DYNAMODB": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
 				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+			},
 		},
 	}
 
@@ -246,9 +258,14 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				}
 			}
 
-			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.dynClient.Config, tc.expected)
+			checkClientEndpoint(t, b.dynClient.Config, tc.expectedEndpoint)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 		})
 	}
 }
@@ -257,24 +274,34 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	testACC(t)
 
 	cases := map[string]struct {
-		config   map[string]any
-		vars     map[string]string
-		expected string
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expected: "",
+			expectedEndpoint: "",
 		},
 		"config": {
 			config: map[string]any{
 				"endpoint": "s3.test",
 			},
-			expected: "s3.test",
+			expectedEndpoint: "s3.test",
 		},
 		"envvar": {
 			vars: map[string]string{
+				"AWS_ENDPOINT_URL_S3": "s3.test",
+			},
+			expectedEndpoint: "s3.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
 				"AWS_S3_ENDPOINT": "s3.test",
 			},
-			expected: "s3.test",
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
+			},
 		},
 	}
 
@@ -303,9 +330,14 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				}
 			}
 
-			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.s3Client.Config, tc.expected)
+			checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 		})
 	}
 }
@@ -1652,4 +1684,40 @@ func must[T any](v T, err error) T {
 	} else {
 		return v
 	}
+}
+
+// testBackendConfigDiags is an equivalent to `backend.TestBackendConfig` which returns the diags to the caller
+// instead of failing the test
+func testBackendConfigDiags(t *testing.T, b backend.Backend, c hcl.Body) (backend.Backend, tfdiags.Diagnostics) {
+	t.Helper()
+
+	t.Logf("TestBackendConfig on %T with %#v", b, c)
+
+	var diags tfdiags.Diagnostics
+
+	// To make things easier for test authors, we'll allow a nil body here
+	// (even though that's not normally valid) and just treat it as an empty
+	// body.
+	if c == nil {
+		c = hcl.EmptyBody()
+	}
+
+	schema := b.ConfigSchema()
+	spec := schema.DecoderSpec()
+	obj, decDiags := hcldec.Decode(c, spec, nil)
+	diags = diags.Append(decDiags)
+
+	newObj, valDiags := b.PrepareConfig(obj)
+	diags = diags.Append(valDiags.InConfigBody(c, ""))
+
+	// it's valid for a Backend to have warnings (e.g. a Deprecation) as such we should only raise on errors
+	if diags.HasErrors() {
+		return b, diags
+	}
+
+	obj = newObj
+
+	confDiags := b.Configure(obj)
+
+	return b, diags.Append(confDiags)
 }

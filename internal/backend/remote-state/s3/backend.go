@@ -329,8 +329,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	} else {
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(tfdiags.WholeContainingBody(
-				tfdiags.Warning,
+			diags = diags.Append(wholeBodyWarningDiag(
 				"Deprecated Parameters",
 				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
 					formatDeprecations(defined),
@@ -455,20 +454,31 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	for envvar, replacement := range map[string]string{
+		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
+		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
+		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
+		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
+	} {
+		if val := os.Getenv(envvar); val != "" {
+			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
+		}
+	}
+
 	cfg := &awsbase.Config{
 		AccessKey:              stringAttr(obj, "access_key"),
 		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:             "S3 Backend",
 		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:           logging.IsDebugOrHigher(),
-		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
+		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_ENDPOINT_URL_IAM", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
 		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
+		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
 		Token:                  stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
@@ -535,13 +545,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var dynamoConfig aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_ENDPOINT_URL_DYNAMODB", "AWS_DYNAMODB_ENDPOINT"); ok {
 		dynamoConfig.Endpoint = aws.String(v)
 	}
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
 	var s3Config aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_ENDPOINT_URL_S3", "AWS_S3_ENDPOINT"); ok {
 		s3Config.Endpoint = aws.String(v)
 	}
 	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
@@ -965,4 +975,11 @@ func assumeRoleFullSchema() objectSchema {
 			validateSet{},
 		},
 	}
+}
+
+func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
+	return wholeBodyWarningDiag(
+		"Deprecated Environment Variable",
+		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
+	)
 }
