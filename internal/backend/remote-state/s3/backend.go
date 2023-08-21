@@ -456,6 +456,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 
 	for envvar, replacement := range map[string]string{
 		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
+		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
 		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
 	} {
 		if val := os.Getenv(envvar); val != "" {
@@ -469,7 +470,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		CallerName:             "S3 Backend",
 		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:           logging.IsDebugOrHigher(),
-		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
+		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_ENDPOINT_URL_IAM", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
