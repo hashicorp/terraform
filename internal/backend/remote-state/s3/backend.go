@@ -329,8 +329,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	} else {
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(tfdiags.WholeContainingBody(
-				tfdiags.Warning,
+			diags = diags.Append(wholeBodyWarningDiag(
 				"Deprecated Parameters",
 				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
 					formatDeprecations(defined),
@@ -455,6 +454,14 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	for envvar, replacement := range map[string]string{
+		"AWS_S3_ENDPOINT": "AWS_ENDPOINT_URL_S3",
+	} {
+		if val := os.Getenv(envvar); val != "" {
+			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
+		}
+	}
+
 	cfg := &awsbase.Config{
 		AccessKey:              stringAttr(obj, "access_key"),
 		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
@@ -541,7 +548,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
 	var s3Config aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
+	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_ENDPOINT_URL_S3", "AWS_S3_ENDPOINT"); ok {
 		s3Config.Endpoint = aws.String(v)
 	}
 	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
@@ -965,4 +972,11 @@ func assumeRoleFullSchema() objectSchema {
 			validateSet{},
 		},
 	}
+}
+
+func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
+	return wholeBodyWarningDiag(
+		"Deprecated Environment Variable",
+		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
+	)
 }
