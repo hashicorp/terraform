@@ -3,6 +3,7 @@
 BUG FIXES:
 
 * terraform_remote_state: Fixed a potential unsafe read panic when reading from multiple terraform_remote_state data sources ([#33333](https://github.com/hashicorp/terraform/issues/33333))
+* cloud: fixed a bug that would prevent nested symlinks from being dereferenced into the config sent to Terraform Cloud
 
 ## 1.5.5 (August 9, 2023)
 
