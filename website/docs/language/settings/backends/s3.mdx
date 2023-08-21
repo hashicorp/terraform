@@ -163,6 +163,7 @@ The following configuration is optional:
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
 * `sts_endpoint` - (Optional) Custom endpoint for the AWS Security Token Service (STS) API. This can also be sourced from the `AWS_STS_ENDPOINT` environment variable.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
+* `use_legacy_workflow` - (Optional, **Deprecated**) Use the legacy authentication workflow, preferring environment variables over backend configuration. Defaults to `true`. This behavior does not align with authentication flow of the AWS CLI or SDK's, and will be removed in the future.
 
 #### Assume Role Configuration
 

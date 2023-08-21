@@ -192,30 +192,29 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 			ValidateDiags: ExpectNoDiags,
 		},
 
-		// TODO: Legacy behavior
-		// 		"environment AWS_ACCESS_KEY_ID overrides config Profile": { // Legacy behavior
-		// 			config: map[string]any{
-		// 				"profile": "SharedCredentialsProfile",
-		// 			},
-		// 			EnvironmentVariables: map[string]string{
-		// 				"AWS_ACCESS_KEY_ID":     servicemocks.MockEnvAccessKey,
-		// 				"AWS_SECRET_ACCESS_KEY": servicemocks.MockEnvSecretKey,
-		// 			},
-		// 			ExpectedCredentialsValue: mockdata.MockEnvCredentials,
-		// 			MockStsEndpoints: []*servicemocks.MockEndpoint{
-		// 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
-		// 			},
-		// 			SharedCredentialsFile: `
-		// [default]
-		// aws_access_key_id = DefaultSharedCredentialsAccessKey
-		// aws_secret_access_key = DefaultSharedCredentialsSecretKey
+		"environment AWS_ACCESS_KEY_ID overrides config Profile": { // Legacy behavior
+			config: map[string]any{
+				"profile": "SharedCredentialsProfile",
+			},
+			EnvironmentVariables: map[string]string{
+				"AWS_ACCESS_KEY_ID":     servicemocks.MockEnvAccessKey,
+				"AWS_SECRET_ACCESS_KEY": servicemocks.MockEnvSecretKey,
+			},
+			ExpectedCredentialsValue: mockdata.MockEnvCredentials,
+			MockStsEndpoints: []*servicemocks.MockEndpoint{
+				servicemocks.MockStsGetCallerIdentityValidEndpoint,
+			},
+			SharedCredentialsFile: `
+		[default]
+		aws_access_key_id = DefaultSharedCredentialsAccessKey
+		aws_secret_access_key = DefaultSharedCredentialsSecretKey
 
-		// [SharedCredentialsProfile]
-		// aws_access_key_id = ProfileSharedCredentialsAccessKey
-		// aws_secret_access_key = ProfileSharedCredentialsSecretKey
-		// `,
-		// 			ValidateDiags: ExpectNoDiags,
-		// 		},
+		[SharedCredentialsProfile]
+		aws_access_key_id = ProfileSharedCredentialsAccessKey
+		aws_secret_access_key = ProfileSharedCredentialsSecretKey
+		`,
+			ValidateDiags: ExpectNoDiags,
+		},
 
 		"environment AWS_ACCESS_KEY_ID": {
 			config: map[string]any{},
@@ -507,40 +506,38 @@ region = us-east-1
 			),
 		},
 
-		// TODO: Legacy behavior?
-		// 		"invalid profile name from envvar": {
-		// 			config: map[string]any{},
-		// 			EnvironmentVariables: map[string]string{
-		// 				"AWS_PROFILE": "no-such-profile",
-		// 			},
-		// 			SharedCredentialsFile: `
-		// [some-profile]
-		// aws_access_key_id = DefaultSharedCredentialsAccessKey
-		// aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		// `,
-		// 			ValidateDiags: ExpectDiagMatching(
-		// 				tfdiags.Error,
-		// 				equalsMatcher("Failed to configure AWS client"),
-		// 				newRegexpMatcher("no valid credential sources for S3 Backend found"),
-		// 			),
-		// 		},
+		"invalid profile name from envvar": {
+			config: map[string]any{},
+			EnvironmentVariables: map[string]string{
+				"AWS_PROFILE": "no-such-profile",
+			},
+			SharedCredentialsFile: `
+		[some-profile]
+		aws_access_key_id = DefaultSharedCredentialsAccessKey
+		aws_secret_access_key = DefaultSharedCredentialsSecretKey
+		`,
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Error,
+				equalsMatcher("failed to get shared config profile, no-such-profile"),
+				equalsMatcher(""),
+			),
+		},
 
-		// TODO: Legacy behavior?
-		// 		"invalid profile name from config": {
-		// 			config: map[string]any{
-		// 				"profile": "no-such-profile",
-		// 			},
-		// 			SharedCredentialsFile: `
-		// [some-profile]
-		// aws_access_key_id = DefaultSharedCredentialsAccessKey
-		// aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		// `,
-		// 			ValidateDiags: ExpectDiagMatching(
-		// 				tfdiags.Error,
-		// 				equalsMatcher("Failed to configure AWS client"),
-		// 				newRegexpMatcher("no valid credential sources for S3 Backend found"),
-		// 			),
-		// 		},
+		"invalid profile name from config": {
+			config: map[string]any{
+				"profile": "no-such-profile",
+			},
+			SharedCredentialsFile: `
+		[some-profile]
+		aws_access_key_id = DefaultSharedCredentialsAccessKey
+		aws_secret_access_key = DefaultSharedCredentialsSecretKey
+		`,
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Error,
+				equalsMatcher("failed to get shared config profile, no-such-profile"),
+				equalsMatcher(""),
+			),
+		},
 
 		"AWS_ACCESS_KEY_ID overrides AWS_PROFILE": {
 			config: map[string]any{},
@@ -565,25 +562,24 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 			ValidateDiags:            ExpectNoDiags,
 		},
 
-		// TODO: Legacy behavior?
-		// 		"AWS_ACCESS_KEY_ID does not override invalid profile name from envvar": {
-		// 			config: map[string]any{},
-		// 			EnvironmentVariables: map[string]string{
-		// 				"AWS_ACCESS_KEY_ID":     servicemocks.MockEnvAccessKey,
-		// 				"AWS_SECRET_ACCESS_KEY": servicemocks.MockEnvSecretKey,
-		// 				"AWS_PROFILE":           "no-such-profile",
-		// 			},
-		// 			SharedCredentialsFile: `
-		// [some-profile]
-		// aws_access_key_id = DefaultSharedCredentialsAccessKey
-		// aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		// `,
-		// 			ValidateDiags: ExpectDiagMatching(
-		// 				tfdiags.Error,
-		// 				equalsMatcher("Failed to configure AWS client"),
-		// 				newRegexpMatcher("error validating provider credentials:"),
-		// 			),
-		// 		},
+		"AWS_ACCESS_KEY_ID does not override invalid profile name from envvar": {
+			config: map[string]any{},
+			EnvironmentVariables: map[string]string{
+				"AWS_ACCESS_KEY_ID":     servicemocks.MockEnvAccessKey,
+				"AWS_SECRET_ACCESS_KEY": servicemocks.MockEnvSecretKey,
+				"AWS_PROFILE":           "no-such-profile",
+			},
+			SharedCredentialsFile: `
+		[some-profile]
+		aws_access_key_id = DefaultSharedCredentialsAccessKey
+		aws_secret_access_key = DefaultSharedCredentialsSecretKey
+		`,
+			ValidateDiags: ExpectDiagMatching(
+				tfdiags.Error,
+				equalsMatcher("failed to get shared config profile, no-such-profile"),
+				equalsMatcher(""),
+			),
+		},
 	}
 
 	for name, tc := range testCases {
