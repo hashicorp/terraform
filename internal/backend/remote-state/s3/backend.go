@@ -241,75 +241,68 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		return obj, diags
 	}
 
-	if val := obj.GetAttr("bucket"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid bucket value",
-			`The "bucket" attribute value must not be empty.`,
-			cty.Path{cty.GetAttrStep{Name: "bucket"}},
-		))
+	var attrPath cty.Path
+
+	attrPath = cty.GetAttrPath("bucket")
+	if val := obj.GetAttr("bucket"); val.IsNull() {
+		diags = diags.Append(requiredAttributeErrDiag(attrPath))
+	} else {
+		bucketValidators := validateString{
+			Validators: []stringValidator{
+				validateStringNotEmpty,
+			},
+		}
+		bucketValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
-	if val := obj.GetAttr("key"); val.IsNull() || val.AsString() == "" {
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid key value",
-			`The "key" attribute value must not be empty.`,
-			cty.Path{cty.GetAttrStep{Name: "key"}},
-		))
-	} else if strings.HasPrefix(val.AsString(), "/") || strings.HasSuffix(val.AsString(), "/") {
-		// S3 will strip leading slashes from an object, so while this will
-		// technically be accepted by S3, it will break our workspace hierarchy.
-		// S3 will recognize objects with a trailing slash as a directory
-		// so they should not be valid keys
-		diags = diags.Append(tfdiags.AttributeValue(
-			tfdiags.Error,
-			"Invalid key value",
-			`The "key" attribute value must not start or end with with "/".`,
-			cty.Path{cty.GetAttrStep{Name: "key"}},
-		))
+	attrPath = cty.GetAttrPath("key")
+	if val := obj.GetAttr("key"); val.IsNull() {
+		diags = diags.Append(requiredAttributeErrDiag(attrPath))
+	} else {
+		keyValidators := validateString{
+			Validators: []stringValidator{
+				validateStringNotEmpty,
+				validateStringS3Path,
+			},
+		}
+		keyValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	// Not updating region handling, because validation will be handled by `aws-sdk-go-base` once it is updated
 	if val := obj.GetAttr("region"); val.IsNull() || val.AsString() == "" {
 		if os.Getenv("AWS_REGION") == "" && os.Getenv("AWS_DEFAULT_REGION") == "" {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Missing region value",
 				`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
-				cty.Path{cty.GetAttrStep{Name: "region"}},
+				cty.GetAttrPath("region"),
 			))
 		}
 	}
 
-	if val := obj.GetAttr("kms_key_id"); !val.IsNull() && val.AsString() != "" {
-		if val := obj.GetAttr("sse_customer_key"); !val.IsNull() && val.AsString() != "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid encryption configuration",
-				encryptionKeyConflictError,
-				cty.Path{},
-			))
-		} else if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid encryption configuration",
-				encryptionKeyConflictEnvVarError,
-				cty.Path{},
-			))
-		}
+	validateAttributesConflict(
+		cty.GetAttrPath("kms_key_id"),
+		cty.GetAttrPath("sse_customer_key"),
+	)(obj, cty.Path{}, &diags)
 
-		diags = diags.Append(validateKMSKey(cty.Path{cty.GetAttrStep{Name: "kms_key_id"}}, val.AsString()))
+	attrPath = cty.GetAttrPath("kms_key_id")
+	if val := obj.GetAttr("kms_key_id"); !val.IsNull() {
+		kmsKeyIDValidators := validateString{
+			Validators: []stringValidator{
+				validateStringKMSKey,
+			},
+		}
+		kmsKeyIDValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
+	attrPath = cty.GetAttrPath("workspace_key_prefix")
 	if val := obj.GetAttr("workspace_key_prefix"); !val.IsNull() {
-		if v := val.AsString(); strings.HasPrefix(v, "/") || strings.HasSuffix(v, "/") {
-			diags = diags.Append(tfdiags.AttributeValue(
-				tfdiags.Error,
-				"Invalid workspace_key_prefix value",
-				`The "workspace_key_prefix" attribute value must not start with "/".`,
-				cty.Path{cty.GetAttrStep{Name: "workspace_key_prefix"}},
-			))
+		keyPrefixValidators := validateString{
+			Validators: []stringValidator{
+				validateStringS3Path,
+			},
 		}
+		keyPrefixValidators.ValidateAttr(val, attrPath, &diags)
 	}
 
 	var assumeRoleDeprecatedFields = map[string]string{
@@ -324,7 +317,7 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 	}
 
 	if val := obj.GetAttr("assume_role"); !val.IsNull() {
-		diags = diags.Append(prepareAssumeRoleConfig(val, cty.Path{cty.GetAttrStep{Name: "assume_role"}}))
+		diags = diags.Append(prepareAssumeRoleConfig(val, cty.GetAttrPath("assume_role")))
 
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
 			diags = diags.Append(tfdiags.WholeContainingBody(
@@ -401,7 +394,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 				tfdiags.Error,
 				"Invalid region value",
 				err.Error(),
-				cty.Path{cty.GetAttrStep{Name: "region"}},
+				cty.GetAttrPath("region"),
 			))
 			return diags
 		}
@@ -415,13 +408,22 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.kmsKeyID = stringAttr(obj, "kms_key_id")
 	b.ddbTable = stringAttr(obj, "dynamodb_table")
 
+	if _, ok := stringAttrOk(obj, "kms_key_id"); ok {
+		if customerKey := os.Getenv("AWS_SSE_CUSTOMER_KEY"); customerKey != "" {
+			diags = diags.Append(wholeBodyErrDiag(
+				"Invalid encryption configuration",
+				encryptionKeyConflictEnvVarError,
+			))
+		}
+	}
+
 	if customerKey, ok := stringAttrOk(obj, "sse_customer_key"); ok {
 		if len(customerKey) != 44 {
 			diags = diags.Append(tfdiags.AttributeValue(
 				tfdiags.Error,
 				"Invalid sse_customer_key value",
 				"sse_customer_key must be 44 characters in length",
-				cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+				cty.GetAttrPath("sse_customer_key"),
 			))
 		} else {
 			var err error
@@ -430,7 +432,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 					tfdiags.Error,
 					"Invalid sse_customer_key value",
 					fmt.Sprintf("sse_customer_key must be base64 encoded: %s", err),
-					cty.Path{cty.GetAttrStep{Name: "sse_customer_key"}},
+					cty.GetAttrPath("sse_customer_key"),
 				))
 			}
 		}
@@ -667,12 +669,6 @@ func intAttrDefault(obj cty.Value, name string, def int) int {
 		return v
 	}
 }
-
-const encryptionKeyConflictError = `Only one of "kms_key_id" and "sse_customer_key" can be set.
-
-The "kms_key_id" is used for encryption with KMS-Managed Keys (SSE-KMS)
-while "sse_customer_key" is used for encryption with customer-managed keys (SSE-C).
-Please choose one or the other.`
 
 const encryptionKeyConflictEnvVarError = `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set.
 

@@ -18,7 +18,7 @@ import (
 func TestValidateKMSKey(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		in       string
@@ -99,7 +99,7 @@ func TestValidateKMSKey(t *testing.T) {
 func TestValidateKeyARN(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		in       string
@@ -164,7 +164,7 @@ func TestValidateStringLenBetween(t *testing.T) {
 	t.Parallel()
 
 	const min, max = 2, 5
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val      string
@@ -215,7 +215,7 @@ func TestValidateStringLenBetween(t *testing.T) {
 func TestValidateStringMatches(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val      string
@@ -258,7 +258,7 @@ func TestValidateStringMatches(t *testing.T) {
 func TestValidateARN(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val       string
@@ -329,7 +329,7 @@ func arnParseError(s string) error {
 func TestValidateIAMPolicyDocument(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val      string
@@ -412,7 +412,7 @@ The string content was valid JSON, your policy document may have been double-enc
 func TestValidateSetStringElements(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val       cty.Value
@@ -475,7 +475,7 @@ func TestValidateSetStringElements(t *testing.T) {
 // func TestValidateStringSetValues(t *testing.T) {
 // 	t.Parallel()
 
-// 	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+// 	path := cty.GetAttrPath("field")
 
 // 	testcases := map[string]struct {
 // 		val       []string
@@ -538,7 +538,7 @@ func TestValidateSetStringElements(t *testing.T) {
 func TestValidateDuration(t *testing.T) {
 	t.Parallel()
 
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val       string
@@ -610,7 +610,7 @@ func TestValidateDurationBetween(t *testing.T) {
 	t.Parallel()
 
 	const min, max = 15 * time.Minute, 12 * time.Hour
-	path := cty.Path{cty.GetAttrStep{Name: "field"}}
+	path := cty.GetAttrPath("field")
 
 	testcases := map[string]struct {
 		val      time.Duration
