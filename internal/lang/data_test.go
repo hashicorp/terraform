@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package lang
 
@@ -21,6 +21,7 @@ type dataForTests struct {
 	TerraformAttrs map[string]cty.Value
 	InputVariables map[string]cty.Value
 	CheckBlocks    map[string]cty.Value
+	RunBlocks      map[string]cty.Value
 }
 
 var _ Data = &dataForTests{}
@@ -73,4 +74,8 @@ func (d *dataForTests) GetOutput(addr addrs.OutputValue, rng tfdiags.SourceRange
 
 func (d *dataForTests) GetCheckBlock(addr addrs.Check, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
 	return d.CheckBlocks[addr.Name], nil
+}
+
+func (d *dataForTests) GetRunBlock(addr addrs.Run, rng tfdiags.SourceRange) (cty.Value, tfdiags.Diagnostics) {
+	return d.RunBlocks[addr.Name], nil
 }

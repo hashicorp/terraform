@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package s3
 
 import (
@@ -19,16 +22,4 @@ func diagnosticComparer(l, r tfdiags.Diagnostic) bool {
 		return false
 	}
 	return lp.Equals(rp)
-}
-
-// diagnosticSummaryComparer is a Comparer function for use with cmp.Diff to compare
-// the Severity and Summary fields two tfdiags.Diagnostic values
-func diagnosticSummaryComparer(l, r tfdiags.Diagnostic) bool {
-	if l.Severity() != r.Severity() {
-		return false
-	}
-
-	ld := l.Description()
-	rd := r.Description()
-	return ld.Summary == rd.Summary
 }

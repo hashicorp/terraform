@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package s3
 
@@ -18,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/go-cmp/cmp"
 	awsbase "github.com/hashicorp/aws-sdk-go-base"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
@@ -25,6 +27,7 @@ import (
 	"github.com/hashicorp/terraform/internal/states/remote"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"golang.org/x/exp/maps"
 )
 
 var (
@@ -116,7 +119,7 @@ func TestBackendConfig_InvalidRegion(t *testing.T) {
 					tfdiags.Error,
 					"Invalid region value",
 					`Invalid AWS Region: nonesuch`,
-					cty.Path{cty.GetAttrStep{Name: "region"}},
+					cty.GetAttrPath("region"),
 				),
 			},
 		},
@@ -199,24 +202,34 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 	testACC(t)
 
 	cases := map[string]struct {
-		config   map[string]any
-		vars     map[string]string
-		expected string
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expected: "",
+			expectedEndpoint: "",
 		},
 		"config": {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
 		},
 		"envvar": {
 			vars: map[string]string{
+				"AWS_ENDPOINT_URL_DYNAMODB": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
 				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
 			},
-			expected: "dynamo.test",
+			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+			},
 		},
 	}
 
@@ -245,9 +258,14 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 				}
 			}
 
-			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.dynClient.Config, tc.expected)
+			checkClientEndpoint(t, b.dynClient.Config, tc.expectedEndpoint)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
 		})
 	}
 }
@@ -256,24 +274,34 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 	testACC(t)
 
 	cases := map[string]struct {
-		config   map[string]any
-		vars     map[string]string
-		expected string
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
 	}{
 		"none": {
-			expected: "",
+			expectedEndpoint: "",
 		},
 		"config": {
 			config: map[string]any{
 				"endpoint": "s3.test",
 			},
-			expected: "s3.test",
+			expectedEndpoint: "s3.test",
 		},
 		"envvar": {
 			vars: map[string]string{
+				"AWS_ENDPOINT_URL_S3": "s3.test",
+			},
+			expectedEndpoint: "s3.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
 				"AWS_S3_ENDPOINT": "s3.test",
 			},
-			expected: "s3.test",
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
+			},
 		},
 	}
 
@@ -302,94 +330,12 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 				}
 			}
 
-			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			b := raw.(*Backend)
 
-			checkClientEndpoint(t, b.s3Client.Config, tc.expected)
-		})
-	}
-}
+			checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
 
-func TestBackendConfig_STSEndpoint(t *testing.T) {
-	testACC(t)
-
-	stsMocks := []*awsbase.MockEndpoint{
-		{
-			Request: &awsbase.MockRequest{Method: "POST", Uri: "/", Body: url.Values{
-				"Action":          []string{"AssumeRole"},
-				"DurationSeconds": []string{"900"},
-				"RoleArn":         []string{awsbase.MockStsAssumeRoleArn},
-				"RoleSessionName": []string{awsbase.MockStsAssumeRoleSessionName},
-				"Version":         []string{"2011-06-15"},
-			}.Encode()},
-			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsAssumeRoleValidResponseBody, ContentType: "text/xml"},
-		},
-		{
-			Request:  &awsbase.MockRequest{Method: "POST", Uri: "/", Body: mockStsGetCallerIdentityRequestBody},
-			Response: &awsbase.MockResponse{StatusCode: 200, Body: awsbase.MockStsGetCallerIdentityValidResponseBody, ContentType: "text/xml"},
-		},
-	}
-
-	cases := map[string]struct {
-		setConfig     bool
-		setEnvVars    bool
-		expectedDiags tfdiags.Diagnostics
-	}{
-		"none": {
-			expectedDiags: tfdiags.Diagnostics{
-				tfdiags.Sourceless(
-					tfdiags.Error,
-					"Failed to configure AWS client",
-					``,
-				),
-			},
-		},
-		"config": {
-			setConfig: true,
-		},
-		"envvar": {
-			setEnvVars: true,
-		},
-	}
-
-	for name, tc := range cases {
-		t.Run(name, func(t *testing.T) {
-			config := map[string]interface{}{
-				"region":       "us-west-1",
-				"bucket":       "tf-test",
-				"key":          "state",
-				"role_arn":     awsbase.MockStsAssumeRoleArn,
-				"session_name": awsbase.MockStsAssumeRoleSessionName,
-			}
-
-			closeSts, mockStsSession, err := awsbase.GetMockedAwsApiSession("STS", stsMocks)
-			if err != nil {
-				t.Fatalf("unexpected error creating mock STS server: %s", err)
-			}
-			defer closeSts()
-
-			if tc.setEnvVars {
-				os.Setenv("AWS_STS_ENDPOINT", aws.StringValue(mockStsSession.Config.Endpoint))
-				t.Cleanup(func() {
-					os.Unsetenv("AWS_STS_ENDPOINT")
-				})
-			}
-
-			if tc.setConfig {
-				config["sts_endpoint"] = aws.StringValue(mockStsSession.Config.Endpoint)
-			}
-
-			b := New()
-			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
-
-			configSchema, diags := b.PrepareConfig(configSchema)
-			if len(diags) > 0 {
-				t.Fatal(diags.ErrWithWarnings())
-			}
-
-			confDiags := b.Configure(configSchema)
-			diags = diags.Append(confDiags)
-
-			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticSummaryComparer)); diff != "" {
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
 				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
@@ -636,8 +582,8 @@ func TestBackendConfig_AssumeRole(t *testing.T) {
 
 func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 	cases := map[string]struct {
-		config      cty.Value
-		expectedErr string
+		config        cty.Value
+		expectedDiags tfdiags.Diagnostics
 	}{
 		"null bucket": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -645,7 +591,9 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "bucket" attribute value must not be empty.`,
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath("bucket")),
+			},
 		},
 		"empty bucket": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -653,15 +601,24 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "bucket" attribute value must not be empty.`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"The value cannot be empty or all whitespace",
+					cty.GetAttrPath("bucket"),
+				),
+			},
 		},
+
 		"null key": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"bucket": cty.StringVal("test"),
 				"key":    cty.NullVal(cty.String),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "key" attribute value must not be empty.`,
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(cty.GetAttrPath("key")),
+			},
 		},
 		"empty key": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -669,7 +626,13 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal(""),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "key" attribute value must not be empty.`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					"The value cannot be empty or all whitespace",
+					cty.GetAttrPath("key"),
+				),
+			},
 		},
 		"key with leading slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -677,7 +640,13 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("/leading-slash"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "key" attribute value must not start or end with with "/".`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/"`,
+					cty.GetAttrPath("key"),
+				),
+			},
 		},
 		"key with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -685,15 +654,28 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("trailing-slash/"),
 				"region": cty.StringVal("us-west-2"),
 			}),
-			expectedErr: `The "key" attribute value must not start or end with with "/".`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/"`,
+					cty.GetAttrPath("key"),
+				),
+			},
 		},
+
 		"null region": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"bucket": cty.StringVal("test"),
 				"key":    cty.StringVal("test"),
 				"region": cty.NullVal(cty.String),
 			}),
-			expectedErr: `The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Missing region value",
+					`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
+					cty.GetAttrPath("region"),
+				),
+			},
 		},
 		"empty region": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -701,8 +683,15 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"key":    cty.StringVal("test"),
 				"region": cty.StringVal(""),
 			}),
-			expectedErr: `The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Missing region value",
+					`The "region" attribute or the "AWS_REGION" or "AWS_DEFAULT_REGION" environment variables must be set.`,
+					cty.GetAttrPath("region"),
+				),
+			},
 		},
+
 		"workspace_key_prefix with leading slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"bucket":               cty.StringVal("test"),
@@ -710,7 +699,13 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region":               cty.StringVal("us-west-2"),
 				"workspace_key_prefix": cty.StringVal("/env"),
 			}),
-			expectedErr: `The "workspace_key_prefix" attribute value must not start with "/".`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/"`,
+					cty.GetAttrPath("workspace_key_prefix"),
+				),
+			},
 		},
 		"workspace_key_prefix with trailing slash": {
 			config: cty.ObjectVal(map[string]cty.Value{
@@ -719,8 +714,15 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region":               cty.StringVal("us-west-2"),
 				"workspace_key_prefix": cty.StringVal("env/"),
 			}),
-			expectedErr: `The "workspace_key_prefix" attribute value must not start with "/".`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value must not start or end with "/"`,
+					cty.GetAttrPath("workspace_key_prefix"),
+				),
+			},
 		},
+
 		"encyrption key conflict": {
 			config: cty.ObjectVal(map[string]cty.Value{
 				"bucket":               cty.StringVal("test"),
@@ -728,9 +730,15 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				"region":               cty.StringVal("us-west-2"),
 				"workspace_key_prefix": cty.StringVal("env"),
 				"sse_customer_key":     cty.StringVal("1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o="),
-				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"),
+				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab"),
 			}),
-			expectedErr: `Only one of "kms_key_id" and "sse_customer_key" can be set`,
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of kms_key_id, sse_customer_key can be set.`,
+					cty.Path{},
+				),
+			},
 		},
 	}
 
@@ -742,17 +750,9 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 			b := New()
 
 			_, valDiags := b.PrepareConfig(populateSchema(t, b.ConfigSchema(), tc.config))
-			if tc.expectedErr != "" {
-				if valDiags.Err() != nil {
-					actualErr := valDiags.Err().Error()
-					if !strings.Contains(actualErr, tc.expectedErr) {
-						t.Fatalf("unexpected validation result: %v", valDiags.Err())
-					}
-				} else {
-					t.Fatal("expected an error, got none")
-				}
-			} else if valDiags.Err() != nil {
-				t.Fatalf("expected no error, got %s", valDiags.Err())
+
+			if diff := cmp.Diff(valDiags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
 			}
 		})
 	}
@@ -783,19 +783,6 @@ func TestBackendConfig_PrepareConfigWithEnvVars(t *testing.T) {
 			vars: map[string]string{
 				"AWS_DEFAULT_REGION": "us-west-1",
 			},
-		},
-		"encyrption key conflict": {
-			config: cty.ObjectVal(map[string]cty.Value{
-				"bucket":               cty.StringVal("test"),
-				"key":                  cty.StringVal("test"),
-				"region":               cty.StringVal("us-west-2"),
-				"workspace_key_prefix": cty.StringVal("env"),
-				"kms_key_id":           cty.StringVal("arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"),
-			}),
-			vars: map[string]string{
-				"AWS_SSE_CUSTOMER_KEY": "1hwbcNPGWL+AwDiyGmRidTWAEVmCWMKbEHA+Es8w75o=",
-			},
-			expectedErr: `Only one of "kms_key_id" and the environment variable "AWS_SSE_CUSTOMER_KEY" can be set`,
 		},
 	}
 
@@ -877,125 +864,195 @@ func TestBackendLocked(t *testing.T) {
 	backend.TestBackendStateForceUnlock(t, b1, b2)
 }
 
-func TestBackendSSECustomerKeyConfig(t *testing.T) {
+func TestBackendKmsKeyId(t *testing.T) {
 	testACC(t)
 
 	testCases := map[string]struct {
-		customerKey string
-		expectedErr string
+		config        map[string]any
+		expectedKeyId string
+		expectedDiags tfdiags.Diagnostics
 	}{
-		"invalid length": {
-			customerKey: "test",
-			expectedErr: `sse_customer_key must be 44 characters in length`,
-		},
-		"invalid encoding": {
-			customerKey: "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-			expectedErr: `sse_customer_key must be base64 encoded`,
-		},
 		"valid": {
-			customerKey: "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			config: map[string]any{
+				"kms_key_id": "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+			},
+			expectedKeyId: "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+		},
+
+		"invalid": {
+			config: map[string]any{
+				"kms_key_id": "not-an-arn",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid KMS Key ID",
+					`Value must be a valid KMS Key ID, got "not-an-arn"`,
+					cty.GetAttrPath("kms_key_id"),
+				),
+			},
 		},
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-
+	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-			config := map[string]interface{}{
-				"bucket":           bucketName,
-				"encrypt":          true,
-				"key":              "test-SSE-C",
-				"sse_customer_key": testCase.customerKey,
-				"region":           "us-west-1",
+			config := map[string]any{
+				"bucket":  bucketName,
+				"encrypt": true,
+				"key":     "test-SSE-KMS",
+				"region":  "us-west-1",
 			}
+			maps.Copy(config, tc.config)
 
 			b := New().(*Backend)
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config)))
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
 
-			if testCase.expectedErr != "" {
-				if diags.Err() != nil {
-					actualErr := diags.Err().Error()
-					if !strings.Contains(actualErr, testCase.expectedErr) {
-						t.Fatalf("unexpected validation result: %v", diags.Err())
-					}
-				} else {
-					t.Fatal("expected an error, got none")
-				}
-			} else {
-				if diags.Err() != nil {
-					t.Fatalf("expected no error, got %s", diags.Err())
-				}
-				if string(b.customerEncryptionKey) != string(must(base64.StdEncoding.DecodeString(testCase.customerKey))) {
-					t.Fatal("unexpected value for customer encryption key")
-				}
+			configSchema, diags := b.PrepareConfig(configSchema)
 
-				createS3Bucket(t, b.s3Client, bucketName)
-				defer deleteS3Bucket(t, b.s3Client, bucketName)
+			if !diags.HasErrors() {
+				confDiags := b.Configure(configSchema)
+				diags = diags.Append(confDiags)
+			}
 
-				backend.TestBackendStates(t, b)
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Fatalf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if tc.expectedKeyId != "" {
+				if string(b.kmsKeyID) != tc.expectedKeyId {
+					t.Fatal("unexpected value for KMS key Id")
+				}
 			}
 		})
 	}
 }
 
-func TestBackendSSECustomerKeyEnvVar(t *testing.T) {
+func TestBackendSSECustomerKey(t *testing.T) {
 	testACC(t)
 
 	testCases := map[string]struct {
-		customerKey string
-		expectedErr string
+		config               map[string]any
+		environmentVariables map[string]string
+		expectedKey          string
+		expectedDiags        tfdiags.Diagnostics
 	}{
-		"invalid length": {
-			customerKey: "test",
-			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
+		// config
+		"config valid": {
+			config: map[string]any{
+				"sse_customer_key": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedKey: string(must(base64.StdEncoding.DecodeString("4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk="))),
 		},
-		"invalid encoding": {
-			customerKey: "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
-			expectedErr: `The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded`,
+		"config invalid length": {
+			config: map[string]any{
+				"sse_customer_key": "test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid sse_customer_key value",
+					"sse_customer_key must be 44 characters in length",
+					cty.GetAttrPath("sse_customer_key"),
+				),
+			},
 		},
-		"valid": {
-			customerKey: "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+		"config invalid encoding": {
+			config: map[string]any{
+				"sse_customer_key": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid sse_customer_key value",
+					"sse_customer_key must be base64 encoded: illegal base64 data at input byte 0",
+					cty.GetAttrPath("sse_customer_key"),
+				),
+			},
+		},
+
+		// env var
+		"envvar valid": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedKey: string(must(base64.StdEncoding.DecodeString("4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk="))),
+		},
+		"envvar invalid length": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					`The environment variable "AWS_SSE_CUSTOMER_KEY" must be 44 characters in length`,
+				),
+			},
+		},
+		"envvar invalid encoding": {
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "====CT70aTYB2JGff7AjQtwbiLkwH4npICay1PWtmdka",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid AWS_SSE_CUSTOMER_KEY value",
+					`The environment variable "AWS_SSE_CUSTOMER_KEY" must be base64 encoded: illegal base64 data at input byte 0`,
+				),
+			},
+		},
+
+		// conflict
+		"config kms_key_id and envvar AWS_SSE_CUSTOMER_KEY": {
+			config: map[string]any{
+				"kms_key_id": "arn:aws:kms:us-west-2:111122223333:key/1234abcd-12ab-34cd-ab56-1234567890ab",
+			},
+			environmentVariables: map[string]string{
+				"AWS_SSE_CUSTOMER_KEY": "4Dm1n4rphuFgawxuzY/bEfvLf6rYK0gIjfaDSLlfXNk=",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				wholeBodyErrDiag(
+					"Invalid encryption configuration",
+					encryptionKeyConflictEnvVarError,
+				),
+			},
 		},
 	}
 
-	for name, testCase := range testCases {
-		testCase := testCase
-
+	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			bucketName := fmt.Sprintf("terraform-remote-s3-test-%x", time.Now().Unix())
-			config := map[string]interface{}{
+			config := map[string]any{
 				"bucket":  bucketName,
 				"encrypt": true,
 				"key":     "test-SSE-C",
 				"region":  "us-west-1",
 			}
+			maps.Copy(config, tc.config)
 
-			os.Setenv("AWS_SSE_CUSTOMER_KEY", testCase.customerKey)
-			t.Cleanup(func() {
-				os.Unsetenv("AWS_SSE_CUSTOMER_KEY")
-			})
+			oldEnv := os.Environ() // For now, save without clearing
+			defer popEnv(oldEnv)
+			for k, v := range tc.environmentVariables {
+				os.Setenv(k, v)
+			}
 
 			b := New().(*Backend)
-			diags := b.Configure(populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config)))
+			configSchema := populateSchema(t, b.ConfigSchema(), hcl2shim.HCL2ValueFromConfigValue(config))
 
-			if testCase.expectedErr != "" {
-				if diags.Err() != nil {
-					actualErr := diags.Err().Error()
-					if !strings.Contains(actualErr, testCase.expectedErr) {
-						t.Fatalf("unexpected validation result: %v", diags.Err())
-					}
-				} else {
-					t.Fatal("expected an error, got none")
-				}
-			} else {
-				if diags.Err() != nil {
-					t.Fatalf("expected no error, got %s", diags.Err())
-				}
-				if string(b.customerEncryptionKey) != string(must(base64.StdEncoding.DecodeString(testCase.customerKey))) {
+			configSchema, diags := b.PrepareConfig(configSchema)
+
+			if !diags.HasErrors() {
+				confDiags := b.Configure(configSchema)
+				diags = diags.Append(confDiags)
+			}
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Fatalf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if tc.expectedKey != "" {
+				if string(b.customerEncryptionKey) != tc.expectedKey {
 					t.Fatal("unexpected value for customer encryption key")
 				}
+			}
 
+			if !diags.HasErrors() {
 				createS3Bucket(t, b.s3Client, bucketName)
 				defer deleteS3Bucket(t, b.s3Client, bucketName)
 
@@ -1233,6 +1290,178 @@ func TestKeyEnv(t *testing.T) {
 	backend.TestBackendStates(t, b2)
 }
 
+func TestAssumeRole_PrepareConfigValidation(t *testing.T) {
+	path := cty.GetAttrPath("field")
+
+	cases := map[string]struct {
+		config        map[string]cty.Value
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"basic": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+			},
+		},
+
+		"invalid ARN": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("not an arn"),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid ARN",
+					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
+					path.GetAttr("role_arn"),
+				),
+			},
+		},
+
+		"no role_arn": {
+			config: map[string]cty.Value{},
+			expectedDiags: tfdiags.Diagnostics{
+				requiredAttributeErrDiag(path.GetAttr("role_arn")),
+			},
+		},
+
+		"with duration": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"duration": cty.StringVal("2h"),
+			},
+		},
+
+		"invalid duration": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"duration": cty.StringVal("two hours"),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Duration",
+					`The value "two hours" cannot be parsed as a duration: time: invalid duration "two hours"`,
+					path.GetAttr("duration"),
+				),
+			},
+		},
+
+		"with external_id": {
+			config: map[string]cty.Value{
+				"role_arn":    cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"external_id": cty.StringVal("external-id"),
+			},
+		},
+
+		"empty external_id": {
+			config: map[string]cty.Value{
+				"role_arn":    cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"external_id": cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value Length",
+					`Length must be between 2 and 1224, had 0`,
+					path.GetAttr("external_id"),
+				),
+			},
+		},
+
+		"with policy": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy":   cty.StringVal("{}"),
+			},
+		},
+
+		"invalid policy": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy":   cty.StringVal(""),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Value",
+					`The value cannot be empty or all whitespace`,
+					path.GetAttr("policy"),
+				),
+			},
+		},
+
+		"with policy_arns": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy_arns": cty.SetVal([]cty.Value{
+					cty.StringVal("arn:aws:iam::123456789012:policy/testpolicy"),
+				}),
+			},
+		},
+
+		"invalid policy_arns": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"policy_arns": cty.SetVal([]cty.Value{
+					cty.StringVal("not an arn"),
+				}),
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid ARN",
+					`The value "not an arn" cannot be parsed as an ARN: arn: invalid prefix`,
+					path.GetAttr("policy_arns").IndexString("not an arn"),
+				),
+			},
+		},
+
+		"with session_name": {
+			config: map[string]cty.Value{
+				"role_arn":     cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"session_name": cty.StringVal("session-name"),
+			},
+		},
+
+		// NOT SUPPORTED by `aws-sdk-go-base/v1`
+		// "source_identity"
+
+		"with tags": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"tags": cty.MapVal(map[string]cty.Value{
+					"tag-key": cty.StringVal("tag-value"),
+				}),
+			},
+		},
+
+		"with transitive_tag_keys": {
+			config: map[string]cty.Value{
+				"role_arn": cty.StringVal("arn:aws:iam::123456789012:role/testrole"),
+				"transitive_tag_keys": cty.SetVal([]cty.Value{
+					cty.StringVal("tag-key"),
+				}),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			schema := assumeRoleFullSchema()
+			vals := make(map[string]cty.Value, len(schema))
+			for name, attrSchema := range schema {
+				if val, ok := tc.config[name]; ok {
+					vals[name] = val
+				} else {
+					vals[name] = cty.NullVal(attrSchema.SchemaAttribute().Type)
+				}
+			}
+			config := cty.ObjectVal(vals)
+
+			diags := prepareAssumeRoleConfig(config, path)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
 func testGetWorkspaceForKey(b *Backend, key string, expected string) error {
 	if actual := b.keyEnv(key); actual != expected {
 		return fmt.Errorf("incorrect workspace for key[%q]. Expected[%q]: Actual[%q]", key, expected, actual)
@@ -1455,4 +1684,40 @@ func must[T any](v T, err error) T {
 	} else {
 		return v
 	}
+}
+
+// testBackendConfigDiags is an equivalent to `backend.TestBackendConfig` which returns the diags to the caller
+// instead of failing the test
+func testBackendConfigDiags(t *testing.T, b backend.Backend, c hcl.Body) (backend.Backend, tfdiags.Diagnostics) {
+	t.Helper()
+
+	t.Logf("TestBackendConfig on %T with %#v", b, c)
+
+	var diags tfdiags.Diagnostics
+
+	// To make things easier for test authors, we'll allow a nil body here
+	// (even though that's not normally valid) and just treat it as an empty
+	// body.
+	if c == nil {
+		c = hcl.EmptyBody()
+	}
+
+	schema := b.ConfigSchema()
+	spec := schema.DecoderSpec()
+	obj, decDiags := hcldec.Decode(c, spec, nil)
+	diags = diags.Append(decDiags)
+
+	newObj, valDiags := b.PrepareConfig(obj)
+	diags = diags.Append(valDiags.InConfigBody(c, ""))
+
+	// it's valid for a Backend to have warnings (e.g. a Deprecation) as such we should only raise on errors
+	if diags.HasErrors() {
+		return b, diags
+	}
+
+	obj = newObj
+
+	confDiags := b.Configure(obj)
+
+	return b, diags.Append(confDiags)
 }

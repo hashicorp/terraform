@@ -3,6 +3,9 @@ variables {
 }
 
 run "test" {
+
+  command = plan
+
   expect_failures = [
     output.output
   ]

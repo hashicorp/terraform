@@ -73,12 +73,12 @@ jobs:
         uses: hashicorp/actions-packaging-linux@v1
         with:
           name: "terraform"
-          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is an open source tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
+          description: "Terraform enables you to safely and predictably create, change, and improve infrastructure. It is a tool that codifies APIs into declarative configuration files that can be shared amongst team members, treated as code, edited, reviewed, and versioned."
           arch: ${{ inputs.goarch }}
           version: ${{ inputs.product-version }}
           maintainer: "HashiCorp"
           homepage: "https://terraform.io/"
-          license: "MPL-2.0"
+          license: "BUSL-1.1"
           binary: "dist/terraform"
           deb_depends: "git"
           rpm_depends: "git"

@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -208,6 +208,14 @@ func (m *MockConfigurationVersions) Create(ctx context.Context, workspaceID stri
 		ID:        id,
 		Status:    tfe.ConfigurationPending,
 		UploadURL: url,
+	}
+
+	if options.Provisional != nil && *options.Provisional {
+		cv.Provisional = true
+	}
+
+	if options.Speculative != nil && *options.Speculative {
+		cv.Speculative = true
 	}
 
 	m.configVersions[cv.ID] = cv

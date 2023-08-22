@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -469,7 +469,7 @@ func TestCloud_applyWithCloudPlan(t *testing.T) {
 	pf := &cloudplan.SavedPlanBookmark{
 		RemotePlanFormat: 1,
 		RunID:            planRun.ID,
-		Hostname:         b.hostname,
+		Hostname:         b.Hostname,
 	}
 	op.PlanFile = planfile.NewWrappedCloud(pf)
 

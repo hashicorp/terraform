@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package command
 
@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
 	hcljson "github.com/hashicorp/hcl/v2/json"
+
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/terraform"
@@ -264,5 +265,24 @@ func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariablePar
 	return &terraform.InputValue{
 		Value:      val,
 		SourceType: v.sourceType,
+	}, diags
+}
+
+type unparsedTestVariableValue struct {
+	expr hcl.Expression
+	ctx  *hcl.EvalContext
+}
+
+func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	val, hclDiags := v.expr.Value(v.ctx) // nil because no function calls or variable references are allowed here
+	diags = diags.Append(hclDiags)
+
+	rng := tfdiags.SourceRangeFromHCL(v.expr.Range())
+
+	return &terraform.InputValue{
+		Value:       val,
+		SourceType:  terraform.ValueFromConfig, // Test variables always come from config.
+		SourceRange: rng,
 	}, diags
 }

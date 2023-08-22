@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -9,6 +12,7 @@ import (
 	ctymsgpack "github.com/zclconf/go-cty/cty/msgpack"
 
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/moduletest"
 	"github.com/hashicorp/terraform/internal/plans"
@@ -17,12 +21,14 @@ import (
 	"github.com/hashicorp/terraform/internal/tfdiags"
 )
 
-func TestTestContext_EvaluateAgainstState(t *testing.T) {
+func TestTestContext_Evaluate(t *testing.T) {
 	tcs := map[string]struct {
-		configs   map[string]string
-		state     *states.State
-		variables InputValues
-		provider  *MockProvider
+		configs     map[string]string
+		state       *states.State
+		plan        *plans.Plan
+		variables   InputValues
+		provider    *MockProvider
+		priorStates map[string]func(config *configs.Config) *TestContext
 
 		expectedDiags  []tfdiags.Description
 		expectedStatus moduletest.Status
@@ -42,6 +48,9 @@ run "test_case" {
 	}
 }
 `,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -103,6 +112,9 @@ run "test_case" {
 }
 `,
 			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -159,6 +171,9 @@ run "test_case" {
 	}
 }
 `,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
 			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
@@ -223,6 +238,9 @@ run "test_case" {
 }
 `,
 			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
 			state: states.BuildState(func(state *states.SyncState) {
 				state.SetResourceInstanceCurrent(
 					addrs.Resource{
@@ -269,45 +287,95 @@ run "test_case" {
 				},
 			},
 		},
-	}
-	for name, tc := range tcs {
-		t.Run(name, func(t *testing.T) {
-			config := testModuleInline(t, tc.configs)
-			ctx := testContext2(t, &ContextOpts{
-				Providers: map[addrs.Provider]providers.Factory{
-					addrs.NewDefaultProvider("test"): testProviderFuncFixed(tc.provider),
-				},
-			})
-
-			run := moduletest.Run{
-				Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
-				Name:   "test_case",
-			}
-
-			tctx := ctx.TestContext(config, tc.state, &plans.Plan{}, tc.variables)
-			tctx.EvaluateAgainstState(&run)
-
-			if expected, actual := tc.expectedStatus, run.Status; expected != actual {
-				t.Errorf("expected status \"%s\" but got \"%s\"", expected, actual)
-			}
-
-			compareDiagnosticsFromTestResult(t, tc.expectedDiags, run.Diagnostics)
-		})
-	}
+		"sensitive_variables": {
+			configs: map[string]string{
+				"main.tf": `
+variable "input" {
+  type = string
+  sensitive = true
 }
+`,
+				"main.tftest.hcl": `
+run "test" {
+  variables {
+    input = "Hello, world!"
+  }
 
-func TestTestContext_EvaluateAgainstPlan(t *testing.T) {
-	tcs := map[string]struct {
-		configs   map[string]string
-		state     *states.State
-		plan      *plans.Plan
-		variables InputValues
-		provider  *MockProvider
+  assert {
+    condition = var.input == "Hello, world!"
+    error_message = "bad"
+  }
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.NewState(),
+			variables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("Hello, world!"),
+					SourceType: ValueFromConfig,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "main.tftest.hcl",
+						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
+						End:      tfdiags.SourcePos{Line: 3, Column: 28, Byte: 27},
+					},
+				},
+			},
+			provider:       &MockProvider{},
+			expectedStatus: moduletest.Pass,
+			expectedDiags:  []tfdiags.Description{},
+		},
+		"sensitive_variables_fail": {
+			configs: map[string]string{
+				"main.tf": `
+variable "input" {
+  type = string
+  sensitive = true
+}
+`,
+				"main.tftest.hcl": `
+run "test" {
+  variables {
+    input = "Hello, world!"
+  }
 
-		expectedDiags  []tfdiags.Description
-		expectedStatus moduletest.Status
-	}{
-		"basic_passing": {
+  assert {
+    condition = var.input == "Hello, universe!"
+    error_message = "bad ${var.input}"
+  }
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.NewState(),
+			variables: InputValues{
+				"input": &InputValue{
+					Value:      cty.StringVal("Hello, world!"),
+					SourceType: ValueFromConfig,
+					SourceRange: tfdiags.SourceRange{
+						Filename: "main.tftest.hcl",
+						Start:    tfdiags.SourcePos{Line: 3, Column: 13, Byte: 12},
+						End:      tfdiags.SourcePos{Line: 3, Column: 28, Byte: 27},
+					},
+				},
+			},
+			provider:       &MockProvider{},
+			expectedStatus: moduletest.Fail,
+			expectedDiags: []tfdiags.Description{
+				{
+					Summary: "Error message refers to sensitive values",
+					Detail:  "The error expression used to explain this condition refers to sensitive values, so Terraform will not display the resulting message.\n\nYou can correct this by removing references to sensitive values, or by carefully using the nonsensitive() function if the expression will not reveal the sensitive data.",
+				},
+				{
+					Summary: "Test assertion failed",
+				},
+			},
+		},
+		"basic_passing_with_plan": {
 			configs: map[string]string{
 				"main.tf": `
 resource "test_resource" "a" {
@@ -316,6 +384,8 @@ resource "test_resource" "a" {
 `,
 				"main.tftest.hcl": `
 run "test_case" {
+	command = plan
+
 	assert {
 		condition = test_resource.a.value == "Hello, world!"
 		error_message = "invalid value"
@@ -383,7 +453,7 @@ run "test_case" {
 			},
 			expectedStatus: moduletest.Pass,
 		},
-		"basic_failing": {
+		"basic_failing_with_plan": {
 			configs: map[string]string{
 				"main.tf": `
 resource "test_resource" "a" {
@@ -392,6 +462,8 @@ resource "test_resource" "a" {
 `,
 				"main.tftest.hcl": `
 run "test_case" {
+	command = plan
+
 	assert {
 		condition = test_resource.a.value == "incorrect!"
 		error_message = "invalid value"
@@ -465,6 +537,94 @@ run "test_case" {
 				},
 			},
 		},
+		"with_prior_state": {
+			configs: map[string]string{
+				"main.tf": `
+resource "test_resource" "a" {
+	value = "Hello, world!"
+}
+`,
+				"main.tftest.hcl": `
+run "setup" {}
+
+run "test_case" {
+	assert {
+		condition = test_resource.a.value == run.setup.value
+		error_message = "invalid value"
+	}
+}
+`,
+			},
+			plan: &plans.Plan{
+				Changes: plans.NewChanges(),
+			},
+			state: states.BuildState(func(state *states.SyncState) {
+				state.SetResourceInstanceCurrent(
+					addrs.Resource{
+						Mode: addrs.ManagedResourceMode,
+						Type: "test_resource",
+						Name: "a",
+					}.Instance(addrs.NoKey).Absolute(addrs.RootModuleInstance),
+					&states.ResourceInstanceObjectSrc{
+						Status: states.ObjectReady,
+						AttrsJSON: encodeCtyValue(t, cty.ObjectVal(map[string]cty.Value{
+							"value": cty.StringVal("Hello, world!"),
+						})),
+					},
+					addrs.AbsProviderConfig{
+						Module:   addrs.RootModule,
+						Provider: addrs.NewDefaultProvider("test"),
+					})
+			}),
+			priorStates: map[string]func(config *configs.Config) *TestContext{
+				"setup": func(config *configs.Config) *TestContext {
+					return &TestContext{
+						Context: &Context{},
+						Run: &moduletest.Run{
+							Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
+							Name:   "setup",
+						},
+						Config: &configs.Config{
+							Module: &configs.Module{
+								Outputs: map[string]*configs.Output{
+									"value": {
+										Name: "value",
+									},
+								},
+							},
+						},
+						Plan: &plans.Plan{
+							Changes: plans.NewChanges(),
+						},
+						State: states.BuildState(func(state *states.SyncState) {
+							state.SetOutputValue(addrs.AbsOutputValue{
+								Module: addrs.RootModuleInstance,
+								OutputValue: addrs.OutputValue{
+									Name: "value",
+								},
+							}, cty.StringVal("Hello, world!"), false)
+						}),
+					}
+				},
+			},
+			provider: &MockProvider{
+				GetProviderSchemaResponse: &providers.GetProviderSchemaResponse{
+					ResourceTypes: map[string]providers.Schema{
+						"test_resource": {
+							Block: &configschema.Block{
+								Attributes: map[string]*configschema.Attribute{
+									"value": {
+										Type:     cty.String,
+										Required: true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedStatus: moduletest.Pass,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -475,13 +635,19 @@ run "test_case" {
 				},
 			})
 
-			run := moduletest.Run{
-				Config: config.Module.Tests["main.tftest.hcl"].Runs[0],
-				Name:   "test_case",
+			priorStates := make(map[string]*TestContext)
+			for run, ps := range tc.priorStates {
+				priorStates[run] = ps(config)
 			}
 
-			tctx := ctx.TestContext(config, tc.state, tc.plan, tc.variables)
-			tctx.EvaluateAgainstPlan(&run)
+			file := config.Module.Tests["main.tftest.hcl"]
+			run := moduletest.Run{
+				Config: file.Runs[len(file.Runs)-1], // We always simulate the last run block.
+				Name:   "test_case",                 // and it should be named test_case
+			}
+
+			tctx := ctx.TestContext(&run, config, tc.state, tc.plan, tc.variables)
+			tctx.Evaluate(priorStates)
 
 			if expected, actual := tc.expectedStatus, run.Status; expected != actual {
 				t.Errorf("expected status \"%s\" but got \"%s\"", expected, actual)
