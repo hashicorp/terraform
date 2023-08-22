@@ -81,17 +81,17 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 					Attributes: map[string]*configschema.Attribute{
 						"dynamodb": {
 							Type:        cty.String,
-							Required:    true,
+							Optional:    true,
 							Description: "A custom endpoint for the DynamoDB API",
 						},
 						"iam": {
 							Type:        cty.String,
-							Required:    true,
+							Optional:    true,
 							Description: "A custom endpoint for the IAM API",
 						},
 						"s3": {
 							Type:        cty.String,
-							Required:    true,
+							Optional:    true,
 							Description: "A custom endpoint for the S3 API",
 						},
 					},
