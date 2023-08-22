@@ -5,7 +5,7 @@ require (
 	cloud.google.com/go/storage v1.28.1
 	github.com/Azure/azure-sdk-for-go v59.2.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.11.24
-	github.com/KscSDK/ksc-sdk-go v0.2.7
+	github.com/KscSDK/ksc-sdk-go v0.2.8
 	github.com/Netflix/go-expect v0.0.0-20220104043353-73e0943537d2
 	github.com/ProtonMail/go-crypto v0.0.0-20230619160724-3fbb1f12458c
 	github.com/agext/levenshtein v1.2.3
