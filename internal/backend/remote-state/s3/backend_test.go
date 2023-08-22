@@ -212,11 +212,9 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		},
 		"config": {
 			config: map[string]any{
-				"endpoints": map[string]any{
+				"endpoints": populateEndpoints(map[string]string{
 					"dynamodb": "dynamo.test",
-					"iam":      nil,
-					"s3":       nil,
-				},
+				}),
 			},
 			expectedEndpoint: "dynamo.test",
 		},
@@ -232,11 +230,9 @@ func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
 		"config conflict": {
 			config: map[string]any{
 				"dynamodb_endpoint": "dynamo.test",
-				"endpoints": map[string]any{
+				"endpoints": populateEndpoints(map[string]string{
 					"dynamodb": "dynamo.test",
-					"iam":      nil,
-					"s3":       nil,
-				},
+				}),
 			},
 			expectedEndpoint: "s3.test",
 			expectedDiags: tfdiags.Diagnostics{
@@ -318,11 +314,9 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 		"none": {},
 		"config": {
 			config: map[string]any{
-				"endpoints": map[string]any{
-					"dynamodb": nil,
-					"iam":      "iam.test",
-					"s3":       nil,
-				},
+				"endpoints": populateEndpoints(map[string]string{
+					"iam": "iam.test",
+				}),
 			},
 		},
 		"deprecated config": {
@@ -336,11 +330,9 @@ func TestBackendConfig_IAMEndpoint(t *testing.T) {
 		"config conflict": {
 			config: map[string]any{
 				"iam_endpoint": "iam.test",
-				"endpoints": map[string]any{
-					"dynamodb": nil,
-					"iam":      "iam.test",
-					"s3":       nil,
-				},
+				"endpoints": populateEndpoints(map[string]string{
+					"iam": "iam.test",
+				}),
 			},
 			expectedDiags: tfdiags.Diagnostics{
 				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
@@ -415,11 +407,9 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		},
 		"config": {
 			config: map[string]any{
-				"endpoints": map[string]any{
-					"dynamodb": nil,
-					"iam":      nil,
-					"s3":       "s3.test",
-				},
+				"endpoints": populateEndpoints(map[string]string{
+					"s3": "s3.test",
+				}),
 			},
 			expectedEndpoint: "s3.test",
 		},
@@ -435,11 +425,9 @@ func TestBackendConfig_S3Endpoint(t *testing.T) {
 		"config conflict": {
 			config: map[string]any{
 				"endpoint": "s3.test",
-				"endpoints": map[string]any{
-					"dynamodb": nil,
-					"iam":      nil,
-					"s3":       "s3.test",
-				},
+				"endpoints": populateEndpoints(map[string]string{
+					"s3": "s3.test",
+				}),
 			},
 			expectedEndpoint: "s3.test",
 			expectedDiags: tfdiags.Diagnostics{
@@ -1886,4 +1874,16 @@ func testBackendConfigDiags(t *testing.T, b backend.Backend, c hcl.Body) (backen
 	confDiags := b.Configure(obj)
 
 	return b, diags.Append(confDiags)
+}
+
+func populateEndpoints(attrs map[string]string) map[string]any {
+	endpoints := map[string]any{
+		"dynamodb": nil,
+		"iam":      nil,
+		"s3":       nil,
+	}
+	for k, v := range attrs {
+		endpoints[k] = v
+	}
+	return endpoints
 }
