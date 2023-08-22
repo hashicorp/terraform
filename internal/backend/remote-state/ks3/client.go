@@ -183,6 +183,27 @@ func (c *remoteClient) lockError(err error) *statemgr.LockError {
 	return lockErr
 }
 
+// lockInfo returns LockInfo from lock file
+func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
+	exist, data, check, err := c.getObject(c.lockFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(data) < 1 || !exist {
+		return nil, fmt.Errorf("lock file %s not exists", c.lockFile)
+	}
+
+	info := &statemgr.LockInfo{}
+	if err := json.Unmarshal(data, info); err != nil {
+		return nil, err
+	}
+
+	info.ID = check
+
+	return info, nil
+}
+
 func (c *remoteClient) CreateTag(key, value string) error {
 	req := map[string]interface{}{}
 
@@ -231,27 +252,6 @@ func (c *remoteClient) DeleteTag(key, value string) error {
 		return err
 	}
 	return nil
-}
-
-// lockInfo returns LockInfo from lock file
-func (c *remoteClient) lockInfo() (*statemgr.LockInfo, error) {
-	exist, data, check, err := c.getObject(c.lockFile)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(data) < 1 || !exist {
-		return nil, fmt.Errorf("lock file %s not exists", c.lockFile)
-	}
-
-	info := &statemgr.LockInfo{}
-	if err := json.Unmarshal(data, info); err != nil {
-		return nil, err
-	}
-
-	info.ID = check
-
-	return info, nil
 }
 
 func (c *remoteClient) listObjects(prefix string) ([]ks3.ObjectProperties, error) {

@@ -87,13 +87,13 @@ func New() backend.Backend {
 			"access_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Ksyun access key",
+				Description: "Ksyun access key, It can be sourced from the `" + ENV_ACCESS_KEY + "` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc(ENV_ACCESS_KEY, nil),
 			},
 			"secret_key": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "Ksyun secret key",
+				Description: "Ksyun secret key, It can be sourced from the `" + ENV_SECRET_KEY + "` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc(ENV_SECRET_KEY, nil),
 			},
 			"bucket": {
@@ -127,14 +127,14 @@ func New() backend.Backend {
 			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
-				Description: "Ksyun region of the KS3 Bucket.",
+				Description: "Ksyun region of the KS3 Bucket. It can be sourced from the `" + ENV_REGION + "` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc(ENV_REGION, nil),
 			},
 			"endpoint": {
 				Type:        schema.TypeString,
 				Required:    true,
 				Default:     schema.EnvDefaultFunc(ENV_KS3_ENDPOINT, nil),
-				Description: "A custom endpoint for the KS3 API, the details of relationship of endpoint and region see [Endpoint and Region](https://docs.ksyun.com/documents/6761)",
+				Description: "A custom endpoint for the KS3 API , It can be sourced from the `" + ENV_KS3_ENDPOINT + "` environment variable. the details of relationship of endpoint and region see [Endpoint and Region](https://docs.ksyun.com/documents/6761)",
 			},
 			"sts_endpoint": {
 				Type:        schema.TypeString,
@@ -166,7 +166,7 @@ func New() backend.Backend {
 			"role_krn": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The krn of role to be assumed",
+				Description: "The krn of role to be assumed, It can be sourced from the `" + ENV_ASSUME_ROLE_ARN + "` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc(ENV_ASSUME_ROLE_ARN, nil),
 			},
 			"session_name": {
@@ -179,7 +179,7 @@ func New() backend.Backend {
 					}
 					return
 				},
-				Description: "The session name to use when assuming the role. If you ready to assume a role, must set `session_name`.",
+				Description: "The session name to use when assuming the role. If you ready to assume a role, must set `session_name`.  It can be sourced from the `" + ENV_ASSUME_ROLE_SESSION_NAME + "` environment variable.",
 				DefaultFunc: schema.EnvDefaultFunc(ENV_ASSUME_ROLE_SESSION_NAME, nil),
 			},
 
@@ -193,7 +193,7 @@ func New() backend.Backend {
 					}
 					return 3600, nil
 				},
-				Description: "Seconds to restrict the assume role session duration. Range in [900, 86400], Default 3600.",
+				Description: "Seconds to restrict the assume role session duration. Range in [900, 86400], Default 3600.  It can be sourced from the `" + ENV_ASSUME_ROLE_SESSION_DURATION + "` environment variable.",
 			},
 
 			"assume_role_policy": {

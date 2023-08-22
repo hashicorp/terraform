@@ -218,11 +218,11 @@ func TestAssumeRole(t *testing.T) {
 func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool, roles ...*Role) backend.Backend {
 	t.Helper()
 
-	if os.Getenv(PROVIDER_REGION) == "" {
-		os.Setenv(PROVIDER_REGION, "cn-beijing-6")
+	if os.Getenv(ENV_REGION) == "" {
+		os.Setenv(ENV_REGION, "cn-beijing-6")
 	}
 
-	region := os.Getenv(PROVIDER_REGION)
+	region := os.Getenv(ENV_REGION)
 
 	config := map[string]interface{}{
 		"region":               region,
