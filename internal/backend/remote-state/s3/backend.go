@@ -94,6 +94,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 							Optional:    true,
 							Description: "A custom endpoint for the S3 API",
 						},
+						"sts": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the STS API",
+						},
 					},
 				},
 			},
@@ -107,6 +112,7 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the STS API",
+				Deprecated:  true,
 			},
 			"encrypt": {
 				Type:        cty.Bool,
@@ -366,10 +372,11 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		"dynamodb_endpoint": "dynamodb",
 		"iam_endpoint":      "iam",
 		"endpoint":          "s3",
+		"sts_endpoint":      "sts",
 	}
 	endpoints := make(map[string]string)
 	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		for _, k := range []string{"dynamodb", "iam", "s3"} {
+		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
 			if v := val.GetAttr(k); !v.IsNull() {
 				endpoints[k] = v.AsString()
 			}
@@ -530,8 +537,8 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
 		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
-		Token:                  stringAttr(obj, "token"),
+		// StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
+		Token: stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
@@ -546,6 +553,15 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
 	); ok {
 		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sts")),
+		newAttributeRetriever(obj, cty.GetAttrPath("sts_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_STS"),
+		newEnvvarRetriever("AWS_STS_ENDPOINT"),
+	); ok {
+		cfg.StsEndpoint = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -742,27 +758,6 @@ func stringAttrDefault(obj cty.Value, name, def string) string {
 		return def
 	} else {
 		return v
-	}
-}
-
-func stringAttrDefaultEnvVar(obj cty.Value, name string, envvars ...string) string {
-	if v, ok := stringAttrDefaultEnvVarOk(obj, name, envvars...); !ok {
-		return ""
-	} else {
-		return v
-	}
-}
-
-func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (string, bool) {
-	if v, ok := stringAttrOk(obj, name); !ok {
-		for _, envvar := range envvars {
-			if v := os.Getenv(envvar); v != "" {
-				return v, true
-			}
-		}
-		return "", false
-	} else {
-		return v, true
 	}
 }
 

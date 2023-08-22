@@ -162,7 +162,8 @@ The following configuration is optional:
 * `skip_credentials_validation` - (Optional) Skip credentials validation via the STS API.
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
-* `sts_endpoint` - (Optional) Custom endpoint for the AWS Security Token Service (STS) API. This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
+* `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Security Token Service (STS) API.
+  Use `endpoints.sts` instead.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
 
 #### Overriding AWS API endpoints
@@ -175,6 +176,8 @@ The optional argument `endpoints` contains the following arguments:
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_IAM` or the deprecated environment variable `AWS_IAM_ENDPOINT`.
 * `s3` - (Optional) Custom endpoint for the AWS S3 API.
   This can also be sourced from the environment variable `AWS_ENDPOINT_URL_S3` or the deprecated environment variable `AWS_S3_ENDPOINT`.
+* `sts` - (Optional) Custom endpoint for the AWS STS API.
+  This can also be sourced from the environment variable `AWS_ENDPOINT_URL_STS` or the deprecated environment variable `AWS_STS_ENDPOINT`.
 
 #### Assume Role Configuration
 
