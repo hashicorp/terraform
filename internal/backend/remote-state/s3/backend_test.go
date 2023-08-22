@@ -709,6 +709,28 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 			},
 		},
+
+		"shared credentials file conflict": {
+			config: cty.ObjectVal(map[string]cty.Value{
+				"bucket":                   cty.StringVal("test"),
+				"key":                      cty.StringVal("test"),
+				"region":                   cty.StringVal("us-west-2"),
+				"shared_credentials_file":  cty.StringVal("test"),
+				"shared_credentials_files": cty.SetVal([]cty.Value{cty.StringVal("test2")}),
+			}),
+			expectedDiags: tfdiags.Diagnostics{
+				attributeErrDiag(
+					"Invalid Attribute Combination",
+					`Only one of shared_credentials_file, shared_credentials_files can be set.`,
+					cty.Path{},
+				),
+				attributeWarningDiag(
+					"Deprecated Parameter",
+					`The shared_credentials_file parameter has been deprecated. Use shared_credentials_files instead.`,
+					cty.GetAttrPath("shared_credentials_file"),
+				),
+			},
+		},
 	}
 
 	for name, tc := range cases {

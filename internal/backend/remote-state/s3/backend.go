@@ -121,10 +121,21 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "AWS profile name",
 			},
+			"shared_config_files": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "List of paths to shared config files",
+			},
 			"shared_credentials_file": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "Path to a shared credentials file",
+				Deprecated:  true,
+			},
+			"shared_credentials_files": {
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "List of paths to shared credentials files",
 			},
 			"token": {
 				Type:        cty.String,
@@ -347,6 +358,20 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	validateAttributesConflict(
+		cty.GetAttrPath("shared_credentials_file"),
+		cty.GetAttrPath("shared_credentials_files"),
+	)(obj, cty.Path{}, &diags)
+
+	attrPath = cty.GetAttrPath("shared_credentials_file")
+	if val := obj.GetAttr("shared_credentials_file"); !val.IsNull() {
+		diags = diags.Append(attributeWarningDiag(
+			"Deprecated Parameter",
+			`The shared_credentials_file parameter has been deprecated. Use shared_credentials_files instead.`,
+			attrPath,
+		))
+	}
+
 	return obj, diags
 }
 
@@ -506,6 +531,12 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.SharedCredentialsFiles = []string{
 			val,
 		}
+	}
+	if val, ok := stringSetAttrDefaultEnvVarOk(obj, "shared_credentials_files", "AWS_SHARED_CREDENTIALS_FILE"); ok {
+		cfg.SharedCredentialsFiles = val
+	}
+	if val, ok := stringSetAttrDefaultEnvVarOk(obj, "shared_config_files", "AWS_SHARED_CONFIG_FILE"); ok {
+		cfg.SharedConfigFiles = val
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -671,6 +702,25 @@ func stringSetValueOk(val cty.Value) ([]string, bool) {
 
 func stringSetAttrOk(obj cty.Value, name string) ([]string, bool) {
 	return stringSetValueOk(obj.GetAttr(name))
+}
+
+// stringSetAttrDefaultEnvVarOk checks for a configured set of strings
+// in the provided argument name or environment variables. A configured
+// argument takes precedent over environment variables. An environment
+// variable is assumed to be as a single item, such as how the singular
+// AWS_SHARED_CONFIG_FILE variable aligns with the underlying
+// shared_config_files argument.
+func stringSetAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) ([]string, bool) {
+	if v, ok := stringSetValueOk(obj.GetAttr(name)); !ok {
+		for _, envvar := range envvars {
+			if v := os.Getenv(envvar); v != "" {
+				return []string{v}, true
+			}
+		}
+		return nil, false
+	} else {
+		return v, true
+	}
 }
 
 func stringMapValueOk(val cty.Value) (map[string]string, bool) {
