@@ -524,7 +524,6 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		CallerName:             "S3 Backend",
 		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:           logging.IsDebugOrHigher(),
-		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_ENDPOINT_URL_IAM", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
@@ -538,6 +537,15 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			{Name: "HashiCorp", Version: "1.0"},
 			{Name: "Terraform", Version: version.String()},
 		},
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("iam")),
+		newAttributeRetriever(obj, cty.GetAttrPath("iam_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_IAM"),
+		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
+	); ok {
+		cfg.IamEndpoint = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -598,48 +606,24 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var dynamoConfig aws.Config
-	var dynamoEndpoint string
-	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		if v := val.GetAttr("dynamodb"); !v.IsNull() {
-			dynamoEndpoint = v.AsString()
-		}
-	}
-	if dynamoEndpoint == "" {
-		if val := obj.GetAttr("dynamodb_endpoint"); !val.IsNull() {
-			dynamoEndpoint = val.AsString()
-		}
-	}
-	if dynamoEndpoint == "" {
-		dynamoEndpoint = os.Getenv("AWS_ENDPOINT_URL_DYNAMODB")
-	}
-	if dynamoEndpoint == "" {
-		dynamoEndpoint = os.Getenv("AWS_DYNAMODB_ENDPOINT")
-	}
-	if dynamoEndpoint != "" {
-		dynamoConfig.Endpoint = aws.String(dynamoEndpoint)
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+		newAttributeRetriever(obj, cty.GetAttrPath("dynamodb_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_DYNAMODB"),
+		newEnvvarRetriever("AWS_DYNAMODB_ENDPOINT"),
+	); ok {
+		dynamoConfig.Endpoint = aws.String(v)
 	}
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
 	var s3Config aws.Config
-	var s3Endpoint string
-	if val := obj.GetAttr("endpoints"); !val.IsNull() {
-		if v := val.GetAttr("s3"); !v.IsNull() {
-			s3Endpoint = v.AsString()
-		}
-	}
-	if s3Endpoint == "" {
-		if val := obj.GetAttr("endpoint"); !val.IsNull() {
-			s3Endpoint = val.AsString()
-		}
-	}
-	if s3Endpoint == "" {
-		s3Endpoint = os.Getenv("AWS_ENDPOINT_URL_S3")
-	}
-	if s3Endpoint == "" {
-		s3Endpoint = os.Getenv("AWS_S3_ENDPOINT")
-	}
-	if s3Endpoint != "" {
-		s3Config.Endpoint = aws.String(s3Endpoint)
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("s3")),
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_S3"),
+		newEnvvarRetriever("AWS_S3_ENDPOINT"),
+	); ok {
+		s3Config.Endpoint = aws.String(v)
 	}
 	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
 		s3Config.S3ForcePathStyle = aws.Bool(v)
@@ -647,6 +631,89 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.s3Client = s3.New(sess.Copy(&s3Config))
 
 	return diags
+}
+
+type argumentRetriever interface {
+	Retrieve(diags *tfdiags.Diagnostics) (string, bool)
+}
+
+type attributeRetriever struct {
+	obj      cty.Value
+	objPath  cty.Path
+	attrPath cty.Path
+}
+
+var _ argumentRetriever = attributeRetriever{}
+
+func newAttributeRetriever(obj cty.Value, attrPath cty.Path) attributeRetriever {
+	return attributeRetriever{
+		obj:      obj,
+		objPath:  cty.Path{}, // Assumes that we're working relative to the root object
+		attrPath: attrPath,
+	}
+}
+
+func (r attributeRetriever) Retrieve(diags *tfdiags.Diagnostics) (string, bool) {
+	val, err := pathSafeApply(r.attrPath, r.obj)
+	if err != nil {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Path for Schema",
+			"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+				"Please report this to the developers.\n\n"+
+				"Path: "+pathString(r.attrPath)+"\n\n"+
+				"Error: "+err.Error(),
+			r.objPath,
+		))
+	}
+	return stringValueOk(val)
+}
+
+// pathSafeApply applies a `cty.Path` to a `cty.Value`.
+// Unlike `path.Apply`, it does not return an error if it encounters a Null value
+func pathSafeApply(path cty.Path, obj cty.Value) (cty.Value, error) {
+	if obj == cty.NilVal || obj.IsNull() {
+		return obj, nil
+	}
+	val := obj
+	var err error
+	for _, step := range path {
+		val, err = step.Apply(val)
+		if err != nil {
+			return cty.NilVal, err
+		}
+		if val == cty.NilVal || val.IsNull() {
+			return val, nil
+		}
+	}
+	return val, nil
+}
+
+type envvarRetriever struct {
+	name string
+}
+
+var _ argumentRetriever = envvarRetriever{}
+
+func newEnvvarRetriever(name string) envvarRetriever {
+	return envvarRetriever{
+		name: name,
+	}
+}
+
+func (r envvarRetriever) Retrieve(_ *tfdiags.Diagnostics) (string, bool) {
+	if v := os.Getenv(r.name); v != "" {
+		return v, true
+	}
+	return "", false
+}
+
+func retrieveArgument(diags *tfdiags.Diagnostics, retrievers ...argumentRetriever) (string, bool) {
+	for _, retriever := range retrievers {
+		if v, ok := retriever.Retrieve(diags); ok {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 func stringValue(val cty.Value) string {
