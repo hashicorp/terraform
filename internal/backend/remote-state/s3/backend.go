@@ -235,7 +235,6 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.Bool,
 				Optional:    true,
 				Description: "Use the legacy authentication workflow, preferring environment variables over backend configuration.",
-				Deprecated:  true,
 			},
 		},
 	}
