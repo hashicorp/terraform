@@ -1144,7 +1144,7 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 	inputs := make(terraform.InputValues, len(variables))
 	var diags tfdiags.Diagnostics
 	for name, variable := range variables {
-		value, valueDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
+		value, valueDiags := variable.ParseVariableValue(configs.VariableParseHCL)
 		diags = diags.Append(valueDiags)
 		inputs[name] = value
 	}
