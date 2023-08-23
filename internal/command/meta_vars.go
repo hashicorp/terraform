@@ -267,22 +267,3 @@ func (v unparsedVariableValueString) ParseVariableValue(mode configs.VariablePar
 		SourceType: v.sourceType,
 	}, diags
 }
-
-type unparsedTestVariableValue struct {
-	expr hcl.Expression
-	ctx  *hcl.EvalContext
-}
-
-func (v unparsedTestVariableValue) ParseVariableValue(mode configs.VariableParsingMode) (*terraform.InputValue, tfdiags.Diagnostics) {
-	var diags tfdiags.Diagnostics
-	val, hclDiags := v.expr.Value(v.ctx) // nil because no function calls or variable references are allowed here
-	diags = diags.Append(hclDiags)
-
-	rng := tfdiags.SourceRangeFromHCL(v.expr.Range())
-
-	return &terraform.InputValue{
-		Value:       val,
-		SourceType:  terraform.ValueFromConfig, // Test variables always come from config.
-		SourceRange: rng,
-	}, diags
-}
