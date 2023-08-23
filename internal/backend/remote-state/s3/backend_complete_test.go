@@ -210,14 +210,14 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 			SharedCredentialsFile: `
-		[default]
-		aws_access_key_id = DefaultSharedCredentialsAccessKey
-		aws_secret_access_key = DefaultSharedCredentialsSecretKey
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
 
-		[SharedCredentialsProfile]
-		aws_access_key_id = ProfileSharedCredentialsAccessKey
-		aws_secret_access_key = ProfileSharedCredentialsSecretKey
-		`,
+[SharedCredentialsProfile]
+aws_access_key_id = ProfileSharedCredentialsAccessKey
+aws_secret_access_key = ProfileSharedCredentialsSecretKey
+`,
 			ValidateDiags: ExpectNoDiags,
 		},
 
@@ -234,14 +234,14 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 				servicemocks.MockStsGetCallerIdentityValidEndpoint,
 			},
 			SharedCredentialsFile: `
-		[default]
-		aws_access_key_id = DefaultSharedCredentialsAccessKey
-		aws_secret_access_key = DefaultSharedCredentialsSecretKey
+[default]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
 
-		[SharedCredentialsProfile]
-		aws_access_key_id = ProfileSharedCredentialsAccessKey
-		aws_secret_access_key = ProfileSharedCredentialsSecretKey
-		`,
+[SharedCredentialsProfile]
+aws_access_key_id = ProfileSharedCredentialsAccessKey
+aws_secret_access_key = ProfileSharedCredentialsSecretKey
+`,
 			ValidateDiags: ExpectNoDiags,
 		},
 
@@ -541,10 +541,10 @@ region = us-east-1
 				"AWS_PROFILE": "no-such-profile",
 			},
 			SharedCredentialsFile: `
-		[some-profile]
-		aws_access_key_id = DefaultSharedCredentialsAccessKey
-		aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		`,
+[some-profile]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+`,
 			ValidateDiags: ExpectDiagMatching(
 				tfdiags.Error,
 				equalsMatcher("failed to get shared config profile, no-such-profile"),
@@ -557,10 +557,10 @@ region = us-east-1
 				"profile": "no-such-profile",
 			},
 			SharedCredentialsFile: `
-		[some-profile]
-		aws_access_key_id = DefaultSharedCredentialsAccessKey
-		aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		`,
+[some-profile]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+`,
 			ValidateDiags: ExpectDiagMatching(
 				tfdiags.Error,
 				equalsMatcher("failed to get shared config profile, no-such-profile"),
@@ -599,10 +599,10 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 				"AWS_PROFILE":           "no-such-profile",
 			},
 			SharedCredentialsFile: `
-		[some-profile]
-		aws_access_key_id = DefaultSharedCredentialsAccessKey
-		aws_secret_access_key = DefaultSharedCredentialsSecretKey
-		`,
+[some-profile]
+aws_access_key_id = DefaultSharedCredentialsAccessKey
+aws_secret_access_key = DefaultSharedCredentialsSecretKey
+`,
 			ValidateDiags: ExpectDiagMatching(
 				tfdiags.Error,
 				equalsMatcher("failed to get shared config profile, no-such-profile"),
@@ -708,7 +708,7 @@ aws_secret_access_key = ProfileSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared credentials file: %s", err)
 				}
 
-				tc.config["shared_credentials_file"] = file.Name()
+				tc.config["shared_credentials_files"] = []interface{}{file.Name()}
 				if tc.ExpectedCredentialsValue.Source == sharedConfigCredentialsProvider {
 					tc.ExpectedCredentialsValue.Source = sharedConfigCredentialsSource(file.Name())
 				}
@@ -1182,7 +1182,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared credentials file: %s", err)
 				}
 
-				tc.config["shared_credentials_file"] = file.Name()
+				tc.config["shared_credentials_files"] = []interface{}{file.Name()}
 				if tc.ExpectedCredentialsValue.Source == sharedConfigCredentialsProvider {
 					tc.ExpectedCredentialsValue.Source = sharedConfigCredentialsSource(file.Name())
 				}
@@ -1622,7 +1622,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 					t.Fatalf("unexpected error writing shared credentials file: %s", err)
 				}
 
-				tc.config["shared_credentials_file"] = file.Name()
+				tc.config["shared_credentials_files"] = []interface{}{file.Name()}
 				if tc.ExpectedCredentialsValue.Source == sharedConfigCredentialsProvider {
 					tc.ExpectedCredentialsValue.Source = sharedConfigCredentialsSource(file.Name())
 				}
