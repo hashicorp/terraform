@@ -26,6 +26,8 @@ func ExpectNoDiags(t *testing.T, diags tfdiags.Diagnostics) {
 }
 
 func expectDiagsCount(t *testing.T, diags tfdiags.Diagnostics, c int) {
+	t.Helper()
+
 	if l := len(diags); l != c {
 		t.Fatalf("Diagnostics: expected %d element, got %d\n%s", c, l, diagnosticsString(diags))
 	}
@@ -640,7 +642,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
@@ -1109,7 +1113,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
@@ -1544,7 +1550,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")

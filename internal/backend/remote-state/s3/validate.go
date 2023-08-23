@@ -349,6 +349,10 @@ func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnos
 	return tfdiags.AttributeValue(tfdiags.Error, summary, detail, attrPath.Copy())
 }
 
+func attributeWarningDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {
+	return tfdiags.AttributeValue(tfdiags.Warning, summary, detail, attrPath.Copy())
+}
+
 func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
 	return tfdiags.WholeContainingBody(tfdiags.Error, summary, detail)
 }

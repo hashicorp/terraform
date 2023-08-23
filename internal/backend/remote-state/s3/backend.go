@@ -67,21 +67,52 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
+				Deprecated:  true,
 			},
 			"endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
+				Deprecated:  true,
+			},
+			"endpoints": {
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingSingle,
+					Attributes: map[string]*configschema.Attribute{
+						"dynamodb": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the DynamoDB API",
+						},
+						"iam": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the IAM API",
+						},
+						"s3": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the S3 API",
+						},
+						"sts": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the STS API",
+						},
+					},
+				},
 			},
 			"iam_endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the IAM API",
+				Deprecated:  true,
 			},
 			"sts_endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the STS API",
+				Deprecated:  true,
 			},
 			"encrypt": {
 				Type:        cty.Bool,
@@ -337,6 +368,35 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	}
 
+	endpointFields := map[string]string{
+		"dynamodb_endpoint": "dynamodb",
+		"iam_endpoint":      "iam",
+		"endpoint":          "s3",
+		"sts_endpoint":      "sts",
+	}
+	endpoints := make(map[string]string)
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
+			if v := val.GetAttr(k); !v.IsNull() {
+				endpoints[k] = v.AsString()
+			}
+		}
+	}
+	for k, v := range endpointFields {
+		if val := obj.GetAttr(k); !val.IsNull() {
+			diags = diags.Append(deprecatedAttrDiag(cty.GetAttrPath(k), cty.GetAttrPath("endpoints").GetAttr(v)))
+			if _, ok := endpoints[v]; ok {
+				diags = diags.Append(wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath(k)),
+						pathString(cty.GetAttrPath("endpoints").GetAttr(v)),
+					),
+				))
+			}
+		}
+	}
+
 	return obj, diags
 }
 
@@ -471,20 +531,37 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		CallerName:             "S3 Backend",
 		CredsFilename:          stringAttr(obj, "shared_credentials_file"),
 		DebugLogging:           logging.IsDebugOrHigher(),
-		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_ENDPOINT_URL_IAM", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
 		SkipMetadataApiCheck:   boolAttr(obj, "skip_metadata_api_check"),
-		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
-		Token:                  stringAttr(obj, "token"),
+		// StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_ENDPOINT_URL_STS", "AWS_STS_ENDPOINT"),
+		Token: stringAttr(obj, "token"),
 		UserAgentProducts: []*awsbase.UserAgentProduct{
 			{Name: "APN", Version: "1.0"},
 			{Name: "HashiCorp", Version: "1.0"},
 			{Name: "Terraform", Version: version.String()},
 		},
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("iam")),
+		newAttributeRetriever(obj, cty.GetAttrPath("iam_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_IAM"),
+		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
+	); ok {
+		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sts")),
+		newAttributeRetriever(obj, cty.GetAttrPath("sts_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_STS"),
+		newEnvvarRetriever("AWS_STS_ENDPOINT"),
+	); ok {
+		cfg.StsEndpoint = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -545,13 +622,23 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 
 	var dynamoConfig aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_ENDPOINT_URL_DYNAMODB", "AWS_DYNAMODB_ENDPOINT"); ok {
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+		newAttributeRetriever(obj, cty.GetAttrPath("dynamodb_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_DYNAMODB"),
+		newEnvvarRetriever("AWS_DYNAMODB_ENDPOINT"),
+	); ok {
 		dynamoConfig.Endpoint = aws.String(v)
 	}
 	b.dynClient = dynamodb.New(sess.Copy(&dynamoConfig))
 
 	var s3Config aws.Config
-	if v, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_ENDPOINT_URL_S3", "AWS_S3_ENDPOINT"); ok {
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("s3")),
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_S3"),
+		newEnvvarRetriever("AWS_S3_ENDPOINT"),
+	); ok {
 		s3Config.Endpoint = aws.String(v)
 	}
 	if v, ok := boolAttrOk(obj, "force_path_style"); ok {
@@ -560,6 +647,89 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.s3Client = s3.New(sess.Copy(&s3Config))
 
 	return diags
+}
+
+type argumentRetriever interface {
+	Retrieve(diags *tfdiags.Diagnostics) (string, bool)
+}
+
+type attributeRetriever struct {
+	obj      cty.Value
+	objPath  cty.Path
+	attrPath cty.Path
+}
+
+var _ argumentRetriever = attributeRetriever{}
+
+func newAttributeRetriever(obj cty.Value, attrPath cty.Path) attributeRetriever {
+	return attributeRetriever{
+		obj:      obj,
+		objPath:  cty.Path{}, // Assumes that we're working relative to the root object
+		attrPath: attrPath,
+	}
+}
+
+func (r attributeRetriever) Retrieve(diags *tfdiags.Diagnostics) (string, bool) {
+	val, err := pathSafeApply(r.attrPath, r.obj)
+	if err != nil {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Path for Schema",
+			"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+				"Please report this to the developers.\n\n"+
+				"Path: "+pathString(r.attrPath)+"\n\n"+
+				"Error: "+err.Error(),
+			r.objPath,
+		))
+	}
+	return stringValueOk(val)
+}
+
+// pathSafeApply applies a `cty.Path` to a `cty.Value`.
+// Unlike `path.Apply`, it does not return an error if it encounters a Null value
+func pathSafeApply(path cty.Path, obj cty.Value) (cty.Value, error) {
+	if obj == cty.NilVal || obj.IsNull() {
+		return obj, nil
+	}
+	val := obj
+	var err error
+	for _, step := range path {
+		val, err = step.Apply(val)
+		if err != nil {
+			return cty.NilVal, err
+		}
+		if val == cty.NilVal || val.IsNull() {
+			return val, nil
+		}
+	}
+	return val, nil
+}
+
+type envvarRetriever struct {
+	name string
+}
+
+var _ argumentRetriever = envvarRetriever{}
+
+func newEnvvarRetriever(name string) envvarRetriever {
+	return envvarRetriever{
+		name: name,
+	}
+}
+
+func (r envvarRetriever) Retrieve(_ *tfdiags.Diagnostics) (string, bool) {
+	if v := os.Getenv(r.name); v != "" {
+		return v, true
+	}
+	return "", false
+}
+
+func retrieveArgument(diags *tfdiags.Diagnostics, retrievers ...argumentRetriever) (string, bool) {
+	for _, retriever := range retrievers {
+		if v, ok := retriever.Retrieve(diags); ok {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 func stringValue(val cty.Value) string {
@@ -588,27 +758,6 @@ func stringAttrDefault(obj cty.Value, name, def string) string {
 		return def
 	} else {
 		return v
-	}
-}
-
-func stringAttrDefaultEnvVar(obj cty.Value, name string, envvars ...string) string {
-	if v, ok := stringAttrDefaultEnvVarOk(obj, name, envvars...); !ok {
-		return ""
-	} else {
-		return v
-	}
-}
-
-func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (string, bool) {
-	if v, ok := stringAttrOk(obj, name); !ok {
-		for _, envvar := range envvars {
-			if v := os.Getenv(envvar); v != "" {
-				return v, true
-			}
-		}
-		return "", false
-	} else {
-		return v, true
 	}
 }
 
@@ -975,6 +1124,14 @@ func assumeRoleFullSchema() objectSchema {
 			validateSet{},
 		},
 	}
+}
+
+func deprecatedAttrDiag(attr, replacement cty.Path) tfdiags.Diagnostic {
+	return attributeWarningDiag(
+		"Deprecated Parameter",
+		fmt.Sprintf(`The parameter "%s" is deprecated. Use parameter "%s" instead.`, pathString(attr), pathString(replacement)),
+		attr,
+	)
 }
 
 func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {

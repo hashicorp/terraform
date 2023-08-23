@@ -26,6 +26,8 @@ Update Notes
   This deprecates the arguments `role_arn`, `session_name`, `external_id`, `assume_role_duration_seconds`, `assume_role_policy`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys`. [GH-33630]
 * Supports the default AWS environment variables for overrding API endpoints: `AWS_ENDPOINT_URL_DYNAMODB`, `AWS_ENDPOINT_URL_IAM`, `AWS_ENDPOINT_URL_S3`, and `AWS_ENDPOINT_URL_STS`.
   This deprecates the environment variables `AWS_DYNAMODB_ENDPOINT`, `AWS_IAM_ENDPOINT`, `AWS_S3_ENDPOINT`, and `AWS_STS_ENDPOINT`. [GH-33715]
+* Moves arguments associated with overriding AWS API endpoints into nested block `endpoints`.
+  This deprecates the arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (S3), and `sts_endpoint`. [GH-33724]
 
 ## Previous Releases
 
