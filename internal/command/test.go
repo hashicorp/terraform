@@ -14,6 +14,7 @@ import (
 
 	"github.com/hashicorp/hcl/v2"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 	"golang.org/x/exp/slices"
 
 	"github.com/hashicorp/terraform/internal/addrs"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform/internal/command/arguments"
 	"github.com/hashicorp/terraform/internal/command/views"
 	"github.com/hashicorp/terraform/internal/configs"
+	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/lang/marks"
 	"github.com/hashicorp/terraform/internal/logging"
 	"github.com/hashicorp/terraform/internal/moduletest"
@@ -514,7 +516,14 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 		return state, false
 	}
 
-	planCtx, plan, planDiags := runner.plan(config, state, run, file)
+	references, referenceDiags := run.GetReferences()
+	run.Diagnostics = run.Diagnostics.Append(referenceDiags)
+	if referenceDiags.HasErrors() {
+		run.Status = moduletest.Error
+		return state, false
+	}
+
+	planCtx, plan, planDiags := runner.plan(config, state, run, file, references)
 	if run.Config.Command == configs.PlanTestCommand {
 		// Then we want to assess our conditions and diagnostics differently.
 		planDiags = run.ValidateExpectedFailures(planDiags)
@@ -524,7 +533,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 			return state, false
 		}
 
-		variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file)
+		variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file, references)
 		defer resetVariables()
 
 		run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -609,7 +618,7 @@ func (runner *TestFileRunner) ExecuteTestRun(run *moduletest.Run, file *modulete
 		return updated, true
 	}
 
-	variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file)
+	variables, resetVariables, variableDiags := runner.prepareInputVariablesForAssertions(config, run, file, references)
 	defer resetVariables()
 
 	run.Diagnostics = run.Diagnostics.Append(variableDiags)
@@ -752,7 +761,7 @@ func (runner *TestFileRunner) destroy(config *configs.Config, state *states.Stat
 	return updated, diags
 }
 
-func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File) (*terraform.Context, *plans.Plan, tfdiags.Diagnostics) {
+func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference) (*terraform.Context, *plans.Plan, tfdiags.Diagnostics) {
 	log.Printf("[TRACE] TestFileRunner: called plan for %s/%s", file.Name, run.Name)
 
 	var diags tfdiags.Diagnostics
@@ -762,9 +771,6 @@ func (runner *TestFileRunner) plan(config *configs.Config, state *states.State, 
 
 	replaces, replaceDiags := run.GetReplaces()
 	diags = diags.Append(replaceDiags)
-
-	references, referenceDiags := run.GetReferences()
-	diags = diags.Append(referenceDiags)
 
 	variables, variableDiags := runner.buildInputVariablesForTest(run, file, config)
 	diags = diags.Append(variableDiags)
@@ -1051,43 +1057,167 @@ func (runner *TestFileRunner) Cleanup(file *moduletest.File) {
 // includes variables that are reference by the config and not everything that
 // is defined within the test run block and test file.
 func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, file *moduletest.File, config *configs.Config) (terraform.InputValues, tfdiags.Diagnostics) {
-	variables := make(map[string]backend.UnparsedVariableValue)
-	for name := range config.Module.Variables {
-		if run != nil {
-			if expr, exists := run.Config.Variables[name]; exists {
-				// Local variables take precedence.
-				variables[name] = unparsedTestVariableValue{
-					expr: expr,
-					ctx:  runner.EvalCtx(),
-				}
-				continue
-			}
-		}
+	var diags tfdiags.Diagnostics
 
-		if file != nil {
-			if expr, exists := file.Config.Variables[name]; exists {
-				// If it's not set locally, it maybe set for the entire file.
-				variables[name] = unparsedVariableValueExpression{
-					expr:       expr,
-					sourceType: terraform.ValueFromConfig,
-				}
-				continue
-			}
-		}
+	// configVariables keeps track of the variables that will actually be given
+	// to the terraform graph to provide values to the configuration.
+	configVariables := make(terraform.InputValues)
 
-		if runner.Suite.GlobalVariables != nil {
-			// If it's not set locally or at the file level, maybe it was
-			// defined globally.
-			if variable, exists := runner.Suite.GlobalVariables[name]; exists {
-				variables[name] = variable
-			}
-		}
+	// ctxVariables contains all the possible variables we have definitions for
+	// and is used to build the context that is used to evaluate variables.
+	//
+	// Essentially, we can have a variable referenced from within a run block
+	// that isn't defined in the config under test. That variable would go
+	// into ctxVariables but not configVariables.
+	ctxVariables := make(terraform.InputValues)
 
-		// If it's not set at all that might be okay if the variable is optional
-		// so we'll just not add anything to the map.
+	// First, we process all the global variables.
+	for name, value := range runner.Suite.GlobalVariables {
+		var variableDiags tfdiags.Diagnostics
+		if variable, exists := config.Module.Variables[name]; exists {
+			ctxVariables[name], variableDiags = value.ParseVariableValue(variable.ParsingMode)
+			configVariables[name] = ctxVariables[name]
+		} else {
+			// Since we don't have the config here to parse the variable value
+			// we just blanket parse it as an HCL expression. We don't include
+			// this in the configVariables, as we only want variables that are
+			// defined in the context.
+			ctxVariables[name], variableDiags = value.ParseVariableValue(configs.VariableParseHCL)
+		}
+		diags = diags.Append(variableDiags)
 	}
 
-	return backend.ParseVariableValues(variables, config.Module.Variables)
+	// Second, we process the variables defined at the file level
+	//
+	// We're happy for anything here to override any values from the global
+	// variables.
+	if file != nil {
+		for name, expr := range file.Config.Variables {
+
+			value := unparsedVariableValueExpression{
+				expr:       expr,
+				sourceType: terraform.ValueFromConfig,
+			}
+
+			var variableDiags tfdiags.Diagnostics
+			if variable, exists := config.Module.Variables[name]; exists {
+				ctxVariables[name], variableDiags = value.ParseVariableValue(variable.ParsingMode)
+				configVariables[name] = ctxVariables[name]
+			} else {
+				// As above, we don't have this defined in the config so we
+				// parse it as an expression and don't include it in
+				// configVariables.
+				ctxVariables[name], variableDiags = value.ParseVariableValue(configs.VariableParseHCL)
+			}
+			diags = diags.Append(variableDiags)
+		}
+	}
+
+	// Thirdly, we process the variables defined at the run level and pull out
+	// any that are relevant to the config under test.
+	//
+	// We're happy for anything here to override any values from the global or
+	// file level variables
+	if run != nil {
+		skipVars := false
+
+		ctx, ctxDiags := runner.EvalCtx(run, file, ctxVariables)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			// We still want to validate all the right variables are being
+			// declared. So we don't return early, but we note that we shouldn't
+			// eval vars from this block.
+			skipVars = true
+		}
+
+		for name, expr := range run.Config.Variables {
+			variable, exists := config.Module.Variables[name]
+			if !exists {
+				// At this point we are going to add a warning if a variable
+				// is defined within a run block and not referenced by the
+				// configuration under test.
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagWarning,
+					Summary:  "Value for undeclared variable",
+					Detail:   fmt.Sprintf("The module under test does not declare a variable named %q, but it is declared in run block %q.", name, run.Name),
+					Subject:  expr.Range().Ptr(),
+				})
+
+				continue
+			}
+
+			if skipVars {
+				// Then we don't have a valid evaluation context, so we won't
+				// actually process these variables. We'll put in a dummy value
+				// knowing that we have errors in the diags so these won't be
+				// processed.
+				//
+				// We still want to track this variable has a value, even if we
+				// don't know what it is, because we have some validations later
+				// that we don't want to trigger because this variable is
+				// missing.
+
+				configVariables[name] = &terraform.InputValue{
+					Value:       cty.NilVal,
+					SourceType:  terraform.ValueFromConfig,
+					SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+				}
+
+				continue
+			}
+
+			value := unparsedTestVariableValue{
+				expr: expr,
+				ctx:  ctx,
+			}
+
+			var variableDiags tfdiags.Diagnostics
+			configVariables[name], variableDiags = value.ParseVariableValue(variable.ParsingMode)
+			diags = diags.Append(variableDiags)
+		}
+
+	}
+
+	// Finally, we'll do something about any variables defined in the
+	// configuration that we haven't given values for.
+
+	for name, variable := range config.Module.Variables {
+
+		if _, exists := configVariables[name]; exists {
+			// Then we have a value for this variable already.
+			continue
+		}
+
+		// Otherwise, we're going to give these variables a value. They'll be
+		// processed by the Terraform graph and provided a default value later
+		// if they have one.
+
+		if variable.Required() {
+
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "No value for required variable",
+				Detail: fmt.Sprintf("The module under test for run block %q has a required variable %q with no set value. Use a -var or -var-file command line argument or add this variable into a \"variables\" block within the test file or run block.",
+					run.Name, variable.Name),
+				Subject: variable.DeclRange.Ptr(),
+			})
+
+			configVariables[name] = &terraform.InputValue{
+				Value:       cty.DynamicVal,
+				SourceType:  terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+			}
+		} else {
+			configVariables[name] = &terraform.InputValue{
+				Value:       cty.NilVal,
+				SourceType:  terraform.ValueFromConfig,
+				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
+			}
+		}
+
+	}
+
+	return configVariables, diags
 }
 
 // prepareInputVariablesForAssertions creates a terraform.InputValues mapping
@@ -1099,59 +1229,154 @@ func (runner *TestFileRunner) buildInputVariablesForTest(run *moduletest.Run, fi
 // within the config. This allows the assertions to refer to variables defined
 // solely within the test file, and not only those within the configuration.
 //
+// As the variables returned from this function are not passed into the
+// Terraform graph, we need to use the go-cty Convert function to make sure they
+// are the right type before they are handed over to the test context.
+//
 // In addition, it modifies the provided config so that any variables that are
 // available are also defined in the config. It returns a function that resets
 // the config which must be called so the config can be reused going forward.
-func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File) (terraform.InputValues, func(), tfdiags.Diagnostics) {
-	variables := make(map[string]backend.UnparsedVariableValue)
+func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs.Config, run *moduletest.Run, file *moduletest.File, references []*addrs.Reference) (terraform.InputValues, func(), tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
 
-	if run != nil {
-		for name, expr := range run.Config.Variables {
-			variables[name] = unparsedTestVariableValue{
-				expr: expr,
-				ctx:  runner.EvalCtx(),
+	// process is a helper function that converts an unparsed variable into an
+	// input value. All the various input formats share this logic so we extract
+	// it out here.
+	process := func(name string, value backend.UnparsedVariableValue, reference *addrs.Reference) (*terraform.InputValue, tfdiags.Diagnostics) {
+		if config, exists := config.Module.Variables[name]; exists {
+			variable, diags := value.ParseVariableValue(config.ParsingMode)
+			if diags.HasErrors() {
+				return variable, diags
 			}
+
+			// Normally, variable values would be converted during the Terraform
+			// graph processing. But, `terraform test` assertions are not
+			// executed during the graph but after. This means the variables we
+			// create for use in the assertions must be converted here.
+
+			converted, err := convert.Convert(variable.Value, config.Type)
+			if err != nil {
+				var subject *hcl.Range
+				if reference != nil {
+					subject = reference.SourceRange.ToHCL().Ptr()
+				}
+
+				diags = diags.Append(&hcl.Diagnostic{
+					Severity: hcl.DiagError,
+					Summary:  "Invalid value for input variable",
+					Detail:   fmt.Sprintf("The given value is not suitable for var.%s declared at %s: %s.", name, config.DeclRange.String(), err),
+					Subject:  subject,
+				})
+				return variable, diags
+			}
+
+			variable.Value = converted
+			return variable, diags
+		} else {
+
+			// If the variable isn't defined in the config, then we don't know
+			// what type it is supposed to be. So we'll just parse it as HCL and
+			// we can deduce the type that way.
+
+			return value.ParseVariableValue(configs.VariableParseHCL)
 		}
 	}
+
+	// relevant keeps track of the variables that are actually referenced by
+	// this set of assertions.
+	relevant := make(map[string]*addrs.Reference)
+	for _, reference := range references {
+		addr, ok := reference.Subject.(addrs.InputVariable)
+		if !ok {
+			// We only care about variables.
+			continue
+		}
+
+		relevant[addr.Name] = reference
+	}
+
+	variables := make(terraform.InputValues)
+
+	// Now, we're going to process the various different sources of variables
+	// and turn them into input values that our test context can read.
+
+	// First, we'll process the global variables.
+
+	for name, value := range runner.Suite.GlobalVariables {
+		variable, variableDiags := process(name, value, relevant[name])
+		diags = diags.Append(variableDiags)
+		if variable != nil {
+			variables[name] = variable
+		}
+	}
+
+	// Second, we'll process the variables from the file.
 
 	if file != nil {
 		for name, expr := range file.Config.Variables {
-			if _, exists := variables[name]; exists {
-				// Then this variable was defined at the run level and we want
-				// that value to take precedence.
-				continue
-			}
-			variables[name] = unparsedVariableValueExpression{
+			value := unparsedVariableValueExpression{
 				expr:       expr,
 				sourceType: terraform.ValueFromConfig,
 			}
+
+			variable, variableDiags := process(name, value, relevant[name])
+			diags = diags.Append(variableDiags)
+			if variable != nil {
+				variables[name] = variable
+			}
 		}
 	}
 
-	for name, variable := range runner.Suite.GlobalVariables {
-		if _, exists := variables[name]; exists {
-			// Then this value was already defined at either the run level
-			// or the file level, and we want those values to take
-			// precedence.
-			continue
+	// Third, we'll process the variables from the run block. We pass in the
+	// variables from the global and file level into the eval context here so
+	// that users can set run variables from file and global variables.
+
+	if run != nil {
+		skipVars := false
+
+		ctx, ctxDiags := runner.EvalCtx(run, file, variables)
+		diags = diags.Append(ctxDiags)
+		if ctxDiags.HasErrors() {
+			// Then we won't try and actually evaluate run variables but we do
+			// keep note of them.
+			skipVars = true
 		}
-		variables[name] = variable
+
+		for name, expr := range run.Config.Variables {
+
+			if skipVars {
+
+				// Then we had a problem with the evaluation context.
+				//
+				// We'll just make a placeholder input value so we can finish
+				// evaluating everything else. We won't end up using the
+				// placeholder values as the test will fail due to the errored
+				// diags when we build the context.
+
+				variables[name] = &terraform.InputValue{
+					Value:       cty.NilVal,
+					SourceType:  terraform.ValueFromConfig,
+					SourceRange: tfdiags.SourceRangeFromHCL(expr.Range()),
+				}
+
+				continue
+			}
+
+			value := unparsedTestVariableValue{
+				expr: expr,
+				ctx:  ctx,
+			}
+
+			variable, variableDiags := process(name, value, relevant[name])
+			diags = diags.Append(variableDiags)
+			if variable != nil {
+				variables[name] = variable
+			}
+		}
 	}
 
-	// We've gathered all the values we have, let's convert them into
-	// terraform.InputValues so they can be passed into the Terraform graph.
-
-	inputs := make(terraform.InputValues, len(variables))
-	var diags tfdiags.Diagnostics
-	for name, variable := range variables {
-		value, valueDiags := variable.ParseVariableValue(configs.VariableParseLiteral)
-		diags = diags.Append(valueDiags)
-		inputs[name] = value
-	}
-
-	// Next, we're going to apply any default values from the configuration.
-	// We do this after the conversion into terraform.InputValues, as the
-	// defaults have already been converted into cty.Value objects.
+	// Finally, we look for any default values from the configuration for
+	// variables that we haven't assigned a value to yet.
 
 	for name, variable := range config.Module.Variables {
 		if _, exists := variables[name]; exists {
@@ -1161,7 +1386,7 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 		}
 
 		if variable.Default != cty.NilVal {
-			inputs[name] = &terraform.InputValue{
+			variables[name] = &terraform.InputValue{
 				Value:       variable.Default,
 				SourceType:  terraform.ValueFromConfig,
 				SourceRange: tfdiags.SourceRangeFromHCL(variable.DeclRange),
@@ -1169,7 +1394,8 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 		}
 	}
 
-	// Finally, we're going to do a some modifications to the config.
+	// Now we're going to do a some modifications to the config.
+	//
 	// If we have got variable values from the test file we need to make sure
 	// they have an equivalent entry in the configuration. We're going to do
 	// that dynamically here.
@@ -1183,7 +1409,7 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 
 	// Next, let's go through our entire inputs and add any that aren't already
 	// defined into the config.
-	for name, value := range inputs {
+	for name, value := range variables {
 		if _, exists := config.Module.Variables[name]; exists {
 			continue
 		}
@@ -1200,14 +1426,99 @@ func (runner *TestFileRunner) prepareInputVariablesForAssertions(config *configs
 	// within the config so it can be used again, and any diagnostics reporting
 	// variables that we couldn't parse.
 
-	return inputs, func() {
+	return variables, func() {
 		config.Module.Variables = currentVars
 	}, diags
 }
 
 // EvalCtx returns an hcl.EvalContext that allows the variables blocks within
 // run blocks to evaluate references to the outputs from other run blocks.
-func (runner *TestFileRunner) EvalCtx() *hcl.EvalContext {
+func (runner *TestFileRunner) EvalCtx(run *moduletest.Run, file *moduletest.File, availableVariables terraform.InputValues) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+
+	availableRunBlocks := make(map[string]bool)
+	for _, run := range file.Runs {
+		name := run.Name
+
+		if _, exists := runner.PriorStates[name]; exists {
+			// We have executed this run block previously, therefore it is
+			// available as a reference at this point in time.
+			availableRunBlocks[name] = true
+			continue
+		}
+
+		// We haven't executed this run block yet, therefore it is not available
+		// as a reference at this point in time.
+		availableRunBlocks[name] = false
+	}
+
+	for _, value := range run.Config.Variables {
+		refs, refDiags := lang.ReferencesInExpr(addrs.ParseRefFromTestingScope, value)
+		diags = diags.Append(refDiags)
+		if refDiags.HasErrors() {
+			continue
+		}
+
+		for _, ref := range refs {
+			if addr, ok := ref.Subject.(addrs.Run); ok {
+				available, exists := availableRunBlocks[addr.Name]
+
+				if !exists {
+					// Then this is a made up run block.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unknown run block",
+						Detail:   fmt.Sprintf("The run block %q does not exist within this test file. You can only reference run blocks that are in the same test file and will execute before the current run block.", addr.Name),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+
+					continue
+				}
+
+				if !available {
+					// This run block exists, but it is after the current run block.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unavailable run block",
+						Detail:   fmt.Sprintf("The run block %q is not available to the current run block. You can only reference run blocks that are in the same test file and will execute before the current run block.", addr.Name),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+
+					continue
+				}
+
+				// Otherwise, we're good. This is an acceptable reference.
+				continue
+			}
+
+			if addr, ok := ref.Subject.(addrs.InputVariable); ok {
+				if _, exists := availableVariables[addr.Name]; !exists {
+					// This variable reference doesn't exist.
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  "Reference to unavailable variable",
+						Detail:   fmt.Sprintf("The input variable %q is not available to the current run block. You can only reference variables defined at the file or global levels when populating the variables block within a run block.", addr.Name),
+						Subject:  ref.SourceRange.ToHCL().Ptr(),
+					})
+
+					continue
+				}
+
+				// Otherwise, we're good. This is an acceptable reference.
+				continue
+			}
+
+			// You can only reference run blocks and variables from the run
+			// block variables.
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid reference",
+				Detail:   "You can only reference earlier run blocks, file level, and global variables while defining variables from inside a run block.",
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+	}
+
 	return &hcl.EvalContext{
 		Variables: func() map[string]cty.Value {
 			blocks := make(map[string]cty.Value)
@@ -1233,9 +1544,15 @@ func (runner *TestFileRunner) EvalCtx() *hcl.EvalContext {
 				blocks[run] = cty.ObjectVal(outputs)
 			}
 
+			variables := make(map[string]cty.Value)
+			for name, variable := range availableVariables {
+				variables[name] = variable.Value
+			}
+
 			return map[string]cty.Value{
 				"run": cty.ObjectVal(blocks),
+				"var": cty.ObjectVal(variables),
 			}
 		}(),
-	}
+	}, diags
 }
