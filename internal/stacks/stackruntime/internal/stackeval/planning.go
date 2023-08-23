@@ -4,15 +4,17 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
-	"github.com/zclconf/go-cty/cty"
 )
 
 type PlanOpts struct {
 	PlanningMode plans.Mode
 
-	InputVariableValues map[string]cty.Value
+	InputVariableValues map[stackaddrs.InputVariable]ExternalInputValue
+
+	ProviderFactories ProviderFactories
 }
 
 // Plannable is implemented by objects that can participate in planning.

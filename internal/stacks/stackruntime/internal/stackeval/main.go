@@ -6,9 +6,13 @@ import (
 	"sync"
 
 	"github.com/hashicorp/go-slug/sourcebundle"
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/tfdiags"
+	"github.com/zclconf/go-cty/cty"
 )
 
 // Main is the central node of all data required for performing the major
@@ -36,11 +40,17 @@ type Main struct {
 	// gathered during the apply process.
 	applying *mainApplying
 
+	// providerFactories is a set of callback functions through which the
+	// runtime can obtain new instances of each of the available providers.
+	providerFactories ProviderFactories
+
 	// The remaining fields memoize other objects we might create in response
 	// to method calls. Must lock "mu" before interacting with them.
 	mu              sync.Mutex
 	mainStackConfig *StackConfig
 	mainStack       *Stack
+	providerTypes   map[addrs.Provider]*ProviderType
+	cleanupFuncs    []func(context.Context) tfdiags.Diagnostics
 }
 
 var _ namedPromiseReporter = (*Main)(nil)
@@ -63,6 +73,8 @@ func NewForValidating(config *stackconfig.Config, opts ValidateOpts) *Main {
 		validating: &mainValidating{
 			opts: opts,
 		},
+		providerFactories: opts.ProviderFactories,
+		providerTypes:     make(map[addrs.Provider]*ProviderType),
 	}
 }
 
@@ -75,6 +87,8 @@ func NewForPlanning(config *stackconfig.Config, opts PlanOpts) *Main {
 		planning: &mainPlanning{
 			opts: opts,
 		},
+		providerFactories: opts.ProviderFactories,
+		providerTypes:     make(map[addrs.Provider]*ProviderType),
 	}
 }
 
@@ -208,6 +222,120 @@ func (m *Main) Stack(ctx context.Context, addr stackaddrs.StackInstance, phase E
 		}
 	}
 	return ret
+}
+
+// ProviderFactories returns the collection of factory functions for providers
+// that are available to this instance of the evaluation runtime.
+func (m *Main) ProviderFactories() ProviderFactories {
+	return m.providerFactories
+}
+
+// ProviderType returns the [ProviderType] object representing the given
+// provider source address.
+//
+// This does not check whether the given provider type is available in the
+// current evaluation context, but attempting to create a client for a
+// provider that isn't available will return an error at startup time.
+func (m *Main) ProviderType(ctx context.Context, addr addrs.Provider) *ProviderType {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if m.providerTypes[addr] == nil {
+		m.providerTypes[addr] = newProviderType(m, addr)
+	}
+	return m.providerTypes[addr]
+}
+
+// ProviderInstance returns the provider instance with the given address,
+// or nil if there is no such provider instance.
+//
+// This function needs to evaluate the for_each expression of each stack along
+// the path and of a final multi-instance provider configuration, and so will
+// block on whatever those expressions depend on.
+//
+// If any of the objects along the path have an as-yet-unknown set of
+// instances, this function will optimistically return a non-nil provider
+// configuration but further operations with that configuration are likely
+// to return unknown values themselves.
+func (m *Main) ProviderInstance(ctx context.Context, addr stackaddrs.AbsProviderConfigInstance, phase EvalPhase) *ProviderInstance {
+	stack := m.Stack(ctx, addr.Stack, phase)
+	if stack == nil {
+		return nil
+	}
+	provider := stack.Provider(ctx, addr.Item.ProviderConfig)
+	if provider == nil {
+		return nil
+	}
+	insts := provider.Instances(ctx, phase)
+	if insts == nil {
+		// A nil result means that the for_each expression is unknown, and
+		// so we must optimistically return an instance referring to the
+		// given address which will then presumably yield unknown values
+		// of some kind when used.
+		return newProviderInstance(provider, addr.Item.Key, instances.RepetitionData{
+			EachKey:   cty.UnknownVal(cty.String),
+			EachValue: cty.DynamicVal,
+		})
+	}
+	return insts[addr.Item.Key]
+}
+
+func (m *Main) RootVariableValue(ctx context.Context, addr stackaddrs.InputVariable, phase EvalPhase) ExternalInputValue {
+	switch phase {
+	case PlanPhase:
+		if m.planning == nil {
+			panic("using plan-phase input variable values when not configured for planning")
+		}
+		ret, ok := m.planning.opts.InputVariableValues[addr]
+		if !ok {
+			return ExternalInputValue{
+				Value: cty.NullVal(cty.DynamicPseudoType),
+			}
+		}
+		return ret
+	default:
+		// Root input variable values are not available in any other phase.
+		return ExternalInputValue{
+			Value: cty.DynamicVal, // placeholder value
+		}
+	}
+}
+
+// RegisterCleanup registers an arbitrary callback function to run when a
+// walk driver eventually calls [Main.RunCleanup] on the same receiver.
+//
+// This is intended for cleaning up any resources that would not naturally
+// be cleaned up as a result of garbage-collecting the [Main] object and its
+// many descendents.
+//
+// The context passed to a callback function may be already cancelled by the
+// time the callback is running, if the cleanup is running in response to
+// cancellation.
+func (m *Main) RegisterCleanup(cb func(ctx context.Context) tfdiags.Diagnostics) {
+	m.mu.Lock()
+	m.cleanupFuncs = append(m.cleanupFuncs, cb)
+	m.mu.Unlock()
+}
+
+// DoCleanup executes any cleanup functions previously registered using
+// [Main.RegisterCleanup], returning any collected diagnostics.
+//
+// Call this only once evaluation has completed and there aren't any requests
+// outstanding that might be using resources that this will free. After calling
+// this, the [Main] and all other objects created through it become invalid
+// and must not be used anymore.
+func (m *Main) DoCleanup(ctx context.Context) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	m.mu.Lock()
+	funcs := m.cleanupFuncs
+	m.cleanupFuncs = nil
+	m.mu.Unlock()
+	for _, cb := range funcs {
+		diags = diags.Append(
+			cb(ctx),
+		)
+	}
+	return diags
 }
 
 // mustStackConfig is like [Main.StackConfig] except that it panics if it

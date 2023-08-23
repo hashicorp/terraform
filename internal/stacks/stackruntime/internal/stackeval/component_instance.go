@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -86,6 +87,7 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 		expr = result.Expression
 		hclCtx = result.EvalContext
 		v = result.Value
+		rng = tfdiags.SourceRangeFromHCL(result.Expression.Range())
 	}
 
 	if defs != nil {
@@ -115,6 +117,21 @@ func (c *ComponentInstance) CheckInputVariableValues(ctx context.Context, phase 
 			})
 		}
 		return cty.DynamicVal, diags
+	}
+
+	for _, path := range stackconfigtypes.ProviderInstancePathsInValue(v) {
+		err := path.NewErrorf("cannot send provider configuration reference to Terraform module input variable")
+		diags = diags.Append(&hcl.Diagnostic{
+			Severity: hcl.DiagError,
+			Summary:  "Invalid inputs for component",
+			Detail: fmt.Sprintf(
+				"Invalid input variable definition object: %s.\n\nUse the separate \"providers\" argument to specify the provider configurations to use for this component's root module.",
+				tfdiags.FormatError(err),
+			),
+			Subject:     rng.ToHCL().Ptr(),
+			Expression:  expr,
+			EvalContext: hclCtx,
+		})
 	}
 
 	return v, diags

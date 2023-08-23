@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
+	"github.com/hashicorp/terraform/internal/stacks/stackconfig/stackconfigtypes"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig/typeexpr"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -70,6 +72,33 @@ func (v *OutputValue) ResultType(ctx context.Context) (cty.Type, *typeexpr.Defau
 	return decl.Type.Constraint, decl.Type.Defaults
 }
 
+func (v *OutputValue) CheckResultType(ctx context.Context) (cty.Type, *typeexpr.Defaults, tfdiags.Diagnostics) {
+	var diags tfdiags.Diagnostics
+	ty, defs := v.ResultType(ctx)
+	decl := v.Declaration(ctx)
+	if v.Addr().Stack.IsRoot() {
+		// A root output value cannot return provider configuration references,
+		// because root outputs outlive the operation that generated them but
+		// provider instances are live only during a single evaluation.
+		for _, path := range stackconfigtypes.ProviderConfigPathsInType(ty) {
+			// We'll construct a synthetic error so that we can conveniently
+			// use tfdiags.FormatError to help construct a more specific error
+			// message.
+			err := path.NewErrorf("cannot return provider configuration reference from the root stack")
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Invalid output value type",
+				Detail: fmt.Sprintf(
+					"Unsupported output value type: %s.",
+					tfdiags.FormatError(err),
+				),
+				Subject: decl.Type.Expression.Range().Ptr(),
+			})
+		}
+	}
+	return ty, defs, diags
+}
+
 func (v *OutputValue) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
 	val, _ := v.CheckResultValue(ctx, phase)
 	return val
@@ -120,7 +149,11 @@ func (v *OutputValue) CheckResultValue(ctx context.Context, phase EvalPhase) (ct
 func (v *OutputValue) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := v.CheckResultValue(ctx, PlanPhase)
+	// FIXME: We should really check the type during the validation phase
+	// in OutputValueConfig, rather than the planning phase in OutputValue.
+	_, _, moreDiags := v.CheckResultType(ctx)
+	diags = diags.Append(moreDiags)
+	_, moreDiags = v.CheckResultValue(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
 	return nil, diags

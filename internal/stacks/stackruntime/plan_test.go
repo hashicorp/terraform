@@ -8,9 +8,12 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/plans"
+	"github.com/hashicorp/terraform/internal/providers"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
+	"github.com/hashicorp/terraform/internal/terraform"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/hashicorp/terraform/version"
 	"github.com/zclconf/go-cty/cty"
@@ -166,6 +169,86 @@ func TestPlanVariableOutputRoundtripNested(t *testing.T) {
 	if diff := cmp.Diff(wantChanges, gotChanges); diff != "" {
 		t.Errorf("wrong changes\n%s", diff)
 	}
+}
+
+func TestPlanWithProviderConfig(t *testing.T) {
+	ctx := context.Background()
+	cfg := loadMainBundleConfigForTest(t, "with-provider-config")
+	providerAddr := addrs.MustParseProviderSourceString("example.com/test/test")
+	providerSchema := &providers.GetProviderSchemaResponse{
+		Provider: providers.Schema{
+			Block: &configschema.Block{
+				Attributes: map[string]*configschema.Attribute{
+					"name": {
+						Type:     cty.String,
+						Required: true,
+					},
+				},
+			},
+		},
+	}
+	inputVarAddr := stackaddrs.InputVariable{Name: "name"}
+	fakeSrcRng := tfdiags.SourceRange{
+		Filename: "fake-source",
+	}
+
+	t.Run("valid", func(t *testing.T) {
+		changesCh := make(chan stackplan.PlannedChange, 8)
+		diagsCh := make(chan tfdiags.Diagnostic, 2)
+
+		// FIXME: The MockProvider type is still lurking in
+		// the terraform package; it would make more sense for
+		// it to be providers.Mock, in the providers package.
+		provider := &terraform.MockProvider{
+			GetProviderSchemaResponse:      providerSchema,
+			ValidateProviderConfigResponse: &providers.ValidateProviderConfigResponse{},
+			ConfigureProviderResponse:      &providers.ConfigureProviderResponse{},
+		}
+
+		req := PlanRequest{
+			Config: cfg,
+			InputValues: map[stackaddrs.InputVariable]ExternalInputValue{
+				inputVarAddr: {
+					Value:    cty.StringVal("Jackson"),
+					DefRange: fakeSrcRng,
+				},
+			},
+			ProviderFactories: map[addrs.Provider]providers.Factory{
+				providerAddr: func() (providers.Interface, error) {
+					return provider, nil
+				},
+			},
+		}
+		resp := PlanResponse{
+			PlannedChanges: changesCh,
+			Diagnostics:    diagsCh,
+		}
+		go Plan(ctx, &req, &resp)
+		_, diags := collectPlanOutput(changesCh, diagsCh)
+		if len(diags) != 0 {
+			t.Errorf("unexpected diagnostics\n%s", diags.ErrWithWarnings().Error())
+		}
+
+		if !provider.ValidateProviderConfigCalled {
+			t.Error("ValidateProviderConfig wasn't called")
+		} else {
+			req := provider.ValidateProviderConfigRequest
+			if got, want := req.Config.GetAttr("name"), cty.StringVal("Jackson"); !got.RawEquals(want) {
+				t.Errorf("wrong name in ValidateProviderConfig\ngot:  %#v\nwant: %#v", got, want)
+			}
+		}
+		if !provider.ConfigureProviderCalled {
+			t.Error("ConfigureProvider wasn't called")
+		} else {
+			req := provider.ConfigureProviderRequest
+			if got, want := req.Config.GetAttr("name"), cty.StringVal("Jackson"); !got.RawEquals(want) {
+				t.Errorf("wrong name in ConfigureProvider\ngot:  %#v\nwant: %#v", got, want)
+			}
+		}
+		if !provider.CloseCalled {
+			t.Error("provider wasn't closed")
+		}
+	})
 }
 
 // collectPlanOutput consumes the two output channels emitting results from

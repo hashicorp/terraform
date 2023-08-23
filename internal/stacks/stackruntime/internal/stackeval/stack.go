@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/plans"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -264,6 +265,74 @@ func (s *Stack) Component(ctx context.Context, addr stackaddrs.Component) *Compo
 	return s.Components(ctx)[addr]
 }
 
+func (s *Stack) ProviderByLocalAddr(ctx context.Context, localAddr stackaddrs.ProviderConfigRef) *Provider {
+	decls := s.ConfigDeclarations(ctx)
+
+	sourceAddr, ok := decls.RequiredProviders.ProviderForLocalName(localAddr.ProviderLocalName)
+	if !ok {
+		return nil
+	}
+	configAddr := stackaddrs.AbsProviderConfig{
+		Stack: s.Addr(),
+		Item: stackaddrs.ProviderConfig{
+			Provider: sourceAddr,
+			Name:     localAddr.Name,
+		},
+	}
+
+	// FIXME: stackconfig borrows a type from "addrs" rather than the one
+	// in "stackaddrs", for no good reason other than implementation order.
+	// We should eventually heal this and use stackaddrs.ProviderConfigRef
+	// in the stackconfig API too.
+	k := addrs.LocalProviderConfig{
+		LocalName: localAddr.ProviderLocalName,
+		Alias:     localAddr.Name,
+	}
+	decl, ok := decls.ProviderConfigs[k]
+	if !ok {
+		return nil
+	}
+
+	return newProvider(s.main, configAddr, decl)
+}
+
+func (s *Stack) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *Provider {
+	decls := s.ConfigDeclarations(ctx)
+
+	localName, ok := decls.RequiredProviders.LocalNameForProvider(addr.Provider)
+	if !ok {
+		return nil
+	}
+	return s.ProviderByLocalAddr(ctx, stackaddrs.ProviderConfigRef{
+		ProviderLocalName: localName,
+		Name:              addr.Name,
+	})
+}
+
+func (s *Stack) Providers(ctx context.Context) map[stackaddrs.ProviderConfigRef]*Provider {
+	decls := s.ConfigDeclarations(ctx)
+	if len(decls.ProviderConfigs) == 0 {
+		return nil
+	}
+	ret := make(map[stackaddrs.ProviderConfigRef]*Provider, len(decls.ProviderConfigs))
+	// package stackconfig is using the addrs package for provider configuration
+	// addresses instead of stackaddrs, because it was written before we had
+	// stackaddrs, so we need to do some address adaptation for now.
+	// FIXME: Rationalize this so that stackconfig uses the stackaddrs types.
+	for weirdAddr := range decls.ProviderConfigs {
+		addr := stackaddrs.ProviderConfigRef{
+			ProviderLocalName: weirdAddr.LocalName,
+			Name:              weirdAddr.Alias,
+		}
+		ret[addr] = s.ProviderByLocalAddr(ctx, addr)
+		// FIXME: The above doesn't deal with the case where the provider
+		// block refers to an undeclared provider local name. What should
+		// we do in that case? Maybe it doesn't matter if package stackconfig
+		// validates that during configuration loading anyway.
+	}
+	return ret
+}
+
 // OutputValues returns a map of all of the output values declared within
 // this stack's configuration.
 func (s *Stack) OutputValues(ctx context.Context) map[stackaddrs.OutputValue]*OutputValue {
@@ -345,6 +414,17 @@ func (s *Stack) resolveExpressionReference(ctx context.Context, ref stackaddrs.R
 				Severity: hcl.DiagError,
 				Summary:  "Reference to undeclared embedded stack",
 				Detail:   fmt.Sprintf("There is no stack %q block declared this stack.", addr.Name),
+				Subject:  ref.SourceRange.ToHCL().Ptr(),
+			})
+		}
+		return ret, diags
+	case stackaddrs.ProviderConfigRef:
+		ret := s.ProviderByLocalAddr(ctx, addr)
+		if ret == nil {
+			diags = diags.Append(&hcl.Diagnostic{
+				Severity: hcl.DiagError,
+				Summary:  "Reference to undeclared provider configuration",
+				Detail:   fmt.Sprintf("There is no provider %q %q block declared this stack.", addr.ProviderLocalName, addr.Name),
 				Subject:  ref.SourceRange.ToHCL().Ptr(),
 			})
 		}

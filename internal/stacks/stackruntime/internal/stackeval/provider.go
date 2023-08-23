@@ -14,50 +14,65 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-// StackCall represents a "stack" block in a stack configuration after
-// its containing stacks have been expanded into stack instances.
-type StackCall struct {
-	addr stackaddrs.AbsStackCall
+// Provider represents a provider configuration in a particular stack config.
+type Provider struct {
+	addr   stackaddrs.AbsProviderConfig
+	config *stackconfig.ProviderConfig
 
 	main *Main
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
-	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*StackCallInstance]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ProviderInstance]]]
 }
 
-var _ Plannable = (*StackCall)(nil)
-var _ Referenceable = (*StackCall)(nil)
-
-func newStackCall(main *Main, addr stackaddrs.AbsStackCall) *StackCall {
-	return &StackCall{
-		addr: addr,
-		main: main,
+func newProvider(main *Main, addr stackaddrs.AbsProviderConfig, config *stackconfig.ProviderConfig) *Provider {
+	return &Provider{
+		addr:   addr,
+		config: config,
+		main:   main,
 	}
 }
 
-func (c *StackCall) Addr() stackaddrs.AbsStackCall {
-	return c.addr
+func (p *Provider) Addr() stackaddrs.AbsProviderConfig {
+	return p.addr
 }
 
-func (c *StackCall) Config(ctx context.Context) *StackCallConfig {
-	configAddr := stackaddrs.ConfigForAbs(c.addr)
-	return c.main.StackCallConfig(ctx, configAddr)
+func (p *Provider) Declaration(ctx context.Context) *stackconfig.ProviderConfig {
+	return p.config
 }
 
-func (c *StackCall) Caller(ctx context.Context) *Stack {
-	callerAddr := c.Addr().Stack
-	// Unchecked because StackCall instances only get constructed from
-	// Stack objects, and so our address is derived from there.
-	return c.main.StackUnchecked(ctx, callerAddr)
+func (p *Provider) Config(ctx context.Context) *ProviderConfig {
+	configAddr := stackaddrs.ConfigForAbs(p.Addr())
+	stackConfig := p.main.StackConfig(ctx, configAddr.Stack)
+	if stackConfig == nil {
+		return nil
+	}
+	return stackConfig.Provider(ctx, configAddr.Item)
 }
 
-func (c *StackCall) Declaration(ctx context.Context) *stackconfig.EmbeddedStack {
-	return c.Config(ctx).Declaration(ctx)
+func (p *Provider) ProviderType(ctx context.Context) *ProviderType {
+	return p.main.ProviderType(ctx, p.Addr().Item.Provider)
+}
+
+func (p *Provider) Stack(ctx context.Context) *Stack {
+	// Unchecked because we should've been constructed from the same stack
+	// object we're about to return, and so this should be valid unless
+	// the original construction was from an invalid object itself.
+	return p.main.StackUnchecked(ctx, p.Addr().Stack)
+}
+
+// InstRefValueType returns the type of any values that represent references to
+// instances of this provider configuration.
+//
+// All configurations for the same provider share the same type.
+func (p *Provider) InstRefValueType(ctx context.Context) cty.Type {
+	decl := p.Declaration(ctx)
+	return providerInstanceRefType(decl.ProviderAddr)
 }
 
 // ForEachValue returns the result of evaluating the "for_each" expression
-// for this stack call, with the following exceptions:
-//   - If the stack call doesn't use "for_each" at all, returns [cty.NilVal].
+// for this provider configuration, with the following exceptions:
+//   - If the provider config doesn't use "for_each" at all, returns [cty.NilVal].
 //   - If the for_each expression is present but too invalid to evaluate,
 //     returns [cty.DynamicVal] to represent that the for_each value cannot
 //     be determined.
@@ -67,8 +82,8 @@ func (c *StackCall) Declaration(ctx context.Context) *stackconfig.EmbeddedStack 
 // - Either a set of strings, a map of any element type, or an object type
 // - Known and not null (only the top-level value)
 // - Not sensitive (only the top-level value)
-func (c *StackCall) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value {
-	ret, _ := c.CheckForEachValue(ctx, phase)
+func (p *Provider) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value {
+	ret, _ := p.CheckForEachValue(ctx, phase)
 	return ret
 }
 
@@ -87,17 +102,17 @@ func (c *StackCall) ForEachValue(ctx context.Context, phase EvalPhase) cty.Value
 // If the diagnostics _does_ include errors then the result might be
 // [cty.DynamicVal], which represents that the for_each expression was so invalid
 // that we cannot know the for_each value.
-func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
+func (p *Provider) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty.Value, tfdiags.Diagnostics) {
 	val, diags := doOnceWithDiags(
-		ctx, c.forEachValue.For(phase), c.main,
+		ctx, p.forEachValue.For(phase), p.main,
 		func(ctx context.Context) (cty.Value, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			cfg := c.Declaration(ctx)
+			cfg := p.Declaration(ctx)
 
 			switch {
 
 			case cfg.ForEach != nil:
-				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, c.Caller(ctx))
+				result, moreDiags := evaluateForEachExpr(ctx, cfg.ForEach, phase, p.Stack(ctx))
 				diags = diags.Append(moreDiags)
 				if diags.HasErrors() {
 					return cty.DynamicVal, diags
@@ -131,8 +146,8 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 	return val, diags
 }
 
-// Instances returns all of the instances of the call known to be declared
-// by the configuration.
+// Instances returns all of the instances of the provider config known to be
+// declared by the configuration.
 //
 // Calcluating this involves evaluating the call's for_each expression if any,
 // and so this call may block on evaluation of other objects in the
@@ -147,24 +162,25 @@ func (c *StackCall) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 // for_each expression is invalid because we assume that the main plan walk
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
-func (c *StackCall) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*StackCallInstance {
-	ret, _ := c.CheckInstances(ctx, phase)
+func (p *Provider) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ProviderInstance {
+	ret, _ := p.CheckInstances(ctx, phase)
 	return ret
 }
 
-func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*StackCallInstance, tfdiags.Diagnostics) {
+func (p *Provider) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
 	return doOnceWithDiags(
-		ctx, c.instances.For(phase), c.main,
-		func(ctx context.Context) (map[addrs.InstanceKey]*StackCallInstance, tfdiags.Diagnostics) {
+		ctx, p.instances.For(phase), p.main,
+		func(ctx context.Context) (map[addrs.InstanceKey]*ProviderInstance, tfdiags.Diagnostics) {
 			var diags tfdiags.Diagnostics
-			forEachVal := c.ForEachValue(ctx, phase)
+
+			forEachVal := p.ForEachValue(ctx, phase)
 
 			switch {
 			case forEachVal == cty.NilVal:
 				// No for_each expression at all, then. We have exactly one instance
 				// without an instance key and with no repetition data.
-				return map[addrs.InstanceKey]*StackCallInstance{
-					addrs.NoKey: newStackCallInstance(c, addrs.NoKey, instances.RepetitionData{
+				return map[addrs.InstanceKey]*ProviderInstance{
+					addrs.NoKey: newProviderInstance(p, addrs.NoKey, instances.RepetitionData{
 						// no repetition symbols available in this case
 					}),
 				}, diags
@@ -190,10 +206,10 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 				switch {
 				case ty.IsObjectType() || ty.IsMapType():
 					elems := forEachVal.AsValueMap()
-					ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
+					ret := make(map[addrs.InstanceKey]*ProviderInstance, len(elems))
 					for k, v := range elems {
 						ik := addrs.StringKey(k)
-						ret[ik] = newStackCallInstance(c, ik, instances.RepetitionData{
+						ret[ik] = newProviderInstance(p, ik, instances.RepetitionData{
 							EachKey:   cty.StringVal(k),
 							EachValue: v,
 						})
@@ -209,10 +225,10 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 					}
 
 					elems := forEachVal.AsValueSlice()
-					ret := make(map[addrs.InstanceKey]*StackCallInstance, len(elems))
+					ret := make(map[addrs.InstanceKey]*ProviderInstance, len(elems))
 					for _, sv := range elems {
 						k := addrs.StringKey(sv.AsString())
-						ret[k] = newStackCallInstance(c, k, instances.RepetitionData{
+						ret[k] = newProviderInstance(p, k, instances.RepetitionData{
 							EachKey:   sv,
 							EachValue: sv,
 						})
@@ -227,82 +243,56 @@ func (c *StackCall) CheckInstances(ctx context.Context, phase EvalPhase) (map[ad
 	)
 }
 
-func (c *StackCall) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
-	decl := c.Declaration(ctx)
-	insts := c.Instances(ctx, phase)
-	childResultType := c.Config(ctx).CalleeConfig(ctx).ResultType(ctx)
+// ExprReferenceValue implements Referenceable, returning a value containing
+// one or more values that act as references to instances of the provider.
+func (p *Provider) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
+	decl := p.Declaration(ctx)
+	insts := p.Instances(ctx, phase)
+	refType := p.InstRefValueType(ctx)
 
 	switch {
 	case decl.ForEach != nil:
 		if insts == nil {
-			// If we don't even know what instances we have then all we can
-			// say is that our result ought to be a map of an object type
-			// constructed from the child stack's output values.
-			return cty.UnknownVal(cty.Map(childResultType))
+			return cty.UnknownVal(cty.Map(refType))
 		}
-
-		// We expect that the instances all have string keys, which will
-		// become the keys of a map that we're returning.
 		elems := make(map[string]cty.Value, len(insts))
-		for instKey, inst := range insts {
+		for instKey := range insts {
 			k, ok := instKey.(addrs.StringKey)
 			if !ok {
-				panic(fmt.Sprintf("stack call with for_each has invalid instance key of type %T", instKey))
+				panic(fmt.Sprintf("provider config with for_each has invalid instance key of type %T", instKey))
 			}
-			elems[string(k)] = inst.CalledStack(ctx).ResultValue(ctx, phase)
+			elems[string(k)] = cty.CapsuleVal(refType, &stackaddrs.ProviderConfigInstance{
+				ProviderConfig: p.Addr().Item,
+				Key:            instKey,
+			})
 		}
 		return cty.MapVal(elems)
-
 	default:
 		if insts == nil {
-			// If we don't even know what instances we have then all we can
-			// say is that our result ought to have an object type
-			// constructed from the child stack's output values.
-			return cty.UnknownVal(childResultType)
+			return cty.UnknownVal(refType)
 		}
-		if len(insts) != 1 {
-			// Should not happen: we should have exactly one instance with addrs.NoKey
-			panic("single-instance stack call does not have exactly one instance")
-		}
-		inst, ok := insts[addrs.NoKey]
-		if !ok {
-			panic("single-instance stack call does not have an addrs.NoKey instance")
-		}
-
-		return inst.CalledStack(ctx).ResultValue(ctx, phase)
+		return cty.CapsuleVal(refType, &stackaddrs.ProviderConfigInstance{
+			ProviderConfig: p.Addr().Item,
+			Key:            addrs.NoKey,
+		})
 	}
 }
 
-// ExprReferenceValue implements Referenceable.
-func (c *StackCall) ExprReferenceValue(ctx context.Context, phase EvalPhase) cty.Value {
-	return c.ResultValue(ctx, phase)
-}
-
-// PlanChanges implements Plannable to perform "plan-time validation" of the
-// stack call.
-//
-// This does not validate the instances of the stack call or the child stack
-// instances they imply, so the plan walk driver must also call
-// [StackCall.Instances] and explore the child objects directly.
-func (c *StackCall) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
-	// Stack calls never contribute "planned changes" directly, but we
-	// can potentially generate diagnostics if the call configuration is
-	// invalid. This is therefore more a "plan-time validation" than actually
-	// planning.
+// PlanChanges implements Plannable.
+func (p *Provider) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
 
-	_, moreDiags := c.CheckForEachValue(ctx, PlanPhase)
+	_, moreDiags := p.CheckForEachValue(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
-	_, moreDiags = c.CheckInstances(ctx, PlanPhase)
+	_, moreDiags = p.CheckInstances(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
-
-	// All of the other arguments in a stack call get evaluated separately
-	// for each instance of the call, so [StackCallInstance.PlanChanges]
-	// must deal with those.
+	// Everything else is instance-specific and so the plan walk driver must
+	// call p.Instances and ask each instance to plan itself.
 
 	return nil, diags
 }
 
-func (c *StackCall) tracingName() string {
-	return c.Addr().String()
+// tracingName implements Plannable.
+func (p *Provider) tracingName() string {
+	return p.Addr().String()
 }

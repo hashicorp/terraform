@@ -17,6 +17,9 @@ func Validate(ctx context.Context, req *ValidateRequest) tfdiags.Diagnostics {
 
 	main := stackeval.NewForValidating(req.Config, stackeval.ValidateOpts{})
 	diags := main.ValidateAll(ctx)
+	diags = diags.Append(
+		main.DoCleanup(ctx),
+	)
 	if diags.HasErrors() {
 		span.SetStatus(codes.Error, "validation returned errors")
 	}

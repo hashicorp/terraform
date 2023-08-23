@@ -20,6 +20,7 @@ type Component struct {
 	main *Main
 
 	forEachValue perEvalPhase[promising.Once[withDiagnostics[cty.Value]]]
+	instances    perEvalPhase[promising.Once[withDiagnostics[map[addrs.InstanceKey]*ComponentInstance]]]
 }
 
 var _ Plannable = (*Component)(nil)
@@ -153,72 +154,83 @@ func (c *Component) CheckForEachValue(ctx context.Context, phase EvalPhase) (cty
 // will visit the stack call directly and ask it to check itself, and that
 // call will be the one responsible for returning any diagnostics.
 func (c *Component) Instances(ctx context.Context, phase EvalPhase) map[addrs.InstanceKey]*ComponentInstance {
-	forEachVal := c.ForEachValue(ctx, phase)
+	ret, _ := c.CheckInstances(ctx, phase)
+	return ret
+}
 
-	switch {
-	case forEachVal == cty.NilVal:
-		// No for_each expression at all, then. We have exactly one instance
-		// without an instance key and with no repetition data.
-		return map[addrs.InstanceKey]*ComponentInstance{
-			addrs.NoKey: newComponentInstance(c, addrs.NoKey, instances.RepetitionData{
-				// no repetition symbols available in this case
-			}),
-		}
+func (c *Component) CheckInstances(ctx context.Context, phase EvalPhase) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
+	return doOnceWithDiags(
+		ctx, c.instances.For(phase), c.main,
+		func(ctx context.Context) (map[addrs.InstanceKey]*ComponentInstance, tfdiags.Diagnostics) {
+			var diags tfdiags.Diagnostics
+			forEachVal := c.ForEachValue(ctx, phase)
 
-	case !forEachVal.IsKnown():
-		// The for_each expression is too invalid for us to be able to
-		// know which instances exist. A totally nil map (as opposed to a
-		// non-nil map of length zero) signals that situation.
-		return nil
+			switch {
+			case forEachVal == cty.NilVal:
+				// No for_each expression at all, then. We have exactly one instance
+				// without an instance key and with no repetition data.
+				return map[addrs.InstanceKey]*ComponentInstance{
+					addrs.NoKey: newComponentInstance(c, addrs.NoKey, instances.RepetitionData{
+						// no repetition symbols available in this case
+					}),
+				}, diags
 
-	default:
-		// Otherwise we should be able to assume the value is valid per the
-		// definition of [CheckForEachValue]. The following will panic if
-		// that other function doesn't satisfy its documented contract;
-		// if that happens, prefer to correct [CheckForEachValue] than to
-		// add additional complexity here.
+			case !forEachVal.IsKnown():
+				// The for_each expression is too invalid for us to be able to
+				// know which instances exist. A totally nil map (as opposed to a
+				// non-nil map of length zero) signals that situation.
+				return nil, diags
 
-		// NOTE: We MUST return a non-nil map from every return path under
-		// this case, even if there are zero elements in it, because a nil map
-		// represents an _invalid_ for_each expression (handled above).
+			default:
+				// Otherwise we should be able to assume the value is valid per the
+				// definition of [CheckForEachValue]. The following will panic if
+				// that other function doesn't satisfy its documented contract;
+				// if that happens, prefer to correct [CheckForEachValue] than to
+				// add additional complexity here.
 
-		ty := forEachVal.Type()
-		switch {
-		case ty.IsObjectType() || ty.IsMapType():
-			elems := forEachVal.AsValueMap()
-			ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
-			for k, v := range elems {
-				ik := addrs.StringKey(k)
-				ret[ik] = newComponentInstance(c, ik, instances.RepetitionData{
-					EachKey:   cty.StringVal(k),
-					EachValue: v,
-				})
+				// NOTE: We MUST return a non-nil map from every return path under
+				// this case, even if there are zero elements in it, because a nil map
+				// represents an _invalid_ for_each expression (handled above).
+
+				ty := forEachVal.Type()
+				switch {
+				case ty.IsObjectType() || ty.IsMapType():
+					elems := forEachVal.AsValueMap()
+					ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
+					for k, v := range elems {
+						ik := addrs.StringKey(k)
+						ret[ik] = newComponentInstance(c, ik, instances.RepetitionData{
+							EachKey:   cty.StringVal(k),
+							EachValue: v,
+						})
+					}
+					return ret, diags
+
+				case ty.IsSetType():
+					// ForEachValue should have already guaranteed us a set of strings,
+					// but we'll check again here just so we can panic more intellgibly
+					// if that function is buggy.
+					if ty.ElementType() != cty.String {
+						panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
+					}
+
+					elems := forEachVal.AsValueSlice()
+					ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
+					for _, sv := range elems {
+						k := addrs.StringKey(sv.AsString())
+						ret[k] = newComponentInstance(c, k, instances.RepetitionData{
+							EachKey:   sv,
+							EachValue: sv,
+						})
+					}
+					return ret, diags
+
+				default:
+					panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
+				}
 			}
-			return ret
-
-		case ty.IsSetType():
-			// ForEachValue should have already guaranteed us a set of strings,
-			// but we'll check again here just so we can panic more intellgibly
-			// if that function is buggy.
-			if ty.ElementType() != cty.String {
-				panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
-			}
-
-			elems := forEachVal.AsValueSlice()
-			ret := make(map[addrs.InstanceKey]*ComponentInstance, len(elems))
-			for _, sv := range elems {
-				k := addrs.StringKey(sv.AsString())
-				ret[k] = newComponentInstance(c, k, instances.RepetitionData{
-					EachKey:   sv,
-					EachValue: sv,
-				})
-			}
-			return ret
-
-		default:
-			panic(fmt.Sprintf("ForEachValue returned invalid result %#v", forEachVal))
-		}
-	}
+		},
+	)
 }
 
 func (c *Component) ResultValue(ctx context.Context, phase EvalPhase) cty.Value {
@@ -283,6 +295,8 @@ func (c *Component) PlanChanges(ctx context.Context) ([]stackplan.PlannedChange,
 	var diags tfdiags.Diagnostics
 
 	_, moreDiags := c.CheckForEachValue(ctx, PlanPhase)
+	diags = diags.Append(moreDiags)
+	_, moreDiags = c.CheckInstances(ctx, PlanPhase)
 	diags = diags.Append(moreDiags)
 
 	return nil, diags

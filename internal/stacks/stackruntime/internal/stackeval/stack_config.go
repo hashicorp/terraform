@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/terraform/internal/addrs"
 	"github.com/hashicorp/terraform/internal/instances"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
@@ -35,6 +36,7 @@ type StackConfig struct {
 	outputValues   map[stackaddrs.OutputValue]*OutputValueConfig
 	stackCalls     map[stackaddrs.StackCall]*StackCallConfig
 	components     map[stackaddrs.Component]*ComponentConfig
+	providers      map[stackaddrs.ProviderConfig]*ProviderConfig
 }
 
 var _ ExpressionScope = (*StackConfig)(nil)
@@ -51,6 +53,7 @@ func newStackConfig(main *Main, addr stackaddrs.Stack, config *stackconfig.Confi
 		outputValues:   make(map[stackaddrs.OutputValue]*OutputValueConfig, len(config.Stack.Declarations.OutputValues)),
 		stackCalls:     make(map[stackaddrs.StackCall]*StackCallConfig, len(config.Stack.Declarations.EmbeddedStacks)),
 		components:     make(map[stackaddrs.Component]*ComponentConfig, len(config.Stack.Declarations.Components)),
+		providers:      make(map[stackaddrs.ProviderConfig]*ProviderConfig, len(config.Stack.Declarations.ProviderConfigs)),
 	}
 }
 
@@ -183,6 +186,36 @@ func (s *StackConfig) OutputValues(ctx context.Context) map[stackaddrs.OutputVal
 	for name := range s.config.Stack.OutputValues {
 		addr := stackaddrs.OutputValue{Name: name}
 		ret[addr] = s.OutputValue(ctx, addr)
+	}
+	return ret
+}
+
+// Provider returns a [ProviderConfig] representing the provider configuration
+// block within the stack configuration that matches the given address,
+// or nil if there is no such declaration.
+func (s *StackConfig) Provider(ctx context.Context, addr stackaddrs.ProviderConfig) *ProviderConfig {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	ret, ok := s.providers[addr]
+	if !ok {
+		localName, ok := s.config.Stack.RequiredProviders.LocalNameForProvider(addr.Provider)
+		if !ok {
+			return nil
+		}
+		// FIXME: stackconfig package currently uses addrs.LocalProviderConfig
+		// instead of stackaddrs.ProviderConfigRef.
+		configAddr := addrs.LocalProviderConfig{
+			LocalName: localName,
+			Alias:     addr.Name,
+		}
+		cfg, ok := s.config.Stack.ProviderConfigs[configAddr]
+		if !ok {
+			return nil
+		}
+		cfgAddr := stackaddrs.Config(s.Addr(), addr)
+		ret = newProviderConfig(s.main, cfgAddr, cfg)
+		s.providers[addr] = ret
 	}
 	return ret
 }

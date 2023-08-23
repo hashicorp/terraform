@@ -4,6 +4,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/hashicorp/terraform/internal/addrs"
+	"github.com/hashicorp/terraform/internal/providers"
+	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/stacks/stackruntime/internal/stackeval"
@@ -27,7 +30,10 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 
 	var respMu sync.Mutex // must hold this when accessing fields of resp, aside from channel sends
 
-	main := stackeval.NewForPlanning(req.Config, stackeval.PlanOpts{})
+	main := stackeval.NewForPlanning(req.Config, stackeval.PlanOpts{
+		InputVariableValues: req.InputValues,
+		ProviderFactories:   req.ProviderFactories,
+	})
 	main.PlanAll(ctx, stackeval.PlanOutput{
 		AnnouncePlannedChange: func(ctx context.Context, change stackplan.PlannedChange) {
 			resp.PlannedChanges <- change
@@ -44,6 +50,14 @@ func Plan(ctx context.Context, req *PlanRequest, resp *PlanResponse) {
 			}
 		},
 	})
+	cleanupDiags := main.DoCleanup(ctx)
+	for _, diag := range cleanupDiags {
+		// cleanup diagnostics don't stop a plan from being applyable, because
+		// the cleanup process should not affect the content of and validity
+		// of the plan. This should only include transient operational errors
+		// such as failing to terminate a provider plugin.
+		resp.Diagnostics <- diag
+	}
 
 	// Before we return we'll emit one more special planned change just to
 	// remember in the raw plan sequence whether we considered this plan to be
@@ -62,7 +76,8 @@ type PlanRequest struct {
 	Config *stackconfig.Config
 	// TODO: Prior state
 
-	// TODO: Provider factories and other similar such things
+	InputValues       map[stackaddrs.InputVariable]ExternalInputValue
+	ProviderFactories map[addrs.Provider]providers.Factory
 }
 
 // PlanResponse is used by [Plan] to describe the results of planning.
@@ -121,3 +136,5 @@ type PlanResponse struct {
 	// signal that planning is complete.
 	Diagnostics chan<- tfdiags.Diagnostic
 }
+
+type ExternalInputValue = stackeval.ExternalInputValue

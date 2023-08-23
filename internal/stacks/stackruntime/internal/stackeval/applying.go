@@ -1,3 +1,5 @@
 package stackeval
 
-type ApplyOpts struct{}
+type ApplyOpts struct {
+	ProviderFactories ProviderFactories
+}

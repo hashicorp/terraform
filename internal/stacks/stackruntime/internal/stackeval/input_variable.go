@@ -2,13 +2,16 @@ package stackeval
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/terraform/internal/promising"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/stacks/stackconfig"
 	"github.com/hashicorp/terraform/internal/stacks/stackplan"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
+	"github.com/zclconf/go-cty/cty/convert"
 )
 
 // InputVariable represents an input variable belonging to a [Stack].
@@ -100,8 +103,26 @@ func (v *InputVariable) CheckValue(ctx context.Context, phase EvalPhase) (cty.Va
 
 			switch {
 			case v.Addr().Stack.IsRoot():
-				// TODO: Take input variables from the plan options, then.
-				return cty.UnknownVal(v.Declaration(ctx).Type.Constraint), diags
+				extVal := v.main.RootVariableValue(ctx, v.Addr().Item, phase)
+				wantTy := v.Declaration(ctx).Type.Constraint
+				val, err := convert.Convert(extVal.Value, wantTy)
+				const errSummary = "Invalid value for root input variable"
+				if err != nil {
+					diags = diags.Append(&hcl.Diagnostic{
+						Severity: hcl.DiagError,
+						Summary:  errSummary,
+						Detail: fmt.Sprintf(
+							"Cannot use the given value for input variable %q: %s.",
+							v.Addr().Item.Name, err,
+						),
+					})
+					val = cty.UnknownVal(wantTy)
+					return val, diags
+				}
+
+				// TODO: check the value against any custom validation rules
+				// declared in the configuration.
+				return val, diags
 
 			default:
 				definedByCallInst := v.DefinedByStackCallInstance(ctx, phase)
@@ -144,4 +165,11 @@ func (v *InputVariable) PlanChanges(ctx context.Context) ([]stackplan.PlannedCha
 
 func (v *InputVariable) tracingName() string {
 	return v.Addr().String()
+}
+
+// ExternalInputValue represents the value of an input variable provided
+// from outside the stack configuration.
+type ExternalInputValue struct {
+	Value    cty.Value
+	DefRange tfdiags.SourceRange
 }

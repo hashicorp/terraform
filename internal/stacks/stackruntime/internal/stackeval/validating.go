@@ -7,6 +7,7 @@ import (
 )
 
 type ValidateOpts struct {
+	ProviderFactories ProviderFactories
 }
 
 // Validateable is implemented by objects that can participate in validation.

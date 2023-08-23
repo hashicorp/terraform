@@ -188,6 +188,22 @@ func (m *Main) walkPlanChanges(ctx context.Context, walk *planWalk, stack *Stack
 		})
 	}
 
+	for _, obj := range stack.Providers(ctx) {
+		obj := obj // to avoid sharing obj across all iterations
+		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
+		m.walkPlanObjectChanges(ctx, walk, obj)
+
+		// We need to perform the instance expansion in an overall async
+		// task because it involves potentially evaluating a for_each expression,
+		// and that might depend on data from elsewhere in the same stack.
+		walk.AsyncTask(ctx, func(ctx context.Context) {
+			insts := obj.Instances(ctx, PlanPhase)
+			for _, inst := range insts {
+				m.walkPlanObjectChanges(ctx, walk, inst)
+			}
+		})
+	}
+
 	for _, obj := range stack.InputVariables(ctx) {
 		m.walkPlanValidateConfig(ctx, walk, obj.Config(ctx))
 		m.walkPlanObjectChanges(ctx, walk, obj)

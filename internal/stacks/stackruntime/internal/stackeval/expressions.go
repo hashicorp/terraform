@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/lang"
 	"github.com/hashicorp/terraform/internal/stacks/stackaddrs"
 	"github.com/hashicorp/terraform/internal/tfdiags"
@@ -58,8 +59,17 @@ type ExpressionScope interface {
 // the final step of evaluating the expression, returning both the value
 // and the evaluation context that was used to build it.
 func EvalContextForExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return evalContextForTraversals(ctx, expr.Variables(), phase, scope)
+}
+
+// EvalContextForBody produces an HCL expression context for decoding the
+// given [hcl.Body] into a value using the given [hcldec.Spec].
+func EvalContextForBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
+	return evalContextForTraversals(ctx, hcldec.Variables(body, spec), phase, scope)
+}
+
+func evalContextForTraversals(ctx context.Context, traversals []hcl.Traversal, phase EvalPhase, scope ExpressionScope) (*hcl.EvalContext, tfdiags.Diagnostics) {
 	var diags tfdiags.Diagnostics
-	traversals := expr.Variables()
 	refs := make(map[stackaddrs.Referenceable]Referenceable)
 	for _, traversal := range traversals {
 		ref, _, moreDiags := stackaddrs.ParseReference(traversal)
@@ -172,6 +182,21 @@ func EvalExprAndEvalContext(ctx context.Context, expr hcl.Expression, phase Eval
 func EvalExpr(ctx context.Context, expr hcl.Expression, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
 	result, diags := EvalExprAndEvalContext(ctx, expr, phase, scope)
 	return result.Value, diags
+}
+
+// EvalBody evaluates the expressions in the given body using hcldec with
+// the given schema, returning the resulting value.
+func EvalBody(ctx context.Context, body hcl.Body, spec hcldec.Spec, phase EvalPhase, scope ExpressionScope) (cty.Value, tfdiags.Diagnostics) {
+	hclCtx, diags := EvalContextForBody(ctx, body, spec, phase, scope)
+	if hclCtx == nil {
+		return cty.NilVal, diags
+	}
+	val, hclDiags := hcldec.Decode(body, spec, hclCtx)
+	diags = diags.Append(hclDiags)
+	if val == cty.NilVal {
+		val = cty.DynamicVal // just so the caller can assume the result is always a value
+	}
+	return val, diags
 }
 
 // ExprResult bundles an arbitrary result value with the expression and
