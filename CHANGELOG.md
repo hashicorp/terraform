@@ -23,11 +23,16 @@ S3 BACKEND
 Update Notes
 
 * Moves arguments associated with assuming an IAM role into nested block `assume_role`.
-  This deprecates the arguments `role_arn`, `session_name`, `external_id`, `assume_role_duration_seconds`, `assume_role_policy`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys`. [GH-33630]
+  This deprecates the arguments `role_arn`, `session_name`, `external_id`, `assume_role_duration_seconds`, `assume_role_policy`, `assume_role_policy_arns`, `assume_role_tags`, and `assume_role_transitive_tag_keys`. ([#30495](https://github.com/hashicorp/terraform/issues/30495))
 * Supports the default AWS environment variables for overrding API endpoints: `AWS_ENDPOINT_URL_DYNAMODB`, `AWS_ENDPOINT_URL_IAM`, `AWS_ENDPOINT_URL_S3`, and `AWS_ENDPOINT_URL_STS`.
-  This deprecates the environment variables `AWS_DYNAMODB_ENDPOINT`, `AWS_IAM_ENDPOINT`, `AWS_S3_ENDPOINT`, and `AWS_STS_ENDPOINT`. [GH-33715]
+  This deprecates the environment variables `AWS_DYNAMODB_ENDPOINT`, `AWS_IAM_ENDPOINT`, `AWS_S3_ENDPOINT`, and `AWS_STS_ENDPOINT`. ([#30479](https://github.com/hashicorp/terraform/issues/30479))
 * Moves arguments associated with overriding AWS API endpoints into nested block `endpoints`.
-  This deprecates the arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (S3), and `sts_endpoint`. [GH-33724]
+  This deprecates the arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (S3), and `sts_endpoint`. ([#30492](https://github.com/hashicorp/terraform/issues/30492))
+* Adds an `assume_role_with_web_identity` argument. ([#31244](https://github.com/hashicorp/terraform/issues/31244))
+* Supports the default AWS environment variables for credentials and configuration files: `AWS_CONFIG_FILE`  and `AWS_SHARED_CREDENTIALS_FILE`. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
+* Adds `shared_config_files` and `shared_credentials_files` arguments.
+  This deprecates the `shared_credentials_file` argument. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
+* Upgrades the S3 backend to use AWS SDK Go V2. ([#30443](https://github.com/hashicorp/terraform/issues/30443))
 
 ## Previous Releases
 
