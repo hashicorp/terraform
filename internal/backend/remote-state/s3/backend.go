@@ -242,6 +242,13 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				},
 			},
 
+			"assume_role_with_web_identity": {
+				NestedType: &configschema.Object{
+					Nesting:    configschema.NestingSingle,
+					Attributes: assumeRoleWithWebIdentityFullSchema().SchemaAttributes(),
+				},
+			},
+
 			"use_legacy_workflow": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -370,6 +377,10 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 			`The shared_credentials_file parameter has been deprecated. Use shared_credentials_files instead.`,
 			attrPath,
 		))
+	}
+
+	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
+		diags = diags.Append(prepareAssumeRoleWithWebIdentityConfig(val, cty.GetAttrPath("assume_role_with_web_identity")))
 	}
 
 	return obj, diags
@@ -588,6 +599,33 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			ar.TransitiveTagKeys = val
 		}
 		cfg.AssumeRole = ar
+	}
+
+	if assumeRoleWithWebIdentity := obj.GetAttr("assume_role_with_web_identity"); !assumeRoleWithWebIdentity.IsNull() {
+		ar := &awsbase.AssumeRoleWithWebIdentity{}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "role_arn"); ok {
+			ar.RoleARN = val
+		}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "duration"); ok {
+			duration, _ := time.ParseDuration(val)
+			ar.Duration = duration
+		}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "policy"); ok {
+			ar.Policy = strings.TrimSpace(val)
+		}
+		if val, ok := stringSetAttrOk(assumeRoleWithWebIdentity, "policy_arns"); ok {
+			ar.PolicyARNs = val
+		}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "session_name"); ok {
+			ar.SessionName = val
+		}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "web_identity_token"); ok {
+			ar.WebIdentityToken = val
+		}
+		if val, ok := stringAttrOk(assumeRoleWithWebIdentity, "web_identity_token_file"); ok {
+			ar.WebIdentityTokenFile = val
+		}
+		cfg.AssumeRoleWithWebIdentity = ar
 	}
 
 	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)
@@ -809,6 +847,43 @@ func prepareAssumeRoleConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostic
 		validator := attrSchema.Validator()
 		validator.ValidateAttr(attrVal, attrPath, &diags)
 	}
+
+	return diags
+}
+func prepareAssumeRoleWithWebIdentityConfig(obj cty.Value, objPath cty.Path) tfdiags.Diagnostics {
+	var diags tfdiags.Diagnostics
+	if obj.IsNull() {
+		return diags
+	}
+
+	for name, attrSchema := range assumeRoleWithWebIdentityFullSchema() {
+		attrPath := objPath.GetAttr(name)
+		attrVal := obj.GetAttr(name)
+
+		if a, e := attrVal.Type(), attrSchema.SchemaAttribute().Type; a != e {
+			diags = diags.Append(attributeErrDiag(
+				"Internal Error",
+				fmt.Sprintf(`Expected type to be %s, got: %s`, e.FriendlyName(), a.FriendlyName()),
+				attrPath,
+			))
+			continue
+		}
+
+		if attrVal.IsNull() {
+			if attrSchema.SchemaAttribute().Required {
+				diags = diags.Append(requiredAttributeErrDiag(attrPath))
+			}
+			continue
+		}
+
+		validator := attrSchema.Validator()
+		validator.ValidateAttr(attrVal, attrPath, &diags)
+	}
+
+	validateExactlyOneOfAttributes(
+		cty.GetAttrPath("web_identity_token"),
+		cty.GetAttrPath("web_identity_token_file"),
+	)(obj, objPath, &diags)
 
 	return diags
 }
@@ -1067,6 +1142,116 @@ func assumeRoleFullSchema() objectSchema {
 				Description: "Assume role session tag keys to pass to any subsequent sessions.",
 			},
 			validateSet{},
+		},
+	}
+}
+
+func assumeRoleWithWebIdentityFullSchema() objectSchema {
+	return map[string]schemaAttribute{
+		"role_arn": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Required:    true,
+				Description: "The role to be assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateARN(
+						validateIAMRoleARN,
+					),
+				},
+			},
+		},
+
+		"duration": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The duration, between 15 minutes and 12 hours, of the role session. Valid time units are ns, us (or µs), ms, s, h, or m.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateDuration(
+						validateDurationBetween(15*time.Minute, 12*time.Hour),
+					),
+				},
+			},
+		},
+
+		"policy": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringNotEmpty,
+					validateIAMPolicyDocument,
+				},
+			},
+		},
+
+		"policy_arns": setAttribute{
+			configschema.Attribute{
+				Type:        cty.Set(cty.String),
+				Optional:    true,
+				Description: "Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.",
+			},
+			validateSet{
+				Validators: []setValidator{
+					validateSetStringElements(
+						validateARN(
+							validateIAMPolicyARN,
+						),
+					),
+				},
+			},
+		},
+
+		"session_name": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "The session name to use when assuming the role.",
+			},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(2, 64),
+					validateStringMatches(
+						regexp.MustCompile(`^[\w+=,.@\-]*$`),
+						`Value can only contain letters, numbers, or the following characters: =,.@-`,
+					),
+				},
+			},
+		},
+
+		"web_identity_token": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
+			},
+			// ExactlyOneOf: []string{"assume_role_with_web_identity.0.web_identity_token", "assume_role_with_web_identity.0.web_identity_token_file"},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(4, 20000),
+				},
+			},
+		},
+
+		"web_identity_token_file": stringAttribute{
+			configschema.Attribute{
+				Type:        cty.String,
+				Optional:    true,
+				Description: "File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
+			},
+			// 	ExactlyOneOf: []string{"assume_role_with_web_identity.0.web_identity_token", "assume_role_with_web_identity.0.web_identity_token_file"},
+			validateString{
+				Validators: []stringValidator{
+					validateStringLenBetween(4, 20000),
+				},
+			},
 		},
 	}
 }

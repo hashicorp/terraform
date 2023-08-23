@@ -206,6 +206,54 @@ The following arguments on the top level are deprecated:
 * `session_name` - (Optional) Session name to use when assuming the role.
   Use `assume_role.session_name` instead.
 
+```terraform
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-prod"
+    key    = "network/terraform.tfstate"
+    region = "us-east-1"
+    assume_role {
+      role_arn = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
+    }
+  }
+}
+```
+
+#### Assume Role With Web Identity Configuration
+
+The following `assume_role_with_web_identity` configuration block is optional:
+
+* `role_arn` - (Required) Amazon Resource Name (ARN) of the IAM Role to assume.
+  Can also be set with the `AWS_ROLE_ARN` environment variable.
+* `duration` - (Optional) The duration individual credentials will be valid.
+  Credentials are automatically renewed up to the maximum defined by the AWS account.
+  Specified using the format `<hours>h<minutes>m<seconds>s` with any unit being optional.
+  For example, an hour and a half can be specified as `1h30m` or `90m`. 
+  Must be between 15 minutes (15m) and 12 hours (12h).
+* `policy` - (Optional) IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.
+* `policy_arns` - (Optional) Set of Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.
+* `session_name` - (Optional) Session name to use when assuming the role.
+  Can also be set with the `AWS_ROLE_SESSION_NAME` environment variable.
+* `web_identity_token` - (Optional) The value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.
+  One of `web_identity_token` or `web_identity_token_file` is required.
+* `web_identity_token_file` - (Optional) File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.
+  One of `web_identity_token_file` or `web_identity_token` is required.
+  Can also be set with the `AWS_WEB_IDENTITY_TOKEN_FILE` environment variable.
+
+```terraform
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-prod"
+    key    = "network/terraform.tfstate"
+    region = "us-east-1"
+    assume_role_with_web_identity {
+      role_arn           = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
+      web_identity_token = "<token value>"
+    }
+  }
+}
+```
+
 ### S3 State Storage
 
 The following configuration is required:
