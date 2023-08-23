@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package s3
 
@@ -22,6 +22,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/hashicorp/aws-sdk-go-base/v2/mockdata"
 	"github.com/hashicorp/aws-sdk-go-base/v2/servicemocks"
+	"github.com/hashicorp/hcl/v2"
+	"github.com/hashicorp/hcl/v2/hcldec"
 	"github.com/hashicorp/terraform/internal/backend"
 	"github.com/hashicorp/terraform/internal/configs/configschema"
 	"github.com/hashicorp/terraform/internal/configs/hcl2shim"
@@ -203,119 +205,316 @@ func TestBackendConfig_RegionEnvVar(t *testing.T) {
 	}
 }
 
-// func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
-// 	testACC(t)
-
-// 	cases := map[string]struct {
-// 		config   map[string]any
-// 		vars     map[string]string
-// 		expected string
-// 	}{
-// 		"none": {
-// 			expected: "",
-// 		},
-// 		"config": {
-// 			config: map[string]any{
-// 				"dynamodb_endpoint": "dynamo.test",
-// 			},
-// 			expected: "dynamo.test",
-// 		},
-// 		"envvar": {
-// 			vars: map[string]string{
-// 				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
-// 			},
-// 			expected: "dynamo.test",
-// 		},
-// 	}
-
-// 	for name, tc := range cases {
-// 		t.Run(name, func(t *testing.T) {
-// 			config := map[string]interface{}{
-// 				"region": "us-west-1",
-// 				"bucket": "tf-test",
-// 				"key":    "state",
-// 			}
-
-// 			if tc.vars != nil {
-// 				for k, v := range tc.vars {
-// 					os.Setenv(k, v)
-// 				}
-// 				t.Cleanup(func() {
-// 					for k := range tc.vars {
-// 						os.Unsetenv(k)
-// 					}
-// 				})
-// 			}
-
-// 			if tc.config != nil {
-// 				for k, v := range tc.config {
-// 					config[k] = v
-// 				}
-// 			}
-
-// 			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
-
-// 			checkClientEndpoint(t, b.dynClient.Config, tc.expected)
-// 		})
+// TODO: Convert to AWS SDK v2 equivalent
+// func checkClientEndpoint(t *testing.T, config aws.Config, expected string) {
+// 	if a := aws.ToString(config.Endpoint); a != expected {
+// 		t.Errorf("expected endpoint %q, got %q", expected, a)
 // 	}
 // }
 
-// func TestBackendConfig_S3Endpoint(t *testing.T) {
-// 	testACC(t)
+func TestBackendConfig_DynamoDBEndpoint(t *testing.T) {
+	testACC(t)
 
-// 	cases := map[string]struct {
-// 		config   map[string]any
-// 		vars     map[string]string
-// 		expected string
-// 	}{
-// 		"none": {
-// 			expected: "",
-// 		},
-// 		"config": {
-// 			config: map[string]any{
-// 				"endpoint": "s3.test",
-// 			},
-// 			expected: "s3.test",
-// 		},
-// 		"envvar": {
-// 			vars: map[string]string{
-// 				"AWS_S3_ENDPOINT": "s3.test",
-// 			},
-// 			expected: "s3.test",
-// 		},
-// 	}
+	cases := map[string]struct {
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
+	}{
+		"none": {
+			expectedEndpoint: "",
+		},
+		"config": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"dynamodb": "dynamo.test",
+				},
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated config": {
+			config: map[string]any{
+				"dynamodb_endpoint": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"dynamodb_endpoint": "dynamo.test",
+				"endpoints": map[string]any{
+					"dynamodb": "dynamo.test",
+				},
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("dynamodb_endpoint"), cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("dynamodb_endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+					),
+				)},
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_ENDPOINT_URL_DYNAMODB": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
+				"AWS_DYNAMODB_ENDPOINT": "dynamo.test",
+			},
+			expectedEndpoint: "dynamo.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_DYNAMODB_ENDPOINT", "AWS_ENDPOINT_URL_DYNAMODB"),
+			},
+		},
+	}
 
-// 	for name, tc := range cases {
-// 		t.Run(name, func(t *testing.T) {
-// 			config := map[string]interface{}{
-// 				"region": "us-west-1",
-// 				"bucket": "tf-test",
-// 				"key":    "state",
-// 			}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
 
-// 			if tc.vars != nil {
-// 				for k, v := range tc.vars {
-// 					os.Setenv(k, v)
-// 				}
-// 				t.Cleanup(func() {
-// 					for k := range tc.vars {
-// 						os.Unsetenv(k)
-// 					}
-// 				})
-// 			}
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
 
-// 			if tc.config != nil {
-// 				for k, v := range tc.config {
-// 					config[k] = v
-// 				}
-// 			}
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
 
-// 			b := backend.TestBackendConfig(t, New(), backend.TestWrapConfig(config)).(*Backend)
+			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// b := raw.(*Backend)
 
-// 			checkClientEndpoint(t, b.s3Client.Config, tc.expected)
-// 		})
-// 	}
-// }
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if !diags.HasErrors() {
+				// TODO: Convert to AWS SDK v2 equivalent
+				// pass b.awsConfig.EndpointResolver into helper func, calling .Resolve() method?
+				// checkClientEndpoint(t, b.dynClient.options, tc.expectedEndpoint)
+			}
+		})
+	}
+}
+
+func TestBackendConfig_IAMEndpoint(t *testing.T) {
+	testACC(t)
+
+	// Doesn't test for expected endpoint, since the IAM endpoint is used internally to `aws-sdk-go-base`
+	// The mocked tests won't work if the config parameter doesn't work
+	cases := map[string]struct {
+		config        map[string]any
+		vars          map[string]string
+		expectedDiags tfdiags.Diagnostics
+	}{
+		"none": {},
+		"config": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"iam": "iam.test",
+				},
+			},
+		},
+		"deprecated config": {
+			config: map[string]any{
+				"iam_endpoint": "iam.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"iam_endpoint": "iam.test",
+				"endpoints": map[string]any{
+					"iam": "iam.test",
+				},
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("iam_endpoint"), cty.GetAttrPath("endpoints").GetAttr("iam")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("iam_endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("iam")),
+					),
+				)},
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_ENDPOINT_URL_IAM": "iam.test",
+			},
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
+				"AWS_IAM_ENDPOINT": "iam.test",
+			},
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_IAM_ENDPOINT", "AWS_ENDPOINT_URL_IAM"),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
+
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
+
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+		})
+	}
+}
+
+func TestBackendConfig_S3Endpoint(t *testing.T) {
+	testACC(t)
+
+	cases := map[string]struct {
+		config           map[string]any
+		vars             map[string]string
+		expectedEndpoint string
+		expectedDiags    tfdiags.Diagnostics
+	}{
+		"none": {
+			expectedEndpoint: "",
+		},
+		"config": {
+			config: map[string]any{
+				"endpoints": map[string]any{
+					"s3": "s3.test",
+				},
+			},
+			expectedEndpoint: "s3.test",
+		},
+		"deprecated config": {
+			config: map[string]any{
+				"endpoint": "s3.test",
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+			},
+		},
+		"config conflict": {
+			config: map[string]any{
+				"endpoint": "s3.test",
+				"endpoints": map[string]any{
+					"s3": "s3.test",
+				},
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedAttrDiag(cty.GetAttrPath("endpoint"), cty.GetAttrPath("endpoints").GetAttr("s3")),
+				wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath("endpoint")),
+						pathString(cty.GetAttrPath("endpoints").GetAttr("s3")),
+					),
+				)},
+		},
+		"envvar": {
+			vars: map[string]string{
+				"AWS_ENDPOINT_URL_S3": "s3.test",
+			},
+			expectedEndpoint: "s3.test",
+		},
+		"deprecated envvar": {
+			vars: map[string]string{
+				"AWS_S3_ENDPOINT": "s3.test",
+			},
+			expectedEndpoint: "s3.test",
+			expectedDiags: tfdiags.Diagnostics{
+				deprecatedEnvVarDiag("AWS_S3_ENDPOINT", "AWS_ENDPOINT_URL_S3"),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			config := map[string]interface{}{
+				"region": "us-west-1",
+				"bucket": "tf-test",
+				"key":    "state",
+			}
+
+			if tc.vars != nil {
+				for k, v := range tc.vars {
+					os.Setenv(k, v)
+				}
+				t.Cleanup(func() {
+					for k := range tc.vars {
+						os.Unsetenv(k)
+					}
+				})
+			}
+
+			if tc.config != nil {
+				for k, v := range tc.config {
+					config[k] = v
+				}
+			}
+
+			_, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// raw, diags := testBackendConfigDiags(t, New(), backend.TestWrapConfig(config))
+			// b := raw.(*Backend)
+
+			if diff := cmp.Diff(diags, tc.expectedDiags, cmp.Comparer(diagnosticComparer)); diff != "" {
+				t.Errorf("unexpected diagnostics difference: %s", diff)
+			}
+
+			if !diags.HasErrors() {
+				// TODO: Convert to AWS SDK v2 equivalent
+				// pass b.awsConfig.EndpointResolver into helper func, calling .Resolve() method?
+				// checkClientEndpoint(t, b.s3Client.Config, tc.expectedEndpoint)
+			}
+		})
+	}
+}
 
 func TestBackendConfig_AssumeRole(t *testing.T) {
 	testACC(t)
@@ -726,7 +925,7 @@ func TestBackendConfig_PrepareConfigValidation(t *testing.T) {
 				),
 				attributeWarningDiag(
 					"Deprecated Parameter",
-					`The shared_credentials_file parameter has been deprecated. Use shared_credentials_files instead.`,
+					`The parameter "shared_credentials_file" is deprecated. Use parameter "shared_credentials_files" instead.`,
 					cty.GetAttrPath("shared_credentials_file"),
 				),
 			},
@@ -1695,4 +1894,40 @@ func must[T any](v T, err error) T {
 	} else {
 		return v
 	}
+}
+
+// testBackendConfigDiags is an equivalent to `backend.TestBackendConfig` which returns the diags to the caller
+// instead of failing the test
+func testBackendConfigDiags(t *testing.T, b backend.Backend, c hcl.Body) (backend.Backend, tfdiags.Diagnostics) {
+	t.Helper()
+
+	t.Logf("TestBackendConfig on %T with %#v", b, c)
+
+	var diags tfdiags.Diagnostics
+
+	// To make things easier for test authors, we'll allow a nil body here
+	// (even though that's not normally valid) and just treat it as an empty
+	// body.
+	if c == nil {
+		c = hcl.EmptyBody()
+	}
+
+	schema := b.ConfigSchema()
+	spec := schema.DecoderSpec()
+	obj, decDiags := hcldec.Decode(c, spec, nil)
+	diags = diags.Append(decDiags)
+
+	newObj, valDiags := b.PrepareConfig(obj)
+	diags = diags.Append(valDiags.InConfigBody(c, ""))
+
+	// it's valid for a Backend to have warnings (e.g. a Deprecation) as such we should only raise on errors
+	if diags.HasErrors() {
+		return b, diags
+	}
+
+	obj = newObj
+
+	confDiags := b.Configure(obj)
+
+	return b, diags.Append(confDiags)
 }

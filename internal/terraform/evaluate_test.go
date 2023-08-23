@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package terraform
 
@@ -632,5 +632,97 @@ func evaluatorForModule(stateSync *states.SyncState, changesSync *plans.ChangesS
 		},
 		State:   stateSync,
 		Changes: changesSync,
+	}
+}
+
+func TestGetRunBlocks(t *testing.T) {
+	evaluator := &Evaluator{
+		AlternateStates: map[string]*evaluationStateData{
+			"zero": {
+				Evaluator: &Evaluator{
+					State: states.BuildState(func(state *states.SyncState) {
+						state.SetOutputValue(addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance,
+							OutputValue: addrs.OutputValue{
+								Name: "value",
+							},
+						}, cty.StringVal("Hello, world!"), false)
+					}).SyncWrapper(),
+					Config: &configs.Config{
+						Module: &configs.Module{
+							Outputs: map[string]*configs.Output{
+								"value": {
+									Name: "value",
+								},
+							},
+						},
+					},
+				},
+			},
+			"one": {
+				Evaluator: &Evaluator{
+					State: states.BuildState(func(state *states.SyncState) {
+						state.SetOutputValue(addrs.AbsOutputValue{
+							Module: addrs.RootModuleInstance,
+							OutputValue: addrs.OutputValue{
+								Name: "value",
+							},
+						}, cty.StringVal("Hello, universe!"), false)
+					}).SyncWrapper(),
+					Config: &configs.Config{
+						Module: &configs.Module{
+							Outputs: map[string]*configs.Output{
+								"value": {
+									Name: "value",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	data := &evaluationStateData{
+		Evaluator:       evaluator,
+		ModulePath:      nil,
+		InstanceKeyData: EvalDataForNoInstanceKey,
+	}
+
+	scope := evaluator.Scope(data, nil, nil)
+	got, diags := scope.Data.GetRunBlock(addrs.Run{Name: "zero"}, tfdiags.SourceRange{})
+	want := cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("Hello, world!"),
+	})
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Err())
+	}
+
+	if !got.RawEquals(want) {
+		t.Errorf("\ngot: %#v\nwant: %#v", got, want)
+	}
+
+	got, diags = scope.Data.GetRunBlock(addrs.Run{Name: "one"}, tfdiags.SourceRange{})
+	want = cty.ObjectVal(map[string]cty.Value{
+		"value": cty.StringVal("Hello, universe!"),
+	})
+
+	if diags.HasErrors() {
+		t.Fatalf("unexpected diagnostics: %s", diags.Err())
+	}
+
+	if !got.RawEquals(want) {
+		t.Errorf("\ngot: %#v\nwant: %#v", got, want)
+	}
+
+	_, diags = scope.Data.GetRunBlock(addrs.Run{Name: "two"}, tfdiags.SourceRange{})
+
+	if !diags.HasErrors() {
+		t.Fatalf("expected some diags but got none")
+	}
+
+	if diags[0].Description().Summary != "Reference to unavailable run block" {
+		t.Errorf("retrieved unexpected diagnostic: %s", diags[0].Description().Summary)
 	}
 }

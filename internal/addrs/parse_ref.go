@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package addrs
 
@@ -111,6 +111,14 @@ func ParseRefFromTestingScope(traversal hcl.Traversal) (*Reference, tfdiags.Diag
 			Remaining:   remain,
 		}
 		diags = checkDiags
+	case "run":
+		name, rng, remain, runDiags := parseSingleAttrRef(traversal)
+		reference = &Reference{
+			Subject:     Run{Name: name},
+			SourceRange: tfdiags.SourceRangeFromHCL(rng),
+			Remaining:   remain,
+		}
+		diags = runDiags
 	}
 
 	if reference != nil {

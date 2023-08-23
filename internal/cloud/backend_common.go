@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package cloud
 
@@ -391,7 +391,7 @@ func (b *Cloud) checkPolicy(stopCtx, cancelCtx context.Context, op *backend.Oper
 		case tfe.PolicyHardFailed:
 			return fmt.Errorf(msgPrefix + " hard failed.")
 		case tfe.PolicySoftFailed:
-			runUrl := fmt.Sprintf(runHeader, b.hostname, b.organization, op.Workspace, r.ID)
+			runUrl := fmt.Sprintf(runHeader, b.Hostname, b.organization, op.Workspace, r.ID)
 
 			if op.Type == backend.OperationTypePlan || op.UIOut == nil || op.UIIn == nil ||
 				!pc.Actions.IsOverridable || !pc.Permissions.CanOverride {

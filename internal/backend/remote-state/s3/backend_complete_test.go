@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package s3
 
 import (
@@ -681,7 +684,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
@@ -1155,7 +1160,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
@@ -1440,7 +1447,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRolePolicy"
+		// WAS: "config AssumeRolePolicy"
 		"with policy": {
 			config: map[string]any{
 				"access_key": servicemocks.MockStaticAccessKey,
@@ -1476,7 +1483,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRoleTags"
+		// WAS: "config AssumeRoleTags"
 		"with tags": {
 			config: map[string]any{
 				"access_key": servicemocks.MockStaticAccessKey,
@@ -1496,7 +1503,7 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			},
 		},
 
-		// // WAS: "config AssumeRoleTransitiveTagKeys"
+		// WAS: "config AssumeRoleTransitiveTagKeys"
 		"with transitive tags": {
 			config: map[string]any{
 				"access_key": servicemocks.MockStaticAccessKey,
@@ -1595,7 +1602,9 @@ aws_secret_access_key = DefaultSharedCredentialsSecretKey
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			if tc.SharedConfigurationFile != "" {
 				file, err := os.CreateTemp("", "aws-sdk-go-base-shared-configuration-file")
@@ -1907,7 +1916,9 @@ web_identity_token_file = no-such-file
 			ts := servicemocks.MockAwsApiServer("STS", tc.MockStsEndpoints)
 			defer ts.Close()
 
-			tc.config["sts_endpoint"] = ts.URL
+			tc.config["endpoints"] = map[string]any{
+				"sts": ts.URL,
+			}
 
 			tempdir, err := os.MkdirTemp("", "temp")
 			if err != nil {

@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package terraform
 
 import (
@@ -25,6 +28,7 @@ import (
 type TestContext struct {
 	*Context
 
+	Run       *moduletest.Run
 	Config    *configs.Config
 	State     *states.State
 	Plan      *plans.Plan
@@ -33,9 +37,10 @@ type TestContext struct {
 
 // TestContext creates a TestContext structure that can evaluate test assertions
 // against the provided state and plan.
-func (c *Context) TestContext(config *configs.Config, state *states.State, plan *plans.Plan, variables InputValues) *TestContext {
+func (c *Context) TestContext(run *moduletest.Run, config *configs.Config, state *states.State, plan *plans.Plan, variables InputValues) *TestContext {
 	return &TestContext{
 		Context:   c,
+		Run:       run,
 		Config:    config,
 		State:     state,
 		Plan:      plan,
@@ -43,33 +48,27 @@ func (c *Context) TestContext(config *configs.Config, state *states.State, plan 
 	}
 }
 
-// EvaluateAgainstState processes the assertions inside the provided
-// configs.TestRun against the embedded state.
-//
-// The provided plan is import as it is needed to evaluate the `plantimestamp`
-// function, but no data or changes from the embedded plan is referenced in
-// this function.
-func (ctx *TestContext) EvaluateAgainstState(run *moduletest.Run) {
-	defer ctx.acquireRun("evaluate")()
-	ctx.evaluate(ctx.State.SyncWrapper(), plans.NewChanges().SyncWrapper(), run, walkApply)
-}
+func (ctx *TestContext) evaluationStateData(alternateStates map[string]*evaluationStateData) *evaluationStateData {
 
-// EvaluateAgainstPlan processes the assertions inside the provided
-// configs.TestRun against the embedded plan and state.
-func (ctx *TestContext) EvaluateAgainstPlan(run *moduletest.Run) {
-	defer ctx.acquireRun("evaluate")()
-	ctx.evaluate(ctx.State.SyncWrapper(), ctx.Plan.Changes.SyncWrapper(), run, walkPlan)
-}
+	var operation walkOperation
+	switch ctx.Run.Config.Command {
+	case configs.PlanTestCommand:
+		operation = walkPlan
+	case configs.ApplyTestCommand:
+		operation = walkApply
+	default:
+		panic(fmt.Errorf("unrecognized TestCommand: %q", ctx.Run.Config.Command))
+	}
 
-func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.ChangesSync, run *moduletest.Run, operation walkOperation) {
-	data := &evaluationStateData{
+	return &evaluationStateData{
 		Evaluator: &Evaluator{
-			Operation: operation,
-			Meta:      ctx.meta,
-			Config:    ctx.Config,
-			Plugins:   ctx.plugins,
-			State:     state,
-			Changes:   changes,
+			Operation:       operation,
+			Meta:            ctx.meta,
+			Config:          ctx.Config,
+			Plugins:         ctx.plugins,
+			State:           ctx.State.SyncWrapper(),
+			Changes:         ctx.Plan.Changes.SyncWrapper(),
+			AlternateStates: alternateStates,
 			VariableValues: func() map[string]map[string]cty.Value {
 				variables := map[string]map[string]cty.Value{
 					addrs.RootModule.String(): make(map[string]cty.Value),
@@ -86,16 +85,28 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 		InstanceKeyData: EvalDataForNoInstanceKey,
 		Operation:       operation,
 	}
+}
 
+// Evaluate processes the assertions inside the provided configs.TestRun against
+// the embedded state.
+func (ctx *TestContext) Evaluate(priorContexts map[string]*TestContext) {
+
+	alternateStates := make(map[string]*evaluationStateData)
+	for name, priorContext := range priorContexts {
+		alternateStates[name] = priorContext.evaluationStateData(nil)
+	}
+
+	data := ctx.evaluationStateData(alternateStates)
 	scope := &lang.Scope{
 		Data:          data,
 		BaseDir:       ".",
-		PureOnly:      operation != walkApply,
+		PureOnly:      data.Operation != walkApply,
 		PlanTimestamp: ctx.Plan.Timestamp,
 	}
 
 	// We're going to assume the run has passed, and then if anything fails this
 	// value will be updated.
+	run := ctx.Run
 	run.Status = run.Status.Merge(moduletest.Pass)
 
 	// Now validate all the assertions within this run block.
@@ -140,8 +151,8 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 			run.Status = run.Status.Merge(moduletest.Error)
 			run.Diagnostics = run.Diagnostics.Append(&hcl.Diagnostic{
 				Severity:    hcl.DiagError,
-				Summary:     "Unknown condition run",
-				Detail:      "Condition expression could not be evaluated at this time.",
+				Summary:     "Unknown condition value",
+				Detail:      "Condition expression could not be evaluated at this time. This means you have executed a `run` block with `command = plan` and one of the values your condition depended on is not known until after the plan has been applied. Either remove this value from your condition, or execute an `apply` command from this `run` block.",
 				Subject:     rule.Condition.Range().Ptr(),
 				Expression:  rule.Condition,
 				EvalContext: hclCtx,
@@ -162,6 +173,10 @@ func (ctx *TestContext) evaluate(state *states.SyncState, changes *plans.Changes
 			})
 			continue
 		}
+
+		// If the runVal refers to any sensitive values, then we'll have a
+		// sensitive mark on the resulting value.
+		runVal, _ = runVal.Unmark()
 
 		if runVal.False() {
 			run.Status = run.Status.Merge(moduletest.Fail)

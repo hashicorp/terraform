@@ -1,9 +1,13 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package testing
 
 import (
 	"fmt"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-uuid"
@@ -139,6 +143,9 @@ func (provider *TestProvider) DataSourceCount() int {
 }
 
 func (provider *TestProvider) count(prefix string) int {
+	provider.Store.mutex.RLock()
+	defer provider.Store.mutex.RUnlock()
+
 	if len(prefix) == 0 {
 		return len(provider.Store.Data)
 	}
@@ -153,6 +160,9 @@ func (provider *TestProvider) count(prefix string) int {
 }
 
 func (provider *TestProvider) string(prefix string) string {
+	provider.Store.mutex.RLock()
+	defer provider.Store.mutex.RUnlock()
+
 	var keys []string
 	for key := range provider.Store.Data {
 		if strings.HasPrefix(key, prefix) {
@@ -264,10 +274,15 @@ func (provider *TestProvider) ReadDataSource(request providers.ReadDataSourceReq
 // ResourceStore manages a set of cty.Value resources that can be shared between
 // TestProvider providers.
 type ResourceStore struct {
+	mutex sync.RWMutex
+
 	Data map[string]cty.Value
 }
 
 func (store *ResourceStore) Delete(key string) cty.Value {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
 	if resource, ok := store.Data[key]; ok {
 		delete(store.Data, key)
 		return resource
@@ -276,14 +291,24 @@ func (store *ResourceStore) Delete(key string) cty.Value {
 }
 
 func (store *ResourceStore) Get(key string) cty.Value {
+	store.mutex.RLock()
+	defer store.mutex.RUnlock()
+
+	return store.get(key)
+}
+
+func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+
+	old := store.get(key)
+	store.Data[key] = resource
+	return old
+}
+
+func (store *ResourceStore) get(key string) cty.Value {
 	if resource, ok := store.Data[key]; ok {
 		return resource
 	}
 	return cty.NilVal
-}
-
-func (store *ResourceStore) Put(key string, resource cty.Value) cty.Value {
-	old := store.Get(key)
-	store.Data[key] = resource
-	return old
 }

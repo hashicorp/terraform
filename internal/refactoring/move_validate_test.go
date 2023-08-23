@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package refactoring
 
@@ -538,7 +538,7 @@ func loadRefactoringFixture(t *testing.T, dir string) (*configs.Config, instance
 	defer cleanup()
 
 	inst := initwd.NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
-	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, initwd.ModuleInstallHooksImpl{})
+	_, instDiags := inst.InstallModules(context.Background(), dir, "tests", true, false, initwd.ModuleInstallHooksImpl{})
 	if instDiags.HasErrors() {
 		t.Fatal(instDiags.Err())
 	}

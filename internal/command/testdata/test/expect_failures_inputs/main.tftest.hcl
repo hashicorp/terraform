@@ -3,6 +3,8 @@ variables {
 }
 
 run "test" {
+  command = plan
+
   expect_failures = [
     var.input
   ]

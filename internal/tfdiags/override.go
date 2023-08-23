@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package tfdiags
 
 // overriddenDiagnostic implements the Diagnostic interface by wrapping another

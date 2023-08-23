@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package initwd
 
@@ -39,7 +39,7 @@ func LoadConfigForTests(t *testing.T, rootDir string, testsDir string) (*configs
 	loader, cleanup := configload.NewLoaderForTests(t)
 	inst := NewModuleInstaller(loader.ModulesDir(), loader, registry.NewClient(nil, nil))
 
-	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, ModuleInstallHooksImpl{})
+	_, moreDiags := inst.InstallModules(context.Background(), rootDir, testsDir, true, false, ModuleInstallHooksImpl{})
 	diags = diags.Append(moreDiags)
 	if diags.HasErrors() {
 		cleanup()

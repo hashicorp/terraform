@@ -1,5 +1,5 @@
 // Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
+// SPDX-License-Identifier: BUSL-1.1
 
 package s3
 
@@ -70,21 +70,52 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the DynamoDB API",
+				Deprecated:  true,
 			},
 			"endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the S3 API",
+				Deprecated:  true,
+			},
+			"endpoints": {
+				NestedType: &configschema.Object{
+					Nesting: configschema.NestingSingle,
+					Attributes: map[string]*configschema.Attribute{
+						"dynamodb": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the DynamoDB API",
+						},
+						"iam": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the IAM API",
+						},
+						"s3": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the S3 API",
+						},
+						"sts": {
+							Type:        cty.String,
+							Optional:    true,
+							Description: "A custom endpoint for the STS API",
+						},
+					},
+				},
 			},
 			"iam_endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the IAM API",
+				Deprecated:  true,
 			},
 			"sts_endpoint": {
 				Type:        cty.String,
 				Optional:    true,
 				Description: "A custom endpoint for the STS API",
+				Deprecated:  true,
 			},
 			"encrypt": {
 				Type:        cty.Bool,
@@ -356,13 +387,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 		}
 	} else {
 		if defined := findDeprecatedFields(obj, assumeRoleDeprecatedFields); len(defined) != 0 {
-			diags = diags.Append(tfdiags.WholeContainingBody(
-				tfdiags.Warning,
+			diags = diags.Append(wholeBodyWarningDiag(
 				"Deprecated Parameters",
 				`The following parameters have been deprecated. Replace them as follows:`+"\n"+
 					formatDeprecations(defined),
 			))
 		}
+	}
+
+	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
+		diags = diags.Append(prepareAssumeRoleWithWebIdentityConfig(val, cty.GetAttrPath("assume_role_with_web_identity")))
 	}
 
 	validateAttributesConflict(
@@ -372,15 +406,36 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 
 	attrPath = cty.GetAttrPath("shared_credentials_file")
 	if val := obj.GetAttr("shared_credentials_file"); !val.IsNull() {
-		diags = diags.Append(attributeWarningDiag(
-			"Deprecated Parameter",
-			`The shared_credentials_file parameter has been deprecated. Use shared_credentials_files instead.`,
-			attrPath,
-		))
+		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("shared_credentials_files")))
 	}
 
-	if val := obj.GetAttr("assume_role_with_web_identity"); !val.IsNull() {
-		diags = diags.Append(prepareAssumeRoleWithWebIdentityConfig(val, cty.GetAttrPath("assume_role_with_web_identity")))
+	endpointFields := map[string]string{
+		"dynamodb_endpoint": "dynamodb",
+		"iam_endpoint":      "iam",
+		"endpoint":          "s3",
+		"sts_endpoint":      "sts",
+	}
+	endpoints := make(map[string]string)
+	if val := obj.GetAttr("endpoints"); !val.IsNull() {
+		for _, k := range []string{"dynamodb", "iam", "s3", "sts"} {
+			if v := val.GetAttr(k); !v.IsNull() {
+				endpoints[k] = v.AsString()
+			}
+		}
+	}
+	for k, v := range endpointFields {
+		if val := obj.GetAttr(k); !val.IsNull() {
+			diags = diags.Append(deprecatedAttrDiag(cty.GetAttrPath(k), cty.GetAttrPath("endpoints").GetAttr(v)))
+			if _, ok := endpoints[v]; ok {
+				diags = diags.Append(wholeBodyErrDiag(
+					"Conflicting Parameters",
+					fmt.Sprintf(`The parameters "%s" and "%s" cannot be configured together.`,
+						pathString(cty.GetAttrPath(k)),
+						pathString(cty.GetAttrPath("endpoints").GetAttr(v)),
+					),
+				))
+			}
+		}
 	}
 
 	return obj, diags
@@ -502,19 +557,27 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		}
 	}
 
+	for envvar, replacement := range map[string]string{
+		"AWS_DYNAMODB_ENDPOINT": "AWS_ENDPOINT_URL_DYNAMODB",
+		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
+		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
+		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
+	} {
+		if val := os.Getenv(envvar); val != "" {
+			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
+		}
+	}
+
 	cfg := &awsbase.Config{
-		AccessKey: stringAttr(obj, "access_key"),
-		APNInfo:   stdUserAgentProducts(),
-		// AssumeRoleWithWebIdentity
+		AccessKey:              stringAttr(obj, "access_key"),
+		APNInfo:                stdUserAgentProducts(),
 		CallerDocumentationURL: "https://www.terraform.io/docs/language/settings/backends/s3.html",
 		CallerName:             "S3 Backend",
-		IamEndpoint:            stringAttrDefaultEnvVar(obj, "iam_endpoint", "AWS_IAM_ENDPOINT"),
 		MaxRetries:             intAttrDefault(obj, "max_retries", 5),
 		Profile:                stringAttr(obj, "profile"),
 		Region:                 stringAttr(obj, "region"),
 		SecretKey:              stringAttr(obj, "secret_key"),
 		SkipCredsValidation:    boolAttr(obj, "skip_credentials_validation"),
-		StsEndpoint:            stringAttrDefaultEnvVar(obj, "sts_endpoint", "AWS_STS_ENDPOINT"),
 		Token:                  stringAttr(obj, "token"),
 	}
 
@@ -548,6 +611,24 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 	if val, ok := stringSetAttrDefaultEnvVarOk(obj, "shared_config_files", "AWS_SHARED_CONFIG_FILE"); ok {
 		cfg.SharedConfigFiles = val
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("iam")),
+		newAttributeRetriever(obj, cty.GetAttrPath("iam_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_IAM"),
+		newEnvvarRetriever("AWS_IAM_ENDPOINT"),
+	); ok {
+		cfg.IamEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("sts")),
+		newAttributeRetriever(obj, cty.GetAttrPath("sts_endpoint")),
+		newEnvvarRetriever("AWS_ENDPOINT_URL_STS"),
+		newEnvvarRetriever("AWS_STS_ENDPOINT"),
+	); ok {
+		cfg.StsEndpoint = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {
@@ -649,17 +730,27 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	b.awsConfig = awsConfig
 
 	b.dynClient = dynamodb.NewFromConfig(awsConfig, func(opts *dynamodb.Options) {
-		if val, ok := stringAttrDefaultEnvVarOk(obj, "dynamodb_endpoint", "AWS_DYNAMODB_ENDPOINT"); ok {
-			opts.EndpointResolver = dynamodb.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
+		if v, ok := retrieveArgument(&diags,
+			newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("dynamodb")),
+			newAttributeRetriever(obj, cty.GetAttrPath("dynamodb_endpoint")),
+			newEnvvarRetriever("AWS_ENDPOINT_URL_DYNAMODB"),
+			newEnvvarRetriever("AWS_DYNAMODB_ENDPOINT"),
+		); ok {
+			opts.EndpointResolver = dynamodb.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
 	})
 
 	b.s3Client = s3.NewFromConfig(awsConfig, func(opts *s3.Options) {
-		if val, ok := stringAttrDefaultEnvVarOk(obj, "endpoint", "AWS_S3_ENDPOINT"); ok {
-			opts.EndpointResolver = s3.EndpointResolverFromURL(val) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
+		if v, ok := retrieveArgument(&diags,
+			newAttributeRetriever(obj, cty.GetAttrPath("endpoints").GetAttr("s3")),
+			newAttributeRetriever(obj, cty.GetAttrPath("endpoint")),
+			newEnvvarRetriever("AWS_ENDPOINT_URL_S3"),
+			newEnvvarRetriever("AWS_S3_ENDPOINT"),
+		); ok {
+			opts.EndpointResolver = s3.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
-		if val, ok := boolAttrOk(obj, "force_path_style"); ok {
-			opts.UsePathStyle = val
+		if v, ok := boolAttrOk(obj, "force_path_style"); ok {
+			opts.UsePathStyle = v
 		}
 	})
 
@@ -673,6 +764,89 @@ func stdUserAgentProducts() *awsbase.APNInfo {
 			{Name: "Terraform", Version: version.String(), Comment: "+https://www.terraform.io"},
 		},
 	}
+}
+
+type argumentRetriever interface {
+	Retrieve(diags *tfdiags.Diagnostics) (string, bool)
+}
+
+type attributeRetriever struct {
+	obj      cty.Value
+	objPath  cty.Path
+	attrPath cty.Path
+}
+
+var _ argumentRetriever = attributeRetriever{}
+
+func newAttributeRetriever(obj cty.Value, attrPath cty.Path) attributeRetriever {
+	return attributeRetriever{
+		obj:      obj,
+		objPath:  cty.Path{}, // Assumes that we're working relative to the root object
+		attrPath: attrPath,
+	}
+}
+
+func (r attributeRetriever) Retrieve(diags *tfdiags.Diagnostics) (string, bool) {
+	val, err := pathSafeApply(r.attrPath, r.obj)
+	if err != nil {
+		*diags = diags.Append(attributeErrDiag(
+			"Invalid Path for Schema",
+			"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+				"Please report this to the developers.\n\n"+
+				"Path: "+pathString(r.attrPath)+"\n\n"+
+				"Error: "+err.Error(),
+			r.objPath,
+		))
+	}
+	return stringValueOk(val)
+}
+
+// pathSafeApply applies a `cty.Path` to a `cty.Value`.
+// Unlike `path.Apply`, it does not return an error if it encounters a Null value
+func pathSafeApply(path cty.Path, obj cty.Value) (cty.Value, error) {
+	if obj == cty.NilVal || obj.IsNull() {
+		return obj, nil
+	}
+	val := obj
+	var err error
+	for _, step := range path {
+		val, err = step.Apply(val)
+		if err != nil {
+			return cty.NilVal, err
+		}
+		if val == cty.NilVal || val.IsNull() {
+			return val, nil
+		}
+	}
+	return val, nil
+}
+
+type envvarRetriever struct {
+	name string
+}
+
+var _ argumentRetriever = envvarRetriever{}
+
+func newEnvvarRetriever(name string) envvarRetriever {
+	return envvarRetriever{
+		name: name,
+	}
+}
+
+func (r envvarRetriever) Retrieve(_ *tfdiags.Diagnostics) (string, bool) {
+	if v := os.Getenv(r.name); v != "" {
+		return v, true
+	}
+	return "", false
+}
+
+func retrieveArgument(diags *tfdiags.Diagnostics, retrievers ...argumentRetriever) (string, bool) {
+	for _, retriever := range retrievers {
+		if v, ok := retriever.Retrieve(diags); ok {
+			return v, true
+		}
+	}
+	return "", false
 }
 
 func stringValue(val cty.Value) string {
@@ -701,27 +875,6 @@ func stringAttrDefault(obj cty.Value, name, def string) string {
 		return def
 	} else {
 		return v
-	}
-}
-
-func stringAttrDefaultEnvVar(obj cty.Value, name string, envvars ...string) string {
-	if v, ok := stringAttrDefaultEnvVarOk(obj, name, envvars...); !ok {
-		return ""
-	} else {
-		return v
-	}
-}
-
-func stringAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (string, bool) {
-	if v, ok := stringAttrOk(obj, name); !ok {
-		for _, envvar := range envvars {
-			if v := os.Getenv(envvar); v != "" {
-				return v, true
-			}
-		}
-		return "", false
-	} else {
-		return v, true
 	}
 }
 
@@ -1232,7 +1385,6 @@ func assumeRoleWithWebIdentityFullSchema() objectSchema {
 				Optional:    true,
 				Description: "Value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
 			},
-			// ExactlyOneOf: []string{"assume_role_with_web_identity.0.web_identity_token", "assume_role_with_web_identity.0.web_identity_token_file"},
 			validateString{
 				Validators: []stringValidator{
 					validateStringLenBetween(4, 20000),
@@ -1246,7 +1398,6 @@ func assumeRoleWithWebIdentityFullSchema() objectSchema {
 				Optional:    true,
 				Description: "File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.",
 			},
-			// 	ExactlyOneOf: []string{"assume_role_with_web_identity.0.web_identity_token", "assume_role_with_web_identity.0.web_identity_token_file"},
 			validateString{
 				Validators: []stringValidator{
 					validateStringLenBetween(4, 20000),
@@ -1254,4 +1405,19 @@ func assumeRoleWithWebIdentityFullSchema() objectSchema {
 			},
 		},
 	}
+}
+
+func deprecatedAttrDiag(attr, replacement cty.Path) tfdiags.Diagnostic {
+	return attributeWarningDiag(
+		"Deprecated Parameter",
+		fmt.Sprintf(`The parameter "%s" is deprecated. Use parameter "%s" instead.`, pathString(attr), pathString(replacement)),
+		attr,
+	)
+}
+
+func deprecatedEnvVarDiag(envvar, replacement string) tfdiags.Diagnostic {
+	return wholeBodyWarningDiag(
+		"Deprecated Environment Variable",
+		fmt.Sprintf(`The environment variable "%s" is deprecated. Use environment variable "%s" instead.`, envvar, replacement),
+	)
 }

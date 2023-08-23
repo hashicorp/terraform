@@ -1,3 +1,6 @@
+// Copyright (c) HashiCorp, Inc.
+// SPDX-License-Identifier: BUSL-1.1
+
 package s3
 
 import (
@@ -403,4 +406,8 @@ func attributeWarningDiag(summary, detail string, attrPath cty.Path) tfdiags.Dia
 
 func wholeBodyErrDiag(summary, detail string) tfdiags.Diagnostic {
 	return tfdiags.WholeContainingBody(tfdiags.Error, summary, detail)
+}
+
+func wholeBodyWarningDiag(summary, detail string) tfdiags.Diagnostic {
+	return tfdiags.WholeContainingBody(tfdiags.Warning, summary, detail)
 }
