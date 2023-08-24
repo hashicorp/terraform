@@ -33,6 +33,7 @@ Update Notes
 * Adds `shared_config_files` and `shared_credentials_files` arguments.
   This deprecates the `shared_credentials_file` argument. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
 * Upgrades the S3 backend to use AWS SDK Go V2. ([#30443](https://github.com/hashicorp/terraform/issues/30443))
+* Adds a `custom_ca_bundle` argument and support for the corresponding AWS environment variable, `AWS_CA_BUNDLE`. ([#33689](https://github.com/hashicorp/terraform/issues/33689))
 
 ## Previous Releases
 

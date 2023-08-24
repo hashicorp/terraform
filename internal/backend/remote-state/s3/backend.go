@@ -285,6 +285,12 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "Use the legacy authentication workflow, preferring environment variables over backend configuration.",
 			},
+
+			"custom_ca_bundle": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "File containing custom root and intermediate certificates.",
+			},
 		},
 	}
 }
@@ -611,6 +617,13 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 	}
 	if val, ok := stringSetAttrDefaultEnvVarOk(obj, "shared_config_files", "AWS_SHARED_CONFIG_FILE"); ok {
 		cfg.SharedConfigFiles = val
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("custom_ca_bundle")),
+		newEnvvarRetriever("AWS_CA_BUNDLE"),
+	); ok {
+		cfg.CustomCABundle = v
 	}
 
 	if v, ok := retrieveArgument(&diags,
