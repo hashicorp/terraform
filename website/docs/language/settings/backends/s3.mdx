@@ -158,13 +158,16 @@ The following configuration is optional:
   Use `endpoints.iam` instead.
 * `max_retries` - (Optional) The maximum number of times an AWS API request is retried on retryable failure. Defaults to 5.
 * `profile` - (Optional) Name of AWS profile in AWS shared credentials file (e.g. `~/.aws/credentials`) or AWS shared configuration file (e.g. `~/.aws/config`) to use for credentials and/or configuration. This can also be sourced from the `AWS_PROFILE` environment variable.
-* `shared_credentials_file`  - (Optional) Path to the AWS shared credentials file. Defaults to `~/.aws/credentials`.
+* `shared_config_files`  - (Optional) List of paths to AWS shared configuration files. Defaults to `~/.aws/config`.
+* `shared_credentials_file`  - (Optional, **Deprecated**, use `shared_credentials_files` instead) Path to the AWS shared credentials file. Defaults to `~/.aws/credentials`.
+* `shared_credentials_files`  - (Optional) List of paths to AWS shared credentials files. Defaults to `~/.aws/credentials`.
 * `skip_credentials_validation` - (Optional) Skip credentials validation via the STS API.
 * `skip_region_validation` - (Optional) Skip validation of provided region name.
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
 * `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Security Token Service (STS) API.
   Use `endpoints.sts` instead.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
+* `use_legacy_workflow` - (Optional) Use the legacy authentication workflow, preferring environment variables over backend configuration. Defaults to `true`. This behavior does not align with the authentication flow of the AWS CLI or SDK's, and will be removed in the future.
 
 #### Overriding AWS API endpoints
 
@@ -217,6 +220,54 @@ The following arguments on the top level are deprecated:
   Use `assume_role.role_arn` instead.
 * `session_name` - (Optional) Session name to use when assuming the role.
   Use `assume_role.session_name` instead.
+
+```terraform
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-prod"
+    key    = "network/terraform.tfstate"
+    region = "us-east-1"
+    assume_role {
+      role_arn = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
+    }
+  }
+}
+```
+
+#### Assume Role With Web Identity Configuration
+
+The following `assume_role_with_web_identity` configuration block is optional:
+
+* `role_arn` - (Required) Amazon Resource Name (ARN) of the IAM Role to assume.
+  Can also be set with the `AWS_ROLE_ARN` environment variable.
+* `duration` - (Optional) The duration individual credentials will be valid.
+  Credentials are automatically renewed up to the maximum defined by the AWS account.
+  Specified using the format `<hours>h<minutes>m<seconds>s` with any unit being optional.
+  For example, an hour and a half can be specified as `1h30m` or `90m`. 
+  Must be between 15 minutes (15m) and 12 hours (12h).
+* `policy` - (Optional) IAM Policy JSON describing further restricting permissions for the IAM Role being assumed.
+* `policy_arns` - (Optional) Set of Amazon Resource Names (ARNs) of IAM Policies describing further restricting permissions for the IAM Role being assumed.
+* `session_name` - (Optional) Session name to use when assuming the role.
+  Can also be set with the `AWS_ROLE_SESSION_NAME` environment variable.
+* `web_identity_token` - (Optional) The value of a web identity token from an OpenID Connect (OIDC) or OAuth provider.
+  One of `web_identity_token` or `web_identity_token_file` is required.
+* `web_identity_token_file` - (Optional) File containing a web identity token from an OpenID Connect (OIDC) or OAuth provider.
+  One of `web_identity_token_file` or `web_identity_token` is required.
+  Can also be set with the `AWS_WEB_IDENTITY_TOKEN_FILE` environment variable.
+
+```terraform
+terraform {
+  backend "s3" {
+    bucket = "terraform-state-prod"
+    key    = "network/terraform.tfstate"
+    region = "us-east-1"
+    assume_role_with_web_identity {
+      role_arn           = "arn:aws:iam::PRODUCTION-ACCOUNT-ID:role/Terraform"
+      web_identity_token = "<token value>"
+    }
+  }
+}
+```
 
 ### S3 State Storage
 
