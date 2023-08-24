@@ -30,6 +30,7 @@ ENHANCEMENTS:
     * `shared_config_files` and `shared_credentials_files` arguments for specifying credential and configuration files as part of the backend configuration. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
     * Internally the backend now uses AWS SDK for Go v2, which should address various other missing behaviors that are handled by the SDK rather than by Terraform itself. ([#30443](https://github.com/hashicorp/terraform/issues/30443))
     * `custom_ca_bundle` argument and support for the corresponding AWS environment variable, `AWS_CA_BUNDLE`, for providing custom root and intermediate certificates. ([#33689](https://github.com/hashicorp/terraform/issues/33689))
+    * `ec2_metadata_service_endpoint` and `ec2_metadata_service_endpoint_mode` arguments and support for the corresponding AWS environment variables, `AWS_EC2_METADATA_SERVICE_ENDPOINT` and `AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE` for setting the EC2 metadata service (IMDS) endpoint. The environment variable `AWS_METADATA_URL` is also supported for compatibility with the AWS provider, but is deprecated. ([#30444](https://github.com/hashicorp/terraform/issues/30444))
 * backend/cos: Support custom HTTP(S) endpoint and root domain for the API client. [#33656]
 
 BUG FIXES:

@@ -72,6 +72,16 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the DynamoDB API",
 				Deprecated:  true,
 			},
+			"ec2_metadata_service_endpoint": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Address of the EC2 metadata service (IMDS) endpoint to use.",
+			},
+			"ec2_metadata_service_endpoint_mode": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Mode to use in communicating with the metadata service.",
+			},
 			"endpoint": {
 				Type:        cty.String,
 				Optional:    true,
@@ -568,6 +578,7 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		"AWS_IAM_ENDPOINT":      "AWS_ENDPOINT_URL_IAM",
 		"AWS_S3_ENDPOINT":       "AWS_ENDPOINT_URL_S3",
 		"AWS_STS_ENDPOINT":      "AWS_ENDPOINT_URL_STS",
+		"AWS_METADATA_URL":      "AWS_EC2_METADATA_SERVICE_ENDPOINT",
 	} {
 		if val := os.Getenv(envvar); val != "" {
 			diags = diags.Append(deprecatedEnvVarDiag(envvar, replacement))
@@ -605,6 +616,21 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		} else {
 			cfg.EC2MetadataServiceEnableState = imds.ClientEnabled
 		}
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("ec2_metadata_service_endpoint")),
+		newEnvvarRetriever("AWS_EC2_METADATA_SERVICE_ENDPOINT"),
+		newEnvvarRetriever("AWS_METADATA_URL"),
+	); ok {
+		cfg.EC2MetadataServiceEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("ec2_metadata_service_endpoint_mode")),
+		newEnvvarRetriever("AWS_EC2_METADATA_SERVICE_ENDPOINT_MODE"),
+	); ok {
+		cfg.EC2MetadataServiceEndpointMode = v
 	}
 
 	if val, ok := stringAttrOk(obj, "shared_credentials_file"); ok {
