@@ -139,12 +139,12 @@ event "promote-production-packaging" {
   }
 }
 
-event "update-ironbank" {
+event "crt-hook-tfc-upload" {
   depends = ["promote-production-packaging"]
-  action "update-ironbank" {
+  action "crt-hook-tfc-upload" {
     organization = "hashicorp"
-    repository = "crt-workflows-common"
-    workflow = "update-ironbank"
+    repository = "terraform-releases"
+    workflow = "crt-hook-tfc-upload"
   }
 
   notification {
@@ -152,12 +152,12 @@ event "update-ironbank" {
   }
 }
 
-event "crt-hook-tfc-upload" {
-  depends = ["update-ironbank"]
-  action "crt-hook-tfc-upload" {
+event "update-ironbank" {
+  depends = ["crt-hook-tfc-upload"]
+  action "update-ironbank" {
     organization = "hashicorp"
-    repository = "terraform-releases"
-    workflow = "crt-hook-tfc-upload"
+    repository = "crt-workflows-common"
+    workflow = "update-ironbank"
   }
 
   notification {
