@@ -25,6 +25,9 @@ type MockProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
+	GetMetadataCalled   bool
+	GetMetadataResponse *providers.GetMetadataResponse
+
 	GetProviderSchemaCalled   bool
 	GetProviderSchemaResponse *providers.GetProviderSchemaResponse
 
@@ -87,6 +90,22 @@ type MockProvider struct {
 
 	CloseCalled bool
 	CloseError  error
+}
+
+func (p *MockProvider) GetMetadata() providers.GetMetadataResponse {
+	p.Lock()
+	defer p.Unlock()
+
+	p.GetMetadataCalled = true
+
+	if p.GetMetadataResponse != nil {
+		return *p.GetMetadataResponse
+	}
+
+	return providers.GetMetadataResponse{
+		DataSources: []providers.DataSourceMetadata{},
+		Resources:   []providers.ResourceMetadata{},
+	}
 }
 
 func (p *MockProvider) GetProviderSchema() providers.GetProviderSchemaResponse {

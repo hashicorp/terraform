@@ -29,6 +29,36 @@ type provider struct {
 	schema   providers.GetProviderSchemaResponse
 }
 
+func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Request) (*tfplugin5.GetMetadata_Response, error) {
+	metadataResp := p.provider.GetMetadata()
+
+	resp := &tfplugin5.GetMetadata_Response{
+		DataSources: make([]*tfplugin5.GetMetadata_DataSourceMetadata, 0, len(metadataResp.DataSources)),
+		Resources:   make([]*tfplugin5.GetMetadata_ResourceMetadata, 0, len(metadataResp.Resources)),
+	}
+
+	resp.Diagnostics = convert.AppendProtoDiag(resp.Diagnostics, metadataResp.Diagnostics)
+
+	for _, datasource := range metadataResp.DataSources {
+		resp.DataSources = append(resp.DataSources, &tfplugin5.GetMetadata_DataSourceMetadata{
+			TypeName: datasource.TypeName,
+		})
+	}
+
+	for _, resource := range metadataResp.Resources {
+		resp.Resources = append(resp.Resources, &tfplugin5.GetMetadata_ResourceMetadata{
+			TypeName: resource.TypeName,
+		})
+	}
+
+	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
+		GetProviderSchemaOptional: p.schema.ServerCapabilities.GetProviderSchemaOptional,
+		PlanDestroy:               p.schema.ServerCapabilities.PlanDestroy,
+	}
+
+	return resp, nil
+}
+
 func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
 	resp := &tfplugin5.GetProviderSchema_Response{
 		ResourceSchemas:   make(map[string]*tfplugin5.Schema),
@@ -62,7 +92,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		}
 	}
 
-	resp.ServerCapabilities = &tfplugin5.GetProviderSchema_ServerCapabilities{
+	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
 		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
 	}
 

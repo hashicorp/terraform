@@ -73,6 +73,45 @@ type GRPCProvider struct {
 	schema providers.GetProviderSchemaResponse
 }
 
+func (p *GRPCProvider) GetMetadata() (resp providers.GetMetadataResponse) {
+	logger.Trace("GRPCProvider: GetMetadata")
+
+	protoReq := &proto.GetMetadata_Request{}
+
+	protoResp, err := p.client.GetMetadata(p.ctx, protoReq)
+
+	if err != nil {
+		resp.Diagnostics = resp.Diagnostics.Append(grpcErr(err))
+
+		return resp
+	}
+
+	resp.Diagnostics = resp.Diagnostics.Append(convert.ProtoToDiagnostics(protoResp.Diagnostics))
+
+	resp.DataSources = make([]providers.DataSourceMetadata, 0, len(protoResp.DataSources))
+
+	for _, datasource := range protoResp.DataSources {
+		resp.DataSources = append(resp.DataSources, providers.DataSourceMetadata{
+			TypeName: datasource.TypeName,
+		})
+	}
+
+	resp.Resources = make([]providers.ResourceMetadata, 0, len(protoResp.Resources))
+
+	for _, resource := range protoResp.Resources {
+		resp.Resources = append(resp.Resources, providers.ResourceMetadata{
+			TypeName: resource.TypeName,
+		})
+	}
+
+	resp.ServerCapabilities = providers.ServerCapabilities{
+		GetProviderSchemaOptional: protoResp.ServerCapabilities.GetProviderSchemaOptional,
+		PlanDestroy:               protoResp.ServerCapabilities.PlanDestroy,
+	}
+
+	return resp
+}
+
 func (p *GRPCProvider) GetProviderSchema() (resp providers.GetProviderSchemaResponse) {
 	logger.Trace("GRPCProvider: GetProviderSchema")
 	p.mu.Lock()

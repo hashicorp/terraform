@@ -52,6 +52,10 @@ func Provider() providers.Interface {
 	}
 }
 
+func (s simple) GetMetadata() (resp providers.GetMetadataResponse) {
+	return resp
+}
+
 func (s simple) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return s.schema
 }
