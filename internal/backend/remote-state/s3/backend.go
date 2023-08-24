@@ -301,6 +301,27 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "File containing custom root and intermediate certificates.",
 			},
+
+			"http_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+			},
+			"insecure": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Whether to explicitly allow the backend to perform insecure SSL requests.",
+			},
+			"use_fips_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with FIPS capability.",
+			},
+			"use_dualstack_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with DualStack capability.",
+			},
 		},
 	}
 }
@@ -748,6 +769,23 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		cfg.AssumeRoleWithWebIdentity = ar
 	}
 
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
+		newEnvvarRetriever("HTTP_PROXY"),
+		newEnvvarRetriever("HTTPS_PROXY"),
+	); ok {
+		cfg.HTTPProxy = v
+	}
+	if val, ok := boolAttrOk(obj, "insecure"); ok {
+		cfg.Insecure = val
+	}
+	if val, ok := boolAttrDefaultEnvVarOk(obj, "use_fips_endpoint", "AWS_USE_FIPS_ENDPOINT"); ok {
+		cfg.UseFIPSEndpoint = val
+	}
+	if val, ok := boolAttrDefaultEnvVarOk(obj, "use_dualstack_endpoint", "AWS_USE_DUALSTACK_ENDPOINT"); ok {
+		cfg.UseDualStackEndpoint = val
+	}
+
 	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)
 	for _, diag := range cfgDiags {
 		var severity tfdiags.Severity
@@ -973,6 +1011,22 @@ func boolAttr(obj cty.Value, name string) bool {
 
 func boolAttrOk(obj cty.Value, name string) (bool, bool) {
 	if val := obj.GetAttr(name); val.IsNull() {
+		return false, false
+	} else {
+		return val.True(), true
+	}
+}
+
+// boolAttrDefaultEnvVarOk checks for a configured bool argument or a non-empty
+// value in any of the provided environment variables. If any of the environment
+// variables are non-empty, to boolean is considered true.
+func boolAttrDefaultEnvVarOk(obj cty.Value, name string, envvars ...string) (bool, bool) {
+	if val := obj.GetAttr(name); val.IsNull() {
+		for _, envvar := range envvars {
+			if v := os.Getenv(envvar); v != "" {
+				return true, true
+			}
+		}
 		return false, false
 	} else {
 		return val.True(), true
