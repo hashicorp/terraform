@@ -154,8 +154,10 @@ The following configuration is optional:
 
 * `access_key` - (Optional) AWS access key. If configured, must also configure `secret_key`. This can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, AWS shared credentials file (e.g. `~/.aws/credentials`), or AWS shared configuration file (e.g. `~/.aws/config`).
 * `secret_key` - (Optional) AWS access key. If configured, must also configure `access_key`. This can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable, AWS shared credentials file (e.g. `~/.aws/credentials`), or AWS shared configuration file (e.g. `~/.aws/config`).
+* `http_proxy` - (Optional) Address of an HTTP proxy to use when accessing the AWS API. Can also be set using the `HTTP_PROXY` or `HTTPS_PROXY` environment variables.
 * `iam_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Identity and Access Management (IAM) API.
   Use `endpoints.iam` instead.
+* `insecure` - (Optional) Whether to explicitly allow the backend to perform "insecure" SSL requests. If omitted, the default value is `false`.
 * `max_retries` - (Optional) The maximum number of times an AWS API request is retried on retryable failure. Defaults to 5.
 * `profile` - (Optional) Name of AWS profile in AWS shared credentials file (e.g. `~/.aws/credentials`) or AWS shared configuration file (e.g. `~/.aws/config`) to use for credentials and/or configuration. This can also be sourced from the `AWS_PROFILE` environment variable.
 * `shared_config_files`  - (Optional) List of paths to AWS shared configuration files. Defaults to `~/.aws/config`.
@@ -167,6 +169,8 @@ The following configuration is optional:
 * `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Security Token Service (STS) API.
   Use `endpoints.sts` instead.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
+* `use_dualstack_endpoint` - (Optional) Force the backend to resolve endpoints with DualStack capability. Can also be set with the `AWS_USE_DUALSTACK_ENDPOINT` environment variable or in a shared config file (`use_dualstack_endpoint`).
+* `use_fips_endpoint` - (Optional) Force the backend to resolve endpoints with FIPS capability. Can also be set with the `AWS_USE_FIPS_ENDPOINT` environment variable or in a shared config file (`use_fips_endpoint`).
 * `use_legacy_workflow` - (Optional) Use the legacy authentication workflow, preferring environment variables over backend configuration. Defaults to `true`. This behavior does not align with the authentication flow of the AWS CLI or SDK's, and will be removed in the future.
 
 #### Overriding AWS API endpoints

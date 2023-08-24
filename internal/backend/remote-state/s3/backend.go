@@ -285,6 +285,27 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Optional:    true,
 				Description: "Use the legacy authentication workflow, preferring environment variables over backend configuration.",
 			},
+
+			"http_proxy": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "Address of an HTTP proxy to use when accessing the AWS API.",
+			},
+			"insecure": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Whether to explicitly allow the backend to perform insecure SSL requests.",
+			},
+			"use_fips_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with FIPS capability.",
+			},
+			"use_dualstack_endpoint": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Force the backend to resolve endpoints with DualStack capability.",
+			},
 		},
 	}
 }
@@ -707,6 +728,23 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 			ar.WebIdentityTokenFile = val
 		}
 		cfg.AssumeRoleWithWebIdentity = ar
+	}
+
+	if v, ok := retrieveArgument(&diags,
+		newAttributeRetriever(obj, cty.GetAttrPath("http_proxy")),
+		newEnvvarRetriever("HTTP_PROXY"),
+		newEnvvarRetriever("HTTPS_PROXY"),
+	); ok {
+		cfg.HTTPProxy = v
+	}
+	if val, ok := boolAttrOk(obj, "insecure"); ok {
+		cfg.Insecure = val
+	}
+	if val, ok := boolAttrOk(obj, "use_fips_endpoint"); ok {
+		cfg.UseFIPSEndpoint = val
+	}
+	if val, ok := boolAttrOk(obj, "use_dualstack_endpoint"); ok {
+		cfg.UseDualStackEndpoint = val
 	}
 
 	_ /* ctx */, awsConfig, cfgDiags := awsbase.GetAwsConfig(ctx, cfg)

@@ -33,6 +33,7 @@ Update Notes
 * Adds `shared_config_files` and `shared_credentials_files` arguments.
   This deprecates the `shared_credentials_file` argument. ([#30493](https://github.com/hashicorp/terraform/issues/30493))
 * Upgrades the S3 backend to use AWS SDK Go V2. ([#30443](https://github.com/hashicorp/terraform/issues/30443))
+* Adds `http_proxy`, `insecure`, `use_fips_endpoint`, and `use_dualstack_endpoint` arguments. Also supports the corresponding `HTTP_PROXY` and `HTTPS_PROXY` environment variables. ([#30496](https://github.com/hashicorp/terraform/issues/30496))
 
 ## Previous Releases
 
