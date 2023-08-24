@@ -113,17 +113,17 @@ func New() backend.Backend {
 					return nil, nil
 				},
 			},
-			"storage_type": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Default:     "STANDARD",
-				Description: "the state file storage type in Ksyun.",
-				ValidateFunc: stringInSlice([]string{
-					"STANDARD",
-					"STANDARD_IA",
-					"ARCHIVE",
-				}, false),
-			},
+			// "storage_type": {
+			// 	Type:        schema.TypeString,
+			// 	Optional:    true,
+			// 	Default:     "STANDARD",
+			// 	Description: "the state file storage type in Ksyun.",
+			// 	ValidateFunc: stringInSlice([]string{
+			// 		"STANDARD",
+			// 		"STANDARD_IA",
+			// 		"ARCHIVE",
+			// 	}, false),
+			// },
 			"region": {
 				Type:        schema.TypeString,
 				Required:    true,
@@ -135,11 +135,6 @@ func New() backend.Backend {
 				Required:    true,
 				Default:     schema.EnvDefaultFunc(ENV_KS3_ENDPOINT, nil),
 				Description: "A custom endpoint for the KS3 API , It can be sourced from the `" + ENV_KS3_ENDPOINT + "` environment variable. the details of relationship of endpoint and region see [Endpoint and Region](https://docs.ksyun.com/documents/6761)",
-			},
-			"sts_endpoint": {
-				Type:        schema.TypeString,
-				Optional:    true,
-				Description: "A custom endpoint for the STS API",
 			},
 			"encrypt": {
 				Type:        schema.TypeBool,

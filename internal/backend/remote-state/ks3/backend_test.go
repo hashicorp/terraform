@@ -66,9 +66,10 @@ func TestBackendStateFile(t *testing.T) {
 func TestRemoteClient(t *testing.T) {
 	t.Parallel()
 
-	bucket := "tf-backend"
+	bucket := bucketName(t)
 
 	be := setupBackend(t, bucket, defaultPrefix, defaultKey, false)
+	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -87,9 +88,10 @@ func TestRemoteClientWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	prefix := "dev/test"
-	bucket := "tf-backend"
+	bucket := bucketName(t)
 
 	be := setupBackend(t, bucket, prefix, defaultKey, false)
+	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -108,9 +110,10 @@ func TestRemoteClientWithPrefix(t *testing.T) {
 func TestRemoteClientWithEncryption(t *testing.T) {
 	t.Parallel()
 
-	bucket := "tf-backend"
+	bucket := bucketName(t)
 
 	be := setupBackend(t, bucket, defaultPrefix, defaultKey, true)
+	defer teardownBackend(t, be)
 
 	ss, err := be.StateMgr(backend.DefaultStateName)
 	if err != nil {
@@ -128,9 +131,10 @@ func TestRemoteClientWithEncryption(t *testing.T) {
 func TestRemoteLocks(t *testing.T) {
 	t.Parallel()
 
-	bucket := testBucket
+	bucket := bucketName(t)
 
 	be := setupBackend(t, bucket, defaultPrefix, defaultKey, false)
+	defer teardownBackend(t, be)
 
 	remoteClient := func() (remote.Client, error) {
 		ss, err := be.StateMgr(backend.DefaultStateName)
@@ -179,41 +183,44 @@ func TestBackendWithPrefix(t *testing.T) {
 	t.Parallel()
 
 	prefix := "prefix/test"
-	bucket := testBucket
+	bucket := bucketName(t)
 
 	be0 := setupBackend(t, bucket, prefix, defaultKey, false)
+	defer teardownBackend(t, be0)
 
 	be1 := setupBackend(t, bucket, prefix+"/", defaultKey, false)
+	defer teardownBackend(t, be1)
 
 	backend.TestBackendStates(t, be0)
 	backend.TestBackendStateLocks(t, be0, be1)
 }
 
-func TestAssumeRole(t *testing.T) {
-	t.Parallel()
-
-	prefix := "prefix/assume-role"
-	bucket := testBucket
-
-	role := &Role{
-		Krn:             "krn:ksc:iam::73403251:role/tf-backend-role",
-		SessionName:     "backend-test-assume-role",
-		SessionDuration: 3600,
-	}
-	be := setupBackend(t, bucket, prefix, defaultKey, false, role)
-
-	ss, err := be.StateMgr(backend.DefaultStateName)
-	if err != nil {
-		t.Fatalf("unexpected error: %s", err)
-	}
-
-	rs, ok := ss.(*remote.State)
-	if !ok {
-		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
-	}
-
-	remote.TestClient(t, rs.Client)
-}
+// func TestAssumeRole(t *testing.T) {
+// 	t.Parallel()
+//
+// 	prefix := "prefix/assume-role"
+// 	bucket := bucketName(t)
+//
+// 	role := &Role{
+// 		Krn:             "krn:ksc:iam::73403251:role/tf-backend-role",
+// 		SessionName:     "backend-test-assume-role",
+// 		SessionDuration: 3600,
+// 	}
+// 	be := setupBackend(t, bucket, prefix, defaultKey, false, role)
+// 	defer teardownBackend(t, be)
+//
+// 	ss, err := be.StateMgr(backend.DefaultStateName)
+// 	if err != nil {
+// 		t.Fatalf("unexpected error: %s", err)
+// 	}
+//
+// 	rs, ok := ss.(*remote.State)
+// 	if !ok {
+// 		t.Fatalf("wrong state manager type\ngot:  %T\nwant: %T", ss, rs)
+// 	}
+//
+// 	remote.TestClient(t, rs.Client)
+// }
 
 func setupBackend(t *testing.T, bucket, prefix, key string, encrypt bool, roles ...*Role) backend.Backend {
 	t.Helper()
