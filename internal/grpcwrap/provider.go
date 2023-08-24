@@ -12,6 +12,8 @@ import (
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"github.com/zclconf/go-cty/cty/msgpack"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // New wraps a providers.Interface to implement a grpc ProviderServer.
@@ -27,6 +29,10 @@ func Provider(p providers.Interface) tfplugin5.ProviderServer {
 type provider struct {
 	provider providers.Interface
 	schema   providers.GetProviderSchemaResponse
+}
+
+func (p *provider) GetMetadata(_ context.Context, req *tfplugin5.GetMetadata_Request) (*tfplugin5.GetMetadata_Response, error) {
+	return nil, status.Error(codes.Unimplemented, "GetMetadata is not implemented by core")
 }
 
 func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema_Request) (*tfplugin5.GetProviderSchema_Response, error) {
@@ -62,7 +68,7 @@ func (p *provider) GetSchema(_ context.Context, req *tfplugin5.GetProviderSchema
 		}
 	}
 
-	resp.ServerCapabilities = &tfplugin5.GetProviderSchema_ServerCapabilities{
+	resp.ServerCapabilities = &tfplugin5.ServerCapabilities{
 		PlanDestroy: p.schema.ServerCapabilities.PlanDestroy,
 	}
 
