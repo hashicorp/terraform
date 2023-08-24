@@ -143,6 +143,16 @@ func TestTest(t *testing.T) {
 			expected: "2 passed, 0 failed.",
 			code:     0,
 		},
+		"variable_references": {
+			expected: "2 passed, 0 failed.",
+			args:     []string{"-var=global=\"triple\""},
+			code:     0,
+		},
+		"variables_types": {
+			expected: "1 passed, 0 failed.",
+			args:     []string{"-var=number_input=0", "-var=string_input=Hello, world!", "-var=list_input=[\"Hello\",\"world\"]"},
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
@@ -462,9 +472,9 @@ Error: No value for required variable
   on main.tf line 2:
    2: variable "input" {
 
-The root module input variable "input" is not set, and has no default value.
-Use a -var or -var-file command line argument to provide a value for this
-variable.
+The module under test for run block "test" has a required variable "input"
+with no set value. Use a -var or -var-file command line argument or add this
+variable into a "variables" block within the test file or run block.
 `
 
 	actualOut := output.Stdout()
@@ -986,6 +996,86 @@ Success! 2 passed, 0 failed.
 
 	if diff := cmp.Diff(actual, expected); len(diff) > 0 {
 		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expected, actual, diff)
+	}
+
+	if provider.ResourceCount() > 0 {
+		t.Errorf("should have deleted all resources on completion but left %v", provider.ResourceString())
+	}
+}
+
+func TestTest_BadReferences(t *testing.T) {
+	td := t.TempDir()
+	testCopyDir(t, testFixturePath(path.Join("test", "bad-references")), td)
+	defer testChdir(t, td)()
+
+	provider := testing_command.NewProvider(nil)
+	view, done := testView(t)
+
+	c := &TestCommand{
+		Meta: Meta{
+			testingOverrides: metaOverridesForProvider(provider.Provider),
+			View:             view,
+		},
+	}
+
+	code := c.Run([]string{"-no-color"})
+	output := done(t)
+
+	if code == 0 {
+		t.Errorf("expected status code 0 but got %d", code)
+	}
+
+	expectedOut := `main.tftest.hcl... fail
+  run "setup"... pass
+  run "test"... fail
+
+Warning: Value for undeclared variable
+
+  on main.tftest.hcl line 17, in run "test":
+  17:     input_three = run.madeup.response
+
+The module under test does not declare a variable named "input_three", but it
+is declared in run block "test".
+  run "finalise"... skip
+
+Failure! 1 passed, 1 failed, 1 skipped.
+`
+	actualOut := output.Stdout()
+	if diff := cmp.Diff(actualOut, expectedOut); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedOut, actualOut, diff)
+	}
+
+	expectedErr := `
+Error: Reference to unavailable variable
+
+  on main.tftest.hcl line 15, in run "test":
+  15:     input_one = var.notreal
+
+The input variable "notreal" is not available to the current run block. You
+can only reference variables defined at the file or global levels when
+populating the variables block within a run block.
+
+Error: Reference to unavailable run block
+
+  on main.tftest.hcl line 16, in run "test":
+  16:     input_two = run.finalise.response
+
+The run block "finalise" is not available to the current run block. You can
+only reference run blocks that are in the same test file and will execute
+before the current run block.
+
+Error: Reference to unknown run block
+
+  on main.tftest.hcl line 17, in run "test":
+  17:     input_three = run.madeup.response
+
+The run block "madeup" does not exist within this test file. You can only
+reference run blocks that are in the same test file and will execute before
+the current run block.
+`
+	actualErr := output.Stderr()
+	if diff := cmp.Diff(actualErr, expectedErr); len(diff) > 0 {
+		t.Errorf("output didn't match expected:\nexpected:\n%s\nactual:\n%s\ndiff:\n%s", expectedErr, actualErr, diff)
 	}
 
 	if provider.ResourceCount() > 0 {
