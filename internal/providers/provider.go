@@ -14,10 +14,6 @@ import (
 // Interface represents the set of methods required for a complete resource
 // provider plugin.
 type Interface interface {
-	// GetMetadata returns the initial information about the provider without
-	// requiring the provider to fully load schema information.
-	GetMetadata() GetMetadataResponse
-
 	// GetSchema returns the complete schema for the provider.
 	GetProviderSchema() GetProviderSchemaResponse
 
@@ -76,35 +72,6 @@ type Interface interface {
 
 	// Close shuts down the plugin process if applicable.
 	Close() error
-}
-
-// GetMetadataResponse is the return type for GetMetadata, and
-// should only be used when handling a value for that method. The handling of
-// of schemas should always use information from GetProviderSchema.
-type GetMetadataResponse struct {
-	// DataSources contains metadata for each data resource.
-	DataSources []DataSourceMetadata
-
-	// Resources contains metadata for each managed resource.
-	Resources []ResourceMetadata
-
-	// Diagnostics contains any warnings or errors from the method call.
-	Diagnostics tfdiags.Diagnostics
-
-	// ServerCapabilities lists optional features supported by the provider.
-	ServerCapabilities ServerCapabilities
-}
-
-// DataSourceMetadata contains metadata for a data resource from the GetMetadata
-// RPC.
-type DataSourceMetadata struct {
-	TypeName string
-}
-
-// ResourceMetadata contains metadata for a managed resource from the
-// GetMetadata RPC.
-type ResourceMetadata struct {
-	TypeName string
 }
 
 // GetProviderSchemaResponse is the return type for GetProviderSchema, and

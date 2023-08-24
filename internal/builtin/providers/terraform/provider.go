@@ -18,22 +18,6 @@ func NewProvider() providers.Interface {
 	return &Provider{}
 }
 
-// GetMetadata returns upfront information for the provider.
-func (p *Provider) GetMetadata() providers.GetMetadataResponse {
-	return providers.GetMetadataResponse{
-		DataSources: []providers.DataSourceMetadata{
-			{
-				TypeName: "terraform_remote_state",
-			},
-		},
-		Resources: []providers.ResourceMetadata{
-			{
-				TypeName: "terraform_data",
-			},
-		},
-	}
-}
-
 // GetSchema returns the complete schema for the provider.
 func (p *Provider) GetProviderSchema() providers.GetProviderSchemaResponse {
 	return providers.GetProviderSchemaResponse{
