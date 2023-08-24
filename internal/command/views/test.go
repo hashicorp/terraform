@@ -532,11 +532,20 @@ func (t *TestJSON) FatalInterruptSummary(run *moduletest.Run, file *moduletest.F
 		return
 	}
 
-	t.view.log.Error(
-		"Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
-		"type", json.MessageTestInterrupt,
-		json.MessageTestInterrupt, message,
-		"@testfile", file.Name)
+	if run != nil {
+		t.view.log.Error(
+			"Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+			"type", json.MessageTestInterrupt,
+			json.MessageTestInterrupt, message,
+			"@testfile", file.Name,
+			"@testrun", run.Name)
+	} else {
+		t.view.log.Error(
+			"Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
+			"type", json.MessageTestInterrupt,
+			json.MessageTestInterrupt, message,
+			"@testfile", file.Name)
+	}
 }
 
 func colorizeTestStatus(status moduletest.Status, color *colorstring.Colorize) string {

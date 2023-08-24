@@ -2816,6 +2816,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
 					"@module":   "terraform.ui",
 					"@testfile": "main.tftest.hcl",
+					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"planned": []interface{}{
 							"test_instance.one",
@@ -2865,6 +2866,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
 					"@module":   "terraform.ui",
 					"@testfile": "main.tftest.hcl",
+					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"state": []interface{}{
 							map[string]interface{}{
@@ -2918,6 +2920,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
 					"@module":   "terraform.ui",
 					"@testfile": "main.tftest.hcl",
+					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"states": map[string]interface{}{
 							"setup_block": []interface{}{
@@ -3033,6 +3036,7 @@ func TestTestJSON_FatalInterruptSummary(t *testing.T) {
 					"@message":  "Terraform was interrupted during test execution, and may not have performed the expected cleanup operations.",
 					"@module":   "terraform.ui",
 					"@testfile": "main.tftest.hcl",
+					"@testrun":  "run_block",
 					"test_interrupt": map[string]interface{}{
 						"state": []interface{}{
 							map[string]interface{}{
