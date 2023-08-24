@@ -127,6 +127,11 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 				Description: "A custom endpoint for the STS API",
 				Deprecated:  true,
 			},
+			"sts_region": {
+				Type:        cty.String,
+				Optional:    true,
+				Description: "AWS region for STS.",
+			},
 			"encrypt": {
 				Type:        cty.Bool,
 				Optional:    true,
@@ -689,6 +694,10 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		newEnvvarRetriever("AWS_STS_ENDPOINT"),
 	); ok {
 		cfg.StsEndpoint = v
+	}
+
+	if v, ok := retrieveArgument(&diags, newAttributeRetriever(obj, cty.GetAttrPath("sts_region"))); ok {
+		cfg.StsRegion = v
 	}
 
 	if assumeRole := obj.GetAttr("assume_role"); !assumeRole.IsNull() {

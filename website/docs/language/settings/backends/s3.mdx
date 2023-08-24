@@ -171,6 +171,7 @@ The following configuration is optional:
 * `skip_metadata_api_check` - (Optional) Skip usage of EC2 Metadata API.
 * `sts_endpoint` - (Optional, **Deprecated**) Custom endpoint for the AWS Security Token Service (STS) API.
   Use `endpoints.sts` instead.
+* `sts_region` - (Optional) AWS region for STS. If unset, AWS will use the same region for STS as other non-STS operations.
 * `token` - (Optional) Multi-Factor Authentication (MFA) token. This can also be sourced from the `AWS_SESSION_TOKEN` environment variable.
 * `use_dualstack_endpoint` - (Optional) Force the backend to resolve endpoints with DualStack capability. Can also be set with the `AWS_USE_DUALSTACK_ENDPOINT` environment variable or in a shared config file (`use_dualstack_endpoint`).
 * `use_fips_endpoint` - (Optional) Force the backend to resolve endpoints with FIPS capability. Can also be set with the `AWS_USE_FIPS_ENDPOINT` environment variable or in a shared config file (`use_fips_endpoint`).
