@@ -149,9 +149,9 @@ service Provider {
 
     // GetMetadata returns upfront information about server capabilities and
     // supported resource types without requiring the server to instantiate all
-    // schema information, which may be memory intensive. This RPC is a later
-    // addition in the protocol, where clients which receive a RPC unimplemented
-    // error should ignore the error and call the GetSchema RPC as a fallback.
+    // schema information, which may be memory intensive. This RPC is optional,
+    // where clients may receive an unimplemented RPC error. Clients should
+    // ignore the error and call the GetSchema RPC as a fallback.
     rpc GetMetadata(GetMetadata.Request) returns (GetMetadata.Response);
 
     // GetSchema returns schema information for the provider, data resources,

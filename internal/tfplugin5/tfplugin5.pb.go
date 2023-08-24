@@ -5083,9 +5083,9 @@ const _ = grpc.SupportPackageIsVersion6
 type ProviderClient interface {
 	// GetMetadata returns upfront information about server capabilities and
 	// supported resource types without requiring the server to instantiate all
-	// schema information, which may be memory intensive. This RPC is a later
-	// addition in the protocol, where clients which receive a RPC unimplemented
-	// error should ignore the error and call the GetSchema RPC as a fallback.
+	// schema information, which may be memory intensive. This RPC is optional,
+	// where clients may receive an unimplemented RPC error. Clients should
+	// ignore the error and call the GetSchema RPC as a fallback.
 	GetMetadata(ctx context.Context, in *GetMetadata_Request, opts ...grpc.CallOption) (*GetMetadata_Response, error)
 	// GetSchema returns schema information for the provider, data resources,
 	// and managed resources.
@@ -5235,9 +5235,9 @@ func (c *providerClient) Stop(ctx context.Context, in *Stop_Request, opts ...grp
 type ProviderServer interface {
 	// GetMetadata returns upfront information about server capabilities and
 	// supported resource types without requiring the server to instantiate all
-	// schema information, which may be memory intensive. This RPC is a later
-	// addition in the protocol, where clients which receive a RPC unimplemented
-	// error should ignore the error and call the GetSchema RPC as a fallback.
+	// schema information, which may be memory intensive. This RPC is optional,
+	// where clients may receive an unimplemented RPC error. Clients should
+	// ignore the error and call the GetSchema RPC as a fallback.
 	GetMetadata(context.Context, *GetMetadata_Request) (*GetMetadata_Response, error)
 	// GetSchema returns schema information for the provider, data resources,
 	// and managed resources.
