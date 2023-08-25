@@ -140,6 +140,27 @@ func TestModuleInstaller_emptyModuleName(t *testing.T) {
 	}
 }
 
+func TestModuleInstaller_invalidModuleName(t *testing.T) {
+	fixtureDir := filepath.Clean("testdata/invalid-module-name")
+	dir, done := tempChdir(t, fixtureDir)
+	defer done()
+
+	hooks := &testInstallHooks{}
+
+	modulesDir := filepath.Join(dir, ".terraform/modules")
+
+	loader, close := configload.NewLoaderForTests(t)
+	defer close()
+	inst := NewModuleInstaller(modulesDir, loader, registry.NewClient(nil, nil))
+	_, diags := inst.InstallModules(context.Background(), dir, "tests", false, false, hooks)
+
+	if !diags.HasErrors() {
+		t.Fatal("expected error")
+	} else {
+		assertDiagnosticSummary(t, diags, "Invalid module instance name")
+	}
+}
+
 func TestModuleInstaller_packageEscapeError(t *testing.T) {
 	fixtureDir := filepath.Clean("testdata/load-module-package-escape")
 	dir, done := tempChdir(t, fixtureDir)
