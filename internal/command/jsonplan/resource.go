@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/internal/addrs"
 )
 
-// Resource is the representation of a resource in the json plan
-type Resource struct {
+// resource is the representation of a resource in the json plan
+type resource struct {
 	// Address is the absolute resource address
 	Address string `json:"address,omitempty"`
 
@@ -37,7 +37,7 @@ type Resource struct {
 	// resource, whose structure depends on the resource type schema. Any
 	// unknown values are omitted or set to null, making them indistinguishable
 	// from absent values.
-	AttributeValues AttributeValues `json:"values,omitempty"`
+	AttributeValues attributeValues `json:"values,omitempty"`
 
 	// SensitiveValues is similar to AttributeValues, but with all sensitive
 	// values replaced with true, and all non-sensitive leaf values omitted.

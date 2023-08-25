@@ -26,13 +26,13 @@ const (
 
 type Plan struct {
 	PlanFormatVersion  string                     `json:"plan_format_version"`
-	OutputChanges      map[string]jsonplan.Change `json:"output_changes"`
-	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes"`
-	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift"`
-	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes"`
+	OutputChanges      map[string]jsonplan.Change `json:"output_changes,omitempty"`
+	ResourceChanges    []jsonplan.ResourceChange  `json:"resource_changes,omitempty"`
+	ResourceDrift      []jsonplan.ResourceChange  `json:"resource_drift,omitempty"`
+	RelevantAttributes []jsonplan.ResourceAttr    `json:"relevant_attributes,omitempty"`
 
 	ProviderFormatVersion string                            `json:"provider_format_version"`
-	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas"`
+	ProviderSchemas       map[string]*jsonprovider.Provider `json:"provider_schemas,omitempty"`
 }
 
 func (plan Plan) getSchema(change jsonplan.ResourceChange) *jsonprovider.Schema {

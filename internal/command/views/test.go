@@ -411,13 +411,22 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 		}
 
 		if run.Config.Command == configs.ApplyTestCommand {
-			state, err := jsonstate.MarshalForLog(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
+			// Then we'll print the state.
+			root, outputs, err := jsonstate.MarshalForRenderer(statefile.New(run.Verbose.State, file.Name, uint64(run.Index)), schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
 					"Failed to render test state",
 					fmt.Sprintf("Terraform could not marshal the state for display: %v", err)))
 			} else {
+				state := jsonformat.State{
+					StateFormatVersion:    jsonstate.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					RootModule:            root,
+					RootModuleOutputs:     outputs,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+				}
+
 				t.view.log.Info(
 					"-verbose flag enabled, printing state",
 					"type", json.MessageTestState,
@@ -426,13 +435,23 @@ func (t *TestJSON) Run(run *moduletest.Run, file *moduletest.File) {
 					"@testrun", run.Name)
 			}
 		} else {
-			plan, err := jsonplan.MarshalForLog(run.Verbose.Config, run.Verbose.Plan, nil, schemas)
+			outputs, changed, drift, attrs, err := jsonplan.MarshalForRenderer(run.Verbose.Plan, schemas)
 			if err != nil {
 				run.Diagnostics = run.Diagnostics.Append(tfdiags.Sourceless(
 					tfdiags.Warning,
 					"Failed to render test plan",
 					fmt.Sprintf("Terraform could not marshal the plan for display: %v", err)))
 			} else {
+				plan := jsonformat.Plan{
+					PlanFormatVersion:     jsonplan.FormatVersion,
+					ProviderFormatVersion: jsonprovider.FormatVersion,
+					OutputChanges:         outputs,
+					ResourceChanges:       changed,
+					ResourceDrift:         drift,
+					ProviderSchemas:       jsonprovider.MarshalForRenderer(schemas),
+					RelevantAttributes:    attrs,
+				}
+
 				t.view.log.Info(
 					"-verbose flag enabled, printing plan",
 					"type", json.MessageTestPlan,
