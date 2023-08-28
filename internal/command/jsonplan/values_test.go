@@ -21,7 +21,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 	tests := []struct {
 		Attr   cty.Value
 		Schema *configschema.Block
-		Want   AttributeValues
+		Want   attributeValues
 	}{
 		{
 			cty.NilVal,
@@ -59,7 +59,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			AttributeValues{"foo": json.RawMessage(`"bar"`)},
+			attributeValues{"foo": json.RawMessage(`"bar"`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -73,7 +73,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			AttributeValues{"foo": json.RawMessage(`null`)},
+			attributeValues{"foo": json.RawMessage(`null`)},
 		},
 		{
 			cty.ObjectVal(map[string]cty.Value{
@@ -97,7 +97,7 @@ func TestMarshalAttributeValues(t *testing.T) {
 					},
 				},
 			},
-			AttributeValues{
+			attributeValues{
 				"bar": json.RawMessage(`{"hello":"world"}`),
 				"baz": json.RawMessage(`["goodnight","moon"]`),
 			},
@@ -118,7 +118,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 
 	tests := []struct {
 		Changes *plans.Changes
-		Want    map[string]Output
+		Want    map[string]output
 		Err     bool
 	}{
 		{
@@ -139,7 +139,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 					},
 				},
 			},
-			map[string]Output{
+			map[string]output{
 				"bar": {
 					Sensitive: false,
 					Type:      json.RawMessage(`"string"`),
@@ -160,7 +160,7 @@ func TestMarshalPlannedOutputs(t *testing.T) {
 					},
 				},
 			},
-			map[string]Output{},
+			map[string]output{},
 			false,
 		},
 	}
@@ -188,7 +188,7 @@ func TestMarshalPlanResources(t *testing.T) {
 		Action plans.Action
 		Before cty.Value
 		After  cty.Value
-		Want   []Resource
+		Want   []resource
 		Err    bool
 	}{
 		"create with unknowns": {
@@ -198,7 +198,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.UnknownVal(cty.String),
 				"foozles": cty.UnknownVal(cty.String),
 			}),
-			Want: []Resource{{
+			Want: []resource{{
 				Address:         "test_thing.example",
 				Mode:            "managed",
 				Type:            "test_thing",
@@ -206,7 +206,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Index:           addrs.InstanceKey(nil),
 				ProviderName:    "registry.terraform.io/hashicorp/test",
 				SchemaVersion:   1,
-				AttributeValues: AttributeValues{},
+				AttributeValues: attributeValues{},
 				SensitiveValues: json.RawMessage("{}"),
 			}},
 			Err: false,
@@ -241,7 +241,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				"woozles": cty.StringVal("baz"),
 				"foozles": cty.StringVal("bat"),
 			}),
-			Want: []Resource{{
+			Want: []resource{{
 				Address:       "test_thing.example",
 				Mode:          "managed",
 				Type:          "test_thing",
@@ -249,7 +249,7 @@ func TestMarshalPlanResources(t *testing.T) {
 				Index:         addrs.InstanceKey(nil),
 				ProviderName:  "registry.terraform.io/hashicorp/test",
 				SchemaVersion: 1,
-				AttributeValues: AttributeValues{
+				AttributeValues: attributeValues{
 					"woozles": json.RawMessage(`"baz"`),
 					"foozles": json.RawMessage(`"bat"`),
 				},
