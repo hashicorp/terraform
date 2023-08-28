@@ -93,7 +93,7 @@ jobs:
     needs:
       - get-product-version
       - get-go-version
-    uses: ./.github/workflows/build-terraform-oss.yml
+    uses: ./.github/workflows/build-terraform-cli.yml
     with:
       goarch: ${{ matrix.goarch }}
       goos: ${{ matrix.goos }}

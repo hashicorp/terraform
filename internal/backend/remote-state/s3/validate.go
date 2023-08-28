@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/hashicorp/terraform/internal/tfdiags"
 	"github.com/zclconf/go-cty/cty"
 )
@@ -321,7 +321,8 @@ func validateAttributesConflict(paths ...cty.Path) objectValidator {
 					"Invalid Path for Schema",
 					"The S3 Backend unexpectedly provided a path that does not match the schema. "+
 						"Please report this to the developers.\n\n"+
-						"Path: "+pathString(path),
+						"Path: "+pathString(path)+"\n\n"+
+						"Error:"+err.Error(),
 					objPath,
 				))
 				continue
@@ -332,17 +333,67 @@ func validateAttributesConflict(paths ...cty.Path) objectValidator {
 					for i, path := range paths {
 						pathStrs[i] = pathString(path)
 					}
-					*diags = diags.Append(attributeErrDiag(
-						"Invalid Attribute Combination",
-						fmt.Sprintf(`Only one of %s can be set.`, strings.Join(pathStrs, ", ")),
-						objPath,
-					))
+					*diags = diags.Append(invalidAttributeCombinationDiag(objPath, paths))
 				} else {
 					found = true
 				}
 			}
 		}
 	}
+}
+
+func validateExactlyOneOfAttributes(paths ...cty.Path) objectValidator {
+	return func(obj cty.Value, objPath cty.Path, diags *tfdiags.Diagnostics) {
+		var localDiags tfdiags.Diagnostics
+		found := make(map[string]cty.Path, len(paths))
+		for _, path := range paths {
+			val, err := path.Apply(obj)
+			if err != nil {
+				localDiags = localDiags.Append(attributeErrDiag(
+					"Invalid Path for Schema",
+					"The S3 Backend unexpectedly provided a path that does not match the schema. "+
+						"Please report this to the developers.\n\n"+
+						"Path: "+pathString(path)+"\n\n"+
+						"Error:"+err.Error(),
+					objPath,
+				))
+				continue
+			}
+			if !val.IsNull() {
+				found[pathString(path)] = path
+			}
+		}
+		*diags = diags.Append(localDiags)
+
+		if len(found) > 1 {
+			*diags = diags.Append(invalidAttributeCombinationDiag(objPath, paths))
+			return
+		}
+
+		if len(found) == 0 && !localDiags.HasErrors() {
+			pathStrs := make([]string, len(paths))
+			for i, path := range paths {
+				pathStrs[i] = pathString(path)
+			}
+			*diags = diags.Append(attributeErrDiag(
+				"Missing Required Value",
+				fmt.Sprintf(`Exactly one of %s must be set.`, strings.Join(pathStrs, ", ")),
+				objPath,
+			))
+		}
+	}
+}
+
+func invalidAttributeCombinationDiag(objPath cty.Path, paths []cty.Path) tfdiags.Diagnostic {
+	pathStrs := make([]string, len(paths))
+	for i, path := range paths {
+		pathStrs[i] = pathString(path)
+	}
+	return attributeErrDiag(
+		"Invalid Attribute Combination",
+		fmt.Sprintf(`Only one of %s can be set.`, strings.Join(pathStrs, ", ")),
+		objPath,
+	)
 }
 
 func attributeErrDiag(summary, detail string, attrPath cty.Path) tfdiags.Diagnostic {

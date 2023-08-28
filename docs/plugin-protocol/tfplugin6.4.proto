@@ -147,8 +147,34 @@ message Schema {
     Block block = 2;
 }
 
+// ServerCapabilities allows providers to communicate extra information
+// regarding supported protocol features. This is used to indicate
+// availability of certain forward-compatible changes which may be optional
+// in a major protocol version, but cannot be tested for directly.
+message ServerCapabilities {
+    // The plan_destroy capability signals that a provider expects a call
+    // to PlanResourceChange when a resource is going to be destroyed.
+    bool plan_destroy = 1;
+
+    // The get_provider_schema_optional capability indicates that this
+    // provider does not require calling GetProviderSchema to operate
+    // normally, and the caller can used a cached copy of the provider's
+    // schema.
+    bool get_provider_schema_optional = 2;
+}
+
 service Provider {
     //////// Information about what a provider supports/expects
+
+    // GetMetadata returns upfront information about server capabilities and
+    // supported resource types without requiring the server to instantiate all
+    // schema information, which may be memory intensive. This RPC is optional,
+    // where clients may receive an unimplemented RPC error. Clients should
+    // ignore the error and call the GetProviderSchema RPC as a fallback.
+    rpc GetMetadata(GetMetadata.Request) returns (GetMetadata.Response);
+
+    // GetSchema returns schema information for the provider, data resources,
+    // and managed resources.
     rpc GetProviderSchema(GetProviderSchema.Request) returns (GetProviderSchema.Response);
     rpc ValidateProviderConfig(ValidateProviderConfig.Request) returns (ValidateProviderConfig.Response);
     rpc ValidateResourceConfig(ValidateResourceConfig.Request) returns (ValidateResourceConfig.Response);
@@ -170,6 +196,26 @@ service Provider {
     rpc StopProvider(StopProvider.Request) returns (StopProvider.Response);
 }
 
+message GetMetadata {
+    message Request {
+    }
+
+    message Response {
+        ServerCapabilities server_capabilities = 1;
+        repeated Diagnostic diagnostics = 2;
+        repeated DataSourceMetadata data_sources = 3;
+        repeated ResourceMetadata resources = 4;
+    }
+
+    message DataSourceMetadata {
+        string type_name = 1;
+    }
+
+    message ResourceMetadata {
+        string type_name = 1;
+    }
+}
+
 message GetProviderSchema {
     message Request {
     }
@@ -180,23 +226,6 @@ message GetProviderSchema {
         repeated Diagnostic diagnostics = 4;
         Schema provider_meta = 5;
         ServerCapabilities server_capabilities = 6;
-    }
-
-
-    // ServerCapabilities allows providers to communicate extra information
-    // regarding supported protocol features. This is used to indicate
-    // availability of certain forward-compatible changes which may be optional
-    // in a major protocol version, but cannot be tested for directly.
-    message ServerCapabilities {
-        // The plan_destroy capability signals that a provider expects a call
-        // to PlanResourceChange when a resource is going to be destroyed.
-        bool plan_destroy = 1;
-
-        // The get_provider_schema_optional capability indicates that this
-        // provider does not require calling GetProviderSchema to operate
-        // normally, and the caller can used a cached copy of the provider's
-        // schema.
-        bool get_provider_schema_optional = 2;
     }
 }
 
