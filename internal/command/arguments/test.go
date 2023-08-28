@@ -10,6 +10,10 @@ import (
 
 // Test represents the command-line arguments for the test command.
 type Test struct {
+	// CloudRunSource specifies the remote private module that this test run
+	// should execute against in a remote Terraform Cloud run.
+	CloudRunSource string
+
 	// Filter contains a list of test files to execute. If empty, all test files
 	// will be executed.
 	Filter []string
@@ -45,6 +49,9 @@ func ParseTest(args []string) (*Test, tfdiags.Diagnostics) {
 	cmdFlags.StringVar(&test.TestDirectory, "test-directory", configs.DefaultTestDirectory, "test-directory")
 	cmdFlags.BoolVar(&jsonOutput, "json", false, "json")
 	cmdFlags.BoolVar(&test.Verbose, "verbose", false, "verbose")
+
+	// TODO: Finalise the name of this flag.
+	cmdFlags.StringVar(&test.CloudRunSource, "cloud-run", "", "cloud-run")
 
 	if err := cmdFlags.Parse(args); err != nil {
 		diags = diags.Append(tfdiags.Sourceless(
