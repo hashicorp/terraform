@@ -9,12 +9,12 @@ description: >-
 
 Terraform provides numerous testing capabilities to validate your infrastructure.
 
-The testing capabilities fit into two categories:
+These testing capabilities fit into two main categories:
 
-1. Configuration and infrastructure validation as part of regular Terraform operations.
-2. More traditional unit and integration testing of your configuration.
+1. Validating your configuration and infrastructure as part of your regular Terraform operations.
+2. Performing traditional unit and integration testing on your configuration.
 
-The first capability is discussed in detail within the [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) language documentation.
+Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) to learn more about the first testing capability.
 
 The second capability is provided by the Terraform [`test`](/terraform/cli/commands/test) command.
 
@@ -22,13 +22,13 @@ The second capability is provided by the Terraform [`test`](/terraform/cli/comma
 
 - Terraform v0.13.0 introduced [Input Variable Validation](/terraform/language/expressions/custom-conditions#input-variable-validation).
 - Terraform v0.15.0 introduced an experimental Terraform [`test`](/terraform/language/v1.5.x/modules/testing-experiment) command.
-- Terraform v1.2.0 introduced [Pre- and Post-conditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions).
+- Terraform v1.2.0 introduced [Pre and Post-conditions](/terraform/language/expressions/custom-conditions#preconditions-and-postconditions).
 - Terraform v1.5.0 introduced [Checks](/terraform/language/checks).
-- Terraform v1.6.0 deprecated the experimental Terraform `test` command and released the updated and finalized Terraform [`test`](/terraform/cli/commands/test) command.
+- Terraform v1.6.0 deprecated the experimental Terraform `test` command, and released an updated and finalized Terraform [`test`](/terraform/cli/commands/test) command.
 
-Note the introduction and deprecation of the experimental `test` command, followed by the introduction of the finalized `test` command. Read the [v1.6.x Upgrade Guide](/terraform/language/v1.6.x/upgrade-guides) for a summary of the changes between the experimental and finalized command.
+Note the introduction and deprecation of the experimental `test` command, followed by the introduction of the finalized `test` command. Refer to the [v1.6.x Upgrade Guide](/terraform/language/v1.6.x/upgrade-guides) for a summary of the changes between the experimental and finalized command.
 
-## The Terraform `test` command
+## The `test` command
 
 The Terraform `test` command:
 
@@ -37,11 +37,11 @@ The Terraform `test` command:
 - Runs the assertions from the test file against the provisioned infrastructure.
 - Destroys the provisioned infrastructure at the end of the test.
 
-The `test` command, along with command-line flags and options, is discussed in detail within the [Command: test](/terraform/cli/commands/test) page.
+The `test` command, along with command-line flags and options, is discussed in detail within [Command: test](/terraform/cli/commands/test).
 
-### Writing configuration for your tests
+### Write configuration for tests
 
-Terraform test files have their own configuration syntax. This is discussed in detail within the language [Test Files](/terraform/language/tests) page.
+Terraform test files [have their own configuration syntax](/terraform/language/tests).
 
 The test file syntax is focused on customizing Terraform executions for the current configuration, and overriding variables and providers to test different behaviours.
 
@@ -49,12 +49,14 @@ The test file syntax is focused on customizing Terraform executions for the curr
 
 Validations allow you to verify aspects of your configuration and infrastructure as it is applied and created. Terraform Cloud also supports automated [Continuous Validation](/terraform/cloud-docs/workspaces/health#continuous-validation).
 
-The Terraform `test` command will also execute all validations within your configuration as part of any tests it executes. For more information on the available validations read the [Checks](/terraform/language/checks) and [Custom Condition](/terraform/language/expressions/custom-conditions) language pages.
+The Terraform `test` command also executes any validations within your configuration as part of the tests it executes. For more information on the available validation, refer to [Checks](/terraform/language/checks) and [Custom Conditions](/terraform/language/expressions/custom-conditions).
 
 ## Tests or Validations
 
 You can write many validations as test assertions, but there are specific use cases for both.
 
-Validations are executed during usual Terraform plan and apply operations, and are also checked as part of any executed tests. Therefore, validations should be used to validate aspects of your configuration that should always be true and can impact the valid execution of your infrastructure. Module authors should also note that validations are executed and exposed to module users should they fail, and should be understandable to the user and actionable.
+Validations are executed during Terraform plan and apply operations, and the Terraform `test` command also runs validations while executing tests. Therefore, use validations to validate aspects of your configuration that should always be true and could impact the valid execution of your infrastructure. 
+
+Module authors should note that validations are executed and exposed to module users, so if they fail, ensure the failure messages are understandable and actionable.
 
 In contrast, tests are only executed when requested and can be used to simulate specific behaviours within the configuration. Therefore, tests should be used to assert the correctness of any logical operations or behaviour within your configuration. For example, any conditional resources created based on an input can be verified as part of a test by setting the input that controls the conditional resource to true.

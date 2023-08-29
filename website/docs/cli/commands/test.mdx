@@ -6,40 +6,40 @@ description: >-
 
 # Command: test
 
-The `terraform test` command reads in Terraform testing files and executes the tests detailed within.
+The `terraform test` command reads in Terraform testing files and executes the tests within.
 
-The `test` command, and the test file syntax, are targeted at module authors wishing to validate and test their shared modules. It is also possible to use the `test` command to validate root modules.
+The `test` command, and the test file syntax, are particularly helpful for module authors who want to validate and test their shared modules. You can also use the `test` command to validate root modules.
 
 ## Usage
 
 Usage: `terraform test [options]`
 
-This command searches the current directory and the specified testing directory (`tests`, by default) for any Terraform testing files, and executes the tests as specified. Test files and their syntax are discussed in detail within the [Tests](/terraform/language/tests) language page.
+This command searches the current directory and the specified testing directory (`tests`, by default) for any Terraform testing files, and executes the specified tests. Refer to [Tests](/terraform/language/tests) for more details on test files.
 
-Terraform will then execute a series of Terraform plan or apply commands, according to the specifications within the test files, and validate the relevant plan and state files, again, according to the specifications within the test files.
+Terraform then executes a series of Terraform plan or apply commands according to the test files' specifications, and also validates the relevant plan and state files according to the test files' specifications.
 
-> **Warning:** The Terraform test command can create real infrastructure than can cost you money. Read the [Terraform Test Cleanup](#terraform-test-cleanup) section for best practices on ensuring created infrastructure is destroyed.
+!> **Warning:** The Terraform test command can create real infrastructure than can cost you money. Refer to the [Terraform Test Cleanup](#terraform-test-cleanup) section for best practices on ensuring created infrastructure is destroyed.
 
 ## General Options
 
 The following options apply to the Terraform `test` command:
 
-* `-filter=testfile` Limits the `terraform test` operation only to the specified test files.
+* `-filter=testfile` - Limits the `terraform test` operation to the specified test files.
 
-* `-json` Displays machine-readable JSON output for the testing results.
+* `-json` - Displays machine-readable JSON output for your testing results.
 
-* `-test-directory=<relative directory>` Override the directory that Terraform will look into for testing files. Note, Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
+* `-test-directory=<relative directory>` - Overrides the directory that Terraform looks into for test files. Note that Terraform always loads testing files within the main configuration directory. The default testing directory is `tests`.
 
 * `-verbose` Prints out the state for each `command=apply` `run` block after execution, or the plan for each `command=plan` `run` block.
 
 ## State Management
 
-Each Terraform test file will maintain all Terraform state it requires within memory as it executes, starting empty. This state is entirely separate from any state that exists for the configuration under test, so you can safely execute Terraform test commands without affecting any live infrastructure.
+Each Terraform test file will maintain all Terraform state it requires within memory as it executes, starting empty. This state is entirely separate from any existing state for the configuration under test, so you can safely execute Terraform test commands without affecting any live infrastructure.
 
 ### Terraform Test Cleanup
 
-The Terraform `test` command creates real infrastructure. Once each test file has fully executed, Terraform will attempt to destroy any remaining infrastructure. If it cannot do this, Terraform will report a list of resources that were created and not destroyed.
+The Terraform `test` command creates _real_ infrastructure. Once Terraform fully executes each test file, Terraform attempts to destroy any remaining infrastructure. If it cannot do this, Terraform reports a list of resources it created but could not destroy.
 
-You should monitor the output of the test command closely to ensure any created infrastructure has been successfully removed and perform manual cleanup if not. Where possible, dedicated testing accounts should be created within the target providers that can be routinely and safely purged to ensure any accidental and costly resources aren't left behind.
+You should monitor the output of the test command closely to ensure Terraform removes the infrastructure it created or perform manual cleanup if not. We recommend creating dedicated testing accounts within the target providers that you can routinely and safely purge to ensure any accidental and costly resources aren't left behind.
 
-Terraform will also provide diagnostics explaining why the cleanup could not be completed automatically. You should resolve these diagnostics to ensure future clean up operations are successful.
+Terraform also provides diagnostics explaining why it could now automatically clean up. You should resolve these diagnostics to ensure that future clean-up operations are successful.
