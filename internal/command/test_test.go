@@ -51,6 +51,18 @@ func TestTest(t *testing.T) {
 			expected: "1 passed, 0 failed.",
 			code:     0,
 		},
+		"simple_pass_bad_test_directory": {
+			override: "simple_pass",
+			args:     []string{"-test-directory", "../tests"},
+			expected: "Invalid testing directory",
+			code:     1,
+		},
+		"simple_pass_bad_test_directory_abs": {
+			override: "simple_pass",
+			args:     []string{"-test-directory", "/home/username/config/tests"},
+			expected: "Invalid testing directory",
+			code:     1,
+		},
 		"pass_with_locals": {
 			expected: "1 passed, 0 failed.",
 			code:     0,
@@ -206,7 +218,7 @@ func TestTest(t *testing.T) {
 				t.Errorf("expected status code %d but got %d", tc.code, code)
 			}
 
-			if !strings.Contains(output.Stdout(), tc.expected) {
+			if !strings.Contains(output.All(), tc.expected) {
 				t.Errorf("output didn't contain expected string:\n\n%s", output.All())
 			}
 

@@ -5,6 +5,7 @@ package command
 
 import (
 	"context"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -93,6 +94,18 @@ func (c *TestCommand) Run(rawArgs []string) int {
 	}
 
 	view := views.NewTest(args.ViewType, c.View)
+
+	// The specified testing directory must be a relative path, and it must
+	// point to a directory that is a descendent of the configuration directory.
+	if !filepath.IsLocal(args.TestDirectory) {
+		diags = diags.Append(tfdiags.Sourceless(
+			tfdiags.Error,
+			"Invalid testing directory",
+			"The testing directory must be a relative path pointing to a directory local to the configuration directory."))
+
+		view.Diagnostics(nil, nil, diags)
+		return 1
+	}
 
 	config, configDiags := c.loadConfigWithTests(".", args.TestDirectory)
 	diags = diags.Append(configDiags)
