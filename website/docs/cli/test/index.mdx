@@ -14,11 +14,11 @@ These testing capabilities fit into two main categories:
 1. Validating your configuration and infrastructure as part of your regular Terraform operations.
 2. Performing traditional unit and integration testing on your configuration.
 
-Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) to learn more about the first testing capability.
-
-The second capability is provided by the Terraform [`test`](/terraform/cli/commands/test) command.
+Refer to [Custom Conditions](/terraform/language/expressions/custom-conditions) and [Checks](/terraform/language/checks) to learn more about the first testing capability. Terraform's [`test`](/terraform/cli/commands/test) command provides the second capability.
 
 ## A brief history
+
+The various testing capabilities were introduced in the following versions:
 
 - Terraform v0.13.0 introduced [Input Variable Validation](/terraform/language/expressions/custom-conditions#input-variable-validation).
 - Terraform v0.15.0 introduced an experimental Terraform [`test`](/terraform/language/v1.5.x/modules/testing-experiment) command.
@@ -41,9 +41,7 @@ The `test` command, along with command-line flags and options, is discussed in d
 
 ### Write configuration for tests
 
-Terraform test files [have their own configuration syntax](/terraform/language/tests).
-
-The test file syntax is focused on customizing Terraform executions for the current configuration, and overriding variables and providers to test different behaviours.
+Terraform test files [have their own configuration syntax](/terraform/language/tests). This test file syntax focuses on customizing Terraform executions for the current configuration and overriding variables and providers to test different behaviors.
 
 ## Validations
 
