@@ -128,7 +128,7 @@ Terraform providers are not maintained in this repository; you can find relevant
 repository and relevant issue tracker for each provider within the
 [Terraform Registry index](https://registry.terraform.io/browse/providers).
 
-This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. The source for those components is not publicly available. If you have feedback about these product, including bug reports, please email [tf-cloud@hashicorp.support](mailto:tf-cloud@hashicorp.support) or [open a support request](https://support.hashicorp.com/hc/en-us/requests/new).
+This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. The source for those components is not publicly available. If you have feedback about these products, including bug reports, please email [tf-cloud@hashicorp.support](mailto:tf-cloud@hashicorp.support) or [open a support request](https://support.hashicorp.com/hc/en-us/requests/new).
 
 ---
 
