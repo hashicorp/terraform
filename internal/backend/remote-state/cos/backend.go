@@ -95,14 +95,14 @@ func New() backend.Backend {
 			"endpoint": {
 				Type:        schema.TypeString,
 				Optional:    true,
-				Description: "The custom endpoint for the COS API. eg: http://cos-internal.{Region}.tencentcos.cn, both http or https can be accepted.",
+				Description: "The custom endpoint for the COS API, e.g. http://cos-internal.{Region}.tencentcos.cn. Both HTTP and HTTPS are accepted.",
 				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_ENDPOINT, nil),
 			},
 			"domain": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc(PROVIDER_DOMAIN, nil),
-				Description: "The root domain of the API request, Default is `tencentcloudapi.com`.",
+				Description: "The root domain of the API request. Default is tencentcloudapi.com.",
 			},
 			"prefix": {
 				Type:        schema.TypeString,
@@ -250,9 +250,9 @@ func (b *Backend) configure(ctx context.Context) error {
 
 	if v, ok := data.GetOk("domain"); ok {
 		b.domain = v.(string)
-		log.Printf("[DEBUG][backend] set domain for TencentCloud api client. domain:[%s]", b.domain)
+		log.Printf("[DEBUG] Backend: set domain for TencentCloud API client. Domain: [%s]", b.domain)
 	}
-	// set url as endpoint when it provided
+	// set url as endpoint when provided
 	// "http://{Bucket}.cos-internal.{Region}.tencentcos.cn"
 	if v, ok := data.GetOk("endpoint"); ok {
 		endpoint := v.(string)
@@ -260,7 +260,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		re := regexp.MustCompile(`^(http(s)?)://cos-internal\.([^.]+)\.tencentcos\.cn$`)
 		matches := re.FindStringSubmatch(endpoint)
 		if len(matches) != 4 {
-			return fmt.Errorf("[backend] invalid URL, must be: %v", "http(s)://cos-internal.{Region}.tencentcos.cn")
+			return fmt.Errorf("Invalid URL: %v must be: %v", endpoint, "http(s)://cos-internal.{Region}.tencentcos.cn")
 		}
 
 		protocol := matches[1]
@@ -269,7 +269,7 @@ func (b *Backend) configure(ctx context.Context) error {
 		// URL after converting
 		newUrl := fmt.Sprintf("%s://%s.cos-internal.%s.tencentcos.cn", protocol, b.bucket, region)
 		u, err = url.Parse(newUrl)
-		log.Printf("[DEBUG][backend] set cos url as:[%s]", newUrl)
+		log.Printf("[DEBUG] Backend: set COS URL as: [%s]", newUrl)
 	}
 	if err != nil {
 		return err

@@ -243,7 +243,7 @@ func setupBackendWithEndpoint(t *testing.T, bucket, prefix, key string, encrypt 
 
 	skip := os.Getenv("TF_COS_APPID") == ""
 	if skip {
-		t.Skip("This test require setting TF_COS_APPID environment variables")
+		t.Skip("This test requires setting the TF_COS_APPID environment variable")
 	}
 
 	if os.Getenv(PROVIDER_REGION) == "" {
