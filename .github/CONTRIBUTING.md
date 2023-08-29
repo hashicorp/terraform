@@ -30,7 +30,7 @@ To record a bug report, enhancement proposal, or give any other product feedback
 
 ## Contributing Fixes
 
-It can be tempting to want to dive into an open source project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
+It can be tempting to want to dive into a community project and help _build the thing_ you believe you're missing. It's a wonderful and helpful intention. However, Terraform is a complex tool. Many seemingly simple changes can have serious effects on other areas of the code and it can take some time to become familiar with the effects of even basic changes. The Terraform team is not immune to unintended and sometimes undesirable changes. We do take our work seriously, and appreciate the globally diverse community that relies on Terraform for workflows of all sizes and criticality. 
 
 As a result of Terraform's complexity and high bar for stability, the most straightforward way to start helping with the Terraform project is to pick an existing bug and [get to work](#terraform-clicore-development-environment). 
 
@@ -82,7 +82,7 @@ Please see the [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/COD
 
 #### Maintainers
 
-Maintainers are key contributors to our Open Source project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
+Maintainers are key contributors to our community project. They contribute their time and expertise and we ask that the community take extra special care to be mindful of this when interacting with them.
 
 For code that has a listed maintainer or maintainers in our [CODEOWNERS](https://github.com/hashicorp/terraform/blob/main/CODEOWNERS) file, the Terraform team will highlight them for participation in PRs which relate to the area of code they maintain. The expectation is that a maintainer will review the code and work with the PR contributor before the code is merged by the Terraform team.
 
@@ -128,7 +128,7 @@ Terraform providers are not maintained in this repository; you can find relevant
 repository and relevant issue tracker for each provider within the
 [Terraform Registry index](https://registry.terraform.io/browse/providers).
 
-This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. Those components are not open source, though if you have feedback about them (including bug reports) please do feel free to [open a GitHub issue on this repository](https://github.com/hashicorp/terraform/issues/new/choose).
+This repository also does not include the source code for some other parts of the Terraform product including Terraform Cloud, Terraform Enterprise, and the Terraform Registry. The source for those components is not publicly available. If you have feedback about these product, including bug reports, please email [tf-cloud@hashicorp.support](mailto:tf-cloud@hashicorp.support) or [open a support request](https://support.hashicorp.com/hc/en-us/requests/new).
 
 ---
 
