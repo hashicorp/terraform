@@ -8,6 +8,7 @@ UPGRADE NOTES:
     * Configuration settings related to overriding the locations of AWS service endpoints used by the provider now belong to a nested block `endpoints`. The top-level arguments `dynamodb_endpoint`, `iam_endpoint`, `endpoint` (fir S3), and `sts_endpoint` are now deprecated in favor of the nested equivalents. ([#30492](https://github.com/hashicorp/terraform/issues/30492))
     * The backend now uses the following environment variables for overriding the default locations of AWS service endpoints used by the provider: `AWS_ENDPOINT_URL_DYNAMODB`, `AWS_ENDPOINT_URL_IAM`, `AWS_ENDPOINT_URL_S3`, and `AWS_ENDPOINT_URL_STS`. The old non-standard names for these environment variables are now deprecated: `AWS_DYNAMODB_ENDPOINT`, `AWS_IAM_ENDPOINT`, `AWS_S3_ENDPOINT`, and `AWS_STS_ENDPOINT`. ([#30479](https://github.com/hashicorp/terraform/issues/30479))
     * The singular `shared_credentials_file` argument is deprecated in favor of the plural `shared_credentials_files`.
+    * The `force_path_style` argument is deprecated in favor of `use_path_style` for consistency with the AWS SDK.
 
 NEW FEATURES:
 * `terraform test`: The `terraform test` command is now generally available. This comes with a significant change to how tests are written and executed, based on feedback from the experimental phase.

@@ -272,7 +272,14 @@ func (b *Backend) ConfigSchema() *configschema.Block {
 			"force_path_style": {
 				Type:        cty.Bool,
 				Optional:    true,
-				Description: "Force s3 to use path style api.",
+				Description: "Enable path-style S3 URLs.",
+				Deprecated:  true,
+			},
+
+			"use_path_style": {
+				Type:        cty.Bool,
+				Optional:    true,
+				Description: "Enable path-style S3 URLs.",
 			},
 
 			"max_retries": {
@@ -478,6 +485,16 @@ func (b *Backend) PrepareConfig(obj cty.Value) (cty.Value, tfdiags.Diagnostics) 
 				))
 			}
 		}
+	}
+
+	validateAttributesConflict(
+		cty.GetAttrPath("force_path_style"),
+		cty.GetAttrPath("use_path_style"),
+	)(obj, cty.Path{}, &diags)
+
+	attrPath = cty.GetAttrPath("force_path_style")
+	if val := obj.GetAttr("force_path_style"); !val.IsNull() {
+		diags = diags.Append(deprecatedAttrDiag(attrPath, cty.GetAttrPath("use_path_style")))
 	}
 
 	return obj, diags
@@ -835,7 +852,10 @@ func (b *Backend) Configure(obj cty.Value) tfdiags.Diagnostics {
 		); ok {
 			opts.EndpointResolver = s3.EndpointResolverFromURL(v) //nolint:staticcheck // The replacement is not documented yet (2023/08/03)
 		}
-		if v, ok := boolAttrOk(obj, "force_path_style"); ok {
+		if v, ok := boolAttrOk(obj, "force_path_style"); ok { // deprecated
+			opts.UsePathStyle = v
+		}
+		if v, ok := boolAttrOk(obj, "use_path_style"); ok {
 			opts.UsePathStyle = v
 		}
 	})
