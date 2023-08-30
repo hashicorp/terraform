@@ -175,6 +175,10 @@ func TestTest(t *testing.T) {
 			code:                  1,
 			expectedResourceCount: 1,
 		},
+		"variables_tfvars": {
+			expected: "1 passed, 0 failed.",
+			code:     0,
+		},
 	}
 	for name, tc := range tcs {
 		t.Run(name, func(t *testing.T) {
