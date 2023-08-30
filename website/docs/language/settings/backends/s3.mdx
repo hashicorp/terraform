@@ -518,6 +518,21 @@ to only a single state object within an S3 bucket is shown below:
 }
 ```
 
+The example backend configuration below documents the corresponding `bucket`
+and `key` arguments:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket = "myorg-terraform-states"
+    key    = "myapp/production/tfstate"
+    region = "us-east-1"
+  }
+}
+```
+
+Refer to the [AWS documentation on S3 access control](https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html) for more details.
+
 It is also possible to apply fine-grained access control to the DynamoDB
 table used for locking. When Terraform puts the state lock in place during `terraform plan`, it stores the full state file as a document and sets the s3 object key as the partition key for the document. After the state lock is released, Terraform places a digest of the updated state file in DynamoDB. The key is similar to the one for the original state file, but is suffixed with `-md5`.
 
@@ -547,6 +562,20 @@ The example below shows a simple IAM policy that allows the backend operations r
         }
       }
   ]
+}
+```
+
+The example backend configuration below documents the corresponding `dynamodb_table`
+argument:
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "myorg-terraform-states"
+    key            = "myapp/production/tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "myorg-state-lock-table"
+  }
 }
 ```
 
