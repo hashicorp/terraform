@@ -4,7 +4,6 @@
 package funcs
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"sort"
@@ -24,7 +23,7 @@ var CidrCollapseFunc = function.New(&function.Spec{
 			Type: cty.List(cty.String),
 		},
 	},
-	Type:         function.StaticReturnType(cty.String),
+	Type:         function.StaticReturnType(cty.List(cty.String)),
 	RefineResult: refineNotNull,
 	Impl: func(args []cty.Value, retType cty.Type) (cty.Value, error) {
 		var cidrsInput []string
@@ -55,18 +54,15 @@ var CidrCollapseFunc = function.New(&function.Spec{
 			}
 		}
 
-		var collapsedCidrs []string
+		retVals := []cty.Value{}
 		for _, net := range cidrs {
-			collapsedCidrs = append(collapsedCidrs, net.String())
+			retVals = append(retVals, cty.StringVal(net.String()))
 		}
-		sort.Strings(collapsedCidrs)
+		sort.Slice(retVals, func(i, j int) bool {
+			return i > j
+		})
 
-		val, err := json.Marshal(collapsedCidrs)
-		if err != nil {
-			return cty.UnknownVal(cty.String), err
-		}
-
-		return cty.StringVal(string(val)), nil
+		return cty.ListVal(retVals), nil
 	},
 })
 

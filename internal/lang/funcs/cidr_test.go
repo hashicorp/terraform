@@ -409,8 +409,10 @@ func TestCidrCollapse(t *testing.T) {
 				cty.StringVal("192.168.0.56/32"),
 				cty.StringVal("192.0.0.0/8"),
 			}),
-			Want: cty.StringVal("[\"192.0.0.0/8\"]"),
-			Err:  "",
+			Want: cty.ListVal([]cty.Value{
+				cty.StringVal("192.0.0.0/8"),
+			}),
+			Err: "",
 		},
 		{
 			Cidrs: cty.ListVal([]cty.Value{
@@ -418,8 +420,11 @@ func TestCidrCollapse(t *testing.T) {
 				cty.StringVal("167.123.0.42/32"),
 				cty.StringVal("167.123.0.0/16"),
 			}),
-			Want: cty.StringVal("[\"167.123.0.0/16\",\"192.168.0.0/16\"]"),
-			Err:  "",
+			Want: cty.ListVal([]cty.Value{
+				cty.StringVal("167.123.0.0/16"),
+				cty.StringVal("192.168.0.0/16"),
+			}),
+			Err: "",
 		},
 	}
 
