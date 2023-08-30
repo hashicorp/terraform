@@ -77,7 +77,7 @@ The following message types are supported:
 
 ### Test Results
 
-- `test_abstract`: describes the test operation that will be executed
+- `test_abstract`: describes the test operation that Terraform executes
 - `test_file`: describes the status of a completed test file
 - `test_run`: describes the status of a completed `run` block within a test file
 - `test_cleanup`: describes the result of the test cleanup after a completed test file
@@ -613,7 +613,7 @@ The `resource` object is a decomposed structure representing a resource address 
 
 ## Test Abstract
 
-The `terraform test` command will emit a `test_abstract` message describing the test files and `run` blocks that will be executed during the upcoming operation.
+The `terraform test` command emits a `test_abstract` message describing the test files and `run` blocks that Terraform executes during the upcoming operation.
 
 ### Example
 
@@ -635,7 +635,7 @@ The `terraform test` command will emit a `test_abstract` message describing the 
 
 ## Test File
 
-After each test file has completed execution, `terraform test` will emit a `test_file` message with the status of the test file.
+After Terraform completes execution of each test file, `terraform test` emits a `test_file` message with the status of the test file.
 
 ### Example
 
@@ -656,7 +656,7 @@ After each test file has completed execution, `terraform test` will emit a `test
 
 ## Test Run
 
-After each test file has completed execution, `terraform test` will emit a series of `test_run` messages with the status of each run block within that test file.
+After Terraform completes execution of each test file, `terraform test` emits a series of `test_run` messages with each run block's status within the test file.
 
 ### Example
 
@@ -679,9 +679,9 @@ After each test file has completed execution, `terraform test` will emit a serie
 
 ## Test Cleanup
 
-After each test file has completed execution, `terraform test` may emit a series of `test_cleanup` messages detailing any state that could not be destroyed. The resources listed in these messages will need to be located and destroyed manually.
+After Terraform completes the execution of each test file, `terraform test` may emit a series of `test_cleanup` messages detailing any state it could not destroy. You must locate and destroy the resources listed in these resources manually.
 
-As the test framework can manage multiple state files for a given test file you may see multiple versions of this message, one for each state file that holds resources that could not be destroyed. Using the `@testrun` field you can pinpoint the run block that last updated the state file detailed by this message to help with locating the resources that could not be destroyed.
+As the test framework can manage multiple state files for each test file, you can see multiple versions of this message for each state file that holds resources that Terraform could not destroy. Using the `@testrun` field, you can pinpoint the run block that last updated the state file to locate the resources that Terraform could not destroy.
 
 ### Example
 
@@ -709,7 +709,7 @@ As the test framework can manage multiple state files for a given test file you 
 
 ## Test Summary
 
-After the test operation has completed all test files, `terraform test` will emit a `test_summary` message with the status of the overall test operation.
+After the test operation has completed all test files, `terraform test` emits a `test_summary` message with the status of the overall test operation.
 
 ### Example
 
@@ -732,7 +732,7 @@ After the test operation has completed all test files, `terraform test` will emi
 
 ## Test Plan
 
-In `-verbose` mode, `terraform test` will emit a `test_plan` message for all `run` blocks that executed a plan operation.  The `test_plan` message content matches the format of the `terraform show -json <planfile>` command [output](/terraform/internals/json-format#plan-representation).
+In `-verbose` mode, `terraform test` emits a `test_plan` message for all `run` blocks that executed a plan operation. The `test_plan` message content matches the format of the `terraform show -json <planfile>` command [output](/terraform/internals/json-format#plan-representation).
 
 ### Example
 
@@ -832,7 +832,7 @@ In `-verbose` mode, `terraform test` will emit a `test_plan` message for all `ru
 
 ## Test State
 
-In `-verbose` mode, `terraform test` will emit a `test_state` message for all `run` blocks that executed an apply operation. The `test_state` message content matches the format of the `terraform show -json` command [output](/terraform/internals/json-format#state-representation).
+In `-verbose` mode, `terraform test` emits a `test_state` message for all `run` blocks that executed an apply operation. The `test_state` message content matches the format of the `terraform show -json` command [output](/terraform/internals/json-format#state-representation).
 
 ### Example
 
@@ -872,11 +872,11 @@ In `-verbose` mode, `terraform test` will emit a `test_state` message for all `r
 
 ## Test Interrupt
 
-When `terraform test` is interrupted or cancelled it will emit a `test_interrupt` message that describes the operation that was being completed when it was interrupted. This will include any state that could not be destroyed before exiting and any resources that were in the process of being created that may also have been left over.
+When `terraform test` is impeded or canceled, it emits a `test_interrupt` message that describes the interrupted operation. This message includes any state that Terraform could not destroy before exiting and any leftover resources that Terraform did not finish creating.
 
-As with the [Test Cleanup](#test-cleanup) message, there is the potential for Terraform to have been maintaining multiple state files. The resources from the main state for the configuration under test is contained in the `state` field, while the `states` field contains a map from `run` block names to resources created by that `run` block that could not be destroyed.
+As with the [Test Cleanup](#test-cleanup) message, Terraform might have been maintaining multiple state files. The `state` field contains the resources from the main state for the test configuration, while the `states` field contains a map of `run` block names to the resources that each `run` block created, which Terraform could not destroy.
 
-Finally, the `planned` field contains any resources that were in the process of being created by the `run` block that was interrupted, which is identified by the `@testrun` field.
+Finally, the `planned` field contains any resources that were in the process of being created by the interrupted `run` block, which you can identify using the `@testrun` field.
 
 ### Example
 
